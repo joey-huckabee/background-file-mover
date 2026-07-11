@@ -2919,3 +2919,626 @@ python -m swit_file_mover --help
 ```
 The most important design decision from this file is that our submission CLI should remain synchronous only through the **durable claim boundary**. It should not detach a subprocess itself, rewrite configuration files, or perform the long-running copy. The already-running systemd service owns the background work.
 
+## My Prompt:
+file_handler/directory_factory.py
+
+## Chat Reply:
+This factory has several strong ideas we should preserve—especially rich validation errors, explicit object construction, and separating configuration loading from instance creation. However, the new mover does not need a general storage-backend factory. It only operates on mounted POSIX filesystems, so we can simplify considerably and gain stronger guarantees.
+
+## What We Should Reuse
+#### 1. Layered configuration processing
+The current flow is good:
+```
+load raw configuration
+        ↓
+validate configuration
+        ↓
+construct typed model
+        ↓
+create runtime object
+```
+That separation should carry forward.
+
+For `Background File Mover`, the equivalent would be:
+```
+ConfigurationFileReader
+        ↓
+ConfigurationParser
+        ↓
+ConfigurationValidator
+        ↓
+ApplicationConfig
+        ↓
+ApplicationFactory
+```
+Each step should have one responsibility.
+
+For example:
+```python
+class ConfigurationLoader:
+    """Load and validate application configuration."""
+
+    def load(self, path: Path) -> ApplicationConfig:
+        """Load application configuration from an INI file.
+
+        Args:
+            path: Path to the application configuration file.
+
+        Returns:
+            A validated immutable application configuration.
+
+        Raises:
+            ConfigurationFileError: If the file cannot be read.
+            ConfigurationSyntaxError: If the INI content is invalid.
+            ConfigurationValidationError: If values violate application rules.
+        """
+```
+
+#### 2. Helpful validation messages
+This file does more than say configuration is invalid. It identifies:
+
+* The location of the error
+* The validation message
+* The expected model
+* Valid fields
+* Required versus optional fields
+* Default values
+
+That is excellent operational behavior.
+
+We should preserve the same user experience without recreating Pydantic reflection.
+
+An error should look like:
+```
+Configuration validation failed:
+
+  Section: [transfer]
+  Option: max_concurrent_files
+  Value: 0
+  Error: must be greater than or equal to 1
+
+Valid options for [transfer]:
+  max_concurrent_jobs = integer, default 1
+  max_concurrent_files = integer, default 2
+  copy_buffer_size_bytes = integer, default 8388608
+  retry_limit = integer, default 10
+  retry_initial_delay_seconds = float, default 10.0
+  retry_max_delay_seconds = float, default 900.0
+```
+This is much better than a raw `ValueError`.
+
+#### 3. Centralized construction
+The current factory ensures callers do not construct directory implementations inconsistently.
+
+That same idea applies to our service components:
+```python
+class ApplicationFactory:
+    """Construct configured application services and infrastructure."""
+
+    def create_submission_service(self) -> JobSubmissionService:
+        ...
+
+    def create_transfer_service(self) -> TransferCoordinator:
+        ...
+
+    def create_recovery_service(self) -> RecoveryService:
+        ...
+
+    def create_job_query_service(self) -> JobQueryService:
+        ...
+```
+This allows centralized control of:
+
+* Repository creation
+* Clock injection
+* Filesystem adapter injection
+* Logging
+* Event publishing
+* Retry policy
+* Integrity configuration
+* Thread pools
+
+It will also make tests much easier because the factory can accept test doubles.
+
+#### 4. Dependency injection for external clients
+The current factory supports:
+```python
+s3_client_override
+```
+We will not have an S3 client, but the underlying pattern is valuable.
+
+For the new mover, injectable dependencies should include:
+```
+FileSystem
+Clock
+Sleeper
+JobRepository
+ManifestRepository
+HashCalculator
+TransferEventPublisher
+DiskSpaceProvider
+ProcessLock
+```
+Production uses standard-library implementations. Tests use controlled fakes.
+
+For example:
+```python
+class ApplicationFactory:
+    """Construct application components."""
+
+    def __init__(
+        self,
+        config: ApplicationConfig,
+        file_system: FileSystem | None = None,
+        clock: Clock | None = None,
+        sleeper: Sleeper | None = None,
+    ) -> None:
+        self._config = config
+        self._file_system = file_system or PosixFileSystem()
+        self._clock = clock or SystemClock()
+        self._sleeper = sleeper or SystemSleeper()
+```
+This is one of the most useful architectural concepts from the current factory.
+
+## What We Should Not Carry Forward
+#### 1. Dynamic constructor inspection
+This code is clever:
+```python
+params = signature(directory_class).parameters
+filtered = {
+    k: v
+    for k, v in config.model_dump().items()
+    if k in params and v is not None
+}
+```
+But it hides the mapping between configuration and runtime objects.
+
+Problems include:
+
+* Renaming a constructor argument may silently stop passing a configuration value.
+* A typo may be silently filtered out.
+* Required parameters are discovered only at runtime.
+* Static type checking cannot validate the mapping.
+* Constructor behavior becomes coupled to reflection.
+* Configuration fields may be unintentionally passed merely because names happen to match.
+
+For the new project, construction should be explicit:
+
+```python
+transfer_config = TransferConfig(
+    max_concurrent_jobs=parse_positive_int(
+        section="transfer",
+        option="max_concurrent_jobs",
+        value=parser["transfer"]["max_concurrent_jobs"],
+    ),
+    max_concurrent_files=parse_positive_int(
+        section="transfer",
+        option="max_concurrent_files",
+        value=parser["transfer"]["max_concurrent_files"],
+    ),
+    copy_buffer_size_bytes=parse_buffer_size(
+        parser["transfer"]["copy_buffer_size_bytes"]
+    ),
+)
+```
+This is longer, but much safer for a data-preservation application.
+
+#### 2. Fallback implementations for missing required dependencies
+This block is dangerous:
+```python
+except ImportError:
+    class ValidationError(ValueError):
+        ...
+```
+The fallback does not provide equivalent validation. It can return the raw dictionary:
+```python
+return data
+```
+Later code expects a Pydantic model with methods such as:
+```python
+model_dump()
+```
+So the fallback is not actually a reliable fallback.
+
+More importantly, silently operating with reduced validation is unacceptable for our mover.
+
+For `Background File Mover`:
+
+* All production functionality is standard library.
+* Missing required standard-library capabilities should cause controlled startup failure.
+* There should be no degraded validation mode.
+* There should be no “best effort” fallback that bypasses safety checks.
+
+Failing safely is preferable to silently weakening validation.
+
+#### 3. Assertions for runtime validation
+The current code uses:
+```python
+assert config.bucket_name is not None
+```
+Assertions are inappropriate for operational validation because Python can disable them with optimization:
+```shell
+python -O
+```
+The new project should never rely on `assert` for:
+
+* Path safety
+* Job-state validity
+* Integrity checks
+* Configuration completeness
+* Source deletion preconditions
+* Destination publication preconditions
+
+Use explicit checks:
+
+```python
+if file_record.state is not FileState.PUBLISHED_VERIFIED:
+    raise InvalidStateTransitionError(
+        current_state=file_record.state,
+        requested_state=FileState.SOURCE_DELETED,
+    )
+```
+Assertions may still be used sparingly for genuine programmer invariants in tests, but not for production safety decisions.
+
+#### 4. Returning broad `Any` types
+Several APIs use:
+```python
+Any
+Directory[Any]
+Optional[Any]
+```
+The new application should keep infrastructure interfaces narrow.
+
+For example:
+```python
+class FileSystem(Protocol):
+    """Define filesystem operations required by the mover."""
+
+    def stat(self, path: Path, *, follow_symlinks: bool = False) -> os.stat_result:
+        ...
+
+    def replace(self, source: Path, destination: Path) -> None:
+        ...
+
+    def open_binary_reader(self, path: Path) -> BinaryIO:
+        ...
+
+    def open_binary_writer_exclusive(self, path: Path) -> BinaryIO:
+        ...
+
+    def unlink(self, path: Path) -> None:
+        ...
+```
+This tells us exactly what the mover depends on.
+
+#### 5. One factory for unrelated storage types
+The current factory supports local, SMB, and S3 through a shared abstraction. That makes sense for `file-handler`.
+
+Our new project does not need that flexibility. Both NFS mounts are visible as normal Linux paths.
+
+We should not create abstractions such as:
+```
+NfsDirectory
+LocalDirectory
+RemoteDirectory
+StorageBackend
+```
+unless behavior actually differs.
+
+From Python’s perspective, mounted NFS is accessed through normal POSIX filesystem calls. The important differences are operational:
+
+* Remote availability
+* NFS error codes
+* Rename atomicity only within a mount
+* Stale handles
+* Write durability semantics
+* Mount-point verification
+
+These should be handled by filesystem policy and error classification, not a fake “NFS backend” class.
+
+## A Better Factory Boundary for This Project
+The new factory should not create generic directory objects. It should assemble application capabilities.
+```
+ApplicationFactory
+│
+├── create_job_repository()
+├── create_manifest_repository()
+├── create_source_claim_service()
+├── create_integrity_service()
+├── create_file_copier()
+├── create_transfer_coordinator()
+├── create_recovery_service()
+├── create_submission_service()
+└── create_background_service()
+```
+A possible implementation structure:
+```python
+class ApplicationFactory:
+    """Create configured SWIT file mover application services."""
+
+    def __init__(
+        self,
+        config: ApplicationConfig,
+        logger_factory: LoggerFactory | None = None,
+        clock: Clock | None = None,
+        sleeper: Sleeper | None = None,
+        file_system: FileSystem | None = None,
+    ) -> None:
+        """Initialize the application factory.
+
+        Args:
+            config: Validated application configuration.
+            logger_factory: Optional logger provider.
+            clock: Optional time provider used for testing.
+            sleeper: Optional delay provider used for testing.
+            file_system: Optional filesystem implementation.
+        """
+        self._config = config
+        self._clock = clock or SystemClock()
+        self._sleeper = sleeper or SystemSleeper()
+        self._file_system = file_system or PosixFileSystem()
+        self._logger_factory = logger_factory or StandardLoggerFactory()
+
+    def create_job_repository(self) -> SQLiteJobRepository:
+        """Create the SQLite-backed job repository."""
+        return SQLiteJobRepository(
+            database_path=self._config.service.database_path,
+            clock=self._clock,
+        )
+
+    def create_file_copier(self) -> BufferedFileCopier:
+        """Create the configured file-copy implementation."""
+        return BufferedFileCopier(
+            file_system=self._file_system,
+            buffer_size_bytes=self._config.transfer.copy_buffer_size_bytes,
+        )
+
+    def create_transfer_coordinator(self) -> TransferCoordinator:
+        """Create the transfer workflow coordinator."""
+        repository = self.create_job_repository()
+        return TransferCoordinator(
+            repository=repository,
+            file_system=self._file_system,
+            copier=self.create_file_copier(),
+            integrity_verifier=self.create_integrity_verifier(),
+            retry_policy=self.create_retry_policy(),
+            clock=self._clock,
+            sleeper=self._sleeper,
+        )
+```
+We should avoid creating multiple repository connections accidentally each time a factory method is called. The final implementation may use scoped or cached infrastructure instances, but the mappings should remain explicit.
+
+## Configuration Schema Without Pydantic Reflection
+The current file dynamically generates model schema hints. We can achieve similar behavior with declarative standard-library specifications.
+
+For example:
+```python
+@dataclass(frozen=True)
+class OptionSpec:
+    """Describe one supported configuration option."""
+
+    name: str
+    value_type: str
+    required: bool
+    default_display: str | None
+    description: str
+```
+Then:
+```python
+TRANSFER_OPTION_SPECS = (
+    OptionSpec(
+        name="max_concurrent_jobs",
+        value_type="integer >= 1",
+        required=False,
+        default_display="1",
+        description="Maximum number of jobs processed simultaneously.",
+    ),
+    OptionSpec(
+        name="max_concurrent_files",
+        value_type="integer >= 1",
+        required=False,
+        default_display="2",
+        description="Maximum number of files copied simultaneously per service.",
+    ),
+)
+```
+The same specification can support:
+
+* Unknown-option detection
+* Error hints
+* Configuration documentation generation
+* Sample configuration generation
+* `doctor` output
+* Unit tests
+
+This is a good opportunity to avoid duplicating configuration knowledge across code and documentation.
+
+## Configuration Error Model
+Rather than turning everything into `ValueError`, define structured issues.
+```python
+@dataclass(frozen=True)
+class ConfigurationIssue:
+    """Describe one invalid configuration value."""
+
+    section: str
+    option: str | None
+    value: str | None
+    message: str
+
+
+class ConfigurationValidationError(SwitFileMoverError):
+    """Indicate that application configuration is invalid."""
+
+    def __init__(self, issues: Sequence[ConfigurationIssue]) -> None:
+        self.issues = tuple(issues)
+        super().__init__(self._format_message())
+
+    def _format_message(self) -> str:
+        lines = ["Configuration validation failed:"]
+        for issue in self.issues:
+            location = f"[{issue.section}]"
+            if issue.option:
+                location += f" {issue.option}"
+            lines.append(f"  - {location}: {issue.message}")
+        return "\n".join(lines)
+```
+This allows the CLI to render human-readable output while JSON mode can return structured errors:
+```json
+{
+  "success": false,
+  "error_code": "CONFIGURATION_INVALID",
+  "issues": [
+    {
+      "section": "transfer",
+      "option": "max_concurrent_files",
+      "value": "0",
+      "message": "must be greater than or equal to 1"
+    }
+  ]
+}
+```
+## Path Construction Must Be Explicit
+The existing factory accepts a configured `path` and builds a directory object. Our application needs stronger path normalization and policy enforcement.
+
+We should separate lexical path validation from filesystem validation.
+
+#### Lexical validation
+
+Performed without touching the filesystem:
+```
+Path must be absolute.
+Path must not contain a NUL character.
+Source and destination must not be identical.
+Destination must not be lexically beneath the source.
+Claim directory name must be a single path component.
+Temporary prefix must not contain separators.
+```
+#### Filesystem validation
+
+Performed using actual metadata:
+```
+Source root exists.
+Source root is a directory.
+Source root is on an approved mount.
+Destination root exists or its approved parent exists.
+Source claim operation remains on the same device.
+Source and destination are on different configured filesystem roots.
+State directory is not on the recording source tree.
+Paths do not resolve through symbolic links when symlinks are forbidden.
+```
+We should be careful with `Path.resolve()` because resolving symlinks can itself violate the “do not follow symlinks” policy. The filesystem layer may need component-by-component `lstat()` validation.
+
+## Important New Concept: Filesystem Identity
+Because source claiming must remain on the same filesystem, the application should record filesystem identity.
+
+A file observation can include:
+```python
+@dataclass(frozen=True)
+class FileIdentity:
+    """Identify a filesystem object at a point in time."""
+
+    device_id: int
+    inode: int
+    size_bytes: int
+    modified_time_ns: int
+```
+Before and after claiming, we can verify:
+```
+device ID unchanged
+inode unchanged
+size unchanged
+mtime unchanged
+```
+This confirms the claimed path refers to the same source object.
+
+For directories, we should also verify the staging directory has the same `st_dev` as the source file before attempting the rename.
+
+## Requirements Derived From This Factory
+#### L2 Factory and Construction Requirements
+##### L2-ARC-001
+
+The software shall separate configuration loading, configuration validation, infrastructure construction, and application-service construction.
+
+##### L2-ARC-002
+
+The software shall construct application components through explicit typed mappings rather than runtime constructor reflection.
+
+##### L2-ARC-003
+
+The software shall support injection of filesystem, clock, delay, repository, and integrity implementations for testing.
+
+##### L2-ARC-004
+
+The software shall not provide a reduced-validation fallback mode.
+
+##### L2-ARC-005
+
+The software shall not use Python assertions to enforce operational or data-safety requirements.
+
+##### L2-ARC-006
+
+The application factory shall construct only components required by the selected CLI command or service mode.
+
+#### L2 Configuration Error Requirements
+##### L2-CFG-008
+
+The software shall report all detectable configuration validation issues in a single validation result where practical.
+
+##### L2-CFG-009
+
+Each configuration issue shall identify the section, option, invalid value when safe to display, and reason for rejection.
+
+##### L2-CFG-010
+
+The software shall provide contextual information describing valid options and accepted value ranges.
+
+##### L2-CFG-011
+
+The software shall use the same configuration-option definitions for validation and generated operator documentation where practical.
+
+#### L2 Filesystem Identity Requirements
+##### L2-FS-001
+
+The software shall record the device identifier and inode of each source file before claiming it.
+
+##### L2-FS-002
+
+The software shall verify that a claimed file refers to the same device and inode as the pre-claim source file.
+
+##### L2-FS-003
+
+The software shall reject a claim operation when the source and claim destination are not located on the same filesystem.
+
+##### L2-FS-004
+
+The software shall not follow symbolic links during source inventory or claiming unless explicitly enabled by an approved future requirement.
+
+##### L2-FS-005
+
+The software shall validate that submitted source and destination paths remain beneath configured approved roots.
+
+## Testing Ideas From This File
+The configuration and factory tests should cover:
+
+```
+valid configuration produces the expected immutable objects
+unknown section is rejected
+unknown option is rejected
+missing required option is rejected
+invalid integer includes section and option in the error
+multiple independent errors are reported together
+invalid enum lists accepted choices
+factory maps every config field explicitly
+factory does not rely on inspect.signature
+test filesystem can be injected
+test clock can be injected
+test sleeper prevents real retry delays
+production filesystem is used by default
+assert statements are not used for runtime validation
+source and claim paths on different st_dev values are rejected
+inode identity is preserved after claim
+symlink source paths are rejected
+resolved paths cannot escape approved roots
+```
+The biggest lesson from this file is not the multi-backend directory factory itself. It is the disciplined pipeline of **load, validate, explain, then construct**. We should retain that pattern while replacing dynamic reflection and permissive fallbacks with explicit standard-library code appropriate for a data-durability system.
+
