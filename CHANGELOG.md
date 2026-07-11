@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Configuration subsystem (Milestone 2): a strict `ConfigurationLoader` that parses the
+  INI file with `configparser`, rejects unknown sections/options and missing required
+  values, converts values to typed fields, validates numeric ranges and cross-field
+  constraints, and returns a frozen `ApplicationConfig`. All problems are collected and
+  reported together as structured `ConfigurationIssue` records via
+  `ConfigurationValidationError`. A single `OptionSpec`-driven `SECTION_SCHEMAS` is the
+  one source of truth shared by validation, unknown-option detection, defaults, and
+  `describe_schema()` documentation.
+- `file-mover config validate` and a partial `doctor` command, with human and JSON
+  output (machine JSON on stdout, diagnostics on stderr).
+
 - Project foundation (Milestone 1): Poetry project with a `src/file_mover` package,
   standard-library-only runtime, and the full dev/CI quality battery
   (ruff, mypy --strict, pytest + coverage, pylint, vulture, bandit).

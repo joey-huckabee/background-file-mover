@@ -1,13 +1,25 @@
-"""Tests for the CLI parser surface and dispatch (no service behavior yet)."""
+"""Tests for the CLI parser surface and dispatch."""
 
 from __future__ import annotations
 
+import json
 import runpy
+from pathlib import Path
 
 import pytest
 
 from file_mover.cli import create_parser, main
 from file_mover.jobs.models import ExitCode
+
+_MINIMAL_CONFIG = (
+    "[paths]\n" "allowed_source_roots = /recordings\n" "allowed_destination_roots = /processing\n"
+)
+
+
+def _write_config(tmp_path: Path, text: str) -> str:
+    path = tmp_path / "file-mover.ini"
+    path.write_text(text, encoding="utf-8")
+    return str(path)
 
 
 @pytest.mark.requirement("L3-CLI-001")
@@ -48,7 +60,6 @@ def test_invalid_choice_is_rejected_before_dispatch() -> None:
         ["list"],
         ["retry", "job-123"],
         ["stats"],
-        ["doctor"],
         ["recover"],
         ["submit", "--scenario-id", "s1", "--source", "/recordings/s1", "--destination", "/p"],
         ["service", "run"],
@@ -79,3 +90,65 @@ def test_module_entry_point_runs(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit) as excinfo:
         runpy.run_module("file_mover", run_name="__main__")
     assert excinfo.value.code == ExitCode.INVALID_ARGUMENT
+
+
+@pytest.mark.requirement("L2-CFG-007")
+def test_config_validate_accepts_valid_config(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["config", "validate", "--config", path]) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-CLI-004")
+def test_config_validate_valid_json_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    code = main(["config", "validate", "--config", path, "--output", "json"])
+    assert code == ExitCode.SUCCESS
+    assert json.loads(capsys.readouterr().out)["status"] == "ok"
+
+
+@pytest.mark.requirement("L2-CFG-006")
+def test_config_validate_rejects_invalid_config(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, "[nonsense]\nx = 1\n")
+    assert main(["config", "validate", "--config", path]) == ExitCode.CONFIGURATION_ERROR
+
+
+@pytest.mark.requirement("L2-CLI-004")
+def test_config_validate_json_output_on_stdout(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = _write_config(tmp_path, "[nonsense]\nx = 1\n")
+    code = main(["config", "validate", "--config", path, "--output", "json"])
+    assert code == ExitCode.CONFIGURATION_ERROR
+    payload = json.loads(capsys.readouterr().out)  # stdout must be pure JSON
+    assert payload["error_code"] == "CONFIGURATION_INVALID"
+    assert any(issue["section"] == "nonsense" for issue in payload["issues"])
+
+
+@pytest.mark.requirement("L2-CLI-002")
+def test_config_without_subcommand_is_invalid() -> None:
+    assert main(["config"]) == ExitCode.INVALID_ARGUMENT
+
+
+@pytest.mark.requirement("L2-CFG-007")
+def test_doctor_validates_configuration(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["doctor", "--config", path]) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-CFG-006")
+def test_config_validate_missing_file_human(tmp_path: Path) -> None:
+    missing = str(tmp_path / "nope.ini")
+    assert main(["config", "validate", "--config", missing]) == ExitCode.CONFIGURATION_ERROR
+
+
+@pytest.mark.requirement("L2-CFG-006")
+def test_config_validate_missing_file_json(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = str(tmp_path / "nope.ini")
+    code = main(["config", "validate", "--config", missing, "--output", "json"])
+    assert code == ExitCode.CONFIGURATION_ERROR
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["error_code"] == "CONFIGURATION_ERROR"

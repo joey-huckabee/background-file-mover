@@ -16,11 +16,14 @@ result rendering arrive in Milestones 2-7 (see ``docs/ROADMAP.md``).
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 
 from file_mover import __version__
+from file_mover.configuration import ConfigurationLoader, ConfigurationValidationError
 from file_mover.constants import APP_NAME, DEFAULT_CONFIG_PATH
+from file_mover.exceptions import ConfigurationError
 from file_mover.jobs.models import ExitCode
 
 
@@ -106,23 +109,30 @@ def create_parser() -> argparse.ArgumentParser:
     _add_global_options(retry)
     retry.add_argument("job_id", help="job identifier")
 
-    stats = subcommands.add_parser("stats", help="show durable service statistics")
-    _add_global_options(stats)
+    _add_global_options(subcommands.add_parser("stats", help="show durable service statistics"))
 
-    doctor = subcommands.add_parser("doctor", help="validate configuration and filesystem access")
-    _add_global_options(doctor)
-
-    recover = subcommands.add_parser(
-        "recover", help="reconcile durable state after an interruption"
+    config = subcommands.add_parser("config", help="configuration operations")
+    config_sub = config.add_subparsers(dest="config_command", metavar="<config-command>")
+    _add_global_options(
+        config_sub.add_parser(
+            "validate", help="validate configuration without starting the service"
+        )
     )
-    _add_global_options(recover)
+
+    _add_global_options(
+        subcommands.add_parser("doctor", help="validate configuration and filesystem access")
+    )
+    _add_global_options(
+        subcommands.add_parser("recover", help="reconcile durable state after an interruption")
+    )
 
     service = subcommands.add_parser("service", help="background service operations")
     service_sub = service.add_subparsers(dest="service_command", metavar="<service-command>")
-    service_run = service_sub.add_parser(
-        "run", help="run the service in the foreground (systemd entry point)"
+    _add_global_options(
+        service_sub.add_parser(
+            "run", help="run the service in the foreground (systemd entry point)"
+        )
     )
-    _add_global_options(service_run)
 
     return parser
 
@@ -142,6 +152,80 @@ def _not_implemented(command: str) -> ExitCode:
         file=sys.stderr,
     )
     return ExitCode.OPERATION_FAILED
+
+
+def _validate_configuration(config_path: str, output: str) -> ExitCode:
+    """Load and validate the configuration file, rendering the outcome.
+
+    Machine output (``--output json``) is written to stdout; human diagnostics go to
+    stderr (L2-CLI-005/006).
+
+    Args:
+        config_path: Path to the configuration file.
+        output: ``"human"`` or ``"json"``.
+
+    Returns:
+        :attr:`ExitCode.SUCCESS` if valid, otherwise :attr:`ExitCode.CONFIGURATION_ERROR`.
+    """
+    loader = ConfigurationLoader()
+    try:
+        loader.load(config_path)
+    except ConfigurationValidationError as error:
+        if output == "json":
+            payload = {
+                "error_code": "CONFIGURATION_INVALID",
+                "issues": [
+                    {
+                        "section": issue.section,
+                        "option": issue.option,
+                        "value": issue.value,
+                        "message": issue.message,
+                    }
+                    for issue in error.issues
+                ],
+            }
+            print(json.dumps(payload, indent=2))
+        else:
+            print(f"{APP_NAME}: {error}", file=sys.stderr)
+            for issue in error.issues:
+                location = issue.section
+                if issue.option is not None:
+                    location = f"{issue.section}.{issue.option}"
+                print(f"  [{location}] {issue.message}", file=sys.stderr)
+        return ExitCode.CONFIGURATION_ERROR
+    except ConfigurationError as error:
+        if output == "json":
+            print(json.dumps({"error_code": "CONFIGURATION_ERROR", "message": str(error)}))
+        else:
+            print(f"{APP_NAME}: {error}", file=sys.stderr)
+        return ExitCode.CONFIGURATION_ERROR
+
+    if output == "json":
+        print(json.dumps({"status": "ok", "message": "configuration valid"}))
+    else:
+        print("configuration valid")
+    return ExitCode.SUCCESS
+
+
+def _handle_config(args: argparse.Namespace) -> ExitCode:
+    """Dispatch a ``config`` subcommand."""
+    if getattr(args, "config_command", None) != "validate":
+        print(
+            f"{APP_NAME}: 'config' requires a subcommand (e.g. 'config validate').",
+            file=sys.stderr,
+        )
+        return ExitCode.INVALID_ARGUMENT
+    return _validate_configuration(args.config, args.output)
+
+
+def _handle_doctor(args: argparse.Namespace) -> ExitCode:
+    """Run diagnostic checks. Milestone 2 covers configuration validation only."""
+    print(
+        f"{APP_NAME}: doctor — configuration checks only; "
+        f"filesystem and service checks arrive in later milestones.",
+        file=sys.stderr,
+    )
+    return _validate_configuration(args.config, args.output)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -164,6 +248,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if command is None:
         parser.print_help(sys.stderr)
         return int(ExitCode.INVALID_ARGUMENT)
+
+    if command == "config":
+        return int(_handle_config(args))
+
+    if command == "doctor":
+        return int(_handle_doctor(args))
 
     if command == "service":
         service_command = getattr(args, "service_command", None)
