@@ -13,13 +13,15 @@ Requirements:
 * Document L1, L2, L3 Requirements 
 * Fully Pytested 
 
-Lets Talk about the requirements more so we can kickstart this project more effectively. 
-
-We have a system which runs a scenario/simulation and data is recorded. Those files are recorded locally on each of the Hosts running the simulation. There are six hosts which run the simulation each recording data to the same NFS mount (these are Linux Hosts). There are a collection of python scripts which orchestrate the simulation and at the end part of the process there is a step which gets triggered to move the files from the local NFS mount to a remote data processing NFS mount and compute platform. The problem we are having is the data sets and recordings are totaling around 100 GB of data and it is causing the simulation hosts to pause for a very long period of time while data is being moved at which time the simulation platform can not be prepared for the next run. We need a python application which will be able to run in the background separate from the simulation orchestration python scripts moving the recordings. So the simulation orchestration python scripts will trigger the separate move process with a list of files or a folder which needs to be moved. 
-How would a python script kick off a process like this? What would this application look like? It must be durable because we cannot lose data during this process. The first step will be to rename the files so they do not get overwritten by the simulation host while they get moved. 
+Lets Talk about the requirements more so we can kickstart this project more effectively.  
+  
+We have a system which runs a scenario/simulation and data is recorded. Those files are recorded locally on each of the Hosts running the simulation. There are six hosts which run the simulation each recording data to the same NFS mount (these are Linux Hosts). There are a collection of python scripts which orchestrate the simulation and at the end part of the process there is a step which gets triggered to move the files from the local NFS mount to a remote data processing NFS mount and compute platform. The problem we are having is the data sets and recordings are totaling around 100 GB of data and it is causing the simulation hosts to pause for a very long period of time while data is being moved at which time the simulation platform can not be prepared for the next run. We need a python application which will be able to run in the background separate from the simulation orchestration python scripts moving the recordings. So the simulation orchestration python scripts will trigger the separate move process with a list of files or a folder which needs to be moved.  
+  
+How would a python script kick off a process like this? What would this application look like? It must be durable because we cannot lose data during this process. The first step will be to rename the files so they do not get overwritten by the simulation host while they get moved.  
+  
 I would like to make sure we ensure data movement integrity. Though any sort of hashing would need to be configurable to turn on or off and the hash value would be written into a file before the files were moved to a different location. 
-Lets get started designing this up. Explain how all this will work.
-
+Lets get started designing this up. Explain how all this will work.  
+  
 ## Recommended Architecture
 `Background File Mover` should be a **long-running background service** managed by `systemd`, not a child process that remains tied to the simulation orchestration script.
 
@@ -102,7 +104,7 @@ Because the application cannot use external runtime dependencies, there are two 
 > Not the recommended option
 The submit command writes a JSON job manifest into a spool directory:
 ```
-/var/lib/swit-file-mover/
+/var/lib/file-mover/
 ├── queue/
 ├── processing/
 ├── completed/
@@ -124,7 +126,7 @@ This is simple, inspectable, and durable.
 > Recommended option
 The submit command connects to the service using a Unix domain socket:
 ```
-/run/swit-file-mover/control.sock
+/run/file-mover/control.sock
 ```
 The service accepts the request and records it in SQLite or a durable manifest.
 
@@ -170,7 +172,7 @@ Before submission:
 After the mover claims the files:
 ```
 /recordings/current-run/
-├── .swit-moving/
+├── .moving/
 │   └── 8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a/
 │       ├── host01.dat
 │       ├── host02.dat
@@ -185,7 +187,7 @@ host01.dat
 ```
 becomes:
 ```
-host01.dat.swit-moving.8f6e4ad6
+host01.dat.moving.8f6e4ad6
 ```
 I prefer moving the files into a job-specific staging directory because it:
 
@@ -350,7 +352,7 @@ A manifest might look like:
   "job_id": "8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a",
   "scenario_id": "scenario-001",
   "created_at": "2026-07-10T15:30:00Z",
-  "source_root": "/recordings/current-run/.swit-moving/8f6e4ad6",
+  "source_root": "/recordings/current-run/.moving/8f6e4ad6",
   "destination_root": "/processing/scenario-001",
   "integrity": {
     "enabled": true,
@@ -452,7 +454,7 @@ Final destination:
   /processing/scenario-001/host01.dat
 
 Temporary destination:
-  /processing/scenario-001/.swit-partial-8f6e4ad6-host01.dat
+  /processing/scenario-001/.partial-8f6e4ad6-host01.dat
 ```
 The flow is:
 
@@ -471,7 +473,7 @@ The flow is:
 
 This prevents downstream processing from seeing a partially copied file.
 
-The remote processing system should consume only finalized names, never `.swit-partial-*` files.
+The remote processing system should consume only finalized names, never `.partial-*` files.
 
 ## Copy Versus Move Semantics
 Although the product is named Background File Mover, its internal implementation should behave as:
@@ -602,7 +604,7 @@ background-file-mover/
 ├── packaging/
 │   └── systemd/
 │       └── background-file-mover.service
-├── swit_file_mover/
+├── file_mover/
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── application.py
@@ -660,13 +662,13 @@ file-mover service run
 
 # Submit a directory
 file-mover submit \
-    --scenario-id SWIT-2026-0710-001 \
+    --scenario-id FLT-2026-0710-001 \
     --source /recordings/scenario-001 \
     --destination /processing/scenario-001
 
 # Submit an explicit list
 file-mover submit \
-    --scenario-id SWIT-2026-0710-001 \
+    --scenario-id FLT-2026-0710-001 \
     --file-list /path/to/files.txt \
     --destination /processing/scenario-001
 
@@ -699,7 +701,7 @@ def submit_recordings(
     """Submit a completed recording set to the background mover."""
     result = subprocess.run(
         [
-            "/usr/bin/swit-file-mover",
+            "/usr/bin/file-mover",
             "submit",
             "--scenario-id",
             scenario_id,
@@ -726,17 +728,17 @@ The submit command should return success only after the job and claimed file inv
 Use `configparser`, which is included in Python.
 ```
 [service]
-state_directory = /var/lib/swit-file-mover
-runtime_directory = /run/swit-file-mover
-log_directory = /var/log/swit-file-mover
+state_directory = /var/lib/file-mover
+runtime_directory = /run/file-mover
+log_directory = /var/log/file-mover
 poll_interval_seconds = 2
 shutdown_timeout_seconds = 60
 
 [paths]
 allowed_source_roots = /recordings
 allowed_destination_roots = /processing
-claim_directory_name = .swit-moving
-partial_file_prefix = .swit-partial-
+claim_directory_name = .moving
+partial_file_prefix = .partial-
 
 [transfer]
 max_concurrent_jobs = 1
@@ -750,7 +752,7 @@ retry_max_delay_seconds = 900
 enabled = true
 mode = source-and-destination-hash
 algorithm = sha256
-manifest_filename = swit-transfer-manifest.json
+manifest_filename = transfer-manifest.json
 
 [validation]
 stability_check_enabled = true
@@ -1030,3 +1032,544 @@ The resulting application is not simply a background file copy utility. It is a 
 
 ## My Prompt:
 I have a separate application called "file-handler" which has a lot of good functionality in it which has been developed over the years and has (supposedly) been maximized for file copy performance. Ignore the SMB and S3 portions of the code and yes I understand there are external dependencies in this code, we will not be using this code in our new project here but there is a lot of good functions and exception handling and I would like you to at least take a look and possibly leverage some of what we have:
+
+## Chat Reply:
+This first set already shows several ideas worth carrying forward, but the new mover should not reproduce the `FileHandler` abstraction directly. The existing class is designed as a synchronous, in-process façade around storage back ends; `Background File Mover` needs durable jobs, restart recovery, explicit state transitions, and conservative deletion rules.
+
+## What We Should Reuse Conceptually
+#### Centralized operation lifecycle
+The event flow is useful:
+```
+operation start
+operation progress
+operation complete
+```
+For the new project, this should become a durable lifecycle rather than only an in-memory event system:
+```
+job submitted
+job validated
+files claimed
+manifest created
+file copy started
+file copy retried
+file copied
+file verified
+file published
+source deleted
+job completed
+```
+These events should update:
+
+* The SQLite job database
+* Structured application logs
+* In-memory operational counters
+* Potentially a human-readable job event log
+
+The existing callbacks demonstrate good separation between file operations and operation reporting. We should retain that separation, but use typed event objects instead of loosely structured arguments and dictionaries.
+
+For example:
+```python
+@dataclass(frozen=True)
+class TransferEvent:
+    """Describe a state change during a file transfer."""
+
+    job_id: str
+    event_type: TransferEventType
+    timestamp: datetime
+    source_path: Path | None = None
+    destination_path: Path | None = None
+    attempt_number: int = 1
+    bytes_processed: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+```
+That is safer than:
+```python
+details: Optional[Dict[str, Any]]
+**kwargs: Any
+```
+
+## Retry progress reporting
+This is useful:
+```python
+if status == "warning_retrying" and details:
+    attempt = details.get("attempt_number", "?")
+    wait = details.get("wait_time", "?")
+```
+The new mover should report retry attempts, delays, and causes. It should also distinguish retryable and non-retryable failures.
+
+Examples:
+| Condition                           | Classification                        |
+| ----------------------------------- | ------------------------------------- |
+| Temporary NFS unavailability        | Retryable                             |
+| `ESTALE` stale NFS handle           | Retryable after reopening             |
+| Temporary I/O failure               | Usually retryable                     |
+| Destination temporarily unavailable | Retryable                             |
+| Destination out of space            | Retryable only after operator action  |
+| Permission denied                   | Normally permanent                    |
+| Invalid source path                 | Permanent                             |
+| Source changes after claiming       | Integrity failure                     |
+| Destination hash mismatch           | Integrity failure requiring retention |
+| Destination filename collision      | Policy failure                        |
+
+Rather than testing arbitrary exception classes at each call site, the project should have an error classifier:
+```python
+class ErrorDisposition(Enum):
+    """Describe how an operational error should be handled."""
+
+    RETRY = auto()
+    RETAIN_AND_FAIL = auto()
+    REJECT_JOB = auto()
+    SERVICE_FATAL = auto()
+```
+
+## Externally supplied logger
+This is a good practice:
+```python
+logger: Optional[logging.Logger] = None
+```
+Classes in the new project should accept a logger or call:
+```python
+logging.getLogger(__name__)
+```
+However, individual business classes should not configure handlers. Logger configuration should happen once at the application boundary.
+
+Recommended separation:
+```
+cli.py / service.py
+    configures logging
+
+transfer.py
+    obtains or receives logger
+    emits records
+
+repository.py
+    obtains or receives logger
+    emits records
+```
+
+## Explicit precondition handling
+The existing methods recognize that setup failures are different from file-operation failures:
+```python
+except (ValueError, ConnectionError, ImportError, FileNotFoundError) as err:
+```
+That distinction should remain. In the new system, we should define a typed exception hierarchy:
+```
+FileMoverError
+├── ConfigurationError
+├── SubmissionError
+│   ├── InvalidSourceError
+│   ├── InvalidDestinationError
+│   ├── SourceNotStableError
+│   └── DuplicateSubmissionError
+├── ClaimError
+├── ManifestError
+├── TransferError
+│   ├── CopyError
+│   ├── DestinationWriteError
+│   └── DestinationPublishError
+├── IntegrityError
+│   ├── SizeMismatchError
+│   ├── HashMismatchError
+│   └── SourceChangedError
+├── RepositoryError
+└── RecoveryError
+```
+The service can then convert these exceptions into well-defined states instead of terminating.
+
+## Operation and cumulative statistics
+The existing statistics are helpful operationally:
+```python
+"total_files_copied"
+"total_files_moved"
+"total_files_deleted"
+"total_file_op_errors"
+```
+The new project should expand this into more meaningful transfer metrics:
+```
+jobs_submitted
+jobs_completed
+jobs_failed_retained
+jobs_waiting_retry
+files_claimed
+files_copied
+files_verified
+files_published
+source_files_deleted
+copy_retries
+bytes_copied
+hash_bytes_read
+integrity_failures
+destination_collisions
+recovery_actions
+```
+These should not exist only in a process-local dictionary because they disappear after restart. Current-run counters can remain in memory, but authoritative job statistics should come from the SQLite repository.
+
+## Subscription cleanup
+The use of `finally` to unsubscribe is correct in principle:
+```python
+finally:
+    if src_dir:
+        self._unsubscribe(src_dir)
+```
+This shows attention to lifecycle cleanup. The new project should consistently use:
+
+* Context managers
+* try/finally
+* Explicit resource ownership
+* Deterministic database transaction boundaries
+* Deterministic file descriptor closure
+* Graceful executor shutdown
+
+## What We Should Not Carry Forward
+#### 1. A single high-level FileHandler façade
+
+This class owns too many responsibilities:
+* Logger setup
+* Event subscription
+* Statistics
+* Directory creation
+* Copy orchestration
+* Move orchestration
+* Scanning
+* Error translation
+
+For the new application, these should be separate:
+```
+JobSubmissionService
+SourceClaimService
+TransferCoordinator
+FileCopier
+IntegrityVerifier
+ManifestRepository
+JobRepository
+RecoveryService
+TransferEventPublisher
+```
+This avoids creating another “god class.”
+
+#### 2. In-memory operation state as the authoritative record
+These members are unsuitable for durable processing:
+```python
+self.current_operation_logs
+self.current_operation_stats
+self.last_operation_errors
+self.cumulative_stats
+```
+They are useful for a synchronous library call but insufficient for a background service. If the process exits, all state disappears.
+
+For `Background File Mover`, durable state must be written before acknowledgment and at every important transition.
+
+#### 3. Returning exceptions as data
+The current API returns:
+```python
+Tuple[int, List[Tuple[str, Exception]]]
+```
+That creates several problems:
+
+* Exception instances are not durable or easily serializable.
+* Callers must interpret arbitrary exception objects.
+* The result does not express partial states clearly.
+* It does not identify which operation stages succeeded.
+* It encourages the caller to infer overall status from counts.
+
+The new project should return typed result objects:
+
+```python
+@dataclass(frozen=True)
+class SubmissionResult:
+    """Represent the outcome of submitting a transfer job."""
+
+    accepted: bool
+    job_id: str | None
+    state: JobState
+    claimed_file_count: int
+    claimed_bytes: int
+    error_code: str | None = None
+    error_message: str | None = None
+```
+Internally, errors should be persisted in a serializable format:
+```
+error_code
+exception_type
+message
+errno
+operation
+source_path
+destination_path
+attempt_number
+occurred_at
+traceback
+```
+Tracebacks should be logged, but the normal CLI response should remain concise.
+
+#### 4. Broad mutable dictionaries and Any
+These types weaken the implementation:
+```python
+Dict[str, Any]
+Directory[Any]
+**kwargs: Any
+```
+For a production transfer system, critical data should use:
+
+* `dataclasses`
+* `Enum`
+* `Path`
+* Narrow protocols
+* Explicit return types
+* Immutable event and request objects where practical
+
+Configuration can be represented with frozen dataclasses:
+```python
+@dataclass(frozen=True)
+class IntegrityConfiguration:
+    """Configure file integrity verification."""
+
+    enabled: bool
+    algorithm: HashAlgorithm
+    precompute_source_hash: bool
+    verify_destination_hash: bool
+    buffer_size_bytes: int
+```
+
+#### 5. Logger configuration inside every instance
+This code may create many separately named loggers:
+```python
+logging.getLogger(
+    f"{self.__class__.__name__}_{uuid.uuid4().hex[:6]}"
+)
+```
+That makes centralized filtering and correlation harder. Random logger names also do not replace job correlation.
+
+Instead:
+```python
+logger = logging.getLogger("file_mover.transfer")
+```
+and include the job information in structured fields:
+```python
+logger.info(
+    "File copy started",
+    extra={
+        "job_id": job.job_id,
+        "file_id": file_record.file_id,
+        "source_path": str(file_record.source_path),
+    },
+)
+```
+The job ID should identify the operation, not the logger name.
+
+#### 6. `load_dotenv()` inside a business object
+This will not be carried forward:
+```python
+load_dotenv(override=True)
+```
+Reasons:
+
+* It is an external runtime dependency.
+* Configuration loading should occur once at startup.
+* `override=True` can silently replace environment configuration.
+* Instantiating a file operation class should not alter process configuration.
+
+We will use `configparser` and explicit configuration injection.
+
+#### 7. Catching only selected setup exceptions and converting everything to a count
+The existing code catches:
+```python
+(ValueError, ConnectionError, ImportError, FileNotFoundError)
+```
+This is too narrow in some ways and too broad in others.
+
+For filesystem operations, relevant failures include:
+
+* `PermissionError`
+* `TimeoutError`
+* `NotADirectoryError`
+* `IsADirectoryError`
+* `OSError` with meaningful `errno`
+* SQLite failures
+* Serialization failures
+* Invalid state transitions
+
+We should not merely add more exceptions to one large tuple. Each layer should catch only errors it can interpret, add context, and re-raise a project-specific exception.
+
+Example:
+```python
+try:
+    os.replace(source_path, claimed_path)
+except OSError as error:
+    raise FileClaimError(
+        job_id=job_id,
+        source_path=source_path,
+        claimed_path=claimed_path,
+        errno_value=error.errno,
+    ) from error
+```
+The coordinator then determines whether the job is retryable or retained for intervention.
+
+## Specific Issues in the Current Code
+These are useful lessons for the new project.
+
+#### Statistics keys appear inconsistent
+Progress records failure under:
+
+```python
+self.current_operation_stats["file_op_errors"]
+```
+But completion aggregates:
+```python
+stats.get("copy_errors", 0)
+stats.get("delete_errors", 0)
+```
+As shown, failures may not be reflected in cumulative totals.
+
+That is exactly the type of problem enums and typed counters prevent.
+
+#### Move count may not actually mean completed moves
+For move operations:
+```python
+self.cumulative_stats["total_files_moved"] += stats.get(
+    "files_copied_successfully", 0
+)
+```
+A file might have copied successfully but failed source deletion. Such a file was not fully moved.
+
+The new mover must distinguish:
+```
+COPIED
+VERIFIED
+PUBLISHED
+SOURCE_DELETED
+MOVE_COMPLETE
+```
+A file should count as moved only after the final required state.
+
+#### Multiple locks are acquired for one event update
+The method repeatedly enters:
+
+```python
+with self._lock:
+```
+This is not necessarily incorrect, but the event update is not treated as a single coherent atomic operation.
+
+For the new service, related counters and state changes should be performed together where consistency matters.
+
+#### Returned collections expose internal mutable state
+These methods return the internal objects directly:
+```python
+return self.current_operation_logs
+return self.current_operation_stats
+return self.cumulative_stats
+```
+A caller can mutate them.
+
+Safer approaches include:
+```python
+return tuple(self.current_operation_logs)
+return self.current_operation_stats.copy()
+```
+For the new project, immutable snapshots are preferable.
+
+#### The scan callback has a local typing inconsistency
+The declared list is:
+```python
+scanned: List[str] = []
+```
+But this can append a non-string:
+```python
+scanned.append(file_src)
+```
+because `file_src` is typed as:
+```python
+str | Any
+```
+This illustrates why `Any` should be minimized.
+
+#### `scan()` appears to generate duplicate lifecycle events
+It subscribes to directory lifecycle events and then manually calls:
+```python
+self._on_operation_start(...)
+```
+and:
+```python
+self._on_operation_complete(...)
+```
+Depending on what `directory.scan()` emits, this could duplicate start or completion handling.
+
+In the new design, ownership of state transitions must be explicit: one component is responsible for emitting each transition.
+
+#### Error details are logged without guaranteed traceback context
+This:
+```python
+self.logger.error(
+    "  - Context '%s': %s(%s)",
+    tag,
+    type(exc).__name__,
+    exc,
+)
+```
+records the exception type and message but not necessarily the stack trace.
+
+For unexpected failures, the new application should use:
+```python
+logger.exception(...)
+```
+inside an active exception handler, or explicitly store formatted traceback details.
+
+Routine expected failures should not flood logs with unnecessary tracebacks, so we will distinguish expected operational failures from software defects.
+
+## How This Influences the New Architecture
+Based on these first files, I would add the following components to our design:
+```
+TransferEvent
+    Typed immutable description of operational progress
+
+TransferEventRecorder
+    Persists events and writes structured logs
+
+TransferStatistics
+    Typed counters for service-runtime statistics
+
+ErrorClassifier
+    Determines retry, retention, rejection, or fatal behavior
+
+TransferResult
+    Typed outcome rather than tuples of exception objects
+
+ApplicationLogging
+    One centralized logging configuration
+
+OperationContext
+    Carries job ID, file ID, attempt, source, and destination
+```
+The flow becomes:
+```
+TransferCoordinator
+    │
+    ├── updates JobRepository
+    ├── performs work through FileCopier / IntegrityVerifier
+    └── publishes typed TransferEvent objects
+             │
+             ├── structured log
+             ├── durable event table
+             └── runtime statistics
+```
+#### Preliminary Decision Record
+From this review, I would record these design decisions:
+| Decision             | New-project approach                                       |
+| -------------------- | ---------------------------------------------------------- |
+| Runtime dependencies | Python 3.10 standard library only                          |
+| Configuration        | `configparser`, loaded once                                |
+| Logging              | Centralized standard-library logging                       |
+| Events               | Typed dataclass events                                     |
+| State                | SQLite, not process memory                                 |
+| Errors               | Project exception hierarchy plus error classification      |
+| Results              | Typed result dataclasses                                   |
+| Metrics              | Typed counters plus durable repository queries             |
+| Correlation          | Job and file IDs, not randomized logger names              |
+| Move completion      | Counted only after verified publication and source cleanup |
+| Callbacks            | Optional internal observers; never authoritative state     |
+
+The `handler.py` file is useful mainly as an operational-pattern reference: lifecycle callbacks, retry visibility, centralized reporting, and statistics. Its synchronous façade, mutable state, loose event payloads, and exception-return model should not form the foundation of the new durable mover.
+
+Send the next files that contain the actual local filesystem directory implementation, copy loop, retry logic, buffering, or move/delete behavior. Those are likely to contain the performance and failure-handling details most relevant to this project.
+
