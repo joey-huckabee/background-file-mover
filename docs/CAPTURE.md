@@ -3542,3 +3542,748 @@ resolved paths cannot escape approved roots
 ```
 The biggest lesson from this file is not the multi-backend directory factory itself. It is the disciplined pipeline of **load, validate, explain, then construct**. We should retain that pattern while replacing dynamic reflection and permissive fallbacks with explicit standard-library code appropriate for a data-durability system.
 
+## My Prompt:
+file_handler/local.py
+
+## Chat Reply:
+This file is useful for defining the filesystem boundary, but it does **not** contain the performance-critical copy implementation. The actual buffered copy loop, concurrency, retry behavior, stability gating, and move workflow appear to live in `Directory` from `_directory.py`. Therefore, we cannot yet validate the claim that `file-handler` has been maximized for copy performance.
+
+We can still extract several good practices and identify important changes for `Background File Mover`.
+
+## Overall Direction
+Because S3 support is expected later, we should retain a storage abstraction—but not a broad Directory abstraction that tries to make POSIX filesystems and object storage appear identical.
+
+A better separation is:
+```
+Transfer workflow
+    │
+    ├── SourceStorage
+    ├── DestinationStorage
+    ├── IntegrityVerifier
+    ├── JobRepository
+    └── TransferCoordinator
+```
+Initial implementations:
+```
+PosixStorage
+    Supports local filesystems and mounted NFS
+
+Future:
+S3Storage
+    Supports object storage through an optional adapter
+```
+The durable workflow remains the same conceptually:
+```
+claim source
+create manifest
+copy to temporary destination
+verify
+publish
+delete or release source
+```
+But the implementation of operations differs:
+| Operation             | POSIX/NFS                          | Future S3                                             |
+| --------------------- | ---------------------------------- | ----------------------------------------------------- |
+| Claim                 | Atomic rename on source filesystem | Object tag, metadata state, or copy to claimed prefix |
+| Temporary destination | Hidden temporary filename          | Temporary object key                                  |
+| Publish               | Atomic rename                      | Server-side copy or final-key upload                  |
+| Durability flush      | `flush()` and `fsync()`            | Complete upload and validate response                 |
+| Identity              | Device and inode                   | Bucket, key, version ID, ETag                         |
+| Delete                | `unlink()`                         | Object deletion, preferably version-aware             |
+Trying to hide all of these differences behind generic methods such as `mkdir()` and `open_file()` would eventually produce leaky abstractions.
+
+## Good Ideas in `LocalDirectory`
+#### 1. Standard filesystem exceptions are retained
+
+The implementation maps operations to familiar Python exceptions:
+
+```python
+FileNotFoundError
+PermissionError
+IsADirectoryError
+OSError
+```
+This is better than converting every failure into one generic custom exception.
+
+For the new application, the filesystem layer should generally preserve the original exception as the cause:
+
+```python
+raise SourceOpenError(
+    path=path,
+    operation="open-read",
+    errno_value=error.errno,
+) from error
+```
+The original `errno` must remain available because it helps classify NFS and local filesystem failures.
+
+#### 2. Path operations use `pathlib.Path`
+This is appropriate and should continue for POSIX/NFS paths.
+
+Our public models should use `Path`, not arbitrary strings:
+```python
+@dataclass(frozen=True)
+class TransferPath:
+    """Describe source and destination paths for one transfer file."""
+
+    relative_path: Path
+    claimed_source_path: Path
+    temporary_destination_path: Path
+    final_destination_path: Path
+```
+We should validate that `relative_path` is genuinely relative and contains no traversal components.
+
+#### 3. Race conditions during directory traversal are anticipated
+This handling is sensible:
+```python
+except FileNotFoundError:
+    continue
+```
+Files can disappear between enumeration and metadata inspection.
+
+However, the appropriate reaction depends on the phase:
+
+* During an optional discovery scan, disappearing files may be skipped and reported.
+* During job claiming, a disappearing file must cause the submission to be rejected or marked incomplete.
+* After a file has been claimed, disappearance is a serious data-integrity event.
+
+The new application must not apply the same permissive behavior in every phase.
+
+#### 4. Missing-file deletion is idempotent
+This is a useful concept:
+```python
+filepath.unlink(missing_ok=True)
+```
+Recovery logic must tolerate operations that may already have completed before a crash.
+
+For example:
+```
+source already deleted
+destination verified and published
+database still says SOURCE_CLEANUP_PENDING
+```
+Recovery should interpret that as a potentially completed cleanup, verify destination state, and safely advance the record.
+
+Idempotency is essential.
+
+#### 5. UTC timestamps are used
+This is correct:
+```python
+datetime.fromtimestamp(..., tz=timezone.utc)
+```
+All persisted application timestamps should use UTC.
+
+For filesystem comparisons, however, we should use integer nanosecond values:
+```python
+stat_result.st_mtime_ns
+```
+rather than `datetime` or floating-point seconds. Nanosecond integer metadata is safer for equality comparisons.
+
+## Important Problems for the New Mover
+#### 1. `_resolve_root()` creates missing directories automatically
+This behavior is unsafe for source directories:
+
+```python
+if not root.exists():
+    root.mkdir(parents=True, exist_ok=True)
+```
+A mistyped source path could silently create an empty directory, making the submission appear valid while the expected recordings remain elsewhere.
+
+We need different policies.
+
+##### Source root
+```
+Must already exist.
+Must be a directory.
+Must be under an approved source root.
+Must not be created automatically.
+```
+
+##### Destination root
+The destination may be created only when:
+
+* Its parent exists beneath an approved destination root.
+* Creation is allowed by configuration.
+* The application creates it intentionally.
+* The resolved path cannot escape the approved root.
+
+##### State and runtime directories
+
+These may be created by startup or packaging with controlled permissions.
+
+One generic “resolve or create root” method is therefore inappropriate.
+
+#### 2. `Path.resolve()` follows symbolic links
+This appears in multiple places:
+```python
+Path(root_specifier).expanduser().resolve()
+```
+and:
+```python
+resolved_item = Path(path).resolve()
+```
+That conflicts with a strict no-symlink policy.
+
+A submitted path such as:
+```
+/recordings/run-001/data.bin
+```
+could pass lexically beneath the source root but resolve to another filesystem through a symbolic link.
+
+For this application, we should:
+
+* Reject symlink path components.
+* Use lstat() where appropriate.
+* Avoid blindly calling resolve() before validating components.
+* Confirm path containment after safe inspection.
+* Open files in ways that reduce symlink races.
+
+On Linux, we should consider using `os.open()` with flags such as:
+
+```python
+os.O_RDONLY
+os.O_NOFOLLOW
+os.O_CLOEXEC
+```
+where supported.
+
+For destination creation:
+```python
+os.O_WRONLY
+os.O_CREAT
+os.O_EXCL
+os.O_NOFOLLOW
+os.O_CLOEXEC
+```
+This provides stronger behavior than ordinary `Path.open()`.
+
+#### 3. Symlink skipping is too permissive by default
+The existing default is:
+```python
+skip_symlinks: bool = False
+```
+For `Background File Mover`, the default should be strict rejection:
+```
+reject symbolic links = true
+```
+“Skip” may also be undesirable. If a submitted recording set contains a symbolic link, silently skipping it could produce an incomplete dataset.
+
+Recommended behavior:
+
+```
+Explicit file list contains symlink:
+    Reject submission.
+
+Directory submission encounters symlink:
+    Reject submission unless policy explicitly allows exclusions.
+```
+Data completeness is more important than making the scan continue.
+
+#### 4. `rglob("*")` is convenient but not ideal for a durability-critical inventory
+This traversal:
+
+```python
+for item in self.root.rglob("*"):
+```
+is easy to use, but gives limited control over:
+
+* Symlink traversal
+* Error handling per directory
+* Filesystem boundaries
+* Ordering
+* Metadata collection
+* Directory descriptor safety
+* Exclusion of the claim directory
+* Concurrent directory changes
+
+A more controlled implementation could use `os.scandir()` recursively.
+
+Benefits:
+
+* `DirEntry` can provide metadata efficiently.
+* Symlink following can be disabled explicitly.
+* We can avoid traversing the `.moving` claim directory.
+* We can record file identity during inventory.
+* We can handle errors at directory boundaries.
+* Fewer metadata calls may improve large-directory scanning performance.
+
+A deterministic order should be used:
+
+```
+sort by relative path
+```
+This produces repeatable manifests and tests.
+
+#### 5. Scan errors are emitted and processing continues
+This code catches an `OSError`, emits an event, and keeps scanning:
+```python
+except OSError as err:
+    self.on_operation_progress.emit(...)
+```
+That may be suitable for a general-purpose scanning tool, but not necessarily for transfer submission.
+
+Suppose one subdirectory cannot be read. Continuing could yield a partial inventory and move only part of the scenario.
+
+For the new system:
+
+> A source inventory shall be all-or-nothing unless the submission explicitly names an approved subset of files.
+
+Any unreadable source path should reject claiming before destructive renames begin.
+
+#### 6. `open_file()` accepts arbitrary modes
+This API:
+```python
+def open_file(self, path: Path, mode: str) -> IO[bytes]:
+```
+allows unsafe or unexpected modes:
+```
+w
+a
+r+
+wb+
+```
+The new filesystem interface should expose intent-specific methods:
+```python
+open_source_reader(path)
+create_destination_exclusive(path)
+open_destination_reader(path)
+```
+That prevents core transfer code from accidentally opening a source file for writing or overwriting a destination.
+
+#### 7. `IOError` loses useful specificity
+The code often does:
+```python
+raise IOError(...)
+```
+In Python 3, `IOError` is an alias for `OSError`, but creating a new generic error can lose the original `errno` unless it remains accessible through `__cause__`.
+
+NFS classification often depends on values such as:
+```
+ESTALE
+EIO
+ETIMEDOUT
+ENOSPC
+EDQUOT
+EROFS
+EACCES
+EXDEV
+```
+The error classifier should inspect the original exception chain and preserve:
+
+* `errno`
+* filename
+* destination filename
+* operation
+* source and destination paths
+
+#### 8. Directory removal treats non-empty as success
+This code intentionally treats `ENOTEMPTY` as success:
+
+```python
+if err.errno == errno.ENOTEMPTY:
+    status, error = "success", None
+```
+That is reasonable if the requirement is “remove the directory only when empty.”
+
+But it should not be reported simply as successful deletion. It is more accurately:
+```
+SKIPPED_NOT_EMPTY
+```
+For our project, job cleanup should distinguish:
+
+* Directory removed
+* Directory already absent
+* Directory retained because it contains excluded/unexpected files
+* Directory removal failed
+
+Unexpected remaining content may indicate that the simulation wrote new files into the directory or that the claim process missed data. That should not disappear into a generic success state.
+
+#### 9. Deletion occurs by pathname without identity revalidation
+Before deleting a source file, the mover must confirm that the path still refers to the file that was originally claimed.
+
+Otherwise, a path could have been replaced between verification and deletion.
+
+Before source deletion, compare:
+```
+device ID
+inode
+size
+possibly mtime
+```
+against the claimed file record.
+
+The sequence should be:
+```
+destination verified
+        ↓
+lstat claimed source
+        ↓
+verify device and inode
+        ↓
+unlink claimed path
+```
+If identity differs, do not delete it. Transition the job to manual intervention.
+
+#### 10. File-size and modification methods perform separate path-based calls
+These methods:
+```python
+os.path.getsize(path)
+os.path.getmtime(path)
+```
+perform separate metadata lookups.
+
+For stability and identity checks, use one call:
+```python
+metadata = path.stat(follow_symlinks=False)
+```
+Then collect:
+```python
+metadata.st_dev
+metadata.st_ino
+metadata.st_mode
+metadata.st_size
+metadata.st_mtime_ns
+metadata.st_ctime_ns
+metadata.st_nlink
+```
+This is both more coherent and often more efficient.
+
+## Performance Conclusions From the Provided Code
+We have not seen enough code to determine whether `file-handler` is optimized for copy performance.
+
+The performance-critical questions remain unanswered:
+
+1. What function performs the actual copy?
+2. What buffer size is used?
+3. Is `shutil.copyfileobj()` used?
+4. Is `os.sendfile()` used?
+5. Is `copy_file_range()` used?
+6. Is copying performed concurrently?
+7. Is concurrency bounded globally or per operation?
+8. Are source and destination hashes calculated in the same read pass?
+9. Is the destination re-read for verification?
+10. Are metadata and permissions copied unnecessarily?
+11. Are files opened with buffering?
+12. Is progress reporting performed per chunk, and does it create lock contention?
+13. Are retries file-level or chunk-level?
+14. Is partial-file resume supported?
+15. Does the implementation call `fsync()`?
+16. Does it account for NFS mount behavior?
+
+Since `_directory.py` was not provided, we should not claim that any specific optimization from this project can be reused.
+
+## Initial copy implementation recommendation
+For the first version, use a clearly testable buffered copy loop rather than relying blindly on one high-level function:
+
+```python
+while True:
+    chunk = source.read(buffer_size)
+    if not chunk:
+        break
+
+    destination.write(chunk)
+    hasher.update(chunk)
+```
+This supports:
+
+* Bounded memory
+* Progress tracking
+* Cancellation checkpoints
+* Streaming source hash
+* Fault injection
+* Accurate byte counts
+* Controlled retry behavior
+
+However, when pre-copy source hashing is required, the source hash is already computed in a separate pass. During the copy pass, hashing again may not be necessary unless we want to ensure the source did not change between hashing and copying.
+
+A stronger workflow is:
+
+```
+pre-copy source stat
+source hash pass
+post-hash source stat and identity check
+persist hash
+copy while calculating copy-stream hash
+post-copy source stat and identity check
+verify copy-stream hash equals pre-copy source hash
+hash destination
+verify destination hash
+publish
+delete source
+```
+This costs additional CPU and destination reads but provides strong detection of source mutation.
+
+The exact integrity modes should let operations choose the trade-off.
+
+## Proposed Storage Interfaces
+To support S3 later without distorting the initial implementation, I recommend two levels.
+
+#### Workflow-level interface
+```python
+class TransferSource(Protocol):
+    """Provide source operations required by the transfer workflow."""
+
+    def inventory(self, request: SourceRequest) -> FileInventory:
+        """Create a complete source inventory."""
+
+    def claim(self, inventory: FileInventory, job_id: str) -> ClaimedInventory:
+        """Claim source items for exclusive transfer processing."""
+
+    def open_reader(self, item: ClaimedItem) -> BinaryIO:
+        """Open a claimed source item for binary reading."""
+
+    def stat_claimed(self, item: ClaimedItem) -> ObjectMetadata:
+        """Read metadata for a claimed source item."""
+
+    def delete_claimed(self, item: ClaimedItem) -> None:
+        """Delete a verified claimed source item."""
+```
+```python
+class TransferDestination(Protocol):
+    """Provide destination operations required by the transfer workflow."""
+
+    def create_temporary_writer(
+        self,
+        item: DestinationItem,
+    ) -> BinaryIO:
+        """Create an exclusive temporary destination object."""
+
+    def open_temporary_reader(
+        self,
+        item: DestinationItem,
+    ) -> BinaryIO:
+        """Open the temporary destination for verification."""
+
+    def publish(self, item: DestinationItem) -> PublishedObject:
+        """Publish a verified temporary object."""
+
+    def inspect_published(
+        self,
+        item: DestinationItem,
+    ) -> ObjectMetadata | None:
+        """Inspect an existing published destination."""
+
+    def remove_temporary(self, item: DestinationItem) -> None:
+        """Remove an invalid or abandoned temporary object."""
+```
+#### POSIX-specific lower-level interface
+```python
+class PosixFileSystem(Protocol):
+    """Define POSIX filesystem operations used by storage adapters."""
+
+    def lstat(self, path: Path) -> os.stat_result:
+        ...
+
+    def scandir(self, path: Path) -> ContextManager[Iterator[os.DirEntry[str]]]:
+        ...
+
+    def replace(self, source: Path, destination: Path) -> None:
+        ...
+
+    def unlink(self, path: Path, *, missing_ok: bool = False) -> None:
+        ...
+
+    def fsync_file(self, file_descriptor: int) -> None:
+        ...
+
+    def fsync_directory(self, path: Path) -> None:
+        ...
+```
+This gives us future extensibility without making S3 pretend it is a filesystem.
+
+## Future S3 Design Considerations
+S3 support should be added as an optional package or plugin because the base application has a no-external-runtime-dependencies requirement.
+
+Potential future structure:
+```
+background-file-mover/
+├── src/file_mover/
+│   └── standard-library core
+└── optional/
+    └── file_mover_s3/
+        └── boto3-based adapter
+```
+Or separate distributions:
+```
+file-mover-core
+file-mover-s3
+```
+The core project should not contain conditional imports that silently degrade when `boto3` is unavailable.
+
+S3-specific concerns will include:
+
+* Multipart uploads
+* Multipart threshold and part size
+* Upload restart/reconciliation
+* Object metadata
+* Checksums
+* Version IDs
+* SSE configuration
+* Final-key collision policies
+* Server-side copy behavior
+* Eventual consistency assumptions, although modern S3 has strong read-after-write consistency
+* Compatible object stores that may behave differently
+* Credential providers
+* Endpoint configuration
+* TLS trust
+* Object-lock and retention policies
+
+These are exactly why S3 should implement workflow capabilities rather than subclass a generic filesystem directory.
+
+## Updated Component Model
+The architecture should now include:
+```
+TransferCoordinator
+│
+├── JobRepository
+├── ManifestRepository
+├── TransferSource
+│   └── PosixTransferSource
+├── TransferDestination
+│   └── PosixTransferDestination
+├── FileCopyEngine
+├── IntegrityVerifier
+├── RetryPolicy
+├── ErrorClassifier
+└── TransferEventPublisher
+```
+Future:
+```
+TransferSource
+├── PosixTransferSource
+└── S3TransferSource
+
+TransferDestination
+├── PosixTransferDestination
+└── S3TransferDestination
+```
+This is more precise than:
+```
+Directory
+├── LocalDirectory
+├── SMBDirectory
+└── S3Directory
+```
+
+## Requirements Derived From `LocalDirectory`
+#### L2 POSIX Source Requirements
+##### L2-POSIX-001
+
+The software shall require submitted source roots to exist before job submission and shall not create missing source directories.
+
+##### L2-POSIX-002
+
+The software shall reject symbolic links encountered within a submitted source inventory.
+
+##### L2-POSIX-003
+
+The software shall reject a source inventory when any requested path cannot be inspected or read.
+
+##### L2-POSIX-004
+
+The software shall produce source inventories in deterministic relative-path order.
+
+##### L2-POSIX-005
+
+The software shall exclude internal claim directories from source discovery.
+
+##### L2-POSIX-006
+
+The software shall collect device ID, inode, file type, size, modification time in nanoseconds, and link count from a single metadata observation where supported.
+
+##### L2-POSIX-007
+
+The software shall validate source-file identity before claiming and again before deleting the claimed source.
+
+#### L2 POSIX Destination Requirements
+##### L2-POSIX-008
+
+The software shall create temporary destination files using exclusive creation semantics.
+
+##### L2-POSIX-009
+
+The software shall refuse to follow symbolic links when creating or opening temporary destination files.
+
+##### L2-POSIX-010
+
+The software shall flush and synchronize completed temporary destination files before verification or publication.
+
+##### L2-POSIX-011
+
+The software shall publish temporary destination files using atomic replacement or rename semantics only within the destination filesystem.
+
+##### L2-POSIX-012
+
+The software shall synchronize the destination directory after publication where supported and configured.
+
+#### L2 Cleanup Requirements
+##### L2-CLN-001
+
+Source cleanup shall be idempotent.
+
+##### L2-CLN-002
+
+A missing source during recovery shall be treated as potentially completed cleanup only after the published destination has been verified.
+
+##### L2-CLN-003
+
+A non-empty claim directory shall not be reported as successfully removed.
+
+##### L2-CLN-004
+
+Unexpected files remaining in a completed job’s claim directory shall place the job into manual-intervention state.
+
+##### L2-CLN-005
+
+The software shall not delete a claimed source path when its current device and inode differ from the recorded identity.
+
+#### L2 Storage Extensibility Requirements
+##### L2-STO-001
+
+The transfer workflow shall depend on source and destination capability interfaces rather than directly on POSIX path operations.
+
+##### L2-STO-002
+
+The initial release shall provide POSIX source and destination implementations suitable for local and mounted NFS filesystems.
+
+##### L2-STO-003
+
+The source and destination interfaces shall permit a future S3 implementation without changing the durable job-state workflow.
+
+##### L2-STO-004
+
+Storage-specific identity information shall be represented through typed metadata capable of supporting POSIX device/inode identity and future S3 bucket/key/version identity.
+
+##### L2-STO-005
+
+Optional storage adapters requiring external dependencies shall not weaken or alter the no-external-dependency core application.
+
+## Final Assessment of the Existing `file-handler`
+
+The provided application contains several mature and useful concepts:
+
+* Lifecycle reporting
+* Retry visibility
+* Strict configuration intent
+* Helpful validation messages
+* Factory-based construction
+* Backend separation
+* Filesystem exception handling
+* Idempotent cleanup behavior
+* Stability checks
+* Operational statistics
+
+The primary weaknesses for this project are:
+
+* Synchronous operation model
+* In-memory authoritative state
+* Generic directory abstraction across unlike storage systems
+* Loose event and result typing
+* Symlink-permissive defaults
+* Automatic source-directory creation
+* Configuration mutation by the CLI
+* Dynamic constructor reflection
+* Inconsistent statistics and operation naming
+* Insufficiently explicit claim, verify, publish, and deletion states
+
+Most importantly, the code provided does not include the actual base `Directory` copy implementation, so none of its copy-performance techniques can yet be identified or validated. For the new project, we should treat `file-handler` as an experienced source of design lessons—not as code to port—and build the transfer core around explicit durability guarantees.
+
