@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 """Run pytest filtered by requirement marker value.
 
-Pytest's ``-m`` expression language does not natively support matching the
-string argument of a parameterised marker, so this wrapper walks the
-collected items and selects those carrying a ``requirement`` marker whose
-first argument matches the requested id.
+Pytest's ``-m`` expression language does not natively support matching the string
+argument of a parameterised marker, so this wrapper walks the collected items and
+selects those carrying a ``requirement`` marker whose first argument matches the
+requested id.
 
 Usage:
-    python scripts/pytest-by-requirement.py L3-PY-004
-    python scripts/pytest-by-requirement.py L2-WRT-           # prefix match
-    python scripts/pytest-by-requirement.py L3-PY-004 -- -v --tb=short
+    python scripts/pytest-by-requirement.py L3-INT-001
+    python scripts/pytest-by-requirement.py L2-CLI-           # prefix match
+    python scripts/pytest-by-requirement.py L3-INT-001 -- -v --tb=short
 
-Everything after ``--`` is forwarded to pytest. When no ``--`` is given,
-``-v`` is added by default.
-
-The wrapper invokes the Python implementation's test suite under
-``python/tests/`` via ``poetry -C python run pytest``; Rust requirement tags
-are tracked separately via doc-comments and are not in scope for this tool.
+Everything after ``--`` is forwarded to pytest. When no ``--`` is given, ``-v`` is
+added by default. The wrapper invokes the suite under ``tests/`` via ``poetry run``.
 """
 
 from __future__ import annotations
@@ -26,7 +22,6 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PY_ROOT = ROOT / "python"
 TESTS_REL = "tests"
 
 
@@ -45,8 +40,8 @@ def main() -> int:
         extra_args = ["-v"]
 
     collect = subprocess.run(
-        ["poetry", "-C", str(PY_ROOT), "run", "pytest", "--collect-only", "-q", TESTS_REL],
-        cwd=PY_ROOT,
+        ["poetry", "run", "pytest", "--collect-only", "-q", TESTS_REL],
+        cwd=ROOT,
         capture_output=True,
         text=True,
         check=False,
@@ -67,7 +62,7 @@ def main() -> int:
         file_part = test_id.split("::")[0]
         func_part = test_id.rsplit("::", 1)[-1].split("[")[0]
         try:
-            source = (PY_ROOT / file_part).read_text(encoding="utf-8")
+            source = (ROOT / file_part).read_text(encoding="utf-8")
         except OSError:
             continue
         lines = source.splitlines()
@@ -83,13 +78,13 @@ def main() -> int:
         return 1
 
     print(f"Selected {len(selected)} tests matching {req_filter!r}:")
-    for t in selected:
-        print(f"  {t}")
+    for test in selected:
+        print(f"  {test}")
     print()
 
     result = subprocess.run(
-        ["poetry", "-C", str(PY_ROOT), "run", "pytest", *selected, *extra_args],
-        cwd=PY_ROOT,
+        ["poetry", "run", "pytest", *selected, *extra_args],
+        cwd=ROOT,
         check=False,
     )
     return result.returncode

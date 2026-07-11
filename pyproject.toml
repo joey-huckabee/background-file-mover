@@ -1,0 +1,145 @@
+# pyproject.toml — Background File Mover
+#
+# The runtime application depends on the Python 3.10 standard library ONLY
+# (see L1-SYS-009 / L3-PY-001); the `[project].dependencies` array is
+# intentionally empty and must stay that way. Development and CI tooling is
+# declared under the Poetry `dev` group and is never required to run the app.
+
+[project]
+name = "background-file-mover"
+version = "0.1.0"
+description = "Durable background transfer coordinator for large simulation recordings (stdlib-only)."
+authors = [{ name = "Joey Huckabee", email = "joey.huckabee@gmail.com" }]
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+keywords = ["file-transfer", "nfs", "systemd", "durable", "simulation"]
+# Note: no "License ::" classifier — the SPDX `license` field above supersedes it
+# (PEP 639), and `poetry check --strict` rejects the deprecated classifier form.
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: System :: Archiving",
+]
+# Runtime dependencies: NONE. Standard library only. Do not add entries here.
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/joey-huckabee/background-file-mover"
+
+[project.scripts]
+file-mover = "file_mover.cli:main"
+
+[tool.poetry]
+packages = [{ include = "file_mover", from = "src" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-cov = "^5.0"
+ruff = "^0.6"
+mypy = "^1.11"
+pylint = "^3.2"
+vulture = "^2.11"
+bandit = "^1.7"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ruff — lint + format (Black-style, line length 100 to match pylint).
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle + pyflakes
+    "I",                # isort
+    "UP",               # pyupgrade
+    "B",                # flake8-bugbear
+    "C4",               # comprehensions
+    "SIM",              # flake8-simplify
+    "PTH",              # prefer pathlib
+    "RUF",              # ruff-specific
+    "D",                # pydocstyle (Google docstrings, see below)
+]
+ignore = [
+    "D203",  # 1 blank line before class docstring (conflicts with D211)
+    "D213",  # multi-line docstring summary on second line (conflicts with D212)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D103", "D104"]  # tests don't need module/function docstrings
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mypy — strict, analysed as Python 3.10 regardless of the running interpreter.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+files = ["src"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pytest — requirement markers drive the trace matrix (docs/TRACE-MATRIX.md).
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -ra"
+markers = [
+    "requirement(id): trace this test to an L1/L2/L3 requirement id (e.g. L1-SYS-003)",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Coverage — combined line+branch gate. Ratchet upward as milestones land.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.coverage.run]
+branch = true
+source = ["file_mover"]
+
+[tool.coverage.report]
+show_missing = true
+# Foundation milestone (M1) ships declarative code + stubs only; the floor
+# ratchets up as behavioral milestones (M2+) add covered logic.
+fail_under = 80
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pylint — curated disables; SonarCloud covers the too-many-* family.
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.pylint.main]
+py-version = "3.10"
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint."messages control"]
+disable = [
+    "duplicate-code",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "fixme",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Vulture — dead-code detection. min_confidence 80 suppresses the low-signal
+# "unused public API" reports inherent to a library skeleton while still
+# catching unused imports (90%) and unreachable code (100%).
+# ─────────────────────────────────────────────────────────────────────────────
+[tool.vulture]
+paths = ["src"]
+min_confidence = 80

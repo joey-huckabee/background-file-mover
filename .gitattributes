@@ -1,2 +1,8 @@
-python/poetry.lock text eol=lf
-tests/conformance/** text eol=lf
+# Normalize line endings to LF for text files; the repo is LF-only and the
+# pre-commit hook + CI enforce it.
+* text=auto eol=lf
+poetry.lock text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

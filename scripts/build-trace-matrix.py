@@ -5,27 +5,14 @@ This tool walks three sources and emits a single trace matrix document:
 
 1. ``docs/L1-REQ.md`` — for L1 ids and their declared verification methods
 2. ``docs/L2-REQ.md``, ``docs/L3-REQ.md`` — for L2/L3 ids with ``Parent:`` fields
-3. ``python/tests/`` — for every ``@pytest.mark.requirement("L<N>-<CAT>-<NNN>")``
-   marker, collected via AST parse
-4. ``src/**/*.rs`` and ``tests/*.rs`` — for every ``/// Requirements: ...``
-   doc-comment line immediately preceding a ``#[test]`` item, collected via a
-   stateful line scan
+3. ``tests/`` — for every ``@pytest.mark.requirement("L<N>-<CAT>-<NNN>")`` marker,
+   collected via an AST parse
 
-The output per requirement row includes:
-
-* L2/L3 children (from parent fields)
-* Test artifacts (from markers) in pytest discovery format for Python tests
-  and ``path::function_name`` for Rust tests. Direct markers on an L1
-  requirement are rendered too — most L1s decompose into L2/L3 and carry
-  none, but Test-verified L1 *leaves* (no L2 decomposition, e.g.
-  ``L1-ROB-001`` for the fuzz harness) attach their tests at L1.
-* Status rolled up by :func:`compute_status` per the same rule as the
-  Message-Service version of this script.
-
-The coverage-summary denominator is every L2 and L3 requirement plus the
-Test-verifiable L1 *leaves*. Composite L1s are excluded from the count
-because they are verified transitively through their (counted) children;
-counting them too would double-count.
+The output per requirement row includes its L2/L3 children (from parent fields) and
+the test artifacts (from markers) in pytest discovery format. Status is rolled up per
+:func:`compute_status`. The coverage-summary denominator is every L2 and L3 requirement
+plus any Test-verifiable L1 *leaves* (L1s with no L2 decomposition); composite L1s are
+verified transitively through their counted children.
 
 Usage:
     python scripts/build-trace-matrix.py            # regenerate in place
@@ -46,53 +33,42 @@ L1_DOC = ROOT / "docs" / "L1-REQ.md"
 L2_DOC = ROOT / "docs" / "L2-REQ.md"
 L3_DOC = ROOT / "docs" / "L3-REQ.md"
 TRACE_DOC = ROOT / "docs" / "TRACE-MATRIX.md"
-PY_TESTS_DIR = ROOT / "python" / "tests"
-RUST_SOURCE_ROOTS = [ROOT / "rust" / "src", ROOT / "rust" / "tests"]
+PY_TESTS_DIR = ROOT / "tests"
 
 REQ_ID_PATTERN = re.compile(r"L(?P<level>[123])-(?P<cat>[A-Z]+)-(?P<num>\d+)")
 L1_HEADER = re.compile(r"^###\s+(L1-[A-Z]+-\d+)\s*$", re.MULTILINE)
-L2_HEADER = re.compile(r"^####\s+(L2-[A-Z]+-\d+)\s*$", re.MULTILINE)
 L2_PARENT_LINE = re.compile(r"^\*\*Parent\*\*:\s+(L1-[A-Z]+-\d+)\s*$", re.MULTILINE)
 L3_LINE = re.compile(
     r"^\*\*L3-([A-Z]+)-(\d+)\*\*\s+·\s+Parent:\s+(L2-[A-Z]+-\d+)\s+·\s+Verification:\s+([^\n]+)",
     re.MULTILINE,
 )
-L1_L2_VM_LINE = re.compile(
-    r"^\*\*Verification Method\*\*:\s+([^\n]+)$",
-    re.MULTILINE,
-)
-# Single-letter DO-178 verification codes embedded in either the
-# free-form L1/L2 "Test (T), Inspection (I)" phrasing or the compact
-# L3 "T, I" form. Each letter sits at a word boundary in both shapes.
+L1_L2_VM_LINE = re.compile(r"^\*\*Verification Method\*\*:\s+([^\n]+)$", re.MULTILINE)
+# Single-letter DO-178 verification codes embedded in either the free-form
+# "Test (T), Inspection (I)" phrasing or the compact L3 "T, I" form.
 _METHOD_LETTER = re.compile(r"\b([TIAD])\b")
 
-# Categories in declaration order. L1 categories appear in L1-REQ.md;
-# L2-only categories (RDR/MSG/WRT/FLT) have no L1 parent of their own —
-# their L2 statements parent into other categories' L1s.
-# L3-only categories (PY/RS) carry per-implementation technology constraints.
+# Requirement categories, in declaration order. The main forward-trace section is
+# keyed on categories that carry L1 ids (only SYS here — every L1 is a system
+# requirement), so the whole L1->L2->L3 tree renders under the SYS section. The
+# remaining L2/L3 categories carry no L1 of their own; they appear in the per-category
+# coverage summary, counted by their own id prefix.
 CATEGORIES: list[tuple[str, str]] = [
-    # L1 + L2 categories
-    ("DEC", "Binary decoding"),
-    ("OUT", "CSV output and destination integrity"),
-    ("DLT", "DELTA inter-arrival tracking"),
-    ("CLI", "CLI capability surface"),
-    ("LOG", "Diagnostic logging"),
-    ("MODE", "Strict and lenient handling"),
-    ("SYN", "Synchronization, validation, invariants"),
-    ("ERR", "DDC error records and SPURIOUS_DATA"),
-    ("CFG", "Configuration"),
-    ("CONF", "Cross-implementation conformance"),
-    ("EXIT", "Exit-code semantics and operational contract"),
-    ("ROB", "Robustness against arbitrary input"),
-    ("MRG", "Multi-file time-sorted merge"),
-    # L2-only categories (no L1 parent of the same code)
-    ("RDR", "Reader behavior (L2)"),
-    ("MSG", "Message semantics (L2)"),
-    ("WRT", "CSV writer mechanics (L2 + L3)"),
-    ("FLT", "Filtering mechanics (L2)"),
-    # L3-only per-implementation technology categories
+    ("SYS", "System requirements (L1)"),
+    ("DPR", "Data preservation (L2)"),
+    ("CFG", "Configuration (L2)"),
+    ("EVT", "Operational events (L2/L3)"),
+    ("CLI", "Command-line interface (L2/L3)"),
+    ("ARC", "Architecture and construction (L2)"),
+    ("FS", "Filesystem identity and claiming (L2)"),
+    ("POSIX", "POSIX storage behavior (L2)"),
+    ("CLN", "Cleanup and source retention (L2)"),
+    ("STO", "Storage abstraction (L2)"),
+    ("COPY", "Copy engine (L2)"),
+    ("RTY", "Retry and error classification (L2)"),
+    ("DST", "Destination publication (L2)"),
+    ("DEL", "Source deletion (L2)"),
+    ("INT", "Integrity verifier and manifest (L3)"),
     ("PY", "Python implementation details (L3)"),
-    ("RS", "Rust implementation details (L3)"),
 ]
 
 
@@ -102,12 +78,7 @@ def parse_l1_ids(doc: str) -> list[str]:
 
 
 def _extract_methods(text: str) -> set[str]:
-    """Extract DO-178 verification method letters from free-form text.
-
-    Handles both the L1/L2 phrasing ("Test (T), Inspection (I)") and
-    the L3 compact form ("T, I"). Returns a set of single-letter codes
-    drawn from ``{T, I, A, D}``.
-    """
+    """Extract DO-178 verification-method letters from free-form or compact text."""
     return set(_METHOD_LETTER.findall(text))
 
 
@@ -181,7 +152,7 @@ def collect_python_markers(tests_dir: Path) -> dict[str, list[str]]:
         except (SyntaxError, OSError):
             continue
         for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 continue
             for decorator in node.decorator_list:
                 req_id = _extract_pytest_requirement_id(decorator)
@@ -206,76 +177,11 @@ def _extract_pytest_requirement_id(decorator: ast.expr) -> str | None:
     return None
 
 
-_FN_DECL = re.compile(r"^\s*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*[(<]")
-
-
-def collect_rust_markers(source_roots: list[Path]) -> dict[str, list[str]]:
-    """Walk Rust source files and collect ``/// Requirements:`` markers.
-
-    Each ``#[test]`` (or ``#[tokio::test]``) item may be preceded by a doc
-    comment of the form ``/// Requirements: L2-WRT-015, L3-RS-007``. This
-    function pairs each such marker with the next ``fn name(`` declaration
-    and emits ``path::name`` artifacts.
-    """
-    marker_map: dict[str, list[str]] = defaultdict(list)
-    for source_root in source_roots:
-        if not source_root.is_dir():
-            continue
-        for rs_file in sorted(source_root.rglob("*.rs")):
-            try:
-                text = rs_file.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            rel = rs_file.relative_to(ROOT).as_posix()
-            pending_ids: list[str] = []
-            saw_test_attr = False
-            for line in text.splitlines():
-                stripped = line.strip()
-                if stripped.startswith("///") and "Requirements:" in stripped:
-                    _, _, after = stripped.partition("Requirements:")
-                    for match in REQ_ID_PATTERN.finditer(after):
-                        pending_ids.append(
-                            f"L{match.group('level')}-"
-                            f"{match.group('cat')}-{match.group('num')}"
-                        )
-                    continue
-                if stripped.startswith("#["):
-                    if (
-                        "test]" in stripped
-                        or "::test]" in stripped
-                        or stripped.startswith("#[test")
-                        or stripped.startswith("#[tokio::test")
-                        or stripped.startswith("#[rstest")
-                    ):
-                        saw_test_attr = True
-                    continue
-                if stripped.startswith("//"):
-                    continue
-                if not stripped:
-                    continue
-                fn_match = _FN_DECL.match(line)
-                if fn_match and saw_test_attr and pending_ids:
-                    name = fn_match.group(1)
-                    for req_id in pending_ids:
-                        marker_map[req_id].append(f"{rel}::{name}")
-                    pending_ids = []
-                    saw_test_attr = False
-                    continue
-                # Any other code line resets the pending state
-                pending_ids = []
-                saw_test_attr = False
-    return marker_map
-
-
 def collect_all_markers() -> dict[str, list[str]]:
-    """Merge Python and Rust marker collections."""
+    """Collect and de-duplicate the Python requirement markers."""
     merged: dict[str, list[str]] = defaultdict(list)
-    for source in (
-        collect_python_markers(PY_TESTS_DIR),
-        collect_rust_markers(RUST_SOURCE_ROOTS),
-    ):
-        for req_id, artifacts in source.items():
-            merged[req_id].extend(artifacts)
+    for req_id, artifacts in collect_python_markers(PY_TESTS_DIR).items():
+        merged[req_id].extend(artifacts)
     for req_id in merged:
         merged[req_id] = sorted(set(merged[req_id]))
     return merged
@@ -308,43 +214,39 @@ def build_matrix() -> str:
         l2_to_l3[l2_id].sort(key=_sort_key)
 
     lines: list[str] = []
-    lines.append("# MIE-Decoder — Requirements Trace Matrix")
+    lines.append("# Background File Mover — Requirements Trace Matrix")
     lines.append("")
     lines.append("<!-- AUTO-GENERATED by scripts/build-trace-matrix.py. Do not edit by hand. -->")
     lines.append("")
     lines.append("## Purpose")
     lines.append("")
     lines.append(
-        "Forward trace from L1 through L2 and L3 to verification artifacts. "
-        "This file is regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, "
-        "the `@pytest.mark.requirement` markers in `python/tests/`, and the "
-        "`/// Requirements:` doc-comment tags above `#[test]` items in Rust "
-        "source each time `scripts/build-trace-matrix.py` is run."
+        "Forward trace from L1 through L2 and L3 to verification artifacts. This file is "
+        "regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, and the "
+        "`@pytest.mark.requirement` markers in `tests/` each time "
+        "`scripts/build-trace-matrix.py` is run."
     )
     lines.append("")
     lines.append("## Status rollup")
     lines.append("")
     lines.append(
-        "Status is computed by `scripts/build-trace-matrix.py`'s rollup rule. "
-        "This matrix is the single source of truth for live status; the source "
-        "docs `L1-REQ.md`, `L2-REQ.md`, and `L3-REQ.md` carry only spec content."
+        "Status is computed by the rollup rule below. This matrix is the single source of "
+        "truth for live status; the source docs carry only spec content."
     )
     lines.append("")
     lines.append("* **Draft** — Test verification is required but no test marker found.")
     lines.append(
-        "* **Implemented** — at least one test marker exists (leaf), or every"
-        " child rolls up to Implemented."
+        "* **Implemented** — at least one test marker exists (leaf), or every child rolls "
+        "up to Implemented."
     )
     lines.append(
-        "* **Implemented (I)** / **(A)** / **(D)** — the spec declares"
-        " verification by Inspection / Analysis / Demonstration only;"
-        " satisfied by spec review without a test marker. Combinations"
-        " appear as e.g. ``Implemented (A+I)``."
+        "* **Implemented (I)** / **(A)** / **(D)** — the spec declares verification by "
+        "Inspection / Analysis / Demonstration only; satisfied by spec review without a "
+        "test marker. Combinations appear as e.g. ``Implemented (A+I)``."
     )
     lines.append(
-        "* **Partially Implemented** — at least one child is Implemented but"
-        " others are Draft, or the row itself has direct artifacts but its"
-        " children include Drafts."
+        "* **Partially Implemented** — at least one child is Implemented but others are "
+        "Draft, or the row itself has direct artifacts but its children include Drafts."
     )
     lines.append("")
     lines.append("---")
@@ -368,15 +270,9 @@ def build_matrix() -> str:
                 _l2_status(l2_id, l2_to_l3, test_markers, l2_methods, l3_methods)
                 for l2_id in children
             ]
-            # Render direct L1 markers. Most L1s decompose into L2/L3 and
-            # carry none; the exceptions are Test-verified L1 *leaves*
-            # (no L2 decomposition, e.g. L1-ROB-001) whose tests would
-            # otherwise be invisible in the matrix.
             l1_artifacts = sorted(test_markers.get(l1_id, []))
             artifacts_str = (
-                "<br>".join(f"`{a}`" for a in l1_artifacts)
-                if l1_artifacts
-                else "_(none)_"
+                "<br>".join(f"`{a}`" for a in l1_artifacts) if l1_artifacts else "_(none)_"
             )
             status = compute_status(
                 has_direct_artifacts=bool(test_markers.get(l1_id)),
@@ -403,9 +299,7 @@ def build_matrix() -> str:
             artifacts = sorted(set(artifacts))
 
             children_str = ", ".join(l3_children) if l3_children else "_(none)_"
-            artifacts_str = (
-                "<br>".join(f"`{a}`" for a in artifacts) if artifacts else "_(TBD)_"
-            )
+            artifacts_str = "<br>".join(f"`{a}`" for a in artifacts) if artifacts else "_(TBD)_"
             status = _l2_status(l2_id, l2_to_l3, test_markers, l2_methods, l3_methods)
             lines.append(f"| {l2_id} | {children_str} | {artifacts_str} | {status} |")
         lines.append("")
@@ -415,12 +309,11 @@ def build_matrix() -> str:
     lines.append("## Coverage summary")
     lines.append("")
     lines.append(
-        "* **Tested** — at least one test marker (`@pytest.mark.requirement`"
-        " or `/// Requirements:`) names this requirement."
+        "* **Tested** — at least one `@pytest.mark.requirement` marker names this " "requirement."
     )
     lines.append(
-        "* **Verified** — Tested, OR the spec declares verification by"
-        " Inspection / Analysis / Demonstration only (no test required)."
+        "* **Verified** — Tested, OR the spec declares verification by Inspection / "
+        "Analysis / Demonstration only (no test required)."
     )
     lines.append("")
     lines.append("| Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |")
@@ -429,9 +322,7 @@ def build_matrix() -> str:
     total_l2_tested = total_l3_tested = 0
     total_l2_verified = total_l3_verified = 0
 
-    def _is_verified(
-        req_id: str, methods: dict[str, set[str]]
-    ) -> bool:
+    def _is_verified(req_id: str, methods: dict[str, set[str]]) -> bool:
         if test_markers.get(req_id):
             return True
         m = methods.get(req_id, set())
@@ -463,12 +354,8 @@ def build_matrix() -> str:
     )
     lines.append("")
 
-    # L1 requirements are normally decomposed into L2/L3 and verified
-    # transitively (so they are NOT double-counted in the denominator).
-    # The exceptions are Test-verifiable L1 *leaves* — L1 requirements with
-    # no L2 child (e.g. L1-ROB-001) — which are the only place certain tests
-    # (the fuzz harness) attach. Those leaves are countable requirements in
-    # their own right and are folded into the totals below.
+    # Composite L1s are verified transitively through their L2/L3 children and are not
+    # double-counted. Only Test-verifiable L1 leaves (no L2 child) are folded in here.
     l1_leaves = [l1 for l1 in l1_ids if not l1_to_l2.get(l1)]
     l1_leaf_tested = sum(1 for l1 in l1_leaves if test_markers.get(l1))
     l1_leaf_verified = sum(1 for l1 in l1_leaves if _is_verified(l1, l1_methods))
@@ -480,16 +367,14 @@ def build_matrix() -> str:
         tested_pct = tested_n * 100 / countable
         verified_pct = verified_n * 100 / countable
         lines.append(
-            f"The countable requirement set is every L2 and L3 requirement plus "
-            f"the {len(l1_leaves)} Test-verifiable L1 *leaf* requirement(s) "
-            f"(L1s with no L2 decomposition, e.g. `L1-ROB-001`, where the test "
-            f"markers attach directly). Composite L1s are verified transitively "
-            f"through their L2/L3 children, which are counted individually above."
+            f"The countable requirement set is every L2 and L3 requirement plus the "
+            f"{len(l1_leaves)} Test-verifiable L1 *leaf* requirement(s). Composite L1s are "
+            f"verified transitively through their L2/L3 children, counted individually above."
         )
         lines.append("")
         lines.append(
-            f"**Tested by at least one test marker**: "
-            f"{tested_n} of {countable} ({tested_pct:.1f}%)."
+            f"**Tested by at least one test marker**: {tested_n} of {countable} "
+            f"({tested_pct:.1f}%)."
         )
         lines.append("")
         lines.append(
@@ -546,17 +431,9 @@ def compute_status(
 ) -> str:
     """Roll up status for one requirement node.
 
-    Verification-method awareness: a leaf with no test marker that
-    declares only Inspection / Analysis / Demonstration verification
-    is treated as ``Implemented (I)`` / ``(A)`` / ``(D)`` (or a
-    combination), reflecting that those methods are satisfied by
-    review of the spec doc itself rather than a test artifact. A leaf
-    that lists Test among its methods still requires a test marker —
-    absent the marker, it remains ``Draft`` to surface the gap.
-
-    Parent rollup treats any ``Implemented...`` child as a positive
-    credit when deciding ``Implemented`` vs ``Partially Implemented``
-    vs ``Draft``.
+    A leaf with no test marker that declares only Inspection / Analysis / Demonstration
+    verification is treated as ``Implemented (I)`` / ``(A)`` / ``(D)``. A leaf that lists
+    Test among its methods still requires a marker; absent it, it remains ``Draft``.
     """
     if not children_statuses:
         if has_direct_artifacts:
@@ -605,6 +482,7 @@ def _l2_status(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Regenerate the trace matrix, or check it for drift with ``--check``."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",
@@ -628,9 +506,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
 
-    # Pin LF line endings so the file is portable across platforms and
-    # passes the repo's CRLF guard. Path.write_text on Windows defaults
-    # to translating "\n" to "\r\n"; bypass via write_bytes.
+    # Pin LF line endings for portability across platforms and the repo's CRLF guard.
     TRACE_DOC.write_bytes(new_content.encode("utf-8"))
     print(f"Wrote {TRACE_DOC.relative_to(ROOT).as_posix()}")
     return 0

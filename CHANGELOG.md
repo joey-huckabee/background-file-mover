@@ -1,16 +1,23 @@
 # Changelog
 
-All notable changes to MIE-Decoder are documented in this file.
+All notable changes to Background File Mover are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Versioning model: **v1.0.0 is a joint cut** — both the Rust crate and
-the Python package ship from a single repository tag (`v1.0.0`).
-Subsequent releases may diverge in version via impl-prefixed tags
-(`rust-vX.Y.Z`, `python-vX.Y.Z`); the cross-implementation conformance
-contract (byte-exact CSV equivalence on shared behavior) holds at any
-compatible version pair. See `docs/MAINTAINER-GUIDE.md` §11 for the
-full release workflow.
-
 ## [Unreleased]
+
+### Added
+
+- Project foundation (Milestone 1): Poetry project with a `src/file_mover` package,
+  standard-library-only runtime, and the full dev/CI quality battery
+  (ruff, mypy --strict, pytest + coverage, pylint, vulture, bandit).
+- Requirement baseline: L1 system requirements (`L1-SYS-*`), L2 architectural
+  derivations, and L3 implementation obligations, with an auto-generated trace matrix
+  (`docs/TRACE-MATRIX.md`) produced by `scripts/build-trace-matrix.py`.
+- Declarative core: on-disk/protocol constants, the `FileMoverError` exception hierarchy,
+  and the job/file/integrity/exit-code enums.
+- CLI parser surface (`file-mover`) with all subcommands, verbosity, and output options;
+  `--help` / `--version` functional. Transfer behavior is not yet implemented.
+- Reference configuration (`config/file-mover.ini`) and documentation set
+  (architecture, CLI, config, maintainer guide, roadmap).
