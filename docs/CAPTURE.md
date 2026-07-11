@@ -5088,3 +5088,349 @@ Its main gaps relative to the new project are:
 
 So the correct approach is not to copy this class. We should preserve the **copy-loop, concurrency, retry, and selective-deletion lessons**, while rebuilding them inside a durable state-machine architecture.
 
+## My Prompt:
+I am curious about something. While the long running service is running how do we interact with it using the CLI?
+
+## Chat Reply:
+The CLI should interact with the running service through a local control channel. For this Linux-only first release, the best fit is a Unix domain socket.
+```
+Simulation script / operator
+        │
+        │ file-mover submit ...
+        ▼
+Short-lived CLI process
+        │
+        │ JSON request over Unix socket
+        ▼
+/run/file-mover/control.sock
+        │
+        ▼
+Long-running systemd service
+        │
+        ├── validates request
+        ├── updates SQLite
+        ├── claims files
+        └── returns JSON response
+```
+#### Why a Unix socket
+It provides:
+
+* Direct request/response communication
+* Local-only access by default
+* Normal Linux file permissions
+* No TCP port to manage
+* No external dependency
+* Immediate feedback from the service
+* Separation between the CLI and service implementation
+
+Python 3.10 provides everything needed through `socket`.
+
+#### Example interaction
+The operator runs:
+```shell
+file-mover submit \
+    --scenario-id SWIT-001 \
+    --source /recordings/run-001 \
+    --destination /processing/run-001
+```
+The CLI does not perform the transfer. It:
+
+1. Loads enough configuration to locate the socket.
+2. Connects to:
+```
+/run/file-mover/control.sock
+```
+3. Sends a request such as:
+```json
+{
+  "protocol_version": 1,
+  "request_id": "4e5ee95d-48da-4899-b2ec-56da9df5afef",
+  "command": "submit",
+  "arguments": {
+    "scenario_id": "SWIT-001",
+    "source": "/recordings/run-001",
+    "destination": "/processing/run-001"
+  }
+}
+```
+4. The service validates and claims the files.
+5. The service replies:
+```json
+{
+  "protocol_version": 1,
+  "request_id": "4e5ee95d-48da-4899-b2ec-56da9df5afef",
+  "success": true,
+  "result": {
+    "job_id": "d9302beb-87f9-48ee-b403-dd9f30b05047",
+    "state": "QUEUED_FOR_HASHING",
+    "claimed_file_count": 18,
+    "claimed_bytes": 107374182400
+  }
+}
+```
+6. The CLI prints the result and exits.
+
+The service continues hashing and moving files after the CLI exits.
+
+#### Status requests
+Later:
+```
+file-mover status d9302beb-87f9-48ee-b403-dd9f30b05047
+```
+
+The CLI sends:
+```json
+{
+  "protocol_version": 1,
+  "request_id": "...",
+  "command": "status",
+  "arguments": {
+    "job_id": "d9302beb-87f9-48ee-b403-dd9f30b05047"
+  }
+}
+```
+The service responds:
+```json
+{
+  "success": true,
+  "result": {
+    "job_id": "d9302beb-87f9-48ee-b403-dd9f30b05047",
+    "state": "COPYING",
+    "files_total": 18,
+    "files_completed": 11,
+    "bytes_total": 107374182400,
+    "bytes_completed": 67645734912,
+    "current_attempt": 1,
+    "last_error": null
+  }
+}
+```
+#### Which commands should use the socket
+These should normally communicate with the service:
+```
+submit
+status
+list
+retry
+cancel
+pause
+resume
+stats
+service-status
+```
+These can run locally without the service:
+```
+--help
+--version
+config validate
+```
+The `doctor` command may do both:
+
+* Validate local configuration itself.
+* Ask the service for its current health and database status.
+
+#### Socket permissions
+The systemd unit creates or owns:
+```
+/run/file-mover/
+└── control.sock
+```
+Example permissions:
+```
+srw-rw---- root mover control.sock
+```
+Only:
+* The service account
+* Root
+* Members of the mover group
+
+can submit or modify jobs.
+
+Read-only commands could later use a separate socket or application-level authorization, but one group-controlled socket is adequate initially.
+
+#### Framing messages correctly
+Unix sockets are byte streams. One `send()` does not necessarily correspond to one `recv()`.
+
+We need explicit message framing. A simple robust protocol is:
+
+```
+4-byte unsigned message length
+JSON payload of that length
+```
+Conceptually:
+```
+[00 00 01 A4][JSON bytes...]
+```
+Both client and server must:
+
+* Read exactly four header bytes.
+* Decode the payload length.
+* Reject oversized messages.
+* Read exactly that many payload bytes.
+* Decode UTF-8 JSON.
+* Validate the protocol version and command.
+
+A newline-delimited JSON protocol is simpler, but length-prefix framing is safer if future messages contain embedded formatting or become larger.
+
+#### Server structure
+
+The long-running service would include a control server:
+```
+BackgroundMoverService
+├── ControlSocketServer
+├── JobSubmissionService
+├── JobQueryService
+├── TransferCoordinator
+└── SQLiteJobRepository
+```
+The socket server should remain small:
+```python
+class ControlSocketServer:
+    """Accept and dispatch local CLI control requests."""
+
+    def serve_forever(self) -> None:
+        """Accept requests until shutdown is requested."""
+
+    def handle_connection(self, connection: socket.socket) -> None:
+        """Read one request, dispatch it, and send one response."""
+```
+A request dispatcher maps commands explicitly:
+```python
+handlers = {
+    "submit": submission_handler,
+    "status": status_handler,
+    "list": list_handler,
+    "retry": retry_handler,
+}
+```
+Do not use dynamic method invocation based directly on user-supplied command names.
+
+#### Concurrent CLI requests
+
+The service should be able to handle several quick control requests while transfers run.
+
+For example:
+```
+Thread 1: control socket accept loop
+Thread 2: submit request
+Thread 3: status request
+Worker 1: copying host01.dat
+Worker 2: copying host02.dat
+```
+Control requests should use a small separate thread pool from transfer workers so a saturated copy pool does not prevent status queries.
+
+Example limits:
+```
+[control]
+max_concurrent_requests = 8
+request_timeout_seconds = 30
+maximum_message_bytes = 1048576
+```
+
+#### What happens when the service is unavailable
+
+When the CLI cannot connect:
+```
+Error: SWIT Background File Mover service is not available.
+Socket: /run/swit-file-mover/control.sock
+Check: systemctl status swit-background-file-mover
+```
+Exit code:
+```
+4 = service unavailable
+```
+The CLI should not silently start its own transfer process. That could create competing workers and bypass the singleton service.
+
+#### Could the CLI read SQLite directly?
+
+For read-only operations, technically yes:
+```shell
+file-mover status ...
+```
+could open the SQLite database directly.
+
+I would avoid that as the primary design because:
+
+* The CLI becomes coupled to the database schema.
+* Authorization is harder to centralize.
+* Service-computed progress may be newer than persisted state.
+* Schema migrations affect both independently.
+* Write commands must use the service anyway.
+* Reading through the service gives one consistent control interface.
+
+An emergency offline inspection command could be added later:
+```shell
+file-mover database inspect --offline
+```
+but it should not be the normal path.
+
+#### Could we use only a spool directory?
+
+Yes. The CLI could atomically place requests in:
+```
+/var/lib/swit-file-mover/requests/
+```
+and poll for a response file.
+
+That is durable and simple, but weaker for interactive commands:
+
+* Status responses are slower.
+* Timeouts and response cleanup are awkward.
+* Request authentication is mostly filesystem-based.
+* Duplicate requests need extra handling.
+* There is no immediate connection-level failure.
+* Operators may leave stale request files.
+
+A spool directory remains useful internally for manifests or as a fallback, but the Unix socket is better for CLI control.
+
+#### Important durability boundary
+
+The socket itself is not the durable queue.
+
+For `submit`, the service must not respond with success merely because it received the request. It should respond only after:
+```
+request validated
+job record committed
+source inventory committed
+files claimed
+manifest safely written
+job queued durably
+```
+Then the response can safely say:
+```
+accepted
+```
+If the socket disconnects after the service committed the job but before the CLI received the response, the orchestration script may not know whether submission succeeded. That is why every request needs a client-generated `request_id`.
+
+The client can retry the same request:
+```json
+{
+  "request_id": "4e5ee95d-48da-4899-b2ec-56da9df5afef"
+}
+```
+The service checks whether that request was already processed and returns the original result instead of creating a duplicate job.
+
+That gives us **idempotent submission**.
+
+#### Recommended protocol rules
+```
+Transport: Unix domain stream socket
+Encoding: UTF-8 JSON
+Framing: 4-byte network-order length prefix
+Maximum request size: configurable, default 1 MiB
+One request per connection initially
+Client-generated request ID required
+Protocol version required
+All responses echo request ID
+Submit requests are idempotent
+Socket operations have timeouts
+Unknown commands are rejected
+Malformed messages never terminate the service
+```
+So the CLI is essentially a short-lived local client, and the background application is both:
+
+1. A durable transfer worker.
+2. A small local command server.
+
+That gives the orchestration scripts immediate, scriptable interaction without tying them to the long-running 100 GB transfer.
+
