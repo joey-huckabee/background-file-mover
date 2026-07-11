@@ -814,3 +814,87 @@ The software shall not delete a source when destination verification is incomple
 **Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
+
+## CTL — Control plane
+
+#### L2-CTL-001
+
+The CLI and service shall communicate over an AF_UNIX stream socket.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-002
+
+Control messages shall be UTF-8 JSON framed with a 4-byte big-endian length prefix.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-003
+
+The software shall reject an over-large control message before allocating its body.
+
+**Parent**: L1-SYS-010
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-004
+
+A malformed control message shall never crash the service.
+
+**Parent**: L1-SYS-010
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-005
+
+The software shall reject unknown control commands with a typed error response.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-006
+
+The control server shall run on a thread pool separate from the transfer workers.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Inspection (I)
+
+#### L2-CTL-007
+
+The software shall recover a stale control socket safely: refuse to start if a live
+instance is listening, remove only a confirmed-dead socket, and never delete a
+non-socket file.
+
+**Parent**: L1-SYS-010
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-008
+
+The software shall permit only one running service instance via a singleton lock.
+
+**Parent**: L1-SYS-010
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-009
+
+The service shall handle SIGTERM and SIGINT and shut down cleanly.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-010
+
+The software shall provide a health command that reports service status.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)

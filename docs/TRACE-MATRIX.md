@@ -30,9 +30,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-POSIX-012, L2-RTY-004 | _(none)_ | Draft |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-POSIX-004, L2-RTY-003, L2-STO-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
-| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
+| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 
 **L2 -> L3 -> Verification Artifacts**
 
@@ -81,6 +81,16 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-COPY-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
+| L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
+| L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
+| L2-CTL-004 | _(none)_ | `tests/test_control_integration.py::test_server_answers_malformed_request_without_crashing`<br>`tests/test_dispatcher.py::test_handler_exception_is_isolated`<br>`tests/test_protocol.py::test_empty_message_rejected`<br>`tests/test_protocol.py::test_malformed_json_body_rejected`<br>`tests/test_protocol.py::test_non_object_json_rejected` | Implemented |
+| L2-CTL-005 | L3-CTL-002 | `tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Implemented |
+| L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-CTL-007 | _(none)_ | `tests/test_control_unix.py::test_bind_refuses_non_socket_file`<br>`tests/test_control_unix.py::test_bind_removes_dead_stale_socket` | Implemented |
+| L2-CTL-008 | L3-CTL-004 | `tests/test_cli.py::test_service_run_reports_unavailable_without_lockable_state`<br>`tests/test_control_unix.py::test_process_lock_context_manager`<br>`tests/test_control_unix.py::test_process_lock_is_exclusive` | Implemented |
+| L2-CTL-009 | _(none)_ | `tests/test_control_unix.py::test_service_run_serves_health_then_stops` | Implemented |
+| L2-CTL-010 | _(none)_ | `tests/test_cli.py::test_health_reports_service_unavailable_when_down` | Implemented |
 | L2-DEL-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-003 | _(none)_ | _(TBD)_ | Draft |
@@ -100,7 +110,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
 | L2-EVT-002 | L3-EVT-003 | _(TBD)_ | Draft |
 | L2-EVT-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-EVT-004 | L3-EVT-001, L3-EVT-002, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive` | Partially Implemented |
+| L2-EVT-004 | L3-EVT-001, L3-EVT-002 | _(TBD)_ | Draft |
 | L2-EVT-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-002 | _(none)_ | _(TBD)_ | Draft |
@@ -154,15 +164,16 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 1 | 0 | 1 | 0 |
 | DST | 0 | 5 | 0 | 1 | 0 | 1 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| CTL | 0 | 10 | 4 | 9 | 4 | 10 | 4 |
 | INT | 0 | 0 | 7 | 0 | 1 | 0 | 1 |
 | PY | 0 | 0 | 8 | 0 | 2 | 0 | 2 |
-| **Total** | **10** | **92** | **25** | **17** | **5** | **25** | **5** |
+| **Total** | **10** | **102** | **29** | **26** | **9** | **35** | **9** |
 
 The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 22 of 117 (18.8%).
+**Tested by at least one test marker**: 35 of 131 (26.7%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 30 of 117 (25.6%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 44 of 131 (33.6%).
 
 ### Orphan check
 

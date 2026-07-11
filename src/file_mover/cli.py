@@ -7,10 +7,10 @@ subcommand delegates to a small handler that will (in later milestones) translat
 the parsed arguments into a typed request, dispatch it to the service over the
 control socket, render the result, and return a documented :class:`ExitCode`.
 
-Milestone 1 ships the full parser surface — ``--help``, ``--version``, verbosity
-flags, and every subcommand — with handlers that report "not yet implemented" and
-return :attr:`ExitCode.OPERATION_FAILED`. The socket client, service, and per-command
-result rendering arrive in Milestones 2-7 (see ``docs/ROADMAP.md``).
+The parser surface is complete. ``config validate`` / ``doctor`` (M2) and ``health`` /
+``service run`` (M3) are wired end-to-end; the remaining job commands (submit, status,
+list, retry, stats, recover) report "not yet implemented" until their milestones land
+(see ``docs/ROADMAP.md``).
 """
 
 from __future__ import annotations
@@ -21,10 +21,17 @@ import sys
 from collections.abc import Sequence
 
 from file_mover import __version__
-from file_mover.configuration import ConfigurationLoader, ConfigurationValidationError
+from file_mover.configuration import (
+    ApplicationConfig,
+    ConfigurationLoader,
+    ConfigurationValidationError,
+)
 from file_mover.constants import APP_NAME, DEFAULT_CONFIG_PATH
-from file_mover.exceptions import ConfigurationError
+from file_mover.control.client import ControlClient
+from file_mover.exceptions import ConfigurationError, ServiceLockError, ServiceUnavailableError
 from file_mover.jobs.models import ExitCode
+from file_mover.logging_config import configure_logging
+from file_mover.service import BackgroundMoverService
 
 
 def _add_global_options(parser: argparse.ArgumentParser) -> None:
@@ -111,6 +118,8 @@ def create_parser() -> argparse.ArgumentParser:
 
     _add_global_options(subcommands.add_parser("stats", help="show durable service statistics"))
 
+    _add_global_options(subcommands.add_parser("health", help="query the running service"))
+
     config = subcommands.add_parser("config", help="configuration operations")
     config_sub = config.add_subparsers(dest="config_command", metavar="<config-command>")
     _add_global_options(
@@ -154,23 +163,9 @@ def _not_implemented(command: str) -> ExitCode:
     return ExitCode.OPERATION_FAILED
 
 
-def _validate_configuration(config_path: str, output: str) -> ExitCode:
-    """Load and validate the configuration file, rendering the outcome.
-
-    Machine output (``--output json``) is written to stdout; human diagnostics go to
-    stderr (L2-CLI-005/006).
-
-    Args:
-        config_path: Path to the configuration file.
-        output: ``"human"`` or ``"json"``.
-
-    Returns:
-        :attr:`ExitCode.SUCCESS` if valid, otherwise :attr:`ExitCode.CONFIGURATION_ERROR`.
-    """
-    loader = ConfigurationLoader()
-    try:
-        loader.load(config_path)
-    except ConfigurationValidationError as error:
+def _render_configuration_error(error: ConfigurationError, output: str) -> None:
+    """Render a configuration load/validation failure (stdout JSON or stderr text)."""
+    if isinstance(error, ConfigurationValidationError):
         if output == "json":
             payload = {
                 "error_code": "CONFIGURATION_INVALID",
@@ -192,19 +187,89 @@ def _validate_configuration(config_path: str, output: str) -> ExitCode:
                 if issue.option is not None:
                     location = f"{issue.section}.{issue.option}"
                 print(f"  [{location}] {issue.message}", file=sys.stderr)
-        return ExitCode.CONFIGURATION_ERROR
+        return
+    if output == "json":
+        print(json.dumps({"error_code": "CONFIGURATION_ERROR", "message": str(error)}))
+    else:
+        print(f"{APP_NAME}: {error}", file=sys.stderr)
+
+
+def _load_configuration(config_path: str, output: str) -> ApplicationConfig | ExitCode:
+    """Load configuration, rendering and returning an exit code on failure.
+
+    Returns:
+        The validated configuration, or :attr:`ExitCode.CONFIGURATION_ERROR`.
+    """
+    try:
+        return ConfigurationLoader().load(config_path)
     except ConfigurationError as error:
-        if output == "json":
-            print(json.dumps({"error_code": "CONFIGURATION_ERROR", "message": str(error)}))
-        else:
-            print(f"{APP_NAME}: {error}", file=sys.stderr)
+        _render_configuration_error(error, output)
         return ExitCode.CONFIGURATION_ERROR
 
+
+def _validate_configuration(config_path: str, output: str) -> ExitCode:
+    """Load and validate the configuration file, rendering the outcome.
+
+    Machine output (``--output json``) is written to stdout; human diagnostics go to
+    stderr (L2-CLI-005/006).
+
+    Returns:
+        :attr:`ExitCode.SUCCESS` if valid, otherwise :attr:`ExitCode.CONFIGURATION_ERROR`.
+    """
+    result = _load_configuration(config_path, output)
+    if isinstance(result, ExitCode):
+        return result
     if output == "json":
         print(json.dumps({"status": "ok", "message": "configuration valid"}))
     else:
         print("configuration valid")
     return ExitCode.SUCCESS
+
+
+def _resolve_log_level(args: argparse.Namespace) -> str:
+    """Resolve the effective log level from ``--log-level`` or ``-v``/``-vv``."""
+    if args.log_level is not None:
+        return str(args.log_level)
+    return {0: "WARNING", 1: "INFO"}.get(args.verbose, "DEBUG")
+
+
+def _handle_health(args: argparse.Namespace) -> ExitCode:
+    """Query the running service's health over the control socket."""
+    result = _load_configuration(args.config, args.output)
+    if isinstance(result, ExitCode):
+        return result
+    client = ControlClient(str(result.service.socket_path))
+    try:
+        response = client.send("health")
+    except ServiceUnavailableError as error:
+        print(f"{APP_NAME}: {error}", file=sys.stderr)
+        return ExitCode.SERVICE_UNAVAILABLE
+
+    if not response.get("success"):
+        error_info = response.get("error", {})
+        print(f"{APP_NAME}: service error: {error_info}", file=sys.stderr)
+        return ExitCode.OPERATION_FAILED
+
+    payload = response.get("result", {})
+    if args.output == "json":
+        print(json.dumps(payload))
+    else:
+        for key, value in payload.items():
+            print(f"{key}: {value}")
+    return ExitCode.SUCCESS
+
+
+def _handle_service_run(args: argparse.Namespace) -> ExitCode:
+    """Load configuration and run the service in the foreground."""
+    result = _load_configuration(args.config, args.output)
+    if isinstance(result, ExitCode):
+        return result
+    configure_logging(_resolve_log_level(args))
+    try:
+        return ExitCode(BackgroundMoverService(result).run())
+    except ServiceLockError as error:
+        print(f"{APP_NAME}: {error}", file=sys.stderr)
+        return ExitCode.SERVICE_UNAVAILABLE
 
 
 def _handle_config(args: argparse.Namespace) -> ExitCode:
@@ -228,7 +293,7 @@ def _handle_doctor(args: argparse.Namespace) -> ExitCode:
     return _validate_configuration(args.config, args.output)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:  # pylint: disable=too-many-return-statements
     """CLI entry point.
 
     Parses real arguments (``sys.argv`` when ``argv`` is ``None``), dispatches to the
@@ -255,6 +320,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if command == "doctor":
         return int(_handle_doctor(args))
 
+    if command == "health":
+        return int(_handle_health(args))
+
     if command == "service":
         service_command = getattr(args, "service_command", None)
         if service_command is None:
@@ -263,6 +331,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return int(ExitCode.INVALID_ARGUMENT)
+        if service_command == "run":
+            return int(_handle_service_run(args))
         return int(_not_implemented(f"service {service_command}"))
 
     return int(_not_implemented(command))

@@ -84,6 +84,9 @@ convention = "google"
 # ─────────────────────────────────────────────────────────────────────────────
 [tool.mypy]
 python_version = "3.10"
+# The production target is Linux; analyse platform-specific stdlib (AF_UNIX, fcntl)
+# as Linux regardless of the host mypy runs on, so results match CI and the deploy target.
+platform = "linux"
 strict = true
 warn_unreachable = true
 warn_redundant_casts = true
@@ -134,6 +137,11 @@ disable = [
     "too-many-instance-attributes",
     "fixme",
 ]
+
+[tool.pylint.typecheck]
+# Linux-only stdlib members that pylint can't see when it runs on a non-POSIX host.
+generated-members = ["socket.AF_UNIX"]
+ignored-modules = ["fcntl"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Vulture — dead-code detection. min_confidence 80 suppresses the low-signal

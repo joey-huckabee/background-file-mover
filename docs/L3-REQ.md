@@ -114,7 +114,7 @@ Durability shall use `os.fsync` on both the file and its containing directory.
 Exclusive temporary-file creation shall use `os.open` with `O_CREAT | O_EXCL |
 O_NOFOLLOW`.
 
-**L3-PY-006** · Parent: L2-EVT-004 · Verification: T
+**L3-PY-006** · Parent: L2-CTL-002 · Verification: T
 
 The control protocol shall frame each message with a 4-byte big-endian length prefix.
 
@@ -125,3 +125,23 @@ Durable state shall use `sqlite3` with `journal_mode=WAL` and `synchronous=FULL`
 **L3-PY-008** · Parent: L2-CLI-001 · Verification: T, I
 
 The command-line interface shall be implemented with `argparse`.
+
+## CTL — Control-plane components
+
+**L3-CTL-001** · Parent: L2-CTL-002 · Verification: T
+
+`receive_exactly` shall loop on `recv` until the full frame arrives or the peer closes
+the connection.
+
+**L3-CTL-002** · Parent: L2-CTL-005 · Verification: T
+
+The `CommandDispatcher` shall route via an explicit command-to-handler map and shall not
+dispatch dynamically on a user-supplied name.
+
+**L3-CTL-003** · Parent: L2-CTL-001 · Verification: T
+
+Every control response shall echo the request's `request_id`.
+
+**L3-CTL-004** · Parent: L2-CTL-008 · Verification: T
+
+The `ProcessLock` shall use `fcntl.flock` for the singleton lock.
