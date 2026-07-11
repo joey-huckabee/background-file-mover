@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Control plane (Milestone 3) — the first executable slice:
+  - Length-prefixed JSON message framing (`control/protocol.py`) that rejects oversized
+    frames before allocation and loops on `recv` until a full frame arrives.
+  - `CommandDispatcher` with an explicit command→handler map that validates the request
+    envelope, rejects unknown commands, echoes the request id, and isolates handler
+    failures so a raising handler can never crash the service.
+  - `ControlSocketServer` (AF_UNIX, small dedicated thread pool, safe stale-socket
+    recovery) and `ControlClient`, plus an `fcntl`-based singleton `ProcessLock`.
+  - `BackgroundMoverService` that acquires the lock, binds the socket, answers `health`,
+    and shuts down cleanly on SIGTERM/SIGINT; wired to `file-mover service run`.
+  - `file-mover health` command and centralized stderr logging (`logging_config.py`).
+  - Requirements: L2-CTL-001..010, L3-CTL-001..004, L3-PY-006.
+
 - Configuration subsystem (Milestone 2): a strict `ConfigurationLoader` that parses the
   INI file with `configparser`, rejects unknown sections/options and missing required
   values, converts values to typed fields, validates numeric ranges and cross-field

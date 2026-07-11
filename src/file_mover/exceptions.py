@@ -26,7 +26,10 @@ The hierarchy mirrors the durable workflow stages:
  │    ├── ``HashMismatchError``
  │    └── ``SourceChangedError``
  ├── ``RepositoryError``
- └── ``RecoveryError``
+ ├── ``RecoveryError``
+ ├── ``ControlProtocolError``
+ ├── ``ServiceLockError``
+ └── ``ServiceUnavailableError``
 """
 
 from __future__ import annotations
@@ -106,3 +109,15 @@ class RepositoryError(FileMoverError):
 
 class RecoveryError(FileMoverError):
     """Startup reconciliation could not resolve durable state against the filesystem."""
+
+
+class ControlProtocolError(FileMoverError):
+    """A control-plane message was malformed, oversized, or truncated."""
+
+
+class ServiceLockError(FileMoverError):
+    """The singleton service lock or control socket is held by another instance."""
+
+
+class ServiceUnavailableError(FileMoverError):
+    """No control service is listening; the CLI must not start work of its own."""

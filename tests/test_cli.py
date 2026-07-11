@@ -62,7 +62,6 @@ def test_invalid_choice_is_rejected_before_dispatch() -> None:
         ["stats"],
         ["recover"],
         ["submit", "--scenario-id", "s1", "--source", "/recordings/s1", "--destination", "/p"],
-        ["service", "run"],
     ],
 )
 def test_known_commands_report_not_implemented(argv: list[str]) -> None:
@@ -152,3 +151,24 @@ def test_config_validate_missing_file_json(
     assert code == ExitCode.CONFIGURATION_ERROR
     payload = json.loads(capsys.readouterr().out)
     assert payload["error_code"] == "CONFIGURATION_ERROR"
+
+
+@pytest.mark.requirement("L2-CTL-010")
+def test_health_reports_service_unavailable_when_down(tmp_path: Path) -> None:
+    # No service is listening at the (default) socket path -> SERVICE_UNAVAILABLE, and on
+    # a non-POSIX host AF_UNIX is unavailable, which maps to the same controlled result.
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["health", "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-CTL-008")
+def test_service_run_reports_unavailable_without_lockable_state(tmp_path: Path) -> None:
+    # state_directory cannot be locked (missing dir on POSIX; no fcntl elsewhere): the
+    # service refuses to start with a controlled SERVICE_UNAVAILABLE rather than crashing.
+    config_text = (
+        "[service]\nstate_directory = /nonexistent-swit-dir/state\n"
+        "[paths]\nallowed_source_roots = /recordings\n"
+        "allowed_destination_roots = /processing\n"
+    )
+    path = _write_config(tmp_path, config_text)
+    assert main(["service", "run", "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
