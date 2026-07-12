@@ -15,7 +15,8 @@ authoritative spec source.
 | Retired CAPTURE section | Disposition | Canonical home(s) | Commit |
 |-------------------------|-------------|-------------------|--------|
 | Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | `2ee3e73` |
-| Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | _this commit_ |
+| Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | `8905c81` |
+| Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -818,38 +819,8 @@ That is not a panic; it is a controlled fail-safe startup refusal.
 _(§ "Initial L1 Requirements" retired — see the retirement ledger at the top of this
 file. Fully transcribed into `docs/L1-REQ.md`.)_
 
-## Example L2 Decomposition
-L2 requirements describe software behavior supporting each L1 requirement.
-
-Under **L1-SYS-003 Data Preservation**:
-
-#### L2-SW-003.1
-
-The software shall copy each claimed source file to a temporary destination filename.
-
-#### L2-SW-003.2
-
-The software shall flush and synchronize the destination file before publication.
-
-#### L2-SW-003.3
-
-The software shall validate the destination file size before publication.
-
-#### L2-SW-003.4
-
-When hashing is enabled, the software shall compare the configured source and destination hash values before source deletion.
-
-#### L2-SW-003.5
-
-The software shall publish a completed destination file using an atomic rename within the destination filesystem.
-
-#### L2-SW-003.6
-
-The software shall delete a claimed source file only after the corresponding destination file has reached the `PUBLISHED_VERIFIED` state.
-
-#### L2-SW-003.7
-
-The software shall retain the claimed source file if any copy, flush, synchronization, verification, or publication operation fails.
+_(§ "Example L2 Decomposition" retired — see the retirement ledger at the top of this
+file. Fully transcribed into `docs/L2-REQ.md`.)_
 
 ## Example L3 Decomposition
 L3 requirements describe component-level implementation behavior.
