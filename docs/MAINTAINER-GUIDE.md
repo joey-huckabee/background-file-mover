@@ -16,7 +16,7 @@ background-file-mover/
 ├── config/file-mover.ini     # fully commented reference configuration
 ├── packaging/systemd/        # systemd unit (filled in at M8)
 ├── scripts/                  # build-trace-matrix.py, coverage.sh, pytest-by-requirement.py, install-hooks.sh
-├── docs/                     # requirements (L1/L2/L3), ARCHITECTURE, CLI/CONFIG refs, ROADMAP, TRACE-MATRIX, CAPTURE
+├── docs/                     # requirements (L1/L2/L3), ARCHITECTURE, CLI/CONFIG refs, USER-GUIDE, ROADMAP, TRACE-MATRIX
 └── .github/workflows/        # CI (ci.yml + codeql.yml + sonarcloud.yml)
 ```
 

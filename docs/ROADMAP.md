@@ -5,13 +5,13 @@ vertical, CI-green, fully-pytested slice that advances the requirements in
 `docs/L1-REQ.md` / `L2-REQ.md` / `L3-REQ.md`. Completed work lives in `CHANGELOG.md`
 and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
-The ordering follows the "Recommended Initial Build Order" agreed in `docs/CAPTURE.md`:
+The ordering follows the "Recommended Initial Build Order" agreed during design:
 build the durable control and state plane first, then submission and claiming, then the
 actual bytes-moving transfer engine, then recovery and packaging.
 
 ## Locked decisions ("do not drop")
 
-These were settled during design (`docs/CAPTURE.md`) and at project kickoff. Keep them
+These were settled during design and at project kickoff. Keep them
 across all future work:
 
 - **Standard-library-only runtime.** The production package imports only the Python 3.10

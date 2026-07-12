@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-12
+
+### Added
+
+- **`docs/USER-GUIDE.md`** — an install / deploy / use guide. It explains the topology (the
+  CLI and the service share **one** virtualenv and **one** config file — the CLI reads it only
+  to find the control socket; there is no separate CLI venv or config), the **system-service
+  (root)** and **rootless (per-user, `systemctl --user`)** deployment models, a step-by-step
+  **Red Hat Enterprise Linux 9** tutorial (Python 3.11, SELinux, NFS permissions), everyday
+  CLI usage, and platform notes — including a **SLES 12** assessment (not recommended: no
+  Python ≥ 3.10 in-repo, and systemd v228 predates `StateDirectory`/`LogsDirectory`).
+
+### Removed
+
+- **`docs/CAPTURE.md`.** The original design conversation was fully retired into the
+  specifications in v0.4.0 and is now deleted; its content remains in git history and the
+  v0.4.0 changelog entry. The references in `CLAUDE.md`, `docs/ROADMAP.md`, and
+  `docs/MAINTAINER-GUIDE.md` were updated accordingly.
+
 ## [0.4.0] - 2026-07-12
 
 Operability, observability, and provenance: `doctor` now gates a deployment on the runtime
@@ -235,7 +254,8 @@ deleted until its destination has been written, fsynced, published, and verified
   mypy `--strict`, ruff, pylint, vulture, bandit, CodeQL, SonarCloud, and a scheduled
   no-panic fuzz burn-in.
 
-[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.1.0...v0.2.0
