@@ -118,6 +118,15 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- File-size submission policies — optional `[validation]`/`[stability]` limits that reject a
+  job **before claiming** when a file is empty (`allow_empty_files = false`) or exceeds a
+  per-file / per-job size ceiling (`maximum_file_size_bytes`, `maximum_job_size_bytes`,
+  `0` = no limit). Guards against a failed recorder (zero-byte file) or an over-size set.
+- Regex / filename-filter submission — optional `filename_filter_regex` for directory
+  submissions: compiled and validated at startup, anchored against relative paths, recorded
+  in the job, and applied **before** claiming. Deferred in the original design (an explicit
+  file list or job-specific directory is the safer primary path); add only if orchestration
+  needs it.
 - Durable job event / audit log — persist every job/file state transition as a typed event
   to a durable events table (and expose a human-readable per-job timeline), giving operators
   an auditable history beyond the current job/file state snapshot. The first design
