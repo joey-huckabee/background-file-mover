@@ -21,7 +21,11 @@ RequiresMountsFor=/recordings /processing
 ConditionPathExists=/etc/file-mover/file-mover.ini
 
 [Service]
-Type=simple
+# The service sends sd_notify READY=1 once it is actually serving (lock held, state
+# open, recovery done, control socket bound), so `systemctl start` and any After=
+# ordering wait for real readiness instead of racing the socket into existence.
+Type=notify
+NotifyAccess=main
 User=mover
 Group=mover
 ExecStart=/opt/file-mover/venv/bin/python -m file_mover --config /etc/file-mover/file-mover.ini service run
@@ -29,6 +33,12 @@ Restart=on-failure
 RestartSec=10
 # Allow the graceful drain (>= [service] shutdown_timeout_seconds) to finish.
 TimeoutStopSec=90
+# Startup must reach READY=1 within this window or systemd fails the unit.
+TimeoutStartSec=120
+# Liveness watchdog: the scheduler loop sends WATCHDOG=1 each tick, so a hang (e.g. a
+# wedged NFS mount) is detected and restarted. Keep [service] poll_interval_seconds
+# below WatchdogSec / 2.
+WatchdogSec=30
 
 # systemd creates these with the right owner and mode on start:
 #   RuntimeDirectory -> /run/file-mover      (socket, pid)

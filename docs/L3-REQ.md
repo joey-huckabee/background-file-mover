@@ -132,6 +132,12 @@ Kernel-assisted copy shall use `os.copy_file_range` and fall back to the buffere
 an unsupported errno (e.g. `ENOSYS`, `EOPNOTSUPP`, `EXDEV`) or when the syscall is
 unavailable, while propagating genuine I/O errors.
 
+**L3-PY-010** · Parent: L2-CTL-011 · Verification: T
+
+Service-manager notification shall use a standard-library `AF_UNIX` datagram sent to
+`$NOTIFY_SOCKET` (handling the abstract-namespace `@` prefix) and shall be a no-op when
+the variable is unset or the send fails.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T

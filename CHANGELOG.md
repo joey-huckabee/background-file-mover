@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- systemd `Type=notify` readiness + watchdog (pre-1.0): a stdlib-only `sd_notify`
+  notifier (`file_mover/systemd.py`) that sends `READY=1` once the service is actually
+  serving (lock held, state open, recovery done, socket bound), `STOPPING=1` during the
+  drain, and a `WATCHDOG=1` keep-alive each scheduler tick. `systemctl start` and
+  `After=file-mover` ordering now wait for real readiness instead of racing the control
+  socket, and a hung service (e.g. a wedged NFS mount) is detected and restarted. It uses
+  a plain `AF_UNIX` datagram to `$NOTIFY_SOCKET` (handling the abstract-namespace `@`
+  prefix) and is a safe no-op when unset. The unit switches to `Type=notify` with
+  `WatchdogSec=30`. Requirements: L2-CTL-011, L2-CTL-012, L3-PY-010. See
+  `docs/ARCHITECTURE.md` (Service readiness) and `docs/DEPLOYMENT.md`.
+
+### Changed
+
+- The systemd unit uses `Type=notify` (was `Type=simple`), with `WatchdogSec` and
+  `TimeoutStartSec`.
+
 - Kernel-assisted copy (pre-1.0): `BufferedFileCopyEngine` can copy with
   `os.copy_file_range`, moving bytes directly between the source and destination file
   descriptors in the kernel instead of through the process. It is attempted only when the

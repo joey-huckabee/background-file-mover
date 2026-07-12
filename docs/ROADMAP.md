@@ -111,6 +111,5 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 - S3 / object-storage adapter — a separate optional package (`file-mover-s3`); the core
   stays dependency-free (L2-STO-003/005).
 - Partial-file byte-offset resume (v1 restarts a file from byte zero).
-- systemd `Type=notify` readiness protocol.
 - `json-lines` streaming output and an offline `database inspect` command.
 - Dynamic bandwidth limiting and multi-host active/active movers.
