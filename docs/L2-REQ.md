@@ -733,6 +733,83 @@ A configured throughput limit of zero shall mean unlimited, imposing no throttli
 
 **Verification Method**: Test (T)
 
+## LIF — Job lifecycle control
+
+#### L2-LIF-001
+
+The software shall provide an operator command to cancel a transfer job; cancellation
+shall retain the claimed source data and discard only the incomplete temporary
+destination.
+
+**Parent**: L1-SYS-003
+
+**Verification Method**: Test (T)
+
+#### L2-LIF-002
+
+The software shall stop an in-flight copy for a pause or cancel request cooperatively, at
+a safe buffer boundary, without a forced kill and without losing already-durable data.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-LIF-003
+
+A cancelled job shall reach the terminal ``CANCELLED_RETAINED`` state with its source
+retained.
+
+**Parent**: L1-SYS-003
+
+**Verification Method**: Test (T)
+
+#### L2-LIF-004
+
+The software shall provide pause and resume commands; a paused job shall perform no
+further work until resumed, and resume shall return it to the runnable queue.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-LIF-005
+
+Lifecycle commands shall reject an unknown job or an invalid state transition with a
+typed error, never panicking or corrupting durable state.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+## RSM — Partial-file byte-offset resume
+
+#### L2-RSM-001
+
+The software shall be able to resume an interrupted file copy from the byte offset of its
+fsynced partial destination rather than re-copying the file from byte zero.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-RSM-002
+
+Startup recovery shall preserve interrupted partial destinations for resume when resume is
+enabled, and remove them when it is disabled.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-RSM-003
+
+A resumed partial that fails size or hash verification shall be discarded so the next
+attempt restarts the file from zero; unverified bytes shall never be published.
+
+**Parent**: L1-SYS-003
+
+**Verification Method**: Test (T)
+
 ## RTY — Retry and error classification
 
 #### L2-RTY-001

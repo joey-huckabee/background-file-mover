@@ -25,12 +25,12 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Partially Implemented |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
-| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RTY-004 | _(none)_ | Partially Implemented |
+| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 
@@ -130,6 +130,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-004 | _(none)_ | `tests/test_repository.py::test_initialize_is_idempotent` | Implemented |
 | L2-JOB-005 | _(none)_ | `tests/test_repository.py::test_illegal_transition_rejected`<br>`tests/test_repository.py::test_legal_transition_updates_state`<br>`tests/test_repository.py::test_transition_map_terminals_are_closed`<br>`tests/test_repository.py::test_transition_unknown_job_rejected` | Implemented |
 | L2-JOB-006 | _(none)_ | `tests/test_cli.py::test_query_commands_report_service_unavailable_when_down`<br>`tests/test_cli.py::test_status_found_renders_human`<br>`tests/test_cli.py::test_status_not_found_returns_job_not_found`<br>`tests/test_repository.py::test_list_jobs_filters_by_state`<br>`tests/test_repository.py::test_statistics_aggregate`<br>`tests/test_service.py::test_list_handler`<br>`tests/test_service.py::test_resolve_state_selector`<br>`tests/test_service.py::test_stats_handler`<br>`tests/test_service.py::test_status_handler_found_and_missing` | Implemented |
+| L2-LIF-001 | _(none)_ | `tests/test_lifecycle.py::test_cancel_paused_job_retains_source_and_removes_partial`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
+| L2-LIF-002 | _(none)_ | `tests/test_control_signals.py::test_interrupt_check_raises_only_when_signalled`<br>`tests/test_control_signals.py::test_request_poll_and_clear`<br>`tests/test_copy_engine.py::test_interrupt_stops_copy_and_keeps_partial`<br>`tests/test_lifecycle.py::test_cancel_copying_job_signals_cooperatively`<br>`tests/test_lifecycle.py::test_pause_copying_job_signals_cooperatively`<br>`tests/test_transfer.py::test_process_job_pauses_on_signal_and_keeps_partial` | Implemented |
+| L2-LIF-003 | _(none)_ | `tests/test_lifecycle.py::test_cancel_completed_job_is_rejected`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
+| L2-LIF-004 | _(none)_ | `tests/test_cli.py::test_lifecycle_commands_render_accepted`<br>`tests/test_lifecycle.py::test_pause_is_idempotent`<br>`tests/test_lifecycle.py::test_pause_queued_job_transitions_directly`<br>`tests/test_lifecycle.py::test_resume_paused_job_requeues_and_clears_signal`<br>`tests/test_models.py::test_pause_cancel_and_resume_transitions`<br>`tests/test_recovery.py::test_reconcile_leaves_paused_jobs_paused`<br>`tests/test_service.py::test_pause_and_resume_handlers_via_dispatcher` | Implemented |
+| L2-LIF-005 | _(none)_ | `tests/test_cli.py::test_lifecycle_unknown_job_is_job_not_found`<br>`tests/test_lifecycle.py::test_resume_non_paused_is_rejected`<br>`tests/test_lifecycle.py::test_unknown_job_and_missing_id_are_typed_errors` | Implemented |
 | L2-POSIX-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-002 | _(none)_ | `tests/test_submission.py::test_submit_rejects_symlinks` | Implemented |
 | L2-POSIX-003 | _(none)_ | _(TBD)_ | Draft |
@@ -146,6 +151,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-REC-002 | _(none)_ | `tests/test_recovery.py::test_reconcile_requeues_interrupted_and_removes_temps`<br>`tests/test_recovery.py::test_reconcile_with_missing_destination_is_safe`<br>`tests/test_repository.py::test_reset_job_state_bypasses_transition_map` | Implemented |
 | L2-REC-003 | _(none)_ | `tests/test_scheduler.py::test_recovery_reprocess_is_idempotent` | Implemented |
 | L2-REC-004 | _(none)_ | `tests/test_repository.py::test_list_runnable_job_ids`<br>`tests/test_scheduler.py::test_scheduler_processes_a_queued_job`<br>`tests/test_scheduler.py::test_scheduler_respects_max_concurrent_jobs`<br>`tests/test_service.py::test_scheduler_loop_runs_a_tick_then_stops`<br>`tests/test_service.py::test_scheduler_loop_survives_a_failing_tick` | Implemented |
+| L2-RSM-001 | L3-PY-012 | `tests/test_copy_engine.py::test_existing_partial_without_resume_fails_exclusive`<br>`tests/test_copy_engine.py::test_interrupt_then_resume_round_trips`<br>`tests/test_copy_engine.py::test_kernel_assisted_resume_completes`<br>`tests/test_copy_engine.py::test_resume_continues_from_partial_offset`<br>`tests/test_transfer.py::test_pause_then_resume_completes_via_coordinator` | Implemented |
+| L2-RSM-002 | _(none)_ | `tests/test_configuration.py::test_resume_partial_files_defaults_on_and_can_disable`<br>`tests/test_recovery.py::test_reconcile_preserves_partials_when_resume_enabled`<br>`tests/test_recovery.py::test_reconcile_removes_partials_when_resume_disabled` | Implemented |
+| L2-RSM-003 | _(none)_ | `tests/test_transfer.py::test_corrupt_resumed_partial_is_discarded_and_routed_to_manual` | Implemented |
 | L2-RTY-001 | _(none)_ | `tests/test_models.py::test_error_dispositions_cover_all_outcomes`<br>`tests/test_transfer.py::test_error_classifier` | Implemented |
 | L2-RTY-002 | _(none)_ | `tests/test_transfer.py::test_permanent_failure_retains_and_fails` | Implemented |
 | L2-RTY-003 | _(none)_ | `tests/test_repository.py::test_record_job_error_increments_attempt` | Implemented |
@@ -198,6 +206,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
 | COPY | 0 | 11 | 0 | 3 | 0 | 4 | 0 |
 | BWL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
+| LIF | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
+| RSM | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
 | DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
@@ -206,14 +216,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 11 | 0 | 7 | 0 | 7 |
-| **Total** | **11** | **124** | **36** | **62** | **20** | **71** | **20** |
+| PY | 0 | 0 | 12 | 0 | 8 | 0 | 8 |
+| **Total** | **11** | **132** | **37** | **70** | **21** | **79** | **21** |
 
 The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 83 of 161 (51.6%).
+**Tested by at least one test marker**: 92 of 170 (54.1%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 92 of 161 (57.1%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 101 of 170 (59.4%).
 
 ### Orphan check
 

@@ -13,7 +13,8 @@ from file_mover.constants import PROTOCOL_VERSION
 from file_mover.jobs.models import JobRecord, JobState
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
-from file_mover.service import BackgroundMoverService, _resolve_state_selector
+from file_mover.presentation import resolve_state_selector as _resolve_state_selector
+from file_mover.service import BackgroundMoverService
 from file_mover.submission import JobSubmissionService
 from file_mover.validation import SourceValidator
 
@@ -114,6 +115,23 @@ def test_throttle_handler_rejects_boolean_masquerading_as_int(tmp_path: Path) ->
         response = _dispatch(service, "throttle", {"bytes_per_second": True})
         assert response["result"]["accepted"] is False
         assert response["result"]["error_code"] == "BAD_REQUEST"
+    finally:
+        repo.close()
+
+
+@pytest.mark.requirement("L2-LIF-004")
+def test_pause_and_resume_handlers_via_dispatcher(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)  # job j1 is QUEUED
+    try:
+        paused = _dispatch(service, "pause", {"job_id": "j1"})
+        assert paused["result"]["accepted"] is True
+        assert repo.get_job("j1").state is JobState.PAUSED
+        resumed = _dispatch(service, "resume", {"job_id": "j1"})
+        assert resumed["result"]["state"] == "queued"
+        assert repo.get_job("j1").state is JobState.QUEUED
+        # A cancel then reaches the terminal retained state.
+        cancelled = _dispatch(service, "cancel", {"job_id": "j1"})
+        assert cancelled["result"]["state"] == "cancelled_retained"
     finally:
         repo.close()
 

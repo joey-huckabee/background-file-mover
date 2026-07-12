@@ -110,6 +110,13 @@ def test_max_bytes_per_second_rejects_negative() -> None:
         _load(f"{MINIMAL_CONFIG}\n[transfer]\nmax_bytes_per_second = -1\n")
 
 
+@pytest.mark.requirement("L2-RSM-002")
+def test_resume_partial_files_defaults_on_and_can_disable() -> None:
+    assert _load(MINIMAL_CONFIG).transfer.resume_partial_files is True
+    disabled = _load(f"{MINIMAL_CONFIG}\n[transfer]\nresume_partial_files = false\n")
+    assert disabled.transfer.resume_partial_files is False
+
+
 @pytest.mark.requirement("L2-CFG-005")
 def test_application_config_is_immutable() -> None:
     config = _load(MINIMAL_CONFIG)

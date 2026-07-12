@@ -26,25 +26,24 @@ from file_mover.claiming import FileClaimManager
 from file_mover.configuration import ApplicationConfig
 from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
+from file_mover.control.lifecycle import JobLifecycleService
 from file_mover.control.lock import ProcessLock
 from file_mover.control.server import ControlSocketServer
-from file_mover.jobs.models import (
-    ACTIVE_JOB_STATES,
-    ExistingDestinationPolicy,
-    JobRecord,
-    JobState,
-    JobStatistics,
-)
+from file_mover.jobs.models import ExistingDestinationPolicy
 from file_mover.jobs.repository import JobRepository
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
-from file_mover.recovery.manager import RecoveryManager
-from file_mover.submission import (
-    JobSubmissionService,
-    SubmissionResult,
-    build_submission_request,
+from file_mover.presentation import (
+    job_to_dict,
+    resolve_state_selector,
+    statistics_to_dict,
+    submission_error,
+    submission_result_to_dict,
 )
+from file_mover.recovery.manager import RecoveryManager
+from file_mover.submission import JobSubmissionService, build_submission_request
 from file_mover.systemd import notify_ready, notify_stopping, notify_watchdog
+from file_mover.transfer.control_signals import JobControlSignals
 from file_mover.transfer.coordinator import TransferCoordinator
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.integrity import IntegrityVerifier
@@ -81,6 +80,8 @@ class BackgroundMoverService:
         self._submission: JobSubmissionService | None = None
         self._scheduler: TransferScheduler | None = None
         self._rate_limiter: RateLimiter | None = None
+        self._signals = JobControlSignals()
+        self._lifecycle: JobLifecycleService | None = None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
@@ -162,8 +163,34 @@ class BackgroundMoverService:
                 "stats": self._handle_stats,
                 "submit": self._handle_submit,
                 "throttle": self._handle_throttle,
+                "pause": self._handle_pause,
+                "resume": self._handle_resume,
+                "cancel": self._handle_cancel,
             }
         )
+
+    def _require_lifecycle(self) -> JobLifecycleService:
+        """Return the lifecycle service, building it on first use from durable state."""
+        if self._lifecycle is None:
+            self._lifecycle = JobLifecycleService(
+                repository=self._require_repository(),
+                signals=self._signals,
+                temporary_file_prefix=self._config.paths.temporary_file_prefix,
+                logger=self._logger,
+            )
+        return self._lifecycle
+
+    def _handle_pause(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Pause a queued or in-flight job (L2-LIF-002)."""
+        return self._require_lifecycle().handle_pause(arguments)
+
+    def _handle_resume(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Resume a paused job (L2-LIF-004)."""
+        return self._require_lifecycle().handle_resume(arguments)
+
+    def _handle_cancel(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Cancel a job, retaining its source and discarding any partial (L2-LIF-001/003)."""
+        return self._require_lifecycle().handle_cancel(arguments)
 
     def _build_submission_service(self, repository: JobRepository) -> JobSubmissionService:
         """Construct the submission service from configuration."""
@@ -206,6 +233,8 @@ class BackgroundMoverService:
             destination_policy=ExistingDestinationPolicy.FAIL,
             retry_initial_delay_seconds=transfer.retry_initial_delay_seconds,
             retry_max_delay_seconds=transfer.retry_max_delay_seconds,
+            signals=self._signals,
+            resume_partial_files=transfer.resume_partial_files,
         )
         return TransferScheduler(
             repository=repository,
@@ -218,6 +247,7 @@ class BackgroundMoverService:
         report = RecoveryManager(
             repository=repository,
             temporary_file_prefix=self._config.paths.temporary_file_prefix,
+            resume_partial_files=self._config.transfer.resume_partial_files,
             logger=self._logger,
         ).reconcile()
         self._logger.info(
@@ -266,18 +296,18 @@ class BackgroundMoverService:
         if not isinstance(job_id, str):
             return {"found": False, "job": None}
         job = self._require_repository().get_job(job_id)
-        return {"found": job is not None, "job": _job_to_dict(job) if job else None}
+        return {"found": job is not None, "job": job_to_dict(job) if job else None}
 
     def _handle_list(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return jobs filtered by the requested state group or name."""
         selector = arguments.get("state", "active")
-        states = _resolve_state_selector(selector if isinstance(selector, str) else "active")
+        states = resolve_state_selector(selector if isinstance(selector, str) else "active")
         jobs = self._require_repository().list_jobs(states)
-        return {"jobs": [_job_to_dict(job) for job in jobs]}
+        return {"jobs": [job_to_dict(job) for job in jobs]}
 
     def _handle_stats(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return aggregate durable statistics."""
-        return _statistics_to_dict(self._require_repository().statistics())
+        return statistics_to_dict(self._require_repository().statistics())
 
     def _handle_submit(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Validate, claim, and durably record a submitted recording set."""
@@ -286,9 +316,9 @@ class BackgroundMoverService:
         source = arguments.get("source")
         file_list = arguments.get("file_list")
         if not isinstance(request_id, str) or not isinstance(destination, str):
-            return _submission_error("BAD_REQUEST", "request_id and destination are required")
+            return submission_error("BAD_REQUEST", "request_id and destination are required")
         if source is None and not file_list:
-            return _submission_error("BAD_REQUEST", "a source directory or file list is required")
+            return submission_error("BAD_REQUEST", "a source directory or file list is required")
         scenario_id = arguments.get("scenario_id")
         files = [str(item) for item in file_list] if isinstance(file_list, list) else None
         try:
@@ -300,8 +330,8 @@ class BackgroundMoverService:
                 file_list=files,
             )
         except ValueError as error:
-            return _submission_error("BAD_REQUEST", str(error))
-        return _submission_result_to_dict(self._require_submission().submit(request))
+            return submission_error("BAD_REQUEST", str(error))
+        return submission_result_to_dict(self._require_submission().submit(request))
 
     def _handle_throttle(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Set the live copy-throughput ceiling (0 = unlimited) and echo the applied rate.
@@ -340,72 +370,3 @@ class BackgroundMoverService:
 
         signal.signal(signal.SIGTERM, _handle)
         signal.signal(signal.SIGINT, _handle)
-
-
-def _resolve_state_selector(selector: str) -> frozenset[JobState] | None:
-    """Map a ``list`` state selector to a set of states (``None`` means all).
-
-    Raises:
-        ValueError: If ``selector`` is neither ``active``/``all`` nor a known state name.
-    """
-    lowered = selector.strip().lower()
-    if lowered in {"all", ""}:
-        return None
-    if lowered == "active":
-        return ACTIVE_JOB_STATES
-    try:
-        return frozenset({JobState(lowered)})
-    except ValueError as error:
-        raise ValueError(f"unknown job state selector {selector!r}") from error
-
-
-def _job_to_dict(job: JobRecord) -> dict[str, Any]:
-    """Serialise a :class:`JobRecord` for a control response."""
-    return {
-        "job_id": job.job_id,
-        "state": job.state.value,
-        "scenario_id": job.scenario_id,
-        "source_root": job.source_root,
-        "destination_root": job.destination_root,
-        "file_count": job.file_count,
-        "total_bytes": job.total_bytes,
-        "bytes_copied": job.bytes_copied,
-        "attempt_count": job.attempt_count,
-        "last_error": job.last_error,
-    }
-
-
-def _statistics_to_dict(stats: JobStatistics) -> dict[str, Any]:
-    """Serialise :class:`JobStatistics` for a control response."""
-    return {
-        "total_jobs": stats.total_jobs,
-        "total_bytes": stats.total_bytes,
-        "bytes_copied": stats.bytes_copied,
-        "jobs_by_state": {state.value: count for state, count in stats.jobs_by_state.items()},
-    }
-
-
-def _submission_result_to_dict(result: SubmissionResult) -> dict[str, Any]:
-    """Serialise a :class:`SubmissionResult` for a control response."""
-    return {
-        "accepted": result.accepted,
-        "job_id": result.job_id,
-        "state": result.state.value,
-        "claimed_file_count": result.claimed_file_count,
-        "claimed_bytes": result.claimed_bytes,
-        "error_code": result.error_code,
-        "error_message": result.error_message,
-    }
-
-
-def _submission_error(code: str, message: str) -> dict[str, Any]:
-    """Build a rejected submission response for a malformed request."""
-    return {
-        "accepted": False,
-        "job_id": None,
-        "state": JobState.FAILED_RETAINED.value,
-        "claimed_file_count": 0,
-        "claimed_bytes": 0,
-        "error_code": code,
-        "error_message": message,
-    }

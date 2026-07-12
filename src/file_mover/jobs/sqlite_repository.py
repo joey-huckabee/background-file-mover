@@ -286,6 +286,30 @@ class SQLiteJobRepository:
                     (to_state.value, self._now(), job_id),
                 )
 
+    def transition_job_if(
+        self, job_id: str, from_states: Collection[JobState], to_state: JobState
+    ) -> bool:
+        """Compare-and-set a job's state; return whether the transition was applied."""
+        expected = {state.value for state in from_states}
+        with self._translate("transition_job_if"):
+            conn = self._connection()
+            with conn:
+                row = conn.execute("SELECT state FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+                if row is None:
+                    raise RepositoryError(f"cannot transition unknown job {job_id!r}")
+                current = _parse_state(row["state"])
+                if current.value not in expected:
+                    return False
+                if not is_allowed_job_transition(current, to_state):
+                    raise RepositoryError(
+                        f"illegal job transition {current.value} -> {to_state.value}"
+                    )
+                conn.execute(
+                    "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?",
+                    (to_state.value, self._now(), job_id),
+                )
+                return True
+
     def reset_job_state(self, job_id: str, to_state: JobState) -> None:
         """Set a job's state unconditionally (recovery use; bypasses the transition map)."""
         with self._translate("reset_job_state"):

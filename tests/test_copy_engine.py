@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from file_mover.exceptions import CopyError
+from file_mover.exceptions import CopyError, CopyInterrupted, DestinationWriteError
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.ratelimit import RateLimiter
 
@@ -162,3 +162,79 @@ def test_unlimited_rate_limiter_still_allows_kernel_copy(
     assert slept == []  # an unlimited limiter never sleeps
     if real is not None:
         assert used_kernel  # the kernel path stayed available when unlimited
+
+
+def _partial(dest_dir: Path, data: bytes) -> Path:
+    dest_dir.mkdir(exist_ok=True)
+    path = dest_dir / ".swit-partial-job-file"
+    path.write_bytes(data)
+    return path
+
+
+@pytest.mark.requirement("L2-LIF-002")
+def test_interrupt_stops_copy_and_keeps_partial(tmp_path: Path) -> None:
+    def _stop_after_first() -> None:
+        raise CopyInterrupted("stop")
+
+    source = _source(tmp_path)  # buffer is 4 bytes, so one buffer is written then we stop
+    with pytest.raises(CopyInterrupted) as excinfo:
+        _engine(use_kernel_copy=False).copy_to_temp(
+            source, tmp_path / "dest", "job", "file", interrupt_check=_stop_after_first
+        )
+    interrupt = excinfo.value
+    assert interrupt.temporary_path is not None and interrupt.temporary_path.exists()
+    assert interrupt.bytes_written == 4  # exactly one fsynced buffer
+    assert interrupt.temporary_path.read_bytes() == _PAYLOAD[:4]
+
+
+@pytest.mark.requirement("L2-RSM-001")
+def test_resume_continues_from_partial_offset(tmp_path: Path) -> None:
+    dest_dir = tmp_path / "dest"
+    _partial(dest_dir, _PAYLOAD[:10])  # a pre-existing fsynced partial
+    outcome = _engine(use_kernel_copy=False).copy_to_temp(
+        _source(tmp_path), dest_dir, "job", "file", resume=True
+    )
+    assert outcome.resumed_from_bytes == 10
+    assert outcome.bytes_written == len(_PAYLOAD)
+    assert outcome.temporary_path.read_bytes() == _PAYLOAD
+
+
+@pytest.mark.requirement("L2-RSM-001")
+def test_existing_partial_without_resume_fails_exclusive(tmp_path: Path) -> None:
+    dest_dir = tmp_path / "dest"
+    _partial(dest_dir, b"stale")
+    with pytest.raises(DestinationWriteError):
+        _engine(use_kernel_copy=False).copy_to_temp(_source(tmp_path), dest_dir, "job", "file")
+
+
+@pytest.mark.requirement("L2-RSM-001")
+def test_interrupt_then_resume_round_trips(tmp_path: Path) -> None:
+    calls: list[int] = []
+
+    def _stop_once() -> None:
+        calls.append(1)
+        if len(calls) == 1:
+            raise CopyInterrupted("stop")
+
+    engine = _engine(use_kernel_copy=False)
+    dest_dir = tmp_path / "dest"
+    source = _source(tmp_path)
+    with pytest.raises(CopyInterrupted):
+        engine.copy_to_temp(source, dest_dir, "job", "file", interrupt_check=_stop_once)
+    outcome = engine.copy_to_temp(source, dest_dir, "job", "file", resume=True)
+    assert outcome.resumed_from_bytes == 4
+    assert outcome.temporary_path.read_bytes() == _PAYLOAD
+
+
+@pytest.mark.requirement("L3-PY-012")
+@pytest.mark.skipif(
+    not hasattr(os, "copy_file_range"), reason="requires os.copy_file_range (POSIX)"
+)
+def test_kernel_assisted_resume_completes(tmp_path: Path) -> None:
+    dest_dir = tmp_path / "dest"
+    _partial(dest_dir, _PAYLOAD[:10])
+    outcome = _engine(use_kernel_copy=True).copy_to_temp(
+        _source(tmp_path), dest_dir, "job", "file", resume=True
+    )
+    assert outcome.resumed_from_bytes == 10
+    assert outcome.temporary_path.read_bytes() == _PAYLOAD

@@ -26,16 +26,34 @@ under the configured ceiling (L2-BWL-001, L3-PY-011).
 
 Both strategies produce byte-identical output; the destination is re-hashed afterwards
 regardless, so integrity verification is unaffected by the strategy.
+
+Two lifecycle hooks thread through the same loop (L2-RSM-001, L2-LIF-002):
+
+* **Resume** — with ``resume=True`` and an existing fsynced partial, the copy reopens it,
+  reads its size with ``os.stat``/``os.fstat`` (the resume offset), seeks both descriptors
+  to that offset, and continues appending; the kernel-copy fallback truncates back to the
+  resume offset, never to zero (L3-PY-012).
+* **Interrupt** — an optional ``interrupt_check`` callable is invoked once per buffer; when
+  it raises :class:`CopyInterrupted` the loop stops at that safe point, the partial is
+  fsynced (so a pause can resume it exactly), and the exception carries the partial path
+  and durable byte count up to the coordinator.
 """
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from file_mover.exceptions import CopyError, DestinationPublishError, DestinationWriteError
+from file_mover.exceptions import (
+    CopyError,
+    CopyInterrupted,
+    DestinationPublishError,
+    DestinationWriteError,
+)
 from file_mover.transfer.ratelimit import RateLimiter
 
 
@@ -61,6 +79,7 @@ class CopyOutcome:
 
     temporary_path: Path
     bytes_written: int
+    resumed_from_bytes: int = 0
 
 
 class BufferedFileCopyEngine:
@@ -91,59 +110,119 @@ class BufferedFileCopyEngine:
         self._rate_limiter = rate_limiter
 
     def copy_to_temp(
-        self, source: Path, destination_dir: Path, job_id: str, file_id: str
+        self,
+        source: Path,
+        destination_dir: Path,
+        job_id: str,
+        file_id: str,
+        *,
+        resume: bool = False,
+        interrupt_check: Callable[[], None] | None = None,
     ) -> CopyOutcome:
-        """Copy ``source`` into a fresh temporary file in ``destination_dir``.
+        """Copy ``source`` into a temporary file in ``destination_dir``.
+
+        Args:
+            source: The claimed source file to copy.
+            destination_dir: Directory the temporary file is created in.
+            job_id: Owning job id (part of the temporary file name).
+            file_id: File id (part of the temporary file name).
+            resume: When ``True`` and a partial temporary already exists, continue it from
+                its current size rather than failing on the exclusive create (L2-RSM-001).
+            interrupt_check: Optional callable invoked once per buffer; raising
+                :class:`CopyInterrupted` stops the copy at that safe point (L2-LIF-002).
 
         Returns:
-            The temporary path and the exact number of bytes written.
+            The temporary path, the total bytes now in it, and the resume offset (``0`` for
+            a fresh copy).
 
         Raises:
-            DestinationWriteError: If the temporary file cannot be created exclusively.
+            DestinationWriteError: If the temporary file cannot be created or reopened.
             CopyError: If opening the source, reading, or writing fails.
+            CopyInterrupted: If ``interrupt_check`` signals a pause/cancel.
         """
         destination_dir.mkdir(parents=True, exist_ok=True)
         temporary = destination_dir / f"{self._temporary_file_prefix}{job_id}-{file_id}"
-        destination_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        destination_fd, resume_offset = self._open_destination(temporary, resume)
+        source_fd = self._open_source(source, destination_fd)
+        if resume_offset:
+            os.lseek(source_fd, resume_offset, os.SEEK_SET)
+            os.lseek(destination_fd, resume_offset, os.SEEK_SET)
+
         try:
-            destination_fd = os.open(temporary, destination_flags, 0o644)
+            self._copy(source_fd, destination_fd, resume_offset, interrupt_check)
+            os.fsync(destination_fd)
+        except CopyInterrupted as interrupt:
+            interrupt.temporary_path = temporary
+            interrupt.bytes_written = _safe_offset(destination_fd)
+            _fsync_quietly(destination_fd)  # keep the partial durable for a later resume
+            os.close(source_fd)
+            os.close(destination_fd)
+            raise
+        except OSError as error:
+            os.close(source_fd)
+            os.close(destination_fd)
+            raise CopyError(f"copy failed for {source}: {error}") from error
+        total = os.lseek(destination_fd, 0, os.SEEK_CUR)
+        os.close(source_fd)
+        os.close(destination_fd)
+        return CopyOutcome(
+            temporary_path=temporary, bytes_written=total, resumed_from_bytes=resume_offset
+        )
+
+    def _open_destination(self, temporary: Path, resume: bool) -> tuple[int, int]:
+        """Open (or create) the temporary destination; return ``(fd, resume_offset)``."""
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        if resume and temporary.exists():
+            try:
+                destination_fd = os.open(temporary, os.O_WRONLY | nofollow)
+            except OSError as error:
+                raise DestinationWriteError(
+                    f"cannot reopen partial destination {temporary}: {error}"
+                ) from error
+            return destination_fd, os.fstat(destination_fd).st_size
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow
+        try:
+            return os.open(temporary, flags, 0o644), 0
         except OSError as error:
             raise DestinationWriteError(
                 f"cannot create temporary destination {temporary}: {error}"
             ) from error
 
+    def _open_source(self, source: Path, destination_fd: int) -> int:
+        """Open the source read-only, closing the destination fd on failure."""
         try:
-            source_fd = os.open(source, os.O_RDONLY)
+            return os.open(source, os.O_RDONLY)
         except OSError as error:
             os.close(destination_fd)
             raise CopyError(f"cannot open source {source}: {error}") from error
-
-        try:
-            bytes_written = self._copy(source_fd, destination_fd)
-            os.fsync(destination_fd)
-        except OSError as error:
-            os.close(source_fd)
-            os.close(destination_fd)
-            raise CopyError(f"copy failed for {source}: {error}") from error
-        os.close(source_fd)
-        os.close(destination_fd)
-        return CopyOutcome(temporary_path=temporary, bytes_written=bytes_written)
 
     def _rate_limited(self) -> bool:
         """Whether an active (non-zero) throughput limit is in force."""
         return self._rate_limiter is not None and not self._rate_limiter.is_unlimited()
 
-    def _copy(self, source_fd: int, destination_fd: int) -> int:
+    def _copy(
+        self,
+        source_fd: int,
+        destination_fd: int,
+        base_offset: int,
+        interrupt_check: Callable[[], None] | None,
+    ) -> int:
         """Copy from ``source_fd`` to ``destination_fd`` and return the byte count."""
         # A throughput limit can only be applied in the userspace buffered loop, so an
         # active limiter forces the buffered strategy over kernel-assisted copy.
         if self._use_kernel_copy and _kernel_copy_available() and not self._rate_limited():
-            return self._copy_via_kernel(source_fd, destination_fd)
+            return self._copy_via_kernel(source_fd, destination_fd, base_offset, interrupt_check)
         return _copy_via_buffer(
-            source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter
+            source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter, interrupt_check
         )
 
-    def _copy_via_kernel(self, source_fd: int, destination_fd: int) -> int:
+    def _copy_via_kernel(
+        self,
+        source_fd: int,
+        destination_fd: int,
+        base_offset: int,
+        interrupt_check: Callable[[], None] | None,
+    ) -> int:
         """Kernel-assisted copy with a safe buffered fallback on unsupported outcomes."""
         total = 0
         try:
@@ -152,15 +231,21 @@ class BufferedFileCopyEngine:
                 if copied == 0:
                     break
                 total += copied
+                if interrupt_check is not None:
+                    interrupt_check()  # CopyInterrupted (not OSError) propagates past below
         except OSError as error:
             if error.errno not in _KERNEL_FALLBACK_ERRNOS:
                 raise  # a genuine I/O error — do not mask it
-            # Discard any partial output and copy the whole file with the buffered loop.
-            os.ftruncate(destination_fd, 0)
-            os.lseek(destination_fd, 0, os.SEEK_SET)
-            os.lseek(source_fd, 0, os.SEEK_SET)
+            # Discard output past the resume offset and copy the rest with the buffered loop.
+            os.ftruncate(destination_fd, base_offset)
+            os.lseek(destination_fd, base_offset, os.SEEK_SET)
+            os.lseek(source_fd, base_offset, os.SEEK_SET)
             return _copy_via_buffer(
-                source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter
+                source_fd,
+                destination_fd,
+                self._buffer_size_bytes,
+                self._rate_limiter,
+                interrupt_check,
             )
         return total
 
@@ -182,12 +267,14 @@ def _copy_via_buffer(
     destination_fd: int,
     buffer_size_bytes: int,
     rate_limiter: RateLimiter | None = None,
+    interrupt_check: Callable[[], None] | None = None,
 ) -> int:
     """Copy with a bounded read/write loop; return the exact byte count.
 
     When ``rate_limiter`` is supplied, each written chunk is accounted through it after
     the write so aggregate throughput stays under the configured ceiling (a no-op when the
-    limiter is unlimited).
+    limiter is unlimited). When ``interrupt_check`` is supplied it is polled once per
+    buffer and may raise :class:`CopyInterrupted` to stop at a safe point.
     """
     total = 0
     while True:
@@ -198,7 +285,23 @@ def _copy_via_buffer(
         total += len(chunk)
         if rate_limiter is not None:
             rate_limiter.throttle(len(chunk))
+        if interrupt_check is not None:
+            interrupt_check()
     return total
+
+
+def _safe_offset(descriptor: int) -> int:
+    """Return the current file offset of ``descriptor``, or ``0`` if it cannot be read."""
+    try:
+        return os.lseek(descriptor, 0, os.SEEK_CUR)
+    except OSError:
+        return 0
+
+
+def _fsync_quietly(descriptor: int) -> None:
+    """Best-effort fsync that never raises (used on the interrupt path)."""
+    with contextlib.suppress(OSError):
+        os.fsync(descriptor)
 
 
 def _write_all(descriptor: int, data: bytes) -> None:

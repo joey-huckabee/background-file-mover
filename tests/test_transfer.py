@@ -12,6 +12,7 @@ from file_mover.claiming import FileClaimManager
 from file_mover.configuration import StabilityConfig
 from file_mover.exceptions import CopyError, DestinationWriteError
 from file_mover.jobs.models import (
+    ControlSignal,
     ErrorDisposition,
     ExistingDestinationPolicy,
     HashAlgorithm,
@@ -21,6 +22,7 @@ from file_mover.jobs.models import (
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
 from file_mover.submission import JobSubmissionService, SubmissionRequest
+from file_mover.transfer.control_signals import JobControlSignals
 from file_mover.transfer.coordinator import TransferCoordinator
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine, CopyOutcome
 from file_mover.transfer.integrity import IntegrityVerifier
@@ -228,9 +230,14 @@ class _ShortCopyEngine(BufferedFileCopyEngine):
     """A copy engine that under-reports the byte count to force a size mismatch."""
 
     def copy_to_temp(
-        self, source: Path, destination_dir: Path, job_id: str, file_id: str
+        self,
+        source: Path,
+        destination_dir: Path,
+        job_id: str,
+        file_id: str,
+        **kwargs: object,
     ) -> CopyOutcome:
-        outcome = super().copy_to_temp(source, destination_dir, job_id, file_id)
+        outcome = super().copy_to_temp(source, destination_dir, job_id, file_id, **kwargs)
         return CopyOutcome(outcome.temporary_path, outcome.bytes_written - 1)
 
 
@@ -331,3 +338,92 @@ def test_copy_engine_creates_temp_exclusively(tmp_path: Path) -> None:
 
 def _os_error(code: int) -> OSError:
     return OSError(code, "err")
+
+
+def _lifecycle_coordinator(
+    repo: SQLiteJobRepository, signals: JobControlSignals, *, resume: bool
+) -> TransferCoordinator:
+    # A 4-byte buffer so a 10-byte file spans several chunks and can be stopped mid-copy.
+    engine = BufferedFileCopyEngine(
+        buffer_size_bytes=4, temporary_file_prefix=".swit-partial-", use_kernel_copy=False
+    )
+    return TransferCoordinator(
+        repository=repo,
+        copy_engine=engine,
+        integrity_verifier=IntegrityVerifier(algorithm=HashAlgorithm.SHA256, buffer_size_bytes=4),
+        error_classifier=ErrorClassifier(),
+        claim_directory_name=".swit-moving",
+        integrity_enabled=False,
+        integrity_mode=IntegrityMode.METADATA,
+        destination_policy=ExistingDestinationPolicy.FAIL,
+        retry_initial_delay_seconds=10.0,
+        retry_max_delay_seconds=900.0,
+        clock=lambda: 1000.0,
+        signals=signals,
+        resume_partial_files=resume,
+    )
+
+
+@pytest.mark.requirement("L2-LIF-002")
+def test_process_job_pauses_on_signal_and_keeps_partial(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"0123456789"})
+    signals = JobControlSignals()
+    signals.request(job_id, ControlSignal.PAUSE)  # request before the tick runs the copy
+    assert _lifecycle_coordinator(repo, signals, resume=True).process_job(job_id) is JobState.PAUSED
+    assert repo.get_job(job_id).state is JobState.PAUSED
+    partials = list(dest_root.rglob(".swit-partial-*"))
+    assert partials and partials[0].stat().st_size == 4  # one 4-byte buffer, fsynced
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # source retained
+    repo.close()
+
+
+@pytest.mark.requirement("L2-LIF-001")
+@pytest.mark.requirement("L2-LIF-003")
+def test_process_job_cancels_on_signal_and_discards_partial(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"0123456789"})
+    signals = JobControlSignals()
+    signals.request(job_id, ControlSignal.CANCEL)
+    result = _lifecycle_coordinator(repo, signals, resume=True).process_job(job_id)
+    assert result is JobState.CANCELLED_RETAINED
+    assert repo.get_job(job_id).state is JobState.CANCELLED_RETAINED
+    assert not list(dest_root.rglob(".swit-partial-*"))  # partial discarded
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # source retained
+    repo.close()
+
+
+@pytest.mark.requirement("L2-RSM-001")
+def test_pause_then_resume_completes_via_coordinator(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"0123456789"})
+    signals = JobControlSignals()
+    signals.request(job_id, ControlSignal.PAUSE)
+    coordinator = _lifecycle_coordinator(repo, signals, resume=True)
+    assert coordinator.process_job(job_id) is JobState.PAUSED
+    # Operator resumes: requeue and drop the pause signal, then the next tick continues it.
+    signals.clear(job_id)
+    repo.transition_job(job_id, JobState.QUEUED)
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    assert (dest_root / "a.dat").read_bytes() == b"0123456789"  # exact resume, no corruption
+    assert not list(dest_root.rglob(".swit-partial-*"))
+    repo.close()
+
+
+@pytest.mark.requirement("L2-RSM-003")
+def test_corrupt_resumed_partial_is_discarded_and_routed_to_manual(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})  # 5 bytes
+    file_id = repo.list_files(job_id)[0].file_id
+    # Plant an oversized (crash-torn) partial so the resumed copy fails the size check.
+    (dest_root / f".swit-partial-{job_id}-{file_id}").write_bytes(b"garbage-larger-than-source")
+    coordinator = _lifecycle_coordinator(repo, JobControlSignals(), resume=True)
+    assert coordinator.process_job(job_id) is JobState.MANUAL_INTERVENTION
+    assert not list(dest_root.rglob(".swit-partial-*"))  # corrupt partial discarded
+    assert not (dest_root / "a.dat").exists()  # unverified bytes never published
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # source retained
+    repo.close()

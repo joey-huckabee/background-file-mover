@@ -34,9 +34,27 @@ The hierarchy mirrors the durable workflow stages:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 class FileMoverError(Exception):
     """Base class for every error raised by the Background File Mover."""
+
+
+class CopyInterrupted(FileMoverError):
+    """A copy was cooperatively stopped by a pause/cancel request — not a failure.
+
+    Deliberately **not** a :class:`TransferError`: the coordinator handles it as a
+    controlled lifecycle event (pause → keep the fsynced partial for resume; cancel →
+    discard it), never as an I/O failure to classify. Carries the partial temporary file
+    and the number of bytes durably written so the coordinator can resume or discard it.
+    """
+
+    def __init__(self, message: str = "copy interrupted") -> None:
+        """Initialise with an empty partial reference the copy engine fills in."""
+        super().__init__(message)
+        self.temporary_path: Path | None = None
+        self.bytes_written: int = 0
 
 
 class ConfigurationError(FileMoverError):

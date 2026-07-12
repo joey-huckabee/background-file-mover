@@ -62,10 +62,15 @@ the authoritative durable work queue (L1-SYS-007).
 | `logging_config.py` | One-time centralized logging setup | M3 |
 | `control/protocol.py` | Length-prefixed JSON framing | M3 |
 | `control/server.py`, `client.py`, `dispatcher.py` | Unix-socket control plane | M3 |
+| `control/lifecycle.py` | `cancel`/`pause`/`resume` operations (`JobLifecycleService`) | v0.3.0 |
 | `service.py` | `BackgroundMoverService` lifecycle + scheduler | M3/M7 |
+| `presentation.py` | Control-response record/enum → JSON-wire serialisation | M6 |
 | `jobs/repository.py`, `sqlite_repository.py` | Durable job/file state | M4 |
-| `transfer/coordinator.py` | Drives files through the workflow; owns transitions | M6 |
-| `transfer/copy_engine.py` | Bounded-memory copy to temp + fsync | M6 |
+| `transfer/coordinator.py` | Job-level orchestration: walk files, aggregate, retry/route | M6 |
+| `transfer/file_mover.py` | Per-file workflow: copy → verify → publish → delete-source | M6 |
+| `transfer/copy_engine.py` | Bounded-memory copy to temp + fsync + resume + interrupt | M6 |
+| `transfer/control_signals.py` | Thread-safe pause/cancel delivery to the copy loop | v0.3.0 |
+| `transfer/partials.py` | Remove a job's `.swit-partial-` temporaries (cancel/recovery) | v0.3.0 |
 | `transfer/integrity.py` | Hashing modes + `hmac.compare_digest` | M6 |
 | `transfer/retry.py` | Error classification + backoff scheduling | M6 |
 | `recovery/manager.py` | Startup reconciliation | M7 |
@@ -88,8 +93,16 @@ Retention terminals (always preserve the claimed source):
 RETRY_WAIT   SOURCE_UNSTABLE   FAILED_RETAINED   CANCELLED_RETAINED   MANUAL_INTERVENTION
 ```
 
-A file counts as fully moved only at `MOVE_COMPLETE` (copied → verified → published →
-source-deleted), never merely at `COPIED`.
+Operator lifecycle transitions (see **Lifecycle control** below):
+
+```
+QUEUED / RETRY_WAIT / COPYING  →  PAUSED  →  QUEUED        (pause → resume)
+QUEUED / RETRY_WAIT / PAUSED / COPYING / … →  CANCELLED_RETAINED   (cancel)
+```
+
+`PAUSED` is a non-terminal holding state: it is not runnable, survives a restart, and does
+no work until an explicit `resume`. A file counts as fully moved only at `MOVE_COMPLETE`
+(copied → verified → published → source-deleted), never merely at `COPIED`.
 
 ## Durable per-file workflow (M6)
 
@@ -173,6 +186,47 @@ kernel, where there is no loop in which to pace them (L3-PY-011). Setting a limi
 trades the kernel-copy fast path for controllable throughput — a deliberate, operator-driven
 choice. The clock and sleep function are injectable, so the limiter is verified with
 deterministic, wall-clock-free tests.
+
+## Lifecycle control (cancel / pause / resume)
+
+`cancel`, `pause`, and `resume` (`file_mover/control/lifecycle.py`, `JobLifecycleService`)
+give operators control over a durable job (L2-LIF-001..005). There is **no operating-system
+primitive** to pause or cancel a *regular-file copy* — `SIGSTOP` would freeze the whole
+service, not one job — so an in-flight copy is stopped **cooperatively**:
+
+- A command for a job that is **not copying** (queued, retry-waiting, paused, or a retained
+  terminal-ish state) is applied directly with a **compare-and-set** transition
+  (`transition_job_if`), so a concurrent scheduler pick cannot be clobbered.
+- A command for a job that **is copying** records a `ControlSignal` in the thread-safe
+  `JobControlSignals` registry. The copy loop polls it once per buffer (the same loop the
+  rate limiter runs in) and raises `CopyInterrupted` at that safe point. The coordinator
+  then transitions the job — **pause** fsyncs and keeps the partial for resume; **cancel**
+  discards the partial. Either way the claimed **source is retained**: cancel never deletes
+  source data (L1-SYS-003).
+
+`resume` returns a `PAUSED` job to `QUEUED`; the next scheduler tick continues it. This is
+the classic cooperative-cancellation pattern (Go `context`, .NET `CancellationToken`),
+checked at safe points rather than forced.
+
+## Partial-file resume
+
+`[transfer] resume_partial_files` (default on) lets an interrupted copy continue from where
+it stopped instead of re-copying a large recording from byte zero (L2-RSM-001..003). Unlike
+lifecycle control, **this leans on the OS**:
+
+1. `os.stat`/`os.fstat` on the fsynced `.swit-partial-<job>-<file>` gives the resume offset —
+   the bytes already durably written.
+2. `os.lseek` moves both the source and destination descriptors to that offset.
+3. The copy continues with either strategy; for the kernel path, `os.copy_file_range` reads
+   and writes from the descriptors' current offsets, and its buffered fallback truncates back
+   to the resume offset — **never to zero** — so the already-copied prefix survives (L3-PY-012).
+
+Correctness rests on two guarantees. A **clean pause** fsyncs the partial, so its prefix is
+exactly right and resume is lossless. A **crash-torn** partial (a partially-written final
+buffer) is caught by the existing full-file hash verification: on a size or hash mismatch the
+resumed partial is **discarded** and the file restarts from zero (L2-RSM-003) — unverified
+bytes are never published. Startup recovery therefore *keeps* interrupted partials when resume
+is enabled and *removes* them when it is disabled (L2-RSM-002).
 
 ## Error pipeline
 

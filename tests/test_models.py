@@ -7,6 +7,8 @@ import hashlib
 import pytest
 
 from file_mover.jobs.models import (
+    ACTIVE_JOB_STATES,
+    TERMINAL_JOB_STATES,
     ErrorDisposition,
     ExistingDestinationPolicy,
     ExitCode,
@@ -14,7 +16,24 @@ from file_mover.jobs.models import (
     HashAlgorithm,
     IntegrityMode,
     JobState,
+    is_allowed_job_transition,
 )
+
+
+@pytest.mark.requirement("L2-LIF-004")
+def test_pause_cancel_and_resume_transitions() -> None:
+    assert is_allowed_job_transition(JobState.QUEUED, JobState.PAUSED)
+    assert is_allowed_job_transition(JobState.COPYING, JobState.PAUSED)
+    assert is_allowed_job_transition(JobState.RETRY_WAIT, JobState.PAUSED)
+    assert is_allowed_job_transition(JobState.PAUSED, JobState.QUEUED)  # resume
+    assert is_allowed_job_transition(JobState.PAUSED, JobState.CANCELLED_RETAINED)
+    assert is_allowed_job_transition(JobState.COPYING, JobState.CANCELLED_RETAINED)
+    assert is_allowed_job_transition(JobState.MANUAL_INTERVENTION, JobState.CANCELLED_RETAINED)
+    # PAUSED is a non-terminal, non-runnable holding state.
+    assert JobState.PAUSED in ACTIVE_JOB_STATES
+    assert JobState.PAUSED not in TERMINAL_JOB_STATES
+    assert not is_allowed_job_transition(JobState.COMPLETED, JobState.PAUSED)
+    assert not is_allowed_job_transition(JobState.CANCELLED_RETAINED, JobState.QUEUED)
 
 
 @pytest.mark.requirement("L3-INT-001")
