@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retired section by section as each is verified to be fully captured in a canonical doc,
   requirement, config option, or code+tests. A retirement ledger at the top of the file
   records where each removed section now lives; git history retains the removed content.
-  First retired: *Recommended Initial Build Order* → `docs/ROADMAP.md`.
+  See that ledger for the per-section disposition.
 - **Twelve-factor logging.** The service now writes its event stream to the standard streams
   and lets the environment (systemd's journal, a log shipper) route it — `INFO`/`DEBUG` to
   **stdout**, `WARNING` and above to **stderr** — and no longer manages log files. The CLI is

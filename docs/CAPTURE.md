@@ -14,7 +14,8 @@ authoritative spec source.
 
 | Retired CAPTURE section | Disposition | Canonical home(s) | Commit |
 |-------------------------|-------------|-------------------|--------|
-| Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | _this commit_ |
+| Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | `2ee3e73` |
+| Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -814,48 +815,8 @@ Some exceptional conditions should deliberately stop startup rather than allowin
 
 That is not a panic; it is a controlled fail-safe startup refusal.
 
-## Initial L1 Requirements
-L1 requirements describe what the system must accomplish.
-
-#### L1-SYS-001 — Background Data Movement
-
-The system shall transfer completed scenario recording files independently of the simulation orchestration process.
-
-#### L1-SYS-002 — Simulation Availability
-
-The system shall allow simulation preparation activities to resume after the recording files have been successfully claimed and the transfer job has been durably accepted.
-
-#### L1-SYS-003 — Data Preservation
-
-The system shall prevent source recording data from being deleted until the corresponding destination data has been successfully published and verified.
-
-#### L1-SYS-004 — Source Protection
-
-The system shall rename or relocate submitted source files within the source filesystem to prevent subsequent simulation runs from overwriting the submitted paths.
-
-#### L1-SYS-005 — Interruption Recovery
-
-The system shall recover incomplete transfer jobs following service termination, host restart, NFS interruption, or process failure.
-
-#### L1-SYS-006 — Transfer Integrity
-
-The system shall provide configurable integrity verification for transferred files.
-
-#### L1-SYS-007 — Traceability
-
-The system shall maintain a durable record of every submitted transfer job and every file included in each job.
-
-#### L1-SYS-008 — Operational Control
-
-The system shall provide interfaces to submit, inspect, retry, and diagnose transfer jobs.
-
-#### L1-SYS-009 — Runtime Independence
-
-The production application shall operate using only Python 3.10 standard-library modules.
-
-#### L1-SYS-010 — Safe Failure
-
-The system shall retain source data and provide actionable error information when a transfer cannot be safely completed.
+_(§ "Initial L1 Requirements" retired — see the retirement ledger at the top of this
+file. Fully transcribed into `docs/L1-REQ.md`.)_
 
 ## Example L2 Decomposition
 L2 requirements describe software behavior supporting each L1 requirement.
