@@ -48,6 +48,7 @@ def test_kernel_copy_transfers_correct_bytes(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-COPY-011")
+@pytest.mark.requirement("L2-COPY-001")
 def test_buffered_copy_transfers_correct_bytes(tmp_path: Path) -> None:
     source = _source(tmp_path)
     outcome = _engine(use_kernel_copy=False).copy_to_temp(source, tmp_path / "dest", "job", "file")

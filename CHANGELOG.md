@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Requirements traceability audit.** Reconciled the trace matrix with the code: added
+  `@pytest.mark.requirement` markers to existing tests that already assert data-safety
+  behaviours, added focused tests for the rest (filesystem identity capture/verification,
+  cross-filesystem claim rejection, inventory rules, temp/directory `fsync` durability,
+  `O_NOFOLLOW`, contextual config errors, and no-config-file-rewrite), and declared the
+  genuinely inspection-only `L2-ARC-006` accordingly. `Draft` requirements dropped from
+  **48 to 8**, and every remaining `Draft` now means *genuinely unbuilt* rather than
+  untested — see `docs/ROADMAP.md` § Known gaps (claim-directory cleanup `L2-CLN-003/004`,
+  manual-retry handler `L2-RTY-006`, event publisher `L2-EVT-*`), each awaiting an
+  implement-or-withdraw decision.
 - **Retired `docs/CAPTURE.md` into the specifications.** The original design conversation
   (~6,200 lines) has been **fully retired** section by section — each removed only after its
   every claim was verified to live in a canonical doc, a requirement, a config option, or

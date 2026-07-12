@@ -109,6 +109,7 @@ def test_scheduler_runs_due_retry_and_skips_future_retry(tmp_path: Path) -> None
 
 
 @pytest.mark.requirement("L2-REC-004")
+@pytest.mark.requirement("L2-COPY-003")
 def test_scheduler_respects_max_concurrent_jobs(tmp_path: Path) -> None:
     repo, submission, scheduler, source_root, dest_root = _setup(tmp_path, max_concurrent_jobs=1)
     (source_root / "a.dat").write_bytes(b"one")
@@ -121,6 +122,8 @@ def test_scheduler_respects_max_concurrent_jobs(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-REC-003")
+@pytest.mark.requirement("L2-CLN-001")
+@pytest.mark.requirement("L2-CLN-002")
 def test_recovery_reprocess_is_idempotent(tmp_path: Path) -> None:
     repo, submission, scheduler, source_root, dest_root = _setup(tmp_path)
     (source_root / "a.dat").write_bytes(b"hello")

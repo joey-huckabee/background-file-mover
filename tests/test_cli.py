@@ -151,6 +151,15 @@ def test_config_validate_accepts_valid_config(tmp_path: Path) -> None:
     assert main(["config", "validate", "--config", path]) == ExitCode.SUCCESS
 
 
+@pytest.mark.requirement("L2-CLI-007")
+def test_cli_never_modifies_the_config_file(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    before = Path(path).read_bytes()
+    # The CLI reads and validates configuration; it must never rewrite the file.
+    assert main(["config", "validate", "--config", path]) == ExitCode.SUCCESS
+    assert Path(path).read_bytes() == before
+
+
 @pytest.mark.requirement("L2-CLI-004")
 def test_config_validate_valid_json_output(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -168,6 +177,7 @@ def test_config_validate_rejects_invalid_config(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-CLI-004")
+@pytest.mark.requirement("L2-CLI-005")
 def test_config_validate_json_output_on_stdout(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

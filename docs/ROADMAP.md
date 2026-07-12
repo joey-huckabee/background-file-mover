@@ -180,39 +180,34 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 
 ## Known gaps (decision needed)
 
-- **Event-publisher requirements are `Draft`/unimplemented.** The in-memory observer /
-  event-publisher was specified as `L2-EVT-001..005` and `L3-EVT-001..005` (snapshot
-  subscribers before dispatch, don't hold the lock during callbacks, catch subscriber
-  exceptions, reject duplicate registration, unsubscribe reports removal) but has **no
-  implementation and no tests** — the trace matrix carries them as `Draft` / `_(TBD)_`.
-  Decide in a future session whether to **implement** the publisher (with tests) or
-  **formally withdraw** the requirements so the matrix reflects reality. Until then the
-  design intent lives in the EVT requirements themselves.
+A **traceability audit** (v0.4.0) reconciled the trace matrix with the code: every
+implemented requirement now carries a `@pytest.mark.requirement` test marker (or a declared
+Inspection method), so a `Draft` status in the matrix now means *genuinely unbuilt*, not
+merely untested. The claim/filesystem and transfer/deletion data-safety requirements
+(`L2-FS-*`, `L2-POSIX-*`, `L2-CLN-001/005`, `L2-COPY-*`, `L2-DST-*`, `L2-DEL-*`) are now
+tested. The requirements still `Draft` are unimplemented features specified during design —
+each needs an **implement-or-withdraw** decision:
 
-- **A systemic set of L2 requirements is `Draft`/untraced in the matrix despite being
-  implemented — including data-safety ones.** The functionality is in the code but the
-  requirement-tagged tests are missing, so the trace matrix understates coverage. Known
-  affected requirements:
-  - **Claim/filesystem + transfer/deletion integrity (highest priority):** `L2-FS-001..004`
-    (record & verify device+inode identity, reject a cross-filesystem claim, symlink policy),
-    `L2-POSIX-001/007/008/011` (source-must-exist, **verify identity before claim and before
-    delete**, exclusive temp create, atomic same-fs publish), `L2-CLN-001/005` (idempotent
-    cleanup, **never delete on device/inode mismatch**), `L2-COPY-001/005/008` (bounded-memory
-    copy, temp-not-final, flush+fsync), `L2-DST-001` (**never delete an existing destination**),
-    `L2-DEL-001/004` (**delete only claimed records; never on incomplete verification**) —
-    implemented in `validation.py` / `claiming.py` / `copy_engine.py` / `transfer/coordinator.py`
-    but `Draft`/untested. (Coverage is genuinely partial: siblings like `L2-RTY-001/004`,
-    `L2-DST-003`, `L2-DEL-003` *are* tested — so the gaps are real, not just mislabelled.)
-  - **Architecture/config:** `L2-ARC-003/004/006`, `L2-CFG-010` — `Draft`.
-  - **Storage abstraction:** `L2-STO-001/003` are marked *Implemented (I)* but there is **no
-    `TransferSource`/`TransferDestination` Protocol** — the workflow uses POSIX directly; the
-    capability abstraction is really part of the deferred S3 adapter work.
+- **Claim-directory cleanup — `L2-CLN-003` / `L2-CLN-004`.** There is no staging-directory
+  cleanup step: after a job's claimed sources are deleted, the emptied `.swit-moving/<job>/`
+  directory is left in place, and unexpected leftover files are neither surfaced nor routed
+  to manual intervention. Implement a deepest-first cleanup that removes the emptied claim
+  directory and routes a non-empty one (unexpected files) to `MANUAL_INTERVENTION`, or
+  withdraw the requirements.
+- **Manual retry — `L2-RTY-006`.** The `retry` CLI subcommand exists in the parser but has
+  **no server-side handler** (registered control commands are health/status/list/stats/
+  submit/throttle/pause/resume/cancel), so sending `retry` returns `UNKNOWN_COMMAND`. Wire a
+  `retry` handler that transitions an eligible retained job back to `QUEUED`, or withdraw it.
+- **Event publisher — `L2-EVT-001..005` / `L3-EVT-001..005`.** The in-memory observer /
+  event-publisher (snapshot subscribers before dispatch, don't hold the lock during
+  callbacks, isolate subscriber failures, reject duplicate registration, unsubscribe reports
+  removal) has no implementation and no tests. Its observational-not-transactional *principle*
+  is already honoured by the coordinator (it updates SQLite directly); decide whether to build
+  the publisher (together with the durable event/audit log above) or withdraw the requirements.
 
-  Run a **traceability audit**: add `@pytest.mark.requirement` markers (and any genuinely
-  missing tests) for the requirements that are satisfied — prioritising the claim/filesystem
-  data-safety group — and decide implement-or-withdraw for the partial ones (the injectable
-  `FileSystem` Protocol behind `L2-ARC-003`, `L2-CFG-010`'s valid-options error help, and the
-  storage abstraction behind `L2-STO-001/003`).
+The storage-capability abstraction (`TransferSource`/`TransferDestination` Protocols behind
+`L2-STO-001/003`) is likewise unbuilt — the workflow uses POSIX directly — but is tracked as
+part of the deferred **S3 adapter** rather than a standalone gap.
 
 ## Delivered post-1.0
 
