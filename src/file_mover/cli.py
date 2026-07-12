@@ -29,6 +29,7 @@ from file_mover.configuration import (
     ApplicationConfig,
     ConfigurationLoader,
     ConfigurationValidationError,
+    configuration_advisories,
 )
 from file_mover.constants import APP_NAME, DEFAULT_CONFIG_PATH
 from file_mover.control.client import ControlClient
@@ -291,11 +292,17 @@ def _validate_configuration(config_path: str, output: str) -> ExitCode:
     return ExitCode.SUCCESS
 
 
-def _resolve_log_level(args: argparse.Namespace) -> str:
-    """Resolve the effective log level from ``--log-level`` or ``-v``/``-vv``."""
+def _cli_log_level_override(args: argparse.Namespace) -> str | None:
+    """Return an explicit CLI log level (``--log-level`` / ``-v``), or ``None``.
+
+    ``None`` means no CLI override was given, so the ``[logging] level`` from configuration
+    should apply (L3-PY-013).
+    """
     if args.log_level is not None:
         return str(args.log_level)
-    return {0: "WARNING", 1: "INFO"}.get(args.verbose, "DEBUG")
+    if args.verbose:
+        return {1: "INFO"}.get(args.verbose, "DEBUG")
+    return None
 
 
 def _query_service(
@@ -495,12 +502,23 @@ def _handle_service_run(args: argparse.Namespace) -> ExitCode:
     result = _load_configuration(args.config, args.output)
     if isinstance(result, ExitCode):
         return result
-    configure_logging(_resolve_log_level(args))
+    _configure_service_logging(args, result)
     try:
         return ExitCode(BackgroundMoverService(result).run())
     except ServiceLockError as error:
         print(f"{APP_NAME}: {error}", file=sys.stderr)
         return ExitCode.SERVICE_UNAVAILABLE
+
+
+def _configure_service_logging(args: argparse.Namespace, config: ApplicationConfig) -> None:
+    """Configure logging for the service from ``[logging]``, CLI verbosity taking precedence."""
+    level = _cli_log_level_override(args) or config.logging.level
+    log_file = (
+        Path(str(config.logging.log_directory)) / "file-mover.log"
+        if config.logging.log_to_file
+        else None
+    )
+    configure_logging(level, to_stderr=config.logging.log_to_journal, log_file=log_file)
 
 
 def _handle_config(args: argparse.Namespace) -> ExitCode:
@@ -515,13 +533,20 @@ def _handle_config(args: argparse.Namespace) -> ExitCode:
 
 
 def _handle_doctor(args: argparse.Namespace) -> ExitCode:
-    """Run diagnostic checks. Milestone 2 covers configuration validation only."""
-    print(
-        f"{APP_NAME}: doctor — configuration checks only; "
-        f"filesystem and service checks arrive in later milestones.",
-        file=sys.stderr,
-    )
-    return _validate_configuration(args.config, args.output)
+    """Validate configuration and report advisories for consequential option combinations."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    advisories = configuration_advisories(config)
+    if args.output == "json":
+        print(
+            json.dumps({"status": "ok", "message": "configuration valid", "advisories": advisories})
+        )
+    else:
+        print("configuration valid")
+        for note in advisories:
+            print(f"advisory: {note}", file=sys.stderr)
+    return ExitCode.SUCCESS
 
 
 _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], ExitCode]] = {

@@ -178,6 +178,37 @@ def test_doctor_validates_configuration(tmp_path: Path) -> None:
     assert main(["doctor", "--config", path]) == ExitCode.SUCCESS
 
 
+@pytest.mark.requirement("L3-PY-013")
+def test_doctor_reports_advisories(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG + "[transfer]\nmax_bytes_per_second = 1000\n")
+    assert main(["doctor", "--config", path]) == ExitCode.SUCCESS
+    captured = capsys.readouterr()
+    assert "configuration valid" in captured.out
+    assert "advisory:" in captured.err and "bandwidth limit" in captured.err
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_doctor_json_includes_advisories(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG + "[transfer]\nmax_bytes_per_second = 1000\n")
+    assert main(["doctor", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "ok"
+    assert any("bandwidth" in note for note in payload["advisories"])
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_cli_log_level_override_precedence() -> None:
+    from argparse import Namespace
+
+    assert cli_module._cli_log_level_override(Namespace(log_level="ERROR", verbose=0)) == "ERROR"
+    assert cli_module._cli_log_level_override(Namespace(log_level=None, verbose=1)) == "INFO"
+    assert cli_module._cli_log_level_override(Namespace(log_level=None, verbose=2)) == "DEBUG"
+    # No CLI flag -> None, so the config level applies.
+    assert cli_module._cli_log_level_override(Namespace(log_level=None, verbose=0)) is None
+
+
 @pytest.mark.requirement("L2-CFG-006")
 def test_config_validate_missing_file_human(tmp_path: Path) -> None:
     missing = str(tmp_path / "nope.ini")

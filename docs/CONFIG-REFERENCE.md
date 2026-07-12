@@ -82,8 +82,14 @@ system's responsibility to submit only completed recordings.
 
 ## `[logging]`
 
+The service applies this section at startup. An explicit CLI `-v`/`--log-level` on
+`service run` overrides `level`; otherwise the configured `level` is used. `doctor` also
+reports **advisories** for valid-but-consequential option combinations (e.g. a bandwidth
+limit with `use_kernel_copy`, or resume without full destination hashing).
+
 | Option | Type | Default | Notes |
 |--------|------|---------|-------|
-| `level` | enum | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. |
-| `log_to_journal` | bool | `true` | Emit to the systemd journal (stderr). |
-| `log_to_file` | bool | `false` | Emit to a log file. |
+| `level` | enum | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. Applied at service start unless a CLI `-v`/`--log-level` overrides it. |
+| `log_to_journal` | bool | `true` | Emit to stderr (captured by the systemd journal). |
+| `log_to_file` | bool | `false` | Also emit to a size-rotating file (10 MiB × 5) under `log_directory`. |
+| `log_directory` | abs path | `/var/log/file-mover` | Directory for the rotating log file when `log_to_file` is enabled. |

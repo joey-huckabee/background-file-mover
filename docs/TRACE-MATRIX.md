@@ -64,7 +64,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CLI-003 | _(none)_ | `tests/test_cli.py::test_version_action_exits_zero`<br>`tests/test_models.py::test_exit_codes_are_distinct_integers` | Implemented |
 | L2-CLI-004 | L3-CLI-004 | `tests/test_cli.py::test_config_validate_json_output_on_stdout`<br>`tests/test_cli.py::test_config_validate_valid_json_output`<br>`tests/test_cli.py::test_list_and_stats_render` | Partially Implemented |
 | L2-CLI-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLI-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-006 | L3-PY-013 | `tests/test_cli.py::test_cli_log_level_override_precedence`<br>`tests/test_cli.py::test_doctor_json_includes_advisories`<br>`tests/test_cli.py::test_doctor_reports_advisories`<br>`tests/test_configuration.py::test_advisory_for_bandwidth_limit_with_kernel_copy`<br>`tests/test_configuration.py::test_advisory_for_resume_without_full_hashing`<br>`tests/test_configuration.py::test_log_directory_defaults`<br>`tests/test_configuration.py::test_no_advisories_for_safe_defaults`<br>`tests/test_logging_config.py::test_level_is_applied_and_unknown_falls_back`<br>`tests/test_logging_config.py::test_never_silent_when_all_destinations_off`<br>`tests/test_logging_config.py::test_unopenable_log_file_falls_back_without_raising`<br>`tests/test_logging_config.py::test_writes_to_rotating_file` | Implemented |
 | L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-008 | _(none)_ | `tests/test_cli.py::test_submit_missing_file_list_is_invalid_argument`<br>`tests/test_cli.py::test_submit_reads_file_list`<br>`tests/test_cli.py::test_submit_renders_accepted`<br>`tests/test_cli.py::test_submit_renders_rejected_json`<br>`tests/test_cli.py::test_submit_reports_service_unavailable_when_down`<br>`tests/test_control_unix.py::test_service_run_accepts_submission_over_socket`<br>`tests/test_submission.py::test_submit_file_list` | Implemented |
 | L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
@@ -216,14 +216,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 12 | 0 | 8 | 0 | 8 |
-| **Total** | **11** | **132** | **37** | **70** | **21** | **79** | **21** |
+| PY | 0 | 0 | 13 | 0 | 9 | 0 | 9 |
+| **Total** | **11** | **132** | **38** | **70** | **22** | **79** | **22** |
 
 The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 92 of 170 (54.1%).
+**Tested by at least one test marker**: 93 of 171 (54.4%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 101 of 170 (59.4%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 102 of 171 (59.6%).
 
 ### Orphan check
 

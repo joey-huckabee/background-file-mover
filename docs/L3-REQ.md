@@ -152,6 +152,15 @@ Partial-file resume shall determine the resume offset from the fsynced partial's
 strategy; the kernel-copy fallback shall truncate to the resume offset (never zero) so an
 already-copied prefix is preserved.
 
+**L3-PY-013** · Parent: L2-CLI-006 · Verification: T
+
+Service logging shall be configured from the `[logging]` section — level, journal (stderr)
+destination, and an optional size-rotating file under `log_directory` — with an explicit
+CLI `-v`/`--log-level` taking precedence. Valid-but-consequential option combinations
+(a bandwidth limit with kernel copy; resume without full destination hashing) shall be
+surfaced as advisories by `file-mover doctor` and logged once at service start, never
+raised as errors.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T
