@@ -79,3 +79,11 @@ The system shall retain source data and provide actionable error information whe
 transfer cannot be safely completed.
 
 **Verification Method**: Test (T)
+
+### L1-ROB-001
+
+The system shall handle arbitrary or malformed input to any interaction surface — CLI
+arguments, the configuration file, and the control protocol — without panicking; no
+unhandled exception shall terminate the CLI or the service.
+
+**Verification Method**: Test (T)

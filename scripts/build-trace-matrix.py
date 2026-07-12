@@ -54,6 +54,7 @@ _METHOD_LETTER = re.compile(r"\b([TIAD])\b")
 # coverage summary, counted by their own id prefix.
 CATEGORIES: list[tuple[str, str]] = [
     ("SYS", "System requirements (L1)"),
+    ("ROB", "Robustness / no-panic (L1 leaf)"),
     ("DPR", "Data preservation (L2)"),
     ("CFG", "Configuration (L2)"),
     ("EVT", "Operational events (L2/L3)"),

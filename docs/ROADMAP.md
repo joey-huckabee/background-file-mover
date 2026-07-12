@@ -33,7 +33,13 @@ across all future work:
 
 ## Milestones
 
-### M1 — Foundation & Requirements Baseline ✅ (in progress / current)
+**Status:** M1–M8 are delivered — the product is feature-complete for the first release
+(systemd service, submit/claim, durable state, integrity, retry, crash recovery, and the
+no-panic fuzz harness). Per-milestone detail lives in `CHANGELOG.md`; the roadmap now
+tracks the post-1.0 deferred items below. The milestone descriptions are retained here
+for reference.
+
+### M1 — Foundation & Requirements Baseline ✅
 
 Strip the inherited template scaffolding; establish the Poetry/`src` skeleton, the
 reference configuration, and the CLI parser surface; author the L1/L2/L3 requirement

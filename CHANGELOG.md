@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Packaging & qualification (Milestone 8) — first-release hardening:
+  - No-panic fuzz harness (`tests/test_fuzz.py`, requirement L1-ROB-001): deterministic,
+    env-configurable fuzzing of every interaction surface (protocol decode/receive,
+    dispatcher, config loader, CLI argv), asserting only documented exceptions ever occur.
+    The `fuzz` CI workflow is revived as a scheduled deep burn-in.
+  - Fault-injection tests (`tests/test_fault_injection.py`): failures at destructive
+    boundaries (publish, manifest write, repository insert) provably retain the source
+    data — nothing is lost.
+  - Top-level CLI exception boundary: any unexpected error becomes a controlled
+    `INTERNAL_ERROR` exit with a logged traceback (L2-CLI-010); the coordinator's
+    source-deletion step is hardened against `OSError`.
+  - Production systemd unit (`mover` service account, `RequiresMountsFor`,
+    Runtime/State/Logs directories, full sandboxing) and `docs/DEPLOYMENT.md` — the
+    server-setup runbook, acceptance tests, and NFS-qualification checklist.
+  - Requirements: L1-ROB-001, L2-CLI-010.
+
 - Recovery & service integration (Milestone 7) — the service now moves data on its own:
   - `RecoveryManager` — at startup, reconciles interrupted (in-progress) jobs against the
     filesystem: removes their stale `.swit-partial-` temporary files and re-queues them,

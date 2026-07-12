@@ -25,7 +25,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L1-SYS-001 | L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Partially Implemented |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | _(none)_ | Partially Implemented |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
@@ -64,7 +64,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-008 | _(none)_ | `tests/test_cli.py::test_submit_missing_file_list_is_invalid_argument`<br>`tests/test_cli.py::test_submit_reads_file_list`<br>`tests/test_cli.py::test_submit_renders_accepted`<br>`tests/test_cli.py::test_submit_renders_rejected_json`<br>`tests/test_cli.py::test_submit_reports_service_unavailable_when_down`<br>`tests/test_control_unix.py::test_service_run_accepts_submission_over_socket`<br>`tests/test_submission.py::test_submit_file_list` | Implemented |
 | L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLI-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-010 | _(none)_ | `tests/test_cli.py::test_main_converts_unexpected_error_to_internal_error` | Implemented |
 | L2-CLI-011 | L3-CLI-001 | `tests/test_cli.py::test_create_parser_is_pure_and_builds`<br>`tests/test_cli.py::test_module_entry_point_runs`<br>`tests/test_cli.py::test_no_command_prints_help_and_returns_invalid_argument` | Implemented |
 | L2-CLN-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLN-002 | _(none)_ | _(TBD)_ | Draft |
@@ -154,7 +154,20 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SUB-002 | L3-SUB-001 | `tests/test_service.py::test_submit_handler_claims_and_records`<br>`tests/test_submission.py::test_submit_claims_records_and_writes_manifest` | Implemented |
 | L2-SUB-003 | _(none)_ | `tests/test_submission.py::test_submit_rejects_empty_source` | Implemented |
 | L2-SUB-004 | L3-SUB-002 | `tests/test_submission.py::test_manifest_writer_writes_atomically` | Implemented |
-| L2-SUB-005 | _(none)_ | `tests/test_submission.py::test_submit_rejects_destination_outside_allowed_roots` | Implemented |
+| L2-SUB-005 | _(none)_ | `tests/test_fault_injection.py::test_manifest_failure_during_submit_retains_claimed_files`<br>`tests/test_fault_injection.py::test_repository_failure_during_submit_is_not_accepted`<br>`tests/test_submission.py::test_submit_rejects_destination_outside_allowed_roots` | Implemented |
+
+### L1-ROB: Robustness / no-panic (L1 leaf)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-ROB-001 | _(none)_ | `tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
 
 ---
 
@@ -166,10 +179,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |
 |----------|----|----|-----|-----------|-----------|-------------|-------------|
 | SYS | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
+| ROB | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
 | DPR | 0 | 7 | 0 | 3 | 0 | 3 | 0 |
 | CFG | 0 | 11 | 0 | 10 | 0 | 10 | 0 |
 | EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
-| CLI | 0 | 11 | 5 | 5 | 2 | 5 | 2 |
+| CLI | 0 | 11 | 5 | 6 | 2 | 6 | 2 |
 | ARC | 0 | 6 | 0 | 0 | 0 | 3 | 0 |
 | FS | 0 | 5 | 0 | 1 | 0 | 1 | 0 |
 | POSIX | 0 | 12 | 0 | 2 | 0 | 2 | 0 |
@@ -185,13 +199,13 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 8 | 0 | 4 | 0 | 4 |
-| **Total** | **10** | **117** | **33** | **54** | **17** | **63** | **17** |
+| **Total** | **11** | **117** | **33** | **55** | **17** | **64** | **17** |
 
-The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 71 of 150 (47.3%).
+**Tested by at least one test marker**: 73 of 151 (48.3%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 80 of 150 (53.3%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 82 of 151 (54.3%).
 
 ### Orphan check
 

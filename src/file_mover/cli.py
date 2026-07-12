@@ -17,9 +17,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -414,12 +415,51 @@ def _handle_doctor(args: argparse.Namespace) -> ExitCode:
     return _validate_configuration(args.config, args.output)
 
 
-def main(argv: Sequence[str] | None = None) -> int:  # pylint: disable=too-many-return-statements
+_COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], ExitCode]] = {
+    "config": _handle_config,
+    "doctor": _handle_doctor,
+    "health": _handle_health,
+    "status": _handle_status,
+    "list": _handle_list,
+    "stats": _handle_stats,
+    "submit": _handle_submit,
+}
+
+
+def _dispatch(args: argparse.Namespace, parser: argparse.ArgumentParser) -> ExitCode:
+    """Route parsed arguments to the matching command handler."""
+    command = getattr(args, "command", None)
+    if command is None:
+        parser.print_help(sys.stderr)
+        return ExitCode.INVALID_ARGUMENT
+
+    handler = _COMMAND_HANDLERS.get(command)
+    if handler is not None:
+        return handler(args)
+
+    if command == "service":
+        service_command = getattr(args, "service_command", None)
+        if service_command is None:
+            print(
+                f"{APP_NAME}: 'service' requires a subcommand (e.g. 'service run').",
+                file=sys.stderr,
+            )
+            return ExitCode.INVALID_ARGUMENT
+        if service_command == "run":
+            return _handle_service_run(args)
+        return _not_implemented(f"service {service_command}")
+
+    return _not_implemented(command)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point.
 
-    Parses real arguments (``sys.argv`` when ``argv`` is ``None``), dispatches to the
-    matching command handler, and returns its :class:`ExitCode`. A missing command
-    prints help and returns :attr:`ExitCode.INVALID_ARGUMENT`.
+    Parses real arguments (``sys.argv`` when ``argv`` is ``None``) and dispatches to the
+    matching command handler. Argument errors exit via argparse (``SystemExit``); any
+    other unexpected exception is caught at this boundary and converted into a controlled
+    :attr:`ExitCode.INTERNAL_ERROR` with a logged traceback, so the CLI never crashes with
+    an unhandled traceback (L2-CLI-010).
 
     Args:
         argv: Argument vector excluding the program name; defaults to ``sys.argv[1:]``.
@@ -429,43 +469,11 @@ def main(argv: Sequence[str] | None = None) -> int:  # pylint: disable=too-many-
     """
     parser = create_parser()
     args = parser.parse_args(argv)
-
-    command = getattr(args, "command", None)
-    if command is None:
-        parser.print_help(sys.stderr)
-        return int(ExitCode.INVALID_ARGUMENT)
-
-    if command == "config":
-        return int(_handle_config(args))
-
-    if command == "doctor":
-        return int(_handle_doctor(args))
-
-    if command == "health":
-        return int(_handle_health(args))
-
-    if command == "status":
-        return int(_handle_status(args))
-
-    if command == "list":
-        return int(_handle_list(args))
-
-    if command == "stats":
-        return int(_handle_stats(args))
-
-    if command == "submit":
-        return int(_handle_submit(args))
-
-    if command == "service":
-        service_command = getattr(args, "service_command", None)
-        if service_command is None:
-            print(
-                f"{APP_NAME}: 'service' requires a subcommand (e.g. 'service run').",
-                file=sys.stderr,
-            )
-            return int(ExitCode.INVALID_ARGUMENT)
-        if service_command == "run":
-            return int(_handle_service_run(args))
-        return int(_not_implemented(f"service {service_command}"))
-
-    return int(_not_implemented(command))
+    try:
+        return int(_dispatch(args, parser))
+    except Exception:  # pylint: disable=broad-exception-caught
+        logging.getLogger("file_mover.cli").exception(
+            "unhandled error in command %s", getattr(args, "command", "?")
+        )
+        print(f"{APP_NAME}: internal error (see logs)", file=sys.stderr)
+        return int(ExitCode.INTERNAL_ERROR)

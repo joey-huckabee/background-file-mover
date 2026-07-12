@@ -138,9 +138,16 @@ class TransferCoordinator:
         self._repository.update_file(
             file.file_id, source_hash=source_hash, destination_hash=destination_hash
         )
-        if identity_of(claimed) != source_identity:
+        try:
+            current_identity = identity_of(claimed)
+        except OSError as error:
+            raise CopyError(f"cannot re-stat claimed source before deletion: {claimed}") from error
+        if current_identity != source_identity:
             raise CopyError(f"claimed source changed before deletion: {claimed}")
-        claimed.unlink(missing_ok=True)
+        try:
+            claimed.unlink(missing_ok=True)
+        except OSError as error:
+            raise CopyError(f"cannot delete claimed source {claimed}: {error}") from error
         return FileState.MOVE_COMPLETE
 
     def _handle_existing_destination(self, claimed: Path, final: Path) -> FileState:

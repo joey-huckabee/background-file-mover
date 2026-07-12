@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import file_mover.cli as cli_module
 from file_mover.cli import create_parser, main
 from file_mover.jobs.models import ExitCode
 
@@ -88,6 +89,18 @@ def test_known_commands_report_not_implemented(argv: list[str]) -> None:
 @pytest.mark.requirement("L2-CLI-002")
 def test_service_without_subcommand_is_invalid() -> None:
     assert main(["service"]) == ExitCode.INVALID_ARGUMENT
+
+
+@pytest.mark.requirement("L2-CLI-010")
+def test_main_converts_unexpected_error_to_internal_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _boom(_args: object) -> ExitCode:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setitem(cli_module._COMMAND_HANDLERS, "stats", _boom)
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["stats", "--config", path]) == ExitCode.INTERNAL_ERROR
 
 
 @pytest.mark.requirement("L3-CLI-005")

@@ -1,26 +1,71 @@
 # ============================================================================
-# Background File Mover — systemd unit (PLACEHOLDER)
+# Background File Mover — systemd unit
 # ============================================================================
-# This is a minimal placeholder. The production unit — with the dedicated
-# `mover` service account, RuntimeDirectory/StateDirectory/LogsDirectory,
-# RequiresMountsFor for the NFS mounts, and the full hardening block
-# (NoNewPrivileges, ProtectSystem=strict, ProtectKernel*, etc.) — is authored
-# in Milestone 8. See docs/ROADMAP.md (M8) and docs/CAPTURE.md §7.
+# Install at /etc/systemd/system/file-mover.service, then:
+#   systemctl daemon-reload && systemctl enable --now file-mover
+# See docs/DEPLOYMENT.md for the full server-setup runbook.
 #
-# The first release uses Type=simple (the app logs when it reaches READY);
-# Type=notify is deferred.
+# The example NFS mounts below (/recordings, /processing) MUST match the
+# allowed_source_roots / allowed_destination_roots in file-mover.ini. Update
+# RequiresMountsFor and ReadWritePaths together with the config.
 # ============================================================================
 
 [Unit]
 Description=Background File Mover (durable transfer coordinator)
+Documentation=https://github.com/joey-huckabee/background-file-mover
 After=network-online.target remote-fs.target
 Wants=network-online.target
+# Do not start until the source and destination mounts are present.
+RequiresMountsFor=/recordings /processing
+# Refuse to start without the operator configuration.
+ConditionPathExists=/etc/file-mover/file-mover.ini
 
 [Service]
 Type=simple
+User=mover
+Group=mover
 ExecStart=/opt/file-mover/venv/bin/python -m file_mover --config /etc/file-mover/file-mover.ini service run
 Restart=on-failure
 RestartSec=10
+# Allow the graceful drain (>= [service] shutdown_timeout_seconds) to finish.
+TimeoutStopSec=90
+
+# systemd creates these with the right owner and mode on start:
+#   RuntimeDirectory -> /run/file-mover      (socket, pid)
+#   StateDirectory   -> /var/lib/file-mover  (jobs.db, manifests)
+#   LogsDirectory    -> /var/log/file-mover
+RuntimeDirectory=file-mover
+RuntimeDirectoryMode=0750
+StateDirectory=file-mover
+StateDirectoryMode=0750
+LogsDirectory=file-mover
+LogsDirectoryMode=0750
+# Group-writable so the simulation account (added to the `mover` group) can
+# reach the control socket; world has no access.
+UMask=0007
+
+# ── Sandboxing / hardening ─────────────────────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+# ProtectSystem=strict makes the whole filesystem read-only except the paths
+# below. The service reads + renames within the source (to claim into
+# .swit-moving) and writes to the destination, so both mounts are read-write.
+ReadWritePaths=/var/lib/file-mover /var/log/file-mover /recordings /processing
 
 [Install]
 WantedBy=multi-user.target
