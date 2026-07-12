@@ -794,8 +794,10 @@ fsynced partial destination rather than re-copying the file from byte zero.
 
 #### L2-RSM-002
 
-Startup recovery shall preserve interrupted partial destinations for resume when resume is
-enabled, and remove them when it is disabled.
+An interrupted partial destination — whether left by a crash (reconciled at startup) or by
+an operator pause — shall be preserved for resume when resume is enabled, and removed when it
+is disabled so the file restarts from byte zero instead of colliding with the exclusive
+create.
 
 **Parent**: L1-SYS-005
 
