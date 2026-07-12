@@ -101,7 +101,7 @@ intervention:
 2. If configured, hash the source; persist and fsync the manifest before copying.
 3. Create the `.swit-partial-<job>-<file>` temp destination exclusively (`O_EXCL`,
    `O_NOFOLLOW`).
-4. Copy in a bounded read/write loop; throttle progress reporting.
+4. Copy the bytes using the configured strategy (see **Copy strategy** below).
 5. `flush()` + `os.fsync()` the temp file.
 6. Verify the destination byte count / size.
 7. If configured, hash the destination and compare with `hmac.compare_digest`.
@@ -109,6 +109,31 @@ intervention:
 9. `os.fsync` the destination directory where supported.
 10. Revalidate the source identity; only then delete the claimed source.
 11. Record `MOVE_COMPLETE`.
+
+## Copy strategy
+
+`BufferedFileCopyEngine` supports two byte-copy strategies, selected by the
+`[transfer] use_kernel_copy` option; both write to the same exclusively-created
+`.swit-partial-` temporary file and both are followed by the identical
+fsync → verify → publish → delete steps.
+
+- **Kernel-assisted** (`use_kernel_copy = true`, default). `os.copy_file_range` moves
+  bytes directly between the source and destination file descriptors inside the kernel,
+  without copying every byte through the mover process — faster for the large recordings.
+  It is attempted only when the syscall exists, and any "not supported" outcome — the
+  syscall is missing (`ENOSYS`), the filesystem declines it (`EOPNOTSUPP`), or the two
+  ends are on different filesystems on an older kernel (`EXDEV`) — discards the partial
+  output and falls back to the buffered loop. Genuine I/O errors are **not** masked; they
+  propagate to the error pipeline.
+- **Buffered** (`use_kernel_copy = false`, and the fallback). A bounded `read`/`write`
+  loop copying at most one `copy_buffer_size_bytes` chunk at a time — the well-tested,
+  universally-portable path.
+
+Because the source and destination are two separate NFS mounts, the largest kernel-copy
+wins (reflink / NFSv4.2 server-side `COPY`) may not apply across the pair; the strategy is
+therefore a configurable, benchmark-driven choice (see `docs/DEPLOYMENT.md`), not an
+assumed speedup. Integrity is unaffected either way — the destination is re-hashed after
+the copy regardless of strategy.
 
 ## Error pipeline
 

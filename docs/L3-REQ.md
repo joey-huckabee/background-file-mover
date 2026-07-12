@@ -126,6 +126,12 @@ Durable state shall use `sqlite3` with `journal_mode=WAL` and `synchronous=FULL`
 
 The command-line interface shall be implemented with `argparse`.
 
+**L3-PY-009** · Parent: L2-COPY-011 · Verification: T
+
+Kernel-assisted copy shall use `os.copy_file_range` and fall back to the buffered loop on
+an unsupported errno (e.g. `ENOSYS`, `EOPNOTSUPP`, `EXDEV`) or when the syscall is
+unavailable, while propagating genuine I/O errors.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T

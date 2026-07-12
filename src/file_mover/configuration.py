@@ -115,6 +115,7 @@ class TransferConfig:
     retry_limit: int
     retry_initial_delay_seconds: float
     retry_max_delay_seconds: float
+    use_kernel_copy: bool
 
 
 @dataclass(frozen=True)
@@ -451,6 +452,12 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             default="900",
             description="Backoff ceiling (>= initial delay).",
         ),
+        OptionSpec(
+            "use_kernel_copy",
+            _to_bool,
+            default="true",
+            description="Attempt kernel-assisted copy (copy_file_range) with buffered fallback.",
+        ),
     ),
     "integrity": (
         OptionSpec(
@@ -721,6 +728,7 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             retry_limit=cast(int, transfer["retry_limit"]),
             retry_initial_delay_seconds=cast(float, transfer["retry_initial_delay_seconds"]),
             retry_max_delay_seconds=cast(float, transfer["retry_max_delay_seconds"]),
+            use_kernel_copy=cast(bool, transfer["use_kernel_copy"]),
         ),
         integrity=IntegrityConfig(
             enabled=cast(bool, integrity["enabled"]),

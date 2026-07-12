@@ -110,3 +110,8 @@ these against the real source and destination mounts:
       simulation hosts.
 - [ ] Multiple simultaneous scenario submissions.
 - [ ] Large individual files (10–30 GB) copy and verify correctly.
+- [ ] **Copy-strategy benchmark.** Time a representative transfer with
+      `[transfer] use_kernel_copy = true` and again with `false` on the real mounts.
+      Keep whichever is faster; across two different NFS servers the kernel copy often
+      falls back to buffered anyway, so confirm rather than assume. (The service always
+      falls back safely, so `true` is a sound default.)
