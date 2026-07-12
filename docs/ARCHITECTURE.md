@@ -105,6 +105,27 @@ QUEUED / RETRY_WAIT / PAUSED / COPYING / … →  CANCELLED_RETAINED   (cancel)
 no work until an explicit `resume`. A file counts as fully moved only at `MOVE_COMPLETE`
 (copied → verified → published → source-deleted), never merely at `COPIED`.
 
+## Claiming
+
+Before any bytes are copied, `FileClaimManager` (`claiming.py`) **claims** each submitted
+file with an atomic **same-filesystem rename** (`os.replace`) into a per-job staging
+directory `<source_root>/<claim_directory_name>/<job_id>/` (L3-SUB-001). The staging
+directory name defaults to `.swit-moving` and is operator-configurable via
+`[paths] claim_directory_name` (validated as a single path component — no separators,
+not `.`/`..`). The claim must stay within the source filesystem: a cross-filesystem rename
+is not atomic and fails `EXDEV`, so the move to the destination mount is the
+`copy → verify → publish → delete` workflow below, never a blind `shutil.move`.
+
+Files are moved into a job-specific staging directory — rather than renamed individually
+(e.g. `host01.dat` → `host01.dat.moving.<id>`) — because it:
+
+- preserves the original filenames,
+- groups all files belonging to one job,
+- makes recovery easier,
+- prevents the simulation from re-matching the original source paths,
+- keeps partially transferred jobs clearly separated, and
+- simplifies job inventory and cleanup.
+
 ## Durable per-file workflow (M6)
 
 Each file passes through these steps; a failure at any step retains the source and (where

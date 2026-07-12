@@ -22,7 +22,8 @@ authoritative spec source.
 | Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | `6b436be` |
 | Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | `e8edbe1` |
 | How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | `4f1f839` |
-| Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | _this commit_ |
+| Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | `04089e4` |
+| The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -71,70 +72,13 @@ manifests, chosen) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Proc
 `docs/ROADMAP.md` § Deferred as a future portability/Windows-support capability.)_
 
 ## The Most Important Operation: Claiming the Files
-You stated that the first step must rename the files so the simulation cannot overwrite them.
 
-That is correct, but the rename behavior needs to be carefully defined.
-
-#### Proposed Source Layout
-Before submission:
-```
-/recordings/current-run/
-├── host01.dat
-├── host02.dat
-├── host03.dat
-├── host04.dat
-├── host05.dat
-└── host06.dat
-```
-After the mover claims the files:
-```
-/recordings/current-run/
-├── .moving/
-│   └── 8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a/
-│       ├── host01.dat
-│       ├── host02.dat
-│       ├── host03.dat
-│       ├── host04.dat
-│       ├── host05.dat
-│       └── host06.dat
-```
-Alternatively, individual files could be renamed:
-```
-host01.dat
-```
-becomes:
-```
-host01.dat.moving.8f6e4ad6
-```
-I prefer moving the files into a job-specific staging directory because it:
-
-* Preserves the original filenames.
-* Groups all files belonging to one job.
-* Makes recovery easier.
-* Prevents the simulation from matching the original paths.
-* Keeps partially transferred jobs clearly separated.
-* Simplifies job inventory and cleanup.
-
-#### Atomic Rename
-When the source file and staging directory are on the same filesystem, Python can use:
-
-```python
-os.replace(source_path, claimed_path)
-```
-
-or:
-
-```python
-source_path.rename(claimed_path)
-```
-A rename within the same filesystem is normally atomic. The file is either visible at the old name or the new name.
-
-However, renaming across two different mounted filesystems is not atomic and generally fails with `EXDEV`. Therefore:
-
-* Claiming must happen entirely within the source filesystem.
-* Transferring to the remote NFS filesystem must be implemented as copy, verify, publish, and delete.
-
-The application should never use a blind `shutil.move()` and assume the entire operation is atomic.
+_(§ "The Most Important Operation: Claiming the Files" retired — see the retirement
+ledger at the top of this file. Transcribed into `docs/ARCHITECTURE.md` § Claiming
+(same-fs atomic `os.replace` into `<claim_directory_name>/<job_id>/`, EXDEV rule, and the
+six staging-directory reasons migrated there) + L3-SUB-001 / L3-PY-003. Marker name
+`.moving` was superseded by the configurable `[paths] claim_directory_name`, default
+`.swit-moving`.)_
 
 ## Preventing the Mover From Claiming Files Still Being Written
 Renaming a file does not guarantee that another process no longer has it open. On Linux, an application that already has the file open can continue writing to the renamed inode.
