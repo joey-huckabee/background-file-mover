@@ -28,7 +28,8 @@ authoritative spec source.
 | Durable Job State | MIGRATED + TRANSCRIBED | State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim); job/file fields → `jobs/models.py` records. Manifest format + why-both rationale **migrated** to ARCHITECTURE § Durable state and the manifest (shipped format — CAPTURE's example was a superseded proposal). `created_at` + integrity now in **both** record and manifest (L2-JOB-007, implemented this batch); per-file manifest hashes → ROADMAP § Deferred | `38cb70a` |
 | Hashing and Integrity Modes | MIGRATED + TRANSCRIBED | Modes 1/2/4 → `IntegrityMode` enum + `[integrity] mode` + `transfer/integrity.py`; algorithms (sha256 default / sha512 / blake2b, avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`. Mode 3 (streaming hash-while-copy, unbuilt) **migrated** to ROADMAP § Deferred as a source-I/O optimization | `189fe4a` |
 | Safe Destination Publication | TRANSCRIBED | `docs/ARCHITECTURE.md` § Durable per-file workflow (temp → copy → flush+fsync → verify → `os.replace` publish → fsync dir → delete source): L2-DPR-001..007, L2-POSIX-007..012, L3-PY-003/004; downstream-never-sees-partial → L2-DST-004. Temp prefix `.partial-` superseded by configurable `[paths] temporary_file_prefix` (default `.swit-partial-`) | `fd7cfb5` |
-| Copy Versus Move Semantics | TRANSCRIBED | Near-verbatim in `docs/ARCHITECTURE.md` § What the system is (claim → copy → verify → publish → delete-source; separate NFS mounts, no atomic cross-fs move; transaction-like semantics) + CLAUDE.md | _this commit_ |
+| Copy Versus Move Semantics | TRANSCRIBED | Near-verbatim in `docs/ARCHITECTURE.md` § What the system is (claim → copy → verify → publish → delete-source; separate NFS mounts, no atomic cross-fs move; transaction-like semantics) + CLAUDE.md | `ffc85ca` |
+| Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -131,43 +132,13 @@ claim → copy → verify → publish → delete-source workflow; separate NFS m
 atomic cross-filesystem move; transaction-like semantics) and CLAUDE.md.)_
 
 ## Recovery Behavior
-Suppose the service crashes at different points.
 
-#### Crash Before Claiming
-
-Nothing changed. The request may be submitted again.
-
-#### Crash During Claiming
-
-The database and staging directory are inspected at startup. Files already claimed remain available and are reconciled with the job record.
-
-The claim operation should be designed so each file transition is recorded.
-
-#### Crash During Hashing
-
-The source file remains in the claimed directory. Hashing restarts.
-
-#### Crash During Copy
-
-The partial destination remains under a temporary name.
-
-On restart, version one should safely restart that file from byte zero. Resume-at-offset can be added later, but it complicates integrity, destination validation, and NFS behavior.
-
-For 10–30 GB individual files, offset resume may be valuable. It should be a separately defined feature rather than assumed in the initial release.
-
-#### Crash After Copy but Before Destination Publication
-
-The service re-verifies the temporary destination and publishes it if valid.
-
-#### Crash After Publication but Before Source Deletion
-
-The service detects that the final destination exists, verifies it, and then removes the source.
-
-#### Crash After Source Deletion but Before Job State Update
-
-The destination is still authoritative. Recovery determines that the source is gone and the verified destination is present, then completes the state transition.
-
-The software should make all recovery decisions from observable filesystem state plus durable records, not from assumptions about what the previous process probably completed.
+_(§ "Recovery Behavior" retired — see the retirement ledger at the top of this file.
+Per-crash-point reconciliation + the observable-state principle → `docs/ARCHITECTURE.md`
+§ Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. The
+"restart from byte zero, resume-at-offset later" note is superseded: partial-file
+byte-offset resume shipped in v0.3.0 (L2-RSM-001..003, ARCHITECTURE § Partial-file
+resume).)_
 
 ## Duplicate and Collision Handling
 The destination policy must be explicit.
