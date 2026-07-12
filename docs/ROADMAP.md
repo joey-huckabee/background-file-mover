@@ -118,6 +118,12 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- `version` existing-destination collision policy — a third `ExistingDestinationPolicy`
+  alongside `fail` and `verify-and-reuse`: on a *differing* destination collision, publish
+  the new recording under a versioned name (keeping the existing file) instead of routing
+  the job to `MANUAL_INTERVENTION`. Considered in the original design but not built.
+  (`overwrite` remains deliberately excluded — recorded simulation data must never be
+  silently replaced.)
 - Streaming hash-while-copy integrity mode — hash the source **during** the copy loop
   instead of in a separate pre-copy read, so a ~100 GB dataset is read once, not twice
   (roughly halving source I/O for `source-hash` / `source-and-destination-hash` jobs). It
