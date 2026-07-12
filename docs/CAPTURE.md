@@ -32,7 +32,8 @@ authoritative spec source.
 | Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | `60ec0b8` |
 | Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | `cab7b93` |
 | Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | `56b371c` |
-| Proposed Application Components | MIGRATED + TRANSCRIBED | Superseded proposed layout → actual structure in `docs/ARCHITECTURE.md` § Module map (**completed** this increment: +submission/validation/claiming/manifests/systemd/ratelimit) + MAINTAINER § Repository layout. `FileMoverApplication` not built (→ `BackgroundMoverService`); `FileTransferWorker` → `FileMover` | _this commit_ |
+| Proposed Application Components | MIGRATED + TRANSCRIBED | Superseded proposed layout → actual structure in `docs/ARCHITECTURE.md` § Module map (**completed** this increment: +submission/validation/claiming/manifests/systemd/ratelimit) + MAINTAINER § Repository layout. `FileMoverApplication` not built (→ `BackgroundMoverService`); `FileTransferWorker` → `FileMover` | `1a3fea4` |
+| Proposed CLI | TRANSCRIBED | All commands + the subprocess orchestration example + submit-returns-after-durable-record → `docs/CLI-REFERENCE.md` (superset: +stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; L2-CLI-008 | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -172,73 +173,12 @@ proposed `FileTransferWorker` shipped as `FileMover` (`transfer/file_mover.py`).
 map note.)_
 
 ## Proposed CLI
-```shell
-# Start the service in the foreground; systemd normally invokes this
-file-mover service run
 
-# Submit a directory
-file-mover submit \
-    --scenario-id FLT-2026-0710-001 \
-    --source /recordings/scenario-001 \
-    --destination /processing/scenario-001
-
-# Submit an explicit list
-file-mover submit \
-    --scenario-id FLT-2026-0710-001 \
-    --file-list /path/to/files.txt \
-    --destination /processing/scenario-001
-
-# Show one job
-file-mover status 8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a
-
-# List active jobs
-file-mover list --state active
-
-# Retry a retained failed job
-file-mover retry 8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a
-
-# Validate configuration and filesystem access
-file-mover doctor
-
-# Reconcile state following an unexpected interruption
-file-mover recover
-```
-The orchestration Python code could invoke the CLI:
-```python
-import subprocess
-from pathlib import Path
-
-
-def submit_recordings(
-    scenario_id: str,
-    source: Path,
-    destination: Path,
-) -> None:
-    """Submit a completed recording set to the background mover."""
-    result = subprocess.run(
-        [
-            "/usr/bin/file-mover",
-            "submit",
-            "--scenario-id",
-            scenario_id,
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"File mover rejected scenario {scenario_id}: "
-            f"{result.stderr.strip()}"
-        )
-```
-The submit command should return success only after the job and claimed file inventory have been durably recorded.
+_(§ "Proposed CLI" retired — see the retirement ledger at the top of this file. All
+commands (service run, submit, status, list, retry, doctor, recover) and the
+subprocess-based orchestration example → `docs/CLI-REFERENCE.md` (a superset that also
+adds stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; submit-returns-after-
+durable-record → CLI-REFERENCE § submit (L2-CLI-008).)_
 
 ## Configuration
 Use `configparser`, which is included in Python.
