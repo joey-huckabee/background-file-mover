@@ -14,6 +14,14 @@ claiming, transfer, recovery) are introduced in later milestones — see
 
 from __future__ import annotations
 
+from importlib import metadata
+
 __all__ = ["__version__"]
 
-__version__ = "0.3.0"
+try:
+    # Single source of truth: the version declared in ``pyproject.toml`` and baked into the
+    # installed distribution metadata. Bumping the release version therefore touches only
+    # ``pyproject.toml``; this value follows on the next install/build.
+    __version__ = metadata.version("background-file-mover")
+except metadata.PackageNotFoundError:  # pragma: no cover - source tree without installed metadata
+    __version__ = "0.0.0+unknown"

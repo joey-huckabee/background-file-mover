@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from importlib import metadata
 
 import pytest
 
@@ -44,6 +45,12 @@ ALL_MODULES = [
 def test_version_is_a_string() -> None:
     assert isinstance(file_mover.__version__, str)
     assert file_mover.__version__
+
+
+def test_version_is_derived_from_distribution_metadata() -> None:
+    # Single source of truth: __version__ comes from the installed distribution metadata
+    # (generated from pyproject.toml), never a second hard-coded literal.
+    assert file_mover.__version__ == metadata.version("background-file-mover")
 
 
 @pytest.mark.requirement("L3-PY-001")
