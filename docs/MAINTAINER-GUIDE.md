@@ -101,8 +101,13 @@ f-strings. Never install handlers — configuration is centralized in `logging_c
 
 `.github/workflows/ci.yml` runs, all via `poetry run`:
 
-- **python** — pytest across the 3.10–3.14 matrix (Linux) + 3.12/3.14 (Windows), plus a
-  package-build check.
+- **linux-container** — the full suite (unit, `doctor`, and the POSIX end-to-end tests —
+  `AF_UNIX` control plane + `fcntl` lock) inside official `python:X-slim` Docker containers
+  across 3.10–3.14. (GitHub Actions job `container:` is Linux-only.)
+- **windows** — the full suite on the `windows-latest` VM (3.12 + 3.14); the POSIX-only
+  end-to-end tests auto-skip, so this covers the cross-platform logic and the `doctor`
+  suite. (Windows job containers are not supported by GitHub Actions.)
+- **package** — `poetry check --strict --lock` + `poetry build`.
 - **python-coverage** — the combined line+branch coverage gate (`fail_under` in
   `pyproject.toml`).
 - **mypy** — strict, analysed as Python 3.10.
