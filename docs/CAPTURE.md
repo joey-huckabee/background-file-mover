@@ -21,7 +21,8 @@ authoritative spec source.
 | Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | `52ded38` |
 | Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | `6b436be` |
 | Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | `e8edbe1` |
-| How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | _this commit_ |
+| How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | `4f1f839` |
+| Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -62,59 +63,12 @@ Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` 
 naming decision to `file-mover.service` — see `docs/DEPLOYMENT.md`.)_
 
 ## Communication Between the Orchestration Script and Mover
-Because the application cannot use external runtime dependencies, there are two strong standard-library choices.
-### Option 1: Filesystem Spool Queue
-> Not the recommended option
-The submit command writes a JSON job manifest into a spool directory:
-```
-/var/lib/file-mover/
-├── queue/
-├── processing/
-├── completed/
-├── failed/
-├── manifests/
-└── state/
-```
-A submitted job might initially appear as:
-```
-queue/8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a.json
-```
-The service moves it atomically to:
-```
-processing/8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a.json
-```
-This is simple, inspectable, and durable.
 
-### Option 2: Unix Domain Socket Plus Durable State
-> Recommended option
-The submit command connects to the service using a Unix domain socket:
-```
-/run/file-mover/control.sock
-```
-The service accepts the request and records it in SQLite or a durable manifest.
-
-This provides faster acknowledgment and clearer request-response behavior, but it adds some implementation complexity.
-
-#### Recommended Combination
-Use:
-
-* A **Unix domain socket** for commands and immediate acknowledgments.
-* A **SQLite database** for authoritative job state.
-* JSON manifests for human-readable transfer inventories and integrity records.
-
-All are available in the Python standard library:
-* `socket`
-* `sqlite3`
-* `json`
-* `hashlib`
-* `pathlib`
-* `shutil`
-* `os`
-* `logging`
-* `threading`
-* `concurrent.futures`
-* `signal`
-The first version could omit the socket and use a spool queue only. However, a socket-based control interface will provide a better operational experience.
+_(§ "Communication Between the Orchestration Script and Mover" retired — see the
+retirement ledger at the top of this file. Option 2 (Unix socket + SQLite + JSON
+manifests, chosen) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model +
+`docs/12-FACTOR.md` (VII). Option 1 (filesystem spool queue) was migrated to
+`docs/ROADMAP.md` § Deferred as a future portability/Windows-support capability.)_
 
 ## The Most Important Operation: Claiming the Files
 You stated that the first step must rename the files so the simulation cannot overwrite them.
