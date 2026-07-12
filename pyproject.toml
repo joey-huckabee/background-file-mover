@@ -113,9 +113,10 @@ source = ["file_mover"]
 
 [tool.coverage.report]
 show_missing = true
-# Foundation milestone (M1) ships declarative code + stubs only; the floor
-# ratchets up as behavioral milestones (M2+) add covered logic.
-fail_under = 80
+# Coverage floor, ratcheted up as behavioral milestones land. The full service
+# startup path is exercised on the POSIX CI cells (AF_UNIX), where total coverage
+# is higher than the Windows-local run; this floor holds on both.
+fail_under = 85
 
 [tool.coverage.xml]
 output = "coverage.xml"

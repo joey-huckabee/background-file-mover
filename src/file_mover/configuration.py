@@ -81,6 +81,7 @@ class ServiceConfig:
     manifest_directory: PurePosixPath
     socket_path: PurePosixPath
     shutdown_timeout_seconds: int
+    poll_interval_seconds: float
 
 
 @dataclass(frozen=True)
@@ -347,6 +348,12 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             _int_converter(minimum=1),
             default="60",
             description="Grace period for in-flight work to checkpoint.",
+        ),
+        OptionSpec(
+            "poll_interval_seconds",
+            _float_converter(minimum=0.0, exclusive_minimum=True),
+            default="2",
+            description="Transfer scheduler poll interval, in seconds.",
         ),
     ),
     "control": (
@@ -690,6 +697,7 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             manifest_directory=cast(PurePosixPath, service["manifest_directory"]),
             socket_path=cast(PurePosixPath, service["socket_path"]),
             shutdown_timeout_seconds=cast(int, service["shutdown_timeout_seconds"]),
+            poll_interval_seconds=cast(float, service["poll_interval_seconds"]),
         ),
         control=ControlConfig(
             socket_mode=cast(int, control["socket_mode"]),

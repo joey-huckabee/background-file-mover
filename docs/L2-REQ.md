@@ -993,3 +993,40 @@ A submission failure shall retain any already-claimed source files.
 **Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
+
+## REC — Recovery and scheduling
+
+#### L2-REC-001
+
+The software shall reconcile non-terminal jobs against the filesystem at startup.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-REC-002
+
+The software shall re-queue an interrupted in-progress job and remove its stale
+temporary destination files.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-REC-003
+
+Reprocessing a recovered job shall skip files that are already fully moved, so recovery
+is idempotent.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-REC-004
+
+The transfer scheduler shall process runnable jobs — queued, or retry-waiting whose
+retry time has passed — up to the configured job concurrency.
+
+**Parent**: L1-SYS-001
+
+**Verification Method**: Test (T)

@@ -54,6 +54,12 @@ class JobRepository(Protocol):
     def transition_job(self, job_id: str, to_state: JobState) -> None:
         """Transition a job to ``to_state``, enforcing the allowed-transition map."""
 
+    def reset_job_state(self, job_id: str, to_state: JobState) -> None:
+        """Set a job's state unconditionally (recovery use; bypasses the transition map)."""
+
+    def list_runnable_job_ids(self, now: float, *, limit: int) -> list[str]:
+        """Return ids of runnable jobs (queued, or retry-wait whose retry time has passed)."""
+
     def record_job_error(
         self, job_id: str, message: str, *, next_retry_time: float | None = None
     ) -> None:

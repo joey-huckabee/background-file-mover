@@ -161,6 +161,30 @@ def test_open_failure_raises_repository_error(tmp_path: Path) -> None:
         repo.initialize()
 
 
+@pytest.mark.requirement("L2-REC-002")
+def test_reset_job_state_bypasses_transition_map(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    repo.insert_job(_job(state=JobState.COPYING))
+    # A COPYING -> QUEUED reset is not a normal transition, but recovery may force it.
+    repo.reset_job_state("j1", JobState.QUEUED)
+    job = repo.get_job("j1")
+    assert job is not None and job.state is JobState.QUEUED
+    repo.close()
+
+
+@pytest.mark.requirement("L2-REC-004")
+def test_list_runnable_job_ids(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    repo.insert_job(_job("queued", state=JobState.QUEUED))
+    repo.insert_job(_job("due", state=JobState.RETRY_WAIT, next_retry_time=500.0))
+    repo.insert_job(_job("future", state=JobState.RETRY_WAIT, next_retry_time=5000.0))
+    repo.insert_job(_job("done", state=JobState.COMPLETED))
+    runnable = set(repo.list_runnable_job_ids(1000.0, limit=10))
+    assert runnable == {"queued", "due"}
+    assert len(repo.list_runnable_job_ids(1000.0, limit=1)) == 1  # respects the limit
+    repo.close()
+
+
 @pytest.mark.requirement("L2-JOB-005")
 def test_transition_map_terminals_are_closed() -> None:
     assert not is_allowed_job_transition(JobState.COMPLETED, JobState.QUEUED)
