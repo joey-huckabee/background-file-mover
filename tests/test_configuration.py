@@ -64,6 +64,7 @@ def test_typed_values_and_enums() -> None:
 def test_defaults_applied_for_absent_sections() -> None:
     config = _load(MINIMAL_CONFIG)
     assert config.service.shutdown_timeout_seconds == 60
+    assert config.service.poll_interval_seconds == 2.0
     assert config.transfer.max_concurrent_files == 2
     assert config.integrity.enabled is True
     assert config.logging.level == "INFO"

@@ -19,6 +19,7 @@ A misspelled key fails loudly rather than silently disabling a feature.
 | `manifest_directory` | path | `…/manifests` | Human-readable per-job manifests. |
 | `socket_path` | path | `/run/file-mover/control.sock` | Control socket (recreated each boot). |
 | `shutdown_timeout_seconds` | int > 0 | `60` | Grace period for in-flight work to checkpoint. |
+| `poll_interval_seconds` | float > 0 | `2` | Transfer scheduler poll interval. |
 
 ## `[control]`
 

@@ -286,6 +286,35 @@ class SQLiteJobRepository:
                     (to_state.value, self._now(), job_id),
                 )
 
+    def reset_job_state(self, job_id: str, to_state: JobState) -> None:
+        """Set a job's state unconditionally (recovery use; bypasses the transition map)."""
+        with self._translate("reset_job_state"):
+            conn = self._connection()
+            with conn:
+                conn.execute(
+                    "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?",
+                    (to_state.value, self._now(), job_id),
+                )
+
+    def list_runnable_job_ids(self, now: float, *, limit: int) -> list[str]:
+        """Return ids of runnable jobs (queued, or retry-wait whose retry time has passed)."""
+        with self._translate("list_runnable_job_ids"):
+            rows = (
+                self._connection()
+                .execute(
+                    """
+                SELECT job_id FROM jobs
+                WHERE state = ?
+                   OR (state = ? AND (next_retry_time IS NULL OR next_retry_time <= ?))
+                ORDER BY created_at ASC
+                LIMIT ?
+                """,
+                    (JobState.QUEUED.value, JobState.RETRY_WAIT.value, now, limit),
+                )
+                .fetchall()
+            )
+        return [row["job_id"] for row in rows]
+
     def record_job_error(
         self, job_id: str, message: str, *, next_retry_time: float | None = None
     ) -> None:

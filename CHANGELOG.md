@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Recovery & service integration (Milestone 7) — the service now moves data on its own:
+  - `RecoveryManager` — at startup, reconciles interrupted (in-progress) jobs against the
+    filesystem: removes their stale `.swit-partial-` temporary files and re-queues them,
+    from observable durable state rather than assumptions.
+  - `TransferScheduler` — one tick selects runnable jobs (queued, or retry-waiting whose
+    retry time has passed) up to the configured concurrency, re-queues due retries, and
+    drives each through the coordinator. The coordinator now skips already-moved files, so
+    recovery reprocessing is idempotent.
+  - `BackgroundMoverService` main loop — `run()` reconciles, then runs the control server
+    and a transfer-scheduler thread concurrently, with signal-driven graceful shutdown
+    that drains the scheduler. After submitting, orchestration no longer needs to do
+    anything: the service transfers the recording set to completion.
+  - New `[service] poll_interval_seconds` configuration option.
+  - Requirements: L2-REC-001..004, L2-RTY-004; coverage floor raised to 85%.
+
+### Changed
+
+- Coverage gate (`fail_under`) raised from 80% to 85%.
+
 - Transfer engine (Milestone 6) — the durable `copy → verify → publish → delete-source`
   payload engine:
   - `IntegrityVerifier` — `hashlib` bounded-buffer hashing (SHA-256/512/BLAKE2b) with

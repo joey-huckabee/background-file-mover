@@ -1,9 +1,11 @@
 """The long-running ``BackgroundMoverService`` and its startup/shutdown lifecycle.
 
-Milestone 3 delivered the first executable slice (lock, control socket, ``health``, clean
-shutdown). Milestone 4 opens the durable SQLite state and serves the read-only query
-commands ``status`` / ``list`` / ``stats`` over the control socket. The transfer
-scheduler and recovery reconciliation arrive in later milestones (see ``docs/ROADMAP.md``).
+``run`` acquires the singleton lock, opens the durable SQLite state, reconciles
+interrupted jobs (:class:`~file_mover.recovery.manager.RecoveryManager`), binds the
+control socket, and then runs two responsibilities concurrently: the control server
+(``health``/``status``/``list``/``stats``/``submit``) and a transfer-scheduler thread
+that drives runnable jobs through the coordinator. SQLite is the durable queue between
+submission and the scheduler.
 
 The signal handlers only set a thread-safe stop event; the drain happens on the main
 thread. Tests drive the service on a worker thread with ``install_signal_handlers=False``
@@ -26,15 +28,27 @@ from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
 from file_mover.control.lock import ProcessLock
 from file_mover.control.server import ControlSocketServer
-from file_mover.jobs.models import ACTIVE_JOB_STATES, JobRecord, JobState, JobStatistics
+from file_mover.jobs.models import (
+    ACTIVE_JOB_STATES,
+    ExistingDestinationPolicy,
+    JobRecord,
+    JobState,
+    JobStatistics,
+)
 from file_mover.jobs.repository import JobRepository
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
+from file_mover.recovery.manager import RecoveryManager
 from file_mover.submission import (
     JobSubmissionService,
     SubmissionResult,
     build_submission_request,
 )
+from file_mover.transfer.coordinator import TransferCoordinator
+from file_mover.transfer.copy_engine import BufferedFileCopyEngine
+from file_mover.transfer.integrity import IntegrityVerifier
+from file_mover.transfer.retry import ErrorClassifier
+from file_mover.transfer.scheduler import TransferScheduler
 from file_mover.validation import SourceValidator
 
 _LOCK_FILENAME = "service.lock"
@@ -63,6 +77,7 @@ class BackgroundMoverService:
         self._repository = repository
         self._owns_repository = repository is None
         self._submission: JobSubmissionService | None = None
+        self._scheduler: TransferScheduler | None = None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
@@ -79,11 +94,14 @@ class BackgroundMoverService:
         """
         lock = ProcessLock(str(self._config.service.state_directory / _LOCK_FILENAME))
         lock.acquire()
+        scheduler_thread: threading.Thread | None = None
         try:
             if self._repository is None:
                 self._repository = SQLiteJobRepository(str(self._config.service.database_path))
             self._repository.initialize()
             self._submission = self._build_submission_service(self._repository)
+            self._scheduler = self._build_scheduler(self._repository)
+            self._reconcile(self._repository)
             server = ControlSocketServer(
                 str(self._config.service.socket_path),
                 self._build_dispatcher(),
@@ -96,10 +114,17 @@ class BackgroundMoverService:
             self._server = server
             if install_signal_handlers:
                 self._install_signal_handlers()
+            scheduler_thread = threading.Thread(
+                target=self._scheduler_loop, name="swit-scheduler", daemon=True
+            )
+            scheduler_thread.start()
             self._ready.set()
             self._logger.info("control service ready at %s", self._config.service.socket_path)
             server.serve_forever()
         finally:
+            self._stopping.set()
+            if scheduler_thread is not None:
+                scheduler_thread.join(timeout=self._config.service.shutdown_timeout_seconds)
             if self._server is not None:
                 self._server.close()
                 self._server = None
@@ -147,6 +172,58 @@ class BackgroundMoverService:
             allowed_destination_roots=[Path(str(root)) for root in paths.allowed_destination_roots],
             stability=self._config.stability,
         )
+
+    def _build_scheduler(self, repository: JobRepository) -> TransferScheduler:
+        """Construct the transfer coordinator and scheduler from configuration."""
+        integrity = self._config.integrity
+        transfer = self._config.transfer
+        paths = self._config.paths
+        coordinator = TransferCoordinator(
+            repository=repository,
+            copy_engine=BufferedFileCopyEngine(
+                buffer_size_bytes=transfer.copy_buffer_size_bytes,
+                temporary_file_prefix=paths.temporary_file_prefix,
+            ),
+            integrity_verifier=IntegrityVerifier(
+                algorithm=integrity.algorithm,
+                buffer_size_bytes=transfer.copy_buffer_size_bytes,
+            ),
+            error_classifier=ErrorClassifier(),
+            claim_directory_name=paths.claim_directory_name,
+            integrity_enabled=integrity.enabled,
+            integrity_mode=integrity.mode,
+            destination_policy=ExistingDestinationPolicy.FAIL,
+            retry_initial_delay_seconds=transfer.retry_initial_delay_seconds,
+            retry_max_delay_seconds=transfer.retry_max_delay_seconds,
+        )
+        return TransferScheduler(
+            repository=repository,
+            coordinator=coordinator,
+            max_concurrent_jobs=transfer.max_concurrent_jobs,
+        )
+
+    def _reconcile(self, repository: JobRepository) -> None:
+        """Reconcile interrupted jobs against the filesystem before serving."""
+        report = RecoveryManager(
+            repository=repository,
+            temporary_file_prefix=self._config.paths.temporary_file_prefix,
+            logger=self._logger,
+        ).reconcile()
+        self._logger.info(
+            "recovery reconciled %d job(s); removed %d stale temporary file(s)",
+            report.requeued_jobs,
+            report.removed_temporary_files,
+        )
+
+    def _scheduler_loop(self) -> None:
+        """Run scheduler ticks until shutdown; a failing tick never stops the loop."""
+        while not self._stopping.is_set():
+            try:
+                if self._scheduler is not None:
+                    self._scheduler.run_once()
+            except Exception:  # pylint: disable=broad-exception-caught
+                self._logger.exception("transfer scheduler tick failed")
+            self._stopping.wait(self._config.service.poll_interval_seconds)
 
     def _require_repository(self) -> JobRepository:
         """Return the repository, or raise if the service is not running."""

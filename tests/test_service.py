@@ -122,6 +122,58 @@ def test_resolve_state_selector() -> None:
 
 
 @pytest.mark.requirement("L2-CTL-004")
+def test_require_helpers_raise_when_not_running() -> None:
+    config = ConfigurationLoader().load_text(_MINIMAL)
+    service = BackgroundMoverService(config)  # nothing opened yet
+    with pytest.raises(RuntimeError):
+        service._require_repository()
+    with pytest.raises(RuntimeError):
+        service._require_submission()
+
+
+@pytest.mark.requirement("L2-REC-001")
+def test_build_scheduler_and_reconcile(tmp_path: Path) -> None:
+    config = ConfigurationLoader().load_text(_MINIMAL)
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    service = BackgroundMoverService(config, repository=repo)
+    assert service._build_scheduler(repo) is not None
+    service._reconcile(repo)  # no interrupted jobs -> a safe no-op
+    repo.close()
+
+
+@pytest.mark.requirement("L2-REC-004")
+def test_scheduler_loop_runs_a_tick_then_stops(tmp_path: Path) -> None:
+    config = ConfigurationLoader().load_text(_MINIMAL)
+    service = BackgroundMoverService(config)
+    ticks: list[int] = []
+
+    class _OneShotScheduler:
+        def run_once(self) -> list[str]:
+            ticks.append(1)
+            service.request_stop()  # end the loop after one tick
+            return []
+
+    service._scheduler = _OneShotScheduler()  # type: ignore[assignment]
+    service._scheduler_loop()
+    assert ticks == [1]
+
+
+@pytest.mark.requirement("L2-REC-004")
+def test_scheduler_loop_survives_a_failing_tick(tmp_path: Path) -> None:
+    config = ConfigurationLoader().load_text(_MINIMAL)
+    service = BackgroundMoverService(config)
+
+    class _BoomScheduler:
+        def run_once(self) -> list[str]:
+            service.request_stop()
+            raise RuntimeError("tick blew up")
+
+    service._scheduler = _BoomScheduler()  # type: ignore[assignment]
+    service._scheduler_loop()  # must not raise
+
+
+@pytest.mark.requirement("L2-CTL-004")
 def test_submit_handler_rejects_malformed_requests(tmp_path: Path) -> None:
     service, repo = _service_with_job(tmp_path)  # submission service not open
     try:

@@ -88,6 +88,10 @@ class TransferCoordinator:
         self._repository.transition_job(job_id, JobState.COPYING)
         moved_bytes = 0
         for file in self._repository.list_files(job_id):
+            if file.state is FileState.MOVE_COMPLETE:
+                # Already moved on a previous (interrupted) run; reprocessing is idempotent.
+                moved_bytes += file.size_bytes
+                continue
             try:
                 outcome = self._transfer_file(job, file)
             except TransferError as error:

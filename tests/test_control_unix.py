@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import socket
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -134,6 +135,7 @@ def test_service_run_accepts_submission_over_socket(tmp_path: Path) -> None:
         f"socket_path = {tmp_path / 'control.sock'}\n"
         f"database_path = {tmp_path / 'jobs.db'}\n"
         f"manifest_directory = {tmp_path / 'manifests'}\n"
+        f"poll_interval_seconds = 0.05\n"
         f"[paths]\n"
         f"allowed_source_roots = {source_root}\n"
         f"allowed_destination_roots = {dest_root}\n"
@@ -160,8 +162,17 @@ def test_service_run_accepts_submission_over_socket(tmp_path: Path) -> None:
         )
         assert submitted["result"]["accepted"] is True
         assert submitted["result"]["claimed_file_count"] == 1
-        listed = client.send("list", {"state": "active"})
-        assert len(listed["result"]["jobs"]) == 1
+        # The scheduler thread should transfer the job to completion on its own.
+        job_id = submitted["result"]["job_id"]
+        deadline = time.monotonic() + 5.0
+        state = None
+        while time.monotonic() < deadline:
+            state = client.send("status", {"job_id": job_id})["result"]["job"]["state"]
+            if state == "completed":
+                break
+            time.sleep(0.05)
+        assert state == "completed"
+        assert (dest_root / "host01.dat").read_bytes() == b"payload"
     finally:
         service.request_stop()
         worker.join(timeout=5)
