@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 from file_mover.claiming import FileClaimManager
-from file_mover.configuration import StabilityConfig
-from file_mover.jobs.models import FileState, JobState
+from file_mover.configuration import IntegrityConfig, StabilityConfig
+from file_mover.jobs.models import FileState, HashAlgorithm, IntegrityMode, JobState
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
 from file_mover.submission import (
@@ -22,6 +22,11 @@ from file_mover.submission import (
 from file_mover.validation import SourceValidator
 
 _STABLE = StabilityConfig(enabled=False, poll_count=2, poll_interval_seconds=0.0)
+_INTEGRITY = IntegrityConfig(
+    enabled=True,
+    mode=IntegrityMode.SOURCE_AND_DESTINATION_HASH,
+    algorithm=HashAlgorithm.SHA256,
+)
 
 
 def _build_service(
@@ -47,6 +52,7 @@ def _build_service(
         allowed_source_roots=[source_root],
         allowed_destination_roots=[dest_root],
         stability=stability,
+        integrity=_INTEGRITY,
         job_id_factory=job_id_factory,
         clock=lambda: 100.0,
     )
@@ -189,11 +195,33 @@ def test_submit_detects_unstable_source(tmp_path: Path) -> None:
         allowed_source_roots=[source_root],
         allowed_destination_roots=[dest_root],
         stability=StabilityConfig(enabled=True, poll_count=2, poll_interval_seconds=0.0),
+        integrity=_INTEGRITY,
     )
     result = service.submit(SubmissionRequest("req-1", None, source_root, dest_root))
     assert result.accepted is False
     assert result.error_code == "SourceNotStableError"
     assert target.exists()  # retained
+    repo.close()
+
+
+@pytest.mark.requirement("L2-JOB-007")
+@pytest.mark.requirement("L3-JOB-003")
+def test_manifest_and_record_carry_consistent_metadata(tmp_path: Path) -> None:
+    service, repo, source_root, dest_root = _build_service(tmp_path)
+    (source_root / "host01.dat").write_bytes(b"aaa")
+
+    result = service.submit(SubmissionRequest("req-1", "scn", source_root, dest_root))
+    assert result.accepted is True
+
+    job = repo.get_job("job-1")
+    assert job is not None
+    manifest = json.loads((tmp_path / "manifests" / "job-1.json").read_text(encoding="utf-8"))
+
+    # The manifest and the durable job record agree on creation time and integrity policy.
+    assert manifest["created_at"] == job.created_at == 100.0
+    assert manifest["integrity"] == {"mode": "source-and-destination-hash", "algorithm": "sha256"}
+    assert job.integrity_mode is IntegrityMode.SOURCE_AND_DESTINATION_HASH
+    assert job.hash_algorithm is HashAlgorithm.SHA256
     repo.close()
 
 

@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from file_mover.claiming import FileClaimManager
-from file_mover.configuration import StabilityConfig
+from file_mover.configuration import IntegrityConfig, StabilityConfig
 from file_mover.exceptions import CopyError, DestinationWriteError
 from file_mover.jobs.models import (
     ControlSignal,
@@ -84,6 +84,11 @@ def _submit(
         allowed_source_roots=[source_root],
         allowed_destination_roots=[dest_root],
         stability=StabilityConfig(enabled=False, poll_count=2, poll_interval_seconds=0.0),
+        integrity=IntegrityConfig(
+            enabled=True,
+            mode=IntegrityMode.SOURCE_AND_DESTINATION_HASH,
+            algorithm=HashAlgorithm.SHA256,
+        ),
         job_id_factory=lambda: "job-1",
     )
     result = submission.submit(SubmissionRequest("req-1", "scn", source_root, dest_root))

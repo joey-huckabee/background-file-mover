@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Manifest ↔ durable-record metadata parity.** Every accepted job now records the **same**
+  creation timestamp and integrity policy (mode + hash algorithm) in both the SQLite job
+  record and the JSON manifest, so the two never disagree (L2-JOB-007 / L3-JOB-003). The
+  `jobs` table gains `hash_algorithm` and `integrity_mode` columns and the manifest gains
+  `created_at` and an `integrity: {mode, algorithm}` block. A single timestamp is stamped
+  once at submission and threaded to both writers. **Schema note:** this is a fresh-schema
+  change (pre-1.0) — new databases only; there is no migration for an existing `jobs.db`.
 - **`file-mover doctor` now verifies the runtime environment.** It checks the capabilities
   the service depends on — `AF_UNIX` sockets, `fcntl` locking, SQLite WAL, the configured
   hash algorithm, Python ≥ 3.10, POSIX signals (required), plus `O_NOFOLLOW` and

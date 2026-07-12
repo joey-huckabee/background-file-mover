@@ -151,6 +151,8 @@ class JobRecord:
     attempt_count: int = 0
     next_retry_time: float | None = None
     last_error: str | None = None
+    hash_algorithm: HashAlgorithm = HashAlgorithm.SHA256
+    integrity_mode: IntegrityMode = IntegrityMode.SOURCE_AND_DESTINATION_HASH
 
 
 @dataclass(frozen=True)

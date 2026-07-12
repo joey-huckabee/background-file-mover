@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from file_mover.claiming import ClaimedFile, FileClaimManager
-from file_mover.configuration import StabilityConfig
+from file_mover.configuration import IntegrityConfig, StabilityConfig
 from file_mover.exceptions import (
     ClaimError,
     InvalidDestinationError,
@@ -101,6 +101,7 @@ class JobSubmissionService:
         allowed_source_roots: Sequence[Path],
         allowed_destination_roots: Sequence[Path],
         stability: StabilityConfig,
+        integrity: IntegrityConfig,
         job_id_factory: Callable[[], str] = lambda: uuid.uuid4().hex,
         clock: Callable[[], float] = time.time,
     ) -> None:
@@ -112,6 +113,7 @@ class JobSubmissionService:
         self._allowed_source_roots = tuple(allowed_source_roots)
         self._allowed_destination_roots = tuple(allowed_destination_roots)
         self._stability = stability
+        self._integrity = integrity
         self._new_job_id = job_id_factory
         self._clock = clock
 
@@ -148,11 +150,14 @@ class JobSubmissionService:
             return _rejected(error)
 
         job_id = self._new_job_id()
+        created_at = self._clock()
         try:
             _staging, claimed = self._claim_manager.claim(entries, request.source_root, job_id)
-            self._manifest_writer.write(job_id, self._build_manifest(job_id, request, claimed))
+            self._manifest_writer.write(
+                job_id, self._build_manifest(job_id, request, claimed, created_at)
+            )
             total_bytes = sum(item.identity.size_bytes for item in claimed)
-            self._record(job_id, request, claimed, total_bytes)
+            self._record(job_id, request, claimed, total_bytes, created_at)
         except (ClaimError, ManifestError, RepositoryError) as error:
             return SubmissionResult(
                 accepted=False,
@@ -191,21 +196,27 @@ class JobSubmissionService:
         request: SubmissionRequest,
         claimed: Sequence[ClaimedFile],
         total_bytes: int,
+        created_at: float,
     ) -> None:
-        """Insert the job and its file inventory durably."""
-        now = self._clock()
+        """Insert the job and its file inventory durably.
+
+        ``created_at`` is the same timestamp stamped into the manifest, so the durable
+        record and the manifest agree (L2-JOB-007).
+        """
         self._repository.insert_job(
             JobRecord(
                 job_id=job_id,
                 state=JobState.QUEUED,
                 source_root=str(request.source_root),
                 destination_root=str(request.destination_root),
-                created_at=now,
-                updated_at=now,
+                created_at=created_at,
+                updated_at=created_at,
                 scenario_id=request.scenario_id,
                 request_id=request.request_id,
                 file_count=len(claimed),
                 total_bytes=total_bytes,
+                hash_algorithm=self._integrity.algorithm,
+                integrity_mode=self._integrity.mode,
             )
         )
         self._repository.insert_files(
@@ -222,14 +233,27 @@ class JobSubmissionService:
         )
 
     def _build_manifest(
-        self, job_id: str, request: SubmissionRequest, claimed: Sequence[ClaimedFile]
+        self,
+        job_id: str,
+        request: SubmissionRequest,
+        claimed: Sequence[ClaimedFile],
+        created_at: float,
     ) -> dict[str, Any]:
-        """Build the manifest inventory for a claimed job."""
+        """Build the manifest inventory for a claimed job.
+
+        Carries the same ``created_at`` and integrity policy as the durable job record so
+        the two never disagree (L2-JOB-007).
+        """
         return {
             "job_id": job_id,
             "scenario_id": request.scenario_id,
+            "created_at": created_at,
             "source_root": str(request.source_root),
             "destination_root": str(request.destination_root),
+            "integrity": {
+                "mode": self._integrity.mode.value,
+                "algorithm": self._integrity.algorithm.value,
+            },
             "files": [
                 {"relative_path": item.relative_path, "size_bytes": item.identity.size_bytes}
                 for item in claimed

@@ -1125,6 +1125,16 @@ The software shall query jobs by state and produce aggregate statistics.
 
 **Verification Method**: Test (T)
 
+#### L2-JOB-007
+
+The durable job record and the job manifest shall record consistent job metadata — the
+same creation time and the same integrity policy (mode and hash algorithm) — for every
+accepted job.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
 ## SUB — Submission and claiming
 
 #### L2-SUB-001

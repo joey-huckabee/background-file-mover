@@ -207,6 +207,7 @@ class BackgroundMoverService:
             allowed_source_roots=[Path(str(root)) for root in paths.allowed_source_roots],
             allowed_destination_roots=[Path(str(root)) for root in paths.allowed_destination_roots],
             stability=self._config.stability,
+            integrity=self._config.integrity,
         )
 
     def _build_scheduler(self, repository: JobRepository) -> TransferScheduler:
