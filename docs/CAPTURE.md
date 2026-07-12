@@ -33,7 +33,8 @@ authoritative spec source.
 | Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | `cab7b93` |
 | Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | `56b371c` |
 | Proposed Application Components | MIGRATED + TRANSCRIBED | Superseded proposed layout → actual structure in `docs/ARCHITECTURE.md` § Module map (**completed** this increment: +submission/validation/claiming/manifests/systemd/ratelimit) + MAINTAINER § Repository layout. `FileMoverApplication` not built (→ `BackgroundMoverService`); `FileTransferWorker` → `FileMover` | `1a3fea4` |
-| Proposed CLI | TRANSCRIBED | All commands + the subprocess orchestration example + submit-returns-after-durable-record → `docs/CLI-REFERENCE.md` (superset: +stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; L2-CLI-008 | _this commit_ |
+| Proposed CLI | TRANSCRIBED | All commands + the subprocess orchestration example + submit-returns-after-durable-record → `docs/CLI-REFERENCE.md` (superset: +stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; L2-CLI-008 | `b160e7e` |
+| Configuration | MIGRATED + TRANSCRIBED | Superseded proposed schema → shipped config in CONFIG-REFERENCE + `config/file-mover.ini`. Renames: `[validation]`→`[stability]`+`[paths]`, `.moving`→`.swit-moving`, `partial_file_prefix`→`temporary_file_prefix`; removed `log_directory`/`manifest_filename`; `format=json` already in ROADMAP. Unbuilt `minimum_free_space_margin_bytes` **migrated** to ROADMAP § Deferred (proactive free-space check) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -181,47 +182,15 @@ adds stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; submit-returns-
 durable-record → CLI-REFERENCE § submit (L2-CLI-008).)_
 
 ## Configuration
-Use `configparser`, which is included in Python.
-```
-[service]
-state_directory = /var/lib/file-mover
-runtime_directory = /run/file-mover
-log_directory = /var/log/file-mover
-poll_interval_seconds = 2
-shutdown_timeout_seconds = 60
 
-[paths]
-allowed_source_roots = /recordings
-allowed_destination_roots = /processing
-claim_directory_name = .moving
-partial_file_prefix = .partial-
-
-[transfer]
-max_concurrent_jobs = 1
-max_concurrent_files = 2
-copy_buffer_size_bytes = 8388608
-retry_limit = 10
-retry_initial_delay_seconds = 10
-retry_max_delay_seconds = 900
-
-[integrity]
-enabled = true
-mode = source-and-destination-hash
-algorithm = sha256
-manifest_filename = transfer-manifest.json
-
-[validation]
-stability_check_enabled = true
-stability_interval_seconds = 5
-allow_symbolic_links = false
-allow_destination_overwrite = false
-minimum_free_space_margin_bytes = 10737418240
-
-[logging]
-level = INFO
-format = json
-```
-No runtime package outside Python is necessary.
+_(§ "Configuration" retired — see the retirement ledger at the top of this file. This was
+a proposed schema, superseded by the shipped config in `docs/CONFIG-REFERENCE.md` +
+`config/file-mover.ini` (sections `[service] [control] [paths] [transfer] [integrity]
+[stability] [logging]`). Renames/removals: `[validation]`→`[stability]`+`[paths]`;
+`.moving`→`.swit-moving`; `partial_file_prefix`→`temporary_file_prefix`;
+`log_directory`/`manifest_filename` removed; `format=json` → ROADMAP. Unbuilt
+`minimum_free_space_margin_bytes` (proactive free-space check) migrated to ROADMAP
+§ Deferred.)_
 
 ## “Production Ready, No Panic”
 For Python, “no panic” should mean:

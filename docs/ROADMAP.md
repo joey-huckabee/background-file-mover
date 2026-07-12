@@ -118,6 +118,11 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Proactive free-space margin pre-flight check — before starting a transfer, verify the
+  destination filesystem has at least the job's total size plus a configurable margin
+  (`statvfs`), and reject or hold the job otherwise, instead of only handling `ENOSPC`
+  reactively (source retained) after copying part of a ~100 GB set. Proposed in the
+  original design (`minimum_free_space_margin_bytes`) but not built.
 - `version` existing-destination collision policy — a third `ExistingDestinationPolicy`
   alongside `fail` and `verify-and-reuse`: on a *differing* destination collision, publish
   the new recording under a versioned name (keeping the existing file) instead of routing
