@@ -40,6 +40,7 @@ Machine output is written to **stdout**; diagnostics and logs to **stderr**
 | `list [--state S]` | List jobs, optionally filtered by state (default `active`). |
 | `retry <job_id>` | Retry a retained failed job. |
 | `stats` | Show durable service statistics. |
+| `throttle <bytes-per-second>` | Set the live copy-throughput limit (`0` = unlimited). |
 | `doctor` | Validate configuration and filesystem access. |
 | `recover` | Reconcile durable state after an interruption. |
 | `service run` | Run the service in the foreground (systemd entry point). |
@@ -69,6 +70,31 @@ result = subprocess.run(
 if result.returncode != 0:
     raise RuntimeError(f"mover rejected {scenario_id}: {result.stderr.strip()}")
 ```
+
+### `throttle`
+
+```
+file-mover throttle BYTES_PER_SECOND
+```
+
+Sets the aggregate copy-throughput ceiling on the running service, live, without a
+restart — the new limit applies to the next copy-loop write, including copies already in
+flight (L2-BWL-002). `BYTES_PER_SECOND` accepts a bare byte count or a suffixed value:
+`K`/`M`/`G` are powers of 1000 and `Ki`/`Mi`/`Gi` are powers of 1024 (an optional trailing
+`B` is allowed), so `50MB`, `1GiB`, and `52428800` are all valid. `0` removes the limit
+(unlimited). The applied value is echoed back and is also visible as `max_bytes_per_second`
+in `file-mover health`.
+
+```
+$ file-mover throttle 50MB
+throughput limit set to 50000000 bytes/sec
+$ file-mover throttle 0
+throughput limit removed (unlimited)
+```
+
+A non-zero limit forces the buffered copy path (kernel-assisted `copy_file_range` cannot be
+paced from userspace), so throttling trades the kernel-copy fast path for controllable
+throughput — see `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
 
 ## Exit codes
 

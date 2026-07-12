@@ -135,6 +135,45 @@ therefore a configurable, benchmark-driven choice (see `docs/DEPLOYMENT.md`), no
 assumed speedup. Integrity is unaffected either way — the destination is re-hashed after
 the copy regardless of strategy.
 
+## Bandwidth limiting
+
+`[transfer] max_bytes_per_second` caps how fast the mover moves data, so a large run does
+not saturate the link shared with the simulation hosts or the destination processing tier
+(L2-BWL-001). It is **dynamic**: `file-mover throttle <bytes-per-second>` retunes the live
+ceiling over the control socket without restarting the service, and the change takes effect
+on the next copy-loop write — including for copies already in flight (L2-BWL-002). The
+current value is reported by `file-mover health`.
+
+### Why not an OS traffic-shaper?
+
+There is no portable syscall to rate-limit ordinary file I/O, and the kernel facilities
+that exist do not fit this workload:
+
+| Mechanism | Why it does not fit |
+|-----------|---------------------|
+| `tc` (HTB/TBF qdiscs) | Shapes a whole network interface, needs root + `iproute2` + out-of-band per-host config, and throttles *all* traffic on the interface, not just the mover. Not standard-library. |
+| cgroup v2 `io.max` (`IOWriteBandwidthMax=`) | Limits *block-device* I/O. The transfer is between two **NFS** mounts, so the bytes travel over the network, not a local block device — `io.max` does not govern them. |
+| socket pacing (`SO_MAX_PACING_RATE`) | Applies to sockets the process owns, not to file copies through the VFS/NFS client. |
+
+So the limit is enforced **in userspace**, exactly as `rsync --bwlimit`, `scp -l`,
+`curl --limit-rate`, and `pv -L` do it.
+
+### Token bucket
+
+`RateLimiter` (`file_mover/transfer/ratelimit.py`) is a thread-safe token bucket that
+fills at `max_bytes_per_second` up to a one-second burst. After each buffered write the
+copy loop spends tokens for the bytes just written and sleeps only when the bucket runs
+dry, keeping the *average* rate at or below the ceiling. One limiter instance is shared by
+every concurrent file copy, so the cap is **global across the service**, not per file
+(L2-BWL-003). A rate of `0` is unlimited and short-circuits with no overhead (L2-BWL-004).
+
+Because the throttle lives in the userspace read/write loop, an active limit **forces the
+buffered copy strategy**: kernel-assisted `copy_file_range` moves bytes entirely inside the
+kernel, where there is no loop in which to pace them (L3-PY-011). Setting a limit therefore
+trades the kernel-copy fast path for controllable throughput — a deliberate, operator-driven
+choice. The clock and sleep function are injectable, so the limiter is verified with
+deterministic, wall-clock-free tests.
+
 ## Error pipeline
 
 Each layer catches only what it can interpret, attaches context, and re-raises a typed

@@ -138,6 +138,13 @@ Service-manager notification shall use a standard-library `AF_UNIX` datagram sen
 `$NOTIFY_SOCKET` (handling the abstract-namespace `@` prefix) and shall be a no-op when
 the variable is unset or the send fails.
 
+**L3-PY-011** · Parent: L2-BWL-001 · Verification: T
+
+Copy-throughput limiting shall be implemented in userspace as a thread-safe token bucket
+(no third-party or operating-system traffic-shaping dependency), paced in the buffered
+copy loop; because kernel-assisted `copy_file_range` cannot be paced from userspace, a
+non-zero limit shall force the buffered copy strategy.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T

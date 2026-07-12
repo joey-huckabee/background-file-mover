@@ -18,6 +18,12 @@ The copy itself uses one of two strategies (L2-COPY-011):
 * **Buffered** (the fallback, and always used when disabled or unavailable): a bounded
   ``read``/``write`` loop that copies at most one buffer at a time (L2-COPY-001).
 
+When a :class:`~file_mover.transfer.ratelimit.RateLimiter` with a non-zero rate is
+supplied, the engine **forces the buffered strategy** and paces it: kernel-assisted copy
+moves bytes entirely inside the kernel, so there is no userspace loop in which to apply a
+throttle. The buffered loop consumes tokens after each write, keeping aggregate throughput
+under the configured ceiling (L2-BWL-001, L3-PY-011).
+
 Both strategies produce byte-identical output; the destination is re-hashed afterwards
 regardless, so integrity verification is unaffected by the strategy.
 """
@@ -30,6 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from file_mover.exceptions import CopyError, DestinationPublishError, DestinationWriteError
+from file_mover.transfer.ratelimit import RateLimiter
 
 
 def _resolve_errnos(*names: str) -> frozenset[int]:
@@ -65,6 +72,7 @@ class BufferedFileCopyEngine:
         buffer_size_bytes: int,
         temporary_file_prefix: str,
         use_kernel_copy: bool = True,
+        rate_limiter: RateLimiter | None = None,
     ) -> None:
         """Initialise the copy engine.
 
@@ -73,10 +81,14 @@ class BufferedFileCopyEngine:
             temporary_file_prefix: Prefix for in-progress destination files.
             use_kernel_copy: Attempt ``os.copy_file_range`` (with buffered fallback) when
                 available; set ``False`` to always use the buffered loop.
+            rate_limiter: Optional shared throughput limiter. When it has a non-zero rate
+                the engine forces the buffered strategy and paces each write through it;
+                an unlimited (or absent) limiter imposes no ceiling and no overhead.
         """
         self._buffer_size_bytes = buffer_size_bytes
         self._temporary_file_prefix = temporary_file_prefix
         self._use_kernel_copy = use_kernel_copy
+        self._rate_limiter = rate_limiter
 
     def copy_to_temp(
         self, source: Path, destination_dir: Path, job_id: str, file_id: str
@@ -117,11 +129,19 @@ class BufferedFileCopyEngine:
         os.close(destination_fd)
         return CopyOutcome(temporary_path=temporary, bytes_written=bytes_written)
 
+    def _rate_limited(self) -> bool:
+        """Whether an active (non-zero) throughput limit is in force."""
+        return self._rate_limiter is not None and not self._rate_limiter.is_unlimited()
+
     def _copy(self, source_fd: int, destination_fd: int) -> int:
         """Copy from ``source_fd`` to ``destination_fd`` and return the byte count."""
-        if self._use_kernel_copy and _kernel_copy_available():
+        # A throughput limit can only be applied in the userspace buffered loop, so an
+        # active limiter forces the buffered strategy over kernel-assisted copy.
+        if self._use_kernel_copy and _kernel_copy_available() and not self._rate_limited():
             return self._copy_via_kernel(source_fd, destination_fd)
-        return _copy_via_buffer(source_fd, destination_fd, self._buffer_size_bytes)
+        return _copy_via_buffer(
+            source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter
+        )
 
     def _copy_via_kernel(self, source_fd: int, destination_fd: int) -> int:
         """Kernel-assisted copy with a safe buffered fallback on unsupported outcomes."""
@@ -139,7 +159,9 @@ class BufferedFileCopyEngine:
             os.ftruncate(destination_fd, 0)
             os.lseek(destination_fd, 0, os.SEEK_SET)
             os.lseek(source_fd, 0, os.SEEK_SET)
-            return _copy_via_buffer(source_fd, destination_fd, self._buffer_size_bytes)
+            return _copy_via_buffer(
+                source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter
+            )
         return total
 
     def publish(self, temporary: Path, final: Path) -> None:
@@ -155,8 +177,18 @@ class BufferedFileCopyEngine:
         _fsync_directory(final.parent)
 
 
-def _copy_via_buffer(source_fd: int, destination_fd: int, buffer_size_bytes: int) -> int:
-    """Copy with a bounded read/write loop; return the exact byte count."""
+def _copy_via_buffer(
+    source_fd: int,
+    destination_fd: int,
+    buffer_size_bytes: int,
+    rate_limiter: RateLimiter | None = None,
+) -> int:
+    """Copy with a bounded read/write loop; return the exact byte count.
+
+    When ``rate_limiter`` is supplied, each written chunk is accounted through it after
+    the write so aggregate throughput stays under the configured ceiling (a no-op when the
+    limiter is unlimited).
+    """
     total = 0
     while True:
         chunk = os.read(source_fd, buffer_size_bytes)
@@ -164,6 +196,8 @@ def _copy_via_buffer(source_fd: int, destination_fd: int, buffer_size_bytes: int
             break
         _write_all(destination_fd, chunk)
         total += len(chunk)
+        if rate_limiter is not None:
+            rate_limiter.throttle(len(chunk))
     return total
 
 

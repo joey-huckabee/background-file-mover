@@ -112,6 +112,7 @@ class TransferConfig:
     max_concurrent_jobs: int
     max_concurrent_files: int
     copy_buffer_size_bytes: int
+    max_bytes_per_second: int
     retry_limit: int
     retry_initial_delay_seconds: float
     retry_max_delay_seconds: float
@@ -435,6 +436,13 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             description="Bounded copy buffer size (64 KiB floor).",
         ),
         OptionSpec(
+            "max_bytes_per_second",
+            _int_converter(minimum=0),
+            default="0",
+            description="Aggregate copy throughput ceiling in bytes/sec (0 = unlimited); "
+            "adjustable at runtime with `file-mover throttle`.",
+        ),
+        OptionSpec(
             "retry_limit",
             _int_converter(minimum=0),
             default="10",
@@ -725,6 +733,7 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             max_concurrent_jobs=cast(int, transfer["max_concurrent_jobs"]),
             max_concurrent_files=cast(int, transfer["max_concurrent_files"]),
             copy_buffer_size_bytes=cast(int, transfer["copy_buffer_size_bytes"]),
+            max_bytes_per_second=cast(int, transfer["max_bytes_per_second"]),
             retry_limit=cast(int, transfer["retry_limit"]),
             retry_initial_delay_seconds=cast(float, transfer["retry_initial_delay_seconds"]),
             retry_max_delay_seconds=cast(float, transfer["retry_max_delay_seconds"]),

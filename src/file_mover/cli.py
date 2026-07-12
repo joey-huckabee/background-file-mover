@@ -120,6 +120,18 @@ def create_parser() -> argparse.ArgumentParser:
     _add_global_options(retry)
     retry.add_argument("job_id", help="job identifier")
 
+    throttle = subcommands.add_parser(
+        "throttle", help="set the live copy-throughput limit (0 = unlimited)"
+    )
+    _add_global_options(throttle)
+    throttle.add_argument(
+        "rate",
+        type=_parse_byte_rate,
+        metavar="BYTES_PER_SECOND",
+        help="throughput ceiling: bytes, or a suffixed value like 50MB / 1GiB "
+        "(K/M/G = powers of 1000, Ki/Mi/Gi = powers of 1024); 0 disables the limit",
+    )
+
     _add_global_options(subcommands.add_parser("stats", help="show durable service statistics"))
 
     _add_global_options(subcommands.add_parser("health", help="query the running service"))
@@ -148,6 +160,44 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     return parser
+
+
+_BYTE_RATE_SUFFIXES: dict[str, int] = {
+    "": 1,
+    "k": 1000,
+    "m": 1000**2,
+    "g": 1000**3,
+    "ki": 1024,
+    "mi": 1024**2,
+    "gi": 1024**3,
+}
+
+
+def _parse_byte_rate(raw: str) -> int:
+    """Parse a throughput value into bytes/sec, accepting SI/IEC suffixes.
+
+    Accepts a bare integer (bytes) or a value suffixed with ``K``/``M``/``G`` (powers of
+    1000) or ``Ki``/``Mi``/``Gi`` (powers of 1024), optionally followed by ``B``. ``0``
+    means unlimited.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value is not a non-negative number with a
+            recognised suffix.
+    """
+    text = raw.strip().lower().removesuffix("b")
+    digits = text.rstrip("kmgi")
+    suffix = text[len(digits) :]
+    if not digits or suffix not in _BYTE_RATE_SUFFIXES:
+        raise argparse.ArgumentTypeError(
+            f"invalid throughput {raw!r}; use bytes or a suffix like 50MB / 1GiB / 0"
+        )
+    try:
+        magnitude = float(digits)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid throughput number {digits!r}") from None
+    if magnitude < 0:
+        raise argparse.ArgumentTypeError("throughput must be >= 0")
+    return int(magnitude * _BYTE_RATE_SUFFIXES[suffix])
 
 
 def _not_implemented(command: str) -> ExitCode:
@@ -381,6 +431,28 @@ def _handle_submit(args: argparse.Namespace) -> ExitCode:
     return ExitCode.JOB_REJECTED
 
 
+def _handle_throttle(args: argparse.Namespace) -> ExitCode:
+    """Set the running service's live copy-throughput limit."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, "throttle", {"bytes_per_second": args.rate})
+    if isinstance(result, ExitCode):
+        return result
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS if result.get("accepted") else ExitCode.INVALID_ARGUMENT
+    if not result.get("accepted"):
+        print(f"{APP_NAME}: throttle rejected: {result.get('error_message')}", file=sys.stderr)
+        return ExitCode.INVALID_ARGUMENT
+    applied = result.get("bytes_per_second")
+    if applied:
+        print(f"throughput limit set to {applied} bytes/sec")
+    else:
+        print("throughput limit removed (unlimited)")
+    return ExitCode.SUCCESS
+
+
 def _handle_service_run(args: argparse.Namespace) -> ExitCode:
     """Load configuration and run the service in the foreground."""
     result = _load_configuration(args.config, args.output)
@@ -423,6 +495,7 @@ _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], ExitCode]] = {
     "list": _handle_list,
     "stats": _handle_stats,
     "submit": _handle_submit,
+    "throttle": _handle_throttle,
 }
 
 

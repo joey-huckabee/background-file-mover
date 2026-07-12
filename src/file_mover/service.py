@@ -48,6 +48,7 @@ from file_mover.systemd import notify_ready, notify_stopping, notify_watchdog
 from file_mover.transfer.coordinator import TransferCoordinator
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.integrity import IntegrityVerifier
+from file_mover.transfer.ratelimit import RateLimiter
 from file_mover.transfer.retry import ErrorClassifier
 from file_mover.transfer.scheduler import TransferScheduler
 from file_mover.validation import SourceValidator
@@ -79,6 +80,7 @@ class BackgroundMoverService:
         self._owns_repository = repository is None
         self._submission: JobSubmissionService | None = None
         self._scheduler: TransferScheduler | None = None
+        self._rate_limiter: RateLimiter | None = None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
@@ -159,6 +161,7 @@ class BackgroundMoverService:
                 "list": self._handle_list,
                 "stats": self._handle_stats,
                 "submit": self._handle_submit,
+                "throttle": self._handle_throttle,
             }
         )
 
@@ -183,12 +186,14 @@ class BackgroundMoverService:
         integrity = self._config.integrity
         transfer = self._config.transfer
         paths = self._config.paths
+        self._rate_limiter = RateLimiter(transfer.max_bytes_per_second)
         coordinator = TransferCoordinator(
             repository=repository,
             copy_engine=BufferedFileCopyEngine(
                 buffer_size_bytes=transfer.copy_buffer_size_bytes,
                 temporary_file_prefix=paths.temporary_file_prefix,
                 use_kernel_copy=transfer.use_kernel_copy,
+                rate_limiter=self._rate_limiter,
             ),
             integrity_verifier=IntegrityVerifier(
                 algorithm=integrity.algorithm,
@@ -246,11 +251,13 @@ class BackgroundMoverService:
 
     def _handle_health(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return the service health snapshot."""
+        limiter = self._rate_limiter
         return {
             "service_state": "stopping" if self._stopping.is_set() else "running",
             "protocol_version": PROTOCOL_VERSION,
             "app_version": __version__,
             "socket_path": str(self._config.service.socket_path),
+            "max_bytes_per_second": limiter.bytes_per_second if limiter is not None else 0,
         }
 
     def _handle_status(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
@@ -295,6 +302,34 @@ class BackgroundMoverService:
         except ValueError as error:
             return _submission_error("BAD_REQUEST", str(error))
         return _submission_result_to_dict(self._require_submission().submit(request))
+
+    def _handle_throttle(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Set the live copy-throughput ceiling (0 = unlimited) and echo the applied rate.
+
+        The change takes effect for the next copy-loop write, so it retunes copies already
+        in flight without restarting the service (L2-BWL-002).
+        """
+        requested = arguments.get("bytes_per_second")
+        if not isinstance(requested, int) or isinstance(requested, bool) or requested < 0:
+            return {
+                "accepted": False,
+                "bytes_per_second": self._current_rate(),
+                "error_code": "BAD_REQUEST",
+                "error_message": "bytes_per_second must be an integer >= 0",
+            }
+        limiter = self._rate_limiter
+        applied = limiter.set_rate(requested) if limiter is not None else 0
+        self._logger.info("throughput limit set to %d bytes/sec", applied)
+        return {
+            "accepted": True,
+            "bytes_per_second": applied,
+            "error_code": None,
+            "error_message": None,
+        }
+
+    def _current_rate(self) -> int:
+        """The limiter's current ceiling, or 0 when no limiter is active."""
+        return self._rate_limiter.bytes_per_second if self._rate_limiter is not None else 0
 
     def _install_signal_handlers(self) -> None:
         """Install SIGTERM/SIGINT handlers that only set the stop event."""

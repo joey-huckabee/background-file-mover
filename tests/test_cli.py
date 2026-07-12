@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 import file_mover.cli as cli_module
-from file_mover.cli import create_parser, main
+from file_mover.cli import _parse_byte_rate, create_parser, main
 from file_mover.jobs.models import ExitCode
 
 _MINIMAL_CONFIG = (
@@ -48,7 +48,8 @@ def test_create_parser_is_pure_and_builds() -> None:
     # Building the parser must not raise and must expose the documented commands.
     parser = create_parser()
     help_text = parser.format_help()
-    for command in ("submit", "status", "list", "retry", "stats", "doctor", "recover", "service"):
+    commands = ("submit", "status", "list", "retry", "stats", "throttle", "doctor", "recover")
+    for command in (*commands, "service"):
         assert command in help_text
 
 
@@ -394,6 +395,66 @@ def test_submit_missing_file_list_is_invalid_argument(tmp_path: Path) -> None:
         path,
     ]
     assert main(argv) == ExitCode.INVALID_ARGUMENT
+
+
+@pytest.mark.requirement("L2-BWL-001")
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("0", 0),
+        ("1000", 1000),
+        ("50MB", 50_000_000),
+        ("50mb", 50_000_000),
+        ("1GiB", 1024**3),
+        ("64KiB", 65536),
+        ("2G", 2_000_000_000),
+        ("1.5M", 1_500_000),
+    ],
+)
+def test_parse_byte_rate_accepts_suffixes(text: str, expected: int) -> None:
+    assert _parse_byte_rate(text) == expected
+
+
+@pytest.mark.requirement("L2-BWL-001")
+@pytest.mark.parametrize("text", ["", "abc", "-5", "10Q", "MB", "1.2.3"])
+def test_parse_byte_rate_rejects_bad_values(text: str) -> None:
+    import argparse
+
+    with pytest.raises(argparse.ArgumentTypeError):
+        _parse_byte_rate(text)
+
+
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_reports_service_unavailable_when_down(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["throttle", "50MB", "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_renders_applied_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_client(monkeypatch, _ok({"accepted": True, "bytes_per_second": 50_000_000}))
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["throttle", "50MB", "--config", path]) == ExitCode.SUCCESS
+    assert "50000000 bytes/sec" in capsys.readouterr().out
+    # JSON rendering and the "unlimited" branch.
+    _patch_client(monkeypatch, _ok({"accepted": True, "bytes_per_second": 0}))
+    assert main(["throttle", "0", "--config", path]) == ExitCode.SUCCESS
+    assert "unlimited" in capsys.readouterr().out
+    assert main(["throttle", "0", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_rejected_is_invalid_argument(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_client(
+        monkeypatch,
+        _ok({"accepted": False, "bytes_per_second": 0, "error_message": "bad"}),
+    )
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["throttle", "100", "--config", path]) == ExitCode.INVALID_ARGUMENT
 
 
 @pytest.mark.requirement("L2-CTL-008")

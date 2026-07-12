@@ -65,6 +65,7 @@ CATEGORIES: list[tuple[str, str]] = [
     ("CLN", "Cleanup and source retention (L2)"),
     ("STO", "Storage abstraction (L2)"),
     ("COPY", "Copy engine (L2)"),
+    ("BWL", "Bandwidth limiting (L2)"),
     ("RTY", "Retry and error classification (L2)"),
     ("DST", "Destination publication (L2)"),
     ("DEL", "Source deletion (L2)"),

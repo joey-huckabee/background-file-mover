@@ -77,6 +77,20 @@ def test_use_kernel_copy_can_be_disabled() -> None:
     assert config.transfer.use_kernel_copy is False
 
 
+@pytest.mark.requirement("L2-BWL-001")
+@pytest.mark.requirement("L2-BWL-004")
+def test_max_bytes_per_second_defaults_to_unlimited_and_parses() -> None:
+    assert _load(MINIMAL_CONFIG).transfer.max_bytes_per_second == 0  # unlimited default
+    config = _load(f"{MINIMAL_CONFIG}\n[transfer]\nmax_bytes_per_second = 52428800\n")
+    assert config.transfer.max_bytes_per_second == 52428800
+
+
+@pytest.mark.requirement("L2-BWL-001")
+def test_max_bytes_per_second_rejects_negative() -> None:
+    with pytest.raises(ConfigurationValidationError):
+        _load(f"{MINIMAL_CONFIG}\n[transfer]\nmax_bytes_per_second = -1\n")
+
+
 @pytest.mark.requirement("L2-CFG-005")
 def test_application_config_is_immutable() -> None:
     config = _load(MINIMAL_CONFIG)
