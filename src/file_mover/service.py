@@ -1,9 +1,9 @@
 """The long-running ``BackgroundMoverService`` and its startup/shutdown lifecycle.
 
-Milestone 3 delivers the first executable slice: the service acquires the singleton
-process lock, binds the control socket (recovering from a stale socket safely), answers
-``health``, and shuts down cleanly on ``SIGTERM``/``SIGINT``. The SQLite state, transfer
-scheduler, and recovery reconciliation arrive in later milestones (see ``docs/ROADMAP.md``).
+Milestone 3 delivered the first executable slice (lock, control socket, ``health``, clean
+shutdown). Milestone 4 opens the durable SQLite state and serves the read-only query
+commands ``status`` / ``list`` / ``stats`` over the control socket. The transfer
+scheduler and recovery reconciliation arrive in later milestones (see ``docs/ROADMAP.md``).
 
 The signal handlers only set a thread-safe stop event; the drain happens on the main
 thread. Tests drive the service on a worker thread with ``install_signal_handlers=False``
@@ -24,28 +24,41 @@ from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
 from file_mover.control.lock import ProcessLock
 from file_mover.control.server import ControlSocketServer
+from file_mover.jobs.models import ACTIVE_JOB_STATES, JobRecord, JobState, JobStatistics
+from file_mover.jobs.repository import JobRepository
+from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 
 _LOCK_FILENAME = "service.lock"
 
 
 class BackgroundMoverService:
-    """Owns the control server, the singleton lock, and the shutdown lifecycle."""
+    """Owns the control server, durable state, the singleton lock, and shutdown."""
 
-    def __init__(self, config: ApplicationConfig, *, logger: logging.Logger | None = None) -> None:
+    def __init__(
+        self,
+        config: ApplicationConfig,
+        *,
+        repository: JobRepository | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
         """Initialise the service.
 
         Args:
             config: The validated application configuration.
+            repository: Durable job repository; created from the configured database path
+                when omitted (and then owned/closed by the service).
             logger: Optional logger; defaults to ``file_mover.service``.
         """
         self._config = config
         self._logger = logger or logging.getLogger("file_mover.service")
+        self._repository = repository
+        self._owns_repository = repository is None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
 
     def run(self, *, install_signal_handlers: bool = True) -> int:
-        """Acquire the lock, bind the socket, and serve until stopped.
+        """Acquire the lock, open state, bind the socket, and serve until stopped.
 
         Args:
             install_signal_handlers: Install SIGTERM/SIGINT handlers (only possible on
@@ -57,6 +70,9 @@ class BackgroundMoverService:
         lock = ProcessLock(str(self._config.service.state_directory / _LOCK_FILENAME))
         lock.acquire()
         try:
+            if self._repository is None:
+                self._repository = SQLiteJobRepository(str(self._config.service.database_path))
+            self._repository.initialize()
             server = ControlSocketServer(
                 str(self._config.service.socket_path),
                 self._build_dispatcher(),
@@ -76,6 +92,9 @@ class BackgroundMoverService:
             if self._server is not None:
                 self._server.close()
                 self._server = None
+            if self._owns_repository and self._repository is not None:
+                self._repository.close()
+                self._repository = None
             self._ready.clear()
             lock.release()
         return 0
@@ -92,7 +111,20 @@ class BackgroundMoverService:
 
     def _build_dispatcher(self) -> CommandDispatcher:
         """Build the control-command dispatcher for this service."""
-        return CommandDispatcher({"health": self._handle_health})
+        return CommandDispatcher(
+            {
+                "health": self._handle_health,
+                "status": self._handle_status,
+                "list": self._handle_list,
+                "stats": self._handle_stats,
+            }
+        )
+
+    def _require_repository(self) -> JobRepository:
+        """Return the repository, or raise if the service is not running."""
+        if self._repository is None:
+            raise RuntimeError("service repository is not open")
+        return self._repository
 
     def _handle_health(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return the service health snapshot."""
@@ -103,6 +135,25 @@ class BackgroundMoverService:
             "socket_path": str(self._config.service.socket_path),
         }
 
+    def _handle_status(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Return one job's status, or ``found: false`` when absent."""
+        job_id = arguments.get("job_id")
+        if not isinstance(job_id, str):
+            return {"found": False, "job": None}
+        job = self._require_repository().get_job(job_id)
+        return {"found": job is not None, "job": _job_to_dict(job) if job else None}
+
+    def _handle_list(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Return jobs filtered by the requested state group or name."""
+        selector = arguments.get("state", "active")
+        states = _resolve_state_selector(selector if isinstance(selector, str) else "active")
+        jobs = self._require_repository().list_jobs(states)
+        return {"jobs": [_job_to_dict(job) for job in jobs]}
+
+    def _handle_stats(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Return aggregate durable statistics."""
+        return _statistics_to_dict(self._require_repository().statistics())
+
     def _install_signal_handlers(self) -> None:
         """Install SIGTERM/SIGINT handlers that only set the stop event."""
 
@@ -112,3 +163,46 @@ class BackgroundMoverService:
 
         signal.signal(signal.SIGTERM, _handle)
         signal.signal(signal.SIGINT, _handle)
+
+
+def _resolve_state_selector(selector: str) -> frozenset[JobState] | None:
+    """Map a ``list`` state selector to a set of states (``None`` means all).
+
+    Raises:
+        ValueError: If ``selector`` is neither ``active``/``all`` nor a known state name.
+    """
+    lowered = selector.strip().lower()
+    if lowered in {"all", ""}:
+        return None
+    if lowered == "active":
+        return ACTIVE_JOB_STATES
+    try:
+        return frozenset({JobState(lowered)})
+    except ValueError as error:
+        raise ValueError(f"unknown job state selector {selector!r}") from error
+
+
+def _job_to_dict(job: JobRecord) -> dict[str, Any]:
+    """Serialise a :class:`JobRecord` for a control response."""
+    return {
+        "job_id": job.job_id,
+        "state": job.state.value,
+        "scenario_id": job.scenario_id,
+        "source_root": job.source_root,
+        "destination_root": job.destination_root,
+        "file_count": job.file_count,
+        "total_bytes": job.total_bytes,
+        "bytes_copied": job.bytes_copied,
+        "attempt_count": job.attempt_count,
+        "last_error": job.last_error,
+    }
+
+
+def _statistics_to_dict(stats: JobStatistics) -> dict[str, Any]:
+    """Serialise :class:`JobStatistics` for a control response."""
+    return {
+        "total_jobs": stats.total_jobs,
+        "total_bytes": stats.total_bytes,
+        "bytes_copied": stats.bytes_copied,
+        "jobs_by_state": {state.value: count for state, count in stats.jobs_by_state.items()},
+    }

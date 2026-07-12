@@ -118,7 +118,7 @@ O_NOFOLLOW`.
 
 The control protocol shall frame each message with a 4-byte big-endian length prefix.
 
-**L3-PY-007** · Parent: L2-RTY-003 · Verification: T
+**L3-PY-007** · Parent: L2-JOB-002 · Verification: T
 
 Durable state shall use `sqlite3` with `journal_mode=WAL` and `synchronous=FULL`.
 
@@ -145,3 +145,14 @@ Every control response shall echo the request's `request_id`.
 **L3-CTL-004** · Parent: L2-CTL-008 · Verification: T
 
 The `ProcessLock` shall use `fcntl.flock` for the singleton lock.
+
+## JOB — Durable-state components
+
+**L3-JOB-001** · Parent: L2-JOB-002 · Verification: T
+
+Each database connection shall set a `busy_timeout`.
+
+**L3-JOB-002** · Parent: L2-JOB-001 · Verification: T
+
+The repository shall translate SQLite errors and corrupt stored values into a typed
+`RepositoryError`.

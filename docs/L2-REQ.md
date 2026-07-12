@@ -898,3 +898,54 @@ The software shall provide a health command that reports service status.
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T)
+
+## JOB — Durable job state
+
+#### L2-JOB-001
+
+The software shall persist every job and its files durably in SQLite.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-002
+
+The software shall enable foreign keys, WAL journaling, and synchronous=FULL on the
+state database.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-003
+
+The software shall give each thread its own database connection.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-004
+
+The software shall apply schema migrations idempotently at startup.
+
+**Parent**: L1-SYS-005
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-005
+
+The software shall validate and enforce the allowed job state transitions.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-006
+
+The software shall query jobs by state and produce aggregate statistics.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)

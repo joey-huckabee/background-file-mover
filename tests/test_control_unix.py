@@ -14,6 +14,8 @@ from file_mover.control.dispatcher import CommandDispatcher
 from file_mover.control.lock import ProcessLock
 from file_mover.control.server import ControlSocketServer
 from file_mover.exceptions import ServiceLockError
+from file_mover.jobs.models import JobRecord, JobState
+from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.service import BackgroundMoverService
 
 pytestmark = pytest.mark.skipif(
@@ -84,7 +86,7 @@ def test_bind_refuses_non_socket_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-CTL-009")
-def test_service_run_serves_health_then_stops(tmp_path: Path) -> None:
+def test_service_run_serves_queries_then_stops(tmp_path: Path) -> None:
     config_text = (
         f"[service]\n"
         f"state_directory = {tmp_path}\n"
@@ -94,17 +96,26 @@ def test_service_run_serves_health_then_stops(tmp_path: Path) -> None:
         f"allowed_destination_roots = /processing\n"
     )
     config = ConfigurationLoader().load_text(config_text)
-    service = BackgroundMoverService(config)
+    repository = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repository.initialize()
+    repository.insert_job(
+        JobRecord("j1", JobState.QUEUED, "/recordings/s1", "/processing/s1", 1.0, 1.0)
+    )
+    service = BackgroundMoverService(config, repository=repository)
     worker = threading.Thread(
         target=lambda: service.run(install_signal_handlers=False), daemon=True
     )
     worker.start()
     try:
         assert service.wait_ready(timeout=5)
-        response = ControlClient(str(config.service.socket_path)).send("health")
-        assert response["success"] is True
-        assert response["result"]["service_state"] == "running"
-        assert response["result"]["app_version"]
+        client = ControlClient(str(config.service.socket_path))
+        assert client.send("health")["result"]["service_state"] == "running"
+        status = client.send("status", {"job_id": "j1"})
+        assert status["result"]["job"]["state"] == "queued"
+        listed = client.send("list", {"state": "active"})
+        assert [job["job_id"] for job in listed["result"]["jobs"]] == ["j1"]
+        assert client.send("stats", {})["result"]["total_jobs"] == 1
     finally:
         service.request_stop()
         worker.join(timeout=5)
+        repository.close()
