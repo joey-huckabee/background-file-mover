@@ -118,6 +118,14 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Filesystem spool-queue control transport — an alternative to the `AF_UNIX` control
+  socket in which `submit` writes a JSON job manifest into a spool directory
+  (`queue/` → `processing/` → `completed/` / `failed/`) that the service polls, instead of a
+  socket request/response. It was weighed during design as the simpler first-version option
+  and deferred in favour of the socket (faster acknowledgement, clearer request/response).
+  Its future value is **portability**: it needs no `AF_UNIX`, so it is the most likely path
+  to **Windows support** (where `doctor` currently reports `ENVIRONMENT_UNSUPPORTED`). Would
+  reuse the existing SQLite durable state and JSON manifests unchanged.
 - **Logging enhancements (post-12-factor-logging):**
   - **systemd journal priority prefixes** — emit the sd-daemon `<N>` level prefix on the
     service's stdout stream so journald records the correct priority per record.
