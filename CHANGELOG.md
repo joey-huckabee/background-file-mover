@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-12
+
+Adds dynamic bandwidth limiting — a userspace token-bucket throughput ceiling that is
+adjustable live over the control socket — and resolves the first round of static-analysis
+findings. Zero runtime dependencies; the full CI battery, no-panic fuzz harness, and
+L1/L2/L3 trace matrix remain green.
+
 ### Added
 
 - **Dynamic bandwidth limiting.** A configurable aggregate copy-throughput ceiling,
@@ -23,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A non-zero throughput limit forces the buffered copy strategy, because kernel-assisted
   `copy_file_range` moves bytes inside the kernel and cannot be paced from userspace
   (L3-PY-011). An unlimited limit leaves the kernel-copy fast path unaffected.
+
+### Security
+
+- Validate and normalise the operator-supplied configuration path before it is read:
+  reject NUL bytes, resolve to an absolute real path, and require an existing regular file,
+  closing a path-injection finding.
 
 ## [0.1.0] - 2026-07-11
 
@@ -97,5 +110,6 @@ deleted until its destination has been written, fsynced, published, and verified
   mypy `--strict`, ruff, pylint, vulture, bandit, CodeQL, SonarCloud, and a scheduled
   no-panic fuzz burn-in.
 
-[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/joey-huckabee/background-file-mover/releases/tag/v0.1.0
