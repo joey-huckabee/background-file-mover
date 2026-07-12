@@ -61,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Added **`docs/LOGGING.md`** (the stdout/stderr + logging architecture, for operators *and*
+  developers — the output-stream contract, consuming/routing logs, and how to add a log
+  call) and **`docs/12-FACTOR.md`** (twelve-factor alignment and deliberate deviations).
+  Documented `doctor`'s environment checks in CLI-REFERENCE, added it as a deploy gate and a
+  logs section in DEPLOYMENT, and "add an environment check" / "add a log call" workflows in
+  MAINTAINER-GUIDE; ARCHITECTURE gained a diagnostics section and cross-links.
 - Added `docs/FEATURE-INTERACTIONS.md`, an operator guide to combining kernel-assisted
   copy, bandwidth limiting, partial-file resume, and pause/cancel/resume — which
   combinations force the buffered engine, how a runtime `throttle` relates to an in-flight

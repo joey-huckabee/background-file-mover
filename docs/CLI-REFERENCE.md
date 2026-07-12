@@ -136,6 +136,35 @@ cancel accepted for 4f2a… (state: cancelled_retained)
 the fsynced partial and resume continues it. With resume disabled, a resumed job cannot
 continue its partial cleanly — see `docs/FEATURE-INTERACTIONS.md`.
 
+### `doctor`
+
+```
+file-mover doctor [--config PATH] [--output human|json]
+```
+
+Validates the configuration, reports **advisories** for consequential-but-valid option
+combinations, and **verifies the runtime environment** — the capabilities the service
+depends on. Each capability is reported as `pass` / `warn` / `fail`:
+
+- **Required** (`fail` if missing): `af-unix-socket`, `fcntl-lock`, `sqlite-wal`,
+  `hash-algorithm[<configured>]`, `python-version` (≥ 3.10), `posix-signals`.
+- **Optional** (`warn` if missing, never a failure): `o-nofollow`, and `kernel-copy` (only
+  when `[transfer] use_kernel_copy` is enabled).
+
+A missing **required** capability returns `ENVIRONMENT_UNSUPPORTED` (exit 8), so a
+deployment can gate on it before enabling the service (see `docs/DEPLOYMENT.md`). Human
+output lists each check on stdout with `configuration valid`; advisories and any
+"environment unsupported" summary go to stderr. `--output json` emits one object:
+
+```
+$ file-mover doctor --config /etc/file-mover/file-mover.ini --output json
+{"status": "ok", "message": "configuration valid", "advisories": [],
+ "environment": [{"name": "af-unix-socket", "requirement": "required",
+                  "status": "pass", "detail": "socket.AF_UNIX available"}, …]}
+```
+
+`status` is `ok`, or `environment_unsupported` when a required capability failed.
+
 ## Exit codes
 
 Stable and machine-consumable (`file_mover.jobs.models.ExitCode`):

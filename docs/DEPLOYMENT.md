@@ -69,13 +69,22 @@ readiness race. The `WatchdogSec=30` setting makes systemd restart the service i
 
 ## 6. Validate
 
+**Run `doctor` as a pre-flight gate** — before (or right after) `enable --now`, as the
+service account. It validates the configuration *and* verifies the runtime provides the
+required capabilities (`AF_UNIX`, `fcntl`, SQLite WAL, the configured hash algorithm,
+Python ≥ 3.10, POSIX signals). A missing required capability exits **`8`
+(`ENVIRONMENT_UNSUPPORTED`)**, so a deploy script can hard-gate on it:
+
 ```bash
-# Configuration and (later) filesystem checks, without contacting the service:
 sudo -u mover /opt/file-mover/venv/bin/python -m file_mover \
-     --config /etc/file-mover/file-mover.ini doctor
+     --config /etc/file-mover/file-mover.ini doctor \
+  || { echo "doctor failed (rc=$?) — do not enable the service"; exit 1; }
 # Live service health over the control socket:
 sudo -u "$SIMULATION_USER" file-mover health
 ```
+
+`doctor` also prints `warn` lines for absent *optional* capabilities (kernel-assisted copy,
+`O_NOFOLLOW`) — informational, not failures. See `docs/CLI-REFERENCE.md` § `doctor`.
 
 The orchestration integration is a single subprocess call:
 
@@ -98,6 +107,25 @@ subprocess.run(
   duplicate final files), and the transfer completes.
 - **Idempotent submit.** Submit the same `request_id` twice; confirm one job and no
   duplicate claim.
+
+## 8. Logs
+
+The service writes its **event stream to stdout/stderr and manages no log files** — the
+environment routes them (twelve-factor). Under the shipped unit, journald captures both
+streams:
+
+```bash
+journalctl -u file-mover -f              # follow live
+journalctl -u file-mover -p warning      # WARNING and above (stderr)
+journalctl -u file-mover | grep job_id=<id>   # trace one job across its lifecycle
+```
+
+`INFO`/`DEBUG` go to **stdout**, `WARNING`/`ERROR` to **stderr**. Set verbosity with
+`[logging] level` (`DEBUG | INFO | WARNING | ERROR | OFF`). The unit runs `python -O`, which
+removes DEBUG logging from the bytecode entirely; to troubleshoot at DEBUG **live**, drop
+`-O` from the unit's `ExecStart`, set `level = DEBUG`, and `systemctl restart`. To ship logs
+elsewhere, redirect the streams or point journald at your collector — do not add app-side
+log files. Full detail: **`docs/LOGGING.md`**.
 
 ## NFS qualification checklist
 

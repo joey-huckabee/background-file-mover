@@ -29,6 +29,11 @@ packages). See `docs/ROADMAP.md` for milestone status.
 - `docs/FEATURE-INTERACTIONS.md` — operator guide to combining kernel copy, bandwidth
   limiting, partial-file resume, and pause/cancel/resume (which combinations force the
   buffered engine, and the resume/integrity and pause/resume gotchas).
+- `docs/LOGGING.md` — the stdout/stderr + logging architecture: the output-stream contract
+  (CLI stdout=result / service stdout=event stream), how operators consume/route logs, and
+  how developers add a log call (the gate/`bind`/hot-cold-split convention, `-O`, `OFF`).
+- `docs/12-FACTOR.md` — twelve-factor alignment: which factors we follow and the
+  deliberate deviations (INI config, stateful process, local socket) with rationale.
 - `docs/MAINTAINER-GUIDE.md` — repo layout, local dev setup, command cheat sheet,
   workflows for adding requirements / tests / CLI flags / config options, CI architecture.
   Start here when onboarding.

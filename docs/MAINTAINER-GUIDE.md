@@ -74,6 +74,29 @@ Options are defined once (from M2, via `OptionSpec`) and drive validation, docs,
 `doctor` output. Update `config/file-mover.ini` and `docs/CONFIG-REFERENCE.md` in the
 same change, and add a validation test.
 
+## Adding an environment check (`doctor`)
+
+Environment capabilities are strategies in `src/file_mover/diagnostics.py`. To add one:
+
+1. Write a **detection helper** (module-level, so tests can simulate it):
+   `def _my_capability() -> bool: ...`.
+2. Write a **probe** returning `(available, detail)`:
+   `def _probe_my_capability() -> tuple[bool, str]: return _my_capability(), "…"`.
+3. Register it in `default_checks(...)` as an `EnvironmentCheck(name, Requirement.REQUIRED
+   | OPTIONAL, probe)` — `REQUIRED` fails `doctor` (exit `ENVIRONMENT_UNSUPPORTED`),
+   `OPTIONAL` only warns.
+4. Test both branches by monkeypatching the detection helper (see `tests/test_diagnostics.py`),
+   and trace it under `L2-ENV-*`. Never let a probe raise — `EnvironmentCheck.run` already
+   turns an exception into a reported failure (L2-ENV-003).
+
+## Adding a log call
+
+Follow the convention in **`docs/LOGGING.md`** — stable `file_mover.<area>` logger, context
+via `bind(logger, job_id=…, file_id=…)` (not the logger name), and gate by cost: DEBUG uses
+`if __debug__ and GATE.debug:` (stripped under `python -O`), hot-path INFO uses
+`if GATE.info:`, cold-path INFO/WARNING/ERROR call directly. Use `%`-style args, never
+f-strings. Never install handlers — configuration is centralized in `logging_config.py`.
+
 ## CI architecture
 
 `.github/workflows/ci.yml` runs, all via `poetry run`:
