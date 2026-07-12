@@ -48,8 +48,11 @@ packages). See `docs/ROADMAP.md` for milestone status.
   `tests/`). Single source of truth for live status; the source docs hold spec content only.
 - `docs/ROADMAP.md` — forward-looking milestones (M1–M8) plus pinned "do not drop"
   decisions. Completed work lives in `CHANGELOG.md` and the requirements, not here.
-- `docs/CAPTURE.md` — the original design conversation; the authoritative source the specs
-  are transcribed from.
+- `docs/CAPTURE.md` — the **design-history index**: the original design conversation, now
+  fully retired into the specs. Its content was transcribed into the requirements,
+  ARCHITECTURE, and the other docs; CAPTURE now holds only a **retirement ledger** mapping
+  each retired section to where it lives (and the commit that removed it). Not an
+  authoritative source — read the specs. Consult it (or git history) to trace design intent.
 - `config/file-mover.ini` — fully commented reference configuration.
 
 ## Git conventions
