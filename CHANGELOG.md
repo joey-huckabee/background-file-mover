@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`[logging]` configuration is now applied at service start** — `level`, `log_to_journal`
+  (stderr), and `log_to_file` (a size-rotating file under the new `log_directory` option)
+  take effect, with an explicit CLI `-v`/`--log-level` taking precedence (L3-PY-013). This
+  closes a gap where the section was validated but ignored.
+- **`file-mover doctor` now reports advisories** for valid-but-consequential option
+  combinations — a bandwidth limit with `use_kernel_copy` (kernel copy is bypassed while
+  limited) and `resume_partial_files` without `source-and-destination-hash` (a crash-torn
+  resume may go undetected). The same advisories are logged once at service start.
+
+### Documentation
+
+- Added `docs/FEATURE-INTERACTIONS.md`, an operator guide to combining kernel-assisted
+  copy, bandwidth limiting, partial-file resume, and pause/cancel/resume — which
+  combinations force the buffered engine, how a runtime `throttle` relates to an in-flight
+  kernel copy, and the two sharp edges (resume crash-safety depends on `[integrity] mode`;
+  `pause`/`resume` relies on `resume_partial_files`). Added a matching *Feature
+  interactions* matrix to `docs/ARCHITECTURE.md` and cross-links from the config/CLI
+  references and the reference INI.
+
 ## [0.3.0] - 2026-07-12
 
 Adds operator **job lifecycle control** (cancel / pause / resume) and **partial-file

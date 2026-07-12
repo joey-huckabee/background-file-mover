@@ -97,7 +97,9 @@ throughput limit removed (unlimited)
 
 A non-zero limit forces the buffered copy path (kernel-assisted `copy_file_range` cannot be
 paced from userspace), so throttling trades the kernel-copy fast path for controllable
-throughput — see `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
+throughput — see `docs/ARCHITECTURE.md` § *Bandwidth limiting*. Note that a live `throttle`
+change does **not** slow a file already being kernel-copied; it applies from the next file.
+For how throttling, resume, and pause/cancel combine, see `docs/FEATURE-INTERACTIONS.md`.
 
 ### `pause` / `resume` / `cancel`
 
@@ -129,6 +131,10 @@ pause accepted for 4f2a… (state: paused)
 $ file-mover cancel 4f2a…
 cancel accepted for 4f2a… (state: cancelled_retained)
 ```
+
+`pause`/`resume` rely on `[transfer] resume_partial_files = true` (the default): pausing keeps
+the fsynced partial and resume continues it. With resume disabled, a resumed job cannot
+continue its partial cleanly — see `docs/FEATURE-INTERACTIONS.md`.
 
 ## Exit codes
 

@@ -23,7 +23,7 @@ from typing import Any
 
 from file_mover import __version__
 from file_mover.claiming import FileClaimManager
-from file_mover.configuration import ApplicationConfig
+from file_mover.configuration import ApplicationConfig, configuration_advisories
 from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
 from file_mover.control.lifecycle import JobLifecycleService
@@ -105,6 +105,8 @@ class BackgroundMoverService:
             self._repository.initialize()
             self._submission = self._build_submission_service(self._repository)
             self._scheduler = self._build_scheduler(self._repository)
+            for advisory in configuration_advisories(self._config):
+                self._logger.info("configuration advisory: %s", advisory)
             self._reconcile(self._repository)
             server = ControlSocketServer(
                 str(self._config.service.socket_path),

@@ -26,6 +26,9 @@ packages). See `docs/ROADMAP.md` for milestone status.
   logging levels. Read this before changing transfer, control, or state code.
 - `docs/CLI-REFERENCE.md` — per-command/flag reference and the `ExitCode` table.
 - `docs/CONFIG-REFERENCE.md` — per-section/option configuration reference.
+- `docs/FEATURE-INTERACTIONS.md` — operator guide to combining kernel copy, bandwidth
+  limiting, partial-file resume, and pause/cancel/resume (which combinations force the
+  buffered engine, and the resume/integrity and pause/resume gotchas).
 - `docs/MAINTAINER-GUIDE.md` — repo layout, local dev setup, command cheat sheet,
   workflows for adding requirements / tests / CLI flags / config options, CI architecture.
   Start here when onboarding.

@@ -141,6 +141,7 @@ class LoggingConfig:
     level: str
     log_to_journal: bool
     log_to_file: bool
+    log_directory: PurePosixPath
 
 
 @dataclass(frozen=True)
@@ -520,6 +521,12 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             description="Emit to the systemd journal (stderr).",
         ),
         OptionSpec("log_to_file", _to_bool, default="false", description="Emit to a log file."),
+        OptionSpec(
+            "log_directory",
+            _posix_path,
+            default="/var/log/file-mover",
+            description="Directory for the rotating log file when log_to_file is enabled.",
+        ),
     ),
 }
 
@@ -809,8 +816,35 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             level=cast(str, logging["level"]),
             log_to_journal=cast(bool, logging["log_to_journal"]),
             log_to_file=cast(bool, logging["log_to_file"]),
+            log_directory=cast(PurePosixPath, logging["log_directory"]),
         ),
     )
+
+
+def configuration_advisories(config: ApplicationConfig) -> list[str]:
+    """Return operator advisories for valid-but-consequential option combinations.
+
+    These are **not** errors — the configuration is valid — but the combinations have
+    non-obvious consequences (see ``docs/FEATURE-INTERACTIONS.md``). They are surfaced by
+    ``file-mover doctor`` and logged once at service start, never raised.
+    """
+    notes: list[str] = []
+    transfer = config.transfer
+    if transfer.max_bytes_per_second > 0 and transfer.use_kernel_copy:
+        notes.append(
+            "a bandwidth limit is set with use_kernel_copy=true; kernel-assisted copy is "
+            "bypassed while the limit is active (throttle 0 restores it)."
+        )
+    verifies_destination = (
+        config.integrity.enabled
+        and config.integrity.mode is IntegrityMode.SOURCE_AND_DESTINATION_HASH
+    )
+    if transfer.resume_partial_files and not verifies_destination:
+        notes.append(
+            "resume_partial_files=true without integrity.mode=source-and-destination-hash; "
+            "a crash-interrupted resume may not detect a corrupted partial."
+        )
+    return notes
 
 
 def describe_schema() -> str:

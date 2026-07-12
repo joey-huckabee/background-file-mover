@@ -14,6 +14,7 @@ from file_mover.configuration import (
     _float_converter,
     _posix_path,
     _posix_path_list,
+    configuration_advisories,
     describe_schema,
 )
 from file_mover.exceptions import ConfigurationError
@@ -115,6 +116,38 @@ def test_resume_partial_files_defaults_on_and_can_disable() -> None:
     assert _load(MINIMAL_CONFIG).transfer.resume_partial_files is True
     disabled = _load(f"{MINIMAL_CONFIG}\n[transfer]\nresume_partial_files = false\n")
     assert disabled.transfer.resume_partial_files is False
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_log_directory_defaults() -> None:
+    assert str(_load(MINIMAL_CONFIG).logging.log_directory) == "/var/log/file-mover"
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_no_advisories_for_safe_defaults() -> None:
+    # Default config: unlimited, kernel copy on, resume on, full destination hashing.
+    assert configuration_advisories(_load(MINIMAL_CONFIG)) == []
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_advisory_for_bandwidth_limit_with_kernel_copy() -> None:
+    config = _load(f"{MINIMAL_CONFIG}\n[transfer]\nmax_bytes_per_second = 1000\n")
+    notes = configuration_advisories(config)
+    assert any("bandwidth limit" in note and "kernel" in note for note in notes)
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_advisory_for_resume_without_full_hashing() -> None:
+    config = _load(f"{MINIMAL_CONFIG}\n[integrity]\nmode = source-hash\n")
+    notes = configuration_advisories(config)
+    assert any("resume_partial_files" in note for note in notes)
+    # Disabling resume clears the advisory.
+    weak_but_no_resume = (
+        f"{MINIMAL_CONFIG}\n[integrity]\nmode = source-hash\n"
+        "[transfer]\nresume_partial_files = false\n"
+    )
+    safe = _load(weak_but_no_resume)
+    assert not any("resume_partial_files" in note for note in configuration_advisories(safe))
 
 
 @pytest.mark.requirement("L2-CFG-005")

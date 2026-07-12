@@ -228,6 +228,30 @@ resumed partial is **discarded** and the file restarts from zero (L2-RSM-003) �
 bytes are never published. Startup recovery therefore *keeps* interrupted partials when resume
 is enabled and *removes* them when it is disabled (L2-RSM-002).
 
+## Feature interactions
+
+The copy-path behaviours above are independently configurable but interact through two shared
+mechanisms, both in `transfer/copy_engine.py`: the **engine choice** made once per file in
+`_copy` (`if use_kernel_copy and available and not _rate_limited(): kernel else buffered`), and
+the **per-buffer hooks** — `rate_limiter.throttle(...)` (buffered loop only) and
+`interrupt_check()` (both loops). The operator-facing consequences and recommendations live in
+`docs/FEATURE-INTERACTIONS.md`; the mechanism-level matrix is below.
+
+| Combination | Where | Behaviour |
+|-------------|-------|-----------|
+| Bandwidth limit + kernel copy | `_copy` engine choice | A non-zero limit forces the **buffered** engine — the kernel loop cannot be paced (L3-PY-011). Chosen per file at copy start. |
+| Partial resume + kernel copy | `_copy_via_kernel`, `_open_destination` | Compatible: seek to the offset and `copy_file_range` continues; the fallback truncates to `base_offset`, not zero (L3-PY-012). |
+| Pause/cancel + either engine | `interrupt_check()` at both loops | Cooperative stop at the next buffer boundary (~`copy_buffer_size_bytes`), in the kernel *and* buffered loops. |
+| Runtime `throttle` + in-flight kernel copy | engine chosen at copy start | The running kernel copy never reads the limiter, so a live rate change applies from the **next** file; a buffered copy honours it immediately (`RateLimiter.set_rate`). |
+| Low limit + pause/cancel/shutdown | buffered loop order | `interrupt_check()` runs *after* `throttle()`, so a long throttle sleep delays the stop by up to one chunk. |
+| Resume + integrity mode | `FileMover._needs_destination_hash` | Destination content is re-hashed only under `source-and-destination-hash`; a crash-torn resumed prefix is caught **only** in that mode (a clean pause is safe under any mode because the prefix was fsynced). |
+| Pause/resume + `resume_partial_files` | `TransferCoordinator._handle_interrupt`, `FileMover.move(resume=...)` | Pause always keeps the partial; resume re-copies with `resume=resume_partial_files`. With resume disabled the kept partial collides with the exclusive create and the file fails — pause/resume depends on resume being enabled. |
+
+The last two rows are the sharp edges: resume's crash-safety is only as strong as the integrity
+mode, and pause/resume presumes `resume_partial_files = true`. Both are called out as gotchas in
+the user guide; hardening the pause/resume-with-resume-disabled case is a candidate for a later
+release.
+
 ## Error pipeline
 
 Each layer catches only what it can interpret, attaches context, and re-raises a typed
