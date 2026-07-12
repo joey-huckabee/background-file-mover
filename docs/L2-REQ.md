@@ -812,6 +812,37 @@ attempt restarts the file from zero; unverified bytes shall never be published.
 
 **Verification Method**: Test (T)
 
+## ENV — Environment capability diagnostics
+
+#### L2-ENV-001
+
+The software shall verify that the required interpreter and platform capabilities are
+present — an `AF_UNIX` socket, `fcntl` locking, SQLite WAL journaling, the configured hash
+algorithm, Python 3.10 or later, and POSIX termination signals — and report a missing
+required capability as a failure.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-ENV-002
+
+The software shall report the availability of optional capabilities (kernel-assisted copy,
+`O_NOFOLLOW`) as advisories, without failing the diagnostic when they are absent.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-ENV-003
+
+A capability probe shall never crash the diagnostic; a probe that raises shall be reported
+as an unavailable capability with its error detail.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
 ## RTY — Retry and error classification
 
 #### L2-RTY-001

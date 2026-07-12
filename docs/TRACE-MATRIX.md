@@ -30,7 +30,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 
@@ -114,6 +114,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-DST-003 | _(none)_ | `tests/test_transfer.py::test_existing_destination_collision_is_manual` | Implemented |
 | L2-DST-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-DST-005 | L3-INT-004 | _(TBD)_ | Draft |
+| L2-ENV-001 | _(none)_ | `tests/test_diagnostics.py::test_af_unix_and_fcntl_probes`<br>`tests/test_diagnostics.py::test_hash_algorithm_probe`<br>`tests/test_diagnostics.py::test_python_version_probe`<br>`tests/test_diagnostics.py::test_report_ok_and_warnings_aggregate`<br>`tests/test_diagnostics.py::test_required_present_passes_and_missing_fails`<br>`tests/test_diagnostics.py::test_sqlite_wal_probe_on_real_sqlite` | Implemented |
+| L2-ENV-002 | _(none)_ | `tests/test_diagnostics.py::test_default_checks_include_kernel_copy_only_when_enabled`<br>`tests/test_diagnostics.py::test_optional_capability_probes`<br>`tests/test_diagnostics.py::test_optional_missing_warns_not_fails` | Implemented |
 | L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
 | L2-EVT-002 | L3-EVT-003 | _(TBD)_ | Draft |
 | L2-EVT-003 | _(none)_ | _(TBD)_ | Draft |
@@ -177,12 +179,13 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-ROB-001 | _(none)_ | `tests/test_configuration.py::test_load_rejects_missing_file`<br>`tests/test_configuration.py::test_load_rejects_non_regular_file`<br>`tests/test_configuration.py::test_load_rejects_nul_byte_in_path`<br>`tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
+| L1-ROB-001 | L2-ENV-003 | `tests/test_configuration.py::test_load_rejects_missing_file`<br>`tests/test_configuration.py::test_load_rejects_non_regular_file`<br>`tests/test_configuration.py::test_load_rejects_nul_byte_in_path`<br>`tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
 
 **L2 -> L3 -> Verification Artifacts**
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
+| L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
 
 ---
 
@@ -208,6 +211,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | BWL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | LIF | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
 | RSM | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
+| ENV | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
 | DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
@@ -217,13 +221,13 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| **Total** | **11** | **132** | **39** | **70** | **23** | **79** | **23** |
+| **Total** | **11** | **135** | **39** | **73** | **23** | **82** | **23** |
 
-The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 94 of 172 (54.7%).
+**Tested by at least one test marker**: 96 of 174 (55.2%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 103 of 172 (59.9%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 105 of 174 (60.3%).
 
 ### Orphan check
 
