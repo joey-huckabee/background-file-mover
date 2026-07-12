@@ -189,6 +189,17 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   **formally withdraw** the requirements so the matrix reflects reality. Until then the
   design intent lives in the EVT requirements themselves.
 
+- **A cluster of L2 requirements is `Draft`/untraced in the matrix despite being
+  implemented.** `L2-FS-001..004` (record & verify device+inode identity, reject a
+  cross-filesystem claim, symlink policy) are implemented in `claiming.py` / `validation.py`
+  but carry no `@pytest.mark.requirement` markers, so the trace matrix shows them `Draft`;
+  `L2-ARC-003/004/006` and `L2-CFG-010` are likewise `Draft`. Run a **traceability audit**:
+  add markers (and any genuinely missing tests) for the requirements that are actually
+  satisfied, and decide implement-or-withdraw for the partial ones (e.g. there is no formal
+  injectable `FileSystem` Protocol behind `L2-ARC-003`; `L2-CFG-010`'s rich valid-options
+  error help). These are **data-safety** requirements (`L2-FS-*` covers the claim integrity),
+  so prioritise them.
+
 ## Delivered post-1.0
 
 - **Dynamic bandwidth limiting** (v0.2.0) — a userspace token-bucket throughput ceiling
