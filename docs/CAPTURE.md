@@ -19,7 +19,8 @@ authoritative spec source.
 | Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | `0f5c2df` |
 | Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | `c874e0c` |
 | Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | `52ded38` |
-| Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | _this commit_ |
+| Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | `6b436be` |
+| Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -45,44 +46,11 @@ I would like to make sure we ensure data movement integrity. Though any sort of 
 Lets get started designing this up. Explain how all this will work.  
   
 ## Recommended Architecture
-`Background File Mover` should be a **long-running background service** managed by `systemd`, not a child process that remains tied to the simulation orchestration script.
 
-The orchestration scripts will submit a transfer request and receive an acknowledgment as soon as the files have been safely claimed. The mover service will then perform the 100 GB transfer independently while the simulation system prepares for the next run.
-
-The basic flow is:
-
-```
-Simulation completes
-        │
-        ▼
-Orchestration submits transfer request
-        │
-        ▼
-Mover atomically claims/renames source files
-        │
-        ▼
-Durable job manifest is written
-        │
-        ▼
-Orchestration receives "accepted"
-        │
-        ▼
-Simulation hosts can prepare next scenario
-        │
-        ▼
-Background worker copies files
-        │
-        ▼
-Optional integrity verification
-        │
-        ▼
-Destination files are atomically published
-        │
-        ▼
-Source files are deleted only after verification
-```
-The critical design principle is:
-> A source file is never deleted merely because a copy operation was attempted. It is deleted only after the destination file has been successfully written, finalized, and verified according to the configured integrity policy.
+_(§ "Recommended Architecture" retired — see the retirement ledger at the top of this
+file. Fully transcribed into `docs/ARCHITECTURE.md` (§ What the system is, § Process
+model, § Durable per-file workflow); the deletion principle is a near-verbatim match
+there (L1-SYS-003) and in CLAUDE.md.)_
 
 ## How the Simulation Script Starts the Transfer
 
