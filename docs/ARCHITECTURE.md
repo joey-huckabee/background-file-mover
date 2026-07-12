@@ -64,12 +64,18 @@ the authoritative durable work queue (L1-SYS-007).
 | `control/server.py`, `client.py`, `dispatcher.py` | Unix-socket control plane | M3 |
 | `control/lifecycle.py` | `cancel`/`pause`/`resume` operations (`JobLifecycleService`) | v0.3.0 |
 | `service.py` | `BackgroundMoverService` lifecycle + scheduler | M3/M7 |
+| `systemd.py` | `sd_notify` readiness/watchdog via a stdlib `AF_UNIX` datagram | M7 |
 | `presentation.py` | Control-response record/enum → JSON-wire serialisation | M6 |
 | `diagnostics.py` | `doctor` environment capability checks (`EnvironmentDoctor`) | v0.4.0 |
 | `jobs/repository.py`, `sqlite_repository.py` | Durable job/file state | M4 |
+| `submission.py` | `JobSubmissionService`: validate → claim → manifest → durable record | M5 |
+| `validation.py` | `SourceValidator`: inventory, stability, symlink/roots checks | M5 |
+| `claiming.py` | `FileClaimManager`: atomic same-fs claim into the staging dir | M5 |
+| `manifests.py` | `ManifestWriter`: atomic JSON manifest (temp → fsync → rename) | M5 |
 | `transfer/coordinator.py` | Job-level orchestration: walk files, aggregate, retry/route | M6 |
 | `transfer/file_mover.py` | Per-file workflow: copy → verify → publish → delete-source | M6 |
 | `transfer/copy_engine.py` | Bounded-memory copy to temp + fsync + resume + interrupt | M6 |
+| `transfer/ratelimit.py` | Userspace token-bucket throughput limiter (`throttle`) | v0.2.0 |
 | `transfer/control_signals.py` | Thread-safe pause/cancel delivery to the copy loop | v0.3.0 |
 | `transfer/partials.py` | Remove a job's `.swit-partial-` temporaries (cancel/recovery) | v0.3.0 |
 | `transfer/integrity.py` | Hashing modes + `hmac.compare_digest` | M6 |

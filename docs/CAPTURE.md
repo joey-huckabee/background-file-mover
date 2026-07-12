@@ -31,7 +31,8 @@ authoritative spec source.
 | Copy Versus Move Semantics | TRANSCRIBED | Near-verbatim in `docs/ARCHITECTURE.md` § What the system is (claim → copy → verify → publish → delete-source; separate NFS mounts, no atomic cross-fs move; transaction-like semantics) + CLAUDE.md | `ffc85ca` |
 | Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | `60ec0b8` |
 | Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | `cab7b93` |
-| Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | _this commit_ |
+| Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | `56b371c` |
+| Proposed Application Components | MIGRATED + TRANSCRIBED | Superseded proposed layout → actual structure in `docs/ARCHITECTURE.md` § Module map (**completed** this increment: +submission/validation/claiming/manifests/systemd/ratelimit) + MAINTAINER § Repository layout. `FileMoverApplication` not built (→ `BackgroundMoverService`); `FileTransferWorker` → `FileMover` | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -160,75 +161,15 @@ ARCHITECTURE § Process model (bounded transfer pool); defaults match verbatim. 
 (L2-BWL, `throttle`, ARCHITECTURE § Bandwidth limiting).)_
 
 ## Proposed Application Components
-```
-background-file-mover/
-├── pyproject.toml
-├── README.md
-├── LICENSE
-├── config/
-│   └── file-mover.ini
-├── docs/
-│   ├── architecture.md
-│   ├── operations.md
-│   ├── recovery.md
-│   ├── requirements/
-│   │   ├── l1-system-requirements.md
-│   │   ├── l2-software-requirements.md
-│   │   └── l3-component-requirements.md
-│   └── diagrams/
-├── packaging/
-│   └── systemd/
-│       └── background-file-mover.service
-├── file_mover/
-│   ├── __init__.py
-│   ├── __main__.py
-│   ├── application.py
-│   ├── cli.py
-│   ├── configuration.py
-│   ├── constants.py
-│   ├── exceptions.py
-│   ├── logging_config.py
-│   ├── models.py
-│   ├── service.py
-│   ├── submission.py
-│   ├── validation.py
-│   ├── claiming.py
-│   ├── transfer.py
-│   ├── integrity.py
-│   ├── manifests.py
-│   ├── recovery.py
-│   ├── repositories/
-│   │   ├── __init__.py
-│   │   ├── job_repository.py
-│   │   └── sqlite_job_repository.py
-│   └── interfaces/
-│       ├── __init__.py
-│       ├── clock.py
-│       ├── file_system.py
-│       └── job_store.py
-└── tests/
-    ├── unit/
-    ├── integration/
-    ├── system/
-    ├── fault_injection/
-    └── fixtures/
-```
-#### Principal Classes
-```
-FileMoverApplication
-BackgroundMoverService
-JobSubmissionService
-SourceValidator
-FileClaimManager
-TransferCoordinator
-FileTransferWorker
-IntegrityVerifier
-ManifestWriter
-RecoveryManager
-SQLiteJobRepository
-ApplicationConfiguration
-```
-Class-based does not mean every small function should become a class. Pure helper functions remain appropriate when they have no state or lifecycle. The primary behavior and dependency boundaries should be class-oriented.
+
+_(§ "Proposed Application Components" retired — see the retirement ledger at the top of
+this file. This was a proposed layout, superseded by the actual `src/file_mover/`
+structure documented in `docs/ARCHITECTURE.md` § Module map (completed this increment) +
+`docs/MAINTAINER-GUIDE.md` § Repository layout. Principal classes all shipped except
+`FileMoverApplication` (not built — consolidated into `BackgroundMoverService`); the
+proposed `FileTransferWorker` shipped as `FileMover` (`transfer/file_mover.py`). The
+"class-based where there is state, functions otherwise" principle → ARCHITECTURE module
+map note.)_
 
 ## Proposed CLI
 ```shell
