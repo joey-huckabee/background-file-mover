@@ -118,6 +118,14 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Per-job submission policy overrides — optional `submit` flags (`--integrity-mode`,
+  `--hash-algorithm`, `--stability-check`/`--stability-polls`/`--stability-poll-interval`)
+  that tune policy for a single job, each **constrained by system policy** so a submitter can
+  never weaken a required setting (e.g. cannot disable hashing when the service mandates it).
+  The resolved values are stored in the job record so recovery reuses them.
+- Persisted per-phase job timings — record `perf_counter` durations for submission, source
+  hashing, copy, verification, and recovery on each completed job and surface them via
+  `status`/`stats`, giving operators visibility into where time goes on a ~100 GB transfer.
 - File-size submission policies — optional `[validation]`/`[stability]` limits that reject a
   job **before claiming** when a file is empty (`allow_empty_files = false`) or exceeds a
   per-file / per-job size ceiling (`maximum_file_size_bytes`, `maximum_job_size_bytes`,
