@@ -63,8 +63,10 @@ the authoritative durable work queue (L1-SYS-007).
 | `control/protocol.py` | Length-prefixed JSON framing | M3 |
 | `control/server.py`, `client.py`, `dispatcher.py` | Unix-socket control plane | M3 |
 | `service.py` | `BackgroundMoverService` lifecycle + scheduler | M3/M7 |
+| `presentation.py` | Control-response record/enum → JSON-wire serialisation | M6 |
 | `jobs/repository.py`, `sqlite_repository.py` | Durable job/file state | M4 |
-| `transfer/coordinator.py` | Drives files through the workflow; owns transitions | M6 |
+| `transfer/coordinator.py` | Job-level orchestration: walk files, aggregate, retry/route | M6 |
+| `transfer/file_mover.py` | Per-file workflow: copy → verify → publish → delete-source | M6 |
 | `transfer/copy_engine.py` | Bounded-memory copy to temp + fsync | M6 |
 | `transfer/integrity.py` | Hashing modes + `hmac.compare_digest` | M6 |
 | `transfer/retry.py` | Error classification + backoff scheduling | M6 |

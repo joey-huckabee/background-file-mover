@@ -13,7 +13,8 @@ from file_mover.constants import PROTOCOL_VERSION
 from file_mover.jobs.models import JobRecord, JobState
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
 from file_mover.manifests import ManifestWriter
-from file_mover.service import BackgroundMoverService, _resolve_state_selector
+from file_mover.presentation import resolve_state_selector as _resolve_state_selector
+from file_mover.service import BackgroundMoverService
 from file_mover.submission import JobSubmissionService
 from file_mover.validation import SourceValidator
 
