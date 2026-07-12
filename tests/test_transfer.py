@@ -1,0 +1,333 @@
+"""Tests for the transfer engine: copy, integrity, publish, delete, and retry."""
+
+from __future__ import annotations
+
+import errno
+import hashlib
+from pathlib import Path
+
+import pytest
+
+from file_mover.claiming import FileClaimManager
+from file_mover.configuration import StabilityConfig
+from file_mover.exceptions import CopyError, DestinationWriteError
+from file_mover.jobs.models import (
+    ErrorDisposition,
+    ExistingDestinationPolicy,
+    HashAlgorithm,
+    IntegrityMode,
+    JobState,
+)
+from file_mover.jobs.sqlite_repository import SQLiteJobRepository
+from file_mover.manifests import ManifestWriter
+from file_mover.submission import JobSubmissionService, SubmissionRequest
+from file_mover.transfer.coordinator import TransferCoordinator
+from file_mover.transfer.copy_engine import BufferedFileCopyEngine, CopyOutcome
+from file_mover.transfer.integrity import IntegrityVerifier
+from file_mover.transfer.retry import ErrorClassifier, compute_backoff
+from file_mover.validation import SourceValidator
+
+_BUFFER = 64 * 1024
+
+
+def _coordinator(
+    tmp_path: Path,
+    repo: SQLiteJobRepository,
+    *,
+    integrity_enabled: bool = True,
+    integrity_mode: IntegrityMode = IntegrityMode.SOURCE_AND_DESTINATION_HASH,
+    policy: ExistingDestinationPolicy = ExistingDestinationPolicy.FAIL,
+    copy_engine: object | None = None,
+) -> TransferCoordinator:
+    return TransferCoordinator(
+        repository=repo,
+        copy_engine=copy_engine  # type: ignore[arg-type]
+        or BufferedFileCopyEngine(
+            buffer_size_bytes=_BUFFER, temporary_file_prefix=".swit-partial-"
+        ),
+        integrity_verifier=IntegrityVerifier(
+            algorithm=HashAlgorithm.SHA256, buffer_size_bytes=_BUFFER
+        ),
+        error_classifier=ErrorClassifier(),
+        claim_directory_name=".swit-moving",
+        integrity_enabled=integrity_enabled,
+        integrity_mode=integrity_mode,
+        destination_policy=policy,
+        retry_initial_delay_seconds=10.0,
+        retry_max_delay_seconds=900.0,
+        clock=lambda: 1000.0,
+    )
+
+
+def _submit(
+    tmp_path: Path, repo: SQLiteJobRepository, files: dict[str, bytes]
+) -> tuple[str, Path, Path]:
+    source_root = tmp_path / "recordings"
+    dest_root = tmp_path / "processing"
+    source_root.mkdir(exist_ok=True)
+    dest_root.mkdir(exist_ok=True)
+    for name, content in files.items():
+        path = source_root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    submission = JobSubmissionService(
+        validator=SourceValidator(
+            claim_directory_name=".swit-moving", reject_symbolic_links=True, sleeper=lambda _s: None
+        ),
+        claim_manager=FileClaimManager(claim_directory_name=".swit-moving"),
+        manifest_writer=ManifestWriter(tmp_path / "manifests"),
+        repository=repo,
+        allowed_source_roots=[source_root],
+        allowed_destination_roots=[dest_root],
+        stability=StabilityConfig(enabled=False, poll_count=2, poll_interval_seconds=0.0),
+        job_id_factory=lambda: "job-1",
+    )
+    result = submission.submit(SubmissionRequest("req-1", "scn", source_root, dest_root))
+    assert result.accepted and result.job_id is not None
+    return result.job_id, source_root, dest_root
+
+
+@pytest.mark.requirement("L2-DPR-006")
+def test_full_transfer_publishes_and_deletes_source(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(
+        tmp_path, repo, {"host01.dat": b"aaa", "sub/host02.dat": b"bbbb"}
+    )
+    coordinator = _coordinator(tmp_path, repo)
+
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    # Destinations published with correct content.
+    assert (dest_root / "host01.dat").read_bytes() == b"aaa"
+    assert (dest_root / "sub" / "host02.dat").read_bytes() == b"bbbb"
+    # Claimed sources deleted; no temp files remain.
+    staging = source_root / ".swit-moving" / job_id
+    assert not (staging / "host01.dat").exists()
+    assert not any(p.name.startswith(".swit-partial-") for p in dest_root.rglob("*"))
+    job = repo.get_job(job_id)
+    assert job is not None and job.state is JobState.COMPLETED
+    assert job.bytes_copied == 7
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DPR-003")
+@pytest.mark.parametrize(
+    ("enabled", "mode"),
+    [
+        (False, IntegrityMode.METADATA),
+        (True, IntegrityMode.METADATA),
+        (True, IntegrityMode.SOURCE_HASH),
+    ],
+)
+def test_transfer_across_integrity_modes(
+    tmp_path: Path, enabled: bool, mode: IntegrityMode
+) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    coordinator = _coordinator(tmp_path, repo, integrity_enabled=enabled, integrity_mode=mode)
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    assert (dest_root / "a.dat").read_bytes() == b"hello"
+    repo.close()
+
+
+@pytest.mark.requirement("L3-INT-007")
+def test_hash_mismatch_retains_source_and_temp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    coordinator = _coordinator(tmp_path, repo)
+    # Force differing source/destination digests (path-dependent "hash").
+    monkeypatch.setattr(IntegrityVerifier, "hash_file", lambda _self, path: str(path))
+
+    assert coordinator.process_job(job_id) is JobState.MANUAL_INTERVENTION
+    # Source retained in staging; destination not published; temp retained.
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()
+    assert not (dest_root / "a.dat").exists()
+    assert any(p.name.startswith(".swit-partial-") for p in dest_root.iterdir())
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DST-003")
+def test_existing_destination_collision_is_manual(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    (dest_root / "a.dat").write_bytes(b"DIFFERENT")  # pre-existing, differing destination
+    coordinator = _coordinator(tmp_path, repo, policy=ExistingDestinationPolicy.FAIL)
+
+    assert coordinator.process_job(job_id) is JobState.MANUAL_INTERVENTION
+    assert (dest_root / "a.dat").read_bytes() == b"DIFFERENT"  # never overwritten
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # source retained
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DST-002")
+def test_existing_identical_destination_is_reused(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    (dest_root / "a.dat").write_bytes(b"hello")  # already present and identical
+    coordinator = _coordinator(tmp_path, repo, policy=ExistingDestinationPolicy.VERIFY_AND_REUSE)
+
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    assert (dest_root / "a.dat").read_bytes() == b"hello"
+    # Claimed source dropped (idempotent completion).
+    assert not (source_root / ".swit-moving" / job_id / "a.dat").exists()
+    repo.close()
+
+
+class _FailingCopyEngine:
+    """A copy engine whose copy_to_temp always raises the given error."""
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    def copy_to_temp(self, *_args: object, **_kwargs: object) -> CopyOutcome:
+        raise self._error
+
+    def publish(self, *_args: object, **_kwargs: object) -> None:  # pragma: no cover - unused
+        raise AssertionError("publish should not be called")
+
+
+@pytest.mark.requirement("L2-RTY-005")
+def test_retryable_failure_schedules_retry(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    failure = CopyError("nfs stalled")
+    failure.__cause__ = OSError(errno.EIO, "I/O error")
+    coordinator = _coordinator(tmp_path, repo, copy_engine=_FailingCopyEngine(failure))
+
+    assert coordinator.process_job(job_id) is JobState.RETRY_WAIT
+    job = repo.get_job(job_id)
+    assert job is not None
+    assert job.next_retry_time == 1000.0 + 10.0  # clock + first backoff
+    assert job.attempt_count == 1
+    # Source retained.
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()
+    repo.close()
+
+
+@pytest.mark.requirement("L2-RTY-002")
+def test_permanent_failure_retains_and_fails(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    failure = CopyError("permission")
+    failure.__cause__ = OSError(errno.EACCES, "permission denied")
+    coordinator = _coordinator(tmp_path, repo, copy_engine=_FailingCopyEngine(failure))
+
+    assert coordinator.process_job(job_id) is JobState.FAILED_RETAINED
+    repo.close()
+
+
+class _ShortCopyEngine(BufferedFileCopyEngine):
+    """A copy engine that under-reports the byte count to force a size mismatch."""
+
+    def copy_to_temp(
+        self, source: Path, destination_dir: Path, job_id: str, file_id: str
+    ) -> CopyOutcome:
+        outcome = super().copy_to_temp(source, destination_dir, job_id, file_id)
+        return CopyOutcome(outcome.temporary_path, outcome.bytes_written - 1)
+
+
+@pytest.mark.requirement("L2-DPR-003")
+def test_size_mismatch_is_manual_and_retains(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    engine = _ShortCopyEngine(buffer_size_bytes=_BUFFER, temporary_file_prefix=".swit-partial-")
+    coordinator = _coordinator(tmp_path, repo, integrity_enabled=False, copy_engine=engine)
+    assert coordinator.process_job(job_id) is JobState.MANUAL_INTERVENTION
+    assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # retained
+    assert not (dest_root / "a.dat").exists()
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DEL-003")
+def test_missing_claimed_source_fails_and_retains(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    (source_root / ".swit-moving" / job_id / "a.dat").unlink()  # claimed source vanished
+    coordinator = _coordinator(tmp_path, repo)
+    assert coordinator.process_job(job_id) is JobState.FAILED_RETAINED
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DST-002")
+def test_identical_destination_reused_by_size_only(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    (dest_root / "a.dat").write_bytes(b"world")  # same size; integrity disabled -> reused
+    coordinator = _coordinator(
+        tmp_path,
+        repo,
+        integrity_enabled=False,
+        integrity_mode=IntegrityMode.METADATA,
+        policy=ExistingDestinationPolicy.VERIFY_AND_REUSE,
+    )
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    repo.close()
+
+
+@pytest.mark.requirement("L2-RTY-005")
+def test_compute_backoff_zero_attempt_uses_initial() -> None:
+    assert compute_backoff(0, initial_seconds=5.0, maximum_seconds=100.0) == 5.0
+
+
+@pytest.mark.requirement("L2-RTY-001")
+def test_error_classifier() -> None:
+    classifier = ErrorClassifier()
+    assert classifier.classify(_os_error(errno.EIO)) is ErrorDisposition.RETRY
+    assert classifier.classify(_os_error(errno.ENOSPC)) is ErrorDisposition.RETAIN_AND_FAIL
+    assert classifier.classify(_os_error(errno.EXDEV)) is ErrorDisposition.REJECT_JOB
+    assert classifier.classify(RuntimeError("?")) is ErrorDisposition.RETAIN_AND_FAIL
+
+
+@pytest.mark.requirement("L2-RTY-005")
+def test_compute_backoff_is_bounded() -> None:
+    assert compute_backoff(1, initial_seconds=10.0, maximum_seconds=900.0) == 10.0
+    assert compute_backoff(3, initial_seconds=10.0, maximum_seconds=900.0) == 40.0
+    assert compute_backoff(20, initial_seconds=10.0, maximum_seconds=900.0) == 900.0
+
+
+@pytest.mark.requirement("L3-INT-001")
+@pytest.mark.requirement("L3-INT-006")
+@pytest.mark.requirement("L3-PY-002")
+def test_integrity_verifier_matches_hashlib(tmp_path: Path) -> None:
+    path = tmp_path / "f.dat"
+    path.write_bytes(b"some bytes")
+    verifier = IntegrityVerifier(algorithm=HashAlgorithm.SHA256, buffer_size_bytes=4)
+    assert verifier.hash_file(path) == hashlib.sha256(b"some bytes").hexdigest()
+    assert IntegrityVerifier.compare("a", "a") is True
+    assert IntegrityVerifier.compare("a", "b") is False
+
+
+@pytest.mark.requirement("L2-COPY-006")
+@pytest.mark.requirement("L2-DPR-005")
+@pytest.mark.requirement("L3-PY-003")
+def test_copy_engine_creates_temp_exclusively(tmp_path: Path) -> None:
+    source = tmp_path / "src.dat"
+    source.write_bytes(b"payload")
+    dest_dir = tmp_path / "dest"
+    engine = BufferedFileCopyEngine(buffer_size_bytes=3, temporary_file_prefix=".swit-partial-")
+    outcome = engine.copy_to_temp(source, dest_dir, "job", "file")
+    assert outcome.bytes_written == 7
+    assert outcome.temporary_path.read_bytes() == b"payload"
+    # A second copy to the same temp path fails (exclusive create).
+    with pytest.raises(DestinationWriteError):
+        engine.copy_to_temp(source, dest_dir, "job", "file")
+    # Publishing moves the temp to the final name.
+    final = tmp_path / "final.dat"
+    engine.publish(outcome.temporary_path, final)
+    assert final.read_bytes() == b"payload"
+    assert not outcome.temporary_path.exists()
+
+
+def _os_error(code: int) -> OSError:
+    return OSError(code, "err")

@@ -76,7 +76,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-COPY-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-004 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-COPY-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-COPY-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-006 | _(none)_ | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
 | L2-COPY-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-009 | _(none)_ | _(TBD)_ | Draft |
@@ -93,18 +93,18 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-010 | _(none)_ | `tests/test_cli.py::test_health_renders_json`<br>`tests/test_cli.py::test_health_reports_service_unavailable_when_down`<br>`tests/test_service.py::test_health_handler` | Implemented |
 | L2-DEL-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-DEL-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DEL-003 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
 | L2-DEL-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-DPR-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DPR-002 | L3-INT-005 | _(TBD)_ | Draft |
-| L2-DPR-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006, L3-PY-002 | `tests/test_models.py::test_hash_algorithms_are_supported_by_hashlib` | Partially Implemented |
-| L2-DPR-005 | L3-PY-003 | _(TBD)_ | Draft |
-| L2-DPR-006 | _(none)_ | _(TBD)_ | Draft |
-| L2-DPR-007 | L3-INT-007 | _(TBD)_ | Draft |
+| L2-DPR-003 | _(none)_ | `tests/test_transfer.py::test_size_mismatch_is_manual_and_retains`<br>`tests/test_transfer.py::test_transfer_across_integrity_modes` | Implemented |
+| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006, L3-PY-002 | `tests/test_models.py::test_hash_algorithms_are_supported_by_hashlib`<br>`tests/test_transfer.py::test_integrity_verifier_matches_hashlib` | Partially Implemented |
+| L2-DPR-005 | L3-PY-003 | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
+| L2-DPR-006 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
+| L2-DPR-007 | L3-INT-007 | `tests/test_transfer.py::test_hash_mismatch_retains_source_and_temp` | Implemented |
 | L2-DST-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-DST-002 | _(none)_ | `tests/test_models.py::test_existing_destination_policy_excludes_overwrite` | Implemented |
-| L2-DST-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DST-002 | _(none)_ | `tests/test_models.py::test_existing_destination_policy_excludes_overwrite`<br>`tests/test_transfer.py::test_existing_identical_destination_is_reused`<br>`tests/test_transfer.py::test_identical_destination_reused_by_size_only` | Implemented |
+| L2-DST-003 | _(none)_ | `tests/test_transfer.py::test_existing_destination_collision_is_manual` | Implemented |
 | L2-DST-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-DST-005 | L3-INT-004 | _(TBD)_ | Draft |
 | L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
@@ -135,11 +135,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-POSIX-010 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-011 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-012 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-001 | _(none)_ | `tests/test_models.py::test_error_dispositions_cover_all_outcomes` | Implemented |
-| L2-RTY-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-001 | _(none)_ | `tests/test_models.py::test_error_dispositions_cover_all_outcomes`<br>`tests/test_transfer.py::test_error_classifier` | Implemented |
+| L2-RTY-002 | _(none)_ | `tests/test_transfer.py::test_permanent_failure_retains_and_fails` | Implemented |
 | L2-RTY-003 | _(none)_ | `tests/test_repository.py::test_record_job_error_increments_attempt` | Implemented |
 | L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-005 | _(none)_ | `tests/test_transfer.py::test_compute_backoff_is_bounded`<br>`tests/test_transfer.py::test_compute_backoff_zero_attempt_uses_initial`<br>`tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
 | L2-RTY-006 | _(none)_ | _(TBD)_ | Draft |
 | L2-STO-001 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-002 | _(none)_ | _(TBD)_ | Draft |
@@ -162,7 +162,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |
 |----------|----|----|-----|-----------|-----------|-------------|-------------|
 | SYS | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| DPR | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| DPR | 0 | 7 | 0 | 3 | 0 | 3 | 0 |
 | CFG | 0 | 11 | 0 | 10 | 0 | 10 | 0 |
 | EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
 | CLI | 0 | 11 | 5 | 5 | 2 | 5 | 2 |
@@ -171,22 +171,22 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | POSIX | 0 | 12 | 0 | 2 | 0 | 2 | 0 |
 | CLN | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
-| COPY | 0 | 10 | 0 | 1 | 0 | 2 | 0 |
-| RTY | 0 | 6 | 0 | 2 | 0 | 2 | 0 |
-| DST | 0 | 5 | 0 | 1 | 0 | 1 | 0 |
-| DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| COPY | 0 | 10 | 0 | 2 | 0 | 3 | 0 |
+| RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
+| DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
+| DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
 | CTL | 0 | 10 | 4 | 9 | 4 | 10 | 4 |
 | JOB | 0 | 6 | 2 | 6 | 2 | 6 | 2 |
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
-| INT | 0 | 0 | 7 | 0 | 1 | 0 | 1 |
-| PY | 0 | 0 | 8 | 0 | 2 | 0 | 2 |
-| **Total** | **10** | **113** | **33** | **41** | **13** | **50** | **13** |
+| INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
+| PY | 0 | 0 | 8 | 0 | 4 | 0 | 4 |
+| **Total** | **10** | **113** | **33** | **49** | **17** | **58** | **17** |
 
 The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 54 of 146 (37.0%).
+**Tested by at least one test marker**: 66 of 146 (45.2%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 63 of 146 (43.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 75 of 146 (51.4%).
 
 ### Orphan check
 

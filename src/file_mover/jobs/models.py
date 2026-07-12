@@ -181,6 +181,7 @@ ALLOWED_JOB_TRANSITIONS: dict[JobState, frozenset[JobState]] = {
     JobState.COPYING: frozenset(
         {
             JobState.VERIFYING,
+            JobState.COMPLETED,
             JobState.RETRY_WAIT,
             JobState.FAILED_RETAINED,
             JobState.MANUAL_INTERVENTION,
