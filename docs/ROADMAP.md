@@ -118,6 +118,12 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Manifest per-file hashes for standalone downstream verification — record each file's
+  source (and destination) hash in the JSON manifest, not only in the SQLite `FileRecord`,
+  so a downstream consumer can verify a published recording without the mover's database.
+  Requires rewriting the manifest after the `HASHING_SOURCE` step (the manifest is written
+  at submission, before the hashes exist). Job `created_at` and integrity policy already
+  live in both the record and the manifest (L2-JOB-007); this extends that parity to hashes.
 - Filesystem spool-queue control transport — an alternative to the `AF_UNIX` control
   socket in which `submit` writes a JSON job manifest into a spool directory
   (`queue/` → `processing/` → `completed/` / `failed/`) that the service polls, instead of a

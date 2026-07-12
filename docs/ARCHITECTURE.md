@@ -105,6 +105,41 @@ QUEUED / RETRY_WAIT / PAUSED / COPYING / … →  CANCELLED_RETAINED   (cancel)
 no work until an explicit `resume`. A file counts as fully moved only at `MOVE_COMPLETE`
 (copied → verified → published → source-deleted), never merely at `COPIED`.
 
+## Durable state and the manifest
+
+Authoritative job/file state lives in **SQLite** (`jobs` and `files` tables via
+`SQLiteJobRepository`, WAL + `synchronous=FULL`) — the machine-controlled work queue that
+drives every transition and recovery decision (L1-SYS-007). Each accepted job is a
+`JobRecord` (id, state, roots, `created_at`/`updated_at`, counts, retry fields, and the
+integrity policy: `hash_algorithm` + `integrity_mode`); each file is a `FileRecord` (id,
+relative path, state, sizes, `source_hash`/`destination_hash`).
+
+Alongside the database, `ManifestWriter` writes one JSON **manifest** per job under the
+service's `manifests/` directory (temp → `fsync` → atomic rename). The manifest is the
+human-readable, portable provenance record; SQLite is the transactional state. The two are
+kept **consistent**: a job's `created_at` and integrity policy are stamped **once** at
+submission and written to both, so they never disagree (L2-JOB-007 / L3-JOB-003). The
+shipped manifest:
+
+```json
+{
+  "schema_version": 1,
+  "job_id": "8f6e4ad6…",
+  "scenario_id": "scenario-001",
+  "created_at": 1752342600.0,
+  "source_root": "/recordings/current-run",
+  "destination_root": "/processing/scenario-001",
+  "integrity": {"mode": "source-and-destination-hash", "algorithm": "sha256"},
+  "files": [{"relative_path": "host01.dat", "size_bytes": 18497327104}]
+}
+```
+
+Per-file **hashes** are currently recorded in the SQLite `FileRecord`
+(`source_hash`/`destination_hash`), not the manifest — they are computed during
+`HASHING_SOURCE`/copy, after the manifest is written. Adding them to the manifest for
+standalone downstream verification is a roadmap item (it requires a post-hash manifest
+rewrite; see `docs/ROADMAP.md`).
+
 ## Claiming
 
 Before any bytes are copied, `FileClaimManager` (`claiming.py`) **claims** each submitted

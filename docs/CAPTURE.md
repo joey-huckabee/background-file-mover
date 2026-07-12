@@ -24,7 +24,8 @@ authoritative spec source.
 | How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | `4f1f839` |
 | Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | `04089e4` |
 | The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | `0200bff` |
-| Preventing the Mover From Claiming Files Still Being Written | TRANSCRIBED (1 deliberate non-adoption) | Readiness contract → `docs/CONFIG-REFERENCE.md` § [stability] note; defensive checks → `SourceValidator` (validation.py: regular-file + symlink + roots + deterministic enumeration, L2 line 442) + `[stability]` (poll_count/interval) + `[paths]` + claimed dev/inode identity (L3-SUB). **Not carried:** "six-host set present when required" — service is agnostic to expected file counts; completeness is the orchestration's responsibility | _this commit_ |
+| Preventing the Mover From Claiming Files Still Being Written | TRANSCRIBED (1 deliberate non-adoption) | Readiness contract → `docs/CONFIG-REFERENCE.md` § [stability] note; defensive checks → `SourceValidator` (validation.py: regular-file + symlink + roots + deterministic enumeration, L2 line 442) + `[stability]` (poll_count/interval) + `[paths]` + claimed dev/inode identity (L3-SUB). **Not carried:** "six-host set present when required" — service is agnostic to expected file counts; completeness is the orchestration's responsibility | `a459a81` |
+| Durable Job State | MIGRATED + TRANSCRIBED | State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim); job/file fields → `jobs/models.py` records. Manifest format + why-both rationale **migrated** to ARCHITECTURE § Durable state and the manifest (shipped format — CAPTURE's example was a superseded proposal). `created_at` + integrity now in **both** record and manifest (L2-JOB-007, implemented this batch); per-file manifest hashes → ROADMAP § Deferred | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -92,116 +93,14 @@ the service is agnostic to expected file counts; job completeness is the orchest
 responsibility per the readiness contract.)_
 
 ## Durable Job State
-A transfer should be treated as a state machine.
-```
-SUBMITTED
-    │
-    ▼
-VALIDATING
-    │
-    ▼
-CLAIMING
-    │
-    ▼
-CLAIMED
-    │
-    ▼
-HASHING_SOURCE        optional
-    │
-    ▼
-QUEUED
-    │
-    ▼
-COPYING
-    │
-    ▼
-VERIFYING
-    │
-    ▼
-PUBLISHING
-    │
-    ▼
-SOURCE_CLEANUP
-    │
-    ▼
-COMPLETED
-```
-Failure states can include:
-```
-RETRY_WAIT
-FAILED_RETAINED
-CANCELLED_RETAINED
-MANUAL_INTERVENTION
-```
-The word `RETAINED` is important: a failed transfer retains the claimed source data.
 
-#### SQLite State
-SQLite is part of Python and gives us transactional job state.
-
-A basic job record could contain:
-```
-job_id
-scenario_id
-submission_time
-source_root
-destination_root
-state
-attempt_count
-next_retry_time
-hash_algorithm
-verification_mode
-file_count
-total_bytes
-bytes_copied
-last_error
-created_by
-service_instance
-```
-A file record could contain:
-```
-job_id
-relative_path
-claimed_source_path
-destination_path
-temporary_destination_path
-size_bytes
-source_mtime_ns
-source_hash
-destination_hash
-bytes_copied
-state
-attempt_count
-last_error
-```
-This allows the service to restart and determine exactly which files were completed.
-
-#### Why Both SQLite and a Manifest?
-
-SQLite is best for machine-controlled state transitions. A manifest is best for data provenance and human inspection.
-
-A manifest might look like:
-```
-{
-  "schema_version": 1,
-  "job_id": "8f6e4ad6-64f0-4ccd-bf71-92d96ef6190a",
-  "scenario_id": "scenario-001",
-  "created_at": "2026-07-10T15:30:00Z",
-  "source_root": "/recordings/current-run/.moving/8f6e4ad6",
-  "destination_root": "/processing/scenario-001",
-  "integrity": {
-    "enabled": true,
-    "algorithm": "sha256"
-  },
-  "files": [
-    {
-      "relative_path": "host01.dat",
-      "size_bytes": 18497327104,
-      "sha256": "..."
-    }
-  ]
-}
-```
-The manifest must be written before transfer starts when source hashing is enabled.
+_(§ "Durable Job State" retired — see the retirement ledger at the top of this file.
+State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim). Job/file record
+fields → `jobs/models.py` `JobRecord`/`FileRecord`. Manifest format + SQLite-vs-manifest
+rationale → `docs/ARCHITECTURE.md` § Durable state and the manifest (shipped format; note
+CAPTURE's example was a superseded proposal). created_at + integrity are now recorded in
+BOTH the record and the manifest (L2-JOB-007); per-file hashes in the manifest are a
+ROADMAP § Deferred item. Manifest-before-copy-when-hashing → L3-INT-003.)_
 
 ## Hashing and Integrity Modes
 Hashing 100 GB of data adds a meaningful amount of source disk I/O. If files are read once to hash and again to copy, the application may read the entire dataset twice.
