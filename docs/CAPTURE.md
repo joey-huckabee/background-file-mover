@@ -25,7 +25,8 @@ authoritative spec source.
 | Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | `04089e4` |
 | The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | `0200bff` |
 | Preventing the Mover From Claiming Files Still Being Written | TRANSCRIBED (1 deliberate non-adoption) | Readiness contract → `docs/CONFIG-REFERENCE.md` § [stability] note; defensive checks → `SourceValidator` (validation.py: regular-file + symlink + roots + deterministic enumeration, L2 line 442) + `[stability]` (poll_count/interval) + `[paths]` + claimed dev/inode identity (L3-SUB). **Not carried:** "six-host set present when required" — service is agnostic to expected file counts; completeness is the orchestration's responsibility | `a459a81` |
-| Durable Job State | MIGRATED + TRANSCRIBED | State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim); job/file fields → `jobs/models.py` records. Manifest format + why-both rationale **migrated** to ARCHITECTURE § Durable state and the manifest (shipped format — CAPTURE's example was a superseded proposal). `created_at` + integrity now in **both** record and manifest (L2-JOB-007, implemented this batch); per-file manifest hashes → ROADMAP § Deferred | _this commit_ |
+| Durable Job State | MIGRATED + TRANSCRIBED | State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim); job/file fields → `jobs/models.py` records. Manifest format + why-both rationale **migrated** to ARCHITECTURE § Durable state and the manifest (shipped format — CAPTURE's example was a superseded proposal). `created_at` + integrity now in **both** record and manifest (L2-JOB-007, implemented this batch); per-file manifest hashes → ROADMAP § Deferred | `38cb70a` |
+| Hashing and Integrity Modes | MIGRATED + TRANSCRIBED | Modes 1/2/4 → `IntegrityMode` enum + `[integrity] mode` + `transfer/integrity.py`; algorithms (sha256 default / sha512 / blake2b, avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`. Mode 3 (streaming hash-while-copy, unbuilt) **migrated** to ROADMAP § Deferred as a source-I/O optimization | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -103,80 +104,13 @@ BOTH the record and the manifest (L2-JOB-007); per-file hashes in the manifest a
 ROADMAP § Deferred item. Manifest-before-copy-when-hashing → L3-INT-003.)_
 
 ## Hashing and Integrity Modes
-Hashing 100 GB of data adds a meaningful amount of source disk I/O. If files are read once to hash and again to copy, the application may read the entire dataset twice.
 
-We should therefore define integrity levels.
-
-#### Mode 1: Metadata Only
-```
-integrity_mode = metadata
-```
-
-Validate:
-
-* File size
-* Relative path
-* File type
-* Destination file size
-* Expected number of files
-
-This is fastest but does not detect every possible corruption.
-
-#### Mode 2: Hash Before Copy
-```
-integrity_mode = source_hash
-```
-Process:
-
-1. Hash source.
-2. Write hash into the durable manifest.
-3. Copy source.
-4. Hash destination.
-5. Compare hashes.
-6. Delete source only after a match.
-
-This exactly satisfies the stated requirement that the hash be written into a file before the file is moved.
-
-It is also the most I/O-intensive mode.
-
-#### Mode 3: Hash While Copying
-```
-integrity_mode = streaming_hash
-```
-Process:
-
-1. Copy the file in chunks.
-2. Update the hash as chunks are copied.
-3. Write the completed source-stream hash into the manifest.
-4. Re-read and hash the destination.
-5. Compare.
-
-This avoids separately reading the source before copying, but it does not write the completed hash before transfer begins. It therefore does not satisfy the strict interpretation of your initial requirement.
-
-#### Mode 4: Source Hash Plus Destination Hash
-This should be the highest-assurance mode and likely the production default when integrity verification is enabled:
-```
-hash source
-persist manifest
-copy
-hash destination
-compare
-publish
-delete source
-```
-#### Hash Algorithms
-Using the standard library, appropriate choices include:
-
-* `sha256`: strong and broadly understood.
-* `sha512`: strong but produces larger values without a meaningful operational advantage here.
-* `blake2b`: fast, secure, and available in hashlib.
-
-I recommend:
-```
-Default algorithm: SHA-256
-Configurable alternatives: BLAKE2b and SHA-512
-```
-Avoid MD5 as a primary integrity standard, even though accidental-corruption detection is not the same as cryptographic security.
+_(§ "Hashing and Integrity Modes" retired — see the retirement ledger at the top of this
+file. Modes 1/2/4 (metadata / source-hash / source-and-destination-hash) → `IntegrityMode`
+enum + `[integrity] mode` + `transfer/integrity.py` + ARCHITECTURE. Algorithms (sha256
+default, sha512, blake2b; avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`.
+Mode 3 (streaming hash-while-copy) was not built — migrated to `docs/ROADMAP.md`
+§ Deferred as a source-I/O optimization.)_
 
 ## Safe Destination Publication
 The mover should never copy directly to the final destination filename.

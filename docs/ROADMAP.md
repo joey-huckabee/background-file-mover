@@ -118,6 +118,13 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Streaming hash-while-copy integrity mode — hash the source **during** the copy loop
+  instead of in a separate pre-copy read, so a ~100 GB dataset is read once, not twice
+  (roughly halving source I/O for `source-hash` / `source-and-destination-hash` jobs). It
+  was deferred in the first design because it cannot persist the *completed* source hash
+  before the transfer begins; under `source-and-destination-hash` that is moot since the
+  destination is re-hashed and compared regardless. Would add a fourth `[integrity] mode`
+  value alongside the current `metadata` / `source-hash` / `source-and-destination-hash`.
 - Manifest per-file hashes for standalone downstream verification — record each file's
   source (and destination) hash in the JSON manifest, not only in the SQLite `FileRecord`,
   so a downstream consumer can verify a published recording without the mover's database.
