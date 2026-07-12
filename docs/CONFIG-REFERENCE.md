@@ -47,6 +47,7 @@ A misspelled key fails loudly rather than silently disabling a feature.
 | `max_concurrent_jobs` | int ≥ 1 | `1` | One active job; tune after measuring load. |
 | `max_concurrent_files` | int ≥ 1 | `2` | Files copied concurrently within a job. |
 | `copy_buffer_size_bytes` | int ≥ 65536 | `8388608` | Bounded copy buffer (64 KiB floor, 8 MiB default). |
+| `max_bytes_per_second` | int ≥ 0 | `0` | Aggregate copy-throughput ceiling in bytes/sec across all concurrent copies (0 = unlimited). A non-zero limit forces the buffered copy path (`copy_file_range` cannot be paced). Adjustable at runtime with `file-mover throttle`; current value shown by `file-mover health`. |
 | `retry_limit` | int ≥ 0 | `10` | Max automatic attempts (0 disables retries). |
 | `retry_initial_delay_seconds` | float > 0 | `10` | Backoff floor. |
 | `retry_max_delay_seconds` | float | `900` | Must be ≥ `retry_initial_delay_seconds`. |

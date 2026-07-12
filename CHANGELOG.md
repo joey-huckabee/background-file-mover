@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dynamic bandwidth limiting.** A configurable aggregate copy-throughput ceiling,
+  `[transfer] max_bytes_per_second` (bytes/sec; `0` = unlimited), enforced in userspace by
+  a thread-safe token bucket shared across all concurrent copies — no `tc`/cgroup or
+  `libsystemd` dependency (L2-BWL-001/003/004, L3-PY-011).
+- **`file-mover throttle <bytes-per-second>`** control command that retunes the live limit
+  without restarting the service (applies to in-flight copies); accepts SI/IEC suffixes
+  (`50MB`, `1GiB`). The current ceiling is reported as `max_bytes_per_second` in
+  `file-mover health` (L2-BWL-002).
+
+### Changed
+
+- A non-zero throughput limit forces the buffered copy strategy, because kernel-assisted
+  `copy_file_range` moves bytes inside the kernel and cannot be paced from userspace
+  (L3-PY-011). An unlimited limit leaves the kernel-copy fast path unaffected.
+
 ## [0.1.0] - 2026-07-11
 
 First release. A durable, **standard-library-only** (Python 3.10) background transfer

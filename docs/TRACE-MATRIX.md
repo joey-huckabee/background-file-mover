@@ -23,14 +23,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-SYS-001 | L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
+| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Partially Implemented |
 | L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 
@@ -44,6 +44,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-ARC-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-ARC-005 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-ARC-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-BWL-001 | L3-PY-011 | `tests/test_cli.py::test_parse_byte_rate_accepts_suffixes`<br>`tests/test_cli.py::test_parse_byte_rate_rejects_bad_values`<br>`tests/test_configuration.py::test_max_bytes_per_second_defaults_to_unlimited_and_parses`<br>`tests/test_configuration.py::test_max_bytes_per_second_rejects_negative`<br>`tests/test_copy_engine.py::test_active_rate_limit_forces_buffered_path_and_paces_writes`<br>`tests/test_ratelimit.py::test_burst_capacity_is_capped_at_one_second`<br>`tests/test_ratelimit.py::test_elapsed_time_refills_the_bucket`<br>`tests/test_ratelimit.py::test_non_positive_byte_count_is_a_noop`<br>`tests/test_ratelimit.py::test_spends_burst_then_sleeps_for_the_deficit` | Implemented |
+| L2-BWL-002 | _(none)_ | `tests/test_cli.py::test_throttle_rejected_is_invalid_argument`<br>`tests/test_cli.py::test_throttle_renders_applied_limit`<br>`tests/test_cli.py::test_throttle_reports_service_unavailable_when_down`<br>`tests/test_ratelimit.py::test_set_rate_changes_the_limit_live`<br>`tests/test_ratelimit.py::test_set_rate_clamps_negative_to_zero`<br>`tests/test_service.py::test_throttle_handler_rejects_bad_values`<br>`tests/test_service.py::test_throttle_handler_rejects_boolean_masquerading_as_int`<br>`tests/test_service.py::test_throttle_handler_sets_live_limit_and_is_reflected_in_health` | Implemented |
+| L2-BWL-003 | _(none)_ | `tests/test_ratelimit.py::test_one_limiter_enforces_the_cap_across_concurrent_streams` | Implemented |
+| L2-BWL-004 | _(none)_ | `tests/test_configuration.py::test_max_bytes_per_second_defaults_to_unlimited_and_parses`<br>`tests/test_copy_engine.py::test_unlimited_rate_limiter_still_allows_kernel_copy`<br>`tests/test_ratelimit.py::test_zero_rate_is_unlimited_and_never_sleeps` | Implemented |
 | L2-CFG-001 | L3-PY-001 | `tests/test_configuration.py::test_defaults_applied_for_absent_sections`<br>`tests/test_configuration.py::test_shipped_reference_config_loads`<br>`tests/test_configuration.py::test_typed_values_and_enums`<br>`tests/test_package.py::test_every_module_imports`<br>`tests/test_package.py::test_version_is_a_string` | Implemented |
 | L2-CFG-002 | _(none)_ | `tests/test_configuration.py::test_duplicate_section_is_a_parse_error`<br>`tests/test_configuration.py::test_unknown_option_is_rejected`<br>`tests/test_configuration.py::test_unknown_section_is_rejected` | Implemented |
 | L2-CFG-003 | _(none)_ | `tests/test_configuration.py::test_missing_required_option_is_rejected`<br>`tests/test_configuration.py::test_missing_required_section_is_rejected`<br>`tests/test_configuration.py::test_unreadable_file_raises_configuration_error` | Implemented |
@@ -193,6 +197,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | CLN | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
 | COPY | 0 | 11 | 0 | 3 | 0 | 4 | 0 |
+| BWL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
 | DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
@@ -201,14 +206,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 10 | 0 | 6 | 0 | 6 |
-| **Total** | **11** | **120** | **35** | **58** | **19** | **67** | **19** |
+| PY | 0 | 0 | 11 | 0 | 7 | 0 | 7 |
+| **Total** | **11** | **124** | **36** | **62** | **20** | **71** | **20** |
 
 The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 78 of 156 (50.0%).
+**Tested by at least one test marker**: 83 of 161 (51.6%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 87 of 156 (55.8%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 92 of 161 (57.1%).
 
 ### Orphan check
 

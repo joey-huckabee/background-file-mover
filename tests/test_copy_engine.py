@@ -10,15 +10,21 @@ import pytest
 
 from file_mover.exceptions import CopyError
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
+from file_mover.transfer.ratelimit import RateLimiter
 
 # Longer than the tiny buffer below, so the copy loop runs several iterations.
 _PAYLOAD = b"background file mover kernel copy payload 0123456789" * 4
 
 
-def _engine(*, use_kernel_copy: bool) -> BufferedFileCopyEngine:
+def _engine(
+    *, use_kernel_copy: bool, rate_limiter: RateLimiter | None = None
+) -> BufferedFileCopyEngine:
     # A 4-byte buffer forces many copy_file_range / read-write iterations.
     return BufferedFileCopyEngine(
-        buffer_size_bytes=4, temporary_file_prefix=".swit-partial-", use_kernel_copy=use_kernel_copy
+        buffer_size_bytes=4,
+        temporary_file_prefix=".swit-partial-",
+        use_kernel_copy=use_kernel_copy,
+        rate_limiter=rate_limiter,
     )
 
 
@@ -107,3 +113,52 @@ def test_disabled_kernel_copy_never_calls_copy_file_range(
     source = _source(tmp_path)
     outcome = _engine(use_kernel_copy=False).copy_to_temp(source, tmp_path / "dest", "job", "file")
     assert outcome.temporary_path.read_bytes() == _PAYLOAD
+
+
+@pytest.mark.requirement("L2-BWL-001")
+@pytest.mark.requirement("L3-PY-011")
+def test_active_rate_limit_forces_buffered_path_and_paces_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _forbidden(*_args: object, **_kwargs: object) -> int:
+        raise AssertionError("copy_file_range must be bypassed when a rate limit is active")
+
+    monkeypatch.setattr("os.copy_file_range", _forbidden, raising=False)
+    slept: list[float] = []
+    # 4 B/s with a 4-byte buffer: the first 4-byte chunk drains the burst, each later
+    # chunk incurs a 1.0s deficit sleep. Frozen clock so nothing refills.
+    limiter = RateLimiter(4, clock=lambda: 0.0, sleeper=slept.append)
+    source = _source(tmp_path)
+    # use_kernel_copy=True, but the active limit must still force the buffered loop.
+    outcome = _engine(use_kernel_copy=True, rate_limiter=limiter).copy_to_temp(
+        source, tmp_path / "dest", "job", "file"
+    )
+    assert outcome.temporary_path.read_bytes() == _PAYLOAD  # kernel copy was never called
+    assert outcome.bytes_written == len(_PAYLOAD)
+    assert slept  # throughput was throttled in the buffered loop
+
+
+@pytest.mark.requirement("L2-BWL-004")
+def test_unlimited_rate_limiter_still_allows_kernel_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    used_kernel: list[int] = []
+    real = getattr(os, "copy_file_range", None)
+
+    def _record(*args: object, **kwargs: object) -> int:
+        used_kernel.append(1)
+        assert real is not None
+        return real(*args, **kwargs)  # type: ignore[arg-type]
+
+    if real is not None:
+        monkeypatch.setattr("os.copy_file_range", _record, raising=False)
+    slept: list[float] = []
+    limiter = RateLimiter(0, sleeper=slept.append)  # unlimited: no path forcing, no pacing
+    source = _source(tmp_path)
+    outcome = _engine(use_kernel_copy=True, rate_limiter=limiter).copy_to_temp(
+        source, tmp_path / "dest", "job", "file"
+    )
+    assert outcome.temporary_path.read_bytes() == _PAYLOAD
+    assert slept == []  # an unlimited limiter never sleeps
+    if real is not None:
+        assert used_kernel  # the kernel path stayed available when unlimited

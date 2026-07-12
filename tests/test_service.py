@@ -66,6 +66,58 @@ def test_health_handler(tmp_path: Path) -> None:
         repo.close()
 
 
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_handler_sets_live_limit_and_is_reflected_in_health(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)
+    try:
+        service._build_scheduler(repo)  # creates the shared rate limiter
+        # health reports the starting (unlimited) ceiling.
+        assert _dispatch(service, "health", {})["result"]["max_bytes_per_second"] == 0
+        response = _dispatch(service, "throttle", {"bytes_per_second": 5_000_000})
+        assert response["success"] is True
+        assert response["result"]["accepted"] is True
+        assert response["result"]["bytes_per_second"] == 5_000_000
+        # The limiter is live and observable through health.
+        assert service._rate_limiter is not None
+        assert service._rate_limiter.bytes_per_second == 5_000_000
+        assert _dispatch(service, "health", {})["result"]["max_bytes_per_second"] == 5_000_000
+        # Zero removes the limit again.
+        cleared = _dispatch(service, "throttle", {"bytes_per_second": 0})
+        assert cleared["result"]["accepted"] is True
+        assert service._rate_limiter.is_unlimited() is True
+    finally:
+        repo.close()
+
+
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_handler_rejects_bad_values(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)
+    try:
+        service._build_scheduler(repo)
+        for bad in ({"bytes_per_second": -1}, {"bytes_per_second": "fast"}, {}):
+            response = _dispatch(service, "throttle", bad)
+            assert response["success"] is True  # the command runs; the request is rejected
+            assert response["result"]["accepted"] is False
+            assert response["result"]["error_code"] == "BAD_REQUEST"
+        # A rejected request must not change the live limit.
+        assert service._rate_limiter is not None
+        assert service._rate_limiter.bytes_per_second == 0
+    finally:
+        repo.close()
+
+
+@pytest.mark.requirement("L2-BWL-002")
+def test_throttle_handler_rejects_boolean_masquerading_as_int(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)
+    try:
+        service._build_scheduler(repo)
+        response = _dispatch(service, "throttle", {"bytes_per_second": True})
+        assert response["result"]["accepted"] is False
+        assert response["result"]["error_code"] == "BAD_REQUEST"
+    finally:
+        repo.close()
+
+
 @pytest.mark.requirement("L2-JOB-006")
 def test_status_handler_found_and_missing(tmp_path: Path) -> None:
     service, repo = _service_with_job(tmp_path)

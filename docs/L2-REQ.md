@@ -695,6 +695,44 @@ fall back to the bounded buffered copy without failing the transfer when it is n
 
 **Verification Method**: Test (T)
 
+## BWL — Bandwidth limiting
+
+#### L2-BWL-001
+
+The software shall support a configurable maximum aggregate copy throughput, expressed in
+bytes per second, that bounds how fast source data is transferred.
+
+**Parent**: L1-SYS-001
+
+**Verification Method**: Test (T)
+
+#### L2-BWL-002
+
+The maximum copy throughput shall be adjustable at runtime, through the control interface,
+without restarting the service, and the new limit shall apply to transfers already in
+progress.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-BWL-003
+
+The throughput limit shall be enforced across all concurrent file copies in aggregate, not
+independently per file.
+
+**Parent**: L1-SYS-001
+
+**Verification Method**: Test (T)
+
+#### L2-BWL-004
+
+A configured throughput limit of zero shall mean unlimited, imposing no throttling.
+
+**Parent**: L1-SYS-001
+
+**Verification Method**: Test (T)
+
 ## RTY — Retry and error classification
 
 #### L2-RTY-001

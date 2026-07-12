@@ -112,4 +112,10 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   stays dependency-free (L2-STO-003/005).
 - Partial-file byte-offset resume (v1 restarts a file from byte zero).
 - `json-lines` streaming output and an offline `database inspect` command.
-- Dynamic bandwidth limiting and multi-host active/active movers.
+- Multi-host active/active movers.
+
+## Delivered post-1.0
+
+- **Dynamic bandwidth limiting** (v0.2.0) — a userspace token-bucket throughput ceiling
+  (`[transfer] max_bytes_per_second`), adjustable live with `file-mover throttle`
+  (L2-BWL-001..004, L3-PY-011). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
