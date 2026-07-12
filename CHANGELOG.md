@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`__version__` is derived from the package metadata, not hard-coded.** `file_mover.__version__`
+  now reads `importlib.metadata.version("background-file-mover")` (standard library), so
+  `pyproject.toml` is the **single source of truth** for the version — the CLI `--version`,
+  the `health` response, and the package all follow it. Cutting a release is now a one-line
+  version bump in `pyproject.toml`; there is no second literal to keep in sync. Running from
+  an uninstalled source tree falls back to `0.0.0+unknown`.
 - **Requirements traceability audit.** Reconciled the trace matrix with the code: added
   `@pytest.mark.requirement` markers to existing tests that already assert data-safety
   behaviours, added focused tests for the rest (filesystem identity capture/verification,
