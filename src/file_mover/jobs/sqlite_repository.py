@@ -61,6 +61,9 @@ CREATE INDEX idx_jobs_state ON jobs(state);
 CREATE INDEX idx_files_job ON files(job_id, relative_path);
 """
 
+# Shared by transition_job / transition_job_if / reset_job_state (parametrised, static SQL).
+_UPDATE_JOB_STATE_SQL = "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?"
+
 
 class SQLiteJobRepository:
     """A durable :class:`~file_mover.jobs.repository.JobRepository` backed by SQLite."""
@@ -281,10 +284,7 @@ class SQLiteJobRepository:
                     raise RepositoryError(
                         f"illegal job transition {current.value} -> {to_state.value}"
                     )
-                conn.execute(
-                    "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?",
-                    (to_state.value, self._now(), job_id),
-                )
+                conn.execute(_UPDATE_JOB_STATE_SQL, (to_state.value, self._now(), job_id))
 
     def transition_job_if(
         self, job_id: str, from_states: Collection[JobState], to_state: JobState
@@ -304,10 +304,7 @@ class SQLiteJobRepository:
                     raise RepositoryError(
                         f"illegal job transition {current.value} -> {to_state.value}"
                     )
-                conn.execute(
-                    "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?",
-                    (to_state.value, self._now(), job_id),
-                )
+                conn.execute(_UPDATE_JOB_STATE_SQL, (to_state.value, self._now(), job_id))
                 return True
 
     def reset_job_state(self, job_id: str, to_state: JobState) -> None:
@@ -315,10 +312,7 @@ class SQLiteJobRepository:
         with self._translate("reset_job_state"):
             conn = self._connection()
             with conn:
-                conn.execute(
-                    "UPDATE jobs SET state = ?, updated_at = ? WHERE job_id = ?",
-                    (to_state.value, self._now(), job_id),
-                )
+                conn.execute(_UPDATE_JOB_STATE_SQL, (to_state.value, self._now(), job_id))
 
     def list_runnable_job_ids(self, now: float, *, limit: int) -> list[str]:
         """Return ids of runnable jobs (queued, or retry-wait whose retry time has passed)."""

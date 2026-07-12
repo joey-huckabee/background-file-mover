@@ -37,6 +37,8 @@ from file_mover.jobs.models import ExitCode
 from file_mover.logging_config import configure_logging
 from file_mover.service import BackgroundMoverService
 
+_JOB_ID_HELP = "job identifier"
+
 
 def _add_global_options(parser: argparse.ArgumentParser) -> None:
     """Attach options common to every invocation to ``parser``.
@@ -106,7 +108,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     status = subcommands.add_parser("status", help="show one job by id")
     _add_global_options(status)
-    status.add_argument("job_id", help="job identifier")
+    status.add_argument("job_id", help=_JOB_ID_HELP)
 
     list_cmd = subcommands.add_parser("list", help="list jobs, optionally filtered by state")
     _add_global_options(list_cmd)
@@ -118,7 +120,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     retry = subcommands.add_parser("retry", help="retry a retained failed job")
     _add_global_options(retry)
-    retry.add_argument("job_id", help="job identifier")
+    retry.add_argument("job_id", help=_JOB_ID_HELP)
 
     for name, summary in (
         ("pause", "pause a queued or in-flight job"),
@@ -127,7 +129,7 @@ def create_parser() -> argparse.ArgumentParser:
     ):
         lifecycle = subcommands.add_parser(name, help=summary)
         _add_global_options(lifecycle)
-        lifecycle.add_argument("job_id", help="job identifier")
+        lifecycle.add_argument("job_id", help=_JOB_ID_HELP)
 
     throttle = subcommands.add_parser(
         "throttle", help="set the live copy-throughput limit (0 = unlimited)"
