@@ -18,7 +18,8 @@ authoritative spec source.
 | Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | `8905c81` |
 | Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | `0f5c2df` |
 | Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | `c874e0c` |
-| Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | _this commit_ |
+| Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | `52ded38` |
+| Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -835,36 +836,12 @@ to `docs/MAINTAINER-GUIDE.md` § Testing strategy; NFS-representative tests and 
 recovery live in `docs/DEPLOYMENT.md`; quality gates in MAINTAINER-GUIDE + CI.)_
 
 ## Recommended First Release Boundary
-To deliver a dependable initial version rapidly, I would include:
 
-* One systemd-managed background service
-* CLI submission
-* Directory and explicit-file-list submissions
-* SQLite job state
-* JSON transfer manifest
-* Atomic source claiming
-* Copy-to-temporary destination
-* Configurable SHA-256 verification
-* Atomic destination publication
-* Source deletion after verification
-* Automatic restart recovery
-* Controlled retries
-* One active job with configurable file concurrency
-* Status, list, retry, and doctor commands
-* Complete L1/L2/L3 traceability
-* Unit, integration, recovery, and fault-injection tests
-
-I would defer these until a later iteration:
-
-* Partial-file byte-offset resume
-* Network API
-* Web dashboard
-* Multi-host active/active mover services
-* Dynamic bandwidth limiting
-* Administrative cancellation during copy
-* Metrics server
-* Advanced scheduling and transfer prioritization
-The resulting application is not simply a background file copy utility. It is a **durable transfer coordinator with transaction-like move semantics across two filesystems**. That distinction is what protects the recordings and allows the simulation environment to return to service quickly.
+_(§ "Recommended First Release Boundary" retired — see the retirement ledger at the
+top of this file. The in-scope list → delivered milestones M1–M8 in `docs/ROADMAP.md`
+and their canonical docs; the deferred list → ROADMAP § Deferred / Delivered post-1.0
+(Network API, web dashboard, metrics server, advanced scheduling added there this
+increment); the closing framing → CLAUDE.md overview + ARCHITECTURE.)_
 
 ## My Prompt:
 I have a separate application called "file-handler" which has a lot of good functionality in it which has been developed over the years and has (supposedly) been maximized for file copy performance. Ignore the SMB and S3 portions of the code and yes I understand there are external dependencies in this code, we will not be using this code in our new project here but there is a lot of good functions and exception handling and I would like you to at least take a look and possibly leverage some of what we have:

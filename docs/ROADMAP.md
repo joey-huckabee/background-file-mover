@@ -111,6 +111,13 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   stays dependency-free (L2-STO-003/005).
 - `json-lines` streaming output and an offline `database inspect` command.
 - Multi-host active/active movers.
+- Network / remote API — a networked control surface beyond the local `AF_UNIX` socket
+  (e.g. submitting and monitoring jobs across hosts).
+- Web dashboard — a browser UI for job status and operational visibility.
+- Metrics server — an exported metrics endpoint (e.g. Prometheus-style) for throughput,
+  queue depth, and retry counters.
+- Advanced scheduling and transfer prioritization — job priorities and scheduling policy
+  beyond the current single-active-job, FIFO model.
 - **Logging enhancements (post-12-factor-logging):**
   - **systemd journal priority prefixes** — emit the sd-daemon `<N>` level prefix on the
     service's stdout stream so journald records the correct priority per record.
