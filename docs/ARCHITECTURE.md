@@ -65,6 +65,7 @@ the authoritative durable work queue (L1-SYS-007).
 | `control/lifecycle.py` | `cancel`/`pause`/`resume` operations (`JobLifecycleService`) | v0.3.0 |
 | `service.py` | `BackgroundMoverService` lifecycle + scheduler | M3/M7 |
 | `presentation.py` | Control-response record/enum → JSON-wire serialisation | M6 |
+| `diagnostics.py` | `doctor` environment capability checks (`EnvironmentDoctor`) | v0.4.0 |
 | `jobs/repository.py`, `sqlite_repository.py` | Durable job/file state | M4 |
 | `transfer/coordinator.py` | Job-level orchestration: walk files, aggregate, retry/route | M6 |
 | `transfer/file_mover.py` | Per-file workflow: copy → verify → publish → delete-source | M6 |
@@ -285,6 +286,29 @@ hot-path INFO uses `if GATE.info:`; cold-path INFO/WARNING/ERROR call directly (
 per-call `isEnabledFor` is negligible for infrequent events). Production runs
 `python -O -m file_mover` for zero DEBUG overhead; run without `-O` to toggle DEBUG live.
 `[logging] level = OFF` disables everything (null handler + all gate flags false).
+
+The full operator/developer guide — the stdout/stderr contract, how to consume logs, and
+how to add a log call — is **`docs/LOGGING.md`**; the twelve-factor rationale is
+**`docs/12-FACTOR.md`**.
+
+## Environment diagnostics (`doctor`)
+
+`file-mover doctor` verifies the runtime provides the capabilities the service depends on
+before an operator relies on it (`diagnostics.py`, L2-ENV-001..003). Each capability is a
+small **`EnvironmentCheck`** (a strategy): a name, a `REQUIRED`/`OPTIONAL` level, and a
+detection callable that returns `(available, detail)`. **`EnvironmentDoctor`** runs the set
+and aggregates a `DiagnosticsReport`; a probe that raises is reported as an unavailable
+capability, never propagated (no-panic).
+
+- **Required** (a miss → `FAIL` → `doctor` exits `ENVIRONMENT_UNSUPPORTED`): `AF_UNIX`,
+  `fcntl`, SQLite WAL, the configured hash algorithm, Python ≥ 3.10, POSIX signals.
+- **Optional** (a miss → `WARN`, never a failure): `O_NOFOLLOW`, and kernel-assisted copy
+  (only when `use_kernel_copy` is enabled).
+
+The detection helpers are module-level so they can be simulated present/absent in tests on
+any host; rendering (human lines / JSON `environment` array) is a separate concern in the
+CLI + `presentation.py`. This makes `doctor` a deploy gate — see `docs/DEPLOYMENT.md`. To
+add a check, see `docs/MAINTAINER-GUIDE.md`.
 
 ## Error pipeline
 
