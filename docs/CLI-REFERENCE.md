@@ -150,4 +150,5 @@ Stable and machine-consumable (`file_mover.jobs.models.ExitCode`):
 | 5 | `JOB_REJECTED` | Submission rejected by policy or validation. |
 | 6 | `JOB_NOT_FOUND` | No such job id. |
 | 7 | `PARTIAL_SUCCESS` | Some but not all items succeeded. |
+| 8 | `ENVIRONMENT_UNSUPPORTED` | `doctor`: a required runtime capability is missing (deploy gate). |
 | 10 | `INTERNAL_ERROR` | Uncaught defect; traceback logged to stderr. |

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`file-mover doctor` now verifies the runtime environment.** It checks the capabilities
+  the service depends on — `AF_UNIX` sockets, `fcntl` locking, SQLite WAL, the configured
+  hash algorithm, Python ≥ 3.10, POSIX signals (required), plus `O_NOFOLLOW` and
+  kernel-assisted copy (optional/advisory) — and reports each with `pass`/`warn`/`fail`.
+  A missing **required** capability returns the new `ExitCode.ENVIRONMENT_UNSUPPORTED` (8),
+  so a deployment can gate on `doctor` (L2-ENV-001..003).
+
 ### Fixed
 
 - **Pausing an in-flight copy with `resume_partial_files = false` no longer fails on resume.**

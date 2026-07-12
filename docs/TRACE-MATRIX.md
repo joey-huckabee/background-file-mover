@@ -114,7 +114,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-DST-003 | _(none)_ | `tests/test_transfer.py::test_existing_destination_collision_is_manual` | Implemented |
 | L2-DST-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-DST-005 | L3-INT-004 | _(TBD)_ | Draft |
-| L2-ENV-001 | _(none)_ | `tests/test_diagnostics.py::test_af_unix_and_fcntl_probes`<br>`tests/test_diagnostics.py::test_hash_algorithm_probe`<br>`tests/test_diagnostics.py::test_python_version_probe`<br>`tests/test_diagnostics.py::test_report_ok_and_warnings_aggregate`<br>`tests/test_diagnostics.py::test_required_present_passes_and_missing_fails`<br>`tests/test_diagnostics.py::test_sqlite_wal_probe_on_real_sqlite` | Implemented |
+| L2-ENV-001 | _(none)_ | `tests/test_cli.py::test_doctor_fails_when_required_capability_missing`<br>`tests/test_cli.py::test_doctor_json_reports_environment`<br>`tests/test_cli.py::test_doctor_passes_when_environment_ok`<br>`tests/test_diagnostics.py::test_af_unix_and_fcntl_probes`<br>`tests/test_diagnostics.py::test_hash_algorithm_probe`<br>`tests/test_diagnostics.py::test_python_version_probe`<br>`tests/test_diagnostics.py::test_report_ok_and_warnings_aggregate`<br>`tests/test_diagnostics.py::test_required_present_passes_and_missing_fails`<br>`tests/test_diagnostics.py::test_sqlite_wal_probe_on_real_sqlite` | Implemented |
 | L2-ENV-002 | _(none)_ | `tests/test_diagnostics.py::test_default_checks_include_kernel_copy_only_when_enabled`<br>`tests/test_diagnostics.py::test_optional_capability_probes`<br>`tests/test_diagnostics.py::test_optional_missing_warns_not_fails` | Implemented |
 | L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
 | L2-EVT-002 | L3-EVT-003 | _(TBD)_ | Draft |
