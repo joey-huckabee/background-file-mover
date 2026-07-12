@@ -23,7 +23,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-SYS-001 | L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
+| L1-SYS-001 | L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Partially Implemented |
 | L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
@@ -81,6 +81,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-COPY-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-011 | L3-PY-009 | `tests/test_configuration.py::test_use_kernel_copy_can_be_disabled`<br>`tests/test_copy_engine.py::test_buffered_copy_transfers_correct_bytes`<br>`tests/test_copy_engine.py::test_disabled_kernel_copy_never_calls_copy_file_range`<br>`tests/test_copy_engine.py::test_kernel_copy_discards_partial_output_on_fallback`<br>`tests/test_copy_engine.py::test_kernel_copy_falls_back_on_unsupported_errno`<br>`tests/test_copy_engine.py::test_kernel_copy_propagates_genuine_io_error`<br>`tests/test_copy_engine.py::test_kernel_copy_transfers_correct_bytes` | Implemented |
 | L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
 | L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
 | L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
@@ -189,7 +190,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | POSIX | 0 | 12 | 0 | 2 | 0 | 2 | 0 |
 | CLN | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
-| COPY | 0 | 10 | 0 | 2 | 0 | 3 | 0 |
+| COPY | 0 | 11 | 0 | 3 | 0 | 4 | 0 |
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
 | DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
@@ -198,14 +199,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 8 | 0 | 4 | 0 | 4 |
-| **Total** | **11** | **117** | **33** | **55** | **17** | **64** | **17** |
+| PY | 0 | 0 | 9 | 0 | 5 | 0 | 5 |
+| **Total** | **11** | **118** | **34** | **56** | **18** | **65** | **18** |
 
 The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 73 of 151 (48.3%).
+**Tested by at least one test marker**: 75 of 153 (49.0%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 82 of 151 (54.3%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 84 of 153 (54.9%).
 
 ### Orphan check
 

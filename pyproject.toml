@@ -141,7 +141,7 @@ disable = [
 
 [tool.pylint.typecheck]
 # Linux-only stdlib members that pylint can't see when it runs on a non-POSIX host.
-generated-members = ["socket.AF_UNIX"]
+generated-members = ["socket.AF_UNIX", "os.copy_file_range"]
 ignored-modules = ["fcntl"]
 
 # ─────────────────────────────────────────────────────────────────────────────

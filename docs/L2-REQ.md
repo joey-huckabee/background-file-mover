@@ -686,6 +686,15 @@ is safely replaced.
 
 **Verification Method**: Test (T)
 
+#### L2-COPY-011
+
+The software may use a kernel-assisted file copy when configured and available, and shall
+fall back to the bounded buffered copy without failing the transfer when it is not.
+
+**Parent**: L1-SYS-001
+
+**Verification Method**: Test (T)
+
 ## RTY — Retry and error classification
 
 #### L2-RTY-001

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Kernel-assisted copy (pre-1.0): `BufferedFileCopyEngine` can copy with
+  `os.copy_file_range`, moving bytes directly between the source and destination file
+  descriptors in the kernel instead of through the process. It is attempted only when the
+  syscall is available and falls back cleanly to the bounded buffered loop on any
+  "not supported" outcome (`ENOSYS`/`EOPNOTSUPP`/`EXDEV`/…), discarding partial output;
+  genuine I/O errors still propagate. Controlled by the new `[transfer] use_kernel_copy`
+  option (default `true`); integrity is unaffected (the destination is re-hashed
+  regardless). Requirements: L2-COPY-011, L3-PY-009. See `docs/ARCHITECTURE.md`
+  (Copy strategy) and the benchmark step in `docs/DEPLOYMENT.md`.
+
 - Packaging & qualification (Milestone 8) — first-release hardening:
   - No-panic fuzz harness (`tests/test_fuzz.py`, requirement L1-ROB-001): deterministic,
     env-configurable fuzzing of every interaction surface (protocol decode/receive,

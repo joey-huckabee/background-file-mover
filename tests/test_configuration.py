@@ -66,8 +66,15 @@ def test_defaults_applied_for_absent_sections() -> None:
     assert config.service.shutdown_timeout_seconds == 60
     assert config.service.poll_interval_seconds == 2.0
     assert config.transfer.max_concurrent_files == 2
+    assert config.transfer.use_kernel_copy is True  # default
     assert config.integrity.enabled is True
     assert config.logging.level == "INFO"
+
+
+@pytest.mark.requirement("L2-COPY-011")
+def test_use_kernel_copy_can_be_disabled() -> None:
+    config = _load(f"{MINIMAL_CONFIG}\n[transfer]\nuse_kernel_copy = false\n")
+    assert config.transfer.use_kernel_copy is False
 
 
 @pytest.mark.requirement("L2-CFG-005")

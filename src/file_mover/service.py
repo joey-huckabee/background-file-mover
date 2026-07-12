@@ -183,6 +183,7 @@ class BackgroundMoverService:
             copy_engine=BufferedFileCopyEngine(
                 buffer_size_bytes=transfer.copy_buffer_size_bytes,
                 temporary_file_prefix=paths.temporary_file_prefix,
+                use_kernel_copy=transfer.use_kernel_copy,
             ),
             integrity_verifier=IntegrityVerifier(
                 algorithm=integrity.algorithm,
