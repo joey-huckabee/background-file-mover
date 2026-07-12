@@ -949,3 +949,47 @@ The software shall query jobs by state and produce aggregate statistics.
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T)
+
+## SUB — Submission and claiming
+
+#### L2-SUB-001
+
+Submission shall be idempotent by request id: a repeated request shall return the
+original job without re-claiming.
+
+**Parent**: L1-SYS-002
+
+**Verification Method**: Test (T)
+
+#### L2-SUB-002
+
+Submission shall claim all source files and durably record the job before returning
+accepted.
+
+**Parent**: L1-SYS-002
+
+**Verification Method**: Test (T)
+
+#### L2-SUB-003
+
+Submission shall reject an invalid or empty source inventory without claiming any file.
+
+**Parent**: L1-SYS-004
+
+**Verification Method**: Test (T)
+
+#### L2-SUB-004
+
+Submission shall write a durable manifest for the claimed set.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-SUB-005
+
+A submission failure shall retain any already-claimed source files.
+
+**Parent**: L1-SYS-003
+
+**Verification Method**: Test (T)

@@ -78,7 +78,6 @@ def test_invalid_choice_is_rejected_before_dispatch() -> None:
     [
         ["retry", "job-123"],
         ["recover"],
-        ["submit", "--scenario-id", "s1", "--source", "/recordings/s1", "--destination", "/p"],
     ],
 )
 def test_known_commands_report_not_implemented(argv: list[str]) -> None:
@@ -255,6 +254,133 @@ def test_service_error_response_is_operation_failed(
     )
     path = _write_config(tmp_path, _MINIMAL_CONFIG)
     assert main(["health", "--config", path]) == ExitCode.OPERATION_FAILED
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_submit_reports_service_unavailable_when_down(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    argv = [
+        "submit",
+        "--scenario-id",
+        "s",
+        "--source",
+        "/recordings/s",
+        "--destination",
+        "/processing/s",
+        "--config",
+        path,
+    ]
+    assert main(argv) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_submit_renders_accepted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_client(
+        monkeypatch,
+        _ok(
+            {
+                "accepted": True,
+                "job_id": "jx",
+                "claimed_file_count": 2,
+                "claimed_bytes": 10,
+                "state": "queued",
+            }
+        ),
+    )
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    argv = [
+        "submit",
+        "--scenario-id",
+        "s",
+        "--source",
+        "/recordings/s",
+        "--destination",
+        "/processing/s",
+        "--config",
+        path,
+    ]
+    assert main(argv) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_submit_renders_rejected_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_client(
+        monkeypatch,
+        _ok(
+            {
+                "accepted": False,
+                "error_code": "InvalidSourceError",
+                "error_message": "x",
+                "job_id": None,
+                "state": "failed_retained",
+                "claimed_file_count": 0,
+                "claimed_bytes": 0,
+            }
+        ),
+    )
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    argv = [
+        "submit",
+        "--scenario-id",
+        "s",
+        "--source",
+        "/recordings/s",
+        "--destination",
+        "/processing/s",
+        "--config",
+        path,
+        "--output",
+        "json",
+    ]
+    assert main(argv) == ExitCode.JOB_REJECTED
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_submit_reads_file_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_client(
+        monkeypatch,
+        _ok(
+            {
+                "accepted": True,
+                "job_id": "jx",
+                "claimed_file_count": 1,
+                "claimed_bytes": 3,
+                "state": "queued",
+            }
+        ),
+    )
+    file_list = tmp_path / "files.txt"
+    file_list.write_text("/recordings/s/a.dat\n\n", encoding="utf-8")
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    argv = [
+        "submit",
+        "--scenario-id",
+        "s",
+        "--file-list",
+        str(file_list),
+        "--destination",
+        "/processing/s",
+        "--config",
+        path,
+    ]
+    assert main(argv) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_submit_missing_file_list_is_invalid_argument(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    argv = [
+        "submit",
+        "--scenario-id",
+        "s",
+        "--file-list",
+        str(tmp_path / "nope.txt"),
+        "--destination",
+        "/processing/s",
+        "--config",
+        path,
+    ]
+    assert main(argv) == ExitCode.INVALID_ARGUMENT
 
 
 @pytest.mark.requirement("L2-CTL-008")

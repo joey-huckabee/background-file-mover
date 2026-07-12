@@ -18,7 +18,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from file_mover import __version__
@@ -336,6 +338,48 @@ def _handle_stats(args: argparse.Namespace) -> ExitCode:
     return ExitCode.SUCCESS
 
 
+def _handle_submit(args: argparse.Namespace) -> ExitCode:
+    """Submit a completed recording set to the running service."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    arguments: dict[str, Any] = {
+        "request_id": uuid.uuid4().hex,
+        "scenario_id": args.scenario_id,
+        "destination": args.destination,
+    }
+    if args.source:
+        arguments["source"] = args.source
+    if args.file_list:
+        try:
+            lines = Path(args.file_list).read_text(encoding="utf-8").splitlines()
+        except OSError as error:
+            print(f"{APP_NAME}: cannot read file list: {error}", file=sys.stderr)
+            return ExitCode.INVALID_ARGUMENT
+        arguments["file_list"] = [line.strip() for line in lines if line.strip()]
+
+    result = _query_service(config, "submit", arguments)
+    if isinstance(result, ExitCode):
+        return result
+
+    accepted = bool(result.get("accepted"))
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS if accepted else ExitCode.JOB_REJECTED
+    if accepted:
+        print(
+            f"accepted {result.get('job_id')} "
+            f"({result.get('claimed_file_count')} files, {result.get('claimed_bytes')} bytes)"
+        )
+        return ExitCode.SUCCESS
+    print(
+        f"{APP_NAME}: submission rejected "
+        f"({result.get('error_code')}): {result.get('error_message')}",
+        file=sys.stderr,
+    )
+    return ExitCode.JOB_REJECTED
+
+
 def _handle_service_run(args: argparse.Namespace) -> ExitCode:
     """Load configuration and run the service in the foreground."""
     result = _load_configuration(args.config, args.output)
@@ -408,6 +452,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # pylint: disable=too-many-
 
     if command == "stats":
         return int(_handle_stats(args))
+
+    if command == "submit":
+        return int(_handle_submit(args))
 
     if command == "service":
         service_command = getattr(args, "service_command", None)

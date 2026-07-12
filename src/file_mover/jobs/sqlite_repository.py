@@ -156,6 +156,16 @@ class SQLiteJobRepository:
             )
         return _row_to_job(row) if row is not None else None
 
+    def get_job_by_request_id(self, request_id: str) -> JobRecord | None:
+        """Return the job with the given idempotency ``request_id``, or ``None``."""
+        with self._translate("get_job_by_request_id"):
+            row = (
+                self._connection()
+                .execute("SELECT * FROM jobs WHERE request_id = ?", (request_id,))
+                .fetchone()
+            )
+        return _row_to_job(row) if row is not None else None
+
     def list_jobs(self, states: Collection[JobState] | None = None) -> list[JobRecord]:
         """Return jobs, optionally filtered to the given states, newest first."""
         with self._translate("list_jobs"):

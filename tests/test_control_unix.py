@@ -119,3 +119,49 @@ def test_service_run_serves_queries_then_stops(tmp_path: Path) -> None:
         service.request_stop()
         worker.join(timeout=5)
         repository.close()
+
+
+@pytest.mark.requirement("L2-CLI-008")
+def test_service_run_accepts_submission_over_socket(tmp_path: Path) -> None:
+    source_root = tmp_path / "recordings"
+    dest_root = tmp_path / "processing"
+    source_root.mkdir()
+    dest_root.mkdir()
+    (source_root / "host01.dat").write_bytes(b"payload")
+    config_text = (
+        f"[service]\n"
+        f"state_directory = {tmp_path}\n"
+        f"socket_path = {tmp_path / 'control.sock'}\n"
+        f"database_path = {tmp_path / 'jobs.db'}\n"
+        f"manifest_directory = {tmp_path / 'manifests'}\n"
+        f"[paths]\n"
+        f"allowed_source_roots = {source_root}\n"
+        f"allowed_destination_roots = {dest_root}\n"
+        f"[stability]\n"
+        f"enabled = false\n"
+    )
+    config = ConfigurationLoader().load_text(config_text)
+    service = BackgroundMoverService(config)
+    worker = threading.Thread(
+        target=lambda: service.run(install_signal_handlers=False), daemon=True
+    )
+    worker.start()
+    try:
+        assert service.wait_ready(timeout=5)
+        client = ControlClient(str(config.service.socket_path))
+        submitted = client.send(
+            "submit",
+            {
+                "request_id": "req-1",
+                "scenario_id": "scn",
+                "source": str(source_root),
+                "destination": str(dest_root),
+            },
+        )
+        assert submitted["result"]["accepted"] is True
+        assert submitted["result"]["claimed_file_count"] == 1
+        listed = client.send("list", {"state": "active"})
+        assert len(listed["result"]["jobs"]) == 1
+    finally:
+        service.request_stop()
+        worker.join(timeout=5)

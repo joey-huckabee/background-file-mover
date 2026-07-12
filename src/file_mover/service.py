@@ -16,9 +16,11 @@ import logging
 import signal
 import threading
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from file_mover import __version__
+from file_mover.claiming import FileClaimManager
 from file_mover.configuration import ApplicationConfig
 from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
@@ -27,6 +29,13 @@ from file_mover.control.server import ControlSocketServer
 from file_mover.jobs.models import ACTIVE_JOB_STATES, JobRecord, JobState, JobStatistics
 from file_mover.jobs.repository import JobRepository
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
+from file_mover.manifests import ManifestWriter
+from file_mover.submission import (
+    JobSubmissionService,
+    SubmissionResult,
+    build_submission_request,
+)
+from file_mover.validation import SourceValidator
 
 _LOCK_FILENAME = "service.lock"
 
@@ -53,6 +62,7 @@ class BackgroundMoverService:
         self._logger = logger or logging.getLogger("file_mover.service")
         self._repository = repository
         self._owns_repository = repository is None
+        self._submission: JobSubmissionService | None = None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
@@ -73,6 +83,7 @@ class BackgroundMoverService:
             if self._repository is None:
                 self._repository = SQLiteJobRepository(str(self._config.service.database_path))
             self._repository.initialize()
+            self._submission = self._build_submission_service(self._repository)
             server = ControlSocketServer(
                 str(self._config.service.socket_path),
                 self._build_dispatcher(),
@@ -117,7 +128,24 @@ class BackgroundMoverService:
                 "status": self._handle_status,
                 "list": self._handle_list,
                 "stats": self._handle_stats,
+                "submit": self._handle_submit,
             }
+        )
+
+    def _build_submission_service(self, repository: JobRepository) -> JobSubmissionService:
+        """Construct the submission service from configuration."""
+        paths = self._config.paths
+        return JobSubmissionService(
+            validator=SourceValidator(
+                claim_directory_name=paths.claim_directory_name,
+                reject_symbolic_links=paths.reject_symbolic_links,
+            ),
+            claim_manager=FileClaimManager(claim_directory_name=paths.claim_directory_name),
+            manifest_writer=ManifestWriter(Path(str(self._config.service.manifest_directory))),
+            repository=repository,
+            allowed_source_roots=[Path(str(root)) for root in paths.allowed_source_roots],
+            allowed_destination_roots=[Path(str(root)) for root in paths.allowed_destination_roots],
+            stability=self._config.stability,
         )
 
     def _require_repository(self) -> JobRepository:
@@ -125,6 +153,12 @@ class BackgroundMoverService:
         if self._repository is None:
             raise RuntimeError("service repository is not open")
         return self._repository
+
+    def _require_submission(self) -> JobSubmissionService:
+        """Return the submission service, or raise if the service is not running."""
+        if self._submission is None:
+            raise RuntimeError("submission service is not open")
+        return self._submission
 
     def _handle_health(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return the service health snapshot."""
@@ -153,6 +187,30 @@ class BackgroundMoverService:
     def _handle_stats(self, _arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Return aggregate durable statistics."""
         return _statistics_to_dict(self._require_repository().statistics())
+
+    def _handle_submit(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Validate, claim, and durably record a submitted recording set."""
+        request_id = arguments.get("request_id")
+        destination = arguments.get("destination")
+        source = arguments.get("source")
+        file_list = arguments.get("file_list")
+        if not isinstance(request_id, str) or not isinstance(destination, str):
+            return _submission_error("BAD_REQUEST", "request_id and destination are required")
+        if source is None and not file_list:
+            return _submission_error("BAD_REQUEST", "a source directory or file list is required")
+        scenario_id = arguments.get("scenario_id")
+        files = [str(item) for item in file_list] if isinstance(file_list, list) else None
+        try:
+            request = build_submission_request(
+                request_id=request_id,
+                scenario_id=scenario_id if isinstance(scenario_id, str) else None,
+                destination=destination,
+                source=source if isinstance(source, str) else None,
+                file_list=files,
+            )
+        except ValueError as error:
+            return _submission_error("BAD_REQUEST", str(error))
+        return _submission_result_to_dict(self._require_submission().submit(request))
 
     def _install_signal_handlers(self) -> None:
         """Install SIGTERM/SIGINT handlers that only set the stop event."""
@@ -205,4 +263,30 @@ def _statistics_to_dict(stats: JobStatistics) -> dict[str, Any]:
         "total_bytes": stats.total_bytes,
         "bytes_copied": stats.bytes_copied,
         "jobs_by_state": {state.value: count for state, count in stats.jobs_by_state.items()},
+    }
+
+
+def _submission_result_to_dict(result: SubmissionResult) -> dict[str, Any]:
+    """Serialise a :class:`SubmissionResult` for a control response."""
+    return {
+        "accepted": result.accepted,
+        "job_id": result.job_id,
+        "state": result.state.value,
+        "claimed_file_count": result.claimed_file_count,
+        "claimed_bytes": result.claimed_bytes,
+        "error_code": result.error_code,
+        "error_message": result.error_message,
+    }
+
+
+def _submission_error(code: str, message: str) -> dict[str, Any]:
+    """Build a rejected submission response for a malformed request."""
+    return {
+        "accepted": False,
+        "job_id": None,
+        "state": JobState.FAILED_RETAINED.value,
+        "claimed_file_count": 0,
+        "claimed_bytes": 0,
+        "error_code": code,
+        "error_message": message,
     }

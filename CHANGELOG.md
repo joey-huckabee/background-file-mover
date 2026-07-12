@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Submission & claiming (Milestone 5) — the first milestone that moves real files:
+  - `SourceValidator` — deterministic recursive inventory (excludes the claim directory),
+    symbolic-link and non-regular-file rejection, path-under-approved-roots enforcement,
+    device+inode+size+mtime identity capture, and injectable-sleeper stability polling.
+  - `FileClaimManager` — same-filesystem atomic `Path.replace` of each file into a per-job
+    `<source>/.swit-moving/<job>/` staging directory, with identity revalidation before
+    and after the move.
+  - `ManifestWriter` — flush + fsync + atomic-replace JSON manifests.
+  - `JobSubmissionService` — idempotent-by-`request_id` orchestration
+    (validate → claim → manifest → durably record); any failure retains already-claimed
+    source files; returns a typed `SubmissionResult`.
+  - `file-mover submit` (directory or `--file-list`) wired over the control socket; a
+    durable acknowledgement is returned only after the files are claimed and recorded.
+  - Requirements: L2-SUB-001..005, L3-SUB-001..002, plus L2-FS-*, L2-POSIX-002/006,
+    L2-CLI-008/009.
+
 - Durable job state (Milestone 4):
   - `SQLiteJobRepository` — the authoritative durable store (WAL, `synchronous=FULL`,
     `foreign_keys=ON`, `busy_timeout`, per-thread connections, idempotent

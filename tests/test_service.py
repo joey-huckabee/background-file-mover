@@ -7,11 +7,15 @@ from typing import Any
 
 import pytest
 
-from file_mover.configuration import ConfigurationLoader
+from file_mover.claiming import FileClaimManager
+from file_mover.configuration import ConfigurationLoader, StabilityConfig
 from file_mover.constants import PROTOCOL_VERSION
 from file_mover.jobs.models import JobRecord, JobState
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
+from file_mover.manifests import ManifestWriter
 from file_mover.service import BackgroundMoverService, _resolve_state_selector
+from file_mover.submission import JobSubmissionService
+from file_mover.validation import SourceValidator
 
 _MINIMAL = (
     "[paths]\n" "allowed_source_roots = /recordings\n" "allowed_destination_roots = /processing\n"
@@ -115,3 +119,59 @@ def test_resolve_state_selector() -> None:
     assert _resolve_state_selector("queued") == frozenset({JobState.QUEUED})
     with pytest.raises(ValueError, match="unknown"):
         _resolve_state_selector("bogus")
+
+
+@pytest.mark.requirement("L2-CTL-004")
+def test_submit_handler_rejects_malformed_requests(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)  # submission service not open
+    try:
+        missing = _dispatch(service, "submit", {})
+        assert missing["result"]["accepted"] is False
+        assert missing["result"]["error_code"] == "BAD_REQUEST"
+        no_source = _dispatch(service, "submit", {"request_id": "r", "destination": "/processing"})
+        assert no_source["result"]["error_code"] == "BAD_REQUEST"
+    finally:
+        repo.close()
+
+
+@pytest.mark.requirement("L2-SUB-002")
+def test_submit_handler_claims_and_records(tmp_path: Path) -> None:
+    config = ConfigurationLoader().load_text(_MINIMAL)
+    source_root = tmp_path / "recordings"
+    dest_root = tmp_path / "processing"
+    source_root.mkdir()
+    dest_root.mkdir()
+    (source_root / "a.dat").write_bytes(b"xyz")
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    service = BackgroundMoverService(config, repository=repo)
+    # Inject a submission service scoped to the tmp roots (config roots are POSIX).
+    service._submission = JobSubmissionService(
+        validator=SourceValidator(
+            claim_directory_name=".swit-moving", reject_symbolic_links=True, sleeper=lambda _s: None
+        ),
+        claim_manager=FileClaimManager(claim_directory_name=".swit-moving"),
+        manifest_writer=ManifestWriter(tmp_path / "manifests"),
+        repository=repo,
+        allowed_source_roots=[source_root],
+        allowed_destination_roots=[dest_root],
+        stability=StabilityConfig(enabled=False, poll_count=2, poll_interval_seconds=0.0),
+        job_id_factory=lambda: "jx",
+    )
+    try:
+        response = _dispatch(
+            service,
+            "submit",
+            {
+                "request_id": "r",
+                "scenario_id": "s",
+                "source": str(source_root),
+                "destination": str(dest_root),
+            },
+        )
+        assert response["success"] is True
+        assert response["result"]["accepted"] is True
+        assert response["result"]["job_id"] == "jx"
+        assert response["result"]["claimed_file_count"] == 1
+    finally:
+        repo.close()

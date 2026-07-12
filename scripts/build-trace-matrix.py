@@ -69,6 +69,7 @@ CATEGORIES: list[tuple[str, str]] = [
     ("DEL", "Source deletion (L2)"),
     ("CTL", "Control plane (L2/L3)"),
     ("JOB", "Durable job state (L2/L3)"),
+    ("SUB", "Submission and claiming (L2/L3)"),
     ("INT", "Integrity verifier and manifest (L3)"),
     ("PY", "Python implementation details (L3)"),
 ]
