@@ -203,6 +203,12 @@ Each database connection shall set a `busy_timeout`.
 The repository shall translate SQLite errors and corrupt stored values into a typed
 `RepositoryError`.
 
+**L3-JOB-003** · Parent: L2-JOB-007 · Verification: T
+
+The submission service shall stamp one creation timestamp and record the configured
+integrity mode and hash algorithm on both the `JobRecord` and the manifest, and the
+repository shall persist and restore them (`hash_algorithm`, `integrity_mode` columns).
+
 ## SUB — Submission and claiming components
 
 **L3-SUB-001** · Parent: L2-SUB-002 · Verification: T

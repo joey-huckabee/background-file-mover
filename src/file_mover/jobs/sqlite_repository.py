@@ -21,6 +21,8 @@ from file_mover.exceptions import RepositoryError
 from file_mover.jobs.models import (
     FileRecord,
     FileState,
+    HashAlgorithm,
+    IntegrityMode,
     JobRecord,
     JobState,
     JobStatistics,
@@ -46,7 +48,9 @@ CREATE TABLE jobs (
     bytes_copied      INTEGER NOT NULL DEFAULT 0,
     attempt_count     INTEGER NOT NULL DEFAULT 0,
     next_retry_time   REAL,
-    last_error        TEXT
+    last_error        TEXT,
+    hash_algorithm    TEXT NOT NULL DEFAULT 'sha256',
+    integrity_mode    TEXT NOT NULL DEFAULT 'source-and-destination-hash'
 );
 CREATE TABLE files (
     file_id           TEXT PRIMARY KEY,
@@ -131,8 +135,9 @@ class SQLiteJobRepository:
                     INSERT INTO jobs (
                         job_id, state, source_root, destination_root, created_at,
                         updated_at, scenario_id, request_id, file_count, total_bytes,
-                        bytes_copied, attempt_count, next_retry_time, last_error
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        bytes_copied, attempt_count, next_retry_time, last_error,
+                        hash_algorithm, integrity_mode
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         job.job_id,
@@ -149,6 +154,8 @@ class SQLiteJobRepository:
                         job.attempt_count,
                         job.next_retry_time,
                         job.last_error,
+                        job.hash_algorithm.value,
+                        job.integrity_mode.value,
                     ),
                 )
 
@@ -415,6 +422,22 @@ def _parse_state(value: object) -> JobState:
         raise RepositoryError(f"corrupt job state in database: {value!r}") from error
 
 
+def _parse_hash_algorithm(value: object) -> HashAlgorithm:
+    """Map a stored algorithm string to a :class:`HashAlgorithm`, or raise RepositoryError."""
+    try:
+        return HashAlgorithm(value)
+    except ValueError as error:
+        raise RepositoryError(f"corrupt hash algorithm in database: {value!r}") from error
+
+
+def _parse_integrity_mode(value: object) -> IntegrityMode:
+    """Map a stored mode string to an :class:`IntegrityMode`, or raise RepositoryError."""
+    try:
+        return IntegrityMode(value)
+    except ValueError as error:
+        raise RepositoryError(f"corrupt integrity mode in database: {value!r}") from error
+
+
 def _parse_file_state(value: object) -> FileState:
     """Map a stored state string to a :class:`FileState`, or raise RepositoryError."""
     try:
@@ -440,6 +463,8 @@ def _row_to_job(row: sqlite3.Row) -> JobRecord:
         attempt_count=row["attempt_count"],
         next_retry_time=row["next_retry_time"],
         last_error=row["last_error"],
+        hash_algorithm=_parse_hash_algorithm(row["hash_algorithm"]),
+        integrity_mode=_parse_integrity_mode(row["integrity_mode"]),
     )
 
 

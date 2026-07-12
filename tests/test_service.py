@@ -279,6 +279,7 @@ def test_submit_handler_claims_and_records(tmp_path: Path) -> None:
         allowed_source_roots=[source_root],
         allowed_destination_roots=[dest_root],
         stability=StabilityConfig(enabled=False, poll_count=2, poll_interval_seconds=0.0),
+        integrity=config.integrity,
         job_id_factory=lambda: "jx",
     )
     try:
