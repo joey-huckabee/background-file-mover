@@ -97,6 +97,9 @@ def _submit(
 
 
 @pytest.mark.requirement("L2-DPR-006")
+@pytest.mark.requirement("L2-DEL-001")
+@pytest.mark.requirement("L2-POSIX-011")
+@pytest.mark.requirement("L2-DST-004")
 def test_full_transfer_publishes_and_deletes_source(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -141,6 +144,7 @@ def test_transfer_across_integrity_modes(
 
 
 @pytest.mark.requirement("L3-INT-007")
+@pytest.mark.requirement("L2-DEL-004")
 def test_hash_mismatch_retains_source_and_temp(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -160,6 +164,7 @@ def test_hash_mismatch_retains_source_and_temp(
 
 
 @pytest.mark.requirement("L2-DST-003")
+@pytest.mark.requirement("L2-DST-001")
 def test_existing_destination_collision_is_manual(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -202,6 +207,8 @@ class _FailingCopyEngine:
 
 
 @pytest.mark.requirement("L2-RTY-005")
+@pytest.mark.requirement("L2-RTY-003")
+@pytest.mark.requirement("L2-COPY-009")
 def test_retryable_failure_schedules_retry(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -262,6 +269,8 @@ def test_size_mismatch_is_manual_and_retains(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-DEL-003")
+@pytest.mark.requirement("L2-POSIX-007")
+@pytest.mark.requirement("L2-CLN-005")
 def test_missing_claimed_source_fails_and_retains(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -325,6 +334,10 @@ def test_integrity_verifier_matches_hashlib(tmp_path: Path) -> None:
 @pytest.mark.requirement("L2-COPY-006")
 @pytest.mark.requirement("L2-DPR-005")
 @pytest.mark.requirement("L3-PY-003")
+@pytest.mark.requirement("L2-DPR-001")
+@pytest.mark.requirement("L2-POSIX-008")
+@pytest.mark.requirement("L2-COPY-005")
+@pytest.mark.requirement("L2-COPY-007")
 def test_copy_engine_creates_temp_exclusively(tmp_path: Path) -> None:
     source = tmp_path / "src.dat"
     source.write_bytes(b"payload")

@@ -25,6 +25,7 @@ def _insert_job(repo: SQLiteJobRepository, tmp_path: Path, job_id: str, state: J
 
 
 @pytest.mark.requirement("L2-REC-002")
+@pytest.mark.requirement("L2-COPY-010")
 def test_reconcile_requeues_interrupted_and_removes_temps(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     dest = _insert_job(repo, tmp_path, "j1", JobState.COPYING)

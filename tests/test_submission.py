@@ -61,6 +61,7 @@ def _build_service(
 
 @pytest.mark.requirement("L2-SUB-002")
 @pytest.mark.requirement("L3-SUB-001")
+@pytest.mark.requirement("L2-DST-005")
 def test_submit_claims_records_and_writes_manifest(tmp_path: Path) -> None:
     service, repo, source_root, dest_root = _build_service(tmp_path)
     (source_root / "host01.dat").write_bytes(b"aaa")
@@ -226,6 +227,7 @@ def test_manifest_and_record_carry_consistent_metadata(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-POSIX-002")
+@pytest.mark.requirement("L2-FS-004")
 @pytest.mark.skipif(not hasattr(socket, "AF_UNIX"), reason="creating symlinks needs POSIX here")
 def test_submit_rejects_symlinks(tmp_path: Path) -> None:
     service, repo, source_root, dest_root = _build_service(tmp_path)
