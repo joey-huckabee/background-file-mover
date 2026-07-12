@@ -29,7 +29,8 @@ authoritative spec source.
 | Hashing and Integrity Modes | MIGRATED + TRANSCRIBED | Modes 1/2/4 → `IntegrityMode` enum + `[integrity] mode` + `transfer/integrity.py`; algorithms (sha256 default / sha512 / blake2b, avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`. Mode 3 (streaming hash-while-copy, unbuilt) **migrated** to ROADMAP § Deferred as a source-I/O optimization | `189fe4a` |
 | Safe Destination Publication | TRANSCRIBED | `docs/ARCHITECTURE.md` § Durable per-file workflow (temp → copy → flush+fsync → verify → `os.replace` publish → fsync dir → delete source): L2-DPR-001..007, L2-POSIX-007..012, L3-PY-003/004; downstream-never-sees-partial → L2-DST-004. Temp prefix `.partial-` superseded by configurable `[paths] temporary_file_prefix` (default `.swit-partial-`) | `fd7cfb5` |
 | Copy Versus Move Semantics | TRANSCRIBED | Near-verbatim in `docs/ARCHITECTURE.md` § What the system is (claim → copy → verify → publish → delete-source; separate NFS mounts, no atomic cross-fs move; transaction-like semantics) + CLAUDE.md | `ffc85ca` |
-| Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | _this commit_ |
+| Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | `60ec0b8` |
+| Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -141,33 +142,12 @@ byte-offset resume shipped in v0.3.0 (L2-RSM-001..003, ARCHITECTURE § Partial-f
 resume).)_
 
 ## Duplicate and Collision Handling
-The destination policy must be explicit.
 
-Recommended default:
-
-> Never overwrite an existing final destination file.
-
-If the destination exists:
-
-1. Compare its expected size.
-2. Compare its hash when hashing is enabled.
-3. If it exactly matches, mark the transfer idempotently complete.
-4. If it differs, place the job into MANUAL_INTERVENTION.
-5. Never silently replace the destination.
-
-Useful collision policies may eventually include:
-```
-fail
-verify-and-reuse
-version
-overwrite
-```
-For the initial production release, I recommend supporting only:
-```
-fail
-verify-and-reuse
-```
-Overwriting creates too much risk for recorded simulation data.
+_(§ "Duplicate and Collision Handling" retired — see the retirement ledger at the top of
+this file. Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 +
+`ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`.
+`overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) migrated to
+`docs/ROADMAP.md` § Deferred.)_
 
 ## Concurrency
 Six hosts may contribute files, but copying all files concurrently may overload:
