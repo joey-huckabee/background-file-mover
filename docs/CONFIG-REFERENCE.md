@@ -54,6 +54,10 @@ A misspelled key fails loudly rather than silently disabling a feature.
 | `use_kernel_copy` | bool | `true` | Attempt kernel-assisted copy (`copy_file_range`) with a safe buffered fallback; set `false` to always use the buffered loop. |
 | `resume_partial_files` | bool | `true` | Resume an interrupted copy from its fsynced `.swit-partial-` offset instead of restarting from byte zero; `false` restarts interrupted files and drops stale partials during recovery. See `docs/ARCHITECTURE.md` § *Partial-file resume*. |
 
+> **Combining these options has consequences** — a bandwidth limit forces the buffered copy
+> engine, resume's crash-safety depends on `[integrity] mode`, and `pause`/`resume` relies on
+> `resume_partial_files`. See **`docs/FEATURE-INTERACTIONS.md`** before tuning them together.
+
 ## `[integrity]`
 
 | Option | Type | Default | Notes |

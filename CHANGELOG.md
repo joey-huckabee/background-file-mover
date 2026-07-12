@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Added `docs/FEATURE-INTERACTIONS.md`, an operator guide to combining kernel-assisted
+  copy, bandwidth limiting, partial-file resume, and pause/cancel/resume — which
+  combinations force the buffered engine, how a runtime `throttle` relates to an in-flight
+  kernel copy, and the two sharp edges (resume crash-safety depends on `[integrity] mode`;
+  `pause`/`resume` relies on `resume_partial_files`). Added a matching *Feature
+  interactions* matrix to `docs/ARCHITECTURE.md` and cross-links from the config/CLI
+  references and the reference INI.
+
 ## [0.3.0] - 2026-07-12
 
 Adds operator **job lifecycle control** (cancel / pause / resume) and **partial-file
