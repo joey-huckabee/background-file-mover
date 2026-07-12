@@ -1,19 +1,24 @@
 # Chat Capture
 
-This is the original design conversation the specifications were transcribed from. As of
-v0.4.0 its content is being **incrementally retired**: each section is removed only once
-every claim in it is verified to live in a canonical doc, a requirement ID, a config
-option, or code+tests. Nothing is lost — removed content is recoverable from git history,
-and the **retirement ledger** below records where each retired section now lives.
+This was the original design conversation the specifications were transcribed from. As of
+v0.4.0 its content has been **fully retired**: each section was removed only after every
+claim in it was verified to live in a canonical doc, a requirement ID, a config option, or
+code+tests. Nothing was lost — the removed content is recoverable from git history, and the
+**retirement ledger** below records where each section now lives (with the commit that
+removed it).
 
-Sections still present below have **not yet** been verified/retired. Once retirement
-completes, this file becomes the design-history index (the ledger) rather than the
-authoritative spec source.
+This file is therefore now the **design-history index**, not the authoritative spec source —
+the specifications live in `docs/L1-REQ.md` / `L2-REQ.md` / `L3-REQ.md`, `docs/ARCHITECTURE.md`,
+the CLI/CONFIG references, `docs/DEPLOYMENT.md`, and the code. The headings below are
+pointer stubs back to the ledger; unbuilt-but-valuable ideas surfaced during retirement were
+migrated to `docs/ROADMAP.md` (including a **Known gaps** section flagging specified-but-
+`Draft` requirements).
 
 ## Retirement ledger
 
 | Retired CAPTURE section | Disposition | Canonical home(s) | Commit |
 |-------------------------|-------------|-------------------|--------|
+| My Prompt (project kickoff) | TRANSCRIBED | Problem statement → CLAUDE.md § Project Overview + `docs/ARCHITECTURE.md` § What the system is (L1-SYS-001/002); requirements list → L1-REQ (stdlib-only L1-SYS-009; no-panic L1-ROB-001), MAINTAINER § Testing strategy, coding standards | _this commit_ |
 | Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | `2ee3e73` |
 | Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | `8905c81` |
 | Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | `0f5c2df` |
@@ -45,29 +50,17 @@ authoritative spec source.
 | Q&A — interacting with the running service via the CLI | TRANSCRIBED | Control-plane design fully shipped: Unix-socket + JSON request/response → ARCHITECTURE § Process model + `control/` (L2-CTL/L3-CTL); 4-byte framing (L3-PY-006/L3-CTL-001); explicit dispatcher (L3-CTL-002); separate control pool + `[control]` limits; exit-4-unavailable; durable-boundary + idempotent `request_id` (L2-CLI-008/L2-SUB-001); socket perms → DEPLOYMENT. `database inspect`/spool alternatives already on ROADMAP | `b29e4a5` |
 | Q&A — setting up the server step by step | TRANSCRIBED | Full server-setup runbook → `docs/DEPLOYMENT.md` (layout, `mover` account, dirs, config, wheel/venv install, `Type=notify` systemd unit, socket verification, acceptance tests) + ARCHITECTURE (components, control plane, startup order, main loop, graceful shutdown) + `control/` + SQLite pragmas (L3-PY-007) + `health`. **Superseded:** `swit-` operator-facing names → hybrid naming; `[logging] log_to_journal`/`log_to_file` removed (twelve-factor); `Type=simple` → `Type=notify` | _this commit_ |
 
-## My Prompt:
-I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
-Requirements: 
-* No External Dependencies for the Application 
-* External Dependencies allowed for Development (ruff, etc) 
-* Follow PEP statndards 
-* Production Ready, No Panic 
-* Google Docstrings 
-* Module Docstrings 
-* Coding Standards and Best Practices 
-* Class Based 
-* Document L1, L2, L3 Requirements 
-* Fully Pytested 
+## My Prompt: (project kickoff)
 
-Lets Talk about the requirements more so we can kickstart this project more effectively.  
-  
-We have a system which runs a scenario/simulation and data is recorded. Those files are recorded locally on each of the Hosts running the simulation. There are six hosts which run the simulation each recording data to the same NFS mount (these are Linux Hosts). There are a collection of python scripts which orchestrate the simulation and at the end part of the process there is a step which gets triggered to move the files from the local NFS mount to a remote data processing NFS mount and compute platform. The problem we are having is the data sets and recordings are totaling around 100 GB of data and it is causing the simulation hosts to pause for a very long period of time while data is being moved at which time the simulation platform can not be prepared for the next run. We need a python application which will be able to run in the background separate from the simulation orchestration python scripts moving the recordings. So the simulation orchestration python scripts will trigger the separate move process with a list of files or a folder which needs to be moved.  
-  
-How would a python script kick off a process like this? What would this application look like? It must be durable because we cannot lose data during this process. The first step will be to rename the files so they do not get overwritten by the simulation host while they get moved.  
-  
-I would like to make sure we ensure data movement integrity. Though any sort of hashing would need to be configurable to turn on or off and the hash value would be written into a file before the files were moved to a different location. 
-Lets get started designing this up. Explain how all this will work.  
-  
+_(The original kickoff prompt is retired — see the retirement ledger at the top of this
+file. The problem statement (six Linux hosts recording ~100 GB to NFS; a background,
+durable mover triggered by orchestration; claim-by-rename; configurable hashing written
+before the move) → CLAUDE.md § Project Overview + `docs/ARCHITECTURE.md` § What the system
+is (L1-SYS-001/002). The requirements list (stdlib-only → L1-SYS-009; production-ready/
+no-panic → L1-ROB-001 + ARCHITECTURE § Error pipeline; L1/L2/L3 docs; fully-pytested →
+MAINTAINER § Testing strategy; Google/module docstrings + class-based → coding standards)
+→ the requirement docs and CLAUDE.md.)_
+
 ## Recommended Architecture
 
 _(§ "Recommended Architecture" retired — see the retirement ledger at the top of this

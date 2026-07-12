@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Incremental retirement of `docs/CAPTURE.md`.** The original design conversation is being
-  retired section by section as each is verified to be fully captured in a canonical doc,
-  requirement, config option, or code+tests. A retirement ledger at the top of the file
-  records where each removed section now lives; git history retains the removed content.
-  See that ledger for the per-section disposition.
+- **Retired `docs/CAPTURE.md` into the specifications.** The original design conversation
+  (~6,200 lines) has been **fully retired** section by section — each removed only after its
+  every claim was verified to live in a canonical doc, a requirement, a config option, or
+  code+tests. CAPTURE is now the **design-history index**: a retirement ledger mapping each
+  section to where it lives (and the commit that removed it); git history retains the
+  content. Unbuilt-but-valuable ideas surfaced during the review were migrated to
+  `docs/ROADMAP.md` (spool-queue transport, streaming hash-while-copy, manifest hashes,
+  `version` collision policy, proactive free-space check, durable event/audit log, file-size
+  and regex submission policies, per-job overrides, per-phase timings), and a ROADMAP
+  **Known gaps** section now flags specified-but-`Draft` requirements (notably several
+  data-safety `L2-FS`/`L2-POSIX`/`L2-CLN`/`L2-DEL` requirements that are implemented but lack
+  requirement-tagged tests) for a traceability audit.
 - **Twelve-factor logging.** The service now writes its event stream to the standard streams
   and lets the environment (systemd's journal, a log shipper) route it — `INFO`/`DEBUG` to
   **stdout**, `WARNING` and above to **stderr** — and no longer manages log files. The CLI is
