@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pausing an in-flight copy with `resume_partial_files = false` no longer fails on resume.**
+  The kept partial would previously collide with the exclusive create when the job resumed;
+  now a pause under a disabled resume policy drops the partial so the file cleanly restarts
+  from byte zero (mirroring startup recovery). With resume enabled the partial is kept and
+  continued as before (L2-RSM-002).
+
 ### Added
 
 - **Gated, context-aware logging with near-zero overhead when off.** Job/file correlation is

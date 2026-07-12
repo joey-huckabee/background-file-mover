@@ -478,3 +478,23 @@ def test_gate_off_suppresses_debug_records(
         _coordinator(tmp_path, repo).process_job(job_id)
     assert not [r for r in caplog.records if r.levelno == logging.DEBUG]
     repo.close()
+
+
+@pytest.mark.requirement("L2-RSM-002")
+@pytest.mark.requirement("L2-LIF-004")
+def test_pause_with_resume_disabled_drops_partial_and_restarts_from_zero(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, dest_root = _submit(tmp_path, repo, {"a.dat": b"0123456789"})
+    signals = JobControlSignals()
+    signals.request(job_id, ControlSignal.PAUSE)
+    coordinator = _lifecycle_coordinator(repo, signals, resume=False)  # resume DISABLED
+    assert coordinator.process_job(job_id) is JobState.PAUSED
+    # With resume disabled the paused partial is dropped (it could not be resumed cleanly).
+    assert not list(dest_root.rglob(".swit-partial-*"))
+    # Resuming restarts the file from zero and completes rather than failing.
+    signals.clear(job_id)
+    repo.transition_job(job_id, JobState.QUEUED)
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    assert (dest_root / "a.dat").read_bytes() == b"0123456789"
+    repo.close()

@@ -245,12 +245,11 @@ the **per-buffer hooks** — `rate_limiter.throttle(...)` (buffered loop only) a
 | Runtime `throttle` + in-flight kernel copy | engine chosen at copy start | The running kernel copy never reads the limiter, so a live rate change applies from the **next** file; a buffered copy honours it immediately (`RateLimiter.set_rate`). |
 | Low limit + pause/cancel/shutdown | buffered loop order | `interrupt_check()` runs *after* `throttle()`, so a long throttle sleep delays the stop by up to one chunk. |
 | Resume + integrity mode | `FileMover._needs_destination_hash` | Destination content is re-hashed only under `source-and-destination-hash`; a crash-torn resumed prefix is caught **only** in that mode (a clean pause is safe under any mode because the prefix was fsynced). |
-| Pause/resume + `resume_partial_files` | `TransferCoordinator._handle_interrupt`, `FileMover.move(resume=...)` | Pause always keeps the partial; resume re-copies with `resume=resume_partial_files`. With resume disabled the kept partial collides with the exclusive create and the file fails — pause/resume depends on resume being enabled. |
+| Pause/resume + `resume_partial_files` | `TransferCoordinator._handle_interrupt`, `FileMover.move(resume=...)` | Enabled: pause keeps the fsynced partial and resume continues it. Disabled: pause drops the partial and resume restarts the file from zero (never a collision). |
 
-The last two rows are the sharp edges: resume's crash-safety is only as strong as the integrity
-mode, and pause/resume presumes `resume_partial_files = true`. Both are called out as gotchas in
-the user guide; hardening the pause/resume-with-resume-disabled case is a candidate for a later
-release.
+The remaining sharp edge is that resume's crash-safety is only as strong as the integrity mode
+(a torn resumed prefix is caught only under `source-and-destination-hash`); it is called out as a
+gotcha in the user guide.
 
 ## Logging & observability
 

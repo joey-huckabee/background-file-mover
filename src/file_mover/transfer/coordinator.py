@@ -128,7 +128,12 @@ class TransferCoordinator:
             self._repository.transition_job(job_id, JobState.CANCELLED_RETAINED)
             log.info("job cancelled while copying %s", file.relative_path)
             return JobState.CANCELLED_RETAINED
-        # Pause (the safe default): keep the fsynced partial for an exact resume.
+        # Pause (the safe default): keep the fsynced partial for an exact resume — but only
+        # when resume is enabled. With resume disabled the kept partial would collide with
+        # the exclusive create on resume, so drop it and let the file restart from zero
+        # (mirrors recovery's behaviour for interrupted partials — L2-RSM-002).
+        if not self._resume_partial_files and interrupt.temporary_path is not None:
+            interrupt.temporary_path.unlink(missing_ok=True)
         self._repository.record_job_progress(job_id, moved_bytes + interrupt.bytes_written)
         self._repository.transition_job(job_id, JobState.PAUSED)
         log.info("job paused at %d byte(s)", moved_bytes + interrupt.bytes_written)

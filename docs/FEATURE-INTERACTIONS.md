@@ -116,11 +116,12 @@ gotcha below.
 - **Mechanism.** Pausing an in-flight copy always keeps the fsynced partial. Resuming the
   job re-copies with `resume = resume_partial_files`.
 - **Consequence.** With `resume_partial_files = true` (default), `resume` continues the
-  partial exactly. With it **`false`**, the kept partial collides with the exclusive-create
-  and the file **fails** instead of restarting cleanly — so pause/resume effectively
-  *requires* resume to be enabled.
-- **Recommendation.** If you use `pause`/`resume`, keep `resume_partial_files = true`. (See
-  the gotcha box; hardening this combination is tracked for a later release.)
+  partial exactly. With it **`false`**, pausing an in-flight copy **drops** the partial (it
+  could not be resumed cleanly), so `resume` simply **restarts that file from byte zero** and
+  completes — no failure. Either setting is safe; the difference is whether resume continues
+  or restarts.
+- **Recommendation.** Keep `resume_partial_files = true` (default) if you want `resume` to
+  continue large files where they left off rather than re-copy them.
 
 ### Partial resume × integrity mode — crash-safety depends on the mode
 
@@ -163,8 +164,8 @@ gotcha below.
 - **A bandwidth limit disables kernel copy** while active (forces the buffered engine).
 - **`throttle` does not slow a file already being kernel-copied** — it applies from the next
   file.
-- **`pause`/`resume` requires `resume_partial_files = true`**; with resume off, a resumed
-  job fails rather than restarting.
+- **`pause`/`resume` honours `resume_partial_files`**: enabled resumes from the partial
+  offset; disabled drops the partial on pause and restarts the file from zero on resume.
 - **Resume + a weak integrity mode is not crash-safe** — keep
   `source-and-destination-hash` when resume is enabled.
 - **A low bandwidth limit slows `pause`/`cancel` and shutdown** by up to one buffer's worth
