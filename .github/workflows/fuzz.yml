@@ -1,0 +1,47 @@
+name: Fuzz burn-in
+
+# Deeper no-panic fuzz burn-in for the L1-ROB-001 harness (tests/test_fuzz.py). The
+# normal CI suite runs the fixed 256-iteration default (kept fast); this scheduled job
+# overrides FILE_MOVER_FUZZ_ITERATIONS for a much deeper sweep. The PRNG is deterministic
+# (seeded), so a burn-in is a strict superset of the default run — its first 256
+# iterations are identical — and any failure is reproducible from the printed seed.
+
+on:
+  schedule:
+    # Daily at 06:00 UTC.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: "Fuzz iterations per interaction surface"
+        default: "50000"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: No-panic fuzz burn-in
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Poetry
+        run: pipx install poetry==2.3.4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: poetry
+          cache-dependency-path: poetry.lock
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run the no-panic fuzz harness (deep sweep)
+        env:
+          FILE_MOVER_FUZZ_ITERATIONS: ${{ github.event.inputs.iterations || '50000' }}
+        # Run only the fuzz module (no --cov, so the coverage gate does not apply here).
+        run: poetry run pytest tests/test_fuzz.py -v

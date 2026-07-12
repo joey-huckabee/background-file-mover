@@ -29,6 +29,8 @@ packages). See `docs/ROADMAP.md` for milestone status.
 - `docs/MAINTAINER-GUIDE.md` — repo layout, local dev setup, command cheat sheet,
   workflows for adding requirements / tests / CLI flags / config options, CI architecture.
   Start here when onboarding.
+- `docs/DEPLOYMENT.md` — systemd deployment runbook (service account, install, config,
+  acceptance tests) and the NFS qualification checklist.
 - `docs/L1-REQ.md` — Level 1 SHALL statements (system requirements, `L1-SYS-*`).
 - `docs/L2-REQ.md` — Level 2 architectural derivations (each with a single L1 `**Parent**`).
 - `docs/L3-REQ.md` — Level 3 implementation obligations (`INT`/`EVT`/`CLI` component
