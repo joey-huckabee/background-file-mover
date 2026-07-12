@@ -654,7 +654,9 @@ def _cross_field_issues(typed: dict[str, dict[str, object]]) -> list[Configurati
     state_directory = typed.get("service", {}).get("state_directory")
     if isinstance(state_directory, PurePosixPath) and isinstance(sources, tuple):
         for source in sources:
-            if _overlaps(state_directory, source):
+            # Directional: only reject when the state directory is *inside* (or equal to)
+            # a source root. A source root nested under the state directory is fine.
+            if state_directory == source or state_directory.is_relative_to(source):
                 issues.append(
                     ConfigurationIssue(
                         "service",

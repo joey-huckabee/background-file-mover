@@ -175,6 +175,18 @@ def test_cross_field_state_directory_under_source() -> None:
     assert ("service", "state_directory") in _issues(text)
 
 
+@pytest.mark.requirement("L2-CFG-004")
+def test_source_root_may_nest_under_state_directory() -> None:
+    # A source root beneath the state directory is valid; only a state directory nested
+    # inside a source root is rejected (the check is directional, not symmetric).
+    config = _load(
+        "[service]\nstate_directory = /data\n"
+        "[paths]\nallowed_source_roots = /data/recordings\n"
+        "allowed_destination_roots = /processing\n"
+    )
+    assert config.service.state_directory == PurePosixPath("/data")
+
+
 @pytest.mark.requirement("L2-CFG-008")
 def test_all_issues_reported_together() -> None:
     text = (
