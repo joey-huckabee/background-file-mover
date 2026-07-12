@@ -157,7 +157,7 @@ class JobSubmissionService:
                 job_id, self._build_manifest(job_id, request, claimed, created_at)
             )
             total_bytes = sum(item.identity.size_bytes for item in claimed)
-            self._record(job_id, request, claimed, total_bytes, created_at)
+            self._record(job_id, request, claimed, total_bytes=total_bytes, created_at=created_at)
         except (ClaimError, ManifestError, RepositoryError) as error:
             return SubmissionResult(
                 accepted=False,
@@ -195,6 +195,7 @@ class JobSubmissionService:
         job_id: str,
         request: SubmissionRequest,
         claimed: Sequence[ClaimedFile],
+        *,
         total_bytes: int,
         created_at: float,
     ) -> None:
