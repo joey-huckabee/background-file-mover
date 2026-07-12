@@ -118,6 +118,11 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   queue depth, and retry counters.
 - Advanced scheduling and transfer prioritization — job priorities and scheduling policy
   beyond the current single-active-job, FIFO model.
+- Durable job event / audit log — persist every job/file state transition as a typed event
+  to a durable events table (and expose a human-readable per-job timeline), giving operators
+  an auditable history beyond the current job/file state snapshot. The first design
+  downgraded this to "optional observers, never authoritative" (the jobs/files tables are the
+  source of truth), so it remains an unbuilt enhancement.
 - Proactive free-space margin pre-flight check — before starting a transfer, verify the
   destination filesystem has at least the job's total size plus a configurable margin
   (`statvfs`), and reject or hold the job otherwise, instead of only handling `ENOSPC`
@@ -155,6 +160,17 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
     service's stdout stream so journald records the correct priority per record.
   - **JSON log-format mode** (`[logging] format = text | json`) — one JSON object per line,
     leveraging the structured `extra={job_id, file_id}` fields, for log shippers.
+
+## Known gaps (decision needed)
+
+- **Event-publisher requirements are `Draft`/unimplemented.** The in-memory observer /
+  event-publisher was specified as `L2-EVT-001..005` and `L3-EVT-001..005` (snapshot
+  subscribers before dispatch, don't hold the lock during callbacks, catch subscriber
+  exceptions, reject duplicate registration, unsubscribe reports removal) but has **no
+  implementation and no tests** — the trace matrix carries them as `Draft` / `_(TBD)_`.
+  Decide in a future session whether to **implement** the publisher (with tests) or
+  **formally withdraw** the requirements so the matrix reflects reality. Until then the
+  design intent lives in the EVT requirements themselves.
 
 ## Delivered post-1.0
 
