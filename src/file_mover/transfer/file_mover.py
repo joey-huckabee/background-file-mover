@@ -17,6 +17,7 @@ intervention (L3-INT-007, L2-DST-002/003). I/O failures raise :class:`TransferEr
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from file_mover.exceptions import CopyError
@@ -28,7 +29,7 @@ from file_mover.jobs.models import (
     JobRecord,
 )
 from file_mover.jobs.repository import JobRepository
-from file_mover.transfer.copy_engine import BufferedFileCopyEngine
+from file_mover.transfer.copy_engine import BufferedFileCopyEngine, CopyOutcome
 from file_mover.transfer.integrity import IntegrityVerifier
 from file_mover.validation import identity_of
 
@@ -69,11 +70,26 @@ class FileMover:
             and self._integrity_mode is IntegrityMode.SOURCE_AND_DESTINATION_HASH
         )
 
-    def move(self, job: JobRecord, file: FileRecord) -> FileState:
+    def move(
+        self,
+        job: JobRecord,
+        file: FileRecord,
+        *,
+        resume: bool = False,
+        interrupt_check: Callable[[], None] | None = None,
+    ) -> FileState:
         """Run the durable per-file workflow; return the terminal file state.
+
+        Args:
+            job: The owning job record.
+            file: The file to move.
+            resume: Continue an existing fsynced partial rather than restart (L2-RSM-001).
+            interrupt_check: Polled by the copy loop; raising
+                :class:`~file_mover.exceptions.CopyInterrupted` stops it at a safe point.
 
         Raises:
             TransferError: On an I/O failure the coordinator should classify.
+            CopyInterrupted: If ``interrupt_check`` signals a pause/cancel.
         """
         claimed = (
             Path(job.source_root) / self._claim_directory_name / job.job_id / file.relative_path
@@ -90,22 +106,40 @@ class FileMover:
             raise CopyError(f"claimed source missing: {claimed}: {error}") from error
 
         source_hash = self._verifier.hash_file(claimed) if self._needs_source_hash else None
-        outcome = self._copy_engine.copy_to_temp(claimed, final.parent, job.job_id, file.file_id)
+        outcome = self._copy_engine.copy_to_temp(
+            claimed,
+            final.parent,
+            job.job_id,
+            file.file_id,
+            resume=resume,
+            interrupt_check=interrupt_check,
+        )
 
         if outcome.bytes_written != source_identity.size_bytes:
-            return FileState.INTEGRITY_FAILED  # temporary destination retained
+            return self._integrity_failure(outcome)
 
         destination_hash = None
         if self._needs_destination_hash:
             destination_hash = self._verifier.hash_file(outcome.temporary_path)
             if source_hash is None or not IntegrityVerifier.compare(source_hash, destination_hash):
-                return FileState.INTEGRITY_FAILED  # source and temp retained
+                return self._integrity_failure(outcome)
 
         self._copy_engine.publish(outcome.temporary_path, final)
         self._repository.update_file(
             file.file_id, source_hash=source_hash, destination_hash=destination_hash
         )
         return self._delete_verified_source(claimed, source_identity)
+
+    def _integrity_failure(self, outcome: CopyOutcome) -> FileState:
+        """Record an integrity failure, dropping a corrupt *resumed* partial.
+
+        A fresh copy's temporary is retained for inspection, but a *resumed* partial that
+        fails verification (e.g. a crash-torn prefix) is removed so the next attempt
+        restarts the file from zero instead of resuming the same bad bytes (L3-PY-012).
+        """
+        if outcome.resumed_from_bytes:
+            outcome.temporary_path.unlink(missing_ok=True)
+        return FileState.INTEGRITY_FAILED
 
     def _delete_verified_source(self, claimed: Path, source_identity: object) -> FileState:
         """Re-check the claimed source is unchanged, then delete it (L1-SYS-003)."""

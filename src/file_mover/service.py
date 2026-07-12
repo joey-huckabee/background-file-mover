@@ -26,6 +26,7 @@ from file_mover.claiming import FileClaimManager
 from file_mover.configuration import ApplicationConfig
 from file_mover.constants import PROTOCOL_VERSION
 from file_mover.control.dispatcher import CommandDispatcher
+from file_mover.control.lifecycle import JobLifecycleService
 from file_mover.control.lock import ProcessLock
 from file_mover.control.server import ControlSocketServer
 from file_mover.jobs.models import ExistingDestinationPolicy
@@ -42,6 +43,7 @@ from file_mover.presentation import (
 from file_mover.recovery.manager import RecoveryManager
 from file_mover.submission import JobSubmissionService, build_submission_request
 from file_mover.systemd import notify_ready, notify_stopping, notify_watchdog
+from file_mover.transfer.control_signals import JobControlSignals
 from file_mover.transfer.coordinator import TransferCoordinator
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.integrity import IntegrityVerifier
@@ -78,6 +80,8 @@ class BackgroundMoverService:
         self._submission: JobSubmissionService | None = None
         self._scheduler: TransferScheduler | None = None
         self._rate_limiter: RateLimiter | None = None
+        self._signals = JobControlSignals()
+        self._lifecycle: JobLifecycleService | None = None
         self._server: ControlSocketServer | None = None
         self._stopping = threading.Event()
         self._ready = threading.Event()
@@ -159,8 +163,34 @@ class BackgroundMoverService:
                 "stats": self._handle_stats,
                 "submit": self._handle_submit,
                 "throttle": self._handle_throttle,
+                "pause": self._handle_pause,
+                "resume": self._handle_resume,
+                "cancel": self._handle_cancel,
             }
         )
+
+    def _require_lifecycle(self) -> JobLifecycleService:
+        """Return the lifecycle service, building it on first use from durable state."""
+        if self._lifecycle is None:
+            self._lifecycle = JobLifecycleService(
+                repository=self._require_repository(),
+                signals=self._signals,
+                temporary_file_prefix=self._config.paths.temporary_file_prefix,
+                logger=self._logger,
+            )
+        return self._lifecycle
+
+    def _handle_pause(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Pause a queued or in-flight job (L2-LIF-002)."""
+        return self._require_lifecycle().handle_pause(arguments)
+
+    def _handle_resume(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Resume a paused job (L2-LIF-004)."""
+        return self._require_lifecycle().handle_resume(arguments)
+
+    def _handle_cancel(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Cancel a job, retaining its source and discarding any partial (L2-LIF-001/003)."""
+        return self._require_lifecycle().handle_cancel(arguments)
 
     def _build_submission_service(self, repository: JobRepository) -> JobSubmissionService:
         """Construct the submission service from configuration."""
@@ -203,6 +233,8 @@ class BackgroundMoverService:
             destination_policy=ExistingDestinationPolicy.FAIL,
             retry_initial_delay_seconds=transfer.retry_initial_delay_seconds,
             retry_max_delay_seconds=transfer.retry_max_delay_seconds,
+            signals=self._signals,
+            resume_partial_files=transfer.resume_partial_files,
         )
         return TransferScheduler(
             repository=repository,
@@ -215,6 +247,7 @@ class BackgroundMoverService:
         report = RecoveryManager(
             repository=repository,
             temporary_file_prefix=self._config.paths.temporary_file_prefix,
+            resume_partial_files=self._config.transfer.resume_partial_files,
             logger=self._logger,
         ).reconcile()
         self._logger.info(

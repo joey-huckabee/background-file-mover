@@ -54,6 +54,16 @@ class JobRepository(Protocol):
     def transition_job(self, job_id: str, to_state: JobState) -> None:
         """Transition a job to ``to_state``, enforcing the allowed-transition map."""
 
+    def transition_job_if(
+        self, job_id: str, from_states: Collection[JobState], to_state: JobState
+    ) -> bool:
+        """Atomically transition to ``to_state`` only if the current state is in ``from_states``.
+
+        Returns ``True`` if applied, ``False`` if the current state was not in
+        ``from_states`` (a compare-and-set, so a concurrent scheduler pick cannot be
+        clobbered). Still enforces the allowed-transition map for the actual state.
+        """
+
     def reset_job_state(self, job_id: str, to_state: JobState) -> None:
         """Set a job's state unconditionally (recovery use; bypasses the transition map)."""
 

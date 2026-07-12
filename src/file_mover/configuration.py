@@ -113,6 +113,7 @@ class TransferConfig:
     retry_initial_delay_seconds: float
     retry_max_delay_seconds: float
     use_kernel_copy: bool
+    resume_partial_files: bool
 
 
 @dataclass(frozen=True)
@@ -460,6 +461,13 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             default="true",
             description="Attempt kernel-assisted copy (copy_file_range) with buffered fallback.",
         ),
+        OptionSpec(
+            "resume_partial_files",
+            _to_bool,
+            default="true",
+            description="Resume an interrupted copy from its fsynced partial instead of "
+            "restarting the file from byte zero.",
+        ),
     ),
     "integrity": (
         OptionSpec(
@@ -785,6 +793,7 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             retry_initial_delay_seconds=cast(float, transfer["retry_initial_delay_seconds"]),
             retry_max_delay_seconds=cast(float, transfer["retry_max_delay_seconds"]),
             use_kernel_copy=cast(bool, transfer["use_kernel_copy"]),
+            resume_partial_files=cast(bool, transfer["resume_partial_files"]),
         ),
         integrity=IntegrityConfig(
             enabled=cast(bool, integrity["enabled"]),

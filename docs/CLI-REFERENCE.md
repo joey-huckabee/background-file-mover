@@ -41,6 +41,9 @@ Machine output is written to **stdout**; diagnostics and logs to **stderr**
 | `retry <job_id>` | Retry a retained failed job. |
 | `stats` | Show durable service statistics. |
 | `throttle <bytes-per-second>` | Set the live copy-throughput limit (`0` = unlimited). |
+| `pause <job_id>` | Pause a queued or in-flight job (stops it at a safe point). |
+| `resume <job_id>` | Resume a paused job (returns it to the queue). |
+| `cancel <job_id>` | Cancel a job; retains the source, discards any partial. |
 | `doctor` | Validate configuration and filesystem access. |
 | `recover` | Reconcile durable state after an interruption. |
 | `service run` | Run the service in the foreground (systemd entry point). |
@@ -95,6 +98,37 @@ throughput limit removed (unlimited)
 A non-zero limit forces the buffered copy path (kernel-assisted `copy_file_range` cannot be
 paced from userspace), so throttling trades the kernel-copy fast path for controllable
 throughput — see `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
+
+### `pause` / `resume` / `cancel`
+
+```
+file-mover pause  JOB_ID
+file-mover resume JOB_ID
+file-mover cancel JOB_ID
+```
+
+Operator lifecycle control over a durable job (L2-LIF-001..005):
+
+- **`pause`** stops a job. A queued or retry-waiting job is transitioned to `paused`
+  immediately; an in-flight copy is signalled and stops at the next buffer boundary
+  (cooperative — there is no OS primitive to pause a file copy), leaving an fsynced
+  partial. Pausing an already-paused job is a no-op.
+- **`resume`** returns a `paused` job to the runnable queue; the next scheduler tick
+  continues it from its partial (see `docs/ARCHITECTURE.md` § *Partial-file resume*).
+- **`cancel`** ends a job at the terminal `cancelled_retained` state. The claimed **source
+  is always retained** — cancel never deletes source data — and only the incomplete
+  temporary destination is discarded. An in-flight copy is cancelled cooperatively.
+
+Each command prints the accepted job and its resulting state, or a typed rejection
+(`NOT_FOUND` → `JOB_NOT_FOUND`; an invalid state → `OPERATION_FAILED`). With `--output
+json` the full response object is emitted on stdout.
+
+```
+$ file-mover pause 4f2a…
+pause accepted for 4f2a… (state: paused)
+$ file-mover cancel 4f2a…
+cancel accepted for 4f2a… (state: cancelled_retained)
+```
 
 ## Exit codes
 

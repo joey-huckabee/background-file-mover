@@ -119,6 +119,23 @@ def test_throttle_handler_rejects_boolean_masquerading_as_int(tmp_path: Path) ->
         repo.close()
 
 
+@pytest.mark.requirement("L2-LIF-004")
+def test_pause_and_resume_handlers_via_dispatcher(tmp_path: Path) -> None:
+    service, repo = _service_with_job(tmp_path)  # job j1 is QUEUED
+    try:
+        paused = _dispatch(service, "pause", {"job_id": "j1"})
+        assert paused["result"]["accepted"] is True
+        assert repo.get_job("j1").state is JobState.PAUSED
+        resumed = _dispatch(service, "resume", {"job_id": "j1"})
+        assert resumed["result"]["state"] == "queued"
+        assert repo.get_job("j1").state is JobState.QUEUED
+        # A cancel then reaches the terminal retained state.
+        cancelled = _dispatch(service, "cancel", {"job_id": "j1"})
+        assert cancelled["result"]["state"] == "cancelled_retained"
+    finally:
+        repo.close()
+
+
 @pytest.mark.requirement("L2-JOB-006")
 def test_status_handler_found_and_missing(tmp_path: Path) -> None:
     service, repo = _service_with_job(tmp_path)

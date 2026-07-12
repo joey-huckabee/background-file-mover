@@ -120,6 +120,15 @@ def create_parser() -> argparse.ArgumentParser:
     _add_global_options(retry)
     retry.add_argument("job_id", help="job identifier")
 
+    for name, summary in (
+        ("pause", "pause a queued or in-flight job"),
+        ("resume", "resume a paused job"),
+        ("cancel", "cancel a job (retains the source, discards any partial)"),
+    ):
+        lifecycle = subcommands.add_parser(name, help=summary)
+        _add_global_options(lifecycle)
+        lifecycle.add_argument("job_id", help="job identifier")
+
     throttle = subcommands.add_parser(
         "throttle", help="set the live copy-throughput limit (0 = unlimited)"
     )
@@ -431,6 +440,32 @@ def _handle_submit(args: argparse.Namespace) -> ExitCode:
     return ExitCode.JOB_REJECTED
 
 
+def _handle_lifecycle(args: argparse.Namespace, command: str) -> ExitCode:
+    """Send a ``pause``/``resume``/``cancel`` request for one job and render the outcome."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, command, {"job_id": args.job_id})
+    if isinstance(result, ExitCode):
+        return result
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS if result.get("accepted") else ExitCode.OPERATION_FAILED
+    if not result.get("accepted"):
+        print(
+            f"{APP_NAME}: {command} rejected ({result.get('error_code')}): "
+            f"{result.get('error_message')}",
+            file=sys.stderr,
+        )
+        return (
+            ExitCode.JOB_NOT_FOUND
+            if result.get("error_code") == "NOT_FOUND"
+            else ExitCode.OPERATION_FAILED
+        )
+    print(f"{command} accepted for {result.get('job_id')} (state: {result.get('state')})")
+    return ExitCode.SUCCESS
+
+
 def _handle_throttle(args: argparse.Namespace) -> ExitCode:
     """Set the running service's live copy-throughput limit."""
     config = _load_configuration(args.config, args.output)
@@ -496,6 +531,9 @@ _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], ExitCode]] = {
     "stats": _handle_stats,
     "submit": _handle_submit,
     "throttle": _handle_throttle,
+    "pause": lambda args: _handle_lifecycle(args, "pause"),
+    "resume": lambda args: _handle_lifecycle(args, "resume"),
+    "cancel": lambda args: _handle_lifecycle(args, "cancel"),
 }
 
 

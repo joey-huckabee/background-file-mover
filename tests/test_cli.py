@@ -48,7 +48,19 @@ def test_create_parser_is_pure_and_builds() -> None:
     # Building the parser must not raise and must expose the documented commands.
     parser = create_parser()
     help_text = parser.format_help()
-    commands = ("submit", "status", "list", "retry", "stats", "throttle", "doctor", "recover")
+    commands = (
+        "submit",
+        "status",
+        "list",
+        "retry",
+        "stats",
+        "throttle",
+        "pause",
+        "resume",
+        "cancel",
+        "doctor",
+        "recover",
+    )
     for command in (*commands, "service"):
         assert command in help_text
 
@@ -192,12 +204,41 @@ def test_health_reports_service_unavailable_when_down(tmp_path: Path) -> None:
 
 
 @pytest.mark.requirement("L2-JOB-006")
-@pytest.mark.parametrize("argv", [["status", "j1"], ["list"], ["stats"]])
+@pytest.mark.parametrize(
+    "argv",
+    [["status", "j1"], ["list"], ["stats"], ["pause", "j1"], ["resume", "j1"], ["cancel", "j1"]],
+)
 def test_query_commands_report_service_unavailable_when_down(
     tmp_path: Path, argv: list[str]
 ) -> None:
     path = _write_config(tmp_path, _MINIMAL_CONFIG)
     assert main([*argv, "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-LIF-004")
+@pytest.mark.parametrize("command", ["pause", "resume", "cancel"])
+def test_lifecycle_commands_render_accepted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+) -> None:
+    _patch_client(monkeypatch, _ok({"accepted": True, "job_id": "j1", "state": "paused"}))
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main([command, "j1", "--config", path]) == ExitCode.SUCCESS
+    assert f"{command} accepted for j1" in capsys.readouterr().out
+
+
+@pytest.mark.requirement("L2-LIF-005")
+def test_lifecycle_unknown_job_is_job_not_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_client(
+        monkeypatch,
+        _ok({"accepted": False, "job_id": "j9", "error_code": "NOT_FOUND", "error_message": "x"}),
+    )
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["cancel", "j9", "--config", path]) == ExitCode.JOB_NOT_FOUND
 
 
 @pytest.mark.requirement("L2-JOB-006")

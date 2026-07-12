@@ -145,6 +145,13 @@ Copy-throughput limiting shall be implemented in userspace as a thread-safe toke
 copy loop; because kernel-assisted `copy_file_range` cannot be paced from userspace, a
 non-zero limit shall force the buffered copy strategy.
 
+**L3-PY-012** · Parent: L2-RSM-001 · Verification: T
+
+Partial-file resume shall determine the resume offset from the fsynced partial's size
+(`os.stat`/`os.fstat`), `os.lseek` both descriptors to it, and continue with either copy
+strategy; the kernel-copy fallback shall truncate to the resume offset (never zero) so an
+already-copied prefix is preserved.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T

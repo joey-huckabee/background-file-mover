@@ -107,10 +107,8 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 
 ## Deferred (post-1.0, explicitly out of the first release)
 
-- `cancel` / `pause` / `resume` commands (unless operations requires them).
 - S3 / object-storage adapter — a separate optional package (`file-mover-s3`); the core
   stays dependency-free (L2-STO-003/005).
-- Partial-file byte-offset resume (v1 restarts a file from byte zero).
 - `json-lines` streaming output and an offline `database inspect` command.
 - Multi-host active/active movers.
 
@@ -119,3 +117,10 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 - **Dynamic bandwidth limiting** (v0.2.0) — a userspace token-bucket throughput ceiling
   (`[transfer] max_bytes_per_second`), adjustable live with `file-mover throttle`
   (L2-BWL-001..004, L3-PY-011). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
+- **Job lifecycle control** (v0.3.0) — `cancel` / `pause` / `resume` commands with
+  cooperative cancellation of in-flight copies; cancel always retains the source
+  (L2-LIF-001..005). See `docs/ARCHITECTURE.md` § *Lifecycle control*.
+- **Partial-file byte-offset resume** (v0.3.0) — resume an interrupted copy from its
+  fsynced partial (`[transfer] resume_partial_files`) instead of restarting from zero,
+  with a hash-verified restart fallback (L2-RSM-001..003, L3-PY-012). See
+  `docs/ARCHITECTURE.md` § *Partial-file resume*.

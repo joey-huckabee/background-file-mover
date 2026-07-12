@@ -14,8 +14,9 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
-from file_mover.exceptions import TransferError
+from file_mover.exceptions import CopyInterrupted, TransferError
 from file_mover.jobs.models import (
+    ControlSignal,
     ErrorDisposition,
     ExistingDestinationPolicy,
     FileRecord,
@@ -24,6 +25,7 @@ from file_mover.jobs.models import (
     JobState,
 )
 from file_mover.jobs.repository import JobRepository
+from file_mover.transfer.control_signals import JobControlSignals
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.file_mover import FileMover
 from file_mover.transfer.integrity import IntegrityVerifier
@@ -47,6 +49,8 @@ class TransferCoordinator:
         retry_initial_delay_seconds: float,
         retry_max_delay_seconds: float,
         clock: Callable[[], float] = time.time,
+        signals: JobControlSignals | None = None,
+        resume_partial_files: bool = False,
     ) -> None:
         """Initialise the coordinator with its collaborators and transfer policy."""
         self._repository = repository
@@ -54,6 +58,8 @@ class TransferCoordinator:
         self._retry_initial = retry_initial_delay_seconds
         self._retry_max = retry_max_delay_seconds
         self._clock = clock
+        self._signals = signals
+        self._resume_partial_files = resume_partial_files
         self._file_mover = FileMover(
             repository=repository,
             copy_engine=copy_engine,
@@ -73,6 +79,7 @@ class TransferCoordinator:
             return job.state
 
         self._repository.transition_job(job_id, JobState.COPYING)
+        interrupt_check = self._signals.interrupt_check_for(job_id) if self._signals else None
         moved_bytes = 0
         for file in self._repository.list_files(job_id):
             if file.state is FileState.MOVE_COMPLETE:
@@ -80,7 +87,11 @@ class TransferCoordinator:
                 moved_bytes += file.size_bytes
                 continue
             try:
-                outcome = self._file_mover.move(job, file)
+                outcome = self._file_mover.move(
+                    job, file, resume=self._resume_partial_files, interrupt_check=interrupt_check
+                )
+            except CopyInterrupted as interrupt:
+                return self._handle_interrupt(job_id, file, interrupt, moved_bytes)
             except TransferError as error:
                 return self._fail_job(job_id, file, error)
             if outcome is FileState.MOVE_COMPLETE:
@@ -92,6 +103,26 @@ class TransferCoordinator:
         self._repository.record_job_progress(job_id, moved_bytes)
         self._repository.transition_job(job_id, JobState.COMPLETED)
         return JobState.COMPLETED
+
+    def _handle_interrupt(
+        self, job_id: str, file: FileRecord, interrupt: CopyInterrupted, moved_bytes: int
+    ) -> JobState:
+        """Apply a cooperative pause/cancel that stopped an in-flight copy (L2-LIF-002/003)."""
+        signal = self._signals.poll(job_id) if self._signals is not None else None
+        if self._signals is not None:
+            self._signals.clear(job_id)
+        if signal is ControlSignal.CANCEL:
+            if interrupt.temporary_path is not None:
+                interrupt.temporary_path.unlink(missing_ok=True)  # discard the partial
+            self._repository.record_job_error(
+                job_id, f"cancelled while copying {file.relative_path}"
+            )
+            self._repository.transition_job(job_id, JobState.CANCELLED_RETAINED)
+            return JobState.CANCELLED_RETAINED
+        # Pause (the safe default): keep the fsynced partial for an exact resume.
+        self._repository.record_job_progress(job_id, moved_bytes + interrupt.bytes_written)
+        self._repository.transition_job(job_id, JobState.PAUSED)
+        return JobState.PAUSED
 
     def _route_to_manual(self, job_id: str, file: FileRecord, outcome: FileState) -> JobState:
         """Record an integrity/collision failure and route the job to manual intervention."""

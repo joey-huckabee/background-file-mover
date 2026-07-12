@@ -69,3 +69,45 @@ def test_reconcile_with_missing_destination_is_safe(tmp_path: Path) -> None:
     assert report.requeued_jobs == 1
     assert report.removed_temporary_files == 0
     repo.close()
+
+
+@pytest.mark.requirement("L2-RSM-002")
+def test_reconcile_preserves_partials_when_resume_enabled(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    dest = _insert_job(repo, tmp_path, "j1", JobState.COPYING)
+    (dest / ".swit-partial-j1-0000").write_bytes(b"partial")
+
+    report = RecoveryManager(
+        repository=repo, temporary_file_prefix=".swit-partial-", resume_partial_files=True
+    ).reconcile()
+
+    assert report.requeued_jobs == 1
+    assert report.removed_temporary_files == 0
+    assert (dest / ".swit-partial-j1-0000").exists()  # kept for resume
+    assert repo.get_job("j1").state is JobState.QUEUED  # type: ignore[union-attr]
+    repo.close()
+
+
+@pytest.mark.requirement("L2-RSM-002")
+def test_reconcile_removes_partials_when_resume_disabled(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    dest = _insert_job(repo, tmp_path, "j1", JobState.COPYING)
+    (dest / ".swit-partial-j1-0000").write_bytes(b"partial")
+
+    report = RecoveryManager(
+        repository=repo, temporary_file_prefix=".swit-partial-", resume_partial_files=False
+    ).reconcile()
+
+    assert report.removed_temporary_files == 1
+    assert not (dest / ".swit-partial-j1-0000").exists()
+    repo.close()
+
+
+@pytest.mark.requirement("L2-LIF-004")
+def test_reconcile_leaves_paused_jobs_paused(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _insert_job(repo, tmp_path, "held", JobState.PAUSED)
+    report = RecoveryManager(repository=repo, temporary_file_prefix=".swit-partial-").reconcile()
+    assert report.requeued_jobs == 0
+    assert repo.get_job("held").state is JobState.PAUSED  # type: ignore[union-attr]
+    repo.close()

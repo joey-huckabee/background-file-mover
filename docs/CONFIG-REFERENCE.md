@@ -52,6 +52,7 @@ A misspelled key fails loudly rather than silently disabling a feature.
 | `retry_initial_delay_seconds` | float > 0 | `10` | Backoff floor. |
 | `retry_max_delay_seconds` | float | `900` | Must be ≥ `retry_initial_delay_seconds`. |
 | `use_kernel_copy` | bool | `true` | Attempt kernel-assisted copy (`copy_file_range`) with a safe buffered fallback; set `false` to always use the buffered loop. |
+| `resume_partial_files` | bool | `true` | Resume an interrupted copy from its fsynced `.swit-partial-` offset instead of restarting from byte zero; `false` restarts interrupted files and drops stale partials during recovery. See `docs/ARCHITECTURE.md` § *Partial-file resume*. |
 
 ## `[integrity]`
 

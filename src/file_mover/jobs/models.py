@@ -36,10 +36,23 @@ class JobState(str, Enum):
     SOURCE_CLEANUP = "source_cleanup"
     COMPLETED = "completed"
     RETRY_WAIT = "retry_wait"
+    PAUSED = "paused"
     SOURCE_UNSTABLE = "source_unstable"
     FAILED_RETAINED = "failed_retained"
     CANCELLED_RETAINED = "cancelled_retained"
     MANUAL_INTERVENTION = "manual_intervention"
+
+
+class ControlSignal(str, Enum):
+    """An operator lifecycle request delivered to an in-flight copy (cooperative).
+
+    Set on a job by a ``pause``/``cancel`` control command and polled by the copy loop at
+    each buffer boundary; there is no OS primitive to pause a regular-file copy, so the
+    copy stops at a safe point of its own accord (L2-LIF-002).
+    """
+
+    PAUSE = "pause"
+    CANCEL = "cancel"
 
 
 class FileState(str, Enum):
@@ -177,13 +190,15 @@ ALLOWED_JOB_TRANSITIONS: dict[JobState, frozenset[JobState]] = {
         {JobState.HASHING_SOURCE, JobState.QUEUED, JobState.FAILED_RETAINED}
     ),
     JobState.HASHING_SOURCE: frozenset({JobState.QUEUED, JobState.FAILED_RETAINED}),
-    JobState.QUEUED: frozenset({JobState.COPYING, JobState.CANCELLED_RETAINED}),
+    JobState.QUEUED: frozenset({JobState.COPYING, JobState.PAUSED, JobState.CANCELLED_RETAINED}),
     JobState.COPYING: frozenset(
         {
             JobState.VERIFYING,
             JobState.COMPLETED,
             JobState.RETRY_WAIT,
+            JobState.PAUSED,
             JobState.FAILED_RETAINED,
+            JobState.CANCELLED_RETAINED,
             JobState.MANUAL_INTERVENTION,
         }
     ),
@@ -204,12 +219,27 @@ ALLOWED_JOB_TRANSITIONS: dict[JobState, frozenset[JobState]] = {
         }
     ),
     JobState.SOURCE_CLEANUP: frozenset({JobState.COMPLETED, JobState.MANUAL_INTERVENTION}),
-    JobState.RETRY_WAIT: frozenset({JobState.QUEUED, JobState.COPYING, JobState.FAILED_RETAINED}),
-    JobState.SOURCE_UNSTABLE: frozenset({JobState.VALIDATING, JobState.FAILED_RETAINED}),
+    JobState.RETRY_WAIT: frozenset(
+        {
+            JobState.QUEUED,
+            JobState.COPYING,
+            JobState.PAUSED,
+            JobState.FAILED_RETAINED,
+            JobState.CANCELLED_RETAINED,
+        }
+    ),
+    JobState.PAUSED: frozenset({JobState.QUEUED, JobState.CANCELLED_RETAINED}),
+    JobState.SOURCE_UNSTABLE: frozenset(
+        {JobState.VALIDATING, JobState.FAILED_RETAINED, JobState.CANCELLED_RETAINED}
+    ),
     JobState.COMPLETED: frozenset(),
-    JobState.FAILED_RETAINED: frozenset({JobState.QUEUED, JobState.VALIDATING}),
+    JobState.FAILED_RETAINED: frozenset(
+        {JobState.QUEUED, JobState.VALIDATING, JobState.CANCELLED_RETAINED}
+    ),
     JobState.CANCELLED_RETAINED: frozenset(),
-    JobState.MANUAL_INTERVENTION: frozenset({JobState.QUEUED, JobState.FAILED_RETAINED}),
+    JobState.MANUAL_INTERVENTION: frozenset(
+        {JobState.QUEUED, JobState.FAILED_RETAINED, JobState.CANCELLED_RETAINED}
+    ),
 }
 
 
