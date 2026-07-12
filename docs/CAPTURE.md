@@ -1,4 +1,21 @@
 # Chat Capture
+
+This is the original design conversation the specifications were transcribed from. As of
+v0.4.0 its content is being **incrementally retired**: each section is removed only once
+every claim in it is verified to live in a canonical doc, a requirement ID, a config
+option, or code+tests. Nothing is lost — removed content is recoverable from git history,
+and the **retirement ledger** below records where each retired section now lives.
+
+Sections still present below have **not yet** been verified/retired. Once retirement
+completes, this file becomes the design-history index (the ledger) rather than the
+authoritative spec source.
+
+## Retirement ledger
+
+| Retired CAPTURE section | Disposition | Canonical home(s) | Commit |
+|-------------------------|-------------|-------------------|--------|
+| Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | _this commit_ |
+
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
 Requirements: 
@@ -6198,34 +6215,5 @@ same request ID
 ```
 This is essential because a client can disconnect after the service committed the job but before receiving the acknowledgment.
 
-## Recommended Initial Build Order
-
-Implement the server incrementally in this order:
-
-1. Configuration loading and validation
-2. Protocol framing
-3. Unix socket client and echo server
-4. Command dispatcher
-5. SQLite repository
-6. health, status, and list
-7. Durable submit
-8. Source inventory and claim
-9. Transfer worker
-10. Integrity verification
-11. Destination publication
-12. Source cleanup
-13. Retry scheduling
-14. Restart recovery
-15. systemd packaging
-16. Failure-injection and NFS qualification tests
-
-The first executable milestone should be:
-
-```
-systemd starts service
-CLI connects through Unix socket
-health request succeeds
-service stops cleanly
-stale socket is recovered safely
-```
-Then add durable job submission before implementing the actual 100 GB transfer.
+_(§ "Recommended Initial Build Order" retired — see the retirement ledger at the top of
+this file. Fully transcribed into `docs/ROADMAP.md`.)_
