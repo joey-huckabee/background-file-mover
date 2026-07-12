@@ -30,9 +30,7 @@ from file_mover.constants import MINIMUM_COPY_BUFFER_SIZE_BYTES
 from file_mover.exceptions import ConfigurationError
 from file_mover.jobs.models import HashAlgorithm, IntegrityMode
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Structured issues and the validation error
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -67,9 +65,7 @@ class ConfigurationValidationError(ConfigurationError):
         super().__init__(f"configuration is invalid: {count} {noun}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Immutable configuration model
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -159,9 +155,7 @@ class ApplicationConfig:
     logging: LoggingConfig
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Option schema — the single source of truth (L2-CFG-011)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -526,9 +520,7 @@ _REQUIRED_SECTIONS = frozenset(
 )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Loader
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ConfigurationLoader:
@@ -544,14 +536,17 @@ class ConfigurationLoader:
             The validated, immutable configuration.
 
         Raises:
-            ConfigurationError: If the file cannot be read.
+            ConfigurationError: If the path is invalid or the file cannot be read.
             ConfigurationValidationError: If the content is invalid.
         """
+        resolved = _resolve_config_path(path)
         try:
-            text = Path(str(path)).read_text(encoding="utf-8")
+            text = resolved.read_text(encoding="utf-8")
         except OSError as error:
-            raise ConfigurationError(f"cannot read configuration file {path}: {error}") from error
-        return self.load_text(text, source=str(path))
+            raise ConfigurationError(
+                f"cannot read configuration file {resolved}: {error}"
+            ) from error
+        return self.load_text(text, source=str(resolved))
 
     def load_text(self, text: str, *, source: str = "<string>") -> ApplicationConfig:
         """Load and validate configuration from INI text.
@@ -574,6 +569,31 @@ class ConfigurationLoader:
         return _build_config(typed)
 
 
+def _resolve_config_path(path: PurePosixPath | str) -> Path:
+    """Validate and normalise an operator-supplied configuration path before reading it.
+
+    The path comes from untrusted-shaped input (the ``--config`` flag or the systemd
+    unit), so it is normalised to an absolute, symlink-resolved real path and confirmed to
+    be an existing *regular file* before any filesystem read. NUL bytes and non-file
+    targets are rejected up front rather than reaching :meth:`~pathlib.Path.read_text`,
+    closing the path-injection vector.
+
+    Raises:
+        ConfigurationError: If the path is malformed, does not exist, or is not a regular
+            file.
+    """
+    raw = str(path)
+    if "\x00" in raw:
+        raise ConfigurationError("configuration path must not contain a NUL byte")
+    try:
+        resolved = Path(raw).expanduser().resolve(strict=True)
+    except OSError as error:
+        raise ConfigurationError(f"cannot read configuration file {path}: {error}") from error
+    if not resolved.is_file():
+        raise ConfigurationError(f"configuration path is not a regular file: {resolved}")
+    return resolved
+
+
 def _read_parser(text: str, source: str) -> configparser.ConfigParser:
     """Parse INI text strictly, converting parse failures into a validation error."""
     parser = configparser.ConfigParser(strict=True, interpolation=None, delimiters=("=",))
@@ -591,104 +611,131 @@ def _structural_and_conversion_issues(
     parser: configparser.ConfigParser,
 ) -> tuple[dict[str, dict[str, object]], list[ConfigurationIssue]]:
     """Detect unknown/missing sections and options and convert present values."""
-    issues: list[ConfigurationIssue] = []
+    issues: list[ConfigurationIssue] = _section_level_issues(parser)
+    typed: dict[str, dict[str, object]] = {}
+    for section, specs in SECTION_SCHEMAS.items():
+        raw_items = dict(parser.items(section)) if parser.has_section(section) else {}
+        values, section_issues = _convert_section(section, specs, raw_items)
+        issues.extend(section_issues)
+        typed[section] = values
+    return typed, issues
 
+
+def _section_level_issues(parser: configparser.ConfigParser) -> list[ConfigurationIssue]:
+    """Report unknown present sections and missing required sections."""
+    issues: list[ConfigurationIssue] = []
     present_sections = set(parser.sections())
     known_sections = set(SECTION_SCHEMAS)
     for section in sorted(present_sections - known_sections):
         issues.append(
             ConfigurationIssue(
-                section,
-                None,
-                None,
-                f"unknown section; valid sections: {sorted(known_sections)}",
+                section, None, None, f"unknown section; valid sections: {sorted(known_sections)}"
             )
         )
     for section in sorted(_REQUIRED_SECTIONS - present_sections):
         issues.append(ConfigurationIssue(section, None, None, "required section is missing"))
+    return issues
 
-    typed: dict[str, dict[str, object]] = {}
-    for section, specs in SECTION_SCHEMAS.items():
-        spec_by_name = {spec.name: spec for spec in specs}
-        raw_items = dict(parser.items(section)) if parser.has_section(section) else {}
-        for key in sorted(set(raw_items) - set(spec_by_name)):
-            issues.append(
-                ConfigurationIssue(
-                    section,
-                    key,
-                    raw_items[key],
-                    f"unknown option; valid options: {sorted(spec_by_name)}",
-                )
+
+def _convert_section(
+    section: str, specs: tuple[OptionSpec, ...], raw_items: dict[str, str]
+) -> tuple[dict[str, object], list[ConfigurationIssue]]:
+    """Convert one section's raw options, collecting unknown-option and conversion issues."""
+    issues: list[ConfigurationIssue] = []
+    spec_by_name = {spec.name: spec for spec in specs}
+    for key in sorted(set(raw_items) - set(spec_by_name)):
+        issues.append(
+            ConfigurationIssue(
+                section,
+                key,
+                raw_items[key],
+                f"unknown option; valid options: {sorted(spec_by_name)}",
             )
-        values: dict[str, object] = {}
-        for spec in specs:
-            if spec.name in raw_items:
-                raw = raw_items[spec.name]
-            elif spec.required:
-                issues.append(
-                    ConfigurationIssue(section, spec.name, None, "required option is missing")
-                )
-                continue
-            else:
-                raw = spec.default
-            try:
-                values[spec.name] = spec.converter(raw)
-            except ValueError as error:
-                issues.append(ConfigurationIssue(section, spec.name, raw, str(error)))
-        typed[section] = values
-
-    return typed, issues
+        )
+    values: dict[str, object] = {}
+    for spec in specs:
+        if spec.name in raw_items:
+            raw = raw_items[spec.name]
+        elif spec.required:
+            issues.append(
+                ConfigurationIssue(section, spec.name, None, "required option is missing")
+            )
+            continue
+        else:
+            raw = spec.default
+        try:
+            values[spec.name] = spec.converter(raw)
+        except ValueError as error:
+            issues.append(ConfigurationIssue(section, spec.name, raw, str(error)))
+    return values, issues
 
 
 def _cross_field_issues(typed: dict[str, dict[str, object]]) -> list[ConfigurationIssue]:
     """Validate constraints that span multiple options (guarded on presence)."""
     issues: list[ConfigurationIssue] = []
+    issues.extend(_retry_delay_issues(typed))
+    issues.extend(_root_overlap_issues(typed))
+    issues.extend(_state_directory_issues(typed))
+    return issues
+
+
+def _retry_delay_issues(typed: dict[str, dict[str, object]]) -> list[ConfigurationIssue]:
+    """Ensure the backoff ceiling is not below the backoff floor."""
     transfer = typed.get("transfer", {})
     initial = transfer.get("retry_initial_delay_seconds")
     maximum = transfer.get("retry_max_delay_seconds")
     if isinstance(initial, float) and isinstance(maximum, float) and maximum < initial:
-        issues.append(
+        return [
             ConfigurationIssue(
                 "transfer",
                 "retry_max_delay_seconds",
                 str(maximum),
                 f"must be >= retry_initial_delay_seconds ({initial})",
             )
-        )
+        ]
+    return []
 
+
+def _root_overlap_issues(typed: dict[str, dict[str, object]]) -> list[ConfigurationIssue]:
+    """Reject any source root that overlaps a destination root (either nested in the other)."""
     paths = typed.get("paths", {})
     sources = paths.get("allowed_source_roots")
     destinations = paths.get("allowed_destination_roots")
-    if isinstance(sources, tuple) and isinstance(destinations, tuple):
-        for source in sources:
-            for destination in destinations:
-                if _overlaps(source, destination):
-                    issues.append(
-                        ConfigurationIssue(
-                            "paths",
-                            "allowed_destination_roots",
-                            str(destination),
-                            f"source and destination roots must not overlap "
-                            f"({source} vs {destination})",
-                        )
-                    )
+    if not (isinstance(sources, tuple) and isinstance(destinations, tuple)):
+        return []
+    return [
+        ConfigurationIssue(
+            "paths",
+            "allowed_destination_roots",
+            str(destination),
+            f"source and destination roots must not overlap ({source} vs {destination})",
+        )
+        for source in sources
+        for destination in destinations
+        if _overlaps(source, destination)
+    ]
 
+
+def _state_directory_issues(typed: dict[str, dict[str, object]]) -> list[ConfigurationIssue]:
+    """Reject a state directory located inside (or equal to) an allowed source root.
+
+    Directional: a source root nested under the state directory is fine; only the reverse
+    is rejected.
+    """
     state_directory = typed.get("service", {}).get("state_directory")
-    if isinstance(state_directory, PurePosixPath) and isinstance(sources, tuple):
-        for source in sources:
-            # Directional: only reject when the state directory is *inside* (or equal to)
-            # a source root. A source root nested under the state directory is fine.
-            if state_directory == source or state_directory.is_relative_to(source):
-                issues.append(
-                    ConfigurationIssue(
-                        "service",
-                        "state_directory",
-                        str(state_directory),
-                        f"state directory must not be inside an allowed source root ({source})",
-                    )
-                )
-
-    return issues
+    sources = typed.get("paths", {}).get("allowed_source_roots")
+    if not (isinstance(state_directory, PurePosixPath) and isinstance(sources, tuple)):
+        return []
+    return [
+        ConfigurationIssue(
+            "service",
+            "state_directory",
+            str(state_directory),
+            f"state directory must not be inside an allowed source root ({source})",
+        )
+        for source in sources
+        if state_directory == source or state_directory.is_relative_to(source)
+    ]
 
 
 def _overlaps(first: PurePosixPath, second: PurePosixPath) -> bool:
