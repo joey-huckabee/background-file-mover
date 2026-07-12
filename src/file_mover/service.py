@@ -105,8 +105,7 @@ class BackgroundMoverService:
             self._repository.initialize()
             self._submission = self._build_submission_service(self._repository)
             self._scheduler = self._build_scheduler(self._repository)
-            for advisory in configuration_advisories(self._config):
-                self._logger.info("configuration advisory: %s", advisory)
+            self._log_configuration_advisories()
             self._reconcile(self._repository)
             server = ControlSocketServer(
                 str(self._config.service.socket_path),
@@ -243,6 +242,15 @@ class BackgroundMoverService:
             coordinator=coordinator,
             max_concurrent_jobs=transfer.max_concurrent_jobs,
         )
+
+    def _log_configuration_advisories(self) -> None:
+        """Log each configuration advisory once at startup (L3-PY-013).
+
+        Advisories flag valid-but-consequential option combinations; they are informational
+        (INFO), never errors.
+        """
+        for advisory in configuration_advisories(self._config):
+            self._logger.info("configuration advisory: %s", advisory)
 
     def _reconcile(self, repository: JobRepository) -> None:
         """Reconcile interrupted jobs against the filesystem before serving."""

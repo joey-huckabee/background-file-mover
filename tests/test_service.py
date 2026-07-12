@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -297,3 +298,28 @@ def test_submit_handler_claims_and_records(tmp_path: Path) -> None:
         assert response["result"]["claimed_file_count"] == 1
     finally:
         repo.close()
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_log_configuration_advisories_emits_both(caplog: pytest.LogCaptureFixture) -> None:
+    # A config that triggers both advisories: a bandwidth limit with kernel copy, and
+    # resume enabled without full destination hashing.
+    config = ConfigurationLoader().load_text(
+        _MINIMAL + "[transfer]\nmax_bytes_per_second = 1000\n[integrity]\nmode = metadata\n"
+    )
+    service = BackgroundMoverService(config)
+    with caplog.at_level(logging.INFO, logger="file_mover.service"):
+        service._log_configuration_advisories()
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("bandwidth limit" in message for message in messages)
+    assert any("resume_partial_files" in message for message in messages)
+
+
+@pytest.mark.requirement("L3-PY-013")
+def test_log_configuration_advisories_silent_for_safe_config(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    service = BackgroundMoverService(ConfigurationLoader().load_text(_MINIMAL))
+    with caplog.at_level(logging.INFO, logger="file_mover.service"):
+        service._log_configuration_advisories()
+    assert not [r for r in caplog.records if "advisory" in r.getMessage()]
