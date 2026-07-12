@@ -12,26 +12,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  python:
-    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+  # Linux tests run inside official python:X-slim Docker containers (GitHub Actions job
+  # `container:` is Linux-only). The full suite runs — unit, doctor, and the POSIX
+  # end-to-end tests (AF_UNIX control plane + fcntl process lock) that a container provides.
+  linux-container:
+    name: Linux container (python:${{ matrix.python-version }}-slim)
+    runs-on: ubuntu-latest
+    container:
+      image: python:${{ matrix.python-version }}-slim
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Full version matrix on Linux (production target is 3.10).
-          - { os: ubuntu-latest,  python-version: "3.10" }
-          - { os: ubuntu-latest,  python-version: "3.11" }
-          - { os: ubuntu-latest,  python-version: "3.12" }
-          - { os: ubuntu-latest,  python-version: "3.13" }
-          - { os: ubuntu-latest,  python-version: "3.14" }
-          # Cross-platform smoke on Windows: the support pin (3.12) plus latest (3.14).
-          - { os: windows-latest, python-version: "3.12" }
-          - { os: windows-latest, python-version: "3.14" }
-
+        # Production target is 3.10; test the full supported range.
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - name: Normalize git line endings on Windows
-        if: runner.os == 'Windows'
+      - name: Install container prerequisites
+        run: apt-get update && apt-get install -y --no-install-recommends git
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Poetry
+        run: pip install --no-cache-dir poetry==2.3.4
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run full test suite (unit, doctor, end-to-end)
+        run: poetry run pytest
+
+  # Windows testing runs on the VM runner: GitHub Actions does not support Windows job
+  # containers. The full suite runs; the POSIX-only end-to-end tests auto-skip (the
+  # service cannot run on Windows — doctor reports ENVIRONMENT_UNSUPPORTED there), so this
+  # job exercises the cross-platform logic and the full doctor test suite.
+  windows:
+    name: Windows ${{ matrix.python-version }} (VM)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The support pin (3.12) plus latest (3.14).
+        python-version: ["3.12", "3.14"]
+    steps:
+      - name: Normalize git line endings
         shell: bash
         run: |
           git config --global core.autocrlf false
@@ -53,16 +76,24 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
-      - name: Run tests
+      - name: Run full test suite (POSIX-only end-to-end tests auto-skip)
         run: poetry run pytest
 
-      - name: Validate package metadata and lockfile
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: poetry check --strict --lock
-
-      - name: Build package
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: poetry build
+  # Package build + lockfile validation (moved out of the test matrix).
+  package:
+    name: Package build + lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: pipx install poetry==2.3.4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: poetry
+          cache-dependency-path: poetry.lock
+      - run: poetry install --no-interaction --no-ansi
+      - run: poetry check --strict --lock
+      - run: poetry build
 
   python-coverage:
     name: Python coverage gate
