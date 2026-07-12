@@ -97,6 +97,38 @@ via `bind(logger, job_id=…, file_id=…)` (not the logger name), and gate by c
 `if GATE.info:`, cold-path INFO/WARNING/ERROR call directly. Use `%`-style args, never
 f-strings. Never install handlers — configuration is centralized in `logging_config.py`.
 
+## Testing strategy
+
+"Fully pytested" means more than line coverage: **every state transition and every
+interruption/destructive boundary must have a test.** That principle — not the raw coverage
+number — is the bar. Tests fall into five layers:
+
+- **Unit** — components in isolation: configuration validation, path validation, manifest
+  serialization, state transitions, retry backoff, hash calculation, collision policies,
+  submission validation, source→destination mapping, error classification.
+- **Integration** — real files in temporary directories: atomic claim, copy + publish,
+  destination-hash verification, source deletion after success, source retention after
+  failure, partial-transfer recovery, identical-destination reuse, conflicting-destination
+  rejection, nested directories, and edge inputs (empty files, Unicode names, long-but-legal
+  names).
+- **Fault-injection** — raise a deterministic failure at each destructive boundary and
+  assert the source survives: after claim, after job insert, during source hash, after
+  manifest write, during copy, after destination flush, during destination hash, after
+  publication, before source deletion, after source deletion, and before the final DB
+  update. Filesystem ops, clocks, and repository interfaces are injectable so tests can
+  force these exceptions deterministically.
+- **Process-recovery** — start the service, interrupt it, and restart it with jobs in each
+  non-terminal state; assert the job survives and reconciles (mirrors the acceptance tests
+  in `docs/DEPLOYMENT.md`).
+- **NFS-representative** — behaviors a local tmpdir cannot reproduce (destination-mount
+  loss, stale handles, `ENOSPC`, cross-client visibility, sustained ~100 GB). These are the
+  deployment-time **NFS qualification checklist** in `docs/DEPLOYMENT.md`, run against the
+  real mounts rather than in CI.
+
+Quality gates — the coverage floor, ruff/mypy/pylint/vulture/bandit, and 100% of
+requirements mapped to a test — are enforced by CI and the trace matrix (see the cheat
+sheet above and *CI architecture* below).
+
 ## CI architecture
 
 `.github/workflows/ci.yml` runs, all via `poetry run`:
