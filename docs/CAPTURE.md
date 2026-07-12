@@ -26,7 +26,8 @@ authoritative spec source.
 | The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | `0200bff` |
 | Preventing the Mover From Claiming Files Still Being Written | TRANSCRIBED (1 deliberate non-adoption) | Readiness contract → `docs/CONFIG-REFERENCE.md` § [stability] note; defensive checks → `SourceValidator` (validation.py: regular-file + symlink + roots + deterministic enumeration, L2 line 442) + `[stability]` (poll_count/interval) + `[paths]` + claimed dev/inode identity (L3-SUB). **Not carried:** "six-host set present when required" — service is agnostic to expected file counts; completeness is the orchestration's responsibility | `a459a81` |
 | Durable Job State | MIGRATED + TRANSCRIBED | State machine → `docs/ARCHITECTURE.md` § Job state machine (verbatim); job/file fields → `jobs/models.py` records. Manifest format + why-both rationale **migrated** to ARCHITECTURE § Durable state and the manifest (shipped format — CAPTURE's example was a superseded proposal). `created_at` + integrity now in **both** record and manifest (L2-JOB-007, implemented this batch); per-file manifest hashes → ROADMAP § Deferred | `38cb70a` |
-| Hashing and Integrity Modes | MIGRATED + TRANSCRIBED | Modes 1/2/4 → `IntegrityMode` enum + `[integrity] mode` + `transfer/integrity.py`; algorithms (sha256 default / sha512 / blake2b, avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`. Mode 3 (streaming hash-while-copy, unbuilt) **migrated** to ROADMAP § Deferred as a source-I/O optimization | _this commit_ |
+| Hashing and Integrity Modes | MIGRATED + TRANSCRIBED | Modes 1/2/4 → `IntegrityMode` enum + `[integrity] mode` + `transfer/integrity.py`; algorithms (sha256 default / sha512 / blake2b, avoid MD5) → `HashAlgorithm` enum + `[integrity] algorithm`. Mode 3 (streaming hash-while-copy, unbuilt) **migrated** to ROADMAP § Deferred as a source-I/O optimization | `189fe4a` |
+| Safe Destination Publication | TRANSCRIBED | `docs/ARCHITECTURE.md` § Durable per-file workflow (temp → copy → flush+fsync → verify → `os.replace` publish → fsync dir → delete source): L2-DPR-001..007, L2-POSIX-007..012, L3-PY-003/004; downstream-never-sees-partial → L2-DST-004. Temp prefix `.partial-` superseded by configurable `[paths] temporary_file_prefix` (default `.swit-partial-`) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -113,34 +114,13 @@ Mode 3 (streaming hash-while-copy) was not built — migrated to `docs/ROADMAP.m
 § Deferred as a source-I/O optimization.)_
 
 ## Safe Destination Publication
-The mover should never copy directly to the final destination filename.
 
-For example:
-```
-Final destination:
-  /processing/scenario-001/host01.dat
-
-Temporary destination:
-  /processing/scenario-001/.partial-8f6e4ad6-host01.dat
-```
-The flow is:
-
-1. Create a temporary destination file.
-2. Copy data into it in bounded chunks.
-3. Flush Python buffers.
-4. Call `os.fsync()` on the file.
-5. Verify file size.
-6. Optionally calculate the destination hash.
-7. Compare integrity information.
-8. Atomically rename the temporary file to the final name.
-9. Sync the destination directory where practical.
-10. Mark the file as published.
-11. Delete the claimed source file.
-12. Sync the source staging directory where practical.
-
-This prevents downstream processing from seeing a partially copied file.
-
-The remote processing system should consume only finalized names, never `.partial-*` files.
+_(§ "Safe Destination Publication" retired — see the retirement ledger at the top of this
+file. Transcribed into `docs/ARCHITECTURE.md` § Durable per-file workflow (create O_EXCL
+temp → copy → flush+fsync → verify → publish via os.replace → fsync dir → delete source):
+L2-DPR-001..007, L2-POSIX-007..012, L3-PY-003/004; downstream-never-sees-partial →
+L2-DST-004. Temp prefix `.partial-` superseded by configurable `[paths]
+temporary_file_prefix`, default `.swit-partial-`.)_
 
 ## Copy Versus Move Semantics
 Although the product is named Background File Mover, its internal implementation should behave as:
