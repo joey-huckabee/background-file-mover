@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-12
+
+Adds operator **job lifecycle control** (cancel / pause / resume) and **partial-file
+byte-offset resume**, alongside a separation-of-concerns refactor of the transfer and
+control layers. Zero runtime dependencies; the full CI battery, no-panic fuzz harness,
+L1/L2/L3 trace matrix, and SonarCloud quality gate remain green.
+
+### Added
+
+- **Job lifecycle control** — `file-mover pause` / `resume` / `cancel`. A job that is not
+  copying is transitioned directly with a compare-and-set; an in-flight copy is stopped
+  **cooperatively** at a safe buffer boundary via a thread-safe pause/cancel signal (there
+  is no OS primitive to pause a file copy). Cancel always **retains the source** and
+  discards only the incomplete partial; resume returns a paused job to the queue. New
+  `PAUSED` state and transitions (L2-LIF-001..005).
+- **Partial-file byte-offset resume** (`[transfer] resume_partial_files`, default on) — an
+  interrupted copy continues from its fsynced `.swit-partial-` offset using `os.stat` /
+  `os.lseek` / `os.copy_file_range` rather than restarting a large recording from byte
+  zero. Startup recovery preserves interrupted partials when resume is enabled
+  (L2-RSM-001/002, L3-PY-012).
+
+### Changed
+
+- **Separation of concerns (Fowler).** Extracted the per-file workflow into `FileMover`
+  (job orchestration stays in `TransferCoordinator`), the control-response wire format into
+  `presentation.py`, the lifecycle operations into `control/lifecycle.py`, the pause/cancel
+  registry into `transfer/control_signals.py`, and partial cleanup into
+  `transfer/partials.py` — reducing class/function complexity with no behaviour change.
+
+### Security
+
+- A resumed partial that fails size or hash verification is discarded and the file restarts
+  from zero; unverified bytes are never published (L2-RSM-003).
+
 ## [0.2.0] - 2026-07-12
 
 Adds dynamic bandwidth limiting — a userspace token-bucket throughput ceiling that is
@@ -110,6 +144,7 @@ deleted until its destination has been written, fsynced, published, and verified
   mypy `--strict`, ruff, pylint, vulture, bandit, CodeQL, SonarCloud, and a scheduled
   no-panic fuzz burn-in.
 
-[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/joey-huckabee/background-file-mover/releases/tag/v0.1.0

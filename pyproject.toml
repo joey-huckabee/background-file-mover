@@ -7,7 +7,7 @@
 
 [project]
 name = "background-file-mover"
-version = "0.2.0"
+version = "0.3.0"
 description = "Durable background transfer coordinator for large simulation recordings (stdlib-only)."
 authors = [{ name = "Joey Huckabee", email = "joey.huckabee@gmail.com" }]
 readme = "README.md"
