@@ -111,6 +111,11 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   stays dependency-free (L2-STO-003/005).
 - `json-lines` streaming output and an offline `database inspect` command.
 - Multi-host active/active movers.
+- **Logging enhancements (post-12-factor-logging):**
+  - **systemd journal priority prefixes** — emit the sd-daemon `<N>` level prefix on the
+    service's stdout stream so journald records the correct priority per record.
+  - **JSON log-format mode** (`[logging] format = text | json`) — one JSON object per line,
+    leveraging the structured `extra={job_id, file_id}` fields, for log shippers.
 
 ## Delivered post-1.0
 

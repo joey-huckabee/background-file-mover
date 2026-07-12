@@ -68,6 +68,7 @@ CATEGORIES: list[tuple[str, str]] = [
     ("BWL", "Bandwidth limiting (L2)"),
     ("LIF", "Job lifecycle control (L2)"),
     ("RSM", "Partial-file byte-offset resume (L2)"),
+    ("ENV", "Environment capability diagnostics (L2)"),
     ("RTY", "Retry and error classification (L2)"),
     ("DST", "Destination publication (L2)"),
     ("DEL", "Source deletion (L2)"),
