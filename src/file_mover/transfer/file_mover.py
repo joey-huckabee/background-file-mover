@@ -17,6 +17,7 @@ intervention (L3-INT-007, L2-DST-002/003). I/O failures raise :class:`TransferEr
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -29,6 +30,7 @@ from file_mover.jobs.models import (
     JobRecord,
 )
 from file_mover.jobs.repository import JobRepository
+from file_mover.logging_config import GATE, ContextLogger, bind
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine, CopyOutcome
 from file_mover.transfer.integrity import IntegrityVerifier
 from file_mover.validation import identity_of
@@ -58,6 +60,7 @@ class FileMover:
         self._integrity_enabled = integrity_enabled
         self._integrity_mode = integrity_mode
         self._destination_policy = destination_policy
+        self._log = logging.getLogger("file_mover.transfer.file")
 
     @property
     def _needs_source_hash(self) -> bool:
@@ -91,14 +94,17 @@ class FileMover:
             TransferError: On an I/O failure the coordinator should classify.
             CopyInterrupted: If ``interrupt_check`` signals a pause/cancel.
         """
+        log = bind(self._log, job_id=job.job_id, file_id=file.file_id)
         claimed = (
             Path(job.source_root) / self._claim_directory_name / job.job_id / file.relative_path
         )
         final = Path(job.destination_root) / file.relative_path
         self._repository.update_file(file.file_id, state=FileState.COPYING)
+        if __debug__ and GATE.debug:
+            log.debug("move start: %s (resume=%s)", file.relative_path, resume)
 
         if final.exists():
-            return self._handle_existing_destination(claimed, final)
+            return self._handle_existing_destination(claimed, final, log)
 
         try:
             source_identity = identity_of(claimed)
@@ -116,19 +122,24 @@ class FileMover:
         )
 
         if outcome.bytes_written != source_identity.size_bytes:
+            log.warning("size mismatch for %s; retaining source", file.relative_path)
             return self._integrity_failure(outcome)
 
         destination_hash = None
         if self._needs_destination_hash:
             destination_hash = self._verifier.hash_file(outcome.temporary_path)
             if source_hash is None or not IntegrityVerifier.compare(source_hash, destination_hash):
+                log.warning("hash mismatch for %s; retaining source", file.relative_path)
                 return self._integrity_failure(outcome)
 
         self._copy_engine.publish(outcome.temporary_path, final)
         self._repository.update_file(
             file.file_id, source_hash=source_hash, destination_hash=destination_hash
         )
-        return self._delete_verified_source(claimed, source_identity)
+        result = self._delete_verified_source(claimed, source_identity)
+        if __debug__ and GATE.debug:
+            log.debug("move complete: %s (%d bytes)", file.relative_path, outcome.bytes_written)
+        return result
 
     def _integrity_failure(self, outcome: CopyOutcome) -> FileState:
         """Record an integrity failure, dropping a corrupt *resumed* partial.
@@ -155,14 +166,19 @@ class FileMover:
             raise CopyError(f"cannot delete claimed source {claimed}: {error}") from error
         return FileState.MOVE_COMPLETE
 
-    def _handle_existing_destination(self, claimed: Path, final: Path) -> FileState:
+    def _handle_existing_destination(
+        self, claimed: Path, final: Path, log: ContextLogger
+    ) -> FileState:
         """Reuse an identical existing destination or treat it as a collision."""
         if (
             self._destination_policy is ExistingDestinationPolicy.VERIFY_AND_REUSE
             and self._destination_matches(claimed, final)
         ):
             claimed.unlink(missing_ok=True)  # destination already correct; drop the claim
+            if __debug__ and GATE.debug:
+                log.debug("existing destination reused: %s", final)
             return FileState.MOVE_COMPLETE
+        log.warning("destination collision (not overwritten): %s", final)
         return FileState.INTEGRITY_FAILED  # differing collision -> manual intervention
 
     def _destination_matches(self, claimed: Path, final: Path) -> bool:

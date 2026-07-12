@@ -11,6 +11,7 @@ re-claiming (L2-SUB-001). Any failure leaves already-claimed source files retain
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 import uuid
@@ -30,8 +31,11 @@ from file_mover.exceptions import (
 )
 from file_mover.jobs.models import FileRecord, FileState, JobRecord, JobState
 from file_mover.jobs.repository import JobRepository
+from file_mover.logging_config import GATE
 from file_mover.manifests import ManifestWriter
 from file_mover.validation import SourceValidator
+
+_LOG = logging.getLogger("file_mover.submission")
 
 
 @dataclass(frozen=True)
@@ -115,6 +119,10 @@ class JobSubmissionService:
         """Validate, claim, record, and acknowledge a submission."""
         existing = self._repository.get_job_by_request_id(request.request_id)
         if existing is not None:
+            if __debug__ and GATE.debug:
+                _LOG.debug(
+                    "duplicate submission returns existing job", extra={"job_id": existing.job_id}
+                )
             return SubmissionResult(
                 accepted=True,
                 job_id=existing.job_id,
@@ -156,6 +164,12 @@ class JobSubmissionService:
                 error_message=str(error),
             )
 
+        _LOG.info(
+            "submission accepted: %d file(s), %d byte(s)",
+            len(claimed),
+            total_bytes,
+            extra={"job_id": job_id},
+        )
         return SubmissionResult(
             accepted=True,
             job_id=job_id,

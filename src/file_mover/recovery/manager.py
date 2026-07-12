@@ -24,6 +24,7 @@ from dataclasses import dataclass
 
 from file_mover.jobs.models import JobState
 from file_mover.jobs.repository import JobRepository
+from file_mover.logging_config import GATE
 from file_mover.transfer.partials import remove_job_partials
 
 _INTERRUPTED_STATES = frozenset(
@@ -76,6 +77,11 @@ class RecoveryManager:
         requeued = 0
         removed = 0
         for job in self._repository.list_jobs(_INTERRUPTED_STATES):
+            job_context = {"job_id": job.job_id}
+            if __debug__ and GATE.debug:
+                self._logger.debug(
+                    "reconciling interrupted job in state %s", job.state.value, extra=job_context
+                )
             if not self._resume_partial_files:
                 removed += remove_job_partials(
                     job.destination_root,
@@ -85,5 +91,5 @@ class RecoveryManager:
                 )
             self._repository.reset_job_state(job.job_id, JobState.QUEUED)
             requeued += 1
-            self._logger.info("recovered interrupted job %s -> queued", job.job_id)
+            self._logger.info("recovered interrupted job -> queued", extra=job_context)
         return RecoveryReport(requeued_jobs=requeued, removed_temporary_files=removed)

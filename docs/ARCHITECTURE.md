@@ -252,6 +252,34 @@ mode, and pause/resume presumes `resume_partial_files = true`. Both are called o
 the user guide; hardening the pause/resume-with-resume-disabled case is a candidate for a later
 release.
 
+## Logging & observability
+
+Logging is centralized, gated, and context-aware (`logging_config.py`, L3-PY-013/014). Three
+concerns are kept separate:
+
+- **Level policy** — `LogGate`, a set of per-level booleans computed once by
+  `configure_logging` from `[logging] level` (incl. `OFF`). Call sites read these flags so a
+  disabled level costs a single predicted branch — never `isEnabledFor`, argument
+  evaluation, formatting, or dispatch.
+- **Emission + context** — business classes use stable `file_mover.<area>` loggers and carry
+  `job_id`/`file_id` in **structured fields** (`bind(logger, job_id=…, file_id=…)`), not in
+  the logger name, so a job or file can be traced across the log.
+- **Formatting** — `ContextFormatter` appends bound fields (`… [job_id=… file_id=…]`) and
+  leaves context-free records untouched.
+
+Two performance dials for "no cost when off":
+
+| Guard | Cost when the level is off | Toggle |
+|-------|----------------------------|--------|
+| `if GATE.info: log.info(...)` (hot paths) | one boolean read + predicted branch | runtime / config |
+| `if __debug__ and GATE.debug: log.debug(...)` under `python -O` | **removed from the bytecode entirely** (args included) | build-time (`-O`) |
+
+**Convention:** DEBUG everywhere uses `if __debug__ and GATE.debug:` (strippable under `-O`);
+hot-path INFO uses `if GATE.info:`; cold-path INFO/WARNING/ERROR call directly (the
+per-call `isEnabledFor` is negligible for infrequent events). Production runs
+`python -O -m file_mover` for zero DEBUG overhead; run without `-O` to toggle DEBUG live.
+`[logging] level = OFF` disables everything (null handler + all gate flags false).
+
 ## Error pipeline
 
 Each layer catches only what it can interpret, attaches context, and re-raises a typed

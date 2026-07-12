@@ -89,7 +89,7 @@ limit with `use_kernel_copy`, or resume without full destination hashing).
 
 | Option | Type | Default | Notes |
 |--------|------|---------|-------|
-| `level` | enum | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. Applied at service start unless a CLI `-v`/`--log-level` overrides it. |
+| `level` | enum | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` \| `OFF`. Applied at service start unless a CLI `-v`/`--log-level` overrides it; `OFF` disables all logging. Disabled levels cost only a single boolean at each call site (see `docs/ARCHITECTURE.md` § *Logging & observability*). |
 | `log_to_journal` | bool | `true` | Emit to stderr (captured by the systemd journal). |
 | `log_to_file` | bool | `false` | Also emit to a size-rotating file (10 MiB × 5) under `log_directory`. |
 | `log_directory` | abs path | `/var/log/file-mover` | Directory for the rotating log file when `log_to_file` is enabled. |

@@ -9,12 +9,16 @@ is synchronous and host-independent, so it is tested directly.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 
 from file_mover.jobs.models import JobState
 from file_mover.jobs.repository import JobRepository
+from file_mover.logging_config import GATE
 from file_mover.transfer.coordinator import TransferCoordinator
+
+_LOG = logging.getLogger("file_mover.transfer.scheduler")
 
 
 class TransferScheduler:
@@ -44,9 +48,12 @@ class TransferScheduler:
     def run_once(self) -> list[str]:
         """Process the runnable jobs for this tick and return their ids."""
         processed: list[str] = []
-        for job_id in self._repository.list_runnable_job_ids(
+        runnable = self._repository.list_runnable_job_ids(
             self._clock(), limit=self._max_concurrent_jobs
-        ):
+        )
+        if __debug__ and GATE.debug and runnable:
+            _LOG.debug("scheduler tick: %d runnable job(s)", len(runnable))
+        for job_id in runnable:
             job = self._repository.get_job(job_id)
             if job is None:
                 continue
