@@ -49,6 +49,25 @@ def test_shipped_reference_config_loads() -> None:
     assert config.paths.temporary_file_prefix == ".swit-partial-"
 
 
+@pytest.mark.requirement("L1-ROB-001")
+def test_load_rejects_nul_byte_in_path() -> None:
+    with pytest.raises(ConfigurationError, match="NUL byte"):
+        ConfigurationLoader().load("bad\x00path.ini")
+
+
+@pytest.mark.requirement("L1-ROB-001")
+def test_load_rejects_missing_file() -> None:
+    with pytest.raises(ConfigurationError, match="cannot read"):
+        ConfigurationLoader().load(str(REPO_ROOT / "no-such-config-file.ini"))
+
+
+@pytest.mark.requirement("L1-ROB-001")
+def test_load_rejects_non_regular_file(tmp_path: Path) -> None:
+    # A directory resolves fine but is not a regular file -> rejected before any read.
+    with pytest.raises(ConfigurationError, match="not a regular file"):
+        ConfigurationLoader().load(str(tmp_path))
+
+
 @pytest.mark.requirement("L2-CFG-001")
 def test_typed_values_and_enums() -> None:
     config = ConfigurationLoader().load(str(REFERENCE_CONFIG))

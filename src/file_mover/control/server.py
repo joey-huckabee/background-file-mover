@@ -96,7 +96,9 @@ class ControlSocketServer:
         server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             server_socket.bind(self._path)
-            os.chmod(self._path, self._socket_mode)  # noqa: PTH101 - AF_UNIX path, not a Path op
+            # The target is a bound AF_UNIX socket, not a filesystem Path, so PTH101's
+            # Path.chmod suggestion does not apply here.
+            os.chmod(self._path, self._socket_mode)  # noqa: PTH101
             server_socket.listen(_DEFAULT_BACKLOG)
         except OSError:
             server_socket.close()
@@ -164,7 +166,9 @@ def _prepare_socket_path(path: str) -> None:
     try:
         probe.connect(path)
     except ConnectionRefusedError:
-        os.unlink(path)  # noqa: PTH108 - AF_UNIX socket path, not a Path op
+        # The target is a dead AF_UNIX socket, not a filesystem Path, so PTH108's
+        # Path.unlink suggestion does not apply here.
+        os.unlink(path)  # noqa: PTH108
         return
     except OSError as error:
         raise ServiceLockError(f"cannot probe existing control socket {path}: {error}") from error

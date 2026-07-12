@@ -169,7 +169,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-ROB-001 | _(none)_ | `tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
+| L1-ROB-001 | _(none)_ | `tests/test_configuration.py::test_load_rejects_missing_file`<br>`tests/test_configuration.py::test_load_rejects_non_regular_file`<br>`tests/test_configuration.py::test_load_rejects_nul_byte_in_path`<br>`tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
 
 **L2 -> L3 -> Verification Artifacts**
 
