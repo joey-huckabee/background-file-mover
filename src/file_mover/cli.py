@@ -39,6 +39,7 @@ from file_mover.logging_config import configure_logging
 from file_mover.service import BackgroundMoverService
 
 _JOB_ID_HELP = "job identifier"
+_CONFIG_VALID = "configuration valid"
 
 
 def _add_global_options(parser: argparse.ArgumentParser) -> None:
@@ -286,9 +287,9 @@ def _validate_configuration(config_path: str, output: str) -> ExitCode:
     if isinstance(result, ExitCode):
         return result
     if output == "json":
-        print(json.dumps({"status": "ok", "message": "configuration valid"}))
+        print(json.dumps({"status": "ok", "message": _CONFIG_VALID}))
     else:
-        print("configuration valid")
+        print(_CONFIG_VALID)
     return ExitCode.SUCCESS
 
 
@@ -539,11 +540,9 @@ def _handle_doctor(args: argparse.Namespace) -> ExitCode:
         return config
     advisories = configuration_advisories(config)
     if args.output == "json":
-        print(
-            json.dumps({"status": "ok", "message": "configuration valid", "advisories": advisories})
-        )
+        print(json.dumps({"status": "ok", "message": _CONFIG_VALID, "advisories": advisories}))
     else:
-        print("configuration valid")
+        print(_CONFIG_VALID)
         for note in advisories:
             print(f"advisory: {note}", file=sys.stderr)
     return ExitCode.SUCCESS

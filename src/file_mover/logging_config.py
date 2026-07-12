@@ -50,14 +50,6 @@ class LogGate:
         self.warning = False
         self.error = False
 
-    def _set_from(self, numeric_level: int, *, enabled: bool) -> None:
-        """Recompute every flag from the effective numeric level (or all off)."""
-        self.enabled = enabled
-        self.debug = enabled and numeric_level <= logging.DEBUG
-        self.info = enabled and numeric_level <= logging.INFO
-        self.warning = enabled and numeric_level <= logging.WARNING
-        self.error = enabled and numeric_level <= logging.ERROR
-
 
 # Module singleton read at every guarded call site (e.g. ``if GATE.info: log.info(...)``).
 GATE = LogGate()
@@ -115,7 +107,11 @@ def configure_logging(
     """
     off = level.strip().upper() == "OFF"
     numeric = _numeric_level(level)
-    GATE._set_from(numeric, enabled=not off)
+    GATE.enabled = not off
+    GATE.debug = not off and numeric <= logging.DEBUG
+    GATE.info = not off and numeric <= logging.INFO
+    GATE.warning = not off and numeric <= logging.WARNING
+    GATE.error = not off and numeric <= logging.ERROR
 
     if off:
         logging.basicConfig(
