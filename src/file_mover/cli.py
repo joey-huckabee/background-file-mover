@@ -19,6 +19,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from typing import Any
 
 from file_mover import __version__
 from file_mover.configuration import (
@@ -233,29 +234,105 @@ def _resolve_log_level(args: argparse.Namespace) -> str:
     return {0: "WARNING", 1: "INFO"}.get(args.verbose, "DEBUG")
 
 
-def _handle_health(args: argparse.Namespace) -> ExitCode:
-    """Query the running service's health over the control socket."""
-    result = _load_configuration(args.config, args.output)
-    if isinstance(result, ExitCode):
-        return result
-    client = ControlClient(str(result.service.socket_path))
+def _query_service(
+    config: ApplicationConfig, command: str, arguments: dict[str, Any]
+) -> dict[str, Any] | ExitCode:
+    """Send one command to the running service, mapping failures to exit codes.
+
+    Returns:
+        The response ``result`` object on success, or an :class:`ExitCode`
+        (``SERVICE_UNAVAILABLE`` when nothing is listening, ``OPERATION_FAILED`` on a
+        service error response).
+    """
+    client = ControlClient(str(config.service.socket_path))
     try:
-        response = client.send("health")
+        response = client.send(command, arguments)
     except ServiceUnavailableError as error:
         print(f"{APP_NAME}: {error}", file=sys.stderr)
         return ExitCode.SERVICE_UNAVAILABLE
-
     if not response.get("success"):
-        error_info = response.get("error", {})
-        print(f"{APP_NAME}: service error: {error_info}", file=sys.stderr)
+        print(f"{APP_NAME}: service error: {response.get('error', {})}", file=sys.stderr)
         return ExitCode.OPERATION_FAILED
+    result = response.get("result", {})
+    return result if isinstance(result, dict) else {}
 
-    payload = response.get("result", {})
+
+def _handle_health(args: argparse.Namespace) -> ExitCode:
+    """Query the running service's health over the control socket."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, "health", {})
+    if isinstance(result, ExitCode):
+        return result
     if args.output == "json":
-        print(json.dumps(payload))
+        print(json.dumps(result))
     else:
-        for key, value in payload.items():
+        for key, value in result.items():
             print(f"{key}: {value}")
+    return ExitCode.SUCCESS
+
+
+def _handle_status(args: argparse.Namespace) -> ExitCode:
+    """Show one job by id."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, "status", {"job_id": args.job_id})
+    if isinstance(result, ExitCode):
+        return result
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS if result.get("found") else ExitCode.JOB_NOT_FOUND
+    if not result.get("found"):
+        print(f"{APP_NAME}: job {args.job_id!r} not found", file=sys.stderr)
+        return ExitCode.JOB_NOT_FOUND
+    job = result.get("job") or {}
+    for key, value in job.items():
+        print(f"{key}: {value}")
+    return ExitCode.SUCCESS
+
+
+def _handle_list(args: argparse.Namespace) -> ExitCode:
+    """List jobs, optionally filtered by state."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, "list", {"state": args.state})
+    if isinstance(result, ExitCode):
+        return result
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS
+    jobs = result.get("jobs", [])
+    if not jobs:
+        print("(no matching jobs)")
+    for job in jobs:
+        print(
+            f"{job['job_id']}  {job['state']}  "
+            f"files={job['file_count']}  bytes={job['bytes_copied']}/{job['total_bytes']}"
+        )
+    return ExitCode.SUCCESS
+
+
+def _handle_stats(args: argparse.Namespace) -> ExitCode:
+    """Show durable service statistics."""
+    config = _load_configuration(args.config, args.output)
+    if isinstance(config, ExitCode):
+        return config
+    result = _query_service(config, "stats", {})
+    if isinstance(result, ExitCode):
+        return result
+    if args.output == "json":
+        print(json.dumps(result))
+        return ExitCode.SUCCESS
+    print(f"total_jobs: {result.get('total_jobs')}")
+    print(f"total_bytes: {result.get('total_bytes')}")
+    print(f"bytes_copied: {result.get('bytes_copied')}")
+    by_state = result.get("jobs_by_state", {})
+    if isinstance(by_state, dict):
+        for state, count in by_state.items():
+            print(f"  {state}: {count}")
     return ExitCode.SUCCESS
 
 
@@ -322,6 +399,15 @@ def main(argv: Sequence[str] | None = None) -> int:  # pylint: disable=too-many-
 
     if command == "health":
         return int(_handle_health(args))
+
+    if command == "status":
+        return int(_handle_status(args))
+
+    if command == "list":
+        return int(_handle_list(args))
+
+    if command == "stats":
+        return int(_handle_stats(args))
 
     if command == "service":
         service_command = getattr(args, "service_command", None)

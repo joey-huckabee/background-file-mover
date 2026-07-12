@@ -22,6 +22,26 @@ def _write_config(tmp_path: Path, text: str) -> str:
     return str(path)
 
 
+class _FakeClient:
+    """A ControlClient stand-in that returns a canned response."""
+
+    def __init__(self, response: dict[str, object], *_args: object, **_kwargs: object) -> None:
+        self._response = response
+
+    def send(self, _command: str, _arguments: object = None) -> dict[str, object]:
+        return self._response
+
+
+def _patch_client(monkeypatch: pytest.MonkeyPatch, response: dict[str, object]) -> None:
+    monkeypatch.setattr(
+        "file_mover.cli.ControlClient", lambda *a, **k: _FakeClient(response, *a, **k)
+    )
+
+
+def _ok(result: dict[str, object]) -> dict[str, object]:
+    return {"protocol_version": 1, "request_id": "r", "success": True, "result": result}
+
+
 @pytest.mark.requirement("L3-CLI-001")
 def test_create_parser_is_pure_and_builds() -> None:
     # Building the parser must not raise and must expose the documented commands.
@@ -56,10 +76,7 @@ def test_invalid_choice_is_rejected_before_dispatch() -> None:
 @pytest.mark.parametrize(
     "argv",
     [
-        ["status", "job-123"],
-        ["list"],
         ["retry", "job-123"],
-        ["stats"],
         ["recover"],
         ["submit", "--scenario-id", "s1", "--source", "/recordings/s1", "--destination", "/p"],
     ],
@@ -159,6 +176,85 @@ def test_health_reports_service_unavailable_when_down(tmp_path: Path) -> None:
     # a non-POSIX host AF_UNIX is unavailable, which maps to the same controlled result.
     path = _write_config(tmp_path, _MINIMAL_CONFIG)
     assert main(["health", "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-JOB-006")
+@pytest.mark.parametrize("argv", [["status", "j1"], ["list"], ["stats"]])
+def test_query_commands_report_service_unavailable_when_down(
+    tmp_path: Path, argv: list[str]
+) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main([*argv, "--config", path]) == ExitCode.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.requirement("L2-JOB-006")
+def test_status_found_renders_human(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_client(monkeypatch, _ok({"found": True, "job": {"job_id": "j1", "state": "queued"}}))
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["status", "j1", "--config", path]) == ExitCode.SUCCESS
+    assert "state: queued" in capsys.readouterr().out
+
+
+@pytest.mark.requirement("L2-JOB-006")
+def test_status_not_found_returns_job_not_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_client(monkeypatch, _ok({"found": False, "job": None}))
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["status", "j9", "--config", path]) == ExitCode.JOB_NOT_FOUND
+    assert main(["status", "j9", "--config", path, "--output", "json"]) == ExitCode.JOB_NOT_FOUND
+
+
+@pytest.mark.requirement("L2-CLI-004")
+def test_list_and_stats_render(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    job = {"job_id": "j1", "state": "queued", "file_count": 2, "bytes_copied": 5, "total_bytes": 10}
+    _patch_client(monkeypatch, _ok({"jobs": [job]}))
+    assert main(["list", "--config", path]) == ExitCode.SUCCESS
+    assert "j1" in capsys.readouterr().out
+    assert main(["list", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
+
+    _patch_client(monkeypatch, _ok({"jobs": []}))
+    assert main(["list", "--config", path]) == ExitCode.SUCCESS
+    assert "no matching jobs" in capsys.readouterr().out
+
+    _patch_client(
+        monkeypatch,
+        _ok(
+            {"total_jobs": 1, "total_bytes": 10, "bytes_copied": 5, "jobs_by_state": {"queued": 1}}
+        ),
+    )
+    assert main(["stats", "--config", path]) == ExitCode.SUCCESS
+    assert "total_jobs: 1" in capsys.readouterr().out
+    assert main(["stats", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
+
+
+@pytest.mark.requirement("L2-CTL-010")
+def test_health_renders_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_client(monkeypatch, _ok({"service_state": "running"}))
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["health", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
+    assert json.loads(capsys.readouterr().out)["service_state"] == "running"
+
+
+@pytest.mark.requirement("L2-CTL-005")
+def test_service_error_response_is_operation_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "file_mover.cli.ControlClient",
+        lambda *a, **k: _FakeClient(
+            {"success": False, "error": {"code": "UNKNOWN_COMMAND", "message": "x"}}
+        ),
+    )
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["health", "--config", path]) == ExitCode.OPERATION_FAILED
 
 
 @pytest.mark.requirement("L2-CTL-008")

@@ -12,6 +12,7 @@ are added in Milestone 4 alongside the SQLite repository.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 
 
@@ -116,3 +117,113 @@ class ExitCode(IntEnum):
     JOB_NOT_FOUND = 6
     PARTIAL_SUCCESS = 7
     INTERNAL_ERROR = 10
+
+
+@dataclass(frozen=True)
+class JobRecord:
+    """A durable transfer-job record."""
+
+    job_id: str
+    state: JobState
+    source_root: str
+    destination_root: str
+    created_at: float
+    updated_at: float
+    scenario_id: str | None = None
+    request_id: str | None = None
+    file_count: int = 0
+    total_bytes: int = 0
+    bytes_copied: int = 0
+    attempt_count: int = 0
+    next_retry_time: float | None = None
+    last_error: str | None = None
+
+
+@dataclass(frozen=True)
+class FileRecord:
+    """A durable record for one file within a job."""
+
+    file_id: str
+    job_id: str
+    relative_path: str
+    state: FileState
+    size_bytes: int = 0
+    bytes_copied: int = 0
+    source_hash: str | None = None
+    destination_hash: str | None = None
+    attempt_count: int = 0
+    last_error: str | None = None
+
+
+@dataclass(frozen=True)
+class JobStatistics:
+    """Aggregate, durably-derived job statistics."""
+
+    total_jobs: int
+    total_bytes: int
+    bytes_copied: int
+    jobs_by_state: dict[JobState, int] = field(default_factory=dict)
+
+
+# The allowed job state-machine transitions. Every terminal maps to the empty set;
+# ``FAILED_RETAINED`` and ``MANUAL_INTERVENTION`` allow a manual re-queue (L2-RTY-006).
+ALLOWED_JOB_TRANSITIONS: dict[JobState, frozenset[JobState]] = {
+    JobState.SUBMITTED: frozenset({JobState.VALIDATING, JobState.FAILED_RETAINED}),
+    JobState.VALIDATING: frozenset(
+        {JobState.CLAIMING, JobState.SOURCE_UNSTABLE, JobState.FAILED_RETAINED}
+    ),
+    JobState.CLAIMING: frozenset({JobState.CLAIMED, JobState.FAILED_RETAINED}),
+    JobState.CLAIMED: frozenset(
+        {JobState.HASHING_SOURCE, JobState.QUEUED, JobState.FAILED_RETAINED}
+    ),
+    JobState.HASHING_SOURCE: frozenset({JobState.QUEUED, JobState.FAILED_RETAINED}),
+    JobState.QUEUED: frozenset({JobState.COPYING, JobState.CANCELLED_RETAINED}),
+    JobState.COPYING: frozenset(
+        {
+            JobState.VERIFYING,
+            JobState.RETRY_WAIT,
+            JobState.FAILED_RETAINED,
+            JobState.MANUAL_INTERVENTION,
+        }
+    ),
+    JobState.VERIFYING: frozenset(
+        {
+            JobState.PUBLISHING,
+            JobState.RETRY_WAIT,
+            JobState.FAILED_RETAINED,
+            JobState.MANUAL_INTERVENTION,
+        }
+    ),
+    JobState.PUBLISHING: frozenset(
+        {
+            JobState.SOURCE_CLEANUP,
+            JobState.RETRY_WAIT,
+            JobState.FAILED_RETAINED,
+            JobState.MANUAL_INTERVENTION,
+        }
+    ),
+    JobState.SOURCE_CLEANUP: frozenset({JobState.COMPLETED, JobState.MANUAL_INTERVENTION}),
+    JobState.RETRY_WAIT: frozenset({JobState.QUEUED, JobState.COPYING, JobState.FAILED_RETAINED}),
+    JobState.SOURCE_UNSTABLE: frozenset({JobState.VALIDATING, JobState.FAILED_RETAINED}),
+    JobState.COMPLETED: frozenset(),
+    JobState.FAILED_RETAINED: frozenset({JobState.QUEUED, JobState.VALIDATING}),
+    JobState.CANCELLED_RETAINED: frozenset(),
+    JobState.MANUAL_INTERVENTION: frozenset({JobState.QUEUED, JobState.FAILED_RETAINED}),
+}
+
+
+def is_allowed_job_transition(from_state: JobState, to_state: JobState) -> bool:
+    """Return whether a job may transition from ``from_state`` to ``to_state``."""
+    return to_state in ALLOWED_JOB_TRANSITIONS.get(from_state, frozenset())
+
+
+# Jobs that are finished and require no further work.
+TERMINAL_JOB_STATES: frozenset[JobState] = frozenset(
+    {JobState.COMPLETED, JobState.CANCELLED_RETAINED}
+)
+
+# "Active" jobs for the default `list` filter: anything not finished, including
+# retained/failed jobs that need operator attention.
+ACTIVE_JOB_STATES: frozenset[JobState] = frozenset(
+    state for state in JobState if state not in TERMINAL_JOB_STATES
+)

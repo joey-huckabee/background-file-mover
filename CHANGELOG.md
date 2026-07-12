@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Durable job state (Milestone 4):
+  - `SQLiteJobRepository` — the authoritative durable store (WAL, `synchronous=FULL`,
+    `foreign_keys=ON`, `busy_timeout`, per-thread connections, idempotent
+    `PRAGMA user_version` migrations). Every SQLite error and every corrupt stored value
+    is translated to a typed `RepositoryError` so bad state can never crash the service.
+  - Frozen `JobRecord`/`FileRecord`/`JobStatistics` models and the explicit allowed
+    job-state-transition map with enforcement.
+  - `status` / `list` / `stats` commands served over the control socket and rendered by
+    the CLI (human and JSON), with `JOB_NOT_FOUND` when a job is absent.
+  - Requirements: L2-JOB-001..006, L3-JOB-001..002, L3-PY-007, L2-RTY-003.
+
 - Control plane (Milestone 3) — the first executable slice:
   - Length-prefixed JSON message framing (`control/protocol.py`) that rejects oversized
     frames before allocation and loops on `recv` until a full frame arrives.
