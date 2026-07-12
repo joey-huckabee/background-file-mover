@@ -7,75 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.4.0] - 2026-07-12
 
-- **`__version__` is derived from the package metadata, not hard-coded.** `file_mover.__version__`
-  now reads `importlib.metadata.version("background-file-mover")` (standard library), so
-  `pyproject.toml` is the **single source of truth** for the version — the CLI `--version`,
-  the `health` response, and the package all follow it. Cutting a release is now a one-line
-  version bump in `pyproject.toml`; there is no second literal to keep in sync. Running from
-  an uninstalled source tree falls back to `0.0.0+unknown`.
-- **Requirements traceability audit.** Reconciled the trace matrix with the code: added
-  `@pytest.mark.requirement` markers to existing tests that already assert data-safety
-  behaviours, added focused tests for the rest (filesystem identity capture/verification,
-  cross-filesystem claim rejection, inventory rules, temp/directory `fsync` durability,
-  `O_NOFOLLOW`, contextual config errors, and no-config-file-rewrite), and declared the
-  genuinely inspection-only `L2-ARC-006` accordingly. `Draft` requirements dropped from
-  **48 to 8**, and every remaining `Draft` now means *genuinely unbuilt* rather than
-  untested — see `docs/ROADMAP.md` § Known gaps (claim-directory cleanup `L2-CLN-003/004`,
-  manual-retry handler `L2-RTY-006`, event publisher `L2-EVT-*`), each awaiting an
-  implement-or-withdraw decision.
-- **Retired `docs/CAPTURE.md` into the specifications.** The original design conversation
-  (~6,200 lines) has been **fully retired** section by section — each removed only after its
-  every claim was verified to live in a canonical doc, a requirement, a config option, or
-  code+tests. CAPTURE is now the **design-history index**: a retirement ledger mapping each
-  section to where it lives (and the commit that removed it); git history retains the
-  content. Unbuilt-but-valuable ideas surfaced during the review were migrated to
-  `docs/ROADMAP.md` (spool-queue transport, streaming hash-while-copy, manifest hashes,
-  `version` collision policy, proactive free-space check, durable event/audit log, file-size
-  and regex submission policies, per-job overrides, per-phase timings), and a ROADMAP
-  **Known gaps** section now flags specified-but-`Draft` requirements (notably several
-  data-safety `L2-FS`/`L2-POSIX`/`L2-CLN`/`L2-DEL` requirements that are implemented but lack
-  requirement-tagged tests) for a traceability audit.
-- **Twelve-factor logging.** The service now writes its event stream to the standard streams
-  and lets the environment (systemd's journal, a log shipper) route it — `INFO`/`DEBUG` to
-  **stdout**, `WARNING` and above to **stderr** — and no longer manages log files. The CLI is
-  unchanged (stdout = command result, stderr = diagnostics) (L3-PY-013).
-
-### Removed
-
-- **`[logging]` destination options `log_to_journal`, `log_to_file`, and `log_directory`.**
-  In the twelve-factor model the application does not choose log destinations, so these were
-  removed; `[logging]` now exposes only `level` (with `OFF`). **Migration:** delete those
-  keys from your INI (strict validation now rejects them), and route/rotate logs at the
-  environment level (journald, or redirect the service's stdout/stderr).
+Operability, observability, and provenance: `doctor` now gates a deployment on the runtime
+environment, logging is twelve-factor and effectively free when off, and every job's
+manifest agrees with its durable record — while the original design conversation has been
+fully retired into the specifications. Runtime is still Python-3.10 standard library only.
 
 ### Added
 
-- **Manifest ↔ durable-record metadata parity.** Every accepted job now records the **same**
-  creation timestamp and integrity policy (mode + hash algorithm) in both the SQLite job
-  record and the JSON manifest, so the two never disagree (L2-JOB-007 / L3-JOB-003). The
-  `jobs` table gains `hash_algorithm` and `integrity_mode` columns and the manifest gains
-  `created_at` and an `integrity: {mode, algorithm}` block. A single timestamp is stamped
-  once at submission and threaded to both writers. **Schema note:** this is a fresh-schema
-  change (pre-1.0) — new databases only; there is no migration for an existing `jobs.db`.
 - **`file-mover doctor` now verifies the runtime environment.** It checks the capabilities
   the service depends on — `AF_UNIX` sockets, `fcntl` locking, SQLite WAL, the configured
   hash algorithm, Python ≥ 3.10, POSIX signals (required), plus `O_NOFOLLOW` and
   kernel-assisted copy (optional/advisory) — and reports each with `pass`/`warn`/`fail`.
   A missing **required** capability returns the new `ExitCode.ENVIRONMENT_UNSUPPORTED` (8),
   so a deployment can gate on `doctor` (L2-ENV-001..003).
-
-### Fixed
-
-- **Pausing an in-flight copy with `resume_partial_files = false` no longer fails on resume.**
-  The kept partial would previously collide with the exclusive create when the job resumed;
-  now a pause under a disabled resume policy drops the partial so the file cleanly restarts
-  from byte zero (mirroring startup recovery). With resume enabled the partial is kept and
-  continued as before (L2-RSM-002).
-
-### Added
-
+- **`file-mover doctor` also reports advisories** for valid-but-consequential option
+  combinations — a bandwidth limit with `use_kernel_copy` (kernel copy is bypassed while
+  limited) and `resume_partial_files` without `source-and-destination-hash` (a crash-torn
+  resume may go undetected). The same advisories are logged once at service start.
+- **Manifest ↔ durable-record metadata parity.** Every accepted job now records the **same**
+  creation timestamp and integrity policy (mode + hash algorithm) in both the SQLite job
+  record and the JSON manifest, so the two never disagree (L2-JOB-007 / L3-JOB-003). The
+  `jobs` table gains `hash_algorithm` and `integrity_mode` columns and the manifest gains
+  `created_at` and an `integrity: {mode, algorithm}` block, stamped once at submission and
+  threaded to both writers. **Schema note:** fresh-schema change (pre-1.0) — new databases
+  only; there is no migration for an existing `jobs.db`.
 - **Gated, context-aware logging with near-zero overhead when off.** Job/file correlation is
   carried in structured fields (`extra={job_id, file_id}`) via stable `file_mover.<area>`
   loggers and a `ContextFormatter`, and lifecycle DEBUG/INFO events were added across the
@@ -85,30 +42,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   paths guard DEBUG with `if __debug__ and GATE.debug:`, which `python -O` strips from the
   bytecode entirely; `[logging] level = OFF` disables all logging. The systemd unit runs the
   service under `-O` (L3-PY-014).
-- **`[logging]` configuration is now applied at service start** — `level`, `log_to_journal`
-  (stderr), and `log_to_file` (a size-rotating file under the new `log_directory` option)
-  take effect, with an explicit CLI `-v`/`--log-level` taking precedence (L3-PY-013). This
-  closes a gap where the section was validated but ignored.
-- **`file-mover doctor` now reports advisories** for valid-but-consequential option
-  combinations — a bandwidth limit with `use_kernel_copy` (kernel copy is bypassed while
-  limited) and `resume_partial_files` without `source-and-destination-hash` (a crash-torn
-  resume may go undetected). The same advisories are logged once at service start.
 
-### Documentation
+### Changed
+
+- **Twelve-factor logging.** The service now writes its event stream to the standard streams
+  and lets the environment (systemd's journal, a log shipper) route it — `INFO`/`DEBUG` to
+  **stdout**, `WARNING` and above to **stderr** — and no longer manages log files. The
+  `[logging] level` is now applied at service start (previously the section was validated but
+  ignored), with an explicit CLI `-v`/`--log-level` taking precedence. The CLI is unchanged
+  (stdout = command result, stderr = diagnostics) (L3-PY-013).
+- **`__version__` is derived from the package metadata, not hard-coded.**
+  `file_mover.__version__` now reads `importlib.metadata.version("background-file-mover")`
+  (standard library), so `pyproject.toml` is the **single source of truth** for the version —
+  the CLI `--version`, the `health` response, and the package all follow it. An uninstalled
+  source tree falls back to `0.0.0+unknown`.
+
+### Removed
+
+- **`[logging]` destination options `log_to_journal`, `log_to_file`, and `log_directory`.**
+  In the twelve-factor model the application does not choose log destinations, so these were
+  removed; `[logging]` now exposes only `level` (with `OFF`). **Migration:** delete those
+  keys from your INI (strict validation now rejects them), and route/rotate logs at the
+  environment level (journald, or redirect the service's stdout/stderr).
+
+### Fixed
+
+- **Pausing an in-flight copy with `resume_partial_files = false` no longer fails on resume.**
+  The kept partial would previously collide with the exclusive create when the job resumed;
+  now a pause under a disabled resume policy drops the partial so the file cleanly restarts
+  from byte zero (mirroring startup recovery). With resume enabled the partial is kept and
+  continued as before (L2-RSM-002).
+
+### Documentation & internals
 
 - Added **`docs/LOGGING.md`** (the stdout/stderr + logging architecture, for operators *and*
-  developers — the output-stream contract, consuming/routing logs, and how to add a log
-  call) and **`docs/12-FACTOR.md`** (twelve-factor alignment and deliberate deviations).
-  Documented `doctor`'s environment checks in CLI-REFERENCE, added it as a deploy gate and a
-  logs section in DEPLOYMENT, and "add an environment check" / "add a log call" workflows in
-  MAINTAINER-GUIDE; ARCHITECTURE gained a diagnostics section and cross-links.
-- Added `docs/FEATURE-INTERACTIONS.md`, an operator guide to combining kernel-assisted
-  copy, bandwidth limiting, partial-file resume, and pause/cancel/resume — which
-  combinations force the buffered engine, how a runtime `throttle` relates to an in-flight
-  kernel copy, and the two sharp edges (resume crash-safety depends on `[integrity] mode`;
-  `pause`/`resume` relies on `resume_partial_files`). Added a matching *Feature
-  interactions* matrix to `docs/ARCHITECTURE.md` and cross-links from the config/CLI
-  references and the reference INI.
+  developers) and **`docs/12-FACTOR.md`** (twelve-factor alignment and deliberate
+  deviations); documented `doctor`'s environment checks and exit code 8 in CLI-REFERENCE and
+  DEPLOYMENT, and added "add an environment check" / "add a log call" workflows to
+  MAINTAINER-GUIDE. Added **`docs/FEATURE-INTERACTIONS.md`** (combining kernel copy, bandwidth
+  limiting, partial resume, and pause/cancel/resume) plus a matching matrix in ARCHITECTURE.
+- **Retired `docs/CAPTURE.md` into the specifications.** The original design conversation
+  (~6,200 lines) was fully retired section by section — each removed only after its every
+  claim was verified to live in a canonical doc, a requirement, a config option, or
+  code+tests. CAPTURE is now a **design-history index** (a retirement ledger mapping each
+  section to its home and the commit that removed it; git history retains the content).
+  Unbuilt-but-valuable ideas surfaced during the review were migrated to `docs/ROADMAP.md`
+  (spool-queue transport, streaming hash-while-copy, manifest per-file hashes, `version`
+  collision policy, proactive free-space check, durable event/audit log, file-size and regex
+  submission policies, per-job overrides, per-phase timings).
+- **Requirements traceability audit.** Reconciled the trace matrix with the code — markers on
+  existing data-safety tests plus focused new tests (filesystem identity, cross-filesystem
+  claim rejection, inventory rules, temp/directory `fsync`, `O_NOFOLLOW`, config errors).
+  `Draft` requirements dropped from **48 to 8**; every remaining `Draft` now means *genuinely
+  unbuilt*, documented in `docs/ROADMAP.md` § Known gaps (claim-directory cleanup
+  `L2-CLN-003/004`, manual-retry handler `L2-RTY-006`, event publisher `L2-EVT-*`) for an
+  implement-or-withdraw decision.
 
 ## [0.3.0] - 2026-07-12
 
@@ -247,7 +235,8 @@ deleted until its destination has been written, fsynced, published, and verified
   mypy `--strict`, ruff, pylint, vulture, bandit, CodeQL, SonarCloud, and a scheduled
   no-panic fuzz burn-in.
 
-[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/joey-huckabee/background-file-mover/releases/tag/v0.1.0
