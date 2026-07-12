@@ -17,7 +17,8 @@ authoritative spec source.
 | Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | `2ee3e73` |
 | Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | `8905c81` |
 | Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | `0f5c2df` |
-| Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | _this commit_ |
+| Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | `c874e0c` |
+| Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -827,96 +828,11 @@ _(§ "Example L3 Decomposition" retired — see the retirement ledger at the top
 file. Fully transcribed into `docs/L3-REQ.md`.)_
 
 ## Testing Strategy
-“Fully Pytested” should include more than line coverage.
 
-#### Unit Tests
-Test individual components:
-
-* Configuration validation
-* Path validation
-* Manifest serialization
-* State transitions
-* Retry calculations
-* Hash calculation
-* Collision policies
-* Job submission validation
-* Source-to-destination mapping
-* Error classification
-
-#### Integration Tests
-Use temporary directories and actual files:
-
-* Claim file atomically
-* Copy and publish file
-* Verify destination hash
-* Delete source after success
-* Preserve source after failure
-* Recover a partial transfer
-* Reuse an identical existing destination
-* Reject a conflicting destination
-* Handle nested directories
-* Handle empty files
-* Handle Unicode filenames
-* Handle very long filenames within filesystem limits
-
-#### Fault-Injection Tests
-Inject failures at every destructive boundary:
-```
-After source claim
-After job insert
-During source hash
-After manifest write
-During copy
-After destination flush
-During destination hash
-After destination publication
-Before source deletion
-After source deletion
-Before final database update
-```
-Dependencies such as filesystem operations, clocks, and repository interfaces should be injectable so tests can raise deterministic exceptions.
-
-#### Process Recovery Tests
-Start the service, interrupt it, and restart it while jobs are in different states.
-
-#### NFS-Representative Tests
-A normal temporary directory cannot reproduce every NFS behavior. The test plan should distinguish:
-
-* Automated local filesystem tests
-* Deployment-environment NFS qualification tests
-
-NFS qualification should test:
-
-* Temporary loss of destination mount
-* Stale file handles
-* Server restart
-* Permissions changing during transfer
-* Destination capacity exhaustion
-* File visibility after rename
-* Concurrent client visibility
-* Large-file behavior
-* Sustained 100 GB transfer
-* Multiple simultaneous simulation submissions
-
-#### Quality Gates
-Recommended development dependencies:
-```
-pytest
-pytest-cov
-ruff
-mypy
-```
-Potential quality criteria:
-```
-100% requirements mapped to tests
-At least 90% branch coverage
-No unhandled Ruff violations
-No known high-severity static-analysis findings
-All public modules, classes, and methods documented
-All recovery states exercised
-All destructive transitions fault-injection tested
-```
-The most important metric is not raw coverage. It is whether every state transition and interruption boundary has a test.
+_(§ "Testing Strategy" retired — see the retirement ledger at the top of this file.
+The testing taxonomy, fault-injection boundary list, and guiding principle were migrated
+to `docs/MAINTAINER-GUIDE.md` § Testing strategy; NFS-representative tests and process
+recovery live in `docs/DEPLOYMENT.md`; quality gates in MAINTAINER-GUIDE + CI.)_
 
 ## Recommended First Release Boundary
 To deliver a dependable initial version rapidly, I would include:
