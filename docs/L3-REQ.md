@@ -161,6 +161,16 @@ CLI `-v`/`--log-level` taking precedence. Valid-but-consequential option combina
 surfaced as advisories by `file-mover doctor` and logged once at service start, never
 raised as errors.
 
+**L3-PY-014** · Parent: L2-CLI-006 · Verification: T
+
+Logging shall be gated and context-aware: job/file correlation shall be carried in
+structured fields (`extra={"job_id", "file_id"}`) via stable `file_mover.<area>` loggers,
+not logger names. A per-level gate (`LogGate`) computed once at configuration shall let a
+call site skip a disabled level with a single boolean read — no `isEnabledFor`, argument
+evaluation, formatting, or dispatch — and a level of `OFF` shall disable all logging. Hot
+paths shall guard with `if __debug__ and GATE.debug:` so DEBUG is removed from the bytecode
+under `python -O`; cold paths may call directly.
+
 ## CTL — Control-plane components
 
 **L3-CTL-001** · Parent: L2-CTL-002 · Verification: T

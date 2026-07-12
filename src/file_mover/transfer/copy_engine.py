@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import contextlib
 import errno
+import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -54,7 +55,10 @@ from file_mover.exceptions import (
     DestinationPublishError,
     DestinationWriteError,
 )
+from file_mover.logging_config import GATE
 from file_mover.transfer.ratelimit import RateLimiter
+
+_LOG = logging.getLogger("file_mover.transfer.copy")
 
 
 def _resolve_errnos(*names: str) -> frozenset[int]:
@@ -147,6 +151,8 @@ class BufferedFileCopyEngine:
         if resume_offset:
             os.lseek(source_fd, resume_offset, os.SEEK_SET)
             os.lseek(destination_fd, resume_offset, os.SEEK_SET)
+            if __debug__ and GATE.debug:
+                _LOG.debug("resuming %s from offset %d", temporary.name, resume_offset)
 
         try:
             self._copy(source_fd, destination_fd, resume_offset, interrupt_check)
@@ -211,7 +217,11 @@ class BufferedFileCopyEngine:
         # A throughput limit can only be applied in the userspace buffered loop, so an
         # active limiter forces the buffered strategy over kernel-assisted copy.
         if self._use_kernel_copy and _kernel_copy_available() and not self._rate_limited():
+            if __debug__ and GATE.debug:
+                _LOG.debug("copy strategy: kernel-assisted")
             return self._copy_via_kernel(source_fd, destination_fd, base_offset, interrupt_check)
+        if __debug__ and GATE.debug:
+            _LOG.debug("copy strategy: buffered")
         return _copy_via_buffer(
             source_fd, destination_fd, self._buffer_size_bytes, self._rate_limiter, interrupt_check
         )
@@ -236,6 +246,8 @@ class BufferedFileCopyEngine:
         except OSError as error:
             if error.errno not in _KERNEL_FALLBACK_ERRNOS:
                 raise  # a genuine I/O error — do not mask it
+            if __debug__ and GATE.debug:
+                _LOG.debug("kernel copy declined (errno %s); falling back to buffered", error.errno)
             # Discard output past the resume offset and copy the rest with the buffered loop.
             os.ftruncate(destination_fd, base_offset)
             os.lseek(destination_fd, base_offset, os.SEEK_SET)

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gated, context-aware logging with near-zero overhead when off.** Job/file correlation is
+  carried in structured fields (`extra={job_id, file_id}`) via stable `file_mover.<area>`
+  loggers and a `ContextFormatter`, and lifecycle DEBUG/INFO events were added across the
+  transfer, state, submission, recovery, and control paths (previously the transfer path
+  logged nothing). A per-level `LogGate` computed once at startup lets a disabled level cost
+  a single boolean — no `isEnabledFor`, argument evaluation, formatting, or dispatch. Hot
+  paths guard DEBUG with `if __debug__ and GATE.debug:`, which `python -O` strips from the
+  bytecode entirely; `[logging] level = OFF` disables all logging. The systemd unit runs the
+  service under `-O` (L3-PY-014).
 - **`[logging]` configuration is now applied at service start** — `level`, `log_to_journal`
   (stderr), and `log_to_file` (a size-rotating file under the new `log_directory` option)
   take effect, with an explicit CLI `-v`/`--log-level` taking precedence (L3-PY-013). This

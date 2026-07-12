@@ -11,6 +11,7 @@ or a locked database can never crash the service (the no-panic contract).
 from __future__ import annotations
 
 import contextlib
+import logging
 import sqlite3
 import threading
 import time
@@ -25,7 +26,9 @@ from file_mover.jobs.models import (
     JobStatistics,
     is_allowed_job_transition,
 )
+from file_mover.logging_config import GATE
 
+_LOG = logging.getLogger("file_mover.jobs.repository")
 _SCHEMA_VERSION = 1
 
 _SCHEMA = """
@@ -285,6 +288,13 @@ class SQLiteJobRepository:
                         f"illegal job transition {current.value} -> {to_state.value}"
                     )
                 conn.execute(_UPDATE_JOB_STATE_SQL, (to_state.value, self._now(), job_id))
+                if __debug__ and GATE.debug:
+                    _LOG.debug(
+                        "transition %s -> %s",
+                        current.value,
+                        to_state.value,
+                        extra={"job_id": job_id},
+                    )
 
     def transition_job_if(
         self, job_id: str, from_states: Collection[JobState], to_state: JobState
@@ -305,6 +315,13 @@ class SQLiteJobRepository:
                         f"illegal job transition {current.value} -> {to_state.value}"
                     )
                 conn.execute(_UPDATE_JOB_STATE_SQL, (to_state.value, self._now(), job_id))
+                if __debug__ and GATE.debug:
+                    _LOG.debug(
+                        "conditional transition %s -> %s",
+                        current.value,
+                        to_state.value,
+                        extra={"job_id": job_id},
+                    )
                 return True
 
     def reset_job_state(self, job_id: str, to_state: JobState) -> None:

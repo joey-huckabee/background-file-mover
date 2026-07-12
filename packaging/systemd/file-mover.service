@@ -28,7 +28,9 @@ Type=notify
 NotifyAccess=main
 User=mover
 Group=mover
-ExecStart=/opt/file-mover/venv/bin/python -m file_mover --config /etc/file-mover/file-mover.ini service run
+# -O removes DEBUG logging (if __debug__ guards) from the bytecode for zero overhead.
+# Drop -O temporarily if you need to toggle DEBUG logging live for troubleshooting.
+ExecStart=/opt/file-mover/venv/bin/python -O -m file_mover --config /etc/file-mover/file-mover.ini service run
 Restart=on-failure
 RestartSec=10
 # Allow the graceful drain (>= [service] shutdown_timeout_seconds) to finish.

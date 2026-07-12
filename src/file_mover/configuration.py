@@ -186,7 +186,7 @@ class OptionSpec:
 
 _TRUE_TOKENS = frozenset({"true", "yes", "on", "1"})
 _FALSE_TOKENS = frozenset({"false", "no", "off", "0"})
-_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "OFF")
 
 
 def _to_bool(raw: str) -> bool:
@@ -512,7 +512,10 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
     ),
     "logging": (
         OptionSpec(
-            "level", _log_level, default="INFO", description="DEBUG | INFO | WARNING | ERROR."
+            "level",
+            _log_level,
+            default="INFO",
+            description="DEBUG | INFO | WARNING | ERROR | OFF (OFF disables all logging).",
         ),
         OptionSpec(
             "log_to_journal",

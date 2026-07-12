@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno
 import hashlib
+import logging
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from file_mover.jobs.models import (
     JobState,
 )
 from file_mover.jobs.sqlite_repository import SQLiteJobRepository
+from file_mover.logging_config import GATE
 from file_mover.manifests import ManifestWriter
 from file_mover.submission import JobSubmissionService, SubmissionRequest
 from file_mover.transfer.control_signals import JobControlSignals
@@ -426,4 +428,53 @@ def test_corrupt_resumed_partial_is_discarded_and_routed_to_manual(tmp_path: Pat
     assert not list(dest_root.rglob(".swit-partial-*"))  # corrupt partial discarded
     assert not (dest_root / "a.dat").exists()  # unverified bytes never published
     assert (source_root / ".swit-moving" / job_id / "a.dat").exists()  # source retained
+    repo.close()
+
+
+@pytest.mark.requirement("L3-PY-014")
+def test_completion_log_carries_structured_job_id(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    with caplog.at_level(logging.INFO, logger="file_mover.transfer.coordinator"):
+        _coordinator(tmp_path, repo).process_job(job_id)
+    completed = [r for r in caplog.records if "job completed" in r.getMessage()]
+    assert completed and getattr(completed[-1], "job_id", None) == job_id  # structured field
+    repo.close()
+
+
+@pytest.mark.requirement("L3-PY-014")
+@pytest.mark.skipif(not __debug__, reason="DEBUG logging is stripped under python -O")
+def test_debug_events_carry_job_and_file_ids(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(GATE, "enabled", True)
+    monkeypatch.setattr(GATE, "debug", True)  # open the gate so guarded DEBUG lines run
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    with caplog.at_level(logging.DEBUG, logger="file_mover.transfer.file"):
+        _coordinator(tmp_path, repo).process_job(job_id)
+    with_both = [
+        r
+        for r in caplog.records
+        if getattr(r, "job_id", None) == job_id and getattr(r, "file_id", None)
+    ]
+    assert with_both, "no DEBUG record carried both job_id and file_id"
+    repo.close()
+
+
+@pytest.mark.requirement("L3-PY-014")
+def test_gate_off_suppresses_debug_records(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(GATE, "debug", False)  # gate closed -> guarded DEBUG lines skipped
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, _source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    with caplog.at_level(logging.DEBUG, logger="file_mover.transfer.file"):
+        _coordinator(tmp_path, repo).process_job(job_id)
+    assert not [r for r in caplog.records if r.levelno == logging.DEBUG]
     repo.close()

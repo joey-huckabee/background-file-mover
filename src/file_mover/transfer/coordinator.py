@@ -11,6 +11,7 @@ that this class stays focused on orchestration.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 
@@ -25,6 +26,7 @@ from file_mover.jobs.models import (
     JobState,
 )
 from file_mover.jobs.repository import JobRepository
+from file_mover.logging_config import GATE, bind
 from file_mover.transfer.control_signals import JobControlSignals
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.file_mover import FileMover
@@ -60,6 +62,7 @@ class TransferCoordinator:
         self._clock = clock
         self._signals = signals
         self._resume_partial_files = resume_partial_files
+        self._log = logging.getLogger("file_mover.transfer.coordinator")
         self._file_mover = FileMover(
             repository=repository,
             copy_engine=copy_engine,
@@ -78,6 +81,9 @@ class TransferCoordinator:
         if job.state is not JobState.QUEUED:
             return job.state
 
+        log = bind(self._log, job_id=job_id)
+        if __debug__ and GATE.debug:
+            log.debug("processing job: %d file(s)", job.file_count)
         self._repository.transition_job(job_id, JobState.COPYING)
         interrupt_check = self._signals.interrupt_check_for(job_id) if self._signals else None
         moved_bytes = 0
@@ -102,12 +108,14 @@ class TransferCoordinator:
 
         self._repository.record_job_progress(job_id, moved_bytes)
         self._repository.transition_job(job_id, JobState.COMPLETED)
+        log.info("job completed: %d byte(s) moved", moved_bytes)
         return JobState.COMPLETED
 
     def _handle_interrupt(
         self, job_id: str, file: FileRecord, interrupt: CopyInterrupted, moved_bytes: int
     ) -> JobState:
         """Apply a cooperative pause/cancel that stopped an in-flight copy (L2-LIF-002/003)."""
+        log = bind(self._log, job_id=job_id)
         signal = self._signals.poll(job_id) if self._signals is not None else None
         if self._signals is not None:
             self._signals.clear(job_id)
@@ -118,10 +126,12 @@ class TransferCoordinator:
                 job_id, f"cancelled while copying {file.relative_path}"
             )
             self._repository.transition_job(job_id, JobState.CANCELLED_RETAINED)
+            log.info("job cancelled while copying %s", file.relative_path)
             return JobState.CANCELLED_RETAINED
         # Pause (the safe default): keep the fsynced partial for an exact resume.
         self._repository.record_job_progress(job_id, moved_bytes + interrupt.bytes_written)
         self._repository.transition_job(job_id, JobState.PAUSED)
+        log.info("job paused at %d byte(s)", moved_bytes + interrupt.bytes_written)
         return JobState.PAUSED
 
     def _route_to_manual(self, job_id: str, file: FileRecord, outcome: FileState) -> JobState:
@@ -131,10 +141,14 @@ class TransferCoordinator:
         )
         self._repository.record_job_error(job_id, f"file {file.relative_path}: {outcome.value}")
         self._repository.transition_job(job_id, JobState.MANUAL_INTERVENTION)
+        bind(self._log, job_id=job_id).warning(
+            "manual intervention: %s (%s)", file.relative_path, outcome.value
+        )
         return JobState.MANUAL_INTERVENTION
 
     def _fail_job(self, job_id: str, file: FileRecord, error: TransferError) -> JobState:
         """Classify an I/O failure and record the durable retry/retain outcome."""
+        log = bind(self._log, job_id=job_id, file_id=file.file_id)
         self._repository.update_file(
             file.file_id, state=FileState.FAILED_RETAINED, last_error=str(error)
         )
@@ -150,7 +164,9 @@ class TransferCoordinator:
                 job_id, str(error), next_retry_time=self._clock() + delay
             )
             self._repository.transition_job(job_id, JobState.RETRY_WAIT)
+            log.info("retry scheduled (attempt %d, +%.0fs): %s", attempt, delay, error)
             return JobState.RETRY_WAIT
         self._repository.record_job_error(job_id, str(error))
         self._repository.transition_job(job_id, JobState.FAILED_RETAINED)
+        log.warning("job failed and retained: %s", error)
         return JobState.FAILED_RETAINED

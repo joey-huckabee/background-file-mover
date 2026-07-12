@@ -9,10 +9,14 @@ failures so a raising handler produces an error response rather than crashing th
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping
 from typing import Any
 
 from file_mover.constants import PROTOCOL_VERSION
+from file_mover.logging_config import GATE
+
+_LOG = logging.getLogger("file_mover.control.dispatcher")
 
 CommandHandler = Callable[[Mapping[str, Any]], dict[str, Any]]
 """A handler maps a request's ``arguments`` mapping to a result object."""
@@ -72,6 +76,8 @@ class CommandDispatcher:
         if not isinstance(arguments, Mapping):
             return _error(request_id, "BAD_REQUEST", "arguments must be an object")
 
+        if __debug__ and GATE.debug:
+            _LOG.debug("dispatching command %r", command)
         try:
             result = handler(arguments)
         except Exception as error:  # pylint: disable=broad-exception-caught
