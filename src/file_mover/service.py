@@ -115,12 +115,14 @@ class BackgroundMoverService:
             self._server = server
             if install_signal_handlers:
                 self._install_signal_handlers()
+            self._ready.set()
+            # Signal readiness before starting the scheduler so READY=1 always precedes
+            # the scheduler's WATCHDOG=1 keep-alives on the same notify socket.
+            notify_ready()  # tell systemd (Type=notify) we are serving; no-op otherwise
             scheduler_thread = threading.Thread(
                 target=self._scheduler_loop, name="swit-scheduler", daemon=True
             )
             scheduler_thread.start()
-            self._ready.set()
-            notify_ready()  # tell systemd (Type=notify) we are serving; no-op otherwise
             self._logger.info("control service ready at %s", self._config.service.socket_path)
             server.serve_forever()
         finally:
