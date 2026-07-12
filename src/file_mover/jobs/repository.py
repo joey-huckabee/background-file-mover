@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from typing import Protocol
 
-from file_mover.jobs.models import FileRecord, JobRecord, JobState, JobStatistics
+from file_mover.jobs.models import FileRecord, FileState, JobRecord, JobState, JobStatistics
 
 
 class JobRepository(Protocol):
@@ -33,6 +33,20 @@ class JobRepository(Protocol):
 
     def insert_files(self, files: Collection[FileRecord]) -> None:
         """Insert file records for a job."""
+
+    def update_file(
+        self,
+        file_id: str,
+        *,
+        state: FileState | None = None,
+        source_hash: str | None = None,
+        destination_hash: str | None = None,
+        last_error: str | None = None,
+    ) -> None:
+        """Partially update a file record's state, hashes, or last error."""
+
+    def record_job_progress(self, job_id: str, bytes_copied: int) -> None:
+        """Update a job's copied-bytes progress counter."""
 
     def list_files(self, job_id: str) -> list[FileRecord]:
         """Return the files belonging to ``job_id`` in deterministic order."""

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Transfer engine (Milestone 6) — the durable `copy → verify → publish → delete-source`
+  payload engine:
+  - `IntegrityVerifier` — `hashlib` bounded-buffer hashing (SHA-256/512/BLAKE2b) with
+    constant-time `hmac.compare_digest`.
+  - `BufferedFileCopyEngine` — exclusive (`O_CREAT|O_EXCL`, `O_NOFOLLOW` where available)
+    `.swit-partial-` temporary write in a bounded loop, `flush`+`os.fsync`, atomic
+    `Path.replace` publish, and best-effort destination-directory fsync.
+  - `ErrorClassifier` + bounded exponential backoff — classifies errors (transient →
+    retry, operator-remediable → retain, request/config → reject) with a conservative
+    retain default; errno constants resolved defensively for cross-platform import.
+  - `TransferCoordinator` — the per-file workflow (verify claimed identity → optional
+    source hash → copy → size/hash verify → publish → dir fsync → revalidate identity →
+    delete claimed source) with existing-destination collision handling
+    (verify-and-reuse / fail) and integrity-failure retention of both source and temp;
+    a source is deleted only after its destination is published and verified.
+  - Repository `update_file` / `record_job_progress`; `COPYING → COMPLETED` transition.
+  - Requirements: L2-DPR-*, L2-COPY-*, L2-DST-*, L2-DEL-*, L2-RTY-*, L3-INT-*,
+    L3-PY-002/003/004.
+
 - Submission & claiming (Milestone 5) — the first milestone that moves real files:
   - `SourceValidator` — deterministic recursive inventory (excludes the claim directory),
     symbolic-link and non-regular-file rejection, path-under-approved-roots enforcement,

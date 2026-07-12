@@ -214,6 +214,50 @@ class SQLiteJobRepository:
                     ],
                 )
 
+    def update_file(
+        self,
+        file_id: str,
+        *,
+        state: FileState | None = None,
+        source_hash: str | None = None,
+        destination_hash: str | None = None,
+        last_error: str | None = None,
+    ) -> None:
+        """Partially update a file record's state, hashes, or last error."""
+        assignments: list[str] = []
+        params: list[object] = []
+        if state is not None:
+            assignments.append("state = ?")
+            params.append(state.value)
+        if source_hash is not None:
+            assignments.append("source_hash = ?")
+            params.append(source_hash)
+        if destination_hash is not None:
+            assignments.append("destination_hash = ?")
+            params.append(destination_hash)
+        if last_error is not None:
+            assignments.append("last_error = ?")
+            params.append(last_error)
+        if not assignments:
+            return
+        params.append(file_id)
+        # `assignments` is a fixed list of "column = ?" fragments; all values are bound.
+        query = f"UPDATE files SET {', '.join(assignments)} WHERE file_id = ?"  # nosec B608
+        with self._translate("update_file"):
+            conn = self._connection()
+            with conn:
+                conn.execute(query, tuple(params))
+
+    def record_job_progress(self, job_id: str, bytes_copied: int) -> None:
+        """Update a job's copied-bytes progress counter."""
+        with self._translate("record_job_progress"):
+            conn = self._connection()
+            with conn:
+                conn.execute(
+                    "UPDATE jobs SET bytes_copied = ?, updated_at = ? WHERE job_id = ?",
+                    (bytes_copied, self._now(), job_id),
+                )
+
     def list_files(self, job_id: str) -> list[FileRecord]:
         """Return the files belonging to ``job_id`` in deterministic order."""
         with self._translate("list_files"):
