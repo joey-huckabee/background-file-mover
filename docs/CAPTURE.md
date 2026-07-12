@@ -20,7 +20,8 @@ authoritative spec source.
 | Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | `c874e0c` |
 | Testing Strategy | MIGRATED + TRANSCRIBED | Test taxonomy + fault-injection boundary list + guiding principle **migrated** to `docs/MAINTAINER-GUIDE.md` § Testing strategy (previously undocumented as narrative). NFS-representative tests + process recovery → `docs/DEPLOYMENT.md` (already present). Quality gates → MAINTAINER-GUIDE + `pyproject.toml` + CI | `52ded38` |
 | Recommended First Release Boundary | MIGRATED + TRANSCRIBED | In-scope list → delivered milestones M1–M8 (`docs/ROADMAP.md`) + canonical docs. Deferred list → ROADMAP § Deferred / Delivered post-1.0; the 4 never-planned items (Network API, web dashboard, metrics server, advanced scheduling) **migrated** as individual ROADMAP § Deferred bullets. Closing framing → CLAUDE.md overview + ARCHITECTURE | `6b436be` |
-| Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | _this commit_ |
+| Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | `e8edbe1` |
+| How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -54,39 +55,11 @@ there (L1-SYS-003) and in CLAUDE.md.)_
 
 ## How the Simulation Script Starts the Transfer
 
-### Long-Running Background Service
-The recommended design is a service such as:
-```
-background-file-mover.service
-```
-The service runs continuously under `systemd`.
-The simulation orchestration script submits a job:
-```shell
-file-mover submit \
-    --source /recordings/scenario-001 \
-    --destination /processing/scenario-001 \
-    --scenario-id scenario-001
-```
-The command:
-
-1. Validates the request.
-2. Claims the files.
-3. Creates a durable job record.
-4. Signals the background service.
-5. Returns immediately after the job is safely accepted.
-
-The background service then processes the job independently.
-
-This gives us:
-
-* Restart recovery
-* Centralized logging
-* Controlled concurrency
-* Durable job tracking
-* Retry handling
-* Clean shutdown behavior
-* System-level service monitoring
-* Protection against duplicate mover processes
+_(§ "How the Simulation Script Starts the Transfer" retired — see the retirement ledger
+at the top of this file. Transcribed into `docs/ARCHITECTURE.md` (§§ Process model,
+Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § submit
+(L2-CLI-008/009). Unit name `background-file-mover.service` was superseded by the hybrid
+naming decision to `file-mover.service` — see `docs/DEPLOYMENT.md`.)_
 
 ## Communication Between the Orchestration Script and Mover
 Because the application cannot use external runtime dependencies, there are two strong standard-library choices.
