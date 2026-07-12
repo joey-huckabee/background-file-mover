@@ -193,12 +193,16 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   implemented — including data-safety ones.** The functionality is in the code but the
   requirement-tagged tests are missing, so the trace matrix understates coverage. Known
   affected requirements:
-  - **Claim/filesystem integrity (highest priority):** `L2-FS-001..004` (record & verify
-    device+inode identity, reject a cross-filesystem claim, symlink policy),
+  - **Claim/filesystem + transfer/deletion integrity (highest priority):** `L2-FS-001..004`
+    (record & verify device+inode identity, reject a cross-filesystem claim, symlink policy),
     `L2-POSIX-001/007/008/011` (source-must-exist, **verify identity before claim and before
     delete**, exclusive temp create, atomic same-fs publish), `L2-CLN-001/005` (idempotent
-    cleanup, **never delete on device/inode mismatch**) — implemented in
-    `validation.py` / `claiming.py` / `copy_engine.py` but `Draft`/untested.
+    cleanup, **never delete on device/inode mismatch**), `L2-COPY-001/005/008` (bounded-memory
+    copy, temp-not-final, flush+fsync), `L2-DST-001` (**never delete an existing destination**),
+    `L2-DEL-001/004` (**delete only claimed records; never on incomplete verification**) —
+    implemented in `validation.py` / `claiming.py` / `copy_engine.py` / `transfer/coordinator.py`
+    but `Draft`/untested. (Coverage is genuinely partial: siblings like `L2-RTY-001/004`,
+    `L2-DST-003`, `L2-DEL-003` *are* tested — so the gaps are real, not just mislabelled.)
   - **Architecture/config:** `L2-ARC-003/004/006`, `L2-CFG-010` — `Draft`.
   - **Storage abstraction:** `L2-STO-001/003` are marked *Implemented (I)* but there is **no
     `TransferSource`/`TransferDestination` Protocol** — the workflow uses POSIX directly; the
