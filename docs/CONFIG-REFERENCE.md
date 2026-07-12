@@ -82,14 +82,11 @@ system's responsibility to submit only completed recordings.
 
 ## `[logging]`
 
-The service applies this section at startup. An explicit CLI `-v`/`--log-level` on
-`service run` overrides `level`; otherwise the configured `level` is used. `doctor` also
-reports **advisories** for valid-but-consequential option combinations (e.g. a bandwidth
-limit with `use_kernel_copy`, or resume without full destination hashing).
+Only the verbosity `level` is configurable. The service writes its event stream to
+stdout/stderr and lets the environment (the systemd journal, a log shipper) route it —
+`INFO`/`DEBUG` to stdout, `WARNING` and above to stderr — and manages no log files
+(twelve-factor). An explicit CLI `-v`/`--log-level` on `service run` overrides `level`.
 
 | Option | Type | Default | Notes |
 |--------|------|---------|-------|
 | `level` | enum | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` \| `OFF`. Applied at service start unless a CLI `-v`/`--log-level` overrides it; `OFF` disables all logging. Disabled levels cost only a single boolean at each call site (see `docs/ARCHITECTURE.md` § *Logging & observability*). |
-| `log_to_journal` | bool | `true` | Emit to stderr (captured by the systemd journal). |
-| `log_to_file` | bool | `false` | Also emit to a size-rotating file (10 MiB × 5) under `log_directory`. |
-| `log_directory` | abs path | `/var/log/file-mover` | Directory for the rotating log file when `log_to_file` is enabled. |

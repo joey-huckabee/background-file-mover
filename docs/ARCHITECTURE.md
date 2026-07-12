@@ -266,6 +266,13 @@ concerns are kept separate:
 - **Formatting** — `ContextFormatter` appends bound fields (`… [job_id=… file_id=…]`) and
   leaves context-free records untouched.
 
+**Twelve-factor output.** The service writes its event stream to the standard streams and
+lets the environment (systemd's journal, a log shipper) route and store it — it manages no
+log files. `INFO`/`DEBUG` go to **stdout** and `WARNING`/`ERROR`/`CRITICAL` to **stderr**
+(the daemon has no result stream on stdout to protect; the split preserves the Unix
+convention). The **CLI** is separate: stdout is reserved for a command's *result* and its
+diagnostics go to stderr. `[logging]` therefore exposes only `level`.
+
 Two performance dials for "no cost when off":
 
 | Guard | Cost when the level is off | Toggle |

@@ -514,14 +514,8 @@ def _handle_service_run(args: argparse.Namespace) -> ExitCode:
 
 
 def _configure_service_logging(args: argparse.Namespace, config: ApplicationConfig) -> None:
-    """Configure logging for the service from ``[logging]``, CLI verbosity taking precedence."""
-    level = _cli_log_level_override(args) or config.logging.level
-    log_file = (
-        Path(str(config.logging.log_directory)) / "file-mover.log"
-        if config.logging.log_to_file
-        else None
-    )
-    configure_logging(level, to_stderr=config.logging.log_to_journal, log_file=log_file)
+    """Configure logging for the service from ``[logging] level``; CLI verbosity wins."""
+    configure_logging(_cli_log_level_override(args) or config.logging.level)
 
 
 def _handle_config(args: argparse.Namespace) -> ExitCode:

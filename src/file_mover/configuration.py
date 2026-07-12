@@ -136,12 +136,14 @@ class StabilityConfig:
 
 @dataclass(frozen=True)
 class LoggingConfig:
-    """Logging configuration (``[logging]``)."""
+    """Logging configuration (``[logging]``).
+
+    Only the verbosity ``level`` is configurable: the service writes its event stream to
+    stdout/stderr and lets the environment route it (twelve-factor), so log destinations
+    are not application config.
+    """
 
     level: str
-    log_to_journal: bool
-    log_to_file: bool
-    log_directory: PurePosixPath
 
 
 @dataclass(frozen=True)
@@ -517,19 +519,6 @@ SECTION_SCHEMAS: dict[str, tuple[OptionSpec, ...]] = {
             default="INFO",
             description="DEBUG | INFO | WARNING | ERROR | OFF (OFF disables all logging).",
         ),
-        OptionSpec(
-            "log_to_journal",
-            _to_bool,
-            default="true",
-            description="Emit to the systemd journal (stderr).",
-        ),
-        OptionSpec("log_to_file", _to_bool, default="false", description="Emit to a log file."),
-        OptionSpec(
-            "log_directory",
-            _posix_path,
-            default="/var/log/file-mover",
-            description="Directory for the rotating log file when log_to_file is enabled.",
-        ),
     ),
 }
 
@@ -815,12 +804,7 @@ def _build_config(typed: dict[str, dict[str, object]]) -> ApplicationConfig:
             poll_count=cast(int, stability["poll_count"]),
             poll_interval_seconds=cast(float, stability["poll_interval_seconds"]),
         ),
-        logging=LoggingConfig(
-            level=cast(str, logging["level"]),
-            log_to_journal=cast(bool, logging["log_to_journal"]),
-            log_to_file=cast(bool, logging["log_to_file"]),
-            log_directory=cast(PurePosixPath, logging["log_directory"]),
-        ),
+        logging=LoggingConfig(level=cast(str, logging["level"])),
     )
 
 

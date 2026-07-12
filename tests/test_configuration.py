@@ -119,8 +119,11 @@ def test_resume_partial_files_defaults_on_and_can_disable() -> None:
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_log_directory_defaults() -> None:
-    assert str(_load(MINIMAL_CONFIG).logging.log_directory) == "/var/log/file-mover"
+def test_logging_section_accepts_only_level() -> None:
+    assert _load(MINIMAL_CONFIG).logging.level == "INFO"
+    # Destination options were removed (twelve-factor): they are now unknown options.
+    issues = _issues(f"{MINIMAL_CONFIG}\n[logging]\nlog_to_file = true\n")
+    assert ("logging", "log_to_file") in issues
 
 
 @pytest.mark.requirement("L3-PY-013")

@@ -1,10 +1,15 @@
 """Centralized, gated, context-aware standard-library logging.
 
-Logging is configured exactly once, at the application boundary (CLI / service startup),
-via :func:`configure_logging`. Business classes obtain ``logging.getLogger("file_mover.
-<area>")`` and never install handlers of their own; job/file correlation is carried in
-**structured fields** (``extra={"job_id": …, "file_id": …}``) via :func:`bind`, not in the
-logger name (L3-PY-013/014).
+Logging is configured exactly once, at the service boundary, via :func:`configure_logging`.
+Business classes obtain ``logging.getLogger("file_mover.<area>")`` and never install handlers
+of their own; job/file correlation is carried in **structured fields**
+(``extra={"job_id": …, "file_id": …}``) via :func:`bind`, not in the logger name
+(L3-PY-013/014).
+
+Twelve-factor: the service writes its event stream and lets the environment route it. It
+manages no log files — ``INFO``/``DEBUG`` go to **stdout** and ``WARNING``/``ERROR`` to
+**stderr** (the daemon has no result stream on stdout to protect). The CLI is separate: it
+keeps stdout for its command *result* and its own diagnostics on stderr.
 
 Three separated concerns live here:
 
@@ -26,14 +31,11 @@ while a non-``-O`` process keeps DEBUG toggleable at the cost of one boolean rea
 from __future__ import annotations
 
 import logging
+import sys
 from collections.abc import MutableMapping
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from typing import Any
 
 _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
-_FILE_MAX_BYTES = 10 * 1024 * 1024
-_FILE_BACKUP_COUNT = 5
 _CONTEXT_KEYS = ("job_id", "file_id")
 
 
@@ -90,20 +92,18 @@ def bind(base: logging.Logger | ContextLogger, **context: object) -> ContextLogg
     return ContextLogger(base, dict(context))
 
 
-def configure_logging(
-    level: str = "WARNING",
-    *,
-    to_stderr: bool = True,
-    log_file: Path | None = None,
-) -> None:
-    """Configure root logging and the :data:`GATE` from ``level``.
+def configure_logging(level: str = "WARNING") -> None:
+    """Configure the :data:`GATE` and route the event stream to stdout/stderr.
+
+    Twelve-factor: the application writes its event stream and lets the environment
+    (systemd's journal, a log shipper) route and store it. Records below ``WARNING``
+    (``INFO``/``DEBUG``) go to **stdout** and ``WARNING``/``ERROR``/``CRITICAL`` go to
+    **stderr** — the daemon has no result stream on stdout to protect. The app manages no
+    log files (L3-PY-013).
 
     Args:
         level: ``DEBUG``/``INFO``/``WARNING``/``ERROR``/``OFF``; unknown values fall back to
             ``WARNING``. ``OFF`` disables the gate and installs a null handler.
-        to_stderr: Emit records to stderr (the systemd journal). Default ``True``.
-        log_file: When given, also emit to a size-rotating file at this path; a failure to
-            open it falls back to stderr rather than aborting startup.
     """
     off = level.strip().upper() == "OFF"
     numeric = _numeric_level(level)
@@ -120,17 +120,10 @@ def configure_logging(
         return
 
     formatter = ContextFormatter(_LOG_FORMAT)
-    handlers: list[logging.Handler] = []
-    if to_stderr:
-        handlers.append(_stderr_handler(formatter))
-    if log_file is not None:
-        file_handler = _file_handler(log_file, formatter)
-        if file_handler is not None:
-            handlers.append(file_handler)
-    if not handlers:
-        handlers.append(_stderr_handler(formatter))  # never leave the service silent
-
-    logging.basicConfig(level=numeric, handlers=handlers, force=True)
+    stdout_handler = _stream_handler(sys.stdout, formatter, numeric)
+    stdout_handler.addFilter(_below_warning)  # INFO/DEBUG only; WARNING+ go to stderr
+    stderr_handler = _stream_handler(sys.stderr, formatter, logging.WARNING)
+    logging.basicConfig(level=numeric, handlers=[stdout_handler, stderr_handler], force=True)
 
 
 def _numeric_level(level: str) -> int:
@@ -139,24 +132,16 @@ def _numeric_level(level: str) -> int:
     return numeric if isinstance(numeric, int) else logging.WARNING
 
 
-def _stderr_handler(formatter: logging.Formatter) -> logging.Handler:
-    """Build a stderr stream handler with the shared context formatter."""
-    handler = logging.StreamHandler()
+def _stream_handler(
+    stream: Any, formatter: logging.Formatter, level: int
+) -> logging.StreamHandler[Any]:
+    """Build a stream handler at ``level`` with the shared context formatter."""
+    handler = logging.StreamHandler(stream)
     handler.setFormatter(formatter)
+    handler.setLevel(level)
     return handler
 
 
-def _file_handler(log_file: Path, formatter: logging.Formatter) -> logging.Handler | None:
-    """Build a rotating file handler, or ``None`` if the file cannot be opened."""
-    try:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        handler = RotatingFileHandler(
-            log_file,
-            maxBytes=_FILE_MAX_BYTES,
-            backupCount=_FILE_BACKUP_COUNT,
-            encoding="utf-8",
-        )
-    except OSError:
-        return None  # fall back to stderr; a log path issue must not abort startup
-    handler.setFormatter(formatter)
-    return handler
+def _below_warning(record: logging.LogRecord) -> bool:
+    """Filter passing only records below ``WARNING`` (stdout gets INFO/DEBUG)."""
+    return record.levelno < logging.WARNING

@@ -593,45 +593,26 @@ def test_service_run_reports_unavailable_without_lockable_state(tmp_path: Path) 
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_configure_service_logging_applies_config(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configure_service_logging_applies_config_level(monkeypatch: pytest.MonkeyPatch) -> None:
     from argparse import Namespace
 
     from file_mover.configuration import ConfigurationLoader
 
     captured: dict[str, object] = {}
-    monkeypatch.setattr(
-        cli_module,
-        "configure_logging",
-        lambda level, *, to_stderr, log_file: captured.update(
-            level=level, to_stderr=to_stderr, log_file=log_file
-        ),
-    )
-    config = ConfigurationLoader().load_text(
-        _MINIMAL_CONFIG
-        + "[logging]\nlevel = DEBUG\nlog_to_file = true\nlog_directory = /var/log/xyz\n"
-    )
+    monkeypatch.setattr(cli_module, "configure_logging", lambda level: captured.update(level=level))
+    config = ConfigurationLoader().load_text(_MINIMAL_CONFIG + "[logging]\nlevel = DEBUG\n")
     cli_module._configure_service_logging(Namespace(log_level=None, verbose=0), config)
-    assert captured["level"] == "DEBUG"  # config level applied (no CLI override)
-    assert captured["to_stderr"] is True  # log_to_journal default
-    log_file = captured["log_file"]
-    assert log_file is not None and log_file.name == "file-mover.log"
+    assert captured["level"] == "DEBUG"  # config level applied, no CLI override
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_configure_service_logging_cli_level_wins_and_no_file(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_configure_service_logging_cli_level_wins(monkeypatch: pytest.MonkeyPatch) -> None:
     from argparse import Namespace
 
     from file_mover.configuration import ConfigurationLoader
 
     captured: dict[str, object] = {}
-    monkeypatch.setattr(
-        cli_module,
-        "configure_logging",
-        lambda level, *, to_stderr, log_file: captured.update(level=level, log_file=log_file),
-    )
+    monkeypatch.setattr(cli_module, "configure_logging", lambda level: captured.update(level=level))
     config = ConfigurationLoader().load_text(_MINIMAL_CONFIG + "[logging]\nlevel = ERROR\n")
     cli_module._configure_service_logging(Namespace(log_level=None, verbose=2), config)  # -vv
     assert captured["level"] == "DEBUG"  # CLI verbosity overrides the config ERROR level
-    assert captured["log_file"] is None  # log_to_file defaults false -> no file handler

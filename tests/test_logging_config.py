@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import pytest
 
@@ -83,25 +82,26 @@ def test_level_is_applied_and_unknown_falls_back() -> None:
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_writes_to_rotating_file(tmp_path: Path) -> None:
-    log_file = tmp_path / "logs" / "file-mover.log"  # parent created on demand
-    configure_logging("INFO", to_stderr=False, log_file=log_file)
-    logging.getLogger("file_mover.test").info("hello-from-file")
+def test_split_routes_info_to_stdout_and_warning_to_stderr(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_logging("INFO")
+    log = logging.getLogger("file_mover.test.split")
+    log.info("an-info-event")
+    log.warning("a-warning-event")
     for handler in logging.getLogger().handlers:
         handler.flush()
-    assert log_file.exists()
-    assert "hello-from-file" in log_file.read_text(encoding="utf-8")
+    captured = capsys.readouterr()
+    assert "an-info-event" in captured.out and "an-info-event" not in captured.err
+    assert "a-warning-event" in captured.err and "a-warning-event" not in captured.out
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_never_silent_when_all_destinations_off() -> None:
-    configure_logging("INFO", to_stderr=False, log_file=None)
-    assert logging.getLogger().handlers  # a stderr fallback is always installed
+def test_split_installs_two_stream_handlers() -> None:
+    import sys
 
-
-@pytest.mark.requirement("L3-PY-013")
-def test_unopenable_log_file_falls_back_without_raising(tmp_path: Path) -> None:
-    blocker = tmp_path / "blocker"
-    blocker.write_bytes(b"x")  # a file where the log directory is expected
-    configure_logging("INFO", to_stderr=False, log_file=blocker / "x.log")
-    assert logging.getLogger().handlers  # falls back to stderr, no exception
+    configure_logging("INFO")
+    handlers = logging.getLogger().handlers
+    assert len(handlers) == 2
+    streams = {getattr(handler, "stream", None) for handler in handlers}
+    assert sys.stdout in streams and sys.stderr in streams  # no file handler

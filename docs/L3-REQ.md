@@ -154,9 +154,10 @@ already-copied prefix is preserved.
 
 **L3-PY-013** · Parent: L2-CLI-006 · Verification: T
 
-Service logging shall be configured from the `[logging]` section — level, journal (stderr)
-destination, and an optional size-rotating file under `log_directory` — with an explicit
-CLI `-v`/`--log-level` taking precedence. Valid-but-consequential option combinations
+The service shall configure logging from the `[logging] level` (an explicit CLI
+`-v`/`--log-level` taking precedence) and write its event stream to the standard streams
+without managing log files (twelve-factor): `INFO`/`DEBUG` to stdout and `WARNING` and above
+to stderr, letting the environment route it. Valid-but-consequential option combinations
 (a bandwidth limit with kernel copy; resume without full destination hashing) shall be
 surfaced as advisories by `file-mover doctor` and logged once at service start, never
 raised as errors.

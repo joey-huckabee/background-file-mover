@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Twelve-factor logging.** The service now writes its event stream to the standard streams
+  and lets the environment (systemd's journal, a log shipper) route it — `INFO`/`DEBUG` to
+  **stdout**, `WARNING` and above to **stderr** — and no longer manages log files. The CLI is
+  unchanged (stdout = command result, stderr = diagnostics) (L3-PY-013).
+
+### Removed
+
+- **`[logging]` destination options `log_to_journal`, `log_to_file`, and `log_directory`.**
+  In the twelve-factor model the application does not choose log destinations, so these were
+  removed; `[logging]` now exposes only `level` (with `OFF`). **Migration:** delete those
+  keys from your INI (strict validation now rejects them), and route/rotate logs at the
+  environment level (journald, or redirect the service's stdout/stderr).
+
 ### Added
 
 - **`file-mover doctor` now verifies the runtime environment.** It checks the capabilities
