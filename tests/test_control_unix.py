@@ -122,6 +122,35 @@ def test_service_run_serves_queries_then_stops(tmp_path: Path) -> None:
         repository.close()
 
 
+@pytest.mark.requirement("L2-CTL-011")
+def test_service_run_notifies_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    notify_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    notify_socket.bind(str(tmp_path / "notify.sock"))
+    notify_socket.settimeout(5)
+    monkeypatch.setenv("NOTIFY_SOCKET", str(tmp_path / "notify.sock"))
+    config = ConfigurationLoader().load_text(
+        f"[service]\n"
+        f"state_directory = {tmp_path}\n"
+        f"socket_path = {tmp_path / 'control.sock'}\n"
+        f"database_path = {tmp_path / 'jobs.db'}\n"
+        f"[paths]\n"
+        f"allowed_source_roots = /recordings\n"
+        f"allowed_destination_roots = /processing\n"
+    )
+    service = BackgroundMoverService(config)
+    worker = threading.Thread(
+        target=lambda: service.run(install_signal_handlers=False), daemon=True
+    )
+    worker.start()
+    try:
+        assert service.wait_ready(timeout=5)
+        assert notify_socket.recv(64) == b"READY=1"
+    finally:
+        service.request_stop()
+        worker.join(timeout=5)
+        notify_socket.close()
+
+
 @pytest.mark.requirement("L2-CLI-008")
 def test_service_run_accepts_submission_over_socket(tmp_path: Path) -> None:
     source_root = tmp_path / "recordings"

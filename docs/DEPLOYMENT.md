@@ -61,6 +61,12 @@ sudo systemctl enable --now file-mover
 systemctl status file-mover
 ```
 
+The unit uses `Type=notify`, so `systemctl start file-mover` (and any unit ordered
+`After=file-mover`) blocks until the service has actually reconciled state and bound the
+control socket — orchestration can start submitting the moment `start` returns, with no
+readiness race. The `WatchdogSec=30` setting makes systemd restart the service if it hangs
+(e.g. on a wedged NFS mount); keep `[service] poll_interval_seconds` below half of it.
+
 ## 6. Validate
 
 ```bash

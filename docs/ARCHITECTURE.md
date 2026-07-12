@@ -169,6 +169,26 @@ verified?). It resumes, retries, or routes to manual intervention — decisions 
 what is on disk, not from assumptions about what the previous process finished
 (L1-SYS-005).
 
+## Service readiness (systemd `Type=notify`)
+
+The service integrates with the init system via the `sd_notify` protocol
+(`file_mover/systemd.py`), using only a standard-library `AF_UNIX` datagram — no
+`libsystemd` dependency (L3-PY-010):
+
+- **Readiness.** Under `Type=notify`, systemd sets `NOTIFY_SOCKET` and waits for a
+  `READY=1` datagram before marking the unit started. The service sends it at exactly the
+  point it is genuinely serving — lock held, SQLite open, recovery reconciled, scheduler
+  running, control socket bound. So `systemctl start`, `After=file-mover` ordering, and
+  orchestration keyed off "started" never race the control socket into existence
+  (L2-CTL-011). It sends `STOPPING=1` when the drain begins.
+- **Liveness.** With `WatchdogSec=` set, the scheduler loop sends `WATCHDOG=1` every tick;
+  if the service hangs (e.g. on a wedged NFS mount) and the keep-alives stop, systemd
+  restarts it (L2-CTL-012). Keep `[service] poll_interval_seconds` below `WatchdogSec / 2`.
+
+Every notification is a **no-op when `NOTIFY_SOCKET` is unset** (running outside systemd,
+in tests, or on a non-POSIX host) and never raises, so the readiness path is invisible to
+the rest of the service.
+
 ## Logging levels
 
 Configured once at the application boundary; business classes call

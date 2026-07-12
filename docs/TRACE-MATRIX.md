@@ -30,9 +30,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
-| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
+| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 
 **L2 -> L3 -> Verification Artifacts**
 
@@ -92,6 +92,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-008 | L3-CTL-004 | `tests/test_cli.py::test_service_run_reports_unavailable_without_lockable_state`<br>`tests/test_control_unix.py::test_process_lock_context_manager`<br>`tests/test_control_unix.py::test_process_lock_is_exclusive` | Implemented |
 | L2-CTL-009 | _(none)_ | `tests/test_control_unix.py::test_service_run_serves_queries_then_stops` | Implemented |
 | L2-CTL-010 | _(none)_ | `tests/test_cli.py::test_health_renders_json`<br>`tests/test_cli.py::test_health_reports_service_unavailable_when_down`<br>`tests/test_service.py::test_health_handler` | Implemented |
+| L2-CTL-011 | L3-PY-010 | `tests/test_control_unix.py::test_service_run_notifies_readiness`<br>`tests/test_systemd.py::test_notify_is_noop_without_notify_socket`<br>`tests/test_systemd.py::test_notify_ready_and_stopping_send_datagrams`<br>`tests/test_systemd.py::test_notify_returns_false_on_unreachable_socket`<br>`tests/test_systemd.py::test_notify_translates_abstract_socket` | Implemented |
+| L2-CTL-012 | _(none)_ | `tests/test_systemd.py::test_notify_watchdog_sends_keepalive` | Implemented |
 | L2-DEL-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-003 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
@@ -194,19 +196,19 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 2 | 0 | 2 | 0 |
 | DEL | 0 | 4 | 0 | 1 | 0 | 1 | 0 |
-| CTL | 0 | 10 | 4 | 9 | 4 | 10 | 4 |
+| CTL | 0 | 12 | 4 | 11 | 4 | 12 | 4 |
 | JOB | 0 | 6 | 2 | 6 | 2 | 6 | 2 |
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 9 | 0 | 5 | 0 | 5 |
-| **Total** | **11** | **118** | **34** | **56** | **18** | **65** | **18** |
+| PY | 0 | 0 | 10 | 0 | 6 | 0 | 6 |
+| **Total** | **11** | **120** | **35** | **58** | **19** | **67** | **19** |
 
 The countable requirement set is every L2 and L3 requirement plus the 1 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 75 of 153 (49.0%).
+**Tested by at least one test marker**: 78 of 156 (50.0%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 84 of 153 (54.9%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 87 of 156 (55.8%).
 
 ### Orphan check
 

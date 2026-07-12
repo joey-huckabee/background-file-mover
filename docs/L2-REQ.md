@@ -908,6 +908,24 @@ The software shall provide a health command that reports service status.
 
 **Verification Method**: Test (T)
 
+#### L2-CTL-011
+
+The service shall notify the service manager when it is ready to serve and when it is
+stopping.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-012
+
+The service shall emit a periodic liveness signal so the service manager can detect and
+restart a hung service.
+
+**Parent**: L1-SYS-010
+
+**Verification Method**: Test (T)
+
 ## JOB — Durable job state
 
 #### L2-JOB-001

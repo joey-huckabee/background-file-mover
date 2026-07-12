@@ -44,6 +44,7 @@ from file_mover.submission import (
     SubmissionResult,
     build_submission_request,
 )
+from file_mover.systemd import notify_ready, notify_stopping, notify_watchdog
 from file_mover.transfer.coordinator import TransferCoordinator
 from file_mover.transfer.copy_engine import BufferedFileCopyEngine
 from file_mover.transfer.integrity import IntegrityVerifier
@@ -119,10 +120,12 @@ class BackgroundMoverService:
             )
             scheduler_thread.start()
             self._ready.set()
+            notify_ready()  # tell systemd (Type=notify) we are serving; no-op otherwise
             self._logger.info("control service ready at %s", self._config.service.socket_path)
             server.serve_forever()
         finally:
             self._stopping.set()
+            notify_stopping()
             if scheduler_thread is not None:
                 scheduler_thread.join(timeout=self._config.service.shutdown_timeout_seconds)
             if self._server is not None:
@@ -219,6 +222,7 @@ class BackgroundMoverService:
     def _scheduler_loop(self) -> None:
         """Run scheduler ticks until shutdown; a failing tick never stops the loop."""
         while not self._stopping.is_set():
+            notify_watchdog()  # watchdog keep-alive under systemd (no-op otherwise)
             try:
                 if self._scheduler is not None:
                     self._scheduler.run_once()
