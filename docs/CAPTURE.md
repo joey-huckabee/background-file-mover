@@ -16,7 +16,8 @@ authoritative spec source.
 |-------------------------|-------------|-------------------|--------|
 | Recommended Initial Build Order | TRANSCRIBED | `docs/ROADMAP.md` — 16-step order → milestones M1–M8 (§ Milestones + ordering note); "first executable milestone" block → M3 **Done-when**; submission-before-transfer → M5→M6 sequence | `2ee3e73` |
 | Initial L1 Requirements | TRANSCRIBED | `docs/L1-REQ.md` — all 10 SHALL statements → `L1-SYS-001…010` (semantic match). Mnemonic titles ("Background Data Movement", …) were conversational labels, intentionally not carried; the SHALL text is authoritative | `8905c81` |
-| Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | _this commit_ |
+| Example L2 Decomposition | TRANSCRIBED | `docs/L2-REQ.md` — `L2-SW-003.1…7` → `L2-DPR-001…007` (verbatim; dotted IDs normalized to the `DPR` category). "Under L1-SYS-003" linkage → each DPR's `**Parent**: L1-SYS-003`. `PUBLISHED_VERIFIED` state name → file state machine in `jobs/models.py` / ARCHITECTURE | `0f5c2df` |
+| Example L3 Decomposition | TRANSCRIBED | `docs/L3-REQ.md` — `L3-INT-003.4.1…7` → `L3-INT-001…007` (verbatim/trivial rewording; canonical version refines each parent to its most precise L2). `INTEGRITY_FAILED` state name → `jobs/models.py` state machine | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -822,38 +823,8 @@ file. Fully transcribed into `docs/L1-REQ.md`.)_
 _(§ "Example L2 Decomposition" retired — see the retirement ledger at the top of this
 file. Fully transcribed into `docs/L2-REQ.md`.)_
 
-## Example L3 Decomposition
-L3 requirements describe component-level implementation behavior.
-
-Under **L2-SW-003.4**:
-
-#### L3-INT-003.4.1
-
-The `IntegrityVerifier` shall support SHA-256, SHA-512, and BLAKE2b using `hashlib`.
-
-#### L3-INT-003.4.2
-
-The `IntegrityVerifier` shall read files using a configurable bounded buffer.
-
-#### L3-INT-003.4.3
-
-The ManifestWriter shall persist the completed source hash before the `TransferCoordinator` begins copying that file when pre-copy hashing is configured.
-
-#### L3-INT-003.4.4
-
-The `ManifestWriter` shall write manifests through a temporary file and atomically replace the prior manifest.
-
-#### L3-INT-003.4.5
-
-The `FileTransferWorker` shall calculate the destination hash only after all destination bytes have been flushed.
-
-#### L3-INT-003.4.6
-
-The `IntegrityVerifier` shall compare hash values using `hmac.compare_digest()`.
-
-#### L3-INT-003.4.7
-
-A hash mismatch shall transition the file to INTEGRITY_FAILED, retain both source and temporary destination files, and prevent destination publication.
+_(§ "Example L3 Decomposition" retired — see the retirement ledger at the top of this
+file. Fully transcribed into `docs/L3-REQ.md`.)_
 
 ## Testing Strategy
 “Fully Pytested” should include more than line coverage.
