@@ -25,6 +25,9 @@ class JobRepository(Protocol):
     def get_job(self, job_id: str) -> JobRecord | None:
         """Return the job with ``job_id``, or ``None`` if absent."""
 
+    def get_job_by_request_id(self, request_id: str) -> JobRecord | None:
+        """Return the job with the given idempotency ``request_id``, or ``None``."""
+
     def list_jobs(self, states: Collection[JobState] | None = None) -> list[JobRecord]:
         """Return jobs, optionally filtered to the given states, newest first."""
 

@@ -24,12 +24,12 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
 | L1-SYS-001 | L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
-| L1-SYS-002 | L2-CLI-008, L2-CLI-009 | _(none)_ | Draft |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011 | _(none)_ | Partially Implemented |
-| L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
+| L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Partially Implemented |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-SUB-005 | _(none)_ | Partially Implemented |
+| L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Partially Implemented |
-| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
+| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
 | L1-SYS-008 | L2-ARC-006, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-JOB-006, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
@@ -62,7 +62,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CLI-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-006 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLI-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-008 | _(none)_ | `tests/test_cli.py::test_submit_missing_file_list_is_invalid_argument`<br>`tests/test_cli.py::test_submit_reads_file_list`<br>`tests/test_cli.py::test_submit_renders_accepted`<br>`tests/test_cli.py::test_submit_renders_rejected_json`<br>`tests/test_cli.py::test_submit_reports_service_unavailable_when_down`<br>`tests/test_control_unix.py::test_service_run_accepts_submission_over_socket`<br>`tests/test_submission.py::test_submit_file_list` | Implemented |
 | L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-010 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-011 | L3-CLI-001 | `tests/test_cli.py::test_create_parser_is_pure_and_builds`<br>`tests/test_cli.py::test_module_entry_point_runs`<br>`tests/test_cli.py::test_no_command_prints_help_and_returns_invalid_argument` | Implemented |
@@ -84,7 +84,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
 | L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
 | L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
-| L2-CTL-004 | _(none)_ | `tests/test_control_integration.py::test_server_answers_malformed_request_without_crashing`<br>`tests/test_dispatcher.py::test_handler_exception_is_isolated`<br>`tests/test_protocol.py::test_empty_message_rejected`<br>`tests/test_protocol.py::test_malformed_json_body_rejected`<br>`tests/test_protocol.py::test_non_object_json_rejected`<br>`tests/test_service.py::test_list_handler_unknown_state_is_isolated` | Implemented |
+| L2-CTL-004 | _(none)_ | `tests/test_control_integration.py::test_server_answers_malformed_request_without_crashing`<br>`tests/test_dispatcher.py::test_handler_exception_is_isolated`<br>`tests/test_protocol.py::test_empty_message_rejected`<br>`tests/test_protocol.py::test_malformed_json_body_rejected`<br>`tests/test_protocol.py::test_non_object_json_rejected`<br>`tests/test_service.py::test_list_handler_unknown_state_is_isolated`<br>`tests/test_service.py::test_submit_handler_rejects_malformed_requests` | Implemented |
 | L2-CTL-005 | L3-CTL-002 | `tests/test_cli.py::test_service_error_response_is_operation_failed`<br>`tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Implemented |
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-CTL-007 | _(none)_ | `tests/test_control_unix.py::test_bind_refuses_non_socket_file`<br>`tests/test_control_unix.py::test_bind_removes_dead_stale_socket` | Implemented |
@@ -116,7 +116,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-FS-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-FS-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-FS-005 | _(none)_ | `tests/test_submission.py::test_submit_rejects_source_outside_allowed_roots` | Implemented |
 | L2-JOB-001 | L3-JOB-002 | `tests/test_repository.py::test_corrupt_stored_state_raises_repository_error`<br>`tests/test_repository.py::test_duplicate_job_id_raises`<br>`tests/test_repository.py::test_insert_and_get_job`<br>`tests/test_repository.py::test_insert_and_list_files_with_cascade`<br>`tests/test_repository.py::test_open_failure_raises_repository_error` | Implemented |
 | L2-JOB-002 | L3-JOB-001, L3-PY-007 | `tests/test_repository.py::test_wal_journal_mode_is_enabled` | Partially Implemented |
 | L2-JOB-003 | _(none)_ | `tests/test_repository.py::test_each_thread_gets_its_own_connection` | Implemented |
@@ -124,11 +124,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-005 | _(none)_ | `tests/test_repository.py::test_illegal_transition_rejected`<br>`tests/test_repository.py::test_legal_transition_updates_state`<br>`tests/test_repository.py::test_transition_map_terminals_are_closed`<br>`tests/test_repository.py::test_transition_unknown_job_rejected` | Implemented |
 | L2-JOB-006 | _(none)_ | `tests/test_cli.py::test_query_commands_report_service_unavailable_when_down`<br>`tests/test_cli.py::test_status_found_renders_human`<br>`tests/test_cli.py::test_status_not_found_returns_job_not_found`<br>`tests/test_repository.py::test_list_jobs_filters_by_state`<br>`tests/test_repository.py::test_statistics_aggregate`<br>`tests/test_service.py::test_list_handler`<br>`tests/test_service.py::test_resolve_state_selector`<br>`tests/test_service.py::test_stats_handler`<br>`tests/test_service.py::test_status_handler_found_and_missing` | Implemented |
 | L2-POSIX-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-POSIX-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-002 | _(none)_ | `tests/test_submission.py::test_submit_rejects_symlinks` | Implemented |
 | L2-POSIX-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-POSIX-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-006 | _(none)_ | `tests/test_submission.py::test_submit_detects_unstable_source` | Implemented |
 | L2-POSIX-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-008 | L3-PY-005 | _(TBD)_ | Draft |
 | L2-POSIX-009 | L3-PY-004 | _(TBD)_ | Draft |
@@ -146,6 +146,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-STO-003 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-004 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-005 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-SUB-001 | _(none)_ | `tests/test_submission.py::test_submit_is_idempotent_by_request_id` | Implemented |
+| L2-SUB-002 | L3-SUB-001 | `tests/test_service.py::test_submit_handler_claims_and_records`<br>`tests/test_submission.py::test_submit_claims_records_and_writes_manifest` | Implemented |
+| L2-SUB-003 | _(none)_ | `tests/test_submission.py::test_submit_rejects_empty_source` | Implemented |
+| L2-SUB-004 | L3-SUB-002 | `tests/test_submission.py::test_manifest_writer_writes_atomically` | Implemented |
+| L2-SUB-005 | _(none)_ | `tests/test_submission.py::test_submit_rejects_destination_outside_allowed_roots` | Implemented |
 
 ---
 
@@ -160,10 +165,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DPR | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
 | CFG | 0 | 11 | 0 | 10 | 0 | 10 | 0 |
 | EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
-| CLI | 0 | 11 | 5 | 4 | 2 | 4 | 2 |
+| CLI | 0 | 11 | 5 | 5 | 2 | 5 | 2 |
 | ARC | 0 | 6 | 0 | 0 | 0 | 3 | 0 |
-| FS | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
-| POSIX | 0 | 12 | 0 | 0 | 0 | 0 | 0 |
+| FS | 0 | 5 | 0 | 1 | 0 | 1 | 0 |
+| POSIX | 0 | 12 | 0 | 2 | 0 | 2 | 0 |
 | CLN | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
 | COPY | 0 | 10 | 0 | 1 | 0 | 2 | 0 |
@@ -172,15 +177,16 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | CTL | 0 | 10 | 4 | 9 | 4 | 10 | 4 |
 | JOB | 0 | 6 | 2 | 6 | 2 | 6 | 2 |
+| SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | INT | 0 | 0 | 7 | 0 | 1 | 0 | 1 |
 | PY | 0 | 0 | 8 | 0 | 2 | 0 | 2 |
-| **Total** | **10** | **108** | **31** | **33** | **11** | **42** | **11** |
+| **Total** | **10** | **113** | **33** | **41** | **13** | **50** | **13** |
 
 The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 44 of 139 (31.7%).
+**Tested by at least one test marker**: 54 of 146 (37.0%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 53 of 139 (38.1%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 63 of 146 (43.2%).
 
 ### Orphan check
 

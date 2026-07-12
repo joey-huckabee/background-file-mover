@@ -156,3 +156,15 @@ Each database connection shall set a `busy_timeout`.
 
 The repository shall translate SQLite errors and corrupt stored values into a typed
 `RepositoryError`.
+
+## SUB — Submission and claiming components
+
+**L3-SUB-001** · Parent: L2-SUB-002 · Verification: T
+
+The `FileClaimManager` shall claim each file with an atomic same-filesystem
+`Path.replace` (os.replace) into the per-job staging directory.
+
+**L3-SUB-002** · Parent: L2-SUB-004 · Verification: T
+
+The `ManifestWriter` shall write manifests through a flushed, fsynced temporary file
+that is atomically renamed over the final name.
