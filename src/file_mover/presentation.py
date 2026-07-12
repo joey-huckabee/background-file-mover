@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from file_mover.diagnostics import CheckResult
 from file_mover.jobs.models import (
     ACTIVE_JOB_STATES,
     JobRecord,
@@ -73,6 +74,16 @@ def submission_result_to_dict(result: SubmissionResult) -> dict[str, Any]:
         "claimed_bytes": result.claimed_bytes,
         "error_code": result.error_code,
         "error_message": result.error_message,
+    }
+
+
+def check_result_to_dict(result: CheckResult) -> dict[str, Any]:
+    """Serialise an environment :class:`CheckResult` for ``doctor`` output."""
+    return {
+        "name": result.name,
+        "requirement": result.requirement.value,
+        "status": result.status.value,
+        "detail": result.detail,
     }
 
 

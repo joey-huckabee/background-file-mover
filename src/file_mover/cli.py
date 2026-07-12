@@ -33,9 +33,11 @@ from file_mover.configuration import (
 )
 from file_mover.constants import APP_NAME, DEFAULT_CONFIG_PATH
 from file_mover.control.client import ControlClient
+from file_mover.diagnostics import EnvironmentDoctor, default_checks
 from file_mover.exceptions import ConfigurationError, ServiceLockError, ServiceUnavailableError
 from file_mover.jobs.models import ExitCode
 from file_mover.logging_config import configure_logging
+from file_mover.presentation import check_result_to_dict
 from file_mover.service import BackgroundMoverService
 
 _JOB_ID_HELP = "job identifier"
@@ -534,18 +536,45 @@ def _handle_config(args: argparse.Namespace) -> ExitCode:
 
 
 def _handle_doctor(args: argparse.Namespace) -> ExitCode:
-    """Validate configuration and report advisories for consequential option combinations."""
+    """Validate configuration, report advisories, and check the runtime environment.
+
+    Returns :attr:`ExitCode.ENVIRONMENT_UNSUPPORTED` when a required capability is missing,
+    so a deployment script can gate on ``file-mover doctor`` (L2-ENV-001).
+    """
     config = _load_configuration(args.config, args.output)
     if isinstance(config, ExitCode):
         return config
     advisories = configuration_advisories(config)
+    report = EnvironmentDoctor(
+        default_checks(
+            algorithm=config.integrity.algorithm.value,
+            use_kernel_copy=config.transfer.use_kernel_copy,
+        )
+    ).run()
+
     if args.output == "json":
-        print(json.dumps({"status": "ok", "message": _CONFIG_VALID, "advisories": advisories}))
+        print(
+            json.dumps(
+                {
+                    "status": "ok" if report.ok else "environment_unsupported",
+                    "message": _CONFIG_VALID,
+                    "advisories": advisories,
+                    "environment": [check_result_to_dict(result) for result in report.results],
+                }
+            )
+        )
     else:
         print(_CONFIG_VALID)
+        for result in report.results:
+            print(f"  [{result.status.value}] {result.name}: {result.detail}")
         for note in advisories:
             print(f"advisory: {note}", file=sys.stderr)
-    return ExitCode.SUCCESS
+        if not report.ok:
+            print(
+                f"{APP_NAME}: environment unsupported — a required capability is missing",
+                file=sys.stderr,
+            )
+    return ExitCode.SUCCESS if report.ok else ExitCode.ENVIRONMENT_UNSUPPORTED
 
 
 _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], ExitCode]] = {

@@ -10,6 +10,7 @@ import pytest
 
 import file_mover.cli as cli_module
 from file_mover.cli import _parse_byte_rate, create_parser, main
+from file_mover.diagnostics import EnvironmentCheck, Requirement
 from file_mover.jobs.models import ExitCode
 
 _MINIMAL_CONFIG = (
@@ -41,6 +42,17 @@ def _patch_client(monkeypatch: pytest.MonkeyPatch, response: dict[str, object]) 
 
 def _ok(result: dict[str, object]) -> dict[str, object]:
     return {"protocol_version": 1, "request_id": "r", "success": True, "result": result}
+
+
+def _env_check(
+    available: bool, requirement: Requirement = Requirement.REQUIRED
+) -> EnvironmentCheck:
+    return EnvironmentCheck("cap", requirement, lambda: (available, "detail"))
+
+
+def _patch_env(monkeypatch: pytest.MonkeyPatch, checks: list[EnvironmentCheck]) -> None:
+    # Make doctor's environment checks deterministic regardless of the test host.
+    monkeypatch.setattr("file_mover.cli.default_checks", lambda **_kwargs: checks)
 
 
 @pytest.mark.requirement("L3-CLI-001")
@@ -173,13 +185,17 @@ def test_config_without_subcommand_is_invalid() -> None:
 
 
 @pytest.mark.requirement("L2-CFG-007")
-def test_doctor_validates_configuration(tmp_path: Path) -> None:
+def test_doctor_validates_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_env(monkeypatch, [])  # no environment checks -> passes regardless of host
     path = _write_config(tmp_path, _MINIMAL_CONFIG)
     assert main(["doctor", "--config", path]) == ExitCode.SUCCESS
 
 
 @pytest.mark.requirement("L3-PY-013")
-def test_doctor_reports_advisories(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_doctor_reports_advisories(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_env(monkeypatch, [])
     path = _write_config(tmp_path, _MINIMAL_CONFIG + "[transfer]\nmax_bytes_per_second = 1000\n")
     assert main(["doctor", "--config", path]) == ExitCode.SUCCESS
     captured = capsys.readouterr()
@@ -189,13 +205,47 @@ def test_doctor_reports_advisories(tmp_path: Path, capsys: pytest.CaptureFixture
 
 @pytest.mark.requirement("L3-PY-013")
 def test_doctor_json_includes_advisories(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    _patch_env(monkeypatch, [])
     path = _write_config(tmp_path, _MINIMAL_CONFIG + "[transfer]\nmax_bytes_per_second = 1000\n")
     assert main(["doctor", "--config", path, "--output", "json"]) == ExitCode.SUCCESS
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "ok"
     assert any("bandwidth" in note for note in payload["advisories"])
+
+
+@pytest.mark.requirement("L2-ENV-001")
+def test_doctor_passes_when_environment_ok(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_env(monkeypatch, [_env_check(True), _env_check(False, Requirement.OPTIONAL)])
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["doctor", "--config", path]) == ExitCode.SUCCESS  # warnings do not fail
+    assert "[pass]" in capsys.readouterr().out
+
+
+@pytest.mark.requirement("L2-ENV-001")
+def test_doctor_fails_when_required_capability_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_env(monkeypatch, [_env_check(False)])  # a required capability is missing
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    assert main(["doctor", "--config", path]) == ExitCode.ENVIRONMENT_UNSUPPORTED
+    assert "environment unsupported" in capsys.readouterr().err
+
+
+@pytest.mark.requirement("L2-ENV-001")
+def test_doctor_json_reports_environment(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_env(monkeypatch, [_env_check(False)])
+    path = _write_config(tmp_path, _MINIMAL_CONFIG)
+    code = main(["doctor", "--config", path, "--output", "json"])
+    assert code == ExitCode.ENVIRONMENT_UNSUPPORTED
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "environment_unsupported"
+    assert payload["environment"][0]["status"] == "fail"
 
 
 @pytest.mark.requirement("L3-PY-013")
