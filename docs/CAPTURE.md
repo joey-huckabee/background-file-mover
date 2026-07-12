@@ -30,7 +30,8 @@ authoritative spec source.
 | Safe Destination Publication | TRANSCRIBED | `docs/ARCHITECTURE.md` § Durable per-file workflow (temp → copy → flush+fsync → verify → `os.replace` publish → fsync dir → delete source): L2-DPR-001..007, L2-POSIX-007..012, L3-PY-003/004; downstream-never-sees-partial → L2-DST-004. Temp prefix `.partial-` superseded by configurable `[paths] temporary_file_prefix` (default `.swit-partial-`) | `fd7cfb5` |
 | Copy Versus Move Semantics | TRANSCRIBED | Near-verbatim in `docs/ARCHITECTURE.md` § What the system is (claim → copy → verify → publish → delete-source; separate NFS mounts, no atomic cross-fs move; transaction-like semantics) + CLAUDE.md | `ffc85ca` |
 | Recovery Behavior | TRANSCRIBED (1 superseded) | Per-crash-point reconciliation + observable-state principle → `docs/ARCHITECTURE.md` § Recovery (near-verbatim) + `recovery/manager.py`; L1-SYS-005, L2-CLN-001..005. **Superseded:** the "restart from zero, resume-at-offset later" note — resume shipped in v0.3.0 (L2-RSM-001..003) | `60ec0b8` |
-| Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | _this commit_ |
+| Duplicate and Collision Handling | MIGRATED + TRANSCRIBED | Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..003 + `ExistingDestinationPolicy` (`fail`, `verify-and-reuse`) + `JobState.MANUAL_INTERVENTION`. `overwrite` deliberately excluded (enum docstring). `version` policy (unbuilt) **migrated** to ROADMAP § Deferred | `cab7b93` |
+| Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -150,32 +151,13 @@ this file. Compare-and-reuse-or-collide + never-silent-replace → L2-DST-001..0
 `docs/ROADMAP.md` § Deferred.)_
 
 ## Concurrency
-Six hosts may contribute files, but copying all files concurrently may overload:
 
-* The source NFS mount
-* The destination NFS mount
-* The network
-* Storage controllers
-* Simulation host I/O
-
-Concurrency should therefore be configurable.
-
-Example:
-```
-[transfer]
-max_concurrent_jobs = 1
-max_concurrent_files = 2
-copy_buffer_size_bytes = 8388608
-```
-I recommend beginning with:
-```
-One active job
-Two concurrently copied files
-8 MiB copy buffer
-```
-These should be tuned through measurement.
-
-The service should also support a configurable throughput limit later, but implementing a dependable bandwidth limiter is not necessarily required for the first release.
+_(§ "Concurrency" retired — see the retirement ledger at the top of this file. Bounded,
+configurable concurrency (`[transfer] max_concurrent_jobs=1`, `max_concurrent_files=2`,
+`copy_buffer_size_bytes=8388608`) → `configuration.py` + `docs/CONFIG-REFERENCE.md` +
+ARCHITECTURE § Process model (bounded transfer pool); defaults match verbatim. The
+"throughput limit later" note is superseded: dynamic bandwidth limiting shipped in v0.2.0
+(L2-BWL, `throttle`, ARCHITECTURE § Bandwidth limiting).)_
 
 ## Proposed Application Components
 ```
