@@ -189,16 +189,26 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
   **formally withdraw** the requirements so the matrix reflects reality. Until then the
   design intent lives in the EVT requirements themselves.
 
-- **A cluster of L2 requirements is `Draft`/untraced in the matrix despite being
-  implemented.** `L2-FS-001..004` (record & verify device+inode identity, reject a
-  cross-filesystem claim, symlink policy) are implemented in `claiming.py` / `validation.py`
-  but carry no `@pytest.mark.requirement` markers, so the trace matrix shows them `Draft`;
-  `L2-ARC-003/004/006` and `L2-CFG-010` are likewise `Draft`. Run a **traceability audit**:
-  add markers (and any genuinely missing tests) for the requirements that are actually
-  satisfied, and decide implement-or-withdraw for the partial ones (e.g. there is no formal
-  injectable `FileSystem` Protocol behind `L2-ARC-003`; `L2-CFG-010`'s rich valid-options
-  error help). These are **data-safety** requirements (`L2-FS-*` covers the claim integrity),
-  so prioritise them.
+- **A systemic set of L2 requirements is `Draft`/untraced in the matrix despite being
+  implemented — including data-safety ones.** The functionality is in the code but the
+  requirement-tagged tests are missing, so the trace matrix understates coverage. Known
+  affected requirements:
+  - **Claim/filesystem integrity (highest priority):** `L2-FS-001..004` (record & verify
+    device+inode identity, reject a cross-filesystem claim, symlink policy),
+    `L2-POSIX-001/007/008/011` (source-must-exist, **verify identity before claim and before
+    delete**, exclusive temp create, atomic same-fs publish), `L2-CLN-001/005` (idempotent
+    cleanup, **never delete on device/inode mismatch**) — implemented in
+    `validation.py` / `claiming.py` / `copy_engine.py` but `Draft`/untested.
+  - **Architecture/config:** `L2-ARC-003/004/006`, `L2-CFG-010` — `Draft`.
+  - **Storage abstraction:** `L2-STO-001/003` are marked *Implemented (I)* but there is **no
+    `TransferSource`/`TransferDestination` Protocol** — the workflow uses POSIX directly; the
+    capability abstraction is really part of the deferred S3 adapter work.
+
+  Run a **traceability audit**: add `@pytest.mark.requirement` markers (and any genuinely
+  missing tests) for the requirements that are satisfied — prioritising the claim/filesystem
+  data-safety group — and decide implement-or-withdraw for the partial ones (the injectable
+  `FileSystem` Protocol behind `L2-ARC-003`, `L2-CFG-010`'s valid-options error help, and the
+  storage abstraction behind `L2-STO-001/003`).
 
 ## Delivered post-1.0
 
