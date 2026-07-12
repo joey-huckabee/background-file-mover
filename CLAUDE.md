@@ -48,11 +48,11 @@ packages). See `docs/ROADMAP.md` for milestone status.
   `tests/`). Single source of truth for live status; the source docs hold spec content only.
 - `docs/ROADMAP.md` — forward-looking milestones (M1–M8) plus pinned "do not drop"
   decisions. Completed work lives in `CHANGELOG.md` and the requirements, not here.
-- `docs/CAPTURE.md` — the **design-history index**: the original design conversation, now
-  fully retired into the specs. Its content was transcribed into the requirements,
-  ARCHITECTURE, and the other docs; CAPTURE now holds only a **retirement ledger** mapping
-  each retired section to where it lives (and the commit that removed it). Not an
-  authoritative source — read the specs. Consult it (or git history) to trace design intent.
+- `docs/USER-GUIDE.md` — install / deploy / use guide: the one-package/one-config/thin-CLI
+  topology, the system-service (root) and rootless (per-user) models, a Red Hat Enterprise
+  Linux 9 tutorial, everyday CLI usage, and platform notes (RHEL/SLES). The original design
+  conversation (`docs/CAPTURE.md`) was fully retired into the specs in v0.4.0 and the file was
+  deleted in v0.4.1; its history lives in git and the CHANGELOG.
 - `config/file-mover.ini` — fully commented reference configuration.
 
 ## Git conventions
