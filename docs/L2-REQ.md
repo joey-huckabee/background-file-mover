@@ -363,7 +363,7 @@ command or mode.
 
 **Parent**: L1-SYS-008
 
-**Verification Method**: Test (T)
+**Verification Method**: Inspection (I)
 
 ## FS — Filesystem identity and claiming
 

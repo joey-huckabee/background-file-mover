@@ -100,6 +100,7 @@ def _submit(
 @pytest.mark.requirement("L2-DEL-001")
 @pytest.mark.requirement("L2-POSIX-011")
 @pytest.mark.requirement("L2-DST-004")
+@pytest.mark.requirement("L2-STO-002")
 def test_full_transfer_publishes_and_deletes_source(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -209,6 +210,7 @@ class _FailingCopyEngine:
 @pytest.mark.requirement("L2-RTY-005")
 @pytest.mark.requirement("L2-RTY-003")
 @pytest.mark.requirement("L2-COPY-009")
+@pytest.mark.requirement("L2-ARC-003")
 def test_retryable_failure_schedules_retry(tmp_path: Path) -> None:
     repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
     repo.initialize()
@@ -278,6 +280,24 @@ def test_missing_claimed_source_fails_and_retains(tmp_path: Path) -> None:
     (source_root / ".swit-moving" / job_id / "a.dat").unlink()  # claimed source vanished
     coordinator = _coordinator(tmp_path, repo)
     assert coordinator.process_job(job_id) is JobState.FAILED_RETAINED
+    repo.close()
+
+
+@pytest.mark.requirement("L2-DEL-002")
+def test_unexpected_staging_file_is_not_deleted(tmp_path: Path) -> None:
+    repo = SQLiteJobRepository(str(tmp_path / "jobs.db"))
+    repo.initialize()
+    job_id, source_root, _dest_root = _submit(tmp_path, repo, {"a.dat": b"hello"})
+    # A stray file that is NOT a durable claimed record appears in the staging directory.
+    surprise = source_root / ".swit-moving" / job_id / "surprise.dat"
+    surprise.write_bytes(b"not claimed")
+    coordinator = _coordinator(tmp_path, repo)
+
+    assert coordinator.process_job(job_id) is JobState.COMPLETED
+    # Deletion is driven by claimed file records; the mover never rescans the staging
+    # directory and deletes whatever it finds, so the stray file survives.
+    assert not (source_root / ".swit-moving" / job_id / "a.dat").exists()
+    assert surprise.exists()
     repo.close()
 
 

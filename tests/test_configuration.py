@@ -272,6 +272,7 @@ def test_source_root_may_nest_under_state_directory() -> None:
 
 
 @pytest.mark.requirement("L2-CFG-008")
+@pytest.mark.requirement("L2-ARC-004")
 def test_all_issues_reported_together() -> None:
     text = (
         "[bogus]\nx = 1\n"

@@ -62,6 +62,7 @@ def _build_service(
 @pytest.mark.requirement("L2-SUB-002")
 @pytest.mark.requirement("L3-SUB-001")
 @pytest.mark.requirement("L2-DST-005")
+@pytest.mark.requirement("L2-CLI-009")
 def test_submit_claims_records_and_writes_manifest(tmp_path: Path) -> None:
     service, repo, source_root, dest_root = _build_service(tmp_path)
     (source_root / "host01.dat").write_bytes(b"aaa")
