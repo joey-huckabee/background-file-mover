@@ -34,7 +34,8 @@ authoritative spec source.
 | Concurrency | TRANSCRIBED (1 superseded) | Bounded configurable concurrency (`max_concurrent_jobs=1`, `max_concurrent_files=2`, `copy_buffer_size_bytes=8388608`) → `configuration.py` + CONFIG-REFERENCE + ARCHITECTURE § Process model; defaults verbatim. **Superseded:** "throughput limit later" note — bandwidth limiting shipped v0.2.0 (L2-BWL) | `56b371c` |
 | Proposed Application Components | MIGRATED + TRANSCRIBED | Superseded proposed layout → actual structure in `docs/ARCHITECTURE.md` § Module map (**completed** this increment: +submission/validation/claiming/manifests/systemd/ratelimit) + MAINTAINER § Repository layout. `FileMoverApplication` not built (→ `BackgroundMoverService`); `FileTransferWorker` → `FileMover` | `1a3fea4` |
 | Proposed CLI | TRANSCRIBED | All commands + the subprocess orchestration example + submit-returns-after-durable-record → `docs/CLI-REFERENCE.md` (superset: +stats/throttle/pause/resume/cancel) + `docs/DEPLOYMENT.md`; L2-CLI-008 | `b160e7e` |
-| Configuration | MIGRATED + TRANSCRIBED | Superseded proposed schema → shipped config in CONFIG-REFERENCE + `config/file-mover.ini`. Renames: `[validation]`→`[stability]`+`[paths]`, `.moving`→`.swit-moving`, `partial_file_prefix`→`temporary_file_prefix`; removed `log_directory`/`manifest_filename`; `format=json` already in ROADMAP. Unbuilt `minimum_free_space_margin_bytes` **migrated** to ROADMAP § Deferred (proactive free-space check) | _this commit_ |
+| Configuration | MIGRATED + TRANSCRIBED | Superseded proposed schema → shipped config in CONFIG-REFERENCE + `config/file-mover.ini`. Renames: `[validation]`→`[stability]`+`[paths]`, `.moving`→`.swit-moving`, `partial_file_prefix`→`temporary_file_prefix`; removed `log_directory`/`manifest_filename`; `format=json` already in ROADMAP. Unbuilt `minimum_free_space_margin_bytes` **migrated** to ROADMAP § Deferred (proactive free-space check) | `e681b72` |
+| "Production Ready, No Panic" | TRANSCRIBED | No-panic list + startup-refusal conditions near-verbatim in `docs/ARCHITECTURE.md` § Error pipeline (L1-SYS-010, L1-ROB-001): classified retry/retain (`ErrorClassifier` + `transfer/retry.py`, L2-RTY), temp-never-final (L2-DST-004), source-deletion-last (L1-SYS-003), recovery (L1-SYS-005), graceful shutdown, SERVICE_FATAL refusal (L3-CTL-004) | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -193,34 +194,14 @@ a proposed schema, superseded by the shipped config in `docs/CONFIG-REFERENCE.md
 § Deferred.)_
 
 ## “Production Ready, No Panic”
-For Python, “no panic” should mean:
 
-* No expected operational exception terminates the service.
-* One failed file does not crash the worker manager.
-* One failed job does not terminate the service.
-* Every exception is translated into a defined job or file state.
-* Unhandled top-level exceptions are logged with context.
-* The service starts recovery after restart.
-* Shutdown signals are handled.
-* In-progress data remains recoverable.
-* Retries are bounded and use exponential backoff.
-* Permanent errors are distinguished from transient errors.
-* Disk-full conditions retain the source.
-* Permission errors retain the source.
-* Network and NFS interruptions retain the source.
-* Database transactions are rolled back safely.
-* Temporary files are never presented as complete recordings.
-* Source deletion is the last destructive operation.
-
-Some exceptional conditions should deliberately stop startup rather than allowing unsafe operation, including:
-
-* Corrupt state database that cannot be recovered
-* Invalid configuration
-* State directory not writable
-* Source and destination policy conflicts
-* Another active service instance holding the process lock
-
-That is not a panic; it is a controlled fail-safe startup refusal.
+_(§ "Production Ready, No Panic" retired — see the retirement ledger at the top of this
+file. The no-panic list and the deliberate startup-refusal conditions are near-verbatim
+in `docs/ARCHITECTURE.md` § Error pipeline (L1-SYS-010, L1-ROB-001): classified retry vs
+retain (`ErrorClassifier` + `transfer/retry.py`, L2-RTY), retain-source on
+ENOSPC/EACCES/NFS, temp-never-final (L2-DST-004), source-deletion-last (L1-SYS-003),
+recovery (L1-SYS-005), graceful shutdown, and SERVICE_FATAL startup refusal
+(incl. L3-CTL-004 ProcessLock).)_
 
 _(§ "Initial L1 Requirements" retired — see the retirement ledger at the top of this
 file. Fully transcribed into `docs/L1-REQ.md`.)_
