@@ -23,7 +23,8 @@ authoritative spec source.
 | Recommended Architecture | TRANSCRIBED | `docs/ARCHITECTURE.md` — service/systemd model → § Process model; submit→ack→100 GB → § What the system is (L1-SYS-001/002); 10-step flow (incl. manifest write, "accepted" response, prepare-next) → § What the system is + § Durable per-file workflow (manifest = step 2), CLI-REF `submit` (L2-CLI-008), impl `manifests.py`/`submission.py`; deletion principle → ARCHITECTURE (L1-SYS-003) + CLAUDE.md | `e8edbe1` |
 | How the Simulation Script Starts the Transfer | TRANSCRIBED | `docs/ARCHITECTURE.md` (§§ Process model, Recovery, Error pipeline, Service readiness, Logging) + `docs/CLI-REFERENCE.md` § `submit` (L2-CLI-008/009); duplicate-process protection → `ProcessLock` (L3-CTL-004). Unit name `background-file-mover.service` superseded by hybrid naming → `file-mover.service` (DEPLOYMENT) | `4f1f839` |
 | Communication Between the Orchestration Script and Mover | MIGRATED + TRANSCRIBED | Option 2 (chosen: Unix socket + SQLite + JSON manifests) → ROADMAP locked decisions + `docs/ARCHITECTURE.md` § Process model + `docs/12-FACTOR.md` VII; stdlib module list → L1-SYS-009/L3-PY-001. Option 1 (filesystem spool queue) **migrated** to `docs/ROADMAP.md` § Deferred as a future portability / Windows-support capability | `04089e4` |
-| The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | _this commit_ |
+| The Most Important Operation: Claiming the Files | MIGRATED + TRANSCRIBED | Mechanic (same-fs atomic `os.replace` into staging dir, EXDEV rule, never `shutil.move`) → `docs/ARCHITECTURE.md` § Claiming (new) + L3-SUB-001 / L3-PY-003. The 6 staging-directory reasons **migrated** to § Claiming. Marker name `.moving` superseded by configurable `[paths] claim_directory_name` (default `.swit-moving`, already implemented + validated) | `0200bff` |
+| Preventing the Mover From Claiming Files Still Being Written | TRANSCRIBED (1 deliberate non-adoption) | Readiness contract → `docs/CONFIG-REFERENCE.md` § [stability] note; defensive checks → `SourceValidator` (validation.py: regular-file + symlink + roots + deterministic enumeration, L2 line 442) + `[stability]` (poll_count/interval) + `[paths]` + claimed dev/inode identity (L3-SUB). **Not carried:** "six-host set present when required" — service is agnostic to expected file counts; completeness is the orchestration's responsibility | _this commit_ |
 
 ## My Prompt:
 I have a new project which needs to be completed today called `Background File Mover` which will be written in Python 3.10. 
@@ -81,42 +82,14 @@ six staging-directory reasons migrated there) + L3-SUB-001 / L3-PY-003. Marker n
 `.swit-moving`.)_
 
 ## Preventing the Mover From Claiming Files Still Being Written
-Renaming a file does not guarantee that another process no longer has it open. On Linux, an application that already has the file open can continue writing to the renamed inode.
 
-Therefore, the mover needs an explicit readiness contract.
-
-#### Best Readiness Contract
-
-The orchestration system should submit the files only after all six recording processes have been stopped or have closed their recording files.
-
-The submit command should receive an explicit statement equivalent to:
-```
-These files are complete and no further writes are expected.
-```
-#### Additional Defensive Checks
-
-The mover can optionally verify that:
-
-* File sizes remain unchanged over a configurable stabilization interval.
-* Modification timestamps remain unchanged.
-* Files are regular files.
-* Files are not symbolic links unless explicitly permitted.
-* Paths remain beneath approved source roots.
-* No duplicate source inode appears twice in the job.
-* The destination does not overlap the source.
-* The total file inventory can be enumerated successfully.
-* The entire six-host recording set is present when required.
-
-A stability check might inspect each file twice:
-
-```
-Observation 1: size and mtime
-Wait 5 seconds
-Observation 2: size and mtime
-```
-If anything changed, submission fails or remains pending.
-
-This is useful defense-in-depth, but it is not a replacement for the orchestration system's completion signal.
+_(§ "Preventing the Mover From Claiming Files Still Being Written" retired — see the
+retirement ledger at the top of this file. Readiness contract → `docs/CONFIG-REFERENCE.md`
+§ [stability] note; defensive checks → `SourceValidator` (validation.py) + [stability] +
+[paths] (`reject_symbolic_links`, `allowed_source_roots`) + claimed dev/inode identity
+(L3-SUB). The 'six-host set present when required' idea was deliberately not carried —
+the service is agnostic to expected file counts; job completeness is the orchestration's
+responsibility per the readiness contract.)_
 
 ## Durable Job State
 A transfer should be treated as a state machine.
