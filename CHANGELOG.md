@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-12
+
 ### Documentation
 
 - **`docs/DEPLOYMENT.md` gained end-to-end platform runbooks.** A complete **Red Hat
@@ -265,7 +267,8 @@ deleted until its destination has been written, fsynced, published, and verified
   mypy `--strict`, ruff, pylint, vulture, bandit, CodeQL, SonarCloud, and a scheduled
   no-panic fuzz burn-in.
 
-[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/joey-huckabee/background-file-mover/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/joey-huckabee/background-file-mover/compare/v0.2.0...v0.3.0
