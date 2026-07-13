@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **`docs/DEPLOYMENT.md` gained end-to-end platform runbooks.** A complete **Red Hat
+  Enterprise Linux 9** walkthrough (install `python3.11`, the `mover` service account, the
+  shipped systemd unit, SELinux with `audit2allow`, `doctor` validation) and a separate
+  **SUSE Linux Enterprise Server 12** walkthrough (building CPython 3.10 from source — with
+  the OpenSSL-1.0.2 caveat that `ssl`/`_hashlib` are skipped but the built-in hashes still
+  work — a manually-created state directory and a trimmed systemd-228 unit, and AppArmor).
+  Cross-linked `docs/USER-GUIDE.md`, and corrected the vestigial `/var/log` / `log_to_file`
+  note left over from twelve-factor logging.
+
 ## [0.4.1] - 2026-07-12
 
 ### Added
