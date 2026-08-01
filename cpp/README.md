@@ -10,12 +10,21 @@ guarantees are deferred to v1.1 and why.
 
 ## Build & test
 
-    make check                # builds build/filemover_tests and runs the suite
-    make clean
+    make check                # build and run the suite for this toolchain
+    make toolchain            # print the resolved BUILD_DIR
+    make clean                # remove only this toolchain's artifacts
+    make clean-all            # remove every toolchain's artifacts
 
 Flags: `-std=c++11 -Wall -Wextra -Werror`. Vendored headers are included via
 `-isystem third_party` so they do not trip `-Werror`. There are **no**
-per-object warning exemptions; do not add one without an ADR.
+per-object warning exemptions; `L2-ARC-007` forbids adding one without an ADR.
+
+Build output goes to `build/<machine>-<version>-<tier>`, keyed on the compiler
+that produced it, so the modern, gcc:4.8, and sanitizer tiers cannot overwrite
+one another. Override with `make BUILD_DIR=/somewhere/else` when needed.
+
+Build on the Linux-native filesystem, not `/mnt/c` — see the "Why not /mnt/c"
+section of `../CLAUDE.md`.
 
 ## Layout
 

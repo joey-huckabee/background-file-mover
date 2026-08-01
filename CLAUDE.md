@@ -105,37 +105,46 @@ Production C++ uses only the C++11 standard library, POSIX, and vendored depende
 recorded in `cpp/VENDORED.md`. Vendoring is governed by ADR-0004 and the license policy
 in ADR-0007 (**BSD-2-Clause and BSD-3-Clause are excluded by internal policy**).
 
-## Local development on WSL2
+## Local development
 
-There is **one checkout**, the Windows one. WSL builds it in place over `/mnt/c`; do
-not make a second clone inside WSL, since the two diverge silently.
-
-Builds are run from WSL, not Windows (there is no Windows C++ toolchain):
+The canonical checkout lives **inside WSL** at `~/GIT/background-file-mover`, on the
+Linux-native filesystem. Do not clone or build under `/mnt/c`.
 
 ```
-wsl -e bash -lc "cd /mnt/c/.../background-file-mover/cpp && make check"
-
+cd ~/GIT/background-file-mover/cpp
 make check                # functional suite, -Werror
 make check SANITIZE=1     # ASan + UBSan + LSan
 make check-valgrind       # Valgrind memcheck
+make toolchain            # print the resolved BUILD_DIR for this tier
 cppcheck --enable=warning,portability --error-exitcode=1 --std=c++11 -Iinclude src/ tests/
 ```
 
-The gcc 4.8.5 fidelity tier runs in a container from Windows PowerShell:
+The gcc 4.8.5 fidelity tier runs in a container:
 
 ```
-podman run --rm -v "C:\...\background-file-mover:/src" gcc:4.8 sh -c "cd /src/cpp && make clean && make check"
+podman run --rm -v ~/GIT/background-file-mover:/src gcc:4.8 sh -c "cd /src/cpp && make check"
 ```
 
-Two things that will waste your time if you don't know them:
+From Windows, the repository is reachable at
+`\\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover` — that is where new
+transcripts and milestone zips get dropped. Edit via VS Code Remote-WSL, which runs a
+server inside WSL and avoids the UNC path entirely.
 
-1. **`TMPDIR` must point at the WSL-native filesystem.** With the default `/tmp`, gcc
-   fails on `/mnt/c` with `Assembler messages: can't open /tmp/ccXXXX.s for reading` —
-   a 9p interaction, not a disk-space or permissions problem. `~/.bashrc` exports
-   `TMPDIR=$HOME/.buildtmp` to fix it globally. Without it, every build fails.
-   With it, `/mnt/c` builds run ~30% slower than native, which is a compile-bound
-   workload — not the 10–50× that I/O-bound builds see.
-2. **The tiers share `cpp/build/`.** Always `make clean` when switching between the
-   WSL and container toolchains, or `make check` will happily run the *other* tier's
-   binary — a glibc-2.34 binary inside the gcc:4.8 container fails with a wall of
-   `GLIBC_2.xx not found`, which looks like a code problem and is not.
+**Why not `/mnt/c`.** Two independent reasons, both measured:
+
+1. **Builds there are intermittently broken.** gcc fails with
+   `Assembler messages: can't open /tmp/ccXXXX.s for reading` on some runs and
+   succeeds on others — observed failing and passing within a single invocation.
+   Root cause is not established; `TMPDIR` on the native filesystem was tried and is
+   **not** a reliable fix. An unpredictable build is worse than a broken one.
+2. **Small-file I/O over 9p is ~500× slower.** 300 files: 0.005s native versus 2.544s
+   on `/mnt/c`. Compilation only pays ~30% because it is compile-bound, but the fuzz
+   corpus (ADR-0008) is thousands of small files read on every run — exactly the
+   pathological case.
+
+**Build directories are keyed on toolchain** (`build/<machine>-<version>-<tier>`), so
+the WSL, container, and sanitizer tiers cannot overwrite one another. Before this,
+running the WSL build then the gcc:4.8 container left a glibc-2.34 binary for the
+container to execute, failing with a wall of `GLIBC_2.xx not found` that reads as a
+code fault and is not one. `make clean` removes only the current tier; `make clean-all`
+removes every tier.
