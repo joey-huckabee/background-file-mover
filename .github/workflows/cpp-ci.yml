@@ -45,30 +45,28 @@ jobs:
   # It is a proxy, not the target: different glibc (2.19 vs 2.22), no
   # systemd, no NFS. It proves C++11 conformance, not deployability.
   #
-  # NOTE: node-based actions (checkout, upload-artifact) cannot run in this
-  # container (glibc too old), so the repo is cloned with plain run steps.
+  # This does NOT use a job-level `container:`. Doing so runs every step
+  # inside the image, and node-based actions (checkout, upload-artifact)
+  # cannot execute against its glibc — which forces a hand-rolled `git clone`
+  # inside the container. That clone no longer works: the image ships git
+  # 1.7.10.4 (2012), which exits 128 with no diagnostic when cloning from
+  # GitHub today, and `git fetch origin <sha>` predates its capabilities
+  # regardless.
+  #
+  # Instead the runner checks out normally with modern tooling and the old
+  # compiler is invoked via `docker run` over the mounted workspace. The
+  # container then only has to compile, which is all it is good for.
   build-test-gcc48:
     name: build & test (gcc 4.8.5)
     runs-on: ubuntu-latest
-    container:
-      image: gcc:4.8
     steps:
-      - name: Clone at triggering commit
-        run: |
-          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" repo
-          cd repo
-          git fetch origin "${GITHUB_SHA}"
-          git checkout --detach FETCH_HEAD
-        env:
-          # For private repositories, embed the token:
-          # git clone "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}" repo
-          GIT_TERMINAL_PROMPT: "0"
+      - uses: actions/checkout@v6
       - name: Toolchain versions
-        run: g++ --version && make --version | head -1
-      - name: Build
-        run: make -C repo/cpp all
-      - name: Test
-        run: make -C repo/cpp check
+        run: docker run --rm gcc:4.8 sh -c "g++ --version | head -1; make --version | head -1"
+      - name: Build and test
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src gcc:4.8 \
+            sh -c "make -C cpp clean && make -C cpp check"
 
   # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),
   # LSan (leaks) — all fatal on first finding. Modern toolchain only: GCC

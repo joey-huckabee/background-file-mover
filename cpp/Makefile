@@ -16,7 +16,20 @@ CPPFLAGS += -Iinclude -isystem third_party
 # the rules below.
 SANITIZE ?= 0
 ifeq ($(SANITIZE),1)
+# -Wmaybe-uninitialized is disabled for this tier only. Under -O1 plus
+# instrumentation it false-positives deep inside libstdc++ — GCC 13 reports
+# it against <regex> internals reached through Catch2, in code we neither
+# wrote nor include directly. The sanitizers perform the real, runtime
+# uninitialized-read detection that this diagnostic only approximates, so
+# nothing is lost by turning it off precisely where it is unreliable.
+#
+# This is NOT the same as the two per-object exemptions that api_codec.o and
+# test_api_codec.o once carried: those were specific to picojson and went
+# away with it (ADR-0006). This one is about the standard library and must
+# stay. Removing it breaks the sanitizer tier on GCC 13 while leaving GCC 11
+# green, which is a confusing way to find out.
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1 -g \
+            -Wno-maybe-uninitialized \
             -fsanitize=address,undefined -fno-omit-frame-pointer \
             -fno-sanitize-recover=all
 TIER := asan

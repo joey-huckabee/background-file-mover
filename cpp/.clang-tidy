@@ -18,7 +18,9 @@ Checks: >
   readability-non-const-parameter,
   -misc-no-recursion,
   -bugprone-easily-swappable-parameters,
-  -misc-non-private-member-variables-in-classes
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
+  -performance-enum-size
 
 # Two checks are disabled deliberately. Record the reason here rather than
 # suppressing at each call site, so the decision survives.
@@ -53,6 +55,29 @@ Checks: >
 #   M1 code, and the manager that would do the bypassing does not exist yet.
 #   Revisit when MGR lands: either make the fields private with accessors,
 #   or accept the convention and say so explicitly in L2-MGR-002.
+#
+# misc-include-cleaner            (new in clang-tidy 17)
+#   Include-what-you-use enforcement. It wants src/job.cpp to include
+#   <string> directly even though job.hpp — its own header — already does.
+#   That is a defensible school of thought, but adopting it means adding
+#   includes across every translation unit to restate what the headers
+#   already guarantee, and L3-CPP-012 already constrains what core headers
+#   may include. Low value, high churn.
+#
+# performance-enum-size           (new in clang-tidy 18)
+#   Suggests std::uint8_t as the base type for JobState and json::Value::Type.
+#   Saves three bytes per instance and makes the underlying type part of the
+#   struct layout for no measurable gain. Declined.
+#
+# VERSION DRIFT WARNING
+#   The Checks list above enables whole families (bugprone-*, misc-*,
+#   performance-*, cert-*), and CI runs whatever clang-tidy ubuntu-latest
+#   ships. A runner image upgrade therefore adds checks silently, and with
+#   --warnings-as-errors='*' that turns into a red build with no code change
+#   behind it — which is exactly how the two entries above were discovered
+#   (clang-tidy 14 locally, 18 in CI). When that happens, judge the new check
+#   on merit and either fix the code or add it here with a reason. Do not
+#   respond by weakening --warnings-as-errors.
 
 WarningsAsErrors: ''
 HeaderFilterRegex: 'include/filemover/.*'
