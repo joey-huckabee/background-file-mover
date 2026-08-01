@@ -107,16 +107,35 @@ in ADR-0007 (**BSD-2-Clause and BSD-3-Clause are excluded by internal policy**).
 
 ## Local development on WSL2
 
-Builds **fail on `/mnt/c`** (9p filesystem: `Assembler messages: can't open /tmp/...`)
-and are 10–50× slower even when they work. Work from the WSL-native clone at
-`~/GIT/background-file-mover` instead, not the Windows checkout.
+There is **one checkout**, the Windows one. WSL builds it in place over `/mnt/c`; do
+not make a second clone inside WSL, since the two diverge silently.
+
+Builds are run from WSL, not Windows (there is no Windows C++ toolchain):
 
 ```
-cd ~/GIT/background-file-mover/cpp
+wsl -e bash -lc "cd /mnt/c/.../background-file-mover/cpp && make check"
+
 make check                # functional suite, -Werror
 make check SANITIZE=1     # ASan + UBSan + LSan
-make check-valgrind       # requires: sudo apt install valgrind
+make check-valgrind       # Valgrind memcheck
+cppcheck --enable=warning,portability --error-exitcode=1 --std=c++11 -Iinclude src/ tests/
 ```
 
-Two checkouts of this repo exist (Windows and WSL). Pick one as primary per branch and
-sync through GitHub; they will diverge silently otherwise.
+The gcc 4.8.5 fidelity tier runs in a container from Windows PowerShell:
+
+```
+podman run --rm -v "C:\...\background-file-mover:/src" gcc:4.8 sh -c "cd /src/cpp && make clean && make check"
+```
+
+Two things that will waste your time if you don't know them:
+
+1. **`TMPDIR` must point at the WSL-native filesystem.** With the default `/tmp`, gcc
+   fails on `/mnt/c` with `Assembler messages: can't open /tmp/ccXXXX.s for reading` —
+   a 9p interaction, not a disk-space or permissions problem. `~/.bashrc` exports
+   `TMPDIR=$HOME/.buildtmp` to fix it globally. Without it, every build fails.
+   With it, `/mnt/c` builds run ~30% slower than native, which is a compile-bound
+   workload — not the 10–50× that I/O-bound builds see.
+2. **The tiers share `cpp/build/`.** Always `make clean` when switching between the
+   WSL and container toolchains, or `make check` will happily run the *other* tier's
+   binary — a glibc-2.34 binary inside the gcc:4.8 container fails with a wall of
+   `GLIBC_2.xx not found`, which looks like a code problem and is not.
