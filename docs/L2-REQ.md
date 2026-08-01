@@ -76,8 +76,8 @@ verification, or publication operation fails.
 
 #### L2-CFG-001
 
-The software shall load runtime configuration using only Python standard-library
-functionality.
+The software shall load runtime configuration using only C++11 standard-library and
+POSIX functionality.
 
 **Parent**: L1-SYS-009
 
@@ -365,6 +365,15 @@ command or mode.
 
 **Verification Method**: Inspection (I)
 
+#### L2-ARC-007
+
+All production code shall compile under `-std=c++11 -Wall -Wextra -Werror` on GCC 4.8.5
+without warnings, and shall carry no per-object warning exemption.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Test (T), Inspection (I)
+
 ## FS — Filesystem identity and claiming
 
 #### L2-FS-001
@@ -596,7 +605,8 @@ Typed file metadata shall support both POSIX identity and future object identity
 
 #### L2-STO-005
 
-Optional storage adapters shall not weaken the standard-library-only core.
+Optional storage adapters shall not introduce dependencies beyond the C++11 standard
+library, POSIX, and the vendored set recorded in `cpp/VENDORED.md`.
 
 **Parent**: L1-SYS-009
 
@@ -976,25 +986,29 @@ The software shall not delete a source when destination verification is incomple
 
 #### L2-CTL-001
 
-The CLI and service shall communicate over an AF_UNIX stream socket.
+Clients and the service shall communicate over an HTTP/1.1 REST interface bound to the
+configured address and port, defaulting to loopback.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-001
 
 **Verification Method**: Test (T)
 
 #### L2-CTL-002
 
-Control messages shall be UTF-8 JSON framed with a 4-byte big-endian length prefix.
+Request and response bodies shall be UTF-8 JSON delimited by `Content-Length`; the
+service shall not accept chunked request bodies and shall close the connection after
+each response.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-003
 
 **Verification Method**: Test (T)
 
 #### L2-CTL-003
 
-The software shall reject an over-large control message before allocating its body.
+The software shall reject an over-large request body with HTTP 413 before allocating
+its body.
 
-**Parent**: L1-SYS-010
+**Parent**: L1-API-004
 
 **Verification Method**: Test (T)
 
@@ -1008,9 +1022,10 @@ A malformed control message shall never crash the service.
 
 #### L2-CTL-005
 
-The software shall reject unknown control commands with a typed error response.
+The software shall reject unknown routes with HTTP 404, unsupported methods on a known
+route with HTTP 405, and malformed JSON with HTTP 400, each carrying a JSON error body.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-001
 
 **Verification Method**: Test (T)
 
@@ -1024,11 +1039,10 @@ The control server shall run on a thread pool separate from the transfer workers
 
 #### L2-CTL-007
 
-The software shall recover a stale control socket safely: refuse to start if a live
-instance is listening, remove only a confirmed-dead socket, and never delete a
-non-socket file.
+The software shall fail to start with a diagnosable error, rather than binding
+silently or partially, when the configured address and port are already in use.
 
-**Parent**: L1-SYS-010
+**Parent**: L1-API-006
 
 **Verification Method**: Test (T)
 
@@ -1050,9 +1064,10 @@ The service shall handle SIGTERM and SIGINT and shut down cleanly.
 
 #### L2-CTL-010
 
-The software shall provide a health command that reports service status.
+The software shall expose service status and aggregate job statistics at
+`GET /api/status`.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-OBS-002
 
 **Verification Method**: Test (T)
 
@@ -1073,6 +1088,43 @@ restart a hung service.
 **Parent**: L1-SYS-010
 
 **Verification Method**: Test (T)
+
+#### L2-CTL-013
+
+The REST interface shall expose `POST /api/jobs`, `GET /api/jobs`,
+`GET /api/jobs/{id}`, `GET /api/status`, and `GET /`.
+
+**Parent**: L1-API-002
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-014
+
+Route handlers shall be pure functions of request and job-manager view, unit-testable
+without opening a socket.
+
+**Parent**: L1-API-001
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-CTL-015
+
+The software shall survive hostile HTTP input — oversized headers, invalid methods,
+truncated requests, and non-HTTP bytes — by responding with an error status or closing
+the connection, never by terminating.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-016
+
+The software shall not implement TLS in-process, and shall document the reverse-proxy
+termination path for deployments requiring encrypted transport.
+
+**Parent**: L1-API-005
+
+**Verification Method**: Inspection (I)
 
 ## JOB — Durable job state
 
@@ -1215,3 +1267,203 @@ retry time has passed — up to the configured job concurrency.
 **Parent**: L1-SYS-001
 
 **Verification Method**: Test (T)
+
+## CORE — Job model and state machine
+
+#### L2-CORE-001
+
+The core shall define the job state set and the legal-transition relation as pure
+functions performing no I/O.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-002
+
+The core shall represent a job with identity, source path, destination path, state,
+creation, update and finish timestamps, byte counters, and an error field.
+
+**Parent**: L1-SYS-021
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-003
+
+The core shall apply state transitions atomically: an invalid request shall leave the
+job unmodified.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-004
+
+The core shall accept timestamps from the caller and shall not read the system clock.
+
+**Parent**: L1-OBS-003
+
+**Verification Method**: Test (T), Inspection (I)
+
+## JSON — Request and response codec
+
+#### L2-JSON-001
+
+The JSON codec shall be implemented by the project and shall not delegate parsing to a
+third-party library.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Inspection (I)
+
+#### L2-JSON-002
+
+The codec shall reject malformed input with a diagnosable error and shall never
+terminate the process.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-003
+
+The parser shall accept only the strict subset defined in ADR-0009 and shall reject
+every construct outside it, including trailing bytes after the top-level value,
+duplicate member names, floating-point values, and embedded NUL characters.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-004
+
+The parser shall enforce bounded nesting depth, string length, member count, and total
+input size, such that no input can exhaust the stack or address space.
+
+**Parent**: L1-ROB-002
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-005
+
+The codec shall be verified against a third-party JSON conformance corpus and by
+coverage-guided fuzzing, with every fuzzer finding retained as a regression case.
+
+**Parent**: L1-ROB-002
+
+**Verification Method**: Test (T)
+
+## REN — Rename engine
+
+#### L2-REN-001
+
+The rename engine shall expand a configured template, supporting timestamp, sequence,
+and original-name fields, into the target filename.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+#### L2-REN-002
+
+The rename engine shall apply a configured collision policy when the target name
+already exists.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+#### L2-REN-003
+
+The rename engine shall operate only within a single filesystem and shall reject
+cross-device renames.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+## MGR — Job manager and worker pool
+
+#### L2-MGR-001
+
+The manager shall dispatch queued jobs to a configured number of worker threads through
+a mutex- and condition-variable-protected queue.
+
+**Parent**: L1-SYS-017
+
+**Verification Method**: Test (T)
+
+#### L2-MGR-002
+
+The manager shall drive every job state change exclusively through the CORE transition
+function.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-MGR-003
+
+The manager shall support clean shutdown: stop intake, drain or fail in-flight jobs,
+and join all workers.
+
+**Parent**: L1-SYS-018
+
+**Verification Method**: Test (T)
+
+## XFR — Transfer strategies
+
+#### L2-XFR-001
+
+Transfer strategies shall implement a common interface accepting source, destination,
+and a progress callback.
+
+**Parent**: L1-SYS-015
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-XFR-002
+
+The copy strategy shall write to a temporary name, fsync, then rename to the final
+name, so the destination never appears under its final name partially written.
+
+**Parent**: L1-SYS-014
+
+**Verification Method**: Test (T)
+
+#### L2-XFR-003
+
+The exec strategy shall launch the configured external command via `fork`/`execvp` with
+an argv array, never through a shell, reap the child, and map exit codes to job errors.
+
+**Parent**: L1-SYS-015
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-XFR-004
+
+Every strategy failure shall produce a human-readable error string including `errno`
+text where applicable.
+
+**Parent**: L1-SYS-023
+
+**Verification Method**: Test (T)
+
+## DASH — Operator dashboard
+
+#### L2-DASH-001
+
+The dashboard shall be a single embedded HTML and JavaScript page polling
+`GET /api/status` at a fixed interval.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Demonstration (D)
+
+#### L2-DASH-002
+
+The dashboard shall function without external network resources.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Test (T), Inspection (I)

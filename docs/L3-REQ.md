@@ -3,8 +3,13 @@
 Level 3 requirements state component-level implementation behavior. Each L3 declares a
 single L2 **Parent** and its verification method(s) on one compact line, followed by the
 obligation text. Cross-cutting component obligations use category codes `INT`, `EVT`,
-and `CLI`; per-implementation Python technology constraints use `PY`. Live status is
-tracked in `docs/TRACE-MATRIX.md`.
+and `CLI`; per-implementation technology constraints use `PY` for the Python
+implementation and `CPP` for the C++ implementation. Live status is tracked in
+`docs/TRACE-MATRIX.md`.
+
+`PY` and `CPP` requirements describe two implementations of the same system and are not
+expected to both be satisfied at once — see the v1.0.0 scope section of
+`docs/L1-REQ.md`.
 
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 **D** = Demonstration.
@@ -220,3 +225,80 @@ The `FileClaimManager` shall claim each file with an atomic same-filesystem
 
 The `ManifestWriter` shall write manifests through a flushed, fsynced temporary file
 that is atomically renamed over the final name.
+
+## CPP — C++ implementation details
+
+Verified by `cpp/tests/`; requirement IDs appear in Catch2 tags and source comments.
+
+**L3-CPP-001** · Parent: L2-CORE-001 · Verification: T
+
+The job state enumeration shall contain exactly the states Queued, Renaming,
+Transferring, Done, and Failed.
+
+**L3-CPP-002** · Parent: L2-CORE-001 · Verification: T
+
+`to_string(JobState)` shall return a stable, unique, uppercase token for each state.
+
+**L3-CPP-003** · Parent: L2-CORE-001 · Verification: T
+
+`is_legal_transition(from, to)` shall permit exactly Queued→Renaming,
+Renaming→Transferring, Transferring→Done, Queued→Failed, Renaming→Failed, and
+Transferring→Failed; all other pairs, including self-transitions, shall be rejected.
+
+**L3-CPP-004** · Parent: L2-CORE-001 · Verification: T
+
+`is_terminal(JobState)` shall return true for Done and Failed and false otherwise.
+
+**L3-CPP-005** · Parent: L2-CORE-002 · Verification: T
+
+A newly constructed `Job` shall be in Queued with `created_at_ms == updated_at_ms ==
+now_ms`, `finished_at_ms == 0`, both byte counters zero, and an empty error string.
+
+**L3-CPP-006** · Parent: L2-CORE-003 · Verification: T
+
+`Job::transition` shall return false and leave the object unmodified when the requested
+transition is illegal.
+
+**L3-CPP-007** · Parent: L2-CORE-003 · Verification: T
+
+`Job::transition` to Failed shall be rejected when the supplied error message is empty.
+
+**L3-CPP-008** · Parent: L2-CORE-003 · Verification: T
+
+`Job::transition` to any non-Failed state shall be rejected when a non-empty error
+message is supplied.
+
+**L3-CPP-009** · Parent: L2-CORE-002 · Verification: T
+
+On success, `Job::transition` shall set the state to the requested value and
+`updated_at_ms` to the supplied timestamp.
+
+**L3-CPP-010** · Parent: L2-CORE-002 · Verification: T
+
+On a successful transition into a terminal state, `Job::transition` shall set
+`finished_at_ms` to the supplied timestamp.
+
+**L3-CPP-011** · Parent: L2-CORE-002 · Verification: T
+
+On a successful transition into Failed, `Job::transition` shall store the supplied error
+message in the job's error field.
+
+**L3-CPP-012** · Parent: L2-CORE-004 · Verification: I
+
+Core headers shall include no I/O, threading, or clock headers; `<iostream>`,
+`<fstream>`, `<thread>`, `<mutex>`, and `<chrono>` are prohibited in
+`cpp/include/filemover/job.hpp`.
+
+**L3-CPP-013** · Parent: L2-ARC-007 · Verification: T, I
+
+All core code shall compile warning-free under `-std=c++11 -Wall -Wextra -Werror` on
+GCC 4.8.5.
+
+**L3-CPP-014** · Parent: L2-ARC-007 · Verification: I
+
+Test assertions shall use natural order, `actual == expected`.
+
+**L3-CPP-015** · Parent: L2-CORE-001 · Verification: T
+
+The test suite shall exhaustively enumerate all 25 (from, to) state pairs against the
+legal-transition table.
