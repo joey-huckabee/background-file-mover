@@ -56,10 +56,29 @@ sudo apt install -y \
     bear \
     podman
 
-git clone https://github.com/joey-huckabee/background-file-mover.git ~/GIT/background-file-mover
+git clone git@github.com:joey-huckabee/background-file-mover.git ~/GIT/background-file-mover
 cd ~/GIT/background-file-mover
 git checkout v2-cpp
 ```
+
+### GitHub authentication — use SSH
+
+Pushing from WSL needs SSH. The two obvious alternatives do not work here:
+
+* **Git Credential Manager from the Windows side** fails with
+  `UtilAcceptVsock:251: accept4 failed 110` — a WSL/GCM interop break, not
+  worth debugging.
+* **`gh auth login`** needs `gh`, which is not in the base install.
+
+```bash
+ssh-keygen -t ed25519 -C "your@email" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub          # paste into https://github.com/settings/ssh/new
+ssh -T git@github.com              # expect: "Hi <user>! You've successfully authenticated"
+```
+
+The key above is generated without a passphrase, which is conventional for a
+development workstation. Add one at any time with
+`ssh-keygen -p -f ~/.ssh/id_ed25519`.
 
 What each piece is for:
 

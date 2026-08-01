@@ -14,8 +14,6 @@ namespace filemover {
 namespace json {
 namespace {
 
-const char* const kWhitespace = " \t\n\r";
-
 bool is_ws(unsigned char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
@@ -98,8 +96,11 @@ private:
 
     bool fail(const std::string& msg, std::string& error) {
         char buf[32];
-        std::snprintf(buf, sizeof(buf), " at offset %lu",
-                      static_cast<unsigned long>(i_));
+        // Truncation is impossible for a fixed format and a 32-byte buffer;
+        // the discard is explicit so the intent is not mistaken for an
+        // unchecked call (cert-err33-c).
+        (void)std::snprintf(buf, sizeof(buf), " at offset %lu",
+                            static_cast<unsigned long>(i_));
         error = msg + buf;
         return false;
     }
@@ -475,7 +476,7 @@ void Value::set_object() {
 
 Limits::Limits()
     : max_depth(4),
-      max_input_bytes(64 * 1024),
+      max_input_bytes(static_cast<std::size_t>(64) * 1024),
       max_string_bytes(4096),
       max_members(64),
       max_elements(64) {}
@@ -509,8 +510,8 @@ std::string escape(const std::string& in) {
             default:
                 if (c < 0x20) {
                     char buf[8];
-                    std::snprintf(buf, sizeof(buf), "\\u%04x",
-                                  static_cast<unsigned>(c));
+                    (void)std::snprintf(buf, sizeof(buf), "\\u%04x",
+                                        static_cast<unsigned>(c));
                     out += buf;
                 } else {
                     out.push_back(static_cast<char>(c));
