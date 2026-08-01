@@ -27,12 +27,14 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 | File | Blocked on |
 |---|---|
 | `conversation.md` | Design narrative — mine remaining decisions, then delete |
-| `rest-file-mover-m2/docs/requirements/L2-components.md` | L2 merge (next increment) |
-| `rest-file-mover-m2/docs/requirements/L3-CPP-m1.md` | L3 merge (next increment) |
-| `rest-file-mover-m2/docs/requirements/L3-CPP-m2.md` | L3 merge — needs rewriting for the project-owned parser (ADR-0006) |
+| `rest-file-mover-m2/docs/requirements/L3-CPP-m2.md` | Needs rewriting for the project-owned parser (ADR-0006); L3-CPP-021 named picojson and no longer applies |
 | `rest-file-mover-m2/include/filemover/api_codec.hpp` | Carries over nearly as-is; lands with the parser |
 | `rest-file-mover-m2/src/api_codec.cpp` | **Rewrite required** — built on picojson, excluded by ADR-0007 |
 | `rest-file-mover-m2/tests/test_api_codec.cpp` | Retain as the behavioral spec for the replacement parser |
+
+Everything remaining is blocked on one thing: the project-owned JSON parser.
+The inherited journal design was superseded outright by ADR-0010 and needed no
+retirement step.
 
 ## Caveat on inherited material
 
