@@ -58,3 +58,65 @@ packages). See `docs/ROADMAP.md` for milestone status.
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Claude ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.
+
+Commit subjects use conventional commits with a **capitalized type and a capitalized
+subject** — `Type(scope): Capitalized subject`. Merge commits use `Merge: <subject>`.
+
+```
+Docs(deploy): Add end-to-end RHEL 9 and SLES 12 platform runbooks
+Feat(version): Derive __version__ from package metadata (single source)
+Test(trace): Phase A -- mark existing tests for implemented-but-untraced reqs
+Merge: Release v0.4.2
+```
+
+Bodies explain *why*, and record decisions that were reversed or premises that turned
+out to be wrong — a future maintainer should not have to re-derive them.
+
+## C++ / REST migration (in progress on `v2-cpp`)
+
+The service is being reimplemented in **C++11** with a **REST control plane** replacing
+the `AF_UNIX` socket. The Project Overview above still describes the Python
+implementation, which remains authoritative on `main` and ships through v0.4.2.
+
+- **Branch**: `v2-cpp`. The C++ tree lives in `cpp/` *alongside* the Python tree;
+  Python stays as the reference during the port and is removed at v1.0.0.
+- **`cpp/README.md`** — build commands, CI tiers, design rules, target REST API shape.
+- **`docs/adr/`** — MADR-format decision records, numbered `0001`+. Read these before
+  changing the toolchain, the vendoring set, the JSON parser, or the HTTP surface.
+- **`transcripts/`** — staging area for design material not yet retired into the specs,
+  following the `docs/CAPTURE.md` precedent. **An empty `transcripts/` means the repo is
+  ready for the next milestone drop.** See `transcripts/README.md` for the triage rubric.
+
+Three things that are easy to get wrong:
+
+1. **v1.0.0 is narrower than v0.4.2.** `L1-SYS-002/003/004/005/006` — claim, integrity
+   verification, conservative deletion, recovery-by-resumption — are **deferred to
+   v1.1**, retained verbatim in `docs/L1-REQ.md` with a status annotation. Do not treat
+   a Deferred requirement as implemented, and do not delete one to make the matrix
+   look clean.
+2. **Requirement IDs are reused, not reminted.** `L1-SYS-009` now means C++11/GCC 4.8.5,
+   not Python-stdlib-only. Several docs still describe the old meaning; they are true of
+   the Python implementation and are resolved as the L2/L3 merge proceeds.
+3. **Inherited design material is not authoritative.** It came from a conversation that
+   designed a standalone project without knowledge of this repo, and has already been
+   caught carrying a fabricated premise. Triage it; the repo wins conflicts by default.
+
+Production C++ uses only the C++11 standard library, POSIX, and vendored dependencies
+recorded in `cpp/VENDORED.md`. Vendoring is governed by ADR-0004 and the license policy
+in ADR-0007 (**BSD-2-Clause and BSD-3-Clause are excluded by internal policy**).
+
+## Local development on WSL2
+
+Builds **fail on `/mnt/c`** (9p filesystem: `Assembler messages: can't open /tmp/...`)
+and are 10–50× slower even when they work. Work from the WSL-native clone at
+`~/GIT/background-file-mover` instead, not the Windows checkout.
+
+```
+cd ~/GIT/background-file-mover/cpp
+make check                # functional suite, -Werror
+make check SANITIZE=1     # ASan + UBSan + LSan
+make check-valgrind       # requires: sudo apt install valgrind
+```
+
+Two checkouts of this repo exist (Windows and WSL). Pick one as primary per branch and
+sync through GitHub; they will diverge silently otherwise.
