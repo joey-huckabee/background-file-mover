@@ -1,0 +1,113 @@
+name: C++ CI
+
+# Build and test the C++ tree under cpp/. Separate from the Python CI
+# (ci.yml) so the two implementations gate independently while they coexist
+# during the v1.0.0 migration.
+#
+# Three tiers, per ADR-0001 and ADR-0008:
+#   1. modern g++     — fast feedback, plus the instrumentation GCC 4.8 cannot host
+#   2. gcc 4.8.5      — fidelity for the SLES 12 SP5 system compiler
+#   3. real SLES 12   — NOT here. E2E, systemd, and the NFS qualification
+#                       checklist run on hardware; see docs/DEPLOYMENT.md.
+#
+# Tier 2 runs the FULL test suite, not just a compile. That is what closes
+# the gap between the instrumented build and the shipped build — do not
+# reduce it to `make all`.
+
+on:
+  push:
+    paths:
+      - "cpp/**"
+      - ".github/workflows/cpp-ci.yml"
+  pull_request:
+    paths:
+      - "cpp/**"
+      - ".github/workflows/cpp-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-modern:
+    name: build & test (modern g++)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Toolchain versions
+        run: g++ --version && make --version | head -1
+      - name: Build
+        run: make -C cpp all
+      - name: Test
+        run: make -C cpp check
+
+  # Fidelity job: official gcc:4.8 Docker image (Debian Jessie base, GCC
+  # 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
+  # It is a proxy, not the target: different glibc (2.19 vs 2.22), no
+  # systemd, no NFS. It proves C++11 conformance, not deployability.
+  #
+  # NOTE: node-based actions (checkout, upload-artifact) cannot run in this
+  # container (glibc too old), so the repo is cloned with plain run steps.
+  build-test-gcc48:
+    name: build & test (gcc 4.8.5)
+    runs-on: ubuntu-latest
+    container:
+      image: gcc:4.8
+    steps:
+      - name: Clone at triggering commit
+        run: |
+          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" repo
+          cd repo
+          git fetch origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+        env:
+          # For private repositories, embed the token:
+          # git clone "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}" repo
+          GIT_TERMINAL_PROMPT: "0"
+      - name: Toolchain versions
+        run: g++ --version && make --version | head -1
+      - name: Build
+        run: make -C repo/cpp all
+      - name: Test
+        run: make -C repo/cpp check
+
+  # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),
+  # LSan (leaks) — all fatal on first finding. Modern toolchain only: GCC
+  # 4.8 has partial ASan and no LSan.
+  sanitizers:
+    name: ASan + UBSan + LSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build & test (instrumented)
+        run: make -C cpp check SANITIZE=1
+
+  # Valgrind memcheck structures detection differently from the sanitizers;
+  # --error-exitcode=1 fails on any finding, including still-reachable blocks.
+  valgrind:
+    name: Valgrind memcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install valgrind
+        run: sudo apt-get update -q && sudo apt-get install -y -q valgrind
+      - name: Build
+        run: make -C cpp all
+      - name: Memcheck
+        run: make -C cpp check-valgrind
+
+  # Static analysis over project sources. Vendored headers are excluded:
+  # they are pinned upstream artifacts, not project code (ADR-0004).
+  static-analysis:
+    name: cppcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install cppcheck
+        run: sudo apt-get update -q && sudo apt-get install -y -q cppcheck
+      - name: Analyze
+        run: >
+          cppcheck --enable=warning,portability --error-exitcode=1
+          --inline-suppr --std=c++11 -Icpp/include cpp/src/ cpp/tests/
+
+  # The libFuzzer gate (ADR-0008) is added with the JSON parser. It has no
+  # target until then — deliberately absent rather than stubbed green.
