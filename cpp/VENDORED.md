@@ -9,11 +9,18 @@ All vendored licenses must satisfy the license policy in ADR-0007.
 | Library | Pinned tag | File | SHA-256 | License | Status |
 |---|---|---|---|---|---|
 | Catch2 (v2 line) | v2.13.10 | `third_party/catch2/catch.hpp` | `3725c0f0a75f376a5005dde31ead0feb8f7da7507644c201b814443de8355170` | BSL-1.0 | vendored |
+| SQLite (amalgamation) | TBD (pin at integration) | `third_party/sqlite/sqlite3.{c,h}` | TBD | Public domain | pending (ADR-0010) |
 | cpp-httplib | TBD (older tag, pin after GCC 4.8.5 spike) | `third_party/httplib/httplib.h` | TBD | MIT | pending |
 
 Upstream sources:
 - Catch2: https://github.com/catchorg/Catch2 (release asset `catch.hpp`)
+- SQLite: https://sqlite.org/download.html (`sqlite-amalgamation-*.zip`)
 - cpp-httplib: https://github.com/yhirose/cpp-httplib
+
+SQLite is the one vendored dependency that is not a single header and is too large to
+audit line by line (~250 kLOC). ADR-0010 records why that is accepted: it is public
+domain, it sees only codec-validated values rather than untrusted input, and it is
+confined behind a repository interface (L2-JOB-009).
 
 ## Removed
 

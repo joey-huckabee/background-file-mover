@@ -1130,7 +1130,8 @@ termination path for deployments requiring encrypted transport.
 
 #### L2-JOB-001
 
-The software shall persist every job and its files durably in SQLite.
+The software shall persist every job durably in SQLite. Per-file records are deferred
+to v1.1 with `L1-SYS-003` and `L1-SYS-006`.
 
 **Parent**: L1-SYS-007
 
@@ -1173,7 +1174,7 @@ The software shall validate and enforce the allowed job state transitions.
 
 The software shall query jobs by state and produce aggregate statistics.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-OBS-002
 
 **Verification Method**: Test (T)
 
@@ -1181,11 +1182,30 @@ The software shall query jobs by state and produce aggregate statistics.
 
 The durable job record and the job manifest shall record consistent job metadata — the
 same creation time and the same integrity policy (mode and hash algorithm) — for every
-accepted job.
+accepted job. Deferred to v1.1 with `L1-SYS-006`; there is no manifest at v1.0.0.
 
 **Parent**: L1-SYS-007
 
 **Verification Method**: Test (T)
+
+#### L2-JOB-008
+
+The state database shall reside on a local filesystem. The software shall reject a
+configured state path that resolves onto a network filesystem, because SQLite's locking
+depends on POSIX advisory locks that NFS implements unreliably.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-009
+
+SQL and the vendored `sqlite3.h` shall be confined behind a repository interface; no
+other translation unit shall include the database header or embed SQL.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Inspection (I)
 
 ## SUB — Submission and claiming
 
