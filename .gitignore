@@ -223,3 +223,9 @@ compile_commands.json
 # Local Claude Code settings (machine-specific; was only ignored via a global
 # gitignore on one workstation, which is not portable)
 .claude/
+
+# gcov intermediates (the coverage target moves .gcov into build/, but a
+# failed run can leave them beside the sources)
+*.gcov
+*.gcda
+*.gcno

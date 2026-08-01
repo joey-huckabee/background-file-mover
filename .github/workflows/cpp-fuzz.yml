@@ -1,0 +1,73 @@
+name: C++ fuzz burn-in
+
+# Deep libFuzzer burn-in for the untrusted-input path (ADR-0008). The PR gate
+# in cpp-ci.yml runs 60 seconds to keep pull requests fast; this scheduled job
+# runs long enough to reach code a short session never will.
+#
+# Mirrors the Python harness's fast-gate / deep-burn-in split
+# (.github/workflows/fuzz.yml) so there is one mental model, not two.
+#
+# When this job finds a crash, the reproducer is uploaded as an artifact. The
+# workflow deliberately does NOT commit it: minimizing the input and adding it
+# to cpp/fuzz/corpus-regression/ is a human step, because the minimized case
+# should be readable and named for what it exercises.
+
+on:
+  schedule:
+    # Daily at 06:30 UTC — half an hour after the Python burn-in, so the two
+    # do not contend for runners.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: "Fuzzing duration in seconds"
+        default: "1800"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpp-fuzz-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: libFuzzer burn-in
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+
+      - name: Toolchain versions
+        run: clang++ --version | head -1
+
+      # ASan + UBSan are linked in alongside the fuzzer, so a memory-safety
+      # fault is caught at the moment it happens rather than surfacing as a
+      # later crash with a useless stack.
+      - name: Fuzz
+        run: |
+          make -C cpp fuzz-run \
+            FUZZ_SECONDS=${{ github.event.inputs.seconds || '1800' }}
+
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-fuzz-artifacts
+          path: cpp/build/fuzz/artifacts/
+          if-no-files-found: ignore
+
+      # The corpus libFuzzer accumulated during the run. Useful for seeding a
+      # follow-up investigation; not committed, since most of it is noise and
+      # the committed seeds are curated by hand.
+      - name: Upload working corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-fuzz-corpus
+          path: cpp/build/fuzz/corpus/
+          retention-days: 7
+          if-no-files-found: ignore

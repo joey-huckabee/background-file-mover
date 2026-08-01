@@ -1,0 +1,30 @@
+# Formatting for the C++ tree.
+#
+# Google style with a 4-space indent and an 80-column limit, matching the
+# code that already exists rather than reformatting it. Checked in CI with
+# `make format-check`; apply with `clang-format -i <files>`.
+#
+# Vendored headers under third_party/ are never formatted (ADR-0004 forbids
+# editing them at all) and are excluded by the file lists in the Makefile.
+
+Language:        Cpp
+BasedOnStyle:    Google
+
+IndentWidth:     4
+ColumnLimit:     80
+AccessModifierOffset: -3
+
+# The codebase consistently uses these; pinning them prevents churn.
+DerivePointerAlignment: false
+PointerAlignment: Left
+SortIncludes:    true
+IncludeBlocks:   Preserve
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortCaseLabelsOnASingleLine: true
+
+BreakBeforeBraces: Attach
+SpaceAfterCStyleCast: false
+Cpp11BracedListStyle: true
+Standard:        c++11

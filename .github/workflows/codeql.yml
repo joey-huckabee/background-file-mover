@@ -1,9 +1,15 @@
 # ----------------------------------------
 # CodeQL Security Scan
 # ----------------------------------------
-# Builds a CodeQL database for the Python package and reports findings to GitHub
-# code scanning (Security tab). Python needs no build, so CodeQL extracts the
-# database directly from source (build-mode: none).
+# Builds a CodeQL database per language and reports findings to GitHub code
+# scanning (Security tab).
+#
+# Two implementations coexist during the v1.0.0 migration:
+#   * Python  — needs no build; build-mode: none extracts from source.
+#   * C++     — CodeQL cannot extract C/C++ without observing a compiler, so
+#               build-mode: manual runs a real build between init and analyze.
+#               autobuild is deliberately not used: the Makefile keys BUILD_DIR
+#               on the toolchain, and autobuild's heuristics do not know that.
 # ----------------------------------------
 
 name: CodeQL Security Scan
@@ -11,11 +17,15 @@ name: CodeQL Security Scan
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ main ]
+    branches: [ main, v2-cpp ]
   push:
-    branches: [ main ]
+    branches: [ main, v2-cpp ]
   schedule:
     - cron: '0 3 * * 1'  # weekly, Monday 03:00 UTC
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -33,6 +43,8 @@ jobs:
         include:
           - language: python
             build-mode: none
+          - language: c-cpp
+            build-mode: manual
 
     steps:
       - name: Checkout repository
@@ -45,6 +57,17 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+
+      # Only the C++ database needs a build. CodeQL traces the compiler
+      # invocations, so this must be a genuine compile — not a no-op.
+      #
+      # -Werror is dropped here on purpose: CodeQL injects a wrapper around
+      # the compiler, and a warning surfaced by that indirection would fail
+      # extraction for a reason unrelated to code quality. The real -Werror
+      # gate lives in cpp-ci.yml, on both GCC 11 and GCC 4.8.5.
+      - name: Build C++ for CodeQL extraction
+        if: matrix.build-mode == 'manual'
+        run: make -C cpp all CXXFLAGS="-std=c++11 -Wall -Wextra -O1 -g"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

@@ -109,5 +109,77 @@ jobs:
           cppcheck --enable=warning,portability --error-exitcode=1
           --inline-suppr --std=c++11 -Icpp/include cpp/src/ cpp/tests/
 
-  # The libFuzzer gate (ADR-0008) is added with the JSON parser. It has no
-  # target until then — deliberately absent rather than stubbed green.
+  # clang-tidy over project sources. Complements cppcheck rather than
+  # replacing it — the two disagree often enough to justify both; clang-tidy
+  # found dead code and two unchecked snprintf calls that cppcheck and
+  # -Werror both passed over. Needs a compilation database, which bear
+  # records from a real build. Disabled checks live in cpp/.clang-tidy.
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install clang-tidy and bear
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang-tidy bear
+      - name: Generate compilation database
+        run: bear --output cpp/compile_commands.json -- make -C cpp all
+      - name: Analyze
+        run: |
+          cd cpp
+          clang-tidy -p . --quiet --warnings-as-errors='*' src/job.cpp src/json.cpp
+
+  # Fuzzing regression gate (ADR-0008). Replays every committed seed and every
+  # retained crash reproducer. Seconds to run, so it belongs on every PR —
+  # this is the part that makes a past finding stay fixed.
+  fuzz-regression:
+    name: Fuzz corpus replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+      - name: Replay committed corpus
+        run: make -C cpp fuzz-corpus
+
+  # A short live session on every PR. Finds nothing most of the time; the
+  # nightly burn-in (cpp-fuzz.yml) is where depth comes from. A crash fails
+  # the build and the reproducer is uploaded for minimization.
+  fuzz-short:
+    name: Fuzz (60s)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+      - name: Fuzz
+        run: make -C cpp fuzz-run FUZZ_SECONDS=60
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-short
+          path: cpp/build/fuzz/artifacts/
+          if-no-files-found: ignore
+
+  # Coverage runs here so the number is visible per-PR even when the
+  # SonarCloud secrets are absent. SonarCloud consumes the same gcov output.
+  coverage:
+    name: Coverage (gcov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build instrumented and run
+        run: make -C cpp coverage
+      - name: Summarize
+        run: |
+          {
+            echo "### C++ coverage"
+            echo
+            sh cpp/scripts/coverage-summary.sh \
+               cpp/build/coverage/report markdown
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # NOTE: `make format-check` is deliberately NOT a gate. The existing sources
+  # use column alignment that clang-format rewrites, so enabling it would
+  # require a one-time bulk reformat of already-tested code — a decision to
+  # take on purpose, not one to acquire by adding a job.

@@ -171,8 +171,23 @@ Override with `make BUILD_DIR=/somewhere/else` when needed.
 | ASan/UBSan/LSan | WSL | memory safety and undefined behavior |
 | Valgrind | WSL | invalid access and leaks, structured differently from ASan |
 | cppcheck | WSL | static analysis |
+| clang-tidy | WSL | static analysis from a second engine; disagrees with cppcheck often enough to be worth both |
+| libFuzzer corpus replay | WSL | past findings stay fixed |
+| libFuzzer 60s session | WSL | new findings on every PR |
+| gcov coverage | WSL | what the tests do not reach |
 | GCC 4.8.5 | container | **C++11 conformance on the SLES 12 system compiler** |
+| CodeQL | CI only | security queries; C++ needs `build-mode: manual` |
+| SonarCloud | CI only | quality gate, via `compile_commands.json` + gcov |
 | SLES 12 SP5 | hardware | **deployability** — systemd, NFS qualification, e2e |
+
+`make format-check` exists but is **not** a gate. The sources use deliberate
+column alignment that clang-format rewrites, so enabling it means a one-time
+bulk reformat of already-tested code — a decision to take on purpose rather
+than acquire by adding a job.
+
+CodeQL and SonarCloud cannot be verified locally; they need GitHub and, for
+Sonar, the three repository secrets. Everything else in the table runs on
+your machine.
 
 The GCC 4.8 job runs the **full test suite**, not a compile check. That is
 what closes the gap between the instrumented build and the shipped build,
@@ -190,10 +205,48 @@ Per ADR-0008, the untrusted-input path is fuzzed with libFuzzer under
 ASan+UBSan. libFuzzer requires clang; the code under test is identical
 because the source is strictly C++11-conformant and compiled from one body.
 
-Every crash the fuzzer finds is minimized and **committed to the regression
-corpus**, which converts a one-time finding into a permanent test case. That
-retention is the part that carries the long-term value — fuzzers find bugs
-once, corpora prevent them forever.
+```bash
+make fuzz                        # build the fuzzer
+make fuzz-corpus                 # replay committed corpus once (the PR gate)
+make fuzz-run                    # live session, FUZZ_SECONDS=60 by default
+make fuzz-run FUZZ_SECONDS=1800  # what the nightly burn-in runs
+sh fuzz/make-seeds.sh            # regenerate the seed corpus
+```
+
+Three directories, and the distinction matters:
+
+| Path | Committed | Purpose |
+|---|---|---|
+| `cpp/fuzz/corpus/` | yes | Curated seeds, one per interesting branch. Hand-written. |
+| `cpp/fuzz/corpus-regression/` | yes | Minimized crash reproducers. Replayed by every PR. |
+| `cpp/build/fuzz/corpus/` | no | libFuzzer's working corpus. Regenerated, mostly noise. |
+
+**libFuzzer writes into the first corpus directory it is given**, and this is
+true even with `-runs=0` — it still copies coverage-increasing inputs between
+directories. Both Makefile targets therefore pass a scratch directory first
+and the committed ones after, as read-only seeds. Point a fuzzing command
+straight at `fuzz/corpus/` and it will bury 38 curated seeds under hundreds
+of generated ones within a minute.
+
+When the fuzzer finds a crash, the reproducer lands in
+`cpp/build/fuzz/artifacts/` (and is uploaded as a CI artifact). Minimize it,
+give it a name that says what it exercises, and commit it to
+`corpus-regression/`. That retention is where the long-term value is —
+fuzzers find bugs once, corpora prevent them forever.
+
+## 5a. Coverage
+
+```bash
+make coverage                                    # build, run, report
+sh scripts/coverage-summary.sh build/coverage/report
+```
+
+Coverage builds into its own `-O0 --coverage` tier so instrumented objects
+never mix with the ordinary build. gcov must run from `cpp/`, not from the
+report directory — it resolves sources by the relative path recorded at
+compile time and silently writes one-line stubs if it cannot read them.
+`-r` excludes anything reached by an absolute path, which is how system
+headers and Catch2 stay out of the report.
 
 ---
 
@@ -298,8 +351,11 @@ make clean-all
 make check                                    # functional
 make check SANITIZE=1                         # sanitizers
 make check-valgrind                           # memcheck
+make fuzz-corpus                              # fuzz regression gate
+make coverage                                 # coverage report
 cppcheck --enable=warning,portability --error-exitcode=1 \
          --inline-suppr --std=c++11 -Iinclude src/ tests/
+bear -- make all && clang-tidy -p . --quiet src/*.cpp
 podman run --rm -v ~/GIT/background-file-mover:/src \
     docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
 
