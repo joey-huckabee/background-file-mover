@@ -302,3 +302,59 @@ Test assertions shall use natural order, `actual == expected`.
 
 The test suite shall exhaustively enumerate all 25 (from, to) state pairs against the
 legal-transition table.
+
+### JSON parser (ADR-0009)
+
+Verified by `cpp/tests/test_json.cpp`.
+
+**L3-CPP-016** · Parent: L2-JSON-003 · Verification: T
+
+The parser shall accept exactly the subset defined in ADR-0009: a top-level
+object whose member values are strings, int64 integers, booleans, or nested
+objects and arrays within the configured depth limit.
+
+**L3-CPP-017** · Parent: L2-JSON-003 · Verification: T
+
+The parser shall reject non-object top-level values, duplicate member names,
+trailing commas, comments, unquoted and single-quoted strings, a leading
+byte-order mark, unterminated structures, empty input, and any literal other
+than `true` or `false`.
+
+**L3-CPP-018** · Parent: L2-JSON-003 · Verification: T
+
+The parser shall reject strings containing an embedded NUL by either escape or
+raw byte, unescaped control characters, lone or mispaired surrogates, malformed
+escape sequences, and invalid, overlong, truncated, or surrogate-encoding UTF-8.
+
+**L3-CPP-019** · Parent: L2-JSON-002 · Verification: T
+
+On rejection the parser shall return false and populate a non-empty
+human-readable error identifying the byte offset.
+
+**L3-CPP-020** · Parent: L2-JSON-002 · Verification: T
+
+The parser shall never terminate the process on malformed input, regardless of
+input size, nesting depth, or byte content. Every prefix of a valid document
+shall be rejected without crashing.
+
+**L3-CPP-021** · Parent: L2-JSON-004 · Verification: T
+
+The parser shall enforce configured bounds on nesting depth, total input size,
+string length, object member count, and array element count. Depth shall be
+checked before descending.
+
+**L3-CPP-022** · Parent: L2-JSON-003 · Verification: T
+
+The parser shall accept integers only, within the int64 range, rejecting
+floating-point values, exponent notation, leading zeros, a leading `+`, bare
+`.5` and `5.` forms, `NaN`, `Infinity`, hexadecimal, and out-of-range values.
+
+**L3-CPP-023** · Parent: L2-JSON-003 · Verification: T
+
+`escape` shall produce output that parses back to the original value exactly,
+including quotes, backslashes, and control characters.
+
+**L3-CPP-024** · Parent: L2-JSON-003 · Verification: T
+
+The parser shall reject any input containing non-whitespace bytes after the
+top-level value.

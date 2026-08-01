@@ -212,9 +212,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L2-CTL-015 | _(none)_ | _(TBD)_ | Draft |
 | L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
-| L2-JSON-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-JSON-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-JSON-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-JSON-002 | L3-CPP-019, L3-CPP-020 | _(TBD)_ | Draft |
+| L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024 | _(TBD)_ | Draft |
+| L2-JSON-004 | L3-CPP-021 | _(TBD)_ | Draft |
 | L2-JSON-005 | _(none)_ | _(TBD)_ | Draft |
 
 ### L1-API: REST control interface (L1)
@@ -305,14 +305,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| CPP | 0 | 0 | 15 | 0 | 0 | 0 | 2 |
-| **Total** | **34** | **164** | **55** | **113** | **24** | **127** | **26** |
+| CPP | 0 | 0 | 24 | 0 | 0 | 0 | 2 |
+| **Total** | **34** | **164** | **64** | **113** | **24** | **127** | **26** |
 
 The countable requirement set is every L2 and L3 requirement plus the 5 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 224 (61.2%).
+**Tested by at least one test marker**: 137 of 233 (58.8%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 155 of 224 (69.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 155 of 233 (66.5%).
 
 ### Orphan check
 
