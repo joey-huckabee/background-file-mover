@@ -48,13 +48,15 @@ L1_L2_VM_LINE = re.compile(r"^\*\*Verification Method\*\*:\s+([^\n]+)$", re.MULT
 _METHOD_LETTER = re.compile(r"\b([TIAD])\b")
 
 # Requirement categories, in declaration order. The main forward-trace section is
-# keyed on categories that carry L1 ids (only SYS here — every L1 is a system
-# requirement), so the whole L1->L2->L3 tree renders under the SYS section. The
-# remaining L2/L3 categories carry no L1 of their own; they appear in the per-category
-# coverage summary, counted by their own id prefix.
+# keyed on categories that carry L1 ids — SYS, ROB, API, and OBS — so the whole
+# L1->L2->L3 tree renders under those sections. The remaining L2/L3 categories carry
+# no L1 of their own; they appear in the per-category coverage summary, counted by
+# their own id prefix.
 CATEGORIES: list[tuple[str, str]] = [
     ("SYS", "System requirements (L1)"),
     ("ROB", "Robustness / no-panic (L1 leaf)"),
+    ("API", "REST control interface (L1)"),
+    ("OBS", "Observability (L1)"),
     ("DPR", "Data preservation (L2)"),
     ("CFG", "Configuration (L2)"),
     ("EVT", "Operational events (L2/L3)"),
@@ -78,6 +80,7 @@ CATEGORIES: list[tuple[str, str]] = [
     ("REC", "Recovery and scheduling (L2)"),
     ("INT", "Integrity verifier and manifest (L3)"),
     ("PY", "Python implementation details (L3)"),
+    ("CPP", "C++ implementation details (L3)"),
 ]
 
 

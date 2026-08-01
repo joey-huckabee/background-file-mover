@@ -23,16 +23,29 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
+| L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
+| L1-SYS-011 | _(none)_ | _(none)_ | Implemented (D) |
+| L1-SYS-012 | _(none)_ | _(none)_ | Implemented (D) |
 | L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Implemented |
 | L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Implemented |
-| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Implemented |
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Implemented |
-| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
-| L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
+| L1-SYS-013 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-014 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-015 | _(none)_ | _(none)_ | Draft |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
+| L1-SYS-021 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-022 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-023 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-017 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-018 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
+| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Implemented |
+| L1-SYS-016 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-019 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-020 | _(none)_ | _(none)_ | Draft |
 
 **L2 -> L3 -> Verification Artifacts**
 
@@ -181,12 +194,46 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
 | L1-ROB-001 | L2-ENV-003 | `tests/test_configuration.py::test_load_rejects_missing_file`<br>`tests/test_configuration.py::test_load_rejects_non_regular_file`<br>`tests/test_configuration.py::test_load_rejects_nul_byte_in_path`<br>`tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
+| L1-ROB-002 | _(none)_ | _(none)_ | Draft |
 
 **L2 -> L3 -> Verification Artifacts**
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
 | L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
+
+### L1-API: REST control interface (L1)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-API-001 | _(none)_ | _(none)_ | Draft |
+| L1-API-002 | _(none)_ | _(none)_ | Draft |
+| L1-API-003 | _(none)_ | _(none)_ | Draft |
+| L1-API-004 | _(none)_ | _(none)_ | Draft |
+| L1-API-005 | _(none)_ | _(none)_ | Implemented (I) |
+| L1-API-006 | _(none)_ | _(none)_ | Draft |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+
+### L1-OBS: Observability (L1)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-OBS-001 | _(none)_ | _(none)_ | Implemented (D) |
+| L1-OBS-002 | _(none)_ | _(none)_ | Draft |
+| L1-OBS-003 | _(none)_ | _(none)_ | Draft |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
 
 ---
 
@@ -197,8 +244,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |
 |----------|----|----|-----|-----------|-----------|-------------|-------------|
-| SYS | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| ROB | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| SYS | 23 | 0 | 0 | 0 | 0 | 0 | 0 |
+| ROB | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| API | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| OBS | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
 | DPR | 0 | 7 | 0 | 5 | 0 | 5 | 0 |
 | CFG | 0 | 11 | 0 | 11 | 0 | 11 | 0 |
 | EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
@@ -222,13 +271,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| **Total** | **11** | **136** | **40** | **113** | **24** | **123** | **24** |
+| CPP | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **Total** | **34** | **136** | **40** | **113** | **24** | **123** | **24** |
 
-The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 23 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 176 (77.8%).
+**Tested by at least one test marker**: 137 of 199 (68.8%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 147 of 176 (83.5%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 151 of 199 (75.9%).
 
 ### Orphan check
 
