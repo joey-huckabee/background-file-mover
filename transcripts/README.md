@@ -26,15 +26,22 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 
 | File | Blocked on |
 |---|---|
-| `conversation.md` | Design narrative — mine remaining decisions, then delete |
-| `rest-file-mover-m2/docs/requirements/L3-CPP-m2.md` | Needs rewriting for the project-owned parser (ADR-0006); L3-CPP-021 named picojson and no longer applies |
-| `rest-file-mover-m2/include/filemover/api_codec.hpp` | Carries over nearly as-is; lands with the parser |
-| `rest-file-mover-m2/src/api_codec.cpp` | **Rewrite required** — built on picojson, excluded by ADR-0007 |
-| `rest-file-mover-m2/tests/test_api_codec.cpp` | Retain as the behavioral spec for the replacement parser |
+| — | **Nothing. Ready for the next drop.** |
 
-Everything remaining is blocked on one thing: the project-owned JSON parser.
-The inherited journal design was superseded outright by ADR-0010 and needed no
-retirement step.
+The first drop is fully retired. Where it ended up:
+
+| Inherited material | Now lives in |
+|---|---|
+| Design conversation | ADR-0001 … ADR-0006, `cpp/README.md` |
+| L1 system requirements | `docs/L1-REQ.md`, renumbered into `L1-SYS-*` / `L1-API-*` / `L1-OBS-*` |
+| L2 component requirements | `docs/L2-REQ.md` — CORE, JSON, REN, MGR, XFR, DASH, plus a rewritten CTL |
+| L3-CPP obligations | `docs/L3-REQ.md`, `L3-CPP-001..032` |
+| Job state machine + tests | `cpp/src/job.cpp`, `cpp/tests/test_job.cpp` |
+| Codec interface | `cpp/include/filemover/api_codec.hpp`, near-verbatim |
+| Codec implementation | **Rewritten** on the project-owned parser (ADR-0006) |
+| Codec tests | Rewritten; the picojson characterization suite died with picojson |
+| Journal durability design | **Superseded** by ADR-0010 (SQLite); no retirement step needed |
+| Milestone numbering (M1..M12) | Deliberately dropped — this repo tracks requirements, not inherited milestones |
 
 ## Caveat on inherited material
 

@@ -358,3 +358,55 @@ including quotes, backslashes, and control characters.
 
 The parser shall reject any input containing non-whitespace bytes after the
 top-level value.
+
+### REST API codec
+
+Verified by `cpp/tests/test_api_codec.cpp`.
+
+**L3-CPP-025** · Parent: L2-CTL-013 · Verification: T
+
+`decode_submit_request` shall accept only a JSON object whose members are
+exactly `source` and `dest`, both non-empty strings.
+
+**L3-CPP-026** · Parent: L2-CTL-005 · Verification: T
+
+`decode_submit_request` shall reject unknown members, missing members, wrong
+member types, non-object top-level values, duplicate member names, trailing
+content after the JSON value, and strings containing an embedded NUL.
+
+**L3-CPP-027** · Parent: L2-JSON-002 · Verification: T
+
+On rejection `decode_submit_request` shall return false, populate a non-empty
+human-readable error, and leave the output parameter unmodified.
+
+**L3-CPP-028** · Parent: L2-JSON-002 · Verification: T
+
+The codec shall never terminate the process on malformed input, regardless of
+input size, nesting depth, or byte content. Every prefix of a valid body shall
+be rejected without crashing.
+
+**L3-CPP-029** · Parent: L2-CTL-013 · Verification: T
+
+`encode_job` shall emit members `id`, `source`, `dest`, `state`,
+`created_at_ms`, `updated_at_ms`, `finished_at_ms`, `bytes_total`,
+`bytes_moved`, and `error`, with the state rendered via `to_string`. Byte
+counters exceeding the int64 range shall be clamped rather than wrapped.
+
+**L3-CPP-030** · Parent: L2-JSON-003 · Verification: T
+
+All emitted strings shall be JSON-escaped such that parsing the output
+reproduces the original values exactly, including quotes, backslashes,
+control characters, and multi-byte UTF-8.
+
+**L3-CPP-031** · Parent: L2-JSON-004 · Verification: T
+
+`decode_submit_request` shall reject a path member longer than PATH_MAX
+(4096 bytes). A longer path cannot be opened, so accepting it only defers the
+failure to a point with less context to report it.
+
+**L3-CPP-032** · Parent: L2-JSON-001 · Verification: I
+
+`filemover/json.hpp` shall be included only by `src/json.cpp`,
+`src/api_codec.cpp`, the parser and codec test files, and the fuzz harness.
+Every other translation unit shall reach JSON exclusively through the codec
+interface, so the parser can be replaced without touching a caller.

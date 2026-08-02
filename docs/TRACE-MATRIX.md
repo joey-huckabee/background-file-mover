@@ -145,7 +145,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-007 | L3-JOB-003 | `tests/test_submission.py::test_manifest_and_record_carry_consistent_metadata` | Implemented |
 | L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-JSON-001 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
 | L2-LIF-001 | _(none)_ | `tests/test_lifecycle.py::test_cancel_paused_job_retains_source_and_removes_partial`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
 | L2-LIF-002 | _(none)_ | `tests/test_control_signals.py::test_interrupt_check_raises_only_when_signalled`<br>`tests/test_control_signals.py::test_request_poll_and_clear`<br>`tests/test_copy_engine.py::test_interrupt_stops_copy_and_keeps_partial`<br>`tests/test_lifecycle.py::test_cancel_copying_job_signals_cooperatively`<br>`tests/test_lifecycle.py::test_pause_copying_job_signals_cooperatively`<br>`tests/test_transfer.py::test_process_job_pauses_on_signal_and_keeps_partial` | Implemented |
 | L2-LIF-003 | _(none)_ | `tests/test_lifecycle.py::test_cancel_completed_job_is_rejected`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
@@ -212,9 +212,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L2-CTL-015 | _(none)_ | _(TBD)_ | Draft |
 | L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
-| L2-JSON-002 | L3-CPP-019, L3-CPP-020 | _(TBD)_ | Draft |
-| L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024 | _(TBD)_ | Draft |
-| L2-JSON-004 | L3-CPP-021 | _(TBD)_ | Draft |
+| L2-JSON-002 | L3-CPP-019, L3-CPP-020, L3-CPP-027, L3-CPP-028 | _(TBD)_ | Draft |
+| L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024, L3-CPP-030 | _(TBD)_ | Draft |
+| L2-JSON-004 | L3-CPP-021, L3-CPP-031 | _(TBD)_ | Draft |
 | L2-JSON-005 | _(none)_ | _(TBD)_ | Draft |
 
 ### L1-API: REST control interface (L1)
@@ -237,9 +237,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
 | L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
 | L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
-| L2-CTL-005 | L3-CTL-002 | `tests/test_cli.py::test_service_error_response_is_operation_failed`<br>`tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Implemented |
+| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `tests/test_cli.py::test_service_error_response_is_operation_failed`<br>`tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | `tests/test_control_unix.py::test_bind_refuses_non_socket_file`<br>`tests/test_control_unix.py::test_bind_removes_dead_stale_socket` | Implemented |
-| L2-CTL-013 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-013 | L3-CPP-025, L3-CPP-029 | _(TBD)_ | Draft |
 | L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-016 | _(none)_ | _(TBD)_ | Implemented (I) |
 
@@ -305,14 +305,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| CPP | 0 | 0 | 24 | 0 | 0 | 0 | 2 |
-| **Total** | **34** | **164** | **64** | **113** | **24** | **127** | **26** |
+| CPP | 0 | 0 | 32 | 0 | 0 | 0 | 3 |
+| **Total** | **34** | **164** | **72** | **113** | **24** | **127** | **27** |
 
 The countable requirement set is every L2 and L3 requirement plus the 5 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 233 (58.8%).
+**Tested by at least one test marker**: 137 of 241 (56.8%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 155 of 233 (66.5%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 156 of 241 (64.7%).
 
 ### Orphan check
 

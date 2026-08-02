@@ -48,10 +48,10 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -97,7 +97,7 @@ toolchain:
 # and clang-tidy that GCC 4.8 cannot. Its version still has to be pinned,
 # because analysis tools change what they report between releases.
 versions:
-	@echo "--- local / CI toolchain (must match: ubuntu-22.04) ---"
+	@echo "--- host toolchain (CI pins ubuntu-24.04 / g++-14 / clang-tidy-20) ---"
 	@printf '%-12s ' "g++";        $(CXX) --version 2>/dev/null | head -1 || echo "MISSING"
 	@printf '%-12s ' "make";       make --version 2>/dev/null | head -1 || echo "MISSING"
 	@printf '%-12s ' "clang++";    $(FUZZ_CXX) --version 2>/dev/null | head -1 || echo "MISSING"

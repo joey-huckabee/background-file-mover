@@ -58,7 +58,7 @@ Job make_job_in_state(JobState target, std::int64_t now_ms) {
 
 } // namespace
 
-TEST_CASE("state tokens are stable, unique, uppercase", "[m1][L3-CPP-002]") {
+TEST_CASE("state tokens are stable, unique, uppercase", "[core][L3-CPP-001][L3-CPP-002]") {
     CHECK(std::string(to_string(JobState::Queued)) == "QUEUED");
     CHECK(std::string(to_string(JobState::Renaming)) == "RENAMING");
     CHECK(std::string(to_string(JobState::Transferring)) == "TRANSFERRING");
@@ -66,7 +66,7 @@ TEST_CASE("state tokens are stable, unique, uppercase", "[m1][L3-CPP-002]") {
     CHECK(std::string(to_string(JobState::Failed)) == "FAILED");
 }
 
-TEST_CASE("terminal predicate covers exactly Done and Failed", "[m1][L3-CPP-004]") {
+TEST_CASE("terminal predicate covers exactly Done and Failed", "[core][L3-CPP-004]") {
     CHECK(filemover::is_terminal(JobState::Queued) == false);
     CHECK(filemover::is_terminal(JobState::Renaming) == false);
     CHECK(filemover::is_terminal(JobState::Transferring) == false);
@@ -75,7 +75,7 @@ TEST_CASE("terminal predicate covers exactly Done and Failed", "[m1][L3-CPP-004]
 }
 
 TEST_CASE("construction establishes Queued with coherent timestamps",
-          "[m1][L3-CPP-005]") {
+          "[core][L3-CPP-005]") {
     Job job("job-42", "/src/file.bin", "/dst/file.bin", 1000);
 
     CHECK(job.id == "job-42");
@@ -92,7 +92,7 @@ TEST_CASE("construction establishes Queued with coherent timestamps",
 }
 
 TEST_CASE("is_legal_transition matches the specified table exhaustively",
-          "[m1][L3-CPP-003]") {
+          "[core][L3-CPP-003][L3-CPP-015]") {
     for (JobState from : kAllStates) {
         for (JobState to : kAllStates) {
             INFO("from=" << to_string(from) << " to=" << to_string(to));
@@ -103,7 +103,7 @@ TEST_CASE("is_legal_transition matches the specified table exhaustively",
 }
 
 TEST_CASE("transition rejects every illegal pair and leaves the job unmodified",
-          "[m1][L3-CPP-006]") {
+          "[core][L3-CPP-006]") {
     for (JobState from : kAllStates) {
         for (JobState to : kAllStates) {
             if (expected_legal(from, to)) {
@@ -125,7 +125,7 @@ TEST_CASE("transition rejects every illegal pair and leaves the job unmodified",
 }
 
 TEST_CASE("happy path lifecycle updates state and timestamps",
-          "[m1][L3-CPP-009][L3-CPP-010]") {
+          "[core][L3-CPP-009][L3-CPP-010]") {
     Job job("job-1", "/a", "/b", 100);
 
     CHECK(job.transition(JobState::Renaming, 110) == true);
@@ -147,7 +147,7 @@ TEST_CASE("happy path lifecycle updates state and timestamps",
 }
 
 TEST_CASE("failure is reachable from every non-terminal state and records the error",
-          "[m1][L3-CPP-011]") {
+          "[core][L3-CPP-011]") {
     const std::vector<JobState> non_terminal = {
         JobState::Queued, JobState::Renaming, JobState::Transferring};
 
@@ -164,7 +164,7 @@ TEST_CASE("failure is reachable from every non-terminal state and records the er
 }
 
 TEST_CASE("transition to Failed requires a non-empty error message",
-          "[m1][L3-CPP-007]") {
+          "[core][L3-CPP-007]") {
     Job job("job-1", "/a", "/b", 100);
 
     CHECK(job.transition(JobState::Failed, 200) == false);
@@ -175,7 +175,7 @@ TEST_CASE("transition to Failed requires a non-empty error message",
 }
 
 TEST_CASE("transition to non-Failed states rejects an error message",
-          "[m1][L3-CPP-008]") {
+          "[core][L3-CPP-008]") {
     Job job("job-1", "/a", "/b", 100);
 
     CHECK(job.transition(JobState::Renaming, 200, "unexpected") == false);
@@ -189,7 +189,7 @@ TEST_CASE("transition to non-Failed states rejects an error message",
 }
 
 TEST_CASE("terminal states accept no further transitions",
-          "[m1][L3-CPP-003][L3-CPP-006]") {
+          "[core][L3-CPP-003][L3-CPP-006]") {
     for (JobState terminal : {JobState::Done, JobState::Failed}) {
         Job job = make_job_in_state(terminal, 1000);
         const std::int64_t finished = job.finished_at_ms;
