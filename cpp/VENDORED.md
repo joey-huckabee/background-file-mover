@@ -10,12 +10,10 @@ All vendored licenses must satisfy the license policy in ADR-0007.
 |---|---|---|---|---|---|
 | Catch2 (v2 line) | v2.13.10 | `third_party/catch2/catch.hpp` | `3725c0f0a75f376a5005dde31ead0feb8f7da7507644c201b814443de8355170` | BSL-1.0 | vendored |
 | SQLite (amalgamation) | TBD (pin at integration) | `third_party/sqlite/sqlite3.{c,h}` | TBD | Public domain | pending (ADR-0010) |
-| cpp-httplib | TBD (older tag, pin after GCC 4.8.5 spike) | `third_party/httplib/httplib.h` | TBD | MIT | pending |
 
 Upstream sources:
 - Catch2: https://github.com/catchorg/Catch2 (release asset `catch.hpp`)
 - SQLite: https://sqlite.org/download.html (`sqlite-amalgamation-*.zip`)
-- cpp-httplib: https://github.com/yhirose/cpp-httplib
 
 SQLite is the one vendored dependency that is not a single header and is too large to
 audit line by line (~250 kLOC). ADR-0010 records why that is accepted: it is public
@@ -35,7 +33,21 @@ confined behind a repository interface (L2-JOB-009).
 | nlohmann/json | MIT | Upstream refuses GCC 4.8 support (GCC bugs 55817/57824); version gate errors below GCC 4.9 |
 | RapidJSON | MIT | Old-compiler friendly, but multi-header with a large audit surface |
 | json11 | MIT | Small, but less battle-tested int64 handling |
+| cpp-httplib | MIT | Routes with `std::regex`, which libstdc++ did not implement until GCC 4.9. **No tag is viable** — see ADR-0012 |
 
 Note: the JSON libraries above were rejected on technical grounds *before*
 ADR-0007 was written. Of them, only the licenses of RapidJSON and json11
 would satisfy the current policy; both remain rejected for the reasons stated.
+
+### On cpp-httplib specifically
+
+Measured in the `gcc:4.8` container rather than inferred. Every tag from
+v0.5.12 (2019, C++11-era) through 0.51.0 routes with `std::regex`; older tags
+depend on it *more* (37 references versus 13). On GCC 4.8.5 a literal route
+such as `/api/jobs` registers successfully, but a parameterised one —
+`/api/jobs/([^/]+)`, which the API requires — throws `regex_error` at
+runtime. The latest tag additionally fails to compile there, with 73 errors
+including a missing `std::get_time`.
+
+The failure is in the standard library, not the library, so **pinning an
+older tag cannot fix it**. ADR-0012 records the full measurements.

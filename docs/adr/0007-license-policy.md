@@ -31,10 +31,10 @@ All other permissive licenses remain acceptable, specifically including:
 
 | License | Status | In use |
 |---|---|---|
-| MIT | Allowed | cpp-httplib (pending, ADR-0004) |
+| MIT | Allowed | — (nothing MIT is vendored; see note below) |
 | Apache-2.0 | Allowed | this project |
 | BSL-1.0 | Allowed | Catch2 v2.13.10 |
-| Public domain / Unlicense / CC0 | Allowed | — |
+| Public domain / Unlicense / CC0 | Allowed | SQLite (ADR-0010) |
 | BSD-2-Clause | **Excluded** | — (picojson removed, ADR-0006) |
 | BSD-3-Clause | **Excluded** | — |
 | Any copyleft (GPL / LGPL / AGPL / MPL) | Excluded | — |
@@ -61,9 +61,22 @@ All other permissive licenses remain acceptable, specifically including:
   of replacement parser plus its test suite.
 * Bad: narrows the JSON library field to RapidJSON and json11, neither of
   which was compelling — which is what forced the project-owned parser.
-* Neutral: Catch2 (BSL-1.0) and cpp-httplib (MIT) are unaffected.
+* Neutral: Catch2 (BSL-1.0) is unaffected, as is SQLite (public domain,
+  ADR-0010).
 
 ## Notes
+
+**The MIT row is empty, and that is not a policy change.** MIT remains
+permitted. cpp-httplib was the only MIT candidate and it was rejected on
+toolchain grounds — GCC 4.8's unimplemented `<regex>` — not licence ones
+(ADR-0012). Stated explicitly so an empty row is not later misread as MIT
+having become unacceptable.
+
+**Numbering.** The originating external design recorded its hand-rolled-HTTP
+decision as "ADR-0007". That identifier belongs to this policy in this
+repository; the HTTP decision is **ADR-0012** here. Inherited material is
+renumbered into this sequence rather than adopted with its identifier, so a
+reference to "ADR-0007" in this repository always means the licence policy.
 
 BSD-3-Clause is deliberately left undecided rather than assumed. It differs
 from BSD-2-Clause only by the non-endorsement clause; if the driver for the

@@ -74,6 +74,14 @@ A crash at any tier fails the build.
   4.8-specific miscompile would not be caught by fuzzing. Mitigated by
   running the full functional suite on the 4.8 tier — that job must not be
   reduced to a compile check.
-* Neutral: scope is the JSON parser at v1.0.0. The HTTP layer becomes a
-  second target once cpp-httplib is pinned; the config loader is a third
-  candidate. Both are follow-on work, not part of this decision.
+* Scope at the time of writing was the JSON parser, with the HTTP layer
+  expected to become a second target "once cpp-httplib is pinned". That
+  framing is obsolete: cpp-httplib was rejected and the HTTP parser is
+  project-owned (ADR-0012), so it is not a candidate for fuzzing — it is a
+  **requirement**. Every argument in this ADR for fuzzing the JSON parser
+  applies to it with more force, since it sits one layer closer to the socket
+  and parses a grammar with a documented history of smuggling and desync
+  attacks.
+
+  The config loader remains a lower-priority third target: its input is a file
+  the service account controls, not bytes from the network.

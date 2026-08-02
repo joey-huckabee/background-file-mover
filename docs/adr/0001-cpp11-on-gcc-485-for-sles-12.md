@@ -68,9 +68,19 @@ The cost of C++11 is accepted as ergonomic only.
 * Bad: GCC 4.8 cannot host libFuzzer, LSan, or full UBSan, so
   instrumentation runs only on the modern tier (ADR-0008). The mitigation
   is that the 4.8 job runs the **full test suite**, not just a compile.
-* Risk: cpp-httplib is still unpinned pending a GCC 4.8.5 compile spike
-  (ADR-0004). If no tag compiles, the options are hand-rolling the HTTP/1.1
-  subset or revisiting this ADR in favour of the SDK-module toolchain.
+* ~~Risk: cpp-httplib is still unpinned pending a GCC 4.8.5 compile spike.~~
+  **Resolved.** The spike ran: no cpp-httplib tag is viable, because it routes
+  with `std::regex` and libstdc++ did not implement `<regex>` until GCC 4.9.
+  The HTTP/1.1 subset is hand-rolled (ADR-0012) rather than revisiting this
+  ADR for the SDK-module toolchain — changing the toolchain to obtain a
+  library replaceable with ~600 lines was the wrong trade.
+
+  Worth recording as a **cost of this decision** rather than a closed risk:
+  GCC 4.8's standard library has now defeated two vendoring candidates
+  (nlohmann on compiler defects, cpp-httplib on `<regex>`), and both times the
+  answer was to write the component ourselves. That is a real recurring price
+  of targeting the stock SLES 12 toolchain, and it should be weighed if the
+  SDK-module question is ever reopened.
 
 ## Verification
 

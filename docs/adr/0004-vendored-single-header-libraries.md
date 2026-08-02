@@ -37,21 +37,39 @@ license. Vendored files are never edited; unavoidable changes live as
 * ~~nlohmann/json 3.x~~ — **superseded**. Excluded by upstream's refusal to
   support GCC 4.8; its replacement picojson was then excluded by ADR-0007.
   JSON is now project-owned — see ADR-0006.
-* cpp-httplib — tag to be pinned after a GCC 4.8.5 compile spike; recent
-  releases require newer compilers, so an older tag is expected.
+* ~~cpp-httplib~~ — **superseded**. The GCC 4.8.5 spike ran and the answer is
+  that no tag is viable: cpp-httplib routes with `std::regex`, and libstdc++
+  did not implement `<regex>` until GCC 4.9. HTTP is now project-owned — see
+  ADR-0012, which records the measurements.
+* SQLite (amalgamation) — pinned at integration, for durable state (ADR-0010).
 
 All vendoring is additionally subject to the license policy in ADR-0007.
 
 ### Consequences
 
 * Good: provenance is auditable for accreditation.
-* Good: reduces hand-rolled surface where a compliant library exists.
+* Good: the vendoring *discipline* — pin, hash, record provenance, never edit
+  in place — applies to whatever is vendored and is unaffected by what was.
 * Bad: upgrades are manual; characterization tests must pin the behaviors
   relied upon so a bumped tag fails loudly rather than silently.
-* Bad: **this ADR's original premise did not survive.** It was written to
-  avoid hand-rolling "the two highest-defect-risk components (HTTP parsing,
-  JSON parsing)". JSON parsing is now hand-rolled anyway — first because no
-  suitable library supports GCC 4.8, then because the one that did is
-  license-excluded. Only the HTTP half of the premise remains, and it is
-  contingent on the cpp-httplib spike succeeding. The vendoring *discipline*
-  in this ADR stands on its own; the *motivation* is half-spent.
+* Bad: **this ADR's original premise is fully spent.** It was written to avoid
+  hand-rolling "the two highest-defect-risk components (HTTP parsing, JSON
+  parsing)". Both are now hand-rolled. JSON went first — no suitable library
+  supports GCC 4.8, and the one that did is license-excluded (ADR-0006,
+  ADR-0007). HTTP followed for the same structural reason (ADR-0012).
+
+  This was recorded earlier as "half-spent" while the HTTP half was still
+  open. It is no longer open. The ADR is retained because the discipline it
+  defines still governs Catch2 and SQLite, but its stated motivation no longer
+  describes what the project does.
+
+### What the two failures had in common
+
+Both candidates were C++11-conformant. Both were defeated by GCC 4.8's
+*standard library* rather than by their own code — nlohmann by compiler
+defects 55817/57824, cpp-httplib by an unimplemented `<regex>`.
+
+Any future vendoring decision on this target should therefore ask **"does it
+depend on a part of libstdc++ that GCC 4.8 actually implemented?"** rather
+than "does it support C++11?", and answer it against the `gcc:4.8` container
+rather than against the standard.

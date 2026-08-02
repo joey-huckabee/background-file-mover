@@ -26,6 +26,13 @@ audit surface to a service intended for a controlled internal network.
 * Plaintext HTTP, TLS terminated by nginx/stunnel in front when mandated
 * Plaintext HTTP, no TLS path at all
 
+> **The first option no longer exists.** cpp-httplib was subsequently rejected
+> outright (ADR-0012), so `CPPHTTPLIB_OPENSSL_SUPPORT` is not available to
+> turn on. Reversing this decision would now mean writing TLS integration
+> against system OpenSSL by hand — substantially more work than the option
+> weighed here, and correspondingly more attack surface. The decision is
+> unchanged; the alternative simply became more expensive.
+
 ## Decision Outcome
 
 Chosen option: **plaintext HTTP with proxy-terminated TLS when required**.
