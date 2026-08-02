@@ -87,8 +87,9 @@ def test_claim_rejects_cross_filesystem_source(tmp_path: Path) -> None:
 @pytest.mark.requirement("L2-POSIX-001")
 def test_inventory_rejects_missing_source_root_without_creating_it(tmp_path: Path) -> None:
     missing = tmp_path / "recordings"  # never created
+    validator = _validator()
     with pytest.raises(InvalidSourceError):
-        _validator().inventory(missing, [missing])
+        validator.inventory(missing, [missing])
     assert not missing.exists()  # not auto-created
 
 
@@ -96,8 +97,9 @@ def test_inventory_rejects_missing_source_root_without_creating_it(tmp_path: Pat
 def test_inventory_rejects_uninspectable_requested_path(tmp_path: Path) -> None:
     root = _recordings(tmp_path, {"a.dat": b"data"})
     absent = root / "does-not-exist.dat"
+    validator = _validator()
     with pytest.raises(InvalidSourceError):
-        _validator().inventory(root, [root], file_list=[str(absent)])
+        validator.inventory(root, [root], file_list=[str(absent)])
 
 
 @pytest.mark.requirement("L2-POSIX-004")
@@ -196,7 +198,8 @@ def test_unknown_option_error_lists_the_valid_options(tmp_path: Path) -> None:
         "bogus_option = 1\n",  # unknown -> error should describe the valid options
         encoding="utf-8",
     )
+    loader = ConfigurationLoader()
     with pytest.raises(ConfigurationValidationError) as caught:
-        ConfigurationLoader().load(ini)
+        loader.load(ini)
     messages = " ".join(issue.message for issue in caught.value.issues)
     assert "valid options" in messages and "max_concurrent_files" in messages

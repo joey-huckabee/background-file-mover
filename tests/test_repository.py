@@ -65,8 +65,10 @@ def test_insert_and_get_job(tmp_path: Path) -> None:
 def test_duplicate_job_id_raises(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     repo.insert_job(_job())
+    # _job() is built outside the block so only insert_job() can satisfy it.
+    duplicate = _job()
     with pytest.raises(RepositoryError):
-        repo.insert_job(_job())
+        repo.insert_job(duplicate)
     repo.close()
 
 
@@ -228,8 +230,14 @@ def test_each_thread_gets_its_own_connection(tmp_path: Path) -> None:
     errors: list[Exception] = []
 
     def worker() -> None:
+        # A bare `assert` here would vanish under `python -O`, silently
+        # turning this into a test that cannot fail. Raising explicitly keeps
+        # the check under optimization, and the except clause still ferries
+        # the failure back to the main thread — a thread's assertion cannot
+        # fail the test on its own.
         try:
-            assert repo.get_job("j1") is not None
+            if repo.get_job("j1") is None:
+                raise RepositoryError("get_job returned None in worker thread")
         except Exception as error:  # record any failure for the assertion below
             errors.append(error)
 

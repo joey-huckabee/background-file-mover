@@ -63,8 +63,13 @@ def test_context_formatter_appends_bound_fields() -> None:
 
 
 @pytest.mark.requirement("L3-PY-014")
-def test_bind_merges_nested_context(caplog: pytest.LogCaptureFixture) -> None:
-    GATE.enabled = GATE.info = True
+def test_bind_merges_nested_context(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # GATE is module-level state. Assigning to it directly leaks into every
+    # test that runs afterwards; monkeypatch restores it at teardown.
+    monkeypatch.setattr(GATE, "enabled", True)
+    monkeypatch.setattr(GATE, "info", True)
     base = logging.getLogger("file_mover.test.bind")
     file_log = bind(bind(base, job_id="J1"), file_id="F2")  # nested binds accumulate
     with caplog.at_level(logging.INFO, logger="file_mover.test.bind"):

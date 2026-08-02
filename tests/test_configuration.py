@@ -52,21 +52,26 @@ def test_shipped_reference_config_loads() -> None:
 
 @pytest.mark.requirement("L1-ROB-001")
 def test_load_rejects_nul_byte_in_path() -> None:
+    # Construction is hoisted out of the raises block so only load() can
+    # satisfy it; otherwise a constructor failure would pass the test.
+    loader = ConfigurationLoader()
     with pytest.raises(ConfigurationError, match="NUL byte"):
-        ConfigurationLoader().load("bad\x00path.ini")
+        loader.load("bad\x00path.ini")
 
 
 @pytest.mark.requirement("L1-ROB-001")
 def test_load_rejects_missing_file() -> None:
+    loader = ConfigurationLoader()
     with pytest.raises(ConfigurationError, match="cannot read"):
-        ConfigurationLoader().load(str(REPO_ROOT / "no-such-config-file.ini"))
+        loader.load(str(REPO_ROOT / "no-such-config-file.ini"))
 
 
 @pytest.mark.requirement("L1-ROB-001")
 def test_load_rejects_non_regular_file(tmp_path: Path) -> None:
     # A directory resolves fine but is not a regular file -> rejected before any read.
+    loader = ConfigurationLoader()
     with pytest.raises(ConfigurationError, match="not a regular file"):
-        ConfigurationLoader().load(str(tmp_path))
+        loader.load(str(tmp_path))
 
 
 @pytest.mark.requirement("L2-CFG-001")

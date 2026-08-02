@@ -30,8 +30,10 @@ def test_process_lock_is_exclusive(tmp_path: Path) -> None:
     first = ProcessLock(lock_path)
     first.acquire()
     try:
+        # Constructed outside the block so only acquire() can satisfy it.
+        second = ProcessLock(lock_path)
         with pytest.raises(ServiceLockError):
-            ProcessLock(lock_path).acquire()
+            second.acquire()
     finally:
         first.release()
     # Once released, the lock can be re-acquired.
@@ -43,8 +45,9 @@ def test_process_lock_is_exclusive(tmp_path: Path) -> None:
 @pytest.mark.requirement("L2-CTL-008")
 def test_process_lock_context_manager(tmp_path: Path) -> None:
     lock_path = str(tmp_path / "svc.lock")
+    second = ProcessLock(lock_path)
     with ProcessLock(lock_path), pytest.raises(ServiceLockError):
-        ProcessLock(lock_path).acquire()
+        second.acquire()
 
 
 @pytest.mark.requirement("L2-CTL-001")

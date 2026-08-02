@@ -99,8 +99,9 @@ def test_kernel_copy_propagates_genuine_io_error(
 
     monkeypatch.setattr("os.copy_file_range", _io_error, raising=False)
     source = _source(tmp_path)
+    engine = _engine(use_kernel_copy=True)
     with pytest.raises(CopyError):
-        _engine(use_kernel_copy=True).copy_to_temp(source, tmp_path / "dest", "job", "file")
+        engine.copy_to_temp(source, tmp_path / "dest", "job", "file")
 
 
 @pytest.mark.requirement("L2-COPY-011")
@@ -178,8 +179,9 @@ def test_interrupt_stops_copy_and_keeps_partial(tmp_path: Path) -> None:
         raise CopyInterrupted("stop")
 
     source = _source(tmp_path)  # buffer is 4 bytes, so one buffer is written then we stop
+    engine = _engine(use_kernel_copy=False)
     with pytest.raises(CopyInterrupted) as excinfo:
-        _engine(use_kernel_copy=False).copy_to_temp(
+        engine.copy_to_temp(
             source, tmp_path / "dest", "job", "file", interrupt_check=_stop_after_first
         )
     interrupt = excinfo.value
@@ -204,8 +206,10 @@ def test_resume_continues_from_partial_offset(tmp_path: Path) -> None:
 def test_existing_partial_without_resume_fails_exclusive(tmp_path: Path) -> None:
     dest_dir = tmp_path / "dest"
     _partial(dest_dir, b"stale")
+    engine = _engine(use_kernel_copy=False)
+    source = _source(tmp_path)
     with pytest.raises(DestinationWriteError):
-        _engine(use_kernel_copy=False).copy_to_temp(_source(tmp_path), dest_dir, "job", "file")
+        engine.copy_to_temp(source, dest_dir, "job", "file")
 
 
 @pytest.mark.requirement("L2-RSM-001")
