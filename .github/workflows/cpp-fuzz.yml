@@ -33,16 +33,18 @@ concurrency:
 jobs:
   fuzz:
     name: libFuzzer burn-in
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      # Pinned by explicit version, like every other tool in the pipeline.
+      # clang-20 is newer than the image default and is what cpp-ci.yml uses.
       - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
 
       - name: Toolchain versions
-        run: clang++ --version | head -1
+        run: clang++-20 --version | head -1
 
       # ASan + UBSan are linked in alongside the fuzzer, so a memory-safety
       # fault is caught at the moment it happens rather than surfacing as a
@@ -50,6 +52,7 @@ jobs:
       - name: Fuzz
         run: |
           make -C cpp fuzz-run \
+            FUZZ_CXX=clang++-20 \
             FUZZ_SECONDS=${{ github.event.inputs.seconds || '1800' }}
 
       - name: Upload crash reproducers

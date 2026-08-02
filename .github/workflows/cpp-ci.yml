@@ -5,14 +5,27 @@ name: C++ CI
 # during the v1.0.0 migration.
 #
 # Three tiers, per ADR-0001 and ADR-0008:
-#   1. modern g++     — fast feedback, plus the instrumentation GCC 4.8 cannot host
-#   2. gcc 4.8.5      — fidelity for the SLES 12 SP5 system compiler
-#   3. real SLES 12   — NOT here. E2E, systemd, and the NFS qualification
-#                       checklist run on hardware; see docs/DEPLOYMENT.md.
+#   1. modern toolchain — fast feedback, plus the instrumentation GCC 4.8 cannot host
+#   2. gcc 4.8.5        — fidelity for the SLES 12 SP5 system compiler
+#   3. real SLES 12     — NOT here. E2E, systemd, and the NFS qualification
+#                          checklist run on hardware; see docs/DEPLOYMENT.md.
 #
 # Tier 2 runs the FULL test suite, not just a compile. That is what closes
 # the gap between the instrumented build and the shipped build — do not
 # reduce it to `make all`.
+#
+# TOOLCHAIN POLICY
+# The runner image and every analysis tool are pinned by explicit version.
+# `ubuntu-latest` is never used: it is a moving pointer, and when GitHub moved
+# it from 22.04 to 24.04 three jobs went red with no code change behind them.
+#
+# The modern toolchain is an *instrument*, not a target — it never produces a
+# shipped artifact, so tracking current versions carries no SLES 12 risk. It
+# is therefore deliberately newer than the image defaults (g++-14 and
+# clang-tidy-20 rather than 13 and 18), because newer analyzers find more.
+# Upgrade on purpose, in a commit that also handles the fallout.
+#
+# Reproduce any of this locally with:  cd cpp && make check-ci
 
 on:
   push:
@@ -27,14 +40,27 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cpp-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Applied to every job. The Makefile honours CXX, so this selects the
+  # compiler for the functional, sanitizer, and coverage tiers alike.
+  CXX: g++-14
+
 jobs:
   build-test-modern:
-    name: build & test (modern g++)
-    runs-on: ubuntu-latest
+    name: build & test (g++-14)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-20 clang-tidy-20 cppcheck valgrind
+      # Printed so a runner-image or package change shows up as a visible diff
+      # in the log rather than as an unexplained warning in some other job.
       - name: Toolchain versions
-        run: g++ --version && make --version | head -1
+        run: make -C cpp versions
       - name: Build
         run: make -C cpp all
       - name: Test
@@ -56,9 +82,14 @@ jobs:
   # Instead the runner checks out normally with modern tooling and the old
   # compiler is invoked via `docker run` over the mounted workspace. The
   # container then only has to compile, which is all it is good for.
+  #
+  # CXX is unset here deliberately: inside the container the only compiler is
+  # GCC 4.8.5's `g++`, and the workflow-level g++-14 must not leak in.
   build-test-gcc48:
     name: build & test (gcc 4.8.5)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      CXX: ""
     steps:
       - uses: actions/checkout@v6
       - name: Toolchain versions
@@ -73,9 +104,11 @@ jobs:
   # 4.8 has partial ASan and no LSan.
   sanitizers:
     name: ASan + UBSan + LSan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
       - name: Build & test (instrumented)
         run: make -C cpp check SANITIZE=1
 
@@ -83,11 +116,11 @@ jobs:
   # --error-exitcode=1 fails on any finding, including still-reachable blocks.
   valgrind:
     name: Valgrind memcheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
-      - name: Install valgrind
-        run: sudo apt-get update -q && sudo apt-get install -y -q valgrind
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 valgrind
       - name: Build
         run: make -C cpp all
       - name: Memcheck
@@ -97,7 +130,7 @@ jobs:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:
     name: cppcheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install cppcheck
@@ -114,43 +147,53 @@ jobs:
   # records from a real build. Disabled checks live in cpp/.clang-tidy.
   clang-tidy:
     name: clang-tidy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
-      - name: Install clang-tidy and bear
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang-tidy bear
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-tidy-20 bear
+      # bear records only the compiler invocations it observes, so the tree
+      # must be clean first. A pre-built tree yields an empty database, and
+      # clang-tidy then skips every file and exits 0 — a gate that passes
+      # having analyzed nothing.
       - name: Generate compilation database
-        run: bear --output cpp/compile_commands.json -- make -C cpp all
+        run: |
+          make -C cpp clean-all
+          bear --output cpp/compile_commands.json -- make -C cpp all
+      - name: Assert the database covers the sources
+        run: |
+          cd cpp
+          sh scripts/assert-compile-db.sh compile_commands.json src/job.cpp src/json.cpp
       - name: Analyze
         run: |
           cd cpp
-          clang-tidy -p . --quiet --warnings-as-errors='*' src/job.cpp src/json.cpp
+          clang-tidy-20 -p . --quiet --warnings-as-errors='*' src/job.cpp src/json.cpp
 
   # Fuzzing regression gate (ADR-0008). Replays every committed seed and every
   # retained crash reproducer. Seconds to run, so it belongs on every PR —
   # this is the part that makes a past finding stay fixed.
   fuzz-regression:
     name: Fuzz corpus replay
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
       - name: Replay committed corpus
-        run: make -C cpp fuzz-corpus
+        run: make -C cpp fuzz-corpus FUZZ_CXX=clang++-20
 
   # A short live session on every PR. Finds nothing most of the time; the
   # nightly burn-in (cpp-fuzz.yml) is where depth comes from. A crash fails
   # the build and the reproducer is uploaded for minimization.
   fuzz-short:
     name: Fuzz (60s)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
       - name: Fuzz
-        run: make -C cpp fuzz-run FUZZ_SECONDS=60
+        run: make -C cpp fuzz-run FUZZ_SECONDS=60 FUZZ_CXX=clang++-20
       - name: Upload crash reproducers
         if: failure()
         uses: actions/upload-artifact@v4
@@ -163,11 +206,15 @@ jobs:
   # SonarCloud secrets are absent. SonarCloud consumes the same gcov output.
   coverage:
     name: Coverage (gcov)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+      # gcov must match the compiler that produced the notes files, or it
+      # reports "version mismatch" and emits nothing usable.
       - name: Build instrumented and run
-        run: make -C cpp coverage
+        run: make -C cpp coverage GCOV=gcov-14
       - name: Summarize
         run: |
           {

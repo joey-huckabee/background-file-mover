@@ -88,15 +88,87 @@ clean-all:
 toolchain:
 	@echo "CXX=$(CXX) TIER=$(TIER) BUILD_DIR=$(BUILD_DIR)"
 
+# Print every tool version that affects a build or a gate. CI runs this too,
+# so a runner-image upgrade shows up as a visible diff in the log rather than
+# as an unexplained warning in an unrelated job.
+#
+# The deployment target is GCC 4.8.5 on SLES 12 SP5. The modern toolchain
+# below is an *instrument*, not a target: it hosts the sanitizers, libFuzzer,
+# and clang-tidy that GCC 4.8 cannot. Its version still has to be pinned,
+# because analysis tools change what they report between releases.
+versions:
+	@echo "--- local / CI toolchain (must match: ubuntu-22.04) ---"
+	@printf '%-12s ' "g++";        $(CXX) --version 2>/dev/null | head -1 || echo "MISSING"
+	@printf '%-12s ' "make";       make --version 2>/dev/null | head -1 || echo "MISSING"
+	@printf '%-12s ' "clang++";    $(FUZZ_CXX) --version 2>/dev/null | head -1 || echo "MISSING"
+	@printf '%-12s ' "clang-tidy"; clang-tidy --version 2>/dev/null | grep -i 'version' | head -1 || echo "MISSING"
+	@printf '%-12s ' "valgrind";   valgrind --version 2>/dev/null || echo "MISSING"
+	@printf '%-12s ' "cppcheck";   cppcheck --version 2>/dev/null || echo "MISSING"
+	@printf '%-12s ' "gcov";       gcov --version 2>/dev/null | head -1 || echo "MISSING"
+	@echo "--- deployment target (fidelity tier) ---"
+	@printf '%-12s ' "gcc:4.8";    (docker run --rm gcc:4.8 g++ --version 2>/dev/null || podman run --rm docker.io/library/gcc:4.8 g++ --version 2>/dev/null) | head -1 || echo "container unavailable"
+
 check-valgrind: $(TEST_BIN)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all \
 	  --errors-for-leak-kinds=all --error-exitcode=1 \
 	  $(TEST_BIN) --use-colour no
 
+# --- CI parity -----------------------------------------------------------
+# Runs the modern tier in the same image CI uses, so a local run and a CI run
+# are the same run. The host toolchain stays whatever the distro ships and is
+# for the fast inner loop; this target is for "why does CI disagree with me".
+#
+# Slower than a host build because it installs packages each time (~40s). That
+# is the price of not maintaining a second distro, and it is only paid when
+# reproducing CI.
+#
+# --cap-add=SYS_PTRACE is required: LeakSanitizer uses ptrace, containers
+# block it by default, and LSan then dies with a fatal error that looks like
+# a test failure. GitHub's runner is not a container and does not need this.
+# These must match .github/workflows/cpp-ci.yml. Tools are pinned by explicit
+# version rather than taking the image defaults, so an Ubuntu image refresh
+# cannot change what the gates check.
+CI_IMAGE  ?= docker.io/library/ubuntu:24.04
+CI_ENGINE ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
+CI_CXX    ?= g++-14
+CI_GCOV   ?= gcov-14
+CI_TIDY   ?= clang-tidy-20
+CI_FUZZ   ?= clang++-20
+CI_PKGS   ?= g++-14 make clang-20 clang-tidy-20 cppcheck valgrind bear
+
+.PHONY: check-ci
+check-ci:
+	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
+	$(CI_ENGINE) run --rm --cap-add=SYS_PTRACE \
+	    -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
+	      apt-get update -qq >/dev/null 2>&1 && \
+	      apt-get install -y -qq $(CI_PKGS) >/dev/null 2>&1 && \
+	      echo "--- versions ---" && \
+	      $(CI_CXX) --version | head -1 && \
+	      $(CI_TIDY) --version | grep -i version | head -1 && \
+	      echo "--- functional ---" && \
+	      make clean-all && make check CXX=$(CI_CXX) && \
+	      echo "--- sanitizers ---" && make check SANITIZE=1 CXX=$(CI_CXX) && \
+	      echo "--- valgrind ---" && make check-valgrind CXX=$(CI_CXX) && \
+	      echo "--- coverage ---" && \
+	      make coverage CXX=$(CI_CXX) GCOV=$(CI_GCOV) >/dev/null && \
+	      echo "--- cppcheck ---" && \
+	      cppcheck --enable=warning,portability --error-exitcode=1 \
+	        --inline-suppr --std=c++11 -Iinclude src/ tests/ && \
+	      echo "--- clang-tidy ---" && \
+	      make clean-all >/dev/null && \
+	      bear --output compile_commands.json -- make all CXX=$(CI_CXX) >/dev/null 2>&1 && \
+	      sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC) && \
+	      $(CI_TIDY) -p . --quiet --warnings-as-errors="*" $(LIB_SRC) && \
+	      echo "--- fuzz corpus ---" && \
+	      make fuzz-corpus FUZZ_CXX=$(CI_FUZZ) >/dev/null && \
+	      echo "ALL CI TIERS PASSED"'
+
 # --- Coverage (gcov; feeds SonarCloud) ----------------------------------
 # Built in its own tier so instrumented objects never mix with the ordinary
 # build. Produces .gcno/.gcda beside the objects and .gcov files in
 # build/coverage/.
+GCOV    ?= gcov
 COV_DIR := build/coverage
 COV_BIN := $(COV_DIR)/filemover_tests
 COV_FLAGS := -std=c++11 -Wall -Wextra -Werror -O0 -g --coverage
@@ -118,8 +190,12 @@ coverage: $(COV_OBJ)
 	@# a one-line stub if it cannot read the file. -o says where the .gcno
 	@# and .gcda live; -r drops anything reached by an absolute path, which
 	@# is how the system headers and Catch2 are excluded.
+	@# GCOV must match the compiler that produced the .gcno files. Mixing
+	@# them (gcov-11 against g++-14 output, say) fails with a version
+	@# mismatch and emits nothing usable, so CI passes GCOV=gcov-14
+	@# alongside CXX=g++-14.
 	@mkdir -p $(COV_DIR)/report
-	gcov -b -r -o $(COV_DIR)/src $(LIB_SRC) | tail -n +1
+	$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) | tail -n +1
 	@mv -f *.gcov $(COV_DIR)/report/ 2>/dev/null || true
 	@echo
 	@sh scripts/coverage-summary.sh $(COV_DIR)/report
@@ -177,9 +253,13 @@ fuzz-corpus: fuzz
 	$(FUZZ_BIN) -runs=0 $(FUZZ_DIR)/replay $(CORPUS) $(REGRESSION)
 
 # --- Static analysis -----------------------------------------------------
-# Both require compile_commands.json: bear -- make all   (see CONTRIBUTING.md)
+# Requires compile_commands.json. Without it clang-tidy cannot resolve
+# includes and emits a cascade of bogus findings — 34 of them, in one
+# observed case — rather than reporting that its input is missing. The guard
+# turns that into an actionable error.
 tidy:
-	clang-tidy -p . --quiet $(LIB_SRC)
+	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
+	clang-tidy -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \

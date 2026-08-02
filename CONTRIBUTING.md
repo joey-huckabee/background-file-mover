@@ -22,6 +22,70 @@ Development happens **inside WSL2 on the Linux-native filesystem**, not on a
 Windows drive. The deployment targets are SLES 12 SP5 and RHEL 9, so a Linux
 development environment removes a whole class of divergence.
 
+### Toolchain versions are pinned, and must match
+
+There are two toolchains, with different jobs:
+
+| Toolchain | Role |
+|---|---|
+| **GCC 4.8.5** (`gcc:4.8` container) | **The deployment target.** SLES 12 SP5's system compiler. This is the tier that decides whether the code ships. |
+| **g++-14 / clang-20 / clang-tidy-20** (Ubuntu 24.04) | An *instrument*, not a target. It hosts the sanitizers, libFuzzer, and clang-tidy that GCC 4.8 cannot run. |
+
+Tools are pinned by **explicit package version**, not by taking the runner
+image's defaults — Ubuntu 24.04 defaults to g++-13 and clang-tidy-18, and the
+pipeline deliberately uses the newer g++-14 and clang-tidy-20 that the same
+repositories provide. Explicit versions mean an image refresh cannot silently
+change what the gates check. Both were verified against this codebase before
+adoption: g++-14 builds clean under `-Werror`, and clang-tidy-20 reports zero
+findings.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CXX` | `g++` | Compiler. CI passes `g++-14`. |
+| `GCOV` | `gcov` | **Must match `CXX`** — mixing versions fails with a version mismatch and emits nothing usable. CI passes `gcov-14`. |
+| `FUZZ_CXX` | `clang++` | libFuzzer needs clang. CI passes `clang++-20`. |
+
+**Using newer analysis tools carries no deployment risk.** Only the GCC 4.8.5
+tier produces a shipped artifact; the modern toolchain never does. Its version
+changes how many bugs you find, not what deploys. So the modern tier tracks
+current tools deliberately rather than being frozen for safety.
+
+Every C++ workflow pins `runs-on: ubuntu-24.04`. **Never `ubuntu-latest`.**
+That label is a moving pointer, and when GitHub moved it from 22.04 to 24.04
+three jobs went red with no code change behind them:
+
+* GCC 13 raises `-Wmaybe-uninitialized` against libstdc++ `<regex>` internals
+  under `-O1` plus sanitizers, which GCC 11 does not.
+* clang-tidy 17 added `misc-include-cleaner` and 18 added
+  `performance-enum-size`, so a config enabling check *families* silently
+  gains checks.
+
+Analysis tools are part of the build contract; an unpinned one is an unpinned
+dependency. Upgrade on purpose, in a commit that also handles the fallout.
+
+### Reproducing CI locally
+
+The WSL host toolchain is whatever the distro ships — fine for the fast inner
+loop, but not what CI runs. To run the *exact* CI tier:
+
+```bash
+cd cpp && make check-ci
+```
+
+That executes functional, sanitizer, Valgrind, cppcheck, and clang-tidy tiers
+inside the same `ubuntu:24.04` image CI uses. It installs packages on each run
+(~40s), which is the price of not maintaining a second distro — and it is only
+paid when reproducing CI rather than on every build.
+
+`make versions` prints the host toolchain; CI prints the same in its log, so a
+runner-image change is a visible diff rather than a mysterious failure
+somewhere else.
+
+One gotcha: **LeakSanitizer needs `ptrace`**, which containers block by
+default. `make check-ci` passes `--cap-add=SYS_PTRACE`; without it LSan dies
+with a fatal error that reads like a test failure. GitHub's runner is not a
+container and does not need this.
+
 ### Why not `/mnt/c`
 
 Two independent, measured reasons:
@@ -115,12 +179,22 @@ whenever files are added to the Makefile:
 
 ```bash
 cd ~/GIT/background-file-mover/cpp
-make clean-all
+make clean-all          # REQUIRED — see below
 bear -- make all
 # writes cpp/compile_commands.json
 ```
 
 `compile_commands.json` is generated output and is **not** committed.
+
+**`make clean-all` before `bear` is not optional.** bear records only the
+compiler invocations it observes. Against an already-built tree it sees none
+and writes an *empty* database — and clang-tidy then prints
+`Skipping src/foo.cpp. Compile command not found.` and **exits 0**. The gate
+passes having analyzed nothing, which is invisible unless someone reads the
+log closely. This happened once here and was caught only by chance.
+
+`make tidy` and the CI job both run `scripts/assert-compile-db.sh` afterwards
+to prove the database covers the sources, so the failure mode is now loud.
 
 For VS Code, use the **Remote-WSL** extension so the editor runs a server
 inside WSL. This gives native-speed editing and lets `clangd` see the real
