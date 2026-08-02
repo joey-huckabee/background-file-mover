@@ -221,3 +221,101 @@ part of the deferred **S3 adapter** rather than a standalone gap.
   fsynced partial (`[transfer] resume_partial_files`) instead of restarting from zero,
   with a hash-verified restart fallback (L2-RSM-001..003, L3-PY-012). See
   `docs/ARCHITECTURE.md` § *Partial-file resume*.
+
+---
+
+# v1.0.0 — C++ / REST implementation
+
+Tracked on the `v2-cpp` branch. The milestone list above (M1–M8) belongs to the
+**Python** implementation and is delivered; it is retained for history. The
+inherited external design used its own M1–M12 numbering, which is deliberately
+not carried into this repository.
+
+> **The "Locked decisions" section above is stale on this branch.** It asserts
+> a standard-library-only Python runtime and an `AF_UNIX` control plane, both
+> superseded — see ADR-0001 (C++11) and ADR-0002 (REST). It is left unedited
+> because it accurately records what was locked for v0.4.2. A superseded-at-
+> v1.0.0 pass is itself a roadmap item below.
+
+## Delivered
+
+| Component | Requirements | Notes |
+|---|---|---|
+| Core job state machine | `L3-CPP-001..015`, `L3-CPP-041` | Pure logic, clock-free, exhaustive transition table |
+| Strict JSON parser | `L3-CPP-016..024` | Project-owned (ADR-0006), fuzzed, hostile-input tested |
+| REST API codec | `L3-CPP-025..032` | Strict-reject; parser confined behind it |
+| Configuration loader | `L3-CPP-033..040` | Strict schema, all-errors reporting, `[storage]` section |
+| CI pipeline | — | Six tiers, toolchains pinned by explicit version |
+
+## Security and file-management architecture
+
+`docs/CYBERSECURITY.md` is the reference. It states a threat model in which
+endpoint security, MAC, audit agents, and other NFS clients all touch the same
+filesystem, and two assumptions are rejected: that a check stays true, and that
+privileged interference is impossible.
+
+**Two scoping constraints for v1.0.0**, taken to remove attack surface:
+
+* **Same filesystem only** (`L1-SEC-007`) — no staging directory, no recursive
+  copy, no bottom-up fsync ordering. Every move is one atomic operation.
+* **Files only** (`L1-SEC-007`) — no recursive walk, and it avoids depending on
+  an atomic no-clobber directory move, which **does not exist over NFS**
+  (`linkat` does not work on directories and NFS has no `RENAME_NOREPLACE`).
+
+### Outstanding work, in dependency order
+
+| # | Item | Requirements | Blocked on |
+|---|---|---|---|
+| 1 | **SQLite durable store** — phase model `intent → committed → source-deleted → complete`, source identity at intent | ADR-0010, `L1-SEC-003`, `L2-JOB-001..012` | Vendor the amalgamation |
+| 2 | **fd-relative filesystem layer** — `openat`/`renameat2`/`fstatat`/`unlinkat`, identity re-verification after open | `L2-SEC-001..004` | 1 |
+| 3 | **`renameat2` capability detection** + `linkat`/`unlinkat` fallback as a primary tested path | `L2-SEC-007`, `L2-NFS-001..003` | 2 |
+| 4 | **Preconditions and path validation** — trusted UID, sticky-bit check, canonicalization | `L2-SEC-005`, `L2-SEC-006` | 2 |
+| 5 | **Rename operation** on the fd-relative layer, consuming the delivered template engine | `L1-SYS-013`, `L2-REN-001..003` | 2, 3 |
+| 6 | **External-interference tolerance** — per-syscall timeouts, forward progress, failed-external state | `L1-SEC-004`, `L2-SEC-009..011`, `L2-NFS-004..005` | 1, 2 |
+| 7 | **Transfer strategies** — local rename, `fork`/`execvp` exec strategy; two-hop delivery | `L1-SYS-015`, `L2-XFR-001..004`, `L2-NFS-007` | 5 |
+| 8 | **Worker pool and REST server** | `L2-MGR-001..003`, `L2-CTL-001..016` | 1, 7 |
+| 9 | **Crash and fault injection suite** | `L1-SEC-002` | 1–8 |
+| 10 | **MAC policy + enforcing-mode CI** — SELinux module (RHEL), AppArmor profile (SLES) | `L1-SEC-005`, `L2-SEC-013` | 8 |
+| 11 | **Hardened systemd unit** | `L2-SEC-014` | 8 |
+| 12 | **ePO exclusion documentation + startup coverage check** | `L2-SEC-016` | 8 |
+| 13 | **NFS qualification on a real export** | `L2-NFS-006`, `L2-NFS-008` | 8 |
+
+### Testing obligations that cannot be deferred
+
+The guarantees live in crash-window behaviour, which ordinary tests never
+reach. Recovery logic that only runs during disasters is the worst possible
+place for untested code.
+
+- [ ] `SIGKILL` between each phase transition, verifying recovery on restart
+- [ ] Entry swapped mid-operation (identity mismatch)
+- [ ] File removed mid-operation (quarantine simulation)
+- [ ] `EEXIST` at commit
+- [ ] Both paths missing at recovery → failed-external, no retry
+- [ ] Injected `open()` latency → timeout, sibling moves unaffected
+- [ ] Full suite under SELinux enforcing / AppArmor enforcing, zero denials
+- [ ] `linkat`/`unlinkat` fallback exercised as the primary path, not an edge case
+
+## Open questions (decision needed)
+
+| Item | Question | Raised |
+|---|---|---|
+| **`{seq}` template field** | The rename template offers `{seq}`, but the sequence is caller-supplied and the expansion is pure — so a monotonic counter must live in durable state. Nothing specifies it: per-job, per-directory, or global? Monotonic across restarts? A counter that resets on restart makes `{seq}` templates collide on every boot and silently fall into suffix-walking. | M6 review |
+| **Collision suffix walk** | The inherited design walks `.1`–`.1000`, each probe a `link()` attempt. On NFS that is up to 1000 round-trips per collision, and with a `{name}`-only template collision is the normal case rather than the exception. The cap is also arbitrary. Re-evaluate once the fd-relative layer exists — it may be better addressed by making collisions rare by construction than by walking. | M6 review |
+| **cpp-httplib on GCC 4.8.5** | Still unpinned (ADR-0004). If no tag compiles, the choice is hand-rolling the HTTP/1.1 subset or revisiting ADR-0001. Cheap to settle now that the gcc:4.8 tier runs locally. | ADR-0004 |
+| **Authentication** | v1.0.0 ships none; the bind address is the only access control (`L1-API-006`). Needs a decision before any non-loopback deployment. | L1 merge |
+| **Trace matrix and Catch2** | The generator reads only pytest markers, so the C++ tree reports 0 tested despite thousands of passing assertions. | Requirements merge |
+| **Stale locked decisions** | The section at the top of this file still asserts Python-stdlib-only and a Unix-socket control plane. Needs a superseded-at-v1.0.0 pass. | L1 merge |
+
+## Deferred to v1.1
+
+Retained verbatim in the requirements, marked Deferred, never weakened.
+
+| Capability | Requirements |
+|---|---|
+| Claiming — relocate source so the next run cannot overwrite | `L1-SYS-004`, and `L1-SYS-002` which depends on it |
+| Conservative deletion — no delete until published and verified | `L1-SYS-003` |
+| Configurable integrity verification | `L1-SYS-006` |
+| Recovery by resumption rather than marking failed | `L1-SYS-005` |
+| Cross-filesystem moves — staging, recursive fd-relative copy, commit rename | `L1-SEC-007` constrains v1.0.0; the design is retained in `docs/CYBERSECURITY.md` marked **[v1.1]** |
+| Directory moves | As above; needs an answer for NFS, which has no atomic no-clobber directory move |
+| Bandwidth limiting, partial-file resume, pause/cancel | Python-implementation features not yet ported |

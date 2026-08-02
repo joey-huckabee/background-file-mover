@@ -78,6 +78,8 @@ CATEGORIES: list[tuple[str, str]] = [
     ("JOB", "Durable job state (L2/L3)"),
     ("SUB", "Submission and claiming (L2/L3)"),
     ("REC", "Recovery and scheduling (L2)"),
+    ("SEC", "Filesystem security discipline (L1/L2)"),
+    ("NFS", "Network filesystem behaviour (L2)"),
     ("CORE", "Job model and state machine (L2)"),
     ("JSON", "Request and response codec (L2)"),
     ("REN", "Rename engine (L2)"),

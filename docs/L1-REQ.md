@@ -357,3 +357,79 @@ address space.
 **v1.0.0 Status**: Active — new. `L1-ROB-001` covers unhandled exceptions but not stack
 exhaustion or memory amplification, which are the realistic denial-of-service vectors
 against a parser. See ADR-0008, ADR-0009.
+
+---
+
+## Security invariants
+
+These derive from `docs/CYBERSECURITY.md`, which states the threat model they
+answer. `L1-SEC-001` and `L1-SEC-002` are load-bearing: every other filesystem
+requirement traces to one of them.
+
+### L1-SEC-001
+
+Every move operation shall have exactly one atomic commit point, implemented as
+a single filesystem rename operation.
+
+**Verification Method**: Analysis (A), Test (T)
+**v1.0.0 Status**: Active
+
+### L1-SEC-002
+
+All state prior to the commit point shall be disposable, and all actions after
+it shall be idempotent, such that recovery after interruption at any instant
+produces a correct final state.
+
+**Verification Method**: Analysis (A), Test (T)
+**v1.0.0 Status**: Active
+
+### L1-SEC-003
+
+The durable record shall identify, at any instant, the location and phase of
+every in-flight move, and shall record the identity of the source object —
+device, inode, and size — captured at intent time.
+
+That identity is what disambiguates "the source name exists" after a crash.
+Without it, a new file written at the same path by the next simulation run is
+indistinguishable from the original, and recovery can act on the wrong file.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Active
+
+### L1-SEC-004
+
+The system shall treat interference by external privileged processes — endpoint
+security, quarantine, and audit agents — as a modeled state rather than an
+assumed impossibility.
+
+**Verification Method**: Analysis (A), Test (T)
+**v1.0.0 Status**: Active
+
+### L1-SEC-005
+
+The system shall operate under least privilege and shall function correctly with
+platform mandatory access control — SELinux on RHEL, AppArmor on SLES — in
+enforcing mode.
+
+**Verification Method**: Test (T), Demonstration (D)
+**v1.0.0 Status**: Active
+
+### L1-SEC-006
+
+The system shall never silently overwrite an existing destination file.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Active — strengthens `L1-SYS-014`, which forbids a partially
+written file becoming visible; this forbids replacing a complete one.
+
+### L1-SEC-007
+
+The system shall move files within a single filesystem only, and shall reject a
+cross-filesystem move and a directory move with distinct, actionable errors.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Active — a deliberate v1.0.0 constraint, not a limitation.
+See section 0 of `docs/CYBERSECURITY.md`: it removes the staging directory and
+the recursive walk entirely, and avoids depending on an atomic no-clobber
+directory move that does not exist over NFS. Cross-filesystem support is a v1.1
+item with its own design and fault-injection suite.

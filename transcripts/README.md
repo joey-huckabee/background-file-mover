@@ -30,6 +30,39 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 
 All drops so far are fully retired. Where they ended up:
 
+**Fourth drop (`rest-file-mover-m6`, rename engine) plus two architecture
+documents — mostly reframed rather than adopted:**
+
+The drop arrived alongside `file-mover-requirements.md` and a
+`CYBERSECURITY.md` transcript, which together specify a substantially more
+rigorous filesystem design than the milestone implemented. The requirements
+did not conflict with the milestone so much as supersede the frame it was
+built in.
+
+| Inherited material | Outcome |
+|---|---|
+| `expand_rename_template` | **Adopted** as `cpp/src/rename_template.cpp`, `L3-CPP-042..045`. Pure, clock-free, and validates its own result against `.`, `..`, `/`, NUL so a template cannot escape its directory. |
+| `rename_in_place` (path-based `lstat`/`link`/`unlink`) | **Not adopted.** Path-based check-then-act is the TOCTOU pattern the security requirements prohibit; `renameat2(RENAME_NOREPLACE)` is the correct primary with `linkat`/`unlinkat` as the NFS fallback; and no commit-point ordering was specified. See §10 of `docs/CYBERSECURITY.md`. |
+| `[rename]` config growth | **Deferred** with the rename operation. Adding config for a feature that does not exist would be schema growth ahead of the code. |
+| `CollisionPolicy` / suffix walk | **Deferred.** Up to 1000 `link()` probes per collision is up to 1000 NFS round-trips; re-evaluated once the fd-relative layer exists. Roadmap open question. |
+| `{seq}` | **Adopted as a template field**, but the durable monotonic counter it implies is unspecified. Roadmap open question. |
+| `file-mover-requirements.md` | **Adopted and renumbered** — `L1-SEC-001..007`, `L2-SEC-001..016`, `L2-NFS-001..008`. |
+| `CYBERSECURITY.md` transcript | **Rewritten** as `docs/CYBERSECURITY.md` for this project: SQLite rather than a journal (ADR-0010), NFS treated as a primary target rather than deferred, both RHEL/SELinux and SLES/AppArmor, and an explicit "what exists today" table. |
+| Journal (still present in the snapshot) | **Rejected** again — superseded by ADR-0010. |
+
+Two scoping decisions came out of the review and are recorded as `L1-SEC-007`:
+**same filesystem only** and **files only** for v1.0.0. Both remove attack
+surface rather than save effort — the second because `linkat` does not work on
+directories and NFS has no `RENAME_NOREPLACE`, so an atomic no-clobber
+directory move does not exist on the target filesystem at all.
+
+**A note on inherited test suites.** While porting, I reproduced a bug the
+milestone's own development log had recorded: asserting that `{ext}` on
+`.bashrc` "expands to empty", when an empty expansion is correctly *rejected*.
+Reading the log did not prevent making the same mistake — the test suite
+caught it. Worth remembering that the honesty log is a record of hazards, not
+an inoculation against them.
+
 **Third drop (`rest-file-mover-m4`, append-only journal) — mostly rejected:**
 
 ADR-0010 had already given durability to SQLite, so the mechanism this

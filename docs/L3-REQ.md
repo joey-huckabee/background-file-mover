@@ -481,3 +481,41 @@ state during replay. It is kept because the need is not specific to that
 mechanism — any durable store must turn a persisted token back into a state
 on recovery — and it is placed in the core rather than in whichever storage
 layer happened to want it first.
+
+### Rename template expansion
+
+Verified by `cpp/tests/test_rename_template.cpp`.
+
+The template engine only. The filesystem operation that consumes it belongs to
+the fd-relative layer specified in `docs/CYBERSECURITY.md`; section 10 of that
+document records why the inherited path-based rename operation was not adopted
+alongside this.
+
+**L3-CPP-042** · Parent: L2-REN-001 · Verification: T
+
+Template expansion shall support exactly the fields `{name}` (source
+basename), `{stem}` (basename up to the last `.`, where a leading dot is not
+an extension separator), `{ext}` (after the last `.`, empty if none), `{ts}`
+(the caller-supplied millisecond timestamp rendered as UTC
+`YYYYMMDD"T"HHMMSS"."mmm`), and `{seq}` (the caller-supplied sequence,
+zero-padded to six digits and widening rather than truncating beyond that).
+
+**L3-CPP-043** · Parent: L2-REN-001 · Verification: T
+
+An unknown field, an unclosed `{`, or a stray `}` shall be an expansion error
+naming the offending construct.
+
+**L3-CPP-044** · Parent: L2-SEC-006 · Verification: T
+
+An expansion **result** that is empty, `.`, `..`, or contains `/` or NUL shall
+be rejected.
+
+Validating the result rather than only the template is what makes directory
+escape impossible: every field can be legal while the source filename flowing
+through them produces `..` or a path separator.
+
+**L3-CPP-045** · Parent: L2-CORE-004 · Verification: T, I
+
+`expand_rename_template` shall perform no I/O and shall read no clock; the
+timestamp is supplied by the caller, keeping the function deterministic and
+testable without a fixture.
