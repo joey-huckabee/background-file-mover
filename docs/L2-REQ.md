@@ -374,6 +374,20 @@ without warnings, and shall carry no per-object warning exemption.
 
 **Verification Method**: Test (T), Inspection (I)
 
+#### L2-ARC-008
+
+Concurrent code shall pass under ThreadSanitizer, enforced in CI as a tier
+separate from the AddressSanitizer build.
+
+TSan and ASan cannot be combined in one binary, so this is a distinct job
+rather than an additional flag. Data races are the failure class least likely
+to be caught by a passing test suite: a race can be present for years and
+observable only under a scheduler the test machine never produces.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Test (T)
+
 ## FS — Filesystem identity and claiming
 
 #### L2-FS-001
@@ -1240,6 +1254,60 @@ cannot be read is a different condition: continuing past it would silently disca
 record of jobs whose source files may still exist.
 
 **Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-013
+
+The intent to move a file shall be durably recorded **before** any filesystem
+action is taken, and a failure to record it shall mean no action is taken.
+
+This is the ordering whose absence loses track of a file: rename first and
+record second, and a crash between them leaves the move done with nothing
+identifying where it went. Recording first makes the failure mode harmless —
+the worst outcome is a recorded intent for a move that never started, which
+recovery discards.
+
+**Parent**: L1-SEC-003
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-014
+
+A failure to durably record state shall be handled according to the phase in
+which it occurs:
+
+* **Before the commit point** — the move shall be aborted. Nothing has
+  happened, the source is untouched, and the entry is discarded.
+* **After the commit point** — the move shall halt. The source shall **not**
+  be deleted, the job shall be marked as requiring operator attention, and the
+  condition shall be logged at high severity.
+
+In neither case shall the software continue silently.
+
+A write failure is two different conditions wanting opposite handling. Before
+the commit, continuing means acting with no durable record — a crash then
+leaves an orphaned file nobody can account for. After the commit, the move is
+real but unrecorded; proceeding to source deletion would leave reality and the
+record disagreeing, which is precisely the ambiguity `L1-SEC-002` exists to
+prevent. Treating both as a non-fatal counter permits the durable record to
+drift from the filesystem, which is the one property this layer must
+guarantee.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-015
+
+The job sequence shall be durable and monotonic across restarts.
+
+Job identifiers and the `{seq}` rename-template field both derive from it. A
+counter held only in memory repeats after every restart, so identifiers
+collide and `{seq}` templates silently fall into collision handling rather than
+producing distinct names.
+
+**Parent**: L1-SEC-003
 
 **Verification Method**: Test (T)
 

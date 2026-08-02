@@ -112,6 +112,25 @@ jobs:
       - name: Build & test (instrumented)
         run: make -C cpp check SANITIZE=1
 
+  # ThreadSanitizer (L2-ARC-008). A separate job, not an extra flag on the
+  # sanitizer build: TSan and ASan cannot coexist in one binary because their
+  # shadow-memory layouts conflict.
+  #
+  # In place before the first thread exists, deliberately. A race introduced
+  # alongside the code that first needs threads is far cheaper to find than one
+  # discovered later, and a race can sit in a tree for years while every test
+  # passes — it surfaces only under a scheduler the test machine never
+  # produces.
+  thread-sanitizer:
+    name: ThreadSanitizer
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install toolchain
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+      - name: Build & test (TSan)
+        run: make -C cpp check THREAD=1
+
   # Valgrind memcheck structures detection differently from the sanitizers;
   # --error-exitcode=1 fails on any finding, including still-reachable blocks.
   valgrind:

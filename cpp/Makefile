@@ -15,6 +15,7 @@ CPPFLAGS += -Iinclude -isystem third_party
 # target patterns as it parses, so a later edit to TOOLCHAIN would not reach
 # the rules below.
 SANITIZE ?= 0
+THREAD   ?= 0
 ifeq ($(SANITIZE),1)
 # -Wmaybe-uninitialized is disabled for this tier only. Under -O1 plus
 # instrumentation it false-positives deep inside libstdc++ — GCC 13 reports
@@ -33,6 +34,20 @@ CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1 -g \
             -fsanitize=address,undefined -fno-omit-frame-pointer \
             -fno-sanitize-recover=all
 TIER := asan
+else ifeq ($(THREAD),1)
+# ThreadSanitizer (L2-ARC-008). A SEPARATE tier, not an additional flag: TSan
+# and ASan cannot coexist in one binary, and their shadow-memory layouts
+# conflict. Its own build directory keeps the artifacts apart.
+#
+# Data races are the failure class a passing suite is least likely to catch —
+# a race can sit in the tree for years and surface only under a scheduler the
+# test machine never produces. Worth its own gate as soon as the first thread
+# exists.
+CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1 -g \
+            -Wno-maybe-uninitialized \
+            -fsanitize=thread -fno-omit-frame-pointer \
+            -fno-sanitize-recover=all
+TIER := tsan
 else
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O2 -g
 TIER := default
@@ -149,6 +164,7 @@ check-ci:
 	      echo "--- functional ---" && \
 	      make clean-all && make check CXX=$(CI_CXX) && \
 	      echo "--- sanitizers ---" && make check SANITIZE=1 CXX=$(CI_CXX) && \
+	      echo "--- thread sanitizer ---" && make check THREAD=1 CXX=$(CI_CXX) && \
 	      echo "--- valgrind ---" && make check-valgrind CXX=$(CI_CXX) && \
 	      echo "--- coverage ---" && \
 	      make coverage CXX=$(CI_CXX) GCOV=$(CI_GCOV) >/dev/null && \

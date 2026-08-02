@@ -30,6 +30,29 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 
 All drops so far are fully retired. Where they ended up:
 
+**Sixth drop (`rest-file-mover-m8`, job manager) — no code, but the best ideas
+so far:**
+
+`manager.hpp` depends on `journal.hpp`, `rename.hpp`, and `transfer.hpp`, all
+superseded or rejected, so none of it ports. What it contained instead was
+discipline, and one of those closed a gap flagged two drops earlier.
+
+| Inherited material | Outcome |
+|---|---|
+| **Write-ahead ordering** — intent durable *before* the job exists | **Adopted as `L2-JOB-013`.** This is exactly the commit-point ordering whose absence in M6 meant a crash between rename and record loses the file. The mechanism was a journal; the discipline is mechanism-neutral. |
+| Phase-blind non-fatal write failures (`L3-CPP-075`) | **Rejected**, replaced by `L2-JOB-014`. A durable-write failure is two conditions wanting opposite handling — abort before the commit point, halt after — and treating both as a counter lets the record drift from the filesystem. |
+| Job sequence feeding `{seq}` | **Adopted as `L2-JOB-015`**, gap closed: durable and monotonic across restarts, which the inherited design left unspecified. Closes the `{seq}` roadmap question. |
+| ThreadSanitizer gate | **Adopted as `L2-ARC-008`**, wired into CI and `make check-ci` before the first thread exists. |
+| Latch-based concurrency tests, injected clock | **Adopted as practice** — documented in CONTRIBUTING. |
+| `JobManager` code, journal wiring, pipeline | **Not ported.** |
+
+Worth noting what changed about *how* these drops read. The early ones were
+mined for code; the recent ones are mined for **reasoning**. M8 produced no
+lines that survive, and still contributed the single most valuable idea in the
+series — write-ahead ordering — plus a correction to its own handling of write
+failures that only became visible when checked against invariants written two
+drops later.
+
 **Fifth drop (`rest-file-mover-m7`, transfer adapters) — nothing adopted as code:**
 
 | Inherited material | Outcome |

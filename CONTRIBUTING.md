@@ -335,6 +335,28 @@ compile time and silently writes one-line stubs if it cannot read them.
 `-r` excludes anything reached by an absolute path, which is how system
 headers and Catch2 stay out of the report.
 
+## 5b. Concurrency
+
+```bash
+make check THREAD=1      # ThreadSanitizer tier (L2-ARC-008)
+```
+
+A separate build from `SANITIZE=1`, because TSan and ASan cannot coexist in
+one binary — their shadow-memory layouts conflict. Run it whenever you touch
+anything threaded. A data race can sit in a tree for years while every test
+passes, surfacing only under a scheduler the test machine never produces.
+
+**Concurrency tests are deterministic, never timed.** Do not `sleep` and hope.
+To prove N workers run concurrently, block them on a latch *inside* the
+operation under test and assert all N arrive before releasing it — that either
+holds or hangs, with no middle ground that passes on an idle machine and fails
+on a loaded one.
+
+Order is proved the same way: **inject the clock** (`std::function<int64_t()>`)
+rather than reading one. A counter incrementing per call makes timestamps
+strictly increasing, so completion order is checkable *exactly* rather than
+probabilistically — and it keeps the core clock-free (`L2-CORE-004`).
+
 ---
 
 ## 6. Requirements and traceability

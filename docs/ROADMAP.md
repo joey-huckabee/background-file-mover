@@ -325,11 +325,29 @@ not a configuration key. Two constraints any such design has to satisfy:
 * The commit point must stay ours, or the guarantee has to be explicitly and
   visibly weaker for that destination — not silently weaker for everyone.
 
+## M8 disposition (job manager)
+
+The inherited M8 delivered a threaded JobManager. Its code depends on
+`journal.hpp`, `rename.hpp`, and `transfer.hpp` -- all superseded or rejected --
+so none of it ports. Its *disciplines* are the most valuable thing any drop has
+produced.
+
+| Delivered | Outcome |
+|---|---|
+| Write-ahead ordering -- intent durable **before** the job exists | **Adopted as `L2-JOB-013`.** Exactly the commit-point ordering whose absence in M6 meant a crash between rename and record loses the file. |
+| Phase-blind non-fatal write failures (`L3-CPP-075`) | **Rejected**, replaced by `L2-JOB-014`. A write failure is two conditions wanting opposite handling; treating both as a counter lets the durable record drift from the filesystem. |
+| Job sequence feeding `{seq}` | **Adopted as `L2-JOB-015`**, with the gap closed: the sequence must be durable and monotonic across restarts, which the inherited design left unspecified. |
+| ThreadSanitizer gate | **Adopted as `L2-ARC-008`**, wired into CI and `make check-ci` before the first thread exists. |
+| Latch-based deterministic concurrency tests | **Adopted as practice** -- see CONTRIBUTING. Proving all N workers are simultaneously inside the call beats sleeping and hoping. |
+| Injected clock (`std::function<int64_t()>`) | **Adopted as practice.** Consistent with the clock-free core, and it makes ordering exactly checkable rather than probabilistically. |
+| Queue / worker / drain semantics | Already specified as `L2-MGR-001..003`; the implementation confirms the shape. |
+| `JobManager` code, journal wiring, pipeline | **Not ported.** |
+
 ## Open questions (decision needed)
 
 | Item | Question | Raised |
 |---|---|---|
-| **`{seq}` template field** | The rename template offers `{seq}`, but the sequence is caller-supplied and the expansion is pure — so a monotonic counter must live in durable state. Nothing specifies it: per-job, per-directory, or global? Monotonic across restarts? A counter that resets on restart makes `{seq}` templates collide on every boot and silently fall into suffix-walking. | M6 review |
+| **`{seq}` template field** | **Answered.** The sequence is the job sequence, and `L2-JOB-015` now requires it be durable and monotonic across restarts -- the inherited design left durability unspecified, which would have made identifiers repeat after every restart. | M6 review, closed M8 |
 | **Collision suffix walk** | The inherited design walks `.1`–`.1000`, each probe a `link()` attempt. On NFS that is up to 1000 round-trips per collision, and with a `{name}`-only template collision is the normal case rather than the exception. The cap is also arbitrary. Re-evaluate once the fd-relative layer exists — it may be better addressed by making collisions rare by construction than by walking. | M6 review |
 | **cpp-httplib on GCC 4.8.5** | Still unpinned (ADR-0004). If no tag compiles, the choice is hand-rolling the HTTP/1.1 subset or revisiting ADR-0001. Cheap to settle now that the gcc:4.8 tier runs locally. | ADR-0004 |
 | **Authentication** | v1.0.0 ships none; the bind address is the only access control (`L1-API-006`). Needs a decision before any non-loopback deployment. | L1 merge |
