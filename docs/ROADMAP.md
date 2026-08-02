@@ -343,6 +343,49 @@ produced.
 | Queue / worker / drain semantics | Already specified as `L2-MGR-001..003`; the implementation confirms the shape. |
 | `JobManager` code, journal wiring, pipeline | **Not ported.** |
 
+## M9/M10 disposition (HTTP layer and recovery)
+
+The first drop containing code worth adopting beyond a pure helper. ADR-0012
+committed the project to a hand-rolled HTTP/1.1 subset, so unlike the previous
+four milestones this one builds something we actually need.
+
+| Delivered | Outcome |
+|---|---|
+| `parse_request_head`, `content_length_for`, `serialize_response` | **Adopt**, with the fixes below. Pure functions, strict posture, and the untrusted-input surface ADR-0008 requires fuzzing. |
+| `http_routes.cpp` | **Defer.** Depends on the job manager, which does not exist. |
+| `http_server.cpp` | **Defer.** Socket loop needs config and manager; also needs review against `L2-SEC-009` (per-syscall timeouts) and `L2-SEC-010` (one stalled connection must not block others — the server is serial-accept). |
+| `manager.cpp` recovery | **Reject as written.** Journal-based (ADR-0010 chose SQLite), and its non-fatal write-failure handling contradicts `L2-JOB-014`. |
+| Test suite (493 lines) | **Adapt** with the parser; the prefix sweep and hostile battery are worth keeping. |
+
+### Fixes required before adopting the parser
+
+1. **Split the header.** `http.hpp` is monolithic: the pure parser, the route
+   handlers, and the socket server share one header that includes
+   `config.hpp` and `manager.hpp`. The parser needs neither. Split into
+   `http_parser.hpp` (pure, std-only), with routes and server following when
+   the manager exists. Same layering fault as M7 putting the journal codec in
+   `api_codec.hpp`.
+
+2. **Remove locale dependence.** `valid_header_name` uses `std::isalnum` and
+   `lower()` uses `std::tolower`, both **locale-sensitive**. A parser on
+   untrusted input must not change behaviour because something in the process
+   called `setlocale`. Replace with explicit range checks — the same reasoning
+   that made the JSON parser use explicit tables.
+
+3. **Renumber** `L3-CPP-079..092` into this repository's sequence.
+
+### What the parser gets right, and is worth preserving
+
+* **Duplicate headers rejected outright** — added mid-build after noticing a
+  map's last-wins overwrite is a request-smuggling vector. Correct, and the
+  same class of reasoning that made duplicate JSON keys an error (ADR-0009).
+* **Any `Transfer-Encoding` is a 400.** No chunked parsing exists to desync.
+* **Bytes beyond the declared `Content-Length` are a 400** — no pipelining, no
+  smuggled second request.
+* **`NeedMore` for every proper prefix of a valid head**, swept exhaustively in
+  the tests. This is the property that makes a streaming parser safe.
+* `out` is left unmodified except on success, matching the codec contract.
+
 ## Open questions (decision needed)
 
 | Item | Question | Raised |
