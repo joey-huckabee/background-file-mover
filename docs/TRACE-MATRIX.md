@@ -33,7 +33,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Implemented |
 | L1-SYS-013 | L2-REN-001, L2-REN-002, L2-REN-003 | _(none)_ | Draft |
 | L1-SYS-014 | L2-NFS-007, L2-XFR-002 | _(none)_ | Draft |
-| L1-SYS-015 | L2-XFR-001, L2-XFR-003 | _(none)_ | Draft |
+| L1-SYS-015 | L2-XFR-001 | _(none)_ | Draft |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-004, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 | L1-SYS-021 | L2-CORE-002 | _(none)_ | Draft |
 | L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Draft |
@@ -199,7 +199,6 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SUB-005 | _(none)_ | `tests/test_fault_injection.py::test_manifest_failure_during_submit_retains_claimed_files`<br>`tests/test_fault_injection.py::test_repository_failure_during_submit_is_not_accepted`<br>`tests/test_submission.py::test_submit_rejects_destination_outside_allowed_roots` | Implemented |
 | L2-XFR-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-XFR-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-XFR-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-XFR-004 | _(none)_ | _(TBD)_ | Draft |
 
 ### L1-ROB: Robustness / no-panic (L1 leaf)
@@ -349,18 +348,18 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| XFR | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| XFR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
 | CPP | 0 | 0 | 45 | 0 | 0 | 0 | 3 |
-| **Total** | **41** | **191** | **85** | **113** | **24** | **132** | **27** |
+| **Total** | **41** | **190** | **85** | **113** | **24** | **132** | **27** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 280 (48.9%).
+**Tested by at least one test marker**: 137 of 279 (49.1%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 280 (57.1%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 279 (57.3%).
 
 ### Orphan check
 

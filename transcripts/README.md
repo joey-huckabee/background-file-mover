@@ -30,6 +30,27 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 
 All drops so far are fully retired. Where they ended up:
 
+**Fifth drop (`rest-file-mover-m7`, transfer adapters) — nothing adopted as code:**
+
+| Inherited material | Outcome |
+|---|---|
+| `LocalRenameTransfer` | **Superseded** by the fd-relative layer already on the roadmap. Path-based `link`/`unlink`/`lstat` is the check-then-act pattern `L2-SEC-001` prohibits; `link`+`unlink` is the NFS fallback, not the primary. Identical finding to M6's rename operation. |
+| `CopyFsyncRenameTransfer` | **Deferred → v1.1** — this is the cross-filesystem path, excluded by `L1-SEC-007`. Its `.part` → `fsync` → atomic-placement pattern independently confirms `L2-NFS-007`. |
+| `ExecTransfer` | **Removed** — ADR-0011. A free-text command in configuration makes the config file executable, and delegating the move voids the commit-point guarantees. Its *subprocess discipline* was correct and is retained as `L2-SEC-008`. |
+| `[transfer]` config growth | **Deferred** with the strategies. |
+
+This drop prompted removing a requirement rather than adding one. `L1-SYS-015`
+had required all three strategies — but only because it was derived from the
+inherited `L1-023`. Nothing in the actual problem asked for an external
+command. A requirement that exists only because an upstream design had it is
+not a requirement; it is an inheritance.
+
+It also exposed a contradiction in our own requirements: `L1-SYS-015` (support
+cross-filesystem copy) and `L1-SEC-007` (single filesystem only) were both
+Active, introduced when the security invariants were added without reconciling
+them against the L1 written two sessions earlier. Fixed by deferring the
+cross-filesystem clause.
+
 **Fourth drop (`rest-file-mover-m6`, rename engine) plus two architecture
 documents — mostly reframed rather than adopted:**
 

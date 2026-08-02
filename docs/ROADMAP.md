@@ -295,6 +295,36 @@ place for untested code.
 - [ ] Full suite under SELinux enforcing / AppArmor enforcing, zero denials
 - [ ] `linkat`/`unlinkat` fallback exercised as the primary path, not an edge case
 
+## M7 disposition (transfer adapters)
+
+The inherited M7 delivered three transfer strategies. One is deferred, one is
+removed, and the third is superseded by work already scheduled.
+
+| Delivered | Outcome |
+|---|---|
+| `LocalRenameTransfer` | **Superseded** by roadmap items 2–3. Path-based `link`/`unlink`/`lstat` is the check-then-act pattern `L2-SEC-001` prohibits, and `link`+`unlink` is the NFS *fallback* rather than the primary (`L2-SEC-007`). Same finding as M6's rename operation, same cause. |
+| `CopyFsyncRenameTransfer` | **Deferred → v1.1** with cross-filesystem support (`L1-SEC-007`). Its `.part` → `fsync` → atomic-placement pattern independently confirms the two-hop reasoning in `L2-NFS-007`. |
+| `ExecTransfer` | **Removed** — ADR-0011. |
+| `[transfer]` config growth | **Deferred** with the strategies it configures. |
+| Progress callback, validating factory | Retained as interface concepts for the rewrite. |
+
+Nothing from M7 was adopted as code. The subprocess discipline it demonstrated
+is retained as `L2-SEC-008`, and its temp-file placement pattern informs
+`L2-NFS-007`; both were already specified before the drop arrived.
+
+### On external commands, should the question return
+
+ADR-0011 removes the strategy, not the topic. A genuine future need for a
+destination the daemon cannot reach as a filesystem path — another host over
+SSH, an object store — is a design conversation with its own threat analysis,
+not a configuration key. Two constraints any such design has to satisfy:
+
+* Configuration must remain data. Whatever expresses "send it there" cannot be
+  a free-text command, or whoever writes the config gets code execution as the
+  service account.
+* The commit point must stay ours, or the guarantee has to be explicitly and
+  visibly weaker for that destination — not silently weaker for everyone.
+
 ## Open questions (decision needed)
 
 | Item | Question | Raised |

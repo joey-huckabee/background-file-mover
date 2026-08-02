@@ -179,11 +179,21 @@ final name in a partially written state.
 
 ### L1-SYS-015
 
-The system shall support same-filesystem move, cross-filesystem copy, and
-external-command transfer strategies, selected per destination in configuration.
+The system shall move files by same-filesystem atomic rename.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: Active — new capability, no Python-implementation equivalent.
+**v1.0.0 Status**: **Rewritten.** This originally required three strategies —
+same-filesystem move, cross-filesystem copy, and an external command — carried
+over from the inherited design's `L1-023`. Two of the three are gone:
+
+- The **cross-filesystem copy** clause contradicted `L1-SEC-007`, which
+  restricts v1.0.0 to a single filesystem. Both were Active simultaneously —
+  an error introduced when the security invariants were added without
+  reconciling them against this requirement. Deferred → v1.1.
+- The **external-command** clause is removed outright. See ADR-0011: it would
+  make the configuration file executable, and it voids the commit-point
+  guarantees that justify the daemon existing. It was required here only
+  because the inherited design required it, which is not a reason.
 
 ### L1-SYS-010
 

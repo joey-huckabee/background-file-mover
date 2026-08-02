@@ -1471,8 +1471,12 @@ and join all workers.
 
 #### L2-XFR-001
 
-Transfer strategies shall implement a common interface accepting source, destination,
-and a progress callback.
+The transfer operation shall expose a common interface accepting source, destination,
+and an optional progress callback.
+
+The interface is retained even though v1.0.0 offers a single strategy: the
+cross-filesystem copy returns at v1.1, and an interface introduced then would be a
+change to every caller rather than an addition behind one.
 
 **Parent**: L1-SYS-015
 
@@ -1487,14 +1491,25 @@ name, so the destination never appears under its final name partially written.
 
 **Verification Method**: Test (T)
 
-#### L2-XFR-003
+**v1.0.0 Status**: Deferred → v1.1 with cross-filesystem support (`L1-SEC-007`). A
+same-filesystem move is an atomic rename with no partial state to expose, so the
+temporary-name pattern has nothing to protect against until copying exists. The same
+pattern is separately required by `L2-NFS-007` for delivery into a directory consumers
+watch, where cross-client visibility — not partial writing — is the hazard.
 
-The exec strategy shall launch the configured external command via `fork`/`execvp` with
-an argv array, never through a shell, reap the child, and map exit codes to job errors.
-
-**Parent**: L1-SYS-015
-
-**Verification Method**: Test (T), Inspection (I)
+> **L2-XFR-003 was removed and its identifier is retired.** It required an
+> external-command transfer strategy launched via `fork`/`execvp`. See ADR-0011: a
+> free-text command in configuration makes the configuration file executable, and
+> delegating the move voids the commit-point guarantees of `L1-SEC-001` and
+> `L1-SEC-002`.
+>
+> The identifier is not reused, so a reference to `L2-XFR-003` in older material
+> resolves to this note rather than to an unrelated requirement. It is deliberately
+> not a heading, so the trace matrix does not count a removed obligation as a live one.
+>
+> The subprocess discipline it specified — argv array, substitution into elements,
+> never a shell — is retained unconditionally as `L2-SEC-008`, governing any
+> subprocess this project ever spawns.
 
 #### L2-XFR-004
 
