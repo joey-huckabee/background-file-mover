@@ -164,10 +164,12 @@ jobs:
         run: |
           cd cpp
           sh scripts/assert-compile-db.sh compile_commands.json src/job.cpp src/json.cpp
+      # Runs `make tidy` rather than naming files here. A hardcoded list in
+      # this workflow silently stopped covering api_codec.cpp and config.cpp
+      # when they landed — the job stayed green while checking less and less.
+      # `make tidy` analyses $(LIB_SRC), so it cannot drift from the build.
       - name: Analyze
-        run: |
-          cd cpp
-          clang-tidy-20 -p . --quiet --warnings-as-errors='*' src/job.cpp src/json.cpp
+        run: make -C cpp tidy TIDY=clang-tidy-20
 
   # Fuzzing regression gate (ADR-0008). Replays every committed seed and every
   # retained crash reproducer. Seconds to run, so it belongs on every PR —

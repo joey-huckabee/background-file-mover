@@ -37,12 +37,12 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-004, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
 | L1-SYS-021 | L2-CORE-002 | _(none)_ | Draft |
 | L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Draft |
-| L1-SYS-023 | L2-XFR-004 | _(none)_ | Draft |
+| L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Draft |
 | L1-SYS-017 | L2-MGR-001 | _(none)_ | Draft |
 | L1-SYS-018 | L2-MGR-003 | _(none)_ | Draft |
-| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
+| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Implemented |
-| L1-SYS-016 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-016 | L2-JOB-011 | _(none)_ | Draft |
 | L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-006, L2-CTL-009, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-019 | _(none)_ | _(none)_ | Draft |
 | L1-SYS-020 | _(none)_ | _(none)_ | Draft |
@@ -100,7 +100,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-COPY-009 | _(none)_ | `tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
 | L2-COPY-010 | _(none)_ | `tests/test_recovery.py::test_reconcile_requeues_interrupted_and_removes_temps` | Implemented |
 | L2-COPY-011 | L3-PY-009 | `tests/test_configuration.py::test_use_kernel_copy_can_be_disabled`<br>`tests/test_copy_engine.py::test_buffered_copy_transfers_correct_bytes`<br>`tests/test_copy_engine.py::test_disabled_kernel_copy_never_calls_copy_file_range`<br>`tests/test_copy_engine.py::test_kernel_copy_discards_partial_output_on_fallback`<br>`tests/test_copy_engine.py::test_kernel_copy_falls_back_on_unsupported_errno`<br>`tests/test_copy_engine.py::test_kernel_copy_propagates_genuine_io_error`<br>`tests/test_copy_engine.py::test_kernel_copy_transfers_correct_bytes` | Implemented |
-| L2-CORE-001 | L3-CPP-001, L3-CPP-002, L3-CPP-003, L3-CPP-004, L3-CPP-015 | _(TBD)_ | Draft |
+| L2-CORE-001 | L3-CPP-001, L3-CPP-002, L3-CPP-003, L3-CPP-004, L3-CPP-015, L3-CPP-041 | _(TBD)_ | Draft |
 | L2-CORE-002 | L3-CPP-005, L3-CPP-009, L3-CPP-010, L3-CPP-011 | _(TBD)_ | Draft |
 | L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | _(TBD)_ | Draft |
 | L2-CTL-004 | _(none)_ | `tests/test_control_integration.py::test_server_answers_malformed_request_without_crashing`<br>`tests/test_dispatcher.py::test_handler_exception_is_isolated`<br>`tests/test_protocol.py::test_empty_message_rejected`<br>`tests/test_protocol.py::test_malformed_json_body_rejected`<br>`tests/test_protocol.py::test_non_object_json_rejected`<br>`tests/test_service.py::test_list_handler_unknown_state_is_isolated`<br>`tests/test_service.py::test_require_helpers_raise_when_not_running`<br>`tests/test_service.py::test_submit_handler_rejects_malformed_requests` | Implemented |
@@ -145,6 +145,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-007 | L3-JOB-003 | `tests/test_submission.py::test_manifest_and_record_carry_consistent_metadata` | Implemented |
 | L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-JOB-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-011 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-012 | _(none)_ | _(TBD)_ | Draft |
 | L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
 | L2-LIF-001 | _(none)_ | `tests/test_lifecycle.py::test_cancel_paused_job_retains_source_and_removes_partial`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
 | L2-LIF-002 | _(none)_ | `tests/test_control_signals.py::test_interrupt_check_raises_only_when_signalled`<br>`tests/test_control_signals.py::test_request_poll_and_clear`<br>`tests/test_copy_engine.py::test_interrupt_stops_copy_and_keeps_partial`<br>`tests/test_lifecycle.py::test_cancel_copying_job_signals_cooperatively`<br>`tests/test_lifecycle.py::test_pause_copying_job_signals_cooperatively`<br>`tests/test_transfer.py::test_process_job_pauses_on_signal_and_keeps_partial` | Implemented |
@@ -294,7 +297,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DST | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
 | DEL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | CTL | 0 | 16 | 4 | 11 | 4 | 13 | 4 |
-| JOB | 0 | 9 | 3 | 7 | 3 | 8 | 3 |
+| JOB | 0 | 12 | 3 | 7 | 3 | 8 | 3 |
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -305,14 +308,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| CPP | 0 | 0 | 40 | 0 | 0 | 0 | 3 |
-| **Total** | **34** | **164** | **80** | **113** | **24** | **127** | **27** |
+| CPP | 0 | 0 | 41 | 0 | 0 | 0 | 3 |
+| **Total** | **34** | **167** | **81** | **113** | **24** | **127** | **27** |
 
-The countable requirement set is every L2 and L3 requirement plus the 5 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 249 (55.0%).
+**Tested by at least one test marker**: 137 of 252 (54.4%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 156 of 249 (62.7%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 156 of 252 (61.9%).
 
 ### Orphan check
 

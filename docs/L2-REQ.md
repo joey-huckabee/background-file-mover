@@ -1207,6 +1207,42 @@ other translation unit shall include the database header or embed SQL.
 
 **Verification Method**: Inspection (I)
 
+#### L2-JOB-010
+
+A persisted job record shall carry an error description that is present and non-empty
+if and only if the recorded state is FAILED.
+
+This is the core state machine's invariant (`L3-CPP-007`, `L3-CPP-008`) carried into the
+durable layer, so a record that could not have been produced by a legal transition also
+cannot be stored or read back.
+
+**Parent**: L1-SYS-023
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-011
+
+The software shall treat an absent state store as first boot — starting successfully
+with zero recorded jobs — rather than as an error.
+
+**Parent**: L1-SYS-016
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-012
+
+The software shall fail to start, with a diagnosable error identifying the damage, when
+the state store is present but corrupt. Corruption shall never be silently skipped or
+partially recovered.
+
+A crash leaving work incomplete is expected and is handled by `L1-SYS-016`. A store that
+cannot be read is a different condition: continuing past it would silently discard the
+record of jobs whose source files may still exist.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
 ## SUB — Submission and claiming
 
 #### L2-SUB-001

@@ -159,7 +159,7 @@ check-ci:
 	      make clean-all >/dev/null && \
 	      bear --output compile_commands.json -- make all CXX=$(CI_CXX) >/dev/null 2>&1 && \
 	      sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC) && \
-	      $(CI_TIDY) -p . --quiet --warnings-as-errors="*" $(LIB_SRC) && \
+	      make tidy TIDY=$(CI_TIDY) && \
 	      echo "--- fuzz corpus ---" && \
 	      make fuzz-corpus FUZZ_CXX=$(CI_FUZZ) >/dev/null && \
 	      echo "ALL CI TIERS PASSED"'
@@ -257,9 +257,15 @@ fuzz-corpus: fuzz
 # includes and emits a cascade of bogus findings — 34 of them, in one
 # observed case — rather than reporting that its input is missing. The guard
 # turns that into an actionable error.
+# TIDY is overridable so CI can pin the version (see cpp-ci.yml). $(LIB_SRC)
+# rather than a written-out file list: a hardcoded list in the workflow
+# silently stopped covering api_codec.cpp and config.cpp when they landed,
+# leaving the job green while it checked less and less.
+TIDY ?= clang-tidy
+
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
-	clang-tidy -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
+	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \

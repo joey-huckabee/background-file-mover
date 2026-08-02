@@ -205,3 +205,32 @@ TEST_CASE("terminal states accept no further transitions",
         CHECK(job.finished_at_ms == finished);
     }
 }
+
+TEST_CASE("from_string is the exact inverse of to_string",
+          "[core][L3-CPP-041]") {
+    // Round-trips every state, so a token added to one function without the
+    // other fails here rather than at recovery time.
+    for (JobState state : kAllStates) {
+        JobState decoded = JobState::Queued;
+        INFO("state token: " << to_string(state));
+        CHECK(filemover::from_string(to_string(state), decoded) == true);
+        CHECK(decoded == state);
+    }
+}
+
+TEST_CASE("from_string rejects anything to_string never emits",
+          "[core][L3-CPP-041]") {
+    const char* rejects[] = {
+        "",  "queued", "Queued", "QUEUED ", " QUEUED", "UNKNOWN",
+        "DONE\n", "TRANSFERRING_", "FAIL", "FAILEDX", "0",
+    };
+
+    for (std::size_t i = 0; i < sizeof(rejects) / sizeof(rejects[0]); ++i) {
+        // Pre-set to a value the token could never decode to, so a decoder
+        // that writes before validating is caught.
+        JobState sentinel = JobState::Transferring;
+        INFO("token: \"" << rejects[i] << "\"");
+        CHECK(filemover::from_string(rejects[i], sentinel) == false);
+        CHECK(sentinel == JobState::Transferring);  // left unmodified
+    }
+}

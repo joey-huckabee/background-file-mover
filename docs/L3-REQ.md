@@ -467,3 +467,17 @@ ships no authentication, so the bind address is the only access control.
 is testable without a disk. The `L2-JOB-008` check that the state database is
 not on a network filesystem therefore lives outside it, in
 `storage_path_is_local`, called at service startup.
+
+### Core extension consumed by persistence
+
+**L3-CPP-041** · Parent: L2-CORE-001 · Verification: T
+
+`from_string(token, state)` shall accept exactly the tokens produced by
+`to_string`, writing the state and returning true; any other input shall
+return false and leave the output unmodified.
+
+Adopted from the inherited M4 journal work, which needed it to reconstruct
+state during replay. It is kept because the need is not specific to that
+mechanism — any durable store must turn a persisted token back into a state
+on recovery — and it is placed in the core rather than in whichever storage
+layer happened to want it first.

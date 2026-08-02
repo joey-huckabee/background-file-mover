@@ -196,6 +196,19 @@ log closely. This happened once here and was caught only by chance.
 `make tidy` and the CI job both run `scripts/assert-compile-db.sh` afterwards
 to prove the database covers the sources, so the failure mode is now loud.
 
+**Run `make tidy`, never `clang-tidy` directly.** Two reasons, both learned
+the hard way:
+
+* The target analyses `$(LIB_SRC)`, so it cannot drift from the build. The CI
+  job used to name `src/job.cpp src/json.cpp` explicitly and silently stopped
+  covering `api_codec.cpp` and `config.cpp` when they landed — green while
+  checking less and less.
+* clang-tidy emits **relative** paths when run with `-p .` from inside `cpp/`.
+  Filtering its output with a pattern anchored on `^/` discards every
+  diagnostic, and piping it masks the exit code. That combination once
+  reported a file as clean when it had three findings. Trust the exit status
+  of `make tidy`, not a grep over its output.
+
 For VS Code, use the **Remote-WSL** extension so the editor runs a server
 inside WSL. This gives native-speed editing and lets `clangd` see the real
 filesystem; opening the UNC path from a Windows-side VS Code instead works
@@ -429,7 +442,7 @@ make fuzz-corpus                              # fuzz regression gate
 make coverage                                 # coverage report
 cppcheck --enable=warning,portability --error-exitcode=1 \
          --inline-suppr --std=c++11 -Iinclude src/ tests/
-bear -- make all && clang-tidy -p . --quiet src/*.cpp
+make clean-all && bear -- make all && make tidy    # see the note below
 podman run --rm -v ~/GIT/background-file-mover:/src \
     docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
 

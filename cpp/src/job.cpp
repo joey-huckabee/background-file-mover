@@ -13,6 +13,19 @@ const char* to_string(JobState state) {
     return "UNKNOWN"; // unreachable with a valid enum value
 }
 
+// L3-CPP-041: the exact inverse of to_string. Written as an explicit table
+// rather than a loop over the states so that adding a state without adding
+// its token here is a compile-time-visible omission in one place, not a
+// silent decode failure at recovery time.
+bool from_string(const std::string& token, JobState& state) {
+    if (token == "QUEUED")       { state = JobState::Queued;       return true; }
+    if (token == "RENAMING")     { state = JobState::Renaming;     return true; }
+    if (token == "TRANSFERRING") { state = JobState::Transferring; return true; }
+    if (token == "DONE")         { state = JobState::Done;         return true; }
+    if (token == "FAILED")       { state = JobState::Failed;       return true; }
+    return false;
+}
+
 bool is_terminal(JobState state) {
     return state == JobState::Done || state == JobState::Failed;
 }

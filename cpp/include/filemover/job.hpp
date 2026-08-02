@@ -23,6 +23,15 @@ enum class JobState {
 // L3-CPP-002: to_string SHALL return a stable, unique, uppercase token per state.
 const char* to_string(JobState state);
 
+// L3-CPP-041: from_string SHALL accept exactly the tokens produced by
+// to_string, writing the state and returning true; any other input SHALL
+// return false and leave the output unmodified.
+//
+// The exact inverse of to_string. Any durable store has to turn a persisted
+// token back into a state on recovery, so this belongs in the core rather
+// than in whichever storage layer happens to need it first.
+bool from_string(const std::string& token, JobState& state);
+
 // L3-CPP-004: is_terminal SHALL return true for Done and Failed only.
 bool is_terminal(JobState state);
 

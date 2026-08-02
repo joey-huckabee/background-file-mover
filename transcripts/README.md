@@ -28,7 +28,30 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 |---|---|
 | — | **Nothing. Ready for the next drop.** |
 
-Both drops so far are fully retired. Where they ended up:
+All drops so far are fully retired. Where they ended up:
+
+**Third drop (`rest-file-mover-m4`, append-only journal) — mostly rejected:**
+
+ADR-0010 had already given durability to SQLite, so the mechanism this
+milestone built was superseded before it arrived. Rejecting it is applying an
+existing decision, not making a new one.
+
+| Inherited material | Outcome |
+|---|---|
+| `from_string(token, JobState&)` | **Adopted** as `L3-CPP-041` (renumbered from `L3-CPP-034`). Any durable store must turn a persisted token back into a state, so it belongs in the core rather than in whichever layer wanted it first. |
+| `error` present iff state is `FAILED` | **Adopted as a concept** — `L2-JOB-010`, mechanism-neutral. The core's own invariant carried into persistence; belongs as a `CHECK` constraint when the schema is written. |
+| Missing store = first boot; corruption = hard error | **Adopted as concepts** — `L2-JOB-011`, `L2-JOB-012`. Torn-tail tolerance was *not* adopted: SQLite's WAL owns that, and the concept does not translate. |
+| `Journal` class, JSONL format, replay, `L3-CPP-038..044` | **Rejected** — superseded by ADR-0010. |
+| `journal.{hpp,cpp}`, `test_journal.cpp` (529 lines) | **Not ported.** |
+| `encode_journal_event` placed in `api_codec.hpp` | **Rejected on design grounds, independent of storage.** It made the REST codec `#include "journal.hpp"`. `api_codec.hpp` is the REST API boundary; persistence serialization is a separate concern with a different audience and a much stricter compatibility contract. This would have been wrong even if the journal had survived. |
+
+**How the M4 change was actually found.** The snapshot's `job.hpp` and
+`job.cpp` were the only files never edited on this side, so diffing exactly
+those two against the repository isolated the one upstream change
+(`from_string`) from ~900 KB of already-integrated material. Worth repeating:
+find the files you have not touched, and diff those first.
+
+**Second drop (`rest-file-mover-m3`, config loader):**
 
 **Second drop (`rest-file-mover-m3`, config loader):**
 

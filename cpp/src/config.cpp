@@ -196,10 +196,16 @@ bool load_config_from_string(const std::string& text,
             issues.add(at(origin, line_no, "empty key"));
             continue;
         }
-        if (!seen_keys.insert(section + "." + key).second) {
-            issues.add(at(origin, line_no,  // L3-CPP-037
-                          "duplicate key \"" + key + "\" in [" + section +
-                              "]"));
+        std::string qualified = section;
+        qualified += '.';
+        qualified += key;
+        if (!seen_keys.insert(qualified).second) {
+            std::string message = "duplicate key \"";
+            message += key;
+            message += "\" in [";
+            message += section;
+            message += "]";
+            issues.add(at(origin, line_no, message));  // L3-CPP-037
             continue;
         }
 
@@ -251,8 +257,12 @@ bool load_config_from_string(const std::string& text,
                 cfg.storage_database_path = value;
             }
         } else {
-            issues.add(at(origin, line_no,  // L3-CPP-036
-                          "unknown key \"" + key + "\" in [" + section + "]"));
+            std::string message = "unknown key \"";
+            message += key;
+            message += "\" in [";
+            message += section;
+            message += "]";
+            issues.add(at(origin, line_no, message));  // L3-CPP-036
         }
     }
 
