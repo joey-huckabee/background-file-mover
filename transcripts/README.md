@@ -28,7 +28,23 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 |---|---|
 | — | **Nothing. Ready for the next drop.** |
 
-The first drop is fully retired. Where it ended up:
+Both drops so far are fully retired. Where they ended up:
+
+**Second drop (`rest-file-mover-m3`, config loader):**
+
+| Inherited material | Now lives in |
+|---|---|
+| `config.hpp` / `config.cpp` | `cpp/include/filemover/config.hpp`, `cpp/src/config.cpp` — schema section renamed `[journal]` → `[storage]` per ADR-0010, first-error changed to all-errors per L2-CFG-008 |
+| `test_config.cpp` | `cpp/tests/test_config.cpp`, extended |
+| `L3-CPP-m3.md` (`L3-CPP-026..033`) | `docs/L3-REQ.md` as **`L3-CPP-033..040`** — the inherited range collided with the codec |
+| Everything else in the zip | Already integrated or superseded; the snapshot re-shipped M1/M2, the old ADRs, and picojson |
+
+A note for future drops: the zip is a **full snapshot, not a delta**, and
+arrives with Windows `Zone.Identifier` alternate-data-stream files (30 of them
+last time). Both are noise. Diff against the repository before assuming
+anything in a drop is new.
+
+**First drop (`rest-file-mover-m2`):**
 
 | Inherited material | Now lives in |
 |---|---|

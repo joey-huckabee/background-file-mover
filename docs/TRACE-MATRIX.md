@@ -62,15 +62,15 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-BWL-002 | _(none)_ | `tests/test_cli.py::test_throttle_rejected_is_invalid_argument`<br>`tests/test_cli.py::test_throttle_renders_applied_limit`<br>`tests/test_cli.py::test_throttle_reports_service_unavailable_when_down`<br>`tests/test_ratelimit.py::test_set_rate_changes_the_limit_live`<br>`tests/test_ratelimit.py::test_set_rate_clamps_negative_to_zero`<br>`tests/test_service.py::test_throttle_handler_rejects_bad_values`<br>`tests/test_service.py::test_throttle_handler_rejects_boolean_masquerading_as_int`<br>`tests/test_service.py::test_throttle_handler_sets_live_limit_and_is_reflected_in_health` | Implemented |
 | L2-BWL-003 | _(none)_ | `tests/test_ratelimit.py::test_one_limiter_enforces_the_cap_across_concurrent_streams` | Implemented |
 | L2-BWL-004 | _(none)_ | `tests/test_configuration.py::test_max_bytes_per_second_defaults_to_unlimited_and_parses`<br>`tests/test_copy_engine.py::test_unlimited_rate_limiter_still_allows_kernel_copy`<br>`tests/test_ratelimit.py::test_zero_rate_is_unlimited_and_never_sleeps` | Implemented |
-| L2-CFG-001 | L3-PY-001 | `tests/test_configuration.py::test_defaults_applied_for_absent_sections`<br>`tests/test_configuration.py::test_shipped_reference_config_loads`<br>`tests/test_configuration.py::test_typed_values_and_enums`<br>`tests/test_package.py::test_every_module_imports`<br>`tests/test_package.py::test_version_is_a_string` | Implemented |
-| L2-CFG-002 | _(none)_ | `tests/test_configuration.py::test_duplicate_section_is_a_parse_error`<br>`tests/test_configuration.py::test_unknown_option_is_rejected`<br>`tests/test_configuration.py::test_unknown_section_is_rejected` | Implemented |
-| L2-CFG-003 | _(none)_ | `tests/test_configuration.py::test_missing_required_option_is_rejected`<br>`tests/test_configuration.py::test_missing_required_section_is_rejected`<br>`tests/test_configuration.py::test_unreadable_file_raises_configuration_error` | Implemented |
-| L2-CFG-004 | _(none)_ | `tests/test_configuration.py::test_cross_field_retry_bounds`<br>`tests/test_configuration.py::test_cross_field_source_destination_overlap`<br>`tests/test_configuration.py::test_cross_field_state_directory_under_source`<br>`tests/test_configuration.py::test_float_converter_without_minimum_accepts_any_number`<br>`tests/test_configuration.py::test_invalid_values_are_rejected`<br>`tests/test_configuration.py::test_path_converters_reject_nul_bytes`<br>`tests/test_configuration.py::test_source_root_may_nest_under_state_directory` | Implemented |
+| L2-CFG-001 | L3-CPP-033, L3-CPP-040, L3-PY-001 | `tests/test_configuration.py::test_defaults_applied_for_absent_sections`<br>`tests/test_configuration.py::test_shipped_reference_config_loads`<br>`tests/test_configuration.py::test_typed_values_and_enums`<br>`tests/test_package.py::test_every_module_imports`<br>`tests/test_package.py::test_version_is_a_string` | Partially Implemented |
+| L2-CFG-002 | L3-CPP-036, L3-CPP-037 | `tests/test_configuration.py::test_duplicate_section_is_a_parse_error`<br>`tests/test_configuration.py::test_unknown_option_is_rejected`<br>`tests/test_configuration.py::test_unknown_section_is_rejected` | Partially Implemented |
+| L2-CFG-003 | L3-CPP-039 | `tests/test_configuration.py::test_missing_required_option_is_rejected`<br>`tests/test_configuration.py::test_missing_required_section_is_rejected`<br>`tests/test_configuration.py::test_unreadable_file_raises_configuration_error` | Partially Implemented |
+| L2-CFG-004 | L3-CPP-038 | `tests/test_configuration.py::test_cross_field_retry_bounds`<br>`tests/test_configuration.py::test_cross_field_source_destination_overlap`<br>`tests/test_configuration.py::test_cross_field_state_directory_under_source`<br>`tests/test_configuration.py::test_float_converter_without_minimum_accepts_any_number`<br>`tests/test_configuration.py::test_invalid_values_are_rejected`<br>`tests/test_configuration.py::test_path_converters_reject_nul_bytes`<br>`tests/test_configuration.py::test_source_root_may_nest_under_state_directory` | Partially Implemented |
 | L2-CFG-005 | _(none)_ | `tests/test_configuration.py::test_application_config_is_immutable` | Implemented |
 | L2-CFG-006 | _(none)_ | `tests/test_cli.py::test_config_validate_missing_file_human`<br>`tests/test_cli.py::test_config_validate_missing_file_json`<br>`tests/test_cli.py::test_config_validate_rejects_invalid_config` | Implemented |
 | L2-CFG-007 | _(none)_ | `tests/test_cli.py::test_config_validate_accepts_valid_config`<br>`tests/test_cli.py::test_doctor_validates_configuration` | Implemented |
-| L2-CFG-008 | _(none)_ | `tests/test_configuration.py::test_all_issues_reported_together` | Implemented |
-| L2-CFG-009 | _(none)_ | `tests/test_configuration.py::test_issue_records_identify_section_option_value_message` | Implemented |
+| L2-CFG-008 | L3-CPP-035 | `tests/test_configuration.py::test_all_issues_reported_together` | Partially Implemented |
+| L2-CFG-009 | L3-CPP-034 | `tests/test_configuration.py::test_issue_records_identify_section_option_value_message` | Partially Implemented |
 | L2-CFG-010 | _(none)_ | `tests/test_traceability_audit.py::test_unknown_option_error_lists_the_valid_options` | Implemented |
 | L2-CFG-011 | _(none)_ | `tests/test_configuration.py::test_describe_schema_covers_sections_and_options` | Implemented |
 | L2-CLI-001 | L3-CLI-005, L3-PY-008 | `tests/test_cli.py::test_invalid_choice_is_rejected_before_dispatch`<br>`tests/test_cli.py::test_submit_requires_a_source` | Partially Implemented |
@@ -305,14 +305,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| CPP | 0 | 0 | 32 | 0 | 0 | 0 | 3 |
-| **Total** | **34** | **164** | **72** | **113** | **24** | **127** | **27** |
+| CPP | 0 | 0 | 40 | 0 | 0 | 0 | 3 |
+| **Total** | **34** | **164** | **80** | **113** | **24** | **127** | **27** |
 
 The countable requirement set is every L2 and L3 requirement plus the 5 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 241 (56.8%).
+**Tested by at least one test marker**: 137 of 249 (55.0%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 156 of 241 (64.7%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 156 of 249 (62.7%).
 
 ### Orphan check
 

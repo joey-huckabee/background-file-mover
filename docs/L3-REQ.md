@@ -410,3 +410,60 @@ failure to a point with less context to report it.
 `src/api_codec.cpp`, the parser and codec test files, and the fuzz harness.
 Every other translation unit shall reach JSON exclusively through the codec
 interface, so the parser can be replaced without touching a caller.
+
+### Configuration loader
+
+Verified by `cpp/tests/test_config.cpp`.
+
+Note on numbering: the inherited drop assigned these obligations
+`L3-CPP-026..033`, colliding with the codec range already in use here. They
+are renumbered; the content is otherwise preserved except where noted.
+
+**L3-CPP-033** · Parent: L2-CFG-001 · Verification: T
+
+The loader shall accept `[section]` headers, `key = value` entries with
+whitespace trimmed from both sides (values may contain spaces and `=`),
+full-line comments starting with `;` or `#`, and blank lines. Inline comments
+shall not be supported: a `;` after a value is part of the value.
+
+**L3-CPP-034** · Parent: L2-CFG-009 · Verification: T
+
+Every rejection tied to a line shall be reported as
+`<origin>:<line>: <message>`.
+
+**L3-CPP-035** · Parent: L2-CFG-008 · Verification: T
+
+The loader shall report all issues together rather than stopping at the first,
+and shall leave the output `Config` unmodified when any issue is found.
+
+**L3-CPP-036** · Parent: L2-CFG-002 · Verification: T
+
+Unknown sections and unknown keys shall be rejected, as shall an empty
+`http.bind`, a `bind` value containing whitespace, and a
+`storage.database_path` containing an embedded NUL.
+
+**L3-CPP-037** · Parent: L2-CFG-002 · Verification: T
+
+Duplicate keys within a section, and duplicate section headers, shall be
+rejected.
+
+**L3-CPP-038** · Parent: L2-CFG-004 · Verification: T
+
+Integer parameters shall parse strictly — base 10, entire token consumed, no
+sign characters — with ranges enforced: `http.port` 1..65535,
+`http.max_body_bytes` 1..16777216, `jobs.workers` 1..64.
+
+**L3-CPP-039** · Parent: L2-CFG-003 · Verification: T
+
+Every optional parameter shall take its documented default when absent
+(`http.bind` = `127.0.0.1`, `http.port` = 8080, `http.max_body_bytes` = 65536,
+`jobs.workers` = 4), and every missing required parameter shall be reported by
+qualified name. The loopback default for `http.bind` is load-bearing: v1.0.0
+ships no authentication, so the bind address is the only access control.
+
+**L3-CPP-040** · Parent: L2-CFG-001 · Verification: T, I
+
+`load_config_from_string` shall perform no I/O, so the whole validation matrix
+is testable without a disk. The `L2-JOB-008` check that the state database is
+not on a network filesystem therefore lives outside it, in
+`storage_path_is_local`, called at service startup.

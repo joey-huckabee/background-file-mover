@@ -321,11 +321,17 @@ The system shall read all runtime parameters from a single INI configuration fil
 
 ### L1-SYS-020
 
-The system shall refuse to start on invalid configuration, reporting the file and line
-of the first error.
+The system shall refuse to start on invalid configuration, reporting every issue found
+together, each identified by file and line.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: Active
+**v1.0.0 Status**: Active — **Corrected.** This originally said "the file and line of
+the *first* error", carried over from the inherited design. That contradicted
+`L2-CFG-008`, a pre-existing child requirement demanding all issues be reported
+together — a parent contradicting its own child, introduced by porting the inherited L1
+without checking it against the L2 already in the repository. The all-issues behaviour
+wins: it is what the Python implementation already does, and it spares operators a
+fix-one-restart-repeat loop.
 
 ---
 
