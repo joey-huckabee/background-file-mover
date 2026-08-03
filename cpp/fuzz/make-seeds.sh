@@ -1,0 +1,63 @@
+#!/bin/sh
+# Regenerates the libFuzzer seed corpus (ADR-0008).
+#
+# Seeds are chosen to reach distinct code paths quickly, not to be valid:
+# libFuzzer mutates from these, so a rejection path is as useful a starting
+# point as an accepted document. Crash artifacts found by a run belong in
+# ../corpus-regression-json/ instead, committed so the finding cannot come back.
+#
+# Usage:  sh fuzz/make-seeds.sh
+set -eu
+
+DIR="$(dirname "$0")/corpus-json"
+mkdir -p "$DIR"
+
+seed() {
+    printf '%s' "$2" > "$DIR/$1"
+}
+
+# --- accepted -----------------------------------------------------------
+seed empty-object            '{}'
+seed one-string              '{"a":"b"}'
+seed submit-request          '{"source":"/data/run1.rec","dest":"/nfs/archive"}'
+seed all-scalar-types        '{"s":"x","i":42,"n":-7,"t":true,"f":false}'
+seed nested-object           '{"a":{"b":{"c":"d"}}}'
+seed nested-array            '{"a":[1,2,[3,4]]}'
+seed int64-bounds            '{"max":9223372036854775807,"min":-9223372036854775808}'
+seed escapes                 '{"k":"q\"b\\s\/f\bn\fl\nr\rt\t"}'
+seed unicode-bmp             '{"k":"é€￿"}'
+seed surrogate-pair          '{"k":"😀"}'
+seed utf8-raw                '{"k":"caf\303\251 \342\202\254"}'
+seed whitespace-heavy        '{  "a"  :  [ 1 , 2 ]  ,  "b" : { }  }'
+
+# --- rejected, one per interesting branch --------------------------------
+seed r-trailing-bytes        '{"a":"b"}trailing'
+seed r-duplicate-key         '{"a":1,"a":2}'
+seed r-float                 '{"a":1.5}'
+seed r-exponent              '{"a":1e10}'
+seed r-leading-zero          '{"a":007}'
+seed r-int-overflow          '{"a":9223372036854775808}'
+seed r-null                  '{"a":null}'
+seed r-top-level-array       '[1,2,3]'
+seed r-lone-high-surrogate   '{"a":"\ud800"}'
+seed r-lone-low-surrogate    '{"a":"\udc00"}'
+seed r-escaped-nul           '{"a":"\u0000"}'
+seed r-bad-escape            '{"a":"\q"}'
+seed r-truncated-escape      '{"a":"\u00"}'
+seed r-trailing-comma        '{"a":1,}'
+seed r-unquoted-key          '{a:1}'
+seed r-single-quotes         "{'a':'b'}"
+seed r-comment               '{"a":1}// c'
+seed r-unterminated          '{"a":'
+seed r-deep-nesting          '{"a":{"b":{"c":{"d":{"e":1}}}}}'
+seed r-bom                   '\357\273\277{"a":1}'
+
+# Raw control character and invalid UTF-8 need printf's escape handling.
+printf '{"a":"x\001y"}'       > "$DIR/r-raw-control"
+printf '{"a":"\200"}'         > "$DIR/r-stray-continuation"
+printf '{"a":"\300\257"}'     > "$DIR/r-overlong-utf8"
+printf '{"a":"\355\240\200"}' > "$DIR/r-raw-surrogate"
+printf '{"a":"\377"}'         > "$DIR/r-invalid-lead"
+printf '{"a":"x'; printf '\000'; printf 'y"}' > "$DIR/r-raw-nul"
+
+echo "seeded $(ls -1 "$DIR" | wc -l) files in $DIR"

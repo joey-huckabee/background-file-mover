@@ -1,0 +1,84 @@
+# clang-tidy configuration for the C++ tree.
+#
+# Run with:  clang-tidy -p . --quiet src/*.cpp
+# (requires compile_commands.json — see CONTRIBUTING.md)
+#
+# This complements cppcheck rather than replacing it; the two disagree often
+# enough to be worth running both. clang-tidy found dead code and two
+# unchecked snprintf calls that GCC's -Werror and cppcheck both passed over.
+
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  -misc-no-recursion,
+  -bugprone-easily-swappable-parameters,
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
+  -performance-enum-size
+
+# Two checks are disabled deliberately. Record the reason here rather than
+# suppressing at each call site, so the decision survives.
+#
+# misc-no-recursion
+#   The parser is recursive descent by design (ADR-0009), which permits it
+#   explicitly and requires the depth counter be checked BEFORE descending.
+#   That bound is what makes the recursion safe, and it is verified by
+#   L3-CPP-021 — the suite feeds 100,000 nesting levels and expects rejection
+#   rather than a stack overflow. An iterative rewrite would trade auditable
+#   code for no additional safety.
+#
+# bugprone-easily-swappable-parameters
+#   is_legal_transition(JobState from, JobState to) takes two parameters of
+#   the same type because that is what the relation is. Introducing distinct
+#   wrapper types to satisfy the check would obscure the API rather than
+#   protect it, and the exhaustive 25-pair table (L3-CPP-015) would catch a
+#   swap immediately.
+#
+# misc-non-private-member-variables-in-classes
+#   Job exposes its fields publicly because it is a record that gets
+#   serialized and copied, not an encapsulated service.
+#
+#   This one is disabled with a caveat rather than a clean conscience.
+#   L2-MGR-002 requires that every job state change go through the CORE
+#   transition function, and public `state` makes that a convention the
+#   compiler does not enforce — a caller can assign to it directly and
+#   bypass the legal-transition table entirely. The check is pointing at a
+#   real gap, not a style preference.
+#
+#   Left as-is for now because closing it means refactoring already-tested
+#   M1 code, and the manager that would do the bypassing does not exist yet.
+#   Revisit when MGR lands: either make the fields private with accessors,
+#   or accept the convention and say so explicitly in L2-MGR-002.
+#
+# misc-include-cleaner            (new in clang-tidy 17)
+#   Include-what-you-use enforcement. It wants src/job.cpp to include
+#   <string> directly even though job.hpp — its own header — already does.
+#   That is a defensible school of thought, but adopting it means adding
+#   includes across every translation unit to restate what the headers
+#   already guarantee, and L3-CPP-012 already constrains what core headers
+#   may include. Low value, high churn.
+#
+# performance-enum-size           (new in clang-tidy 18)
+#   Suggests std::uint8_t as the base type for JobState and json::Value::Type.
+#   Saves three bytes per instance and makes the underlying type part of the
+#   struct layout for no measurable gain. Declined.
+#
+# VERSION DRIFT WARNING
+#   The Checks list above enables whole families (bugprone-*, misc-*,
+#   performance-*, cert-*), and CI runs whatever clang-tidy ubuntu-latest
+#   ships. A runner image upgrade therefore adds checks silently, and with
+#   --warnings-as-errors='*' that turns into a red build with no code change
+#   behind it — which is exactly how the two entries above were discovered
+#   (clang-tidy 14 locally, 18 in CI). When that happens, judge the new check
+#   on merit and either fix the code or add it here with a reason. Do not
+#   respond by weakening --warnings-as-errors.
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/filemover/.*'
+FormatStyle: file

@@ -1,15 +1,28 @@
 # Feature interactions and combined use
 
-The Background File Mover has several independently-configurable behaviours. Most combine
+> **This document describes the retired Python implementation (v0.4.2).**
+> The Python code was removed from this branch ahead of the C++ v1.0.0 release.
+> It remains on `main` and at the `v0.4.2` tag. **Nothing below describes code
+> that exists in this branch.**
+>
+> The file is kept on purpose rather than deleted: it is the source material for
+> the C++ rewrite, the behavior it documents is the v1.1 parity target, and
+> re-deriving it from a tag later would be slower and would lose the reasoning.
+> The rewrite is tracked in `docs/ROADMAP.md`.
+>
+> For what this branch actually specifies, read `docs/L1-REQ.md`,
+> `docs/L2-REQ.md`, `docs/L3-REQ.md`, and `docs/TRACE-MATRIX.md`.
+
+The Background File Mover has several independently-configurable behaviors. Most combine
 cleanly, but a few **interact** in ways that are not obvious from their individual
 descriptions. This guide is for operators deciding *which options to enable together* and
 what to expect from each combination. For the internal mechanism see
 `docs/ARCHITECTURE.md` § *Feature interactions*; for per-option syntax see
 `docs/CONFIG-REFERENCE.md` and `docs/CLI-REFERENCE.md`.
 
-## The tunable behaviours
+## The tunable behaviors
 
-| Behaviour | Set by | Default |
+| Behavior | Set by | Default |
 |-----------|--------|---------|
 | **Kernel-assisted copy** | `[transfer] use_kernel_copy` | `true` |
 | **Bandwidth limit** | `[transfer] max_bytes_per_second`, live via `file-mover throttle` | `0` (unlimited) |

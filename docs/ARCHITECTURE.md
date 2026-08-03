@@ -1,5 +1,18 @@
 # Architecture
 
+> **This document describes the retired Python implementation (v0.4.2).**
+> The Python code was removed from this branch ahead of the C++ v1.0.0 release.
+> It remains on `main` and at the `v0.4.2` tag. **Nothing below describes code
+> that exists in this branch.**
+>
+> The file is kept on purpose rather than deleted: it is the source material for
+> the C++ rewrite, the behavior it documents is the v1.1 parity target, and
+> re-deriving it from a tag later would be slower and would lose the reasoning.
+> The rewrite is tracked in `docs/ROADMAP.md`.
+>
+> For what this branch actually specifies, read `docs/L1-REQ.md`,
+> `docs/L2-REQ.md`, `docs/L3-REQ.md`, and `docs/TRACE-MATRIX.md`.
+
 This document describes how the Background File Mover is structured and why. It is the
 orientation read before changing the transfer, control, or state code. Requirement IDs
 (e.g. L1-SYS-003) refer to `docs/L1-REQ.md` and its L2/L3 children.
@@ -293,14 +306,14 @@ is enabled and *removes* them when it is disabled (L2-RSM-002).
 
 ## Feature interactions
 
-The copy-path behaviours above are independently configurable but interact through two shared
+The copy-path behaviors above are independently configurable but interact through two shared
 mechanisms, both in `transfer/copy_engine.py`: the **engine choice** made once per file in
 `_copy` (`if use_kernel_copy and available and not _rate_limited(): kernel else buffered`), and
 the **per-buffer hooks** — `rate_limiter.throttle(...)` (buffered loop only) and
 `interrupt_check()` (both loops). The operator-facing consequences and recommendations live in
 `docs/FEATURE-INTERACTIONS.md`; the mechanism-level matrix is below.
 
-| Combination | Where | Behaviour |
+| Combination | Where | Behavior |
 |-------------|-------|-----------|
 | Bandwidth limit + kernel copy | `_copy` engine choice | A non-zero limit forces the **buffered** engine — the kernel loop cannot be paced (L3-PY-011). Chosen per file at copy start. |
 | Partial resume + kernel copy | `_copy_via_kernel`, `_open_destination` | Compatible: seek to the offset and `copy_file_range` continues; the fallback truncates to `base_offset`, not zero (L3-PY-012). |

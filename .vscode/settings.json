@@ -1,13 +1,13 @@
 {
-  "python.testing.pytestEnabled": true,
-  "python.testing.pytestArgs": ["tests"],
-  "python.analysis.extraPaths": ["src"],
   "editor.formatOnSave": true,
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    }
+  "files.eol": "\n",
+  "files.associations": {
+    "*.hpp": "cpp"
   },
-  "files.eol": "\n"
+  "C_Cpp.default.cppStandard": "c++11",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/cpp/include",
+    "${workspaceFolder}/cpp/third_party"
+  ],
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/cpp/compile_commands.json"
 }

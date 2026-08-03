@@ -1,5 +1,21 @@
 # Twelve-factor alignment
 
+> **Partly superseded — one factor has inverted.** This document was written for
+> the Python implementation. Most of its reasoning survives the C++ rewrite
+> unchanged, because the deviations follow from *what the service is* rather than
+> from what it is written in. **Factor VII does not.**
+>
+> Factor VII below records a deviation on the grounds that control is a local
+> `AF_UNIX` socket rather than a network port. ADR-0002 replaced that socket with
+> a REST control plane, which binds a TCP port — so v1.0.0 *conforms* to factor
+> VII rather than deviating from it, and the security property the deviation
+> bought (filesystem-permission authentication, for free) is gone with it. That
+> loss is recorded as a security note under `L1-API-002` and is why authentication
+> is a roadmap item rather than an assumption.
+>
+> Rewriting this document for the C++ implementation is tracked in
+> `docs/ROADMAP.md`. Factors III and VI are unaffected.
+
 The Background File Mover is a **stateful, single-instance, local systemd daemon** — not a
 stateless, horizontally-scaled cloud web app. Several [twelve-factor](https://12factor.net/)
 factors fit it well and we follow them; a few deliberately do **not** apply, and forcing

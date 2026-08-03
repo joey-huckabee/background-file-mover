@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Forward trace from L1 through L2 and L3 to verification artifacts. This file is regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, and the `@pytest.mark.requirement` markers in `tests/` each time `scripts/build-trace-matrix.py` is run.
+Forward trace from L1 through L2 and L3 to verification artifacts. This file is regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, the `@pytest.mark.requirement` markers in `tests/`, and the Catch2 tag markers in `cpp/tests/`, each time `scripts/build-trace-matrix.py` is run.
 
 ## Status rollup
 
@@ -23,16 +23,29 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Implemented |
-| L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Implemented |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | `tests/test_fault_injection.py::test_publish_failure_retains_source_and_temp` | Partially Implemented |
-| L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | `tests/test_constants.py::test_claim_directory_name_is_a_single_component`<br>`tests/test_constants.py::test_on_disk_markers_are_swit_prefixed` | Implemented |
-| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Implemented |
-| L1-SYS-006 | L2-COPY-007 | `tests/test_models.py::test_integrity_modes_are_stable_strings` | Implemented |
-| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
-| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-001, L2-CTL-002, L2-CTL-005, L2-CTL-006, L2-CTL-009, L2-CTL-010, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-JOB-006, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
-| L1-SYS-009 | L2-CFG-001, L2-CFG-005, L2-STO-005 | _(none)_ | Implemented |
-| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-003, L2-CTL-004, L2-CTL-007, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | `tests/test_exceptions.py::test_exception_parentage`<br>`tests/test_exceptions.py::test_exceptions_preserve_cause` | Partially Implemented |
+| L1-SYS-009 | L2-ARC-007, L2-ARC-008, L2-CFG-001, L2-CFG-005, L2-JOB-009, L2-JSON-001, L2-STO-005 | _(none)_ | Partially Implemented |
+| L1-SYS-011 | _(none)_ | _(none)_ | Implemented (D) |
+| L1-SYS-012 | L2-SEC-014 | _(none)_ | Implemented |
+| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
+| L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Draft |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | _(none)_ | Draft |
+| L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | _(none)_ | Draft |
+| L1-SYS-006 | L2-COPY-007 | _(none)_ | Draft |
+| L1-SYS-013 | L2-REN-001, L2-REN-002, L2-REN-003 | _(none)_ | Partially Implemented |
+| L1-SYS-014 | L2-NFS-007, L2-XFR-002 | _(none)_ | Draft |
+| L1-SYS-015 | L2-XFR-001 | _(none)_ | Draft |
+| L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-004, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | _(none)_ | Partially Implemented |
+| L1-SYS-021 | L2-CORE-002 | _(none)_ | Implemented |
+| L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Partially Implemented |
+| L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Draft |
+| L1-SYS-017 | L2-MGR-001 | _(none)_ | Draft |
+| L1-SYS-018 | L2-MGR-003 | _(none)_ | Draft |
+| L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | _(none)_ | Partially Implemented |
+| L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Draft |
+| L1-SYS-016 | L2-JOB-011 | _(none)_ | Draft |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-006, L2-CTL-009, L2-CTL-011, L2-CTL-017, L2-CTL-018, L2-CTL-019, L2-CTL-020, L2-ENV-001, L2-ENV-002, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-019 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-020 | _(none)_ | _(none)_ | Draft |
 
 **L2 -> L3 -> Verification Artifacts**
 
@@ -40,139 +53,158 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L2-ARC-001 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-ARC-002 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-ARC-003 | _(none)_ | `tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
-| L2-ARC-004 | _(none)_ | `tests/test_configuration.py::test_all_issues_reported_together` | Implemented |
+| L2-ARC-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-ARC-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-ARC-005 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-ARC-006 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-BWL-001 | L3-PY-011 | `tests/test_cli.py::test_parse_byte_rate_accepts_suffixes`<br>`tests/test_cli.py::test_parse_byte_rate_rejects_bad_values`<br>`tests/test_configuration.py::test_max_bytes_per_second_defaults_to_unlimited_and_parses`<br>`tests/test_configuration.py::test_max_bytes_per_second_rejects_negative`<br>`tests/test_copy_engine.py::test_active_rate_limit_forces_buffered_path_and_paces_writes`<br>`tests/test_ratelimit.py::test_burst_capacity_is_capped_at_one_second`<br>`tests/test_ratelimit.py::test_elapsed_time_refills_the_bucket`<br>`tests/test_ratelimit.py::test_non_positive_byte_count_is_a_noop`<br>`tests/test_ratelimit.py::test_spends_burst_then_sleeps_for_the_deficit` | Implemented |
-| L2-BWL-002 | _(none)_ | `tests/test_cli.py::test_throttle_rejected_is_invalid_argument`<br>`tests/test_cli.py::test_throttle_renders_applied_limit`<br>`tests/test_cli.py::test_throttle_reports_service_unavailable_when_down`<br>`tests/test_ratelimit.py::test_set_rate_changes_the_limit_live`<br>`tests/test_ratelimit.py::test_set_rate_clamps_negative_to_zero`<br>`tests/test_service.py::test_throttle_handler_rejects_bad_values`<br>`tests/test_service.py::test_throttle_handler_rejects_boolean_masquerading_as_int`<br>`tests/test_service.py::test_throttle_handler_sets_live_limit_and_is_reflected_in_health` | Implemented |
-| L2-BWL-003 | _(none)_ | `tests/test_ratelimit.py::test_one_limiter_enforces_the_cap_across_concurrent_streams` | Implemented |
-| L2-BWL-004 | _(none)_ | `tests/test_configuration.py::test_max_bytes_per_second_defaults_to_unlimited_and_parses`<br>`tests/test_copy_engine.py::test_unlimited_rate_limiter_still_allows_kernel_copy`<br>`tests/test_ratelimit.py::test_zero_rate_is_unlimited_and_never_sleeps` | Implemented |
-| L2-CFG-001 | L3-PY-001 | `tests/test_configuration.py::test_defaults_applied_for_absent_sections`<br>`tests/test_configuration.py::test_shipped_reference_config_loads`<br>`tests/test_configuration.py::test_typed_values_and_enums`<br>`tests/test_package.py::test_every_module_imports`<br>`tests/test_package.py::test_version_is_a_string` | Implemented |
-| L2-CFG-002 | _(none)_ | `tests/test_configuration.py::test_duplicate_section_is_a_parse_error`<br>`tests/test_configuration.py::test_unknown_option_is_rejected`<br>`tests/test_configuration.py::test_unknown_section_is_rejected` | Implemented |
-| L2-CFG-003 | _(none)_ | `tests/test_configuration.py::test_missing_required_option_is_rejected`<br>`tests/test_configuration.py::test_missing_required_section_is_rejected`<br>`tests/test_configuration.py::test_unreadable_file_raises_configuration_error` | Implemented |
-| L2-CFG-004 | _(none)_ | `tests/test_configuration.py::test_cross_field_retry_bounds`<br>`tests/test_configuration.py::test_cross_field_source_destination_overlap`<br>`tests/test_configuration.py::test_cross_field_state_directory_under_source`<br>`tests/test_configuration.py::test_float_converter_without_minimum_accepts_any_number`<br>`tests/test_configuration.py::test_invalid_values_are_rejected`<br>`tests/test_configuration.py::test_path_converters_reject_nul_bytes`<br>`tests/test_configuration.py::test_source_root_may_nest_under_state_directory` | Implemented |
-| L2-CFG-005 | _(none)_ | `tests/test_configuration.py::test_application_config_is_immutable` | Implemented |
-| L2-CFG-006 | _(none)_ | `tests/test_cli.py::test_config_validate_missing_file_human`<br>`tests/test_cli.py::test_config_validate_missing_file_json`<br>`tests/test_cli.py::test_config_validate_rejects_invalid_config` | Implemented |
-| L2-CFG-007 | _(none)_ | `tests/test_cli.py::test_config_validate_accepts_valid_config`<br>`tests/test_cli.py::test_doctor_validates_configuration` | Implemented |
-| L2-CFG-008 | _(none)_ | `tests/test_configuration.py::test_all_issues_reported_together` | Implemented |
-| L2-CFG-009 | _(none)_ | `tests/test_configuration.py::test_issue_records_identify_section_option_value_message` | Implemented |
-| L2-CFG-010 | _(none)_ | `tests/test_traceability_audit.py::test_unknown_option_error_lists_the_valid_options` | Implemented |
-| L2-CFG-011 | _(none)_ | `tests/test_configuration.py::test_describe_schema_covers_sections_and_options` | Implemented |
-| L2-CLI-001 | L3-CLI-005, L3-PY-008 | `tests/test_cli.py::test_invalid_choice_is_rejected_before_dispatch`<br>`tests/test_cli.py::test_submit_requires_a_source` | Partially Implemented |
-| L2-CLI-002 | L3-CLI-002, L3-CLI-003 | `tests/test_cli.py::test_config_without_subcommand_is_invalid`<br>`tests/test_cli.py::test_known_commands_report_not_implemented`<br>`tests/test_cli.py::test_service_without_subcommand_is_invalid` | Partially Implemented |
-| L2-CLI-003 | _(none)_ | `tests/test_cli.py::test_version_action_exits_zero`<br>`tests/test_models.py::test_exit_codes_are_distinct_integers` | Implemented |
-| L2-CLI-004 | L3-CLI-004 | `tests/test_cli.py::test_config_validate_json_output_on_stdout`<br>`tests/test_cli.py::test_config_validate_valid_json_output`<br>`tests/test_cli.py::test_list_and_stats_render` | Partially Implemented |
-| L2-CLI-005 | _(none)_ | `tests/test_cli.py::test_config_validate_json_output_on_stdout` | Implemented |
-| L2-CLI-006 | L3-PY-013, L3-PY-014 | `tests/test_cli.py::test_cli_log_level_override_precedence`<br>`tests/test_cli.py::test_configure_service_logging_applies_config_level`<br>`tests/test_cli.py::test_configure_service_logging_cli_level_wins`<br>`tests/test_cli.py::test_doctor_json_includes_advisories`<br>`tests/test_cli.py::test_doctor_reports_advisories`<br>`tests/test_configuration.py::test_advisory_for_bandwidth_limit_with_kernel_copy`<br>`tests/test_configuration.py::test_advisory_for_resume_without_full_hashing`<br>`tests/test_configuration.py::test_logging_section_accepts_only_level`<br>`tests/test_configuration.py::test_no_advisories_for_safe_defaults`<br>`tests/test_logging_config.py::test_bind_merges_nested_context`<br>`tests/test_logging_config.py::test_context_formatter_appends_bound_fields`<br>`tests/test_logging_config.py::test_gate_flags_track_the_level`<br>`tests/test_logging_config.py::test_level_is_applied_and_unknown_falls_back`<br>`tests/test_logging_config.py::test_off_disables_the_gate_and_installs_null_handler`<br>`tests/test_logging_config.py::test_split_installs_two_stream_handlers`<br>`tests/test_logging_config.py::test_split_routes_info_to_stdout_and_warning_to_stderr`<br>`tests/test_service.py::test_log_configuration_advisories_emits_both`<br>`tests/test_service.py::test_log_configuration_advisories_silent_for_safe_config`<br>`tests/test_transfer.py::test_completion_log_carries_structured_job_id`<br>`tests/test_transfer.py::test_debug_events_carry_job_and_file_ids`<br>`tests/test_transfer.py::test_gate_off_suppresses_debug_records` | Implemented |
-| L2-CLI-007 | _(none)_ | `tests/test_cli.py::test_cli_never_modifies_the_config_file` | Implemented |
-| L2-CLI-008 | _(none)_ | `tests/test_cli.py::test_submit_missing_file_list_is_invalid_argument`<br>`tests/test_cli.py::test_submit_reads_file_list`<br>`tests/test_cli.py::test_submit_renders_accepted`<br>`tests/test_cli.py::test_submit_renders_rejected_json`<br>`tests/test_cli.py::test_submit_reports_service_unavailable_when_down`<br>`tests/test_control_unix.py::test_service_run_accepts_submission_over_socket`<br>`tests/test_submission.py::test_submit_file_list` | Implemented |
-| L2-CLI-009 | _(none)_ | `tests/test_submission.py::test_submit_claims_records_and_writes_manifest` | Implemented |
-| L2-CLI-010 | _(none)_ | `tests/test_cli.py::test_main_converts_unexpected_error_to_internal_error` | Implemented |
-| L2-CLI-011 | L3-CLI-001 | `tests/test_cli.py::test_create_parser_is_pure_and_builds`<br>`tests/test_cli.py::test_module_entry_point_runs`<br>`tests/test_cli.py::test_no_command_prints_help_and_returns_invalid_argument` | Implemented |
-| L2-CLN-001 | _(none)_ | `tests/test_scheduler.py::test_recovery_reprocess_is_idempotent` | Implemented |
-| L2-CLN-002 | _(none)_ | `tests/test_scheduler.py::test_recovery_reprocess_is_idempotent` | Implemented |
+| L2-ARC-007 | L3-CPP-013, L3-CPP-014 | _(TBD)_ | Implemented |
+| L2-ARC-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-BWL-001 | L3-PY-011 | _(TBD)_ | Draft |
+| L2-BWL-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-BWL-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-BWL-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-CFG-001 | L3-CPP-033, L3-CPP-040, L3-PY-001 | `cpp/tests/test_config.cpp::[a local path passes the storage location check]`<br>`cpp/tests/test_config.cpp::[accepts a minimal valid configuration]`<br>`cpp/tests/test_config.cpp::[accepts the documented syntax]`<br>`cpp/tests/test_config.cpp::[an unresolvable storage path is reported, not assumed local]`<br>`cpp/tests/test_config.cpp::[arbitrary input never crashes the loader]`<br>`cpp/tests/test_config.cpp::[inline comments are not supported]`<br>`cpp/tests/test_config.cpp::[network filesystem magics are classified correctly]` | Partially Implemented |
+| L2-CFG-002 | L3-CPP-036, L3-CPP-037 | `cpp/tests/test_config.cpp::[an embedded NUL in the database path is rejected]`<br>`cpp/tests/test_config.cpp::[duplicates are rejected]`<br>`cpp/tests/test_config.cpp::[http.bind rejects empty and whitespace-bearing values]`<br>`cpp/tests/test_config.cpp::[unknown sections and keys are rejected]` | Implemented |
+| L2-CFG-003 | L3-CPP-039 | `cpp/tests/test_config.cpp::[a missing required parameter is named]`<br>`cpp/tests/test_config.cpp::[applies documented defaults for every optional parameter]`<br>`cpp/tests/test_config.cpp::[the bind default is loopback]` | Implemented |
+| L2-CFG-004 | L3-CPP-038 | `cpp/tests/test_config.cpp::[integer ranges are enforced at both ends]`<br>`cpp/tests/test_config.cpp::[integers parse strictly]` | Implemented |
+| L2-CFG-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-CFG-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-CFG-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-CFG-008 | L3-CPP-035 | `cpp/tests/test_config.cpp::[all issues are reported together, not just the first]`<br>`cpp/tests/test_config.cpp::[the output is left unmodified on any rejection]` | Implemented |
+| L2-CFG-009 | L3-CPP-034 | `cpp/tests/test_config.cpp::[an unterminated section header says so precisely]`<br>`cpp/tests/test_config.cpp::[every line-level error is reported as origin:line: message]`<br>`cpp/tests/test_config.cpp::[malformed lines are rejected]` | Implemented |
+| L2-CFG-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-CFG-011 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-CLI-001 | L3-CLI-005, L3-PY-008 | _(TBD)_ | Draft |
+| L2-CLI-002 | L3-CLI-002, L3-CLI-003 | _(TBD)_ | Draft |
+| L2-CLI-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-004 | L3-CLI-004 | _(TBD)_ | Draft |
+| L2-CLI-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-006 | L3-PY-013, L3-PY-014 | _(TBD)_ | Draft |
+| L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-011 | L3-CLI-001 | _(TBD)_ | Draft |
+| L2-CLN-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLN-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLN-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLN-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLN-005 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
-| L2-COPY-001 | _(none)_ | `tests/test_copy_engine.py::test_buffered_copy_transfers_correct_bytes` | Implemented |
-| L2-COPY-002 | _(none)_ | `tests/test_constants.py::test_copy_buffer_default_respects_floor` | Implemented |
-| L2-COPY-003 | _(none)_ | `tests/test_scheduler.py::test_scheduler_respects_max_concurrent_jobs` | Implemented |
+| L2-CLN-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-004 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-COPY-005 | _(none)_ | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
-| L2-COPY-006 | _(none)_ | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
-| L2-COPY-007 | _(none)_ | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
-| L2-COPY-008 | _(none)_ | `tests/test_traceability_audit.py::test_copy_fsyncs_the_temporary_destination` | Implemented |
-| L2-COPY-009 | _(none)_ | `tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
-| L2-COPY-010 | _(none)_ | `tests/test_recovery.py::test_reconcile_requeues_interrupted_and_removes_temps` | Implemented |
-| L2-COPY-011 | L3-PY-009 | `tests/test_configuration.py::test_use_kernel_copy_can_be_disabled`<br>`tests/test_copy_engine.py::test_buffered_copy_transfers_correct_bytes`<br>`tests/test_copy_engine.py::test_disabled_kernel_copy_never_calls_copy_file_range`<br>`tests/test_copy_engine.py::test_kernel_copy_discards_partial_output_on_fallback`<br>`tests/test_copy_engine.py::test_kernel_copy_falls_back_on_unsupported_errno`<br>`tests/test_copy_engine.py::test_kernel_copy_propagates_genuine_io_error`<br>`tests/test_copy_engine.py::test_kernel_copy_transfers_correct_bytes` | Implemented |
-| L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
-| L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
-| L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
-| L2-CTL-004 | _(none)_ | `tests/test_control_integration.py::test_server_answers_malformed_request_without_crashing`<br>`tests/test_dispatcher.py::test_handler_exception_is_isolated`<br>`tests/test_protocol.py::test_empty_message_rejected`<br>`tests/test_protocol.py::test_malformed_json_body_rejected`<br>`tests/test_protocol.py::test_non_object_json_rejected`<br>`tests/test_service.py::test_list_handler_unknown_state_is_isolated`<br>`tests/test_service.py::test_require_helpers_raise_when_not_running`<br>`tests/test_service.py::test_submit_handler_rejects_malformed_requests` | Implemented |
-| L2-CTL-005 | L3-CTL-002 | `tests/test_cli.py::test_service_error_response_is_operation_failed`<br>`tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Implemented |
+| L2-COPY-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-009 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-COPY-011 | L3-PY-009 | _(TBD)_ | Draft |
+| L2-CORE-001 | L3-CPP-001, L3-CPP-002, L3-CPP-003, L3-CPP-004, L3-CPP-015, L3-CPP-041 | `cpp/tests/test_job.cpp::[from_string is the exact inverse of to_string]`<br>`cpp/tests/test_job.cpp::[from_string rejects anything to_string never emits]`<br>`cpp/tests/test_job.cpp::[is_legal_transition matches the specified table exhaustively]`<br>`cpp/tests/test_job.cpp::[state tokens are stable, unique, uppercase]`<br>`cpp/tests/test_job.cpp::[terminal predicate covers exactly Done and Failed]`<br>`cpp/tests/test_job.cpp::[terminal states accept no further transitions]` | Implemented |
+| L2-CORE-002 | L3-CPP-005, L3-CPP-009, L3-CPP-010, L3-CPP-011 | `cpp/tests/test_job.cpp::[construction establishes Queued with coherent timestamps]`<br>`cpp/tests/test_job.cpp::[failure is reachable from every non-terminal state and records the error]`<br>`cpp/tests/test_job.cpp::[happy path lifecycle updates state and timestamps]` | Implemented |
+| L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | `cpp/tests/test_job.cpp::[terminal states accept no further transitions]`<br>`cpp/tests/test_job.cpp::[transition rejects every illegal pair and leaves the job unmodified]`<br>`cpp/tests/test_job.cpp::[transition to Failed requires a non-empty error message]`<br>`cpp/tests/test_job.cpp::[transition to non-Failed states rejects an error message]` | Implemented |
+| L2-CTL-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-CTL-007 | _(none)_ | `tests/test_control_unix.py::test_bind_refuses_non_socket_file`<br>`tests/test_control_unix.py::test_bind_removes_dead_stale_socket` | Implemented |
-| L2-CTL-008 | L3-CTL-004 | `tests/test_cli.py::test_service_run_reports_unavailable_without_lockable_state`<br>`tests/test_control_unix.py::test_process_lock_context_manager`<br>`tests/test_control_unix.py::test_process_lock_is_exclusive` | Implemented |
-| L2-CTL-009 | _(none)_ | `tests/test_control_unix.py::test_service_run_serves_queries_then_stops` | Implemented |
-| L2-CTL-010 | _(none)_ | `tests/test_cli.py::test_health_renders_json`<br>`tests/test_cli.py::test_health_reports_service_unavailable_when_down`<br>`tests/test_service.py::test_health_handler` | Implemented |
-| L2-CTL-011 | L3-PY-010 | `tests/test_control_unix.py::test_service_run_notifies_readiness`<br>`tests/test_systemd.py::test_notify_is_noop_without_notify_socket`<br>`tests/test_systemd.py::test_notify_ready_and_stopping_send_datagrams`<br>`tests/test_systemd.py::test_notify_returns_false_on_unreachable_socket`<br>`tests/test_systemd.py::test_notify_translates_abstract_socket` | Implemented |
-| L2-CTL-012 | _(none)_ | `tests/test_systemd.py::test_notify_watchdog_sends_keepalive` | Implemented |
-| L2-DEL-001 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
-| L2-DEL-002 | _(none)_ | `tests/test_transfer.py::test_unexpected_staging_file_is_not_deleted` | Implemented |
-| L2-DEL-003 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
-| L2-DEL-004 | _(none)_ | `tests/test_transfer.py::test_hash_mismatch_retains_source_and_temp` | Implemented |
-| L2-DPR-001 | _(none)_ | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
-| L2-DPR-002 | L3-INT-005 | `tests/test_traceability_audit.py::test_copy_fsyncs_the_temporary_destination` | Partially Implemented |
-| L2-DPR-003 | _(none)_ | `tests/test_transfer.py::test_size_mismatch_is_manual_and_retains`<br>`tests/test_transfer.py::test_transfer_across_integrity_modes` | Implemented |
-| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006, L3-PY-002 | `tests/test_models.py::test_hash_algorithms_are_supported_by_hashlib`<br>`tests/test_transfer.py::test_integrity_verifier_matches_hashlib` | Partially Implemented |
-| L2-DPR-005 | L3-PY-003 | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Implemented |
-| L2-DPR-006 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
-| L2-DPR-007 | L3-INT-007 | `tests/test_transfer.py::test_hash_mismatch_retains_source_and_temp` | Implemented |
-| L2-DST-001 | _(none)_ | `tests/test_transfer.py::test_existing_destination_collision_is_manual` | Implemented |
-| L2-DST-002 | _(none)_ | `tests/test_models.py::test_existing_destination_policy_excludes_overwrite`<br>`tests/test_transfer.py::test_existing_identical_destination_is_reused`<br>`tests/test_transfer.py::test_identical_destination_reused_by_size_only` | Implemented |
-| L2-DST-003 | _(none)_ | `tests/test_transfer.py::test_existing_destination_collision_is_manual` | Implemented |
-| L2-DST-004 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
-| L2-DST-005 | L3-INT-004 | `tests/test_submission.py::test_submit_claims_records_and_writes_manifest` | Partially Implemented |
-| L2-ENV-001 | _(none)_ | `tests/test_cli.py::test_doctor_fails_when_required_capability_missing`<br>`tests/test_cli.py::test_doctor_json_reports_environment`<br>`tests/test_cli.py::test_doctor_passes_when_environment_ok`<br>`tests/test_diagnostics.py::test_af_unix_and_fcntl_probes`<br>`tests/test_diagnostics.py::test_hash_algorithm_probe`<br>`tests/test_diagnostics.py::test_python_version_probe`<br>`tests/test_diagnostics.py::test_report_ok_and_warnings_aggregate`<br>`tests/test_diagnostics.py::test_required_present_passes_and_missing_fails`<br>`tests/test_diagnostics.py::test_sqlite_wal_probe_on_real_sqlite` | Implemented |
-| L2-ENV-002 | _(none)_ | `tests/test_diagnostics.py::test_default_checks_include_kernel_copy_only_when_enabled`<br>`tests/test_diagnostics.py::test_optional_capability_probes`<br>`tests/test_diagnostics.py::test_optional_missing_warns_not_fails` | Implemented |
+| L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
+| L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-011 | L3-PY-010 | _(TBD)_ | Draft |
+| L2-CTL-012 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-017 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-018 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-019 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-020 | _(none)_ | _(TBD)_ | Draft |
+| L2-DEL-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-DEL-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-DEL-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DEL-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-DPR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-DPR-002 | L3-INT-005 | _(TBD)_ | Draft |
+| L2-DPR-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006, L3-PY-002 | _(TBD)_ | Draft |
+| L2-DPR-005 | L3-PY-003 | _(TBD)_ | Draft |
+| L2-DPR-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-DPR-007 | L3-INT-007 | _(TBD)_ | Draft |
+| L2-DST-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-DST-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-DST-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DST-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-DST-005 | L3-INT-004 | _(TBD)_ | Draft |
+| L2-ENV-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-ENV-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
 | L2-EVT-002 | L3-EVT-003 | _(TBD)_ | Draft |
 | L2-EVT-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-EVT-004 | L3-EVT-001, L3-EVT-002 | _(TBD)_ | Draft |
 | L2-EVT-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-FS-001 | _(none)_ | `tests/test_traceability_audit.py::test_inventory_records_device_and_inode` | Implemented |
-| L2-FS-002 | _(none)_ | `tests/test_traceability_audit.py::test_claim_preserves_and_reverifies_identity` | Implemented |
-| L2-FS-003 | _(none)_ | `tests/test_traceability_audit.py::test_claim_rejects_cross_filesystem_source` | Implemented |
-| L2-FS-004 | _(none)_ | `tests/test_submission.py::test_submit_rejects_symlinks` | Implemented |
-| L2-FS-005 | _(none)_ | `tests/test_submission.py::test_submit_rejects_source_outside_allowed_roots` | Implemented |
-| L2-JOB-001 | L3-JOB-002 | `tests/test_repository.py::test_corrupt_stored_state_raises_repository_error`<br>`tests/test_repository.py::test_duplicate_job_id_raises`<br>`tests/test_repository.py::test_insert_and_get_job`<br>`tests/test_repository.py::test_insert_and_list_files_with_cascade`<br>`tests/test_repository.py::test_open_failure_raises_repository_error` | Implemented |
-| L2-JOB-002 | L3-JOB-001, L3-PY-007 | `tests/test_repository.py::test_wal_journal_mode_is_enabled` | Partially Implemented |
-| L2-JOB-003 | _(none)_ | `tests/test_repository.py::test_each_thread_gets_its_own_connection` | Implemented |
-| L2-JOB-004 | _(none)_ | `tests/test_repository.py::test_initialize_is_idempotent` | Implemented |
-| L2-JOB-005 | _(none)_ | `tests/test_repository.py::test_illegal_transition_rejected`<br>`tests/test_repository.py::test_legal_transition_updates_state`<br>`tests/test_repository.py::test_transition_map_terminals_are_closed`<br>`tests/test_repository.py::test_transition_unknown_job_rejected` | Implemented |
-| L2-JOB-006 | _(none)_ | `tests/test_cli.py::test_query_commands_report_service_unavailable_when_down`<br>`tests/test_cli.py::test_status_found_renders_human`<br>`tests/test_cli.py::test_status_not_found_returns_job_not_found`<br>`tests/test_repository.py::test_list_jobs_filters_by_state`<br>`tests/test_repository.py::test_statistics_aggregate`<br>`tests/test_service.py::test_list_handler`<br>`tests/test_service.py::test_resolve_state_selector`<br>`tests/test_service.py::test_stats_handler`<br>`tests/test_service.py::test_status_handler_found_and_missing` | Implemented |
-| L2-JOB-007 | L3-JOB-003 | `tests/test_submission.py::test_manifest_and_record_carry_consistent_metadata` | Implemented |
-| L2-LIF-001 | _(none)_ | `tests/test_lifecycle.py::test_cancel_paused_job_retains_source_and_removes_partial`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
-| L2-LIF-002 | _(none)_ | `tests/test_control_signals.py::test_interrupt_check_raises_only_when_signalled`<br>`tests/test_control_signals.py::test_request_poll_and_clear`<br>`tests/test_copy_engine.py::test_interrupt_stops_copy_and_keeps_partial`<br>`tests/test_lifecycle.py::test_cancel_copying_job_signals_cooperatively`<br>`tests/test_lifecycle.py::test_pause_copying_job_signals_cooperatively`<br>`tests/test_transfer.py::test_process_job_pauses_on_signal_and_keeps_partial` | Implemented |
-| L2-LIF-003 | _(none)_ | `tests/test_lifecycle.py::test_cancel_completed_job_is_rejected`<br>`tests/test_transfer.py::test_process_job_cancels_on_signal_and_discards_partial` | Implemented |
-| L2-LIF-004 | _(none)_ | `tests/test_cli.py::test_lifecycle_commands_render_accepted`<br>`tests/test_lifecycle.py::test_pause_is_idempotent`<br>`tests/test_lifecycle.py::test_pause_queued_job_transitions_directly`<br>`tests/test_lifecycle.py::test_resume_paused_job_requeues_and_clears_signal`<br>`tests/test_models.py::test_pause_cancel_and_resume_transitions`<br>`tests/test_recovery.py::test_reconcile_leaves_paused_jobs_paused`<br>`tests/test_service.py::test_pause_and_resume_handlers_via_dispatcher`<br>`tests/test_transfer.py::test_pause_with_resume_disabled_drops_partial_and_restarts_from_zero` | Implemented |
-| L2-LIF-005 | _(none)_ | `tests/test_cli.py::test_lifecycle_unknown_job_is_job_not_found`<br>`tests/test_lifecycle.py::test_resume_non_paused_is_rejected`<br>`tests/test_lifecycle.py::test_unknown_job_and_missing_id_are_typed_errors` | Implemented |
-| L2-POSIX-001 | _(none)_ | `tests/test_traceability_audit.py::test_inventory_rejects_missing_source_root_without_creating_it` | Implemented |
-| L2-POSIX-002 | _(none)_ | `tests/test_submission.py::test_submit_rejects_symlinks` | Implemented |
-| L2-POSIX-003 | _(none)_ | `tests/test_traceability_audit.py::test_inventory_rejects_uninspectable_requested_path` | Implemented |
-| L2-POSIX-004 | _(none)_ | `tests/test_traceability_audit.py::test_inventory_is_deterministic_sorted_order` | Implemented |
-| L2-POSIX-005 | _(none)_ | `tests/test_traceability_audit.py::test_inventory_excludes_the_claim_directory` | Implemented |
-| L2-POSIX-006 | _(none)_ | `tests/test_submission.py::test_submit_detects_unstable_source` | Implemented |
-| L2-POSIX-007 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
-| L2-POSIX-008 | L3-PY-005 | `tests/test_transfer.py::test_copy_engine_creates_temp_exclusively` | Partially Implemented |
-| L2-POSIX-009 | L3-PY-004 | `tests/test_traceability_audit.py::test_temp_creation_requests_o_nofollow` | Partially Implemented |
-| L2-POSIX-010 | _(none)_ | `tests/test_traceability_audit.py::test_copy_fsyncs_the_temporary_destination` | Implemented |
-| L2-POSIX-011 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
-| L2-POSIX-012 | _(none)_ | `tests/test_traceability_audit.py::test_publish_fsyncs_the_destination_directory` | Implemented |
-| L2-REC-001 | _(none)_ | `tests/test_recovery.py::test_reconcile_leaves_terminal_and_queued_jobs`<br>`tests/test_service.py::test_build_scheduler_and_reconcile` | Implemented |
-| L2-REC-002 | _(none)_ | `tests/test_recovery.py::test_reconcile_requeues_interrupted_and_removes_temps`<br>`tests/test_recovery.py::test_reconcile_with_missing_destination_is_safe`<br>`tests/test_repository.py::test_reset_job_state_bypasses_transition_map` | Implemented |
-| L2-REC-003 | _(none)_ | `tests/test_scheduler.py::test_recovery_reprocess_is_idempotent` | Implemented |
-| L2-REC-004 | _(none)_ | `tests/test_repository.py::test_list_runnable_job_ids`<br>`tests/test_scheduler.py::test_scheduler_processes_a_queued_job`<br>`tests/test_scheduler.py::test_scheduler_respects_max_concurrent_jobs`<br>`tests/test_service.py::test_scheduler_loop_runs_a_tick_then_stops`<br>`tests/test_service.py::test_scheduler_loop_survives_a_failing_tick` | Implemented |
-| L2-RSM-001 | L3-PY-012 | `tests/test_copy_engine.py::test_existing_partial_without_resume_fails_exclusive`<br>`tests/test_copy_engine.py::test_interrupt_then_resume_round_trips`<br>`tests/test_copy_engine.py::test_kernel_assisted_resume_completes`<br>`tests/test_copy_engine.py::test_resume_continues_from_partial_offset`<br>`tests/test_transfer.py::test_pause_then_resume_completes_via_coordinator` | Implemented |
-| L2-RSM-002 | _(none)_ | `tests/test_configuration.py::test_resume_partial_files_defaults_on_and_can_disable`<br>`tests/test_recovery.py::test_reconcile_preserves_partials_when_resume_enabled`<br>`tests/test_recovery.py::test_reconcile_removes_partials_when_resume_disabled`<br>`tests/test_transfer.py::test_pause_with_resume_disabled_drops_partial_and_restarts_from_zero` | Implemented |
-| L2-RSM-003 | _(none)_ | `tests/test_transfer.py::test_corrupt_resumed_partial_is_discarded_and_routed_to_manual` | Implemented |
-| L2-RTY-001 | _(none)_ | `tests/test_models.py::test_error_dispositions_cover_all_outcomes`<br>`tests/test_transfer.py::test_error_classifier` | Implemented |
-| L2-RTY-002 | _(none)_ | `tests/test_transfer.py::test_permanent_failure_retains_and_fails` | Implemented |
-| L2-RTY-003 | _(none)_ | `tests/test_repository.py::test_record_job_error_increments_attempt`<br>`tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
-| L2-RTY-004 | _(none)_ | `tests/test_scheduler.py::test_scheduler_runs_due_retry_and_skips_future_retry` | Implemented |
-| L2-RTY-005 | _(none)_ | `tests/test_transfer.py::test_compute_backoff_is_bounded`<br>`tests/test_transfer.py::test_compute_backoff_zero_attempt_uses_initial`<br>`tests/test_transfer.py::test_retryable_failure_schedules_retry` | Implemented |
+| L2-FS-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-FS-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-FS-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-FS-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-FS-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-001 | L3-JOB-002 | _(TBD)_ | Draft |
+| L2-JOB-002 | L3-JOB-001, L3-PY-007 | _(TBD)_ | Draft |
+| L2-JOB-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-007 | L3-JOB-003 | _(TBD)_ | Draft |
+| L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-JOB-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-011 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-012 | _(none)_ | _(TBD)_ | Draft |
+| L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
+| L2-LIF-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-MGR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-MGR-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-MGR-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-008 | L3-PY-005 | _(TBD)_ | Draft |
+| L2-POSIX-009 | L3-PY-004 | _(TBD)_ | Draft |
+| L2-POSIX-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-011 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-012 | _(none)_ | _(TBD)_ | Draft |
+| L2-REC-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-REC-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-REC-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-REC-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-REN-001 | L3-CPP-042, L3-CPP-043 | `cpp/tests/test_rename_template.cpp::[a leading dot is not an extension separator]`<br>`cpp/tests/test_rename_template.cpp::[expands every documented field]`<br>`cpp/tests/test_rename_template.cpp::[malformed templates are rejected by name]`<br>`cpp/tests/test_rename_template.cpp::[sequence is zero-padded to six digits]`<br>`cpp/tests/test_rename_template.cpp::[timestamps render as UTC from the supplied millis]` | Implemented |
+| L2-REN-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-REN-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-RSM-001 | L3-PY-012 | _(TBD)_ | Draft |
+| L2-RSM-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-RSM-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-014 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-001 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-STO-002 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
+| L2-STO-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-STO-003 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-004 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-005 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-SUB-001 | _(none)_ | `tests/test_submission.py::test_submit_is_idempotent_by_request_id` | Implemented |
-| L2-SUB-002 | L3-SUB-001 | `tests/test_service.py::test_submit_handler_claims_and_records`<br>`tests/test_submission.py::test_submit_claims_records_and_writes_manifest` | Implemented |
-| L2-SUB-003 | _(none)_ | `tests/test_submission.py::test_submit_rejects_empty_source` | Implemented |
-| L2-SUB-004 | L3-SUB-002 | `tests/test_submission.py::test_manifest_writer_writes_atomically` | Implemented |
-| L2-SUB-005 | _(none)_ | `tests/test_fault_injection.py::test_manifest_failure_during_submit_retains_claimed_files`<br>`tests/test_fault_injection.py::test_repository_failure_during_submit_is_not_accepted`<br>`tests/test_submission.py::test_submit_rejects_destination_outside_allowed_roots` | Implemented |
+| L2-SUB-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-SUB-002 | L3-SUB-001 | _(TBD)_ | Draft |
+| L2-SUB-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-SUB-004 | L3-SUB-002 | _(TBD)_ | Draft |
+| L2-SUB-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-XFR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-XFR-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-XFR-004 | _(none)_ | _(TBD)_ | Draft |
 
 ### L1-ROB: Robustness / no-panic (L1 leaf)
 
@@ -180,55 +212,173 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-ROB-001 | L2-ENV-003 | `tests/test_configuration.py::test_load_rejects_missing_file`<br>`tests/test_configuration.py::test_load_rejects_non_regular_file`<br>`tests/test_configuration.py::test_load_rejects_nul_byte_in_path`<br>`tests/test_fuzz.py::test_cli_main_never_panics`<br>`tests/test_fuzz.py::test_configuration_loader_never_panics`<br>`tests/test_fuzz.py::test_decode_message_never_panics`<br>`tests/test_fuzz.py::test_dispatcher_never_panics`<br>`tests/test_fuzz.py::test_receive_message_never_panics` | Implemented |
+| L1-ROB-001 | L2-CTL-015, L2-ENV-003, L2-JSON-002, L2-JSON-003, L2-SEC-006 | _(none)_ | Partially Implemented |
+| L1-ROB-002 | L2-JSON-004, L2-JSON-005 | _(none)_ | Partially Implemented |
 
 **L2 -> L3 -> Verification Artifacts**
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
+| L2-CTL-015 | L3-CPP-047, L3-CPP-049, L3-CPP-052 | `cpp/tests/test_http_parser.cpp::[arbitrary bytes never crash the parser]`<br>`cpp/tests/test_http_parser.cpp::[bare-LF framing is NeedMore, not Bad]`<br>`cpp/tests/test_http_parser.cpp::[duplicate headers are rejected]`<br>`cpp/tests/test_http_parser.cpp::[every proper prefix of a valid head yields NeedMore]`<br>`cpp/tests/test_http_parser.cpp::[header names are lowercased and values OWS-trimmed]`<br>`cpp/tests/test_http_parser.cpp::[header parsing does not depend on the process locale]`<br>`cpp/tests/test_http_parser.cpp::[malformed headers are rejected]`<br>`cpp/tests/test_http_parser.cpp::[obs-fold continuation lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[the header count is bounded]` | Implemented |
+| L2-ENV-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-JSON-002 | L3-CPP-019, L3-CPP-020, L3-CPP-027, L3-CPP-028 | `cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode survives pathological input without crashing]`<br>`cpp/tests/test_json.cpp::[arbitrary byte soup never crashes the parser]`<br>`cpp/tests/test_json.cpp::[every prefix of a valid document is rejected without crashing]`<br>`cpp/tests/test_json.cpp::[rejection errors name the offending byte offset]` | Implemented |
+| L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024, L3-CPP-030 | `cpp/tests/test_api_codec.cpp::[encode_error escapes hostile messages]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_api_codec.cpp::[encoded output survives a round-trip through the parser]`<br>`cpp/tests/test_json.cpp::[a leading byte-order mark is rejected]`<br>`cpp/tests/test_json.cpp::[accepts the documented subset]`<br>`cpp/tests/test_json.cpp::[duplicate member names are rejected]`<br>`cpp/tests/test_json.cpp::[embedded NUL is rejected]`<br>`cpp/tests/test_json.cpp::[escape() output parses back to the original]`<br>`cpp/tests/test_json.cpp::[floating point and exponents are rejected]`<br>`cpp/tests/test_json.cpp::[integers outside int64 are rejected]`<br>`cpp/tests/test_json.cpp::[integers parse across the int64 range]`<br>`cpp/tests/test_json.cpp::[invalid UTF-8 is rejected]`<br>`cpp/tests/test_json.cpp::[literals other than true/false are rejected]`<br>`cpp/tests/test_json.cpp::[malformed escapes are rejected]`<br>`cpp/tests/test_json.cpp::[malformed numbers are rejected]`<br>`cpp/tests/test_json.cpp::[string values round-trip exactly]`<br>`cpp/tests/test_json.cpp::[structural malformations are rejected]`<br>`cpp/tests/test_json.cpp::[surrogate handling rejects unpaired halves]`<br>`cpp/tests/test_json.cpp::[top-level value must be an object]`<br>`cpp/tests/test_json.cpp::[trailing content after the value is rejected]`<br>`cpp/tests/test_json.cpp::[unescaped control characters are rejected]` | Implemented |
+| L2-JSON-004 | L3-CPP-021, L3-CPP-031 | `cpp/tests/test_api_codec.cpp::[decode bounds path length at PATH_MAX]`<br>`cpp/tests/test_json.cpp::[nesting depth is bounded]`<br>`cpp/tests/test_json.cpp::[size limits are enforced]` | Implemented |
+| L2-JSON-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-006 | L3-CPP-044 | `cpp/tests/test_rename_template.cpp::[an expansion that could escape its directory is rejected]` | Implemented |
+
+### L1-API: REST control interface (L1)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-API-001 | L2-CTL-001, L2-CTL-005, L2-CTL-014 | _(none)_ | Partially Implemented |
+| L1-API-002 | L2-CTL-013 | _(none)_ | Implemented |
+| L1-API-003 | L2-CTL-002 | _(none)_ | Partially Implemented |
+| L1-API-004 | L2-CTL-003 | _(none)_ | Implemented |
+| L1-API-005 | L2-CTL-016 | _(none)_ | Implemented |
+| L1-API-006 | L2-CTL-007 | _(none)_ | Draft |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L2-CTL-001 | L3-CTL-003 | _(TBD)_ | Draft |
+| L2-CTL-002 | L3-CPP-046, L3-CTL-001, L3-PY-006 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
+| L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
+| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]` | Partially Implemented |
+| L2-CTL-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-013 | L3-CPP-025, L3-CPP-029, L3-CPP-051 | `cpp/tests/test_api_codec.cpp::[decode accepts exactly {source, dest} with non-empty strings]`<br>`cpp/tests/test_api_codec.cpp::[encode_job clamps byte counters that exceed int64]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_http_parser.cpp::[405 responses carry an Allow header]`<br>`cpp/tests/test_http_parser.cpp::[every status the serializer knows has a reason phrase]`<br>`cpp/tests/test_http_parser.cpp::[responses serialize with correct framing]` | Implemented |
+| L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-016 | _(none)_ | _(TBD)_ | Implemented (I) |
+
+### L1-OBS: Observability (L1)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-OBS-001 | L2-DASH-001, L2-DASH-002, L2-DASH-003 | _(none)_ | Partially Implemented |
+| L1-OBS-002 | L2-CTL-010, L2-JOB-006 | _(none)_ | Draft |
+| L1-OBS-003 | L2-CORE-004 | _(none)_ | Implemented |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L2-CORE-004 | L3-CPP-012, L3-CPP-045 | `cpp/tests/test_rename_template.cpp::[expansion never crashes on arbitrary input]`<br>`cpp/tests/test_rename_template.cpp::[timestamps render as UTC from the supplied millis]` | Implemented |
+| L2-CTL-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-DASH-001 | _(none)_ | _(TBD)_ | Implemented (D) |
+| L2-DASH-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-DASH-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-006 | _(none)_ | _(TBD)_ | Draft |
+
+### L1-SEC: Filesystem security discipline (L1/L2)
+
+**L1 -> L2**
+
+| L1 ID | L2 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L1-SEC-001 | L2-NFS-002 | _(none)_ | Draft |
+| L1-SEC-002 | L2-JOB-014, L2-NFS-006, L2-NFS-008, L2-SEC-001, L2-SEC-002 | _(none)_ | Partially Implemented |
+| L1-SEC-003 | L2-JOB-013, L2-JOB-015, L2-NFS-003, L2-SEC-012 | _(none)_ | Draft |
+| L1-SEC-004 | L2-NFS-004, L2-NFS-005, L2-SEC-009, L2-SEC-010, L2-SEC-011, L2-SEC-016 | _(none)_ | Partially Implemented |
+| L1-SEC-005 | L2-SEC-003, L2-SEC-004, L2-SEC-005, L2-SEC-008, L2-SEC-013, L2-SEC-015 | _(none)_ | Partially Implemented |
+| L1-SEC-006 | L2-NFS-001, L2-SEC-007 | _(none)_ | Draft |
+| L1-SEC-007 | _(none)_ | _(none)_ | Draft |
+
+**L2 -> L3 -> Verification Artifacts**
+
+| L2 ID | L3 Children | Test Artifacts | Status |
+|-------|-------------|----------------|--------|
+| L2-JOB-013 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-014 | _(none)_ | _(TBD)_ | Draft |
+| L2-JOB-015 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-NFS-006 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-NFS-008 | _(none)_ | _(TBD)_ | Implemented (D) |
+| L2-SEC-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-007 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-009 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-011 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-012 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-013 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-015 | _(none)_ | _(TBD)_ | Implemented (I) |
+| L2-SEC-016 | _(none)_ | _(TBD)_ | Implemented (D) |
 
 ---
 
 ## Coverage summary
 
-* **Tested** — at least one `@pytest.mark.requirement` marker names this requirement.
+* **Tested** — at least one `@pytest.mark.requirement` marker or Catch2 tag names this requirement.
 * **Verified** — Tested, OR the spec declares verification by Inspection / Analysis / Demonstration only (no test required).
 
 | Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |
 |----------|----|----|-----|-----------|-----------|-------------|-------------|
-| SYS | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| ROB | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
-| DPR | 0 | 7 | 0 | 5 | 0 | 5 | 0 |
-| CFG | 0 | 11 | 0 | 11 | 0 | 11 | 0 |
+| SYS | 23 | 0 | 0 | 0 | 0 | 0 | 0 |
+| ROB | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| API | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| OBS | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| DPR | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| CFG | 0 | 11 | 0 | 0 | 0 | 1 | 0 |
 | EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
-| CLI | 0 | 11 | 5 | 9 | 2 | 9 | 2 |
-| ARC | 0 | 6 | 0 | 2 | 0 | 6 | 0 |
-| FS | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
-| POSIX | 0 | 12 | 0 | 12 | 0 | 12 | 0 |
-| CLN | 0 | 5 | 0 | 3 | 0 | 3 | 0 |
-| STO | 0 | 5 | 0 | 1 | 0 | 5 | 0 |
-| COPY | 0 | 11 | 0 | 10 | 0 | 11 | 0 |
-| BWL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
-| LIF | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
-| RSM | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
-| ENV | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
-| RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
-| DST | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
-| DEL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
-| CTL | 0 | 12 | 4 | 11 | 4 | 12 | 4 |
-| JOB | 0 | 7 | 3 | 7 | 3 | 7 | 3 |
-| SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
-| REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
-| INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
-| PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| **Total** | **11** | **136** | **40** | **113** | **24** | **123** | **24** |
+| CLI | 0 | 11 | 5 | 0 | 0 | 0 | 0 |
+| ARC | 0 | 8 | 0 | 0 | 0 | 4 | 0 |
+| FS | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| POSIX | 0 | 12 | 0 | 0 | 0 | 0 | 0 |
+| CLN | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
+| COPY | 0 | 11 | 0 | 0 | 0 | 1 | 0 |
+| BWL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| LIF | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| RSM | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| ENV | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| RTY | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| CTL | 0 | 20 | 4 | 0 | 0 | 2 | 0 |
+| JOB | 0 | 15 | 3 | 0 | 0 | 1 | 0 |
+| SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
+| REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| SEC | 7 | 16 | 0 | 0 | 0 | 3 | 0 |
+| NFS | 0 | 8 | 0 | 0 | 0 | 2 | 0 |
+| CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
+| REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| XFR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
+| INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
+| PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
+| CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
+| **Total** | **41** | **199** | **92** | **0** | **48** | **20** | **52** |
 
-The countable requirement set is every L2 and L3 requirement plus the 0 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 176 (77.8%).
+**Tested by at least one test marker**: 48 of 295 (16.3%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 147 of 176 (83.5%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 73 of 295 (24.7%).
+
+### v1.0.0 scope-adjusted coverage
+
+5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
+
+**In v1.0.0 scope — tested**: 48 of 226 (21.2%).
+
+**In v1.0.0 scope — verified**: 73 of 226 (32.3%).
+
+Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
 ### Orphan check
 

@@ -1,43 +1,301 @@
 # Roadmap
 
 Forward-looking milestone plan for the Background File Mover. Each milestone is a
-vertical, CI-green, fully-pytested slice that advances the requirements in
+vertical, CI-green, fully-tested slice that advances the requirements in
 `docs/L1-REQ.md` / `L2-REQ.md` / `L3-REQ.md`. Completed work lives in `CHANGELOG.md`
 and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
-The ordering follows the "Recommended Initial Build Order" agreed during design:
-build the durable control and state plane first, then submission and claiming, then the
-actual bytes-moving transfer engine, then recovery and packaging.
+---
+
+# WHERE WE LEFT OFF
+
+**Date:** 2026-08-03 · **Branch:** `v2-cpp` · **Current milestone: C1 — not started.**
+
+**C0 (the foundation) is delivered.** Five components are built, tested, fuzzed where
+they touch untrusted input, and green on every gate including the GCC 4.8.5 fidelity
+tier: the strict-subset **JSON parser** and REST codec, the **configuration loader**, the
+**job model and state machine**, the **rename template engine**, and the **HTTP
+request-head parser**. The full CI apparatus is in place — fifteen gates — and the
+Python implementation has been removed from this branch.
+
+**Nothing that moves a file exists yet.** There is no durable store, no filesystem layer,
+no move engine, no job manager, no socket server, no daemon entry point. The service
+cannot start, because there is no `main`.
+
+```
+In v1.0.0 scope:  48 of 226 requirements verified  (21.2%)
+Tests:            6,800 assertions / 97 cases      (all tiers green)
+```
+
+**The next action is C1 — the durable store.** Everything else depends on it, and its
+first task is vendoring the SQLite amalgamation, which is the one `pending` row in
+`cpp/VENDORED.md`.
+
+Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
+before starting anything.
+
+---
+
+## v1.0.0 milestone plan (C1–C9)
+
+Nine milestones remain. The ordering is a dependency chain, not a preference: C3 cannot
+be written safely before C2 exists, and C2's guarantees are meaningless without C1's
+commit record. Deviating from the order means building the data-safety layer last, which
+is how the security requirements get retrofitted instead of designed in — the exact
+mistake `docs/CYBERSECURITY.md` §10 documents.
+
+Milestone numbering is `C` for the C++ implementation, distinct from the Python `M1–M8`
+retained further down for history.
+
+**Merge to `main` at each milestone boundary** — see *Merge cadence* below.
+
+### C1 — Durable store (SQLite)
+
+Authoritative job state in SQLite (WAL, `synchronous=FULL`) behind a repository
+interface, per ADR-0010.
+
+- **Advances:** `L2-STO-001..005`, `L2-JOB-001..015` (14 in v1.0.0 scope)
+- **First task:** vendor the SQLite amalgamation and fill in the `pending` row in
+  `cpp/VENDORED.md` with a pinned version and SHA-256. It is public domain, so ADR-0007
+  is satisfied, but ADR-0004 still requires the hash gate.
+- **Carries the three hardest ideas in the project**, all inherited from the M8 triage
+  and none of them optional:
+  - `L2-JOB-013` **write-ahead ordering** — the intent is durable *before* the job
+    exists. A crash between acting and recording loses the file.
+  - `L2-JOB-014` **phase-dependent write-failure handling** — a durable-write failure
+    before the commit point aborts; after it, the process halts. Treating both as a
+    retry counter lets the record drift from the filesystem.
+  - `L2-JOB-015` **durable, monotonic job sequence** across restarts. Without it,
+    identifiers repeat after every restart and `{seq}` collides.
+- **Done when:** a fresh store initializes on first boot (`L2-JOB-011`); a corrupt store
+  is a hard error, never a silent reset (`L2-JOB-012`); `error` is present if and only if
+  state is `FAILED`, enforced as a `CHECK` constraint (`L2-JOB-010`); and a kill-at-every-
+  statement test leaves the store readable and the sequence non-repeating.
+
+### C2 — fd-relative filesystem layer
+
+The layer every later milestone touches the disk through. No path-based
+check-then-act anywhere.
+
+- **Advances:** `L2-SEC-001..016` (16), `L2-NFS-001..008` (8)
+- **Scope boundary, from `L1-SEC-007`:** same filesystem only, regular files only. Both
+  remove attack surface rather than save effort — `linkat` does not work on directories,
+  and NFS has no `RENAME_NOREPLACE`, so an atomic no-clobber directory move does not
+  exist on the target filesystem at all.
+- **Primary/fallback, and note which is which:** `renameat2(RENAME_NOREPLACE)` is the
+  primary; on NFS it is unavailable, so `linkat` + `unlinkat` is not a degraded path
+  there but *the* path. Test both deliberately.
+- **Done when:** every filesystem call is `openat`/`fstatat`/`renameat2`/`linkat`/
+  `unlinkat` relative to a held descriptor with `O_NOFOLLOW`; a symlink-swap fault
+  injection suite cannot find a window; and the NFS behaviors in `docs/CYBERSECURITY.md`
+  §4 each have a probe.
+
+### C3 — Move engine (single commit point)
+
+The bytes actually move. One atomic commit point: everything before it disposable,
+everything after it idempotent.
+
+- **Advances:** `L1-SEC-001`, `L1-SEC-002`, `L1-SYS-015`, `L2-XFR-001..003`, the
+  in-scope `L2-COPY-*`
+- **Explicitly not here:** claim semantics, integrity verification, conservative
+  deletion, recovery-by-resumption. Those are `L1-SYS-002..006`, **deferred to v1.1**.
+  Do not implement them early to feel complete — v1.0.0 is deliberately narrower.
+- **Also not here:** any external command. ADR-0011 removed `ExecTransfer`; a free-text
+  command in configuration makes the config file executable and voids the commit-point
+  guarantee.
+- **Done when:** `SIGKILL` between every pair of phases leaves a state the next start can
+  reconcile, and no failure path can delete a source whose destination is not durably in
+  place.
+
+### C4 — Job manager and worker pool
+
+The first threads in the project. ThreadSanitizer has been gating since before any
+thread existed (`L2-ARC-008`), deliberately.
+
+- **Advances:** `L2-MGR-001..003`, `L2-LIF-*` (3 in scope), `L2-RTY-*` (5 in scope)
+- **Adopt the practices already triaged in:** latch-based concurrency tests and an
+  injected clock, so scheduling is deterministic in tests rather than hopeful.
+- **Done when:** TSan is green under a suite that deliberately interleaves submit,
+  cancel, and shutdown; and a worker crash cannot wedge the queue.
+
+### C5 — REST control plane
+
+The routes and socket server deferred from the M9/M10 triage. The request-head parser
+they sit on is already delivered.
+
+- **Advances:** `L2-CTL-001..016` (the pre-existing 16)
+- **Two rules kept from the inherited design, worth re-reading before starting:** bytes
+  beyond the declared `Content-Length` are a `400` — no pipelining, no smuggled second
+  request; and the integration test fires the hostile battery *first* (garbage, oversized
+  head → 431, gigabyte declaration → 413, chunked → 400, trailing bytes → 400) and then
+  proves the same server instance still completes a real job.
+- **Open design point, flagged at triage and still open:** the inherited server was
+  serial-accept, which contradicts `L2-SEC-010` (one stalled connection must not block
+  others) and needs `L2-SEC-009` per-syscall timeouts. Decide the concurrency model
+  before writing it, not after.
+- **Done when:** the hostile battery passes, timeouts are per-syscall rather than
+  per-request, and a stalled client cannot starve another.
+
+### C6 — Daemon entry point
+
+`main`, signals, and the startup sequence. The service becomes runnable here.
+
+- **Advances:** `L2-CTL-017..020`, `L2-EVT-001..005`
+- **Requirements already written for this, from the final triage:** handler assigns only
+  to a `volatile sig_atomic_t` (`L2-CTL-017`); `SIGPIPE` ignored process-wide
+  (`L2-CTL-018`); `--check` config validation for systemd `ExecStartPre` (`L2-CTL-019`);
+  ordered startup with reverse-order teardown (`L2-CTL-020`).
+- **Do not copy the inherited 200 ms `nanosleep` wait loop.** Block on `sigsuspend` or a
+  self-pipe; a daemon should not wake five times a second forever to poll a flag.
+- **Done when:** `systemctl start/stop` is clean, `--check` fails the unit on a bad
+  config before anything is created, and shutdown drains rather than aborts.
+
+### C7 — Operator dashboard
+
+- **Advances:** `L2-DASH-001..003`
+- **`L2-DASH-003` is the load-bearing one:** every dynamic value enters the DOM through
+  `textContent`/`createTextNode`, never `innerHTML`. Paths are attacker-influenced by
+  definition — whoever can create a file chooses its name — and the operator's browser
+  holds the one session with authority over this service.
+- **Done when:** single self-contained page, no external resources, and a test feeds a
+  filename containing markup and proves it renders as text.
+
+### C8 — Packaging, hardening, deployment
+
+- **Advances:** `L2-SEC-014`, `L2-ENV-001..003`
+- **The hardened unit is already specified** and is stronger than the inherited one:
+  `ProtectSystem=strict`, `ReadWritePaths=` limited to managed trees, `NoNewPrivileges`,
+  `PrivateTmp`, `ProtectHome`, a trimmed `CapabilityBoundingSet=`, a dedicated service
+  account, and `UMask=0077`.
+- **Done when:** the service installs and runs unprivileged on RHEL 9 (SELinux) and
+  SLES 12 SP5 (AppArmor), and the environment diagnostic gates the deployment.
+
+### C9 — Qualification and documentation
+
+The milestone that makes v1.0.0 *shippable* rather than merely built.
+
+- **NFS qualification on real hardware** — the checklist in `docs/DEPLOYMENT.md` is
+  implementation-neutral and hard-won; keep it through the rewrite.
+- **The documentation rewrites owed** (table below) come due here.
+- **Done when:** the scope-adjusted trace figure is at 100% for in-scope requirements,
+  every retired-banner document has been rewritten or consciously re-deferred, and the
+  release checklist passes on both target platforms.
+
+### Milestone-to-coverage expectations
+
+A rough shape of the in-scope trace figure as each lands, so a number that comes out
+badly wrong is a signal rather than a surprise:
+
+| After | In-scope verified (approx.) |
+|---|---|
+| C0 (today) | 21% |
+| C1 | ~30% |
+| C2 | ~45% |
+| C3 | ~55% |
+| C4 | ~63% |
+| C5 | ~75% |
+| C6 | ~82% |
+| C7 | ~85% |
+| C8 | ~92% |
+| C9 | 100% in-scope |
+
+These are estimates from requirement counts per family, not commitments. The figure that
+matters is the one `build-trace-matrix.py` prints.
+
+## Merge cadence — milestones on `main`
+
+`v2-cpp` merges into `main` at each milestone boundary. **These merges are progress
+markers, not releases: no version bump, no tag, no changelog release heading.**
+
+```bash
+# from a clean, fully green v2-cpp
+git checkout main
+git merge --no-ff v2-cpp -m "Merge: C<N> — <milestone name>"
+git checkout v2-cpp
+```
+
+`--no-ff` is required so each milestone is one identifiable commit in `main`'s history.
+
+**Bar for merging — the same as for committing, no lower:**
+
+1. `make check-ci` green (read the tail of the log, not a pipeline's exit code)
+2. the GCC 4.8.5 container tier green
+3. `python3 scripts/build-trace-matrix.py --check` clean
+4. `docs/TRACE-MATRIX.md` regenerated and committed
+
+**The Python implementation is safe.** It is preserved in full by the `v0.4.2` tag —
+verified, 38 source files — so merging the C++ branch into `main` removes Python from
+`main`'s *tip* but destroys nothing. `v0.4.2` remains the version to deploy until v1.0.0
+ships.
+
+**Pushing to `origin` is a separate, deliberate act.** Merging locally marks the
+milestone; publishing it is the maintainer's call.
+
+## Documentation rewrites owed
+
+The Python implementation was removed from this branch ahead of v1.0.0. Several documents
+that describe it were **kept deliberately** rather than deleted, so the behavior and
+reasoning are not lost to a tag — each opens with a banner. Every one of them owes a
+rewrite against the C++ implementation, and this list is the only thing standing between
+"kept on purpose" and "quietly stale."
+
+Rewrite each when the C++ it describes exists — not before, and not piecemeal.
+
+| Document | Rewrite when | Notes |
+|---|---|---|
+| `docs/ARCHITECTURE.md` | The manager and transfer engine exist | Process/thread model changes completely: no GIL, real worker threads, TSan already gating |
+| `docs/CLI-REFERENCE.md` | A C++ client exists, if one ever does | The thin CLI over `AF_UNIX` is gone; REST may make a bespoke client unnecessary |
+| `docs/CONFIG-REFERENCE.md` | The C++ schema settles | Pair with `config/file-mover.ini`; `[journal]` is `[storage]` now (ADR-0010) |
+| `docs/LOGGING.md` | The daemon has a logging path | The `-O`/`__debug__` gating convention is Python-specific and has no C++ analogue |
+| `docs/DEPLOYMENT.md` | The daemon can be deployed | Keep the NFS qualification checklist — it is implementation-neutral and hard-won |
+| `docs/USER-GUIDE.md` | v1.0.0 is shippable | |
+| `docs/FEATURE-INTERACTIONS.md` | The v1.1 features return | Kernel copy, bandwidth limiting, resume are all v1.1 |
+| `docs/12-FACTOR.md` | Now — it is only partly stale | Factor VII **inverted**: the `AF_UNIX` deviation became REST conformance |
+| `docs/MAINTAINER-GUIDE.md` | Per workflow, as each lands | Layout and cheat sheet are already current; the per-workflow sections are not |
 
 ## Locked decisions ("do not drop")
 
 These were settled during design and at project kickoff. Keep them
 across all future work:
 
-- **Standard-library-only runtime.** The production package imports only the Python 3.10
-  standard library (L1-SYS-009). Dev/CI tooling is dev-group-only.
+- **Dependency-free runtime.** Production code uses only the C++11 standard library,
+  POSIX, and the vendored, hash-pinned dependencies in `cpp/VENDORED.md` (L1-SYS-009).
+  This requirement previously meant "Python 3.10 standard library only" — the ID was
+  reused, not reminted, when the implementation changed.
 - **Conservative deletion.** A source file is deleted only after the destination is
   written, fsynced, published, and verified per the configured integrity policy
   (L1-SYS-003). A failure always *retains* the claimed source.
 - **Hybrid naming.** Operator-facing name is generic (`file-mover`, `/etc/file-mover`);
   on-disk staging markers are SWIT-prefixed (`.swit-moving`, `.swit-partial-`) so
   in-flight artifacts are unmistakably ours on shared NFS.
-- **Unix-socket control plane.** The CLI is a thin client; the service is the durable
-  worker and a small local command server over an `AF_UNIX` socket with length-prefixed
-  JSON. Submission is idempotent by `request_id`.
+- **~~Unix-socket control plane.~~ Superseded at v1.0.0 by REST** (ADR-0002). The
+  `AF_UNIX` socket with length-prefixed JSON is gone. What survives the change and is
+  still locked: **submission is idempotent by `request_id`.** What was *lost* and must be
+  replaced deliberately: the socket gave filesystem-permission authentication for free,
+  and a TCP listener does not — hence the authentication item below.
 - **SQLite is the durable queue.** Authoritative job/file state lives in SQLite (WAL,
   `synchronous=FULL`); recovery decisions are made from observable filesystem state plus
   durable records, never from assumptions.
-- **Poetry, root `src/` layout, full quality battery** (ruff, mypy --strict, pytest +
-  coverage, pylint, vulture, bandit, CodeQL, SonarCloud, trace-matrix `--check`).
+- **~~Poetry, root `src/` layout~~ — superseded at v1.0.0.** The build is GNU make
+  (ADR-0005) over `cpp/`. The **full quality battery is locked and grew**: two compilers
+  including the GCC 4.8.5 fidelity tier, ASan/UBSan/LSan, ThreadSanitizer, Valgrind,
+  cppcheck, clang-tidy, vendored-file integrity, locale-free parser verification,
+  coverage, coverage-guided fuzzing with committed corpora, CodeQL, SonarCloud, and
+  trace-matrix `--check`.
 
-## Milestones
+## Milestones M1–M8 — the Python implementation (historical)
 
-**Status:** M1–M8 are delivered — the product is feature-complete for the first release
-(systemd service, submit/claim, durable state, integrity, retry, crash recovery, and the
-no-panic fuzz harness). Per-milestone detail lives in `CHANGELOG.md`; the roadmap now
-tracks the post-1.0 deferred items below. The milestone descriptions are retained here
-for reference.
+> **This section is history, not a plan.** M1–M8 describe the **Python** implementation
+> delivered through v0.4.2, which shipped and is tagged. The forward plan is
+> **C1–C9 above**. Nothing in this section is outstanding work.
+>
+> It is kept because the milestone shapes were sound and the C++ plan reuses several of
+> them, and because "M6 transfer engine" appears in ADRs and commit messages that would
+> otherwise dangle. Do not schedule against it.
+
+**Status:** M1–M8 were delivered — the Python product was feature-complete for its first
+release (systemd service, submit/claim, durable state, integrity, retry, crash recovery,
+and the no-panic fuzz harness). Per-milestone detail lives in `CHANGELOG.md`.
 
 ### M1 — Foundation & Requirements Baseline ✅
 
@@ -180,10 +438,14 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 
 ## Known gaps (decision needed)
 
+> **Read this section as of v0.4.0.** It describes the traceability position of the
+> Python implementation, whose tests left this branch with it. The C++ position is
+> different and much earlier — see the scope-adjusted figure in `docs/TRACE-MATRIX.md`.
+
 A **traceability audit** (v0.4.0) reconciled the trace matrix with the code: every
-implemented requirement now carries a `@pytest.mark.requirement` test marker (or a declared
-Inspection method), so a `Draft` status in the matrix now means *genuinely unbuilt*, not
-merely untested. The claim/filesystem and transfer/deletion data-safety requirements
+implemented requirement then carried a `@pytest.mark.requirement` test marker (or a
+declared Inspection method), so a `Draft` status in the matrix meant *genuinely unbuilt*,
+not merely untested. The claim/filesystem and transfer/deletion data-safety requirements
 (`L2-FS-*`, `L2-POSIX-*`, `L2-CLN-001/005`, `L2-COPY-*`, `L2-DST-*`, `L2-DEL-*`) are now
 tested. The requirements still `Draft` are unimplemented features specified during design —
 each needs an **implement-or-withdraw** decision:
@@ -221,3 +483,231 @@ part of the deferred **S3 adapter** rather than a standalone gap.
   fsynced partial (`[transfer] resume_partial_files`) instead of restarting from zero,
   with a hash-verified restart fallback (L2-RSM-001..003, L3-PY-012). See
   `docs/ARCHITECTURE.md` § *Partial-file resume*.
+
+---
+
+# v1.0.0 — C++ / REST implementation
+
+Tracked on the `v2-cpp` branch. **The forward plan is C1–C9 at the top of this file**;
+this section records what is already delivered and the architecture it sits on. The
+M1–M8 list above belongs to the Python implementation. The inherited external design
+used its own M1–M12 numbering, deliberately not carried into this repository.
+
+## Delivered — the C0 foundation
+
+| Component | Requirements | Notes |
+|---|---|---|
+| Core job state machine | `L3-CPP-001..015`, `L3-CPP-041` | Pure logic, clock-free, exhaustive transition table |
+| Strict JSON parser | `L3-CPP-016..024` | Project-owned (ADR-0006), fuzzed, hostile-input tested, 99% line coverage |
+| REST API codec | `L3-CPP-025..032` | Strict-reject; parser confined behind it |
+| Configuration loader | `L3-CPP-033..040` | Strict schema, all-errors reporting, `[storage]` section |
+| Rename template engine | `L3-CPP-042..045` | Pure, clock-free; validates its own result against `.`, `..`, `/`, NUL |
+| HTTP request-head parser | `L3-CPP-046..052` | Hand-rolled (ADR-0012), fuzzed, locale-free, **100%** line coverage |
+| CI pipeline | — | Fifteen gates, toolchains pinned by explicit version |
+
+Every one of these is pure or near-pure logic. That is not an accident of ordering — it
+is why they could be finished to this standard before any of them could move a byte. C1
+onward is where the project acquires state, threads, and a filesystem, and the cost per
+requirement rises accordingly.
+
+## Security and file-management architecture
+
+`docs/CYBERSECURITY.md` is the reference. It states a threat model in which
+endpoint security, MAC, audit agents, and other NFS clients all touch the same
+filesystem, and two assumptions are rejected: that a check stays true, and that
+privileged interference is impossible.
+
+**Two scoping constraints for v1.0.0**, taken to remove attack surface:
+
+* **Same filesystem only** (`L1-SEC-007`) — no staging directory, no recursive
+  copy, no bottom-up fsync ordering. Every move is one atomic operation.
+* **Files only** (`L1-SEC-007`) — no recursive walk, and it avoids depending on
+  an atomic no-clobber directory move, which **does not exist over NFS**
+  (`linkat` does not work on directories and NFS has no `RENAME_NOREPLACE`).
+
+### Outstanding work, in dependency order
+
+| # | Item | Requirements | Blocked on |
+|---|---|---|---|
+| 1 | **SQLite durable store** — phase model `intent → committed → source-deleted → complete`, source identity at intent | ADR-0010, `L1-SEC-003`, `L2-JOB-001..012` | Vendor the amalgamation |
+| 2 | **fd-relative filesystem layer** — `openat`/`renameat2`/`fstatat`/`unlinkat`, identity re-verification after open | `L2-SEC-001..004` | 1 |
+| 3 | **`renameat2` capability detection** + `linkat`/`unlinkat` fallback as a primary tested path | `L2-SEC-007`, `L2-NFS-001..003` | 2 |
+| 4 | **Preconditions and path validation** — trusted UID, sticky-bit check, canonicalization | `L2-SEC-005`, `L2-SEC-006` | 2 |
+| 5 | **Rename operation** on the fd-relative layer, consuming the delivered template engine | `L1-SYS-013`, `L2-REN-001..003` | 2, 3 |
+| 6 | **External-interference tolerance** — per-syscall timeouts, forward progress, failed-external state | `L1-SEC-004`, `L2-SEC-009..011`, `L2-NFS-004..005` | 1, 2 |
+| 7 | **Transfer strategies** — local rename, `fork`/`execvp` exec strategy; two-hop delivery | `L1-SYS-015`, `L2-XFR-001..004`, `L2-NFS-007` | 5 |
+| 8 | **Worker pool and REST server** | `L2-MGR-001..003`, `L2-CTL-001..016` | 1, 7 |
+| 9 | **Crash and fault injection suite** | `L1-SEC-002` | 1–8 |
+| 10 | **MAC policy + enforcing-mode CI** — SELinux module (RHEL), AppArmor profile (SLES) | `L1-SEC-005`, `L2-SEC-013` | 8 |
+| 11 | **Hardened systemd unit** | `L2-SEC-014` | 8 |
+| 12 | **ePO exclusion documentation + startup coverage check** | `L2-SEC-016` | 8 |
+| 13 | **NFS qualification on a real export** | `L2-NFS-006`, `L2-NFS-008` | 8 |
+
+### Testing obligations that cannot be deferred
+
+The guarantees live in crash-window behavior, which ordinary tests never
+reach. Recovery logic that only runs during disasters is the worst possible
+place for untested code.
+
+- [ ] `SIGKILL` between each phase transition, verifying recovery on restart
+- [ ] Entry swapped mid-operation (identity mismatch)
+- [ ] File removed mid-operation (quarantine simulation)
+- [ ] `EEXIST` at commit
+- [ ] Both paths missing at recovery → failed-external, no retry
+- [ ] Injected `open()` latency → timeout, sibling moves unaffected
+- [ ] Full suite under SELinux enforcing / AppArmor enforcing, zero denials
+- [ ] `linkat`/`unlinkat` fallback exercised as the primary path, not an edge case
+
+## M7 disposition (transfer adapters)
+
+The inherited M7 delivered three transfer strategies. One is deferred, one is
+removed, and the third is superseded by work already scheduled.
+
+| Delivered | Outcome |
+|---|---|
+| `LocalRenameTransfer` | **Superseded** by roadmap items 2–3. Path-based `link`/`unlink`/`lstat` is the check-then-act pattern `L2-SEC-001` prohibits, and `link`+`unlink` is the NFS *fallback* rather than the primary (`L2-SEC-007`). Same finding as M6's rename operation, same cause. |
+| `CopyFsyncRenameTransfer` | **Deferred → v1.1** with cross-filesystem support (`L1-SEC-007`). Its `.part` → `fsync` → atomic-placement pattern independently confirms the two-hop reasoning in `L2-NFS-007`. |
+| `ExecTransfer` | **Removed** — ADR-0011. |
+| `[transfer]` config growth | **Deferred** with the strategies it configures. |
+| Progress callback, validating factory | Retained as interface concepts for the rewrite. |
+
+Nothing from M7 was adopted as code. The subprocess discipline it demonstrated
+is retained as `L2-SEC-008`, and its temp-file placement pattern informs
+`L2-NFS-007`; both were already specified before the drop arrived.
+
+### On external commands, should the question return
+
+ADR-0011 removes the strategy, not the topic. A genuine future need for a
+destination the daemon cannot reach as a filesystem path — another host over
+SSH, an object store — is a design conversation with its own threat analysis,
+not a configuration key. Two constraints any such design has to satisfy:
+
+* Configuration must remain data. Whatever expresses "send it there" cannot be
+  a free-text command, or whoever writes the config gets code execution as the
+  service account.
+* The commit point must stay ours, or the guarantee has to be explicitly and
+  visibly weaker for that destination — not silently weaker for everyone.
+
+## M8 disposition (job manager)
+
+The inherited M8 delivered a threaded JobManager. Its code depends on
+`journal.hpp`, `rename.hpp`, and `transfer.hpp` -- all superseded or rejected --
+so none of it ports. Its *disciplines* are the most valuable thing any drop has
+produced.
+
+| Delivered | Outcome |
+|---|---|
+| Write-ahead ordering -- intent durable **before** the job exists | **Adopted as `L2-JOB-013`.** Exactly the commit-point ordering whose absence in M6 meant a crash between rename and record loses the file. |
+| Phase-blind non-fatal write failures (`L3-CPP-075`) | **Rejected**, replaced by `L2-JOB-014`. A write failure is two conditions wanting opposite handling; treating both as a counter lets the durable record drift from the filesystem. |
+| Job sequence feeding `{seq}` | **Adopted as `L2-JOB-015`**, with the gap closed: the sequence must be durable and monotonic across restarts, which the inherited design left unspecified. |
+| ThreadSanitizer gate | **Adopted as `L2-ARC-008`**, wired into CI and `make check-ci` before the first thread exists. |
+| Latch-based deterministic concurrency tests | **Adopted as practice** -- see CONTRIBUTING. Proving all N workers are simultaneously inside the call beats sleeping and hoping. |
+| Injected clock (`std::function<int64_t()>`) | **Adopted as practice.** Consistent with the clock-free core, and it makes ordering exactly checkable rather than probabilistically. |
+| Queue / worker / drain semantics | Already specified as `L2-MGR-001..003`; the implementation confirms the shape. |
+| `JobManager` code, journal wiring, pipeline | **Not ported.** |
+
+## M11/M12 disposition (dashboard and daemon entry point) — CLOSED
+
+The final drop, and the end of the inherited design series. No code adopted;
+four requirements and one compliance fix. Full triage in
+`docs/MIGRATION-PROVENANCE.md`.
+
+| Delivered | Outcome |
+|---|---|
+| `LICENSES/` for vendored dependencies | **Adopted** — and it found a real gap. `catch.hpp` references an "accompanying file `LICENSE_1_0.txt`" that did not exist here. Now vendored, hash-pinned, gated by `make verify-vendored`. |
+| `textContent`-only DOM insertion | **Adopted** as `L2-DASH-003`. |
+| Signal handler sets only `volatile sig_atomic_t`; `SIGPIPE` ignored | **Adopted** as `L2-CTL-017`, `L2-CTL-018`. |
+| `--check` config validation, run as systemd `ExecStartPre` | **Adopted** as `L2-CTL-019`. |
+| Ordered startup, reverse-order teardown | **Adopted** as `L2-CTL-020`. |
+| `src/main.cpp` | **Not ported** — composes the journal (rejected, ADR-0010), the manager and HTTP server (deferred), and a transfer strategy (`ExecTransfer` removed, ADR-0011). Its 200 ms `nanosleep` wait loop is explicitly **not** the pattern to copy; block on `sigsuspend` or a self-pipe. |
+| `deploy/filemover.service` | **Superseded** by `L2-SEC-014`, which is stronger (`ProtectSystem=strict`, `ReadWritePaths=`, `CapabilityBoundingSet=`, `UMask=0077`). |
+| `dashboard.cpp` | **Deferred** with the dashboard; `L2-DASH-001..003` hold the obligations. |
+
+**The inherited-design series is now closed.** `transcripts/` is deleted. Eight
+snapshots produced one adopted component, two adopted helpers, and ~20
+requirements; everything else was superseded, deferred, or rejected. If another
+design conversation arrives, recreate `transcripts/` as scratch and follow the
+same rubric.
+
+## M9/M10 disposition (HTTP layer and recovery) — CLOSED
+
+The first drop containing code worth adopting beyond a pure helper. ADR-0012
+committed the project to a hand-rolled HTTP/1.1 subset, so unlike the previous
+four milestones this one builds something we actually need.
+
+**Status: the parser is landed.** `cpp/src/http_parser.cpp`, `L3-CPP-046..052`,
+with the three fixes below applied, a second libFuzzer target
+(`cpp/fuzz/fuzz_http.cpp`, 37 seeds), and the first component built to
+`docs/HAND-ROLLED-COMPONENTS.md`. The routes and server remain deferred with
+the job manager; the recovery design remains rejected. What stays open from
+this milestone is tracked in **M7** below, not here.
+
+| Delivered | Outcome |
+|---|---|
+| `parse_request_head`, `content_length_for`, `serialize_response` | **Adopted** — `L3-CPP-046..052`, with the fixes below. Pure functions, strict posture, and the untrusted-input surface ADR-0008 requires fuzzing. |
+| `http_routes.cpp` | **Defer.** Depends on the job manager, which does not exist. |
+| `http_server.cpp` | **Defer.** Socket loop needs config and manager; also needs review against `L2-SEC-009` (per-syscall timeouts) and `L2-SEC-010` (one stalled connection must not block others — the server is serial-accept). |
+| `manager.cpp` recovery | **Reject as written.** Journal-based (ADR-0010 chose SQLite), and its non-fatal write-failure handling contradicts `L2-JOB-014`. |
+| Test suite (493 lines) | **Adapted** — the parser's share landed as `cpp/tests/test_http_parser.cpp`, keeping the prefix sweep. The hostile battery is an integration test against a socket, so it is deferred with the server. |
+
+### Fixes applied before adopting the parser
+
+1. **Split the header.** `http.hpp` is monolithic: the pure parser, the route
+   handlers, and the socket server share one header that includes
+   `config.hpp` and `manager.hpp`. The parser needs neither. Split into
+   `http_parser.hpp` (pure, std-only), with routes and server following when
+   the manager exists. Same layering fault as M7 putting the journal codec in
+   `api_codec.hpp`.
+
+2. **Remove locale dependence.** `valid_header_name` uses `std::isalnum` and
+   `lower()` uses `std::tolower`, both **locale-sensitive**. A parser on
+   untrusted input must not change behavior because something in the process
+   called `setlocale`. Replace with explicit range checks — the same reasoning
+   that made the JSON parser use explicit tables.
+
+3. **Renumber** `L3-CPP-079..092` into this repository's sequence — landed as
+   `L3-CPP-046..052`.
+
+A fourth change was made that the review had not anticipated: `content_length_for`
+used `strtoull`, which accepts leading whitespace and a `+`/`-` sign and reports
+overflow through `errno`. Replaced with explicit digit accumulation and an
+overflow guard, so the strict-digit rule is enforced by the code rather than by
+checking the string first and trusting the conversion afterwards.
+
+### What the parser gets right, and is worth preserving
+
+* **Duplicate headers rejected outright** — added mid-build after noticing a
+  map's last-wins overwrite is a request-smuggling vector. Correct, and the
+  same class of reasoning that made duplicate JSON keys an error (ADR-0009).
+* **Any `Transfer-Encoding` is a 400.** No chunked parsing exists to desync.
+* **Bytes beyond the declared `Content-Length` are a 400** — no pipelining, no
+  smuggled second request.
+* **`NeedMore` for every proper prefix of a valid head**, swept exhaustively in
+  the tests. This is the property that makes a streaming parser safe.
+* `out` is left unmodified except on success, matching the codec contract.
+
+## Open questions (decision needed)
+
+| Item | Question | Raised |
+|---|---|---|
+| **`{seq}` template field** | **Answered.** The sequence is the job sequence, and `L2-JOB-015` now requires it be durable and monotonic across restarts -- the inherited design left durability unspecified, which would have made identifiers repeat after every restart. | M6 review, closed M8 |
+| **Collision suffix walk** | The inherited design walks `.1`–`.1000`, each probe a `link()` attempt. On NFS that is up to 1000 round-trips per collision, and with a `{name}`-only template collision is the normal case rather than the exception. The cap is also arbitrary. Re-evaluate once the fd-relative layer exists — it may be better addressed by making collisions rare by construction than by walking. | M6 review |
+| **cpp-httplib on GCC 4.8.5** | **Answered — rejected.** No tag is viable: it routes with `std::regex`, unimplemented in libstdc++ before GCC 4.9. Measured in the container — a literal route registers, a parameterised one throws `regex_error`, and the latest tag will not compile at all. HTTP is hand-rolled (ADR-0012), which also closes the last TBD in ADR-0004. | ADR-0004, closed M9/M10 |
+| **Authentication** | v1.0.0 ships none; the bind address is the only access control (`L1-API-006`). Needs a decision before any non-loopback deployment. | L1 merge |
+| **Trace matrix and Catch2** | **Answered — implemented.** The generator now reads requirement ids out of Catch2 `TEST_CASE` tag strings as well as pytest markers, so a tag is the whole tracing mechanism. This had to land *before* the Python removal: without it, deleting `tests/` would have taken the matrix to zero tested. | Requirements merge, closed at the Python removal |
+| **Stale locked decisions** | **Answered — done.** The locked-decisions section above now marks the Unix-socket control plane and the Poetry/`src` layout as superseded at v1.0.0, and records what the socket's removal *cost* rather than only that it changed. | L1 merge, closed at the Python removal |
+| **Deferred-family verification** | The 69 L2/L3 requirements under the five Deferred L1s are excluded from the scope-adjusted coverage figure, which is right for release reporting — but it means nothing gates them, and their Python tests are gone. Before v1.1 begins, decide whether they are re-verified against the C++ or re-derived from scratch. | Python removal |
+
+## Deferred to v1.1
+
+Retained verbatim in the requirements, marked Deferred, never weakened.
+
+| Capability | Requirements |
+|---|---|
+| Claiming — relocate source so the next run cannot overwrite | `L1-SYS-004`, and `L1-SYS-002` which depends on it |
+| Conservative deletion — no delete until published and verified | `L1-SYS-003` |
+| Configurable integrity verification | `L1-SYS-006` |
+| Recovery by resumption rather than marking failed | `L1-SYS-005` |
+| Cross-filesystem moves — staging, recursive fd-relative copy, commit rename | `L1-SEC-007` constrains v1.0.0; the design is retained in `docs/CYBERSECURITY.md` marked **[v1.1]** |
+| Directory moves | As above; needs an answer for NFS, which has no atomic no-clobber directory move |
+| Bandwidth limiting, partial-file resume, pause/cancel | Python-implementation features not yet ported |

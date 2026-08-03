@@ -76,8 +76,8 @@ verification, or publication operation fails.
 
 #### L2-CFG-001
 
-The software shall load runtime configuration using only Python standard-library
-functionality.
+The software shall load runtime configuration using only C++11 standard-library and
+POSIX functionality.
 
 **Parent**: L1-SYS-009
 
@@ -365,6 +365,29 @@ command or mode.
 
 **Verification Method**: Inspection (I)
 
+#### L2-ARC-007
+
+All production code shall compile under `-std=c++11 -Wall -Wextra -Werror` on GCC 4.8.5
+without warnings, and shall carry no per-object warning exemption.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-ARC-008
+
+Concurrent code shall pass under ThreadSanitizer, enforced in CI as a tier
+separate from the AddressSanitizer build.
+
+TSan and ASan cannot be combined in one binary, so this is a distinct job
+rather than an additional flag. Data races are the failure class least likely
+to be caught by a passing test suite: a race can be present for years and
+observable only under a scheduler the test machine never produces.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Test (T)
+
 ## FS — Filesystem identity and claiming
 
 #### L2-FS-001
@@ -596,7 +619,8 @@ Typed file metadata shall support both POSIX identity and future object identity
 
 #### L2-STO-005
 
-Optional storage adapters shall not weaken the standard-library-only core.
+Optional storage adapters shall not introduce dependencies beyond the C++11 standard
+library, POSIX, and the vendored set recorded in `cpp/VENDORED.md`.
 
 **Parent**: L1-SYS-009
 
@@ -976,25 +1000,29 @@ The software shall not delete a source when destination verification is incomple
 
 #### L2-CTL-001
 
-The CLI and service shall communicate over an AF_UNIX stream socket.
+Clients and the service shall communicate over an HTTP/1.1 REST interface bound to the
+configured address and port, defaulting to loopback.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-001
 
 **Verification Method**: Test (T)
 
 #### L2-CTL-002
 
-Control messages shall be UTF-8 JSON framed with a 4-byte big-endian length prefix.
+Request and response bodies shall be UTF-8 JSON delimited by `Content-Length`; the
+service shall not accept chunked request bodies and shall close the connection after
+each response.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-003
 
 **Verification Method**: Test (T)
 
 #### L2-CTL-003
 
-The software shall reject an over-large control message before allocating its body.
+The software shall reject an over-large request body with HTTP 413 before allocating
+its body.
 
-**Parent**: L1-SYS-010
+**Parent**: L1-API-004
 
 **Verification Method**: Test (T)
 
@@ -1008,9 +1036,10 @@ A malformed control message shall never crash the service.
 
 #### L2-CTL-005
 
-The software shall reject unknown control commands with a typed error response.
+The software shall reject unknown routes with HTTP 404, unsupported methods on a known
+route with HTTP 405, and malformed JSON with HTTP 400, each carrying a JSON error body.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-API-001
 
 **Verification Method**: Test (T)
 
@@ -1024,11 +1053,10 @@ The control server shall run on a thread pool separate from the transfer workers
 
 #### L2-CTL-007
 
-The software shall recover a stale control socket safely: refuse to start if a live
-instance is listening, remove only a confirmed-dead socket, and never delete a
-non-socket file.
+The software shall fail to start with a diagnosable error, rather than binding
+silently or partially, when the configured address and port are already in use.
 
-**Parent**: L1-SYS-010
+**Parent**: L1-API-006
 
 **Verification Method**: Test (T)
 
@@ -1048,11 +1076,76 @@ The service shall handle SIGTERM and SIGINT and shut down cleanly.
 
 **Verification Method**: Test (T)
 
-#### L2-CTL-010
+#### L2-CTL-017
 
-The software shall provide a health command that reports service status.
+A signal handler shall do nothing but assign to a `volatile sig_atomic_t` flag
+that the main loop observes; it shall not log, allocate, take a lock, or touch
+durable state.
+
+Only async-signal-safe functions may run in a handler, and almost nothing this
+service does qualifies. The failure this prevents is specific and ugly: a
+SIGTERM arriving while a thread holds the allocator or the durable-store lock
+deadlocks the process against itself during shutdown, which presents as a
+service that will not stop and gets `SIGKILL`ed by systemd's `TimeoutStopSec`
+— converting a clean shutdown into exactly the abrupt termination the
+commit-point invariants have to survive.
 
 **Parent**: L1-SYS-008
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-CTL-018
+
+The service shall ignore `SIGPIPE` process-wide.
+
+The default disposition terminates the process. A REST control plane writes to
+sockets that clients may close at any moment, so the default turns a
+disconnecting client into a killed daemon — remotely, without authentication,
+and while a transfer is in flight. Writes must fail with `EPIPE` and be handled
+where they occur.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-019
+
+The service shall provide a configuration-validation mode that loads and
+validates the configuration, reports any faults with the loader's
+`file:line: message` diagnostic, and exits without starting the service,
+without opening the durable store, and without binding a socket.
+
+This is what lets a deployment gate on configuration before the service is
+allowed to touch anything: run it as systemd `ExecStartPre` and an invalid
+config fails the unit outright instead of half-starting a daemon that then
+dies with its state directory already created. It is the C++ counterpart of
+the Python implementation's `doctor` gate (`L2-ENV-001..003`), and shares its
+parent for that reason.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T), Demonstration (D)
+
+#### L2-CTL-020
+
+Startup shall bring subsystems up in dependency order and shall stop everything
+already started if any later step fails; shutdown shall tear down in the
+reverse order, ending with the durable store synced and closed.
+
+A failure partway through startup that leaves a worker pool running or a socket
+bound produces a process that is neither serving nor exited — the state an
+operator cannot diagnose and systemd will not restart correctly.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-010
+
+The software shall expose service status and aggregate job statistics at
+`GET /api/status`.
+
+**Parent**: L1-OBS-002
 
 **Verification Method**: Test (T)
 
@@ -1074,11 +1167,49 @@ restart a hung service.
 
 **Verification Method**: Test (T)
 
+#### L2-CTL-013
+
+The REST interface shall expose `POST /api/jobs`, `GET /api/jobs`,
+`GET /api/jobs/{id}`, `GET /api/status`, and `GET /`.
+
+**Parent**: L1-API-002
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-014
+
+Route handlers shall be pure functions of request and job-manager view, unit-testable
+without opening a socket.
+
+**Parent**: L1-API-001
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-CTL-015
+
+The software shall survive hostile HTTP input — oversized headers, invalid methods,
+truncated requests, and non-HTTP bytes — by responding with an error status or closing
+the connection, never by terminating.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-016
+
+The software shall not implement TLS in-process, and shall document the reverse-proxy
+termination path for deployments requiring encrypted transport.
+
+**Parent**: L1-API-005
+
+**Verification Method**: Inspection (I)
+
 ## JOB — Durable job state
 
 #### L2-JOB-001
 
-The software shall persist every job and its files durably in SQLite.
+The software shall persist every job durably in SQLite. Per-file records are deferred
+to v1.1 with `L1-SYS-003` and `L1-SYS-006`.
 
 **Parent**: L1-SYS-007
 
@@ -1121,7 +1252,7 @@ The software shall validate and enforce the allowed job state transitions.
 
 The software shall query jobs by state and produce aggregate statistics.
 
-**Parent**: L1-SYS-008
+**Parent**: L1-OBS-002
 
 **Verification Method**: Test (T)
 
@@ -1129,9 +1260,118 @@ The software shall query jobs by state and produce aggregate statistics.
 
 The durable job record and the job manifest shall record consistent job metadata — the
 same creation time and the same integrity policy (mode and hash algorithm) — for every
-accepted job.
+accepted job. Deferred to v1.1 with `L1-SYS-006`; there is no manifest at v1.0.0.
 
 **Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-008
+
+The state database shall reside on a local filesystem. The software shall reject a
+configured state path that resolves onto a network filesystem, because SQLite's locking
+depends on POSIX advisory locks that NFS implements unreliably.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-009
+
+SQL and the vendored `sqlite3.h` shall be confined behind a repository interface; no
+other translation unit shall include the database header or embed SQL.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Inspection (I)
+
+#### L2-JOB-010
+
+A persisted job record shall carry an error description that is present and non-empty
+if and only if the recorded state is FAILED.
+
+This is the core state machine's invariant (`L3-CPP-007`, `L3-CPP-008`) carried into the
+durable layer, so a record that could not have been produced by a legal transition also
+cannot be stored or read back.
+
+**Parent**: L1-SYS-023
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-011
+
+The software shall treat an absent state store as first boot — starting successfully
+with zero recorded jobs — rather than as an error.
+
+**Parent**: L1-SYS-016
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-012
+
+The software shall fail to start, with a diagnosable error identifying the damage, when
+the state store is present but corrupt. Corruption shall never be silently skipped or
+partially recovered.
+
+A crash leaving work incomplete is expected and is handled by `L1-SYS-016`. A store that
+cannot be read is a different condition: continuing past it would silently discard the
+record of jobs whose source files may still exist.
+
+**Parent**: L1-SYS-007
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-013
+
+The intent to move a file shall be durably recorded **before** any filesystem
+action is taken, and a failure to record it shall mean no action is taken.
+
+This is the ordering whose absence loses track of a file: rename first and
+record second, and a crash between them leaves the move done with nothing
+identifying where it went. Recording first makes the failure mode harmless —
+the worst outcome is a recorded intent for a move that never started, which
+recovery discards.
+
+**Parent**: L1-SEC-003
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-014
+
+A failure to durably record state shall be handled according to the phase in
+which it occurs:
+
+* **Before the commit point** — the move shall be aborted. Nothing has
+  happened, the source is untouched, and the entry is discarded.
+* **After the commit point** — the move shall halt. The source shall **not**
+  be deleted, the job shall be marked as requiring operator attention, and the
+  condition shall be logged at high severity.
+
+In neither case shall the software continue silently.
+
+A write failure is two different conditions wanting opposite handling. Before
+the commit, continuing means acting with no durable record — a crash then
+leaves an orphaned file nobody can account for. After the commit, the move is
+real but unrecorded; proceeding to source deletion would leave reality and the
+record disagreeing, which is precisely the ambiguity `L1-SEC-002` exists to
+prevent. Treating both as a non-fatal counter permits the durable record to
+drift from the filesystem, which is the one property this layer must
+guarantee.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Test (T)
+
+#### L2-JOB-015
+
+The job sequence shall be durable and monotonic across restarts.
+
+Job identifiers and the `{seq}` rename-template field both derive from it. A
+counter held only in memory repeats after every restart, so identifiers
+collide and `{seq}` templates silently fall into collision handling rather than
+producing distinct names.
+
+**Parent**: L1-SEC-003
 
 **Verification Method**: Test (T)
 
@@ -1215,3 +1455,522 @@ retry time has passed — up to the configured job concurrency.
 **Parent**: L1-SYS-001
 
 **Verification Method**: Test (T)
+
+## CORE — Job model and state machine
+
+#### L2-CORE-001
+
+The core shall define the job state set and the legal-transition relation as pure
+functions performing no I/O.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-002
+
+The core shall represent a job with identity, source path, destination path, state,
+creation, update and finish timestamps, byte counters, and an error field.
+
+**Parent**: L1-SYS-021
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-003
+
+The core shall apply state transitions atomically: an invalid request shall leave the
+job unmodified.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T)
+
+#### L2-CORE-004
+
+The core shall accept timestamps from the caller and shall not read the system clock.
+
+**Parent**: L1-OBS-003
+
+**Verification Method**: Test (T), Inspection (I)
+
+## JSON — Request and response codec
+
+#### L2-JSON-001
+
+The JSON codec shall be implemented by the project and shall not delegate parsing to a
+third-party library.
+
+**Parent**: L1-SYS-009
+
+**Verification Method**: Inspection (I)
+
+#### L2-JSON-002
+
+The codec shall reject malformed input with a diagnosable error and shall never
+terminate the process.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-003
+
+The parser shall accept only the strict subset defined in ADR-0009 and shall reject
+every construct outside it, including trailing bytes after the top-level value,
+duplicate member names, floating-point values, and embedded NUL characters.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-004
+
+The parser shall enforce bounded nesting depth, string length, member count, and total
+input size, such that no input can exhaust the stack or address space.
+
+**Parent**: L1-ROB-002
+
+**Verification Method**: Test (T)
+
+#### L2-JSON-005
+
+The codec shall be verified against a third-party JSON conformance corpus and by
+coverage-guided fuzzing, with every fuzzer finding retained as a regression case.
+
+**Parent**: L1-ROB-002
+
+**Verification Method**: Test (T)
+
+## REN — Rename engine
+
+#### L2-REN-001
+
+The rename engine shall expand a configured template, supporting timestamp, sequence,
+and original-name fields, into the target filename.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+#### L2-REN-002
+
+The rename engine shall apply a configured collision policy when the target name
+already exists.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+#### L2-REN-003
+
+The rename engine shall operate only within a single filesystem and shall reject
+cross-device renames.
+
+**Parent**: L1-SYS-013
+
+**Verification Method**: Test (T)
+
+## MGR — Job manager and worker pool
+
+#### L2-MGR-001
+
+The manager shall dispatch queued jobs to a configured number of worker threads through
+a mutex- and condition-variable-protected queue.
+
+**Parent**: L1-SYS-017
+
+**Verification Method**: Test (T)
+
+#### L2-MGR-002
+
+The manager shall drive every job state change exclusively through the CORE transition
+function.
+
+**Parent**: L1-SYS-022
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-MGR-003
+
+The manager shall support clean shutdown: stop intake, drain or fail in-flight jobs,
+and join all workers.
+
+**Parent**: L1-SYS-018
+
+**Verification Method**: Test (T)
+
+## XFR — Transfer strategies
+
+#### L2-XFR-001
+
+The transfer operation shall expose a common interface accepting source, destination,
+and an optional progress callback.
+
+The interface is retained even though v1.0.0 offers a single strategy: the
+cross-filesystem copy returns at v1.1, and an interface introduced then would be a
+change to every caller rather than an addition behind one.
+
+**Parent**: L1-SYS-015
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-XFR-002
+
+The copy strategy shall write to a temporary name, fsync, then rename to the final
+name, so the destination never appears under its final name partially written.
+
+**Parent**: L1-SYS-014
+
+**Verification Method**: Test (T)
+
+**v1.0.0 Status**: Deferred → v1.1 with cross-filesystem support (`L1-SEC-007`). A
+same-filesystem move is an atomic rename with no partial state to expose, so the
+temporary-name pattern has nothing to protect against until copying exists. The same
+pattern is separately required by `L2-NFS-007` for delivery into a directory consumers
+watch, where cross-client visibility — not partial writing — is the hazard.
+
+> **L2-XFR-003 was removed and its identifier is retired.** It required an
+> external-command transfer strategy launched via `fork`/`execvp`. See ADR-0011: a
+> free-text command in configuration makes the configuration file executable, and
+> delegating the move voids the commit-point guarantees of `L1-SEC-001` and
+> `L1-SEC-002`.
+>
+> The identifier is not reused, so a reference to `L2-XFR-003` in older material
+> resolves to this note rather than to an unrelated requirement. It is deliberately
+> not a heading, so the trace matrix does not count a removed obligation as a live one.
+>
+> The subprocess discipline it specified — argv array, substitution into elements,
+> never a shell — is retained unconditionally as `L2-SEC-008`, governing any
+> subprocess this project ever spawns.
+
+#### L2-XFR-004
+
+Every strategy failure shall produce a human-readable error string including `errno`
+text where applicable.
+
+**Parent**: L1-SYS-023
+
+**Verification Method**: Test (T)
+
+## DASH — Operator dashboard
+
+#### L2-DASH-001
+
+The dashboard shall be a single embedded HTML and JavaScript page polling
+`GET /api/status` at a fixed interval.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Demonstration (D)
+
+#### L2-DASH-002
+
+The dashboard shall function without external network resources.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-DASH-003
+
+The dashboard shall insert every dynamic value into the DOM through
+`textContent` or `createTextNode` only, and shall never assign to `innerHTML`.
+
+Filesystem paths and error strings reach the page from the API, and a path is
+attacker-influenced in exactly the way the `L1-SEC-*` invariants already
+assume: whoever can create a file can choose its name. A name containing
+markup becomes script execution in an operator's browser the moment it is
+assigned to `innerHTML`, and the operator holds the one account with authority
+over this service. Text-node insertion removes the injection path rather than
+escaping it, so there is no escaping function left to get wrong.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Test (T), Inspection (I)
+
+## SEC — Filesystem security discipline
+
+Derived from `docs/CYBERSECURITY.md`. These are the controls that make the
+`L1-SEC-*` invariants hold against an adversary who can win races and a
+privileged agent that can stall or delete files.
+
+#### L2-SEC-001
+
+All filesystem operations on managed trees shall be file-descriptor relative —
+`openat`, `renameat2`, `fstatat`, `unlinkat`, `mkdirat`, `fchmod` — against
+directory descriptors opened at operation start and held for its duration.
+Path-based operations on managed trees are prohibited.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Inspection (I), Test (T)
+
+#### L2-SEC-002
+
+After every `openat`, the software shall `fstat` the descriptor and verify
+device, inode, and file type against the preceding `fstatat`, aborting the
+entry on mismatch.
+
+`O_NOFOLLOW` stops a symlink; it does not stop a different regular file being
+swapped in between the classify and the open. This check closes that residual
+window.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-003
+
+Directory opens shall use `O_RDONLY | O_DIRECTORY | O_NOFOLLOW`, and file opens
+within managed trees shall use `O_NOFOLLOW`. Symbolic links shall be rejected
+by default and never followed.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Inspection (I), Test (T)
+
+#### L2-SEC-004
+
+The software shall classify every entry by type before acting on it and shall
+act only on regular files. Directories, symlinks, FIFOs, sockets, and device
+nodes shall be rejected and logged.
+
+A device node smuggled into a watched directory is a classic escalation trick
+against a privileged mover.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-005
+
+Before starting a move, the software shall verify on an open descriptor that
+the source is a regular file owned by a configured trusted UID, and that its
+parent directory is not world-writable without the sticky bit. A violation
+shall abort the move with a logged, actionable error.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-006
+
+Externally supplied path names shall be validated before use in any system
+call: absolute after canonicalization, no `..` components, no control
+characters, no embedded newlines.
+
+**Parent**: L1-ROB-001
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-007
+
+Same-filesystem moves shall use `renameat2` with `RENAME_NOREPLACE`, invoked
+through `syscall(2)` where the libc wrapper is absent. Where the flag is
+unsupported by the kernel or filesystem, the software shall fall back to
+`linkat` followed by `unlinkat`, which fails `EEXIST` on an existing target.
+
+**Parent**: L1-SEC-006
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-008
+
+The software shall never invoke `system(3)` or any shell. External commands
+shall be launched with `fork` and `execvp` using an argument vector, so no
+shell metacharacter interpretation exists to inject into.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Inspection (I), Test (T)
+
+#### L2-SEC-009
+
+Every potentially blocking system call on a managed file shall be subject to a
+configurable timeout. Expiry shall fail only the affected entry, logged as
+suspected external interference with the measured duration and file size.
+
+Latency correlating with file size is the on-access-scan fingerprint. There is
+no errno for "a scanner is holding this open" — timing is the only signal
+available.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-010
+
+A stalled or failed entry shall not block forward progress of other queued
+moves or of durable-state processing.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-011
+
+When recovery finds neither the source nor the destination present, the
+software shall mark the entry failed-external, log at high severity, and shall
+not retry automatically.
+
+The naive invariant says exactly one path exists. Quarantine by endpoint
+security produces the state that invariant calls impossible, so it is a third
+modeled outcome rather than an assertion failure.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Test (T)
+
+#### L2-SEC-012
+
+The durable state store shall reside in a directory writable only by the
+service account, be opened `O_NOFOLLOW`, and every recorded path shall be
+validated before recovery acts on it.
+
+**Parent**: L1-SEC-003
+
+**Verification Method**: Inspection (I), Test (T)
+
+#### L2-SEC-013
+
+On SELinux platforms, delivered objects shall carry the destination tree's
+default context, applied before the commit rename so that no wrongly labeled
+object is ever observable at the final path. Source contexts shall not be
+preserved. On AppArmor platforms, the software shall run under a profile
+enumerating exactly the paths it may access.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Test (T), Demonstration (D)
+
+#### L2-SEC-014
+
+The software shall ship a hardened systemd unit: `ProtectSystem=strict`,
+`ReadWritePaths=` limited to managed trees and the state directory,
+`NoNewPrivileges=yes`, `PrivateTmp=yes`, `ProtectHome=yes`, a trimmed
+`CapabilityBoundingSet=`, a dedicated service account, and `UMask=0077`.
+
+**Parent**: L1-SYS-012
+
+**Verification Method**: Inspection (I)
+
+#### L2-SEC-015
+
+Any cryptographic hashing used for file verification shall use SHA-256 or
+stronger. Non-cryptographic checksums are permitted for torn-write framing
+only, never for file verification.
+
+**Parent**: L1-SEC-005
+
+**Verification Method**: Inspection (I)
+
+#### L2-SEC-016
+
+At startup the software shall query local endpoint-security on-access
+configuration where available, and log whether managed trees are covered by
+scanning exclusions.
+
+This verifies that a requested ePO exclusion actually landed on this host,
+rather than being assumed from the policy request.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Demonstration (D)
+
+## NFS — network filesystem behavior
+
+The recordings arrive on a shared NFS mount by design, so NFS is a primary
+target rather than an edge case. Generic guidance defers this to "a design
+review of its own"; section 4 of `docs/CYBERSECURITY.md` is that review, and
+these are its outcomes.
+
+#### L2-NFS-001
+
+Support for `RENAME_NOREPLACE` shall be detected at runtime, per managed
+filesystem, by attempting the operation and observing `EINVAL`, `ENOSYS`, or
+`EOPNOTSUPP`. Capability shall never be inferred from kernel version alone, and
+the selected strategy shall be logged per tree.
+
+**Parent**: L1-SEC-006
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-002
+
+The `linkat` plus `unlinkat` fallback shall be treated as a primary tested
+path, not an exceptional one.
+
+NFS supports no `RENAME_NOREPLACE`, so on the mount where the recordings live
+this fallback is what production runs on every move.
+
+**Parent**: L1-SEC-001
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-003
+
+Recovery shall disambiguate an existing destination by comparing recorded
+source identity against the object present, distinguishing an interrupted
+`linkat`/`unlinkat` pair from a genuine collision.
+
+The pair is not atomic together: a crash between them leaves both names
+pointing at one inode. Treating that as a collision — the obvious reading —
+would fail a move that had in fact all but completed.
+
+**Parent**: L1-SEC-003
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-004
+
+`ESTALE` shall be classified as an expected retryable condition rather than a
+fault.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-005
+
+The software shall tolerate NFS silly-rename artifacts (`.nfsXXXX`) appearing
+in managed directories and shall not treat them as unexpected entries.
+
+Unlinking a file another client holds open does not remove it; the server
+renames it in place.
+
+**Parent**: L1-SEC-004
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-006
+
+The identity verification of `L2-SEC-002` shall be documented as weakened over
+NFS, where the compared attributes are served from the client attribute cache,
+and the qualification checklist shall record the mount options in effect.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Inspection (I)
+
+#### L2-NFS-007
+
+Delivery into a destination directory that consumers observe shall use a
+two-hop rename — into a temporary name in the destination directory, fsync,
+then rename to the final name — because a rename is not atomically visible
+across NFS clients.
+
+**Parent**: L1-SYS-014
+
+**Verification Method**: Test (T)
+
+#### L2-NFS-008
+
+Durability claims shall be treated as server-side, and shall be qualified on a
+real export rather than on a local temporary directory.
+
+`fsync` on NFS commits to the server, but close-to-open consistency means other
+clients observe data only after close, and directory `fsync` is weakly defined.
+
+**Parent**: L1-SEC-002
+
+**Verification Method**: Demonstration (D)

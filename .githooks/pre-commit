@@ -13,12 +13,12 @@
 #
 #   Trace-matrix parity (runs if the spec docs, the matrix, the generator, or
 #   any test file are staged):
-#     5. python scripts/build-trace-matrix.py --check
+#     5. python3 scripts/build-trace-matrix.py --check
 #
-#   Python (skipped if no staged .py):
-#     6. poetry run ruff check + ruff format --check
-#     7. poetry run mypy src
-#     8. poetry run pytest -q
+#   C++ (skipped if nothing under cpp/ is staged):
+#     6. make -C cpp verify-vendored
+#     7. make -C cpp locale-free
+#     8. make -C cpp check      (compiles with -Werror, then runs the suite)
 
 set -euo pipefail
 
@@ -93,48 +93,48 @@ fi
 need_trace=0
 for file in "${STAGED[@]}"; do
     case "$file" in
-        tests/*.py|docs/L1-REQ.md|docs/L2-REQ.md|docs/L3-REQ.md|docs/TRACE-MATRIX.md|scripts/build-trace-matrix.py)
+        cpp/tests/*.cpp|docs/L1-REQ.md|docs/L2-REQ.md|docs/L3-REQ.md|docs/TRACE-MATRIX.md|scripts/build-trace-matrix.py)
             need_trace=1; break ;;
     esac
 done
 if (( need_trace == 1 )); then
-    step "python scripts/build-trace-matrix.py --check"
-    if ! python scripts/build-trace-matrix.py --check; then
-        fail "trace matrix out of date — run \`python scripts/build-trace-matrix.py\` and stage docs/TRACE-MATRIX.md"
+    step "python3 scripts/build-trace-matrix.py --check"
+    if ! python3 scripts/build-trace-matrix.py --check; then
+        fail "trace matrix out of date — run \`python3 scripts/build-trace-matrix.py\` and stage docs/TRACE-MATRIX.md"
     fi
 fi
 
-# ── Skip Python checks if no staged .py ───────────────────────────────
-need_py=0
+# ── Skip the build if nothing under cpp/ is staged ────────────────────
+need_cpp=0
 for file in "${STAGED[@]}"; do
     case "$file" in
-        *.py) need_py=1; break ;;
+        cpp/*) need_cpp=1; break ;;
     esac
 done
-if (( need_py == 0 )); then
-    ok "file-level checks passed; no Python changes — skipping ruff/mypy/pytest"
+if (( need_cpp == 0 )); then
+    ok "file-level checks passed; no C++ changes — skipping build and tests"
     exit 0
 fi
 
-# ── 6. ruff ───────────────────────────────────────────────────────────
-step "poetry run ruff check && ruff format --check"
-if ! poetry run ruff check; then
-    fail "ruff lint issues — run 'poetry run ruff check --fix'"
-fi
-if ! poetry run ruff format --check; then
-    fail "formatting issues — run 'poetry run ruff format'"
-fi
-
-# ── 7. mypy ───────────────────────────────────────────────────────────
-step "poetry run mypy src"
-if ! poetry run mypy src; then
-    fail "mypy type errors"
+# ── 6. Vendored file integrity ────────────────────────────────────────
+# First because it is the cheapest, and it catches a class the compiler
+# cannot: an edit inside a vendored dependency builds perfectly clean.
+step "make -C cpp verify-vendored"
+if ! make -C cpp verify-vendored; then
+    fail "a vendored file does not match its recorded SHA-256 (ADR-0004)"
 fi
 
-# ── 8. pytest ─────────────────────────────────────────────────────────
-step "poetry run pytest -q"
-if ! poetry run pytest -q; then
-    fail "tests failed"
+# ── 7. Locale-free parsers ────────────────────────────────────────────
+step "make -C cpp locale-free"
+if ! make -C cpp locale-free; then
+    fail "a parser uses locale-sensitive classification (L3-CPP-052)"
+fi
+
+# ── 8. Build and test ─────────────────────────────────────────────────
+# -Werror is on, so this is the compile gate as well as the test gate.
+step "make -C cpp check"
+if ! make -C cpp check; then
+    fail "C++ build or tests failed"
 fi
 
 ok "all checks passed"

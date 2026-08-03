@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Work on the `v2-cpp` branch toward the C++11 / REST **v1.0.0**. These entries describe
+that branch; `main` still ships the Python implementation at v0.4.2.
+
+### Removed
+
+- **The Python implementation is no longer in the `v2-cpp` branch.** `src/file_mover/`,
+  the pytest suite, `pyproject.toml`, `poetry.lock`, `packaging/systemd/`, and the Python
+  CI workflows (`ci.yml`, `fuzz.yml`) were deleted. Nothing is lost: that code ships from
+  `main` and is tagged `v0.4.2`, which remains the version to deploy today.
+  `scripts/build-trace-matrix.py` stayed — it is repository infrastructure covering the
+  requirements rather than either implementation, and it imports only the standard
+  library, so it needs no Python packaging.
+
+### Changed
+
+- **The trace-matrix generator reads Catch2 tags as well as pytest markers.** A
+  requirement id inside a `TEST_CASE` tag string — `TEST_CASE("...",
+  "[json][L3-CPP-019]")` — now counts as verification evidence. Until this landed the
+  generator scanned only `tests/*.py`, so 49 tagged C++ tests traced to nothing and the
+  matrix reported the C++ tree as entirely untested. Removing Python without fixing this
+  first would have taken the whole matrix to zero.
+- **The matrix reports a v1.0.0 scope-adjusted figure** alongside the unadjusted one.
+  Five L1 requirements are annotated `Deferred`, which places 69 L2/L3 requirements
+  outside this release; counting those against v1.0.0 reported a gap that is a deliberate
+  decision rather than missing work. Both numbers are published — the unadjusted one
+  remains the honest total.
+- **The pre-commit hook now gates C++** — vendored-file integrity, the locale-free parser
+  check, then `make check` — instead of ruff, mypy, and pytest. The file-hygiene and
+  trace-matrix parity checks are unchanged.
+- **`codeql.yml` and `sonarcloud.yml` are C++-only**, and the requirements trace-matrix
+  gate moved into `cpp-ci.yml`. That gate lived in the deleted `ci.yml`; without the move
+  the removal would have silently dropped it.
+- **Documents describing the Python implementation are retained, not deleted**, each
+  behind a banner marking it as source material for the C++ rewrite. The rewrites owed
+  are tracked in `docs/ROADMAP.md`. `docs/12-FACTOR.md` is only *partly* superseded and
+  now says which parts: factor VII inverted when the `AF_UNIX` socket became a REST port,
+  taking the free filesystem-permission authentication with it.
+
+### Fixed
+
+- **`L3-CPP-019` was implemented but untested.** The JSON parser has always reported the
+  byte offset of a rejection; nothing asserted it. The non-empty half of the requirement
+  was covered incidentally by a test helper, which is what disguised the gap.
+- **`L3-CPP-013` declared verification by Test for a property no test can assert** — that
+  the code compiles clean under `-Werror` on GCC 4.8.5. It is verified by Demonstration
+  on every commit by the fidelity CI tier. A modeling error rather than a missing test,
+  and it left a permanent hole in the matrix.
+- **`L1-SYS-015`'s status line was unparseable.** It read `**Rewritten.**` where every
+  other status is a bare word, so status-driven tooling skipped it silently.
+
 ## [0.4.2] - 2026-07-12
 
 ### Documentation
@@ -157,7 +207,7 @@ L1/L2/L3 trace matrix, and SonarCloud quality gate remain green.
   (job orchestration stays in `TransferCoordinator`), the control-response wire format into
   `presentation.py`, the lifecycle operations into `control/lifecycle.py`, the pause/cancel
   registry into `transfer/control_signals.py`, and partial cleanup into
-  `transfer/partials.py` — reducing class/function complexity with no behaviour change.
+  `transfer/partials.py` — reducing class/function complexity with no behavior change.
 
 ### Security
 
@@ -190,7 +240,7 @@ L1/L2/L3 trace matrix remain green.
 
 ### Security
 
-- Validate and normalise the operator-supplied configuration path before it is read:
+- Validate and normalize the operator-supplied configuration path before it is read:
   reject NUL bytes, resolve to an absolute real path, and require an existing regular file,
   closing a path-injection finding.
 
