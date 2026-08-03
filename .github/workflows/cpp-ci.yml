@@ -166,6 +166,21 @@ jobs:
       - name: Verify hashes
         run: make -C cpp verify-vendored
 
+  # Requirement traceability. This gate previously lived in the Python ci.yml;
+  # it moved here when that workflow was removed with the Python tree, because
+  # the matrix covers the requirements rather than either implementation and
+  # losing it would let L1/L2/L3 drift from the tests silently.
+  #
+  # The generator reads pytest markers AND Catch2 tags, so it is the C++ tests
+  # that keep it honest on this branch. Standard library only — no install step.
+  trace-matrix:
+    name: Requirements trace matrix
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check for drift
+        run: python3 scripts/build-trace-matrix.py --check
+
   # L3-CPP-052: the untrusted-input parsers must classify characters with
   # explicit ranges, never <cctype> or the strtoul family.
   #

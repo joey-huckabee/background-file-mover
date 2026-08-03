@@ -4,8 +4,10 @@ name: C++ fuzz burn-in
 # in cpp-ci.yml runs 60 seconds to keep pull requests fast; this scheduled job
 # runs long enough to reach code a short session never will.
 #
-# Mirrors the Python harness's fast-gate / deep-burn-in split
-# (.github/workflows/fuzz.yml) so there is one mental model, not two.
+# The fast-gate / deep-burn-in split was inherited from the Python harness
+# (.github/workflows/fuzz.yml, removed from this branch with that
+# implementation) and kept because the shape is right: pull requests stay
+# fast, and depth comes from the schedule instead.
 #
 # When this job finds a crash, the reproducer is uploaded as an artifact. The
 # workflow deliberately does NOT commit it: minimizing the input and adding it

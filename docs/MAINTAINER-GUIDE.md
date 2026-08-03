@@ -7,47 +7,59 @@ the command cheat sheet, common workflows, and the CI architecture.
 
 ```
 background-file-mover/
-├── pyproject.toml            # Poetry project + all tool config (ruff/mypy/pytest/…)
-├── poetry.lock
-├── src/file_mover/           # the application package (stdlib-only runtime)
-│   ├── cli.py  constants.py  exceptions.py  configuration.py  logging_config.py  service.py
-│   ├── control/  jobs/  transfer/  recovery/
-├── tests/                    # pytest suite; @pytest.mark.requirement drives the trace matrix
-├── config/file-mover.ini     # fully commented reference configuration
-├── packaging/systemd/        # systemd unit (filled in at M8)
-├── scripts/                  # build-trace-matrix.py, coverage.sh, pytest-by-requirement.py, install-hooks.sh
-├── docs/                     # requirements (L1/L2/L3), ARCHITECTURE, CLI/CONFIG refs, USER-GUIDE, ROADMAP, TRACE-MATRIX
-└── .github/workflows/        # CI (ci.yml + codeql.yml + sonarcloud.yml)
+├── cpp/                      # the implementation — the only one in this branch
+│   ├── src/  include/filemover/    # library sources and public headers
+│   ├── tests/                # Catch2 suite; "[L3-CPP-NNN]" tags drive the trace matrix
+│   ├── fuzz/                 # libFuzzer targets + committed corpora, one set per target
+│   ├── scripts/              # verify-vendored, assert-locale-free, assert-compile-db, coverage-summary
+│   ├── third_party/          # vendored, hash-pinned, never edited (ADR-0004)
+│   └── Makefile  VENDORED.md  README.md
+├── scripts/build-trace-matrix.py   # generates docs/TRACE-MATRIX.md (stdlib Python)
+├── docs/                     # requirements (L1/L2/L3), ADRs, TRACE-MATRIX, security, roadmap
+├── config/file-mover.ini     # RETIRED reference config for the Python build; kept, bannered
+├── .githooks/pre-commit      # file hygiene, trace parity, then the C++ gates
+└── .github/workflows/        # cpp-ci.yml, cpp-fuzz.yml, codeql.yml, sonarcloud.yml
 ```
+
+The Python tree (`src/`, `tests/`, `pyproject.toml`, `packaging/`) was removed ahead of
+v1.0.0 and remains on `main` and at the `v0.4.2` tag. `scripts/build-trace-matrix.py`
+stayed behind: it is repository infrastructure rather than product code, and it imports
+only the standard library, so it needs no Python packaging to run.
 
 ## Local dev setup
 
-Requires Python 3.10+ and Poetry.
+Requires a C++11 compiler, GNU make, and Python 3 for the trace generator. The canonical
+checkout lives **inside WSL** on a Linux-native filesystem — `CLAUDE.md` records why
+building under `/mnt/c` is both unreliable and ~500× slower for small-file I/O.
 
-```
-poetry install                     # create venv + install dev tooling
-poetry run file-mover --help       # smoke-check the CLI
-```
-
-The runtime package has **zero** dependencies; everything under `poetry install` is the
-dev group (pytest, ruff, mypy, pylint, vulture, bandit).
+Full toolchain setup, including the analyzers and container tiers, is in
+`CONTRIBUTING.md`.
 
 ## Command cheat sheet
 
 ```
-poetry run pytest                          # run the suite
-poetry run pytest --cov                     # with the coverage gate
-poetry run ruff check                        # lint
-poetry run ruff format                       # format (add --check in CI)
-poetry run mypy src                          # strict type check (analysed as py3.10)
-poetry run pylint src/file_mover             # lint (must stay 10.00/10)
-poetry run vulture                           # dead-code
-poetry run bandit -r src/file_mover          # security SAST
-python scripts/build-trace-matrix.py         # regenerate docs/TRACE-MATRIX.md
-python scripts/build-trace-matrix.py --check # CI drift gate
-python scripts/pytest-by-requirement.py L2-CLI-003   # run tests for one requirement id
-bash scripts/install-hooks.sh                # enable the pre-commit hook (once per clone)
+cd cpp
+make check                       # build + run the suite (-Werror, so this is the compile gate too)
+make check SANITIZE=1            # ASan + UBSan + LSan
+make check THREAD=1              # ThreadSanitizer
+make check-valgrind              # Valgrind memcheck
+make verify-vendored             # vendored files match their recorded SHA-256
+make locale-free                 # parsers never use <cctype> (L3-CPP-052)
+make coverage                    # gcov report
+make fuzz-corpus                 # replay every committed seed (the PR gate)
+make fuzz-run FUZZ_SECONDS=60    # live fuzzing session, per target
+make check-ci                    # every gate above, in a container, as CI runs them
+make tidy                        # clang-tidy (needs compile_commands.json)
+
+cd ..
+python3 scripts/build-trace-matrix.py          # regenerate docs/TRACE-MATRIX.md
+python3 scripts/build-trace-matrix.py --check  # CI drift gate
+bash scripts/install-hooks.sh                  # enable the pre-commit hook (once per clone)
 ```
+
+**Read the tail of `make check-ci` rather than the exit status of a pipeline.** Piping it
+to `tail` reports `tail`'s status, which has masked a genuinely failing gate more than
+once here.
 
 ## Workflow: adding a requirement + test
 
@@ -58,9 +70,39 @@ bash scripts/install-hooks.sh                # enable the pre-commit hook (once 
      Method**:` line.
    - L3: `**L3-CAT-NNN** · Parent: L2-CAT-NNN · Verification: T, I` on one line.
    - If the category is new, add it to `CATEGORIES` in `scripts/build-trace-matrix.py`.
-2. Write the test and tag it: `@pytest.mark.requirement("L2-CAT-NNN")`.
-3. Regenerate: `python scripts/build-trace-matrix.py`, and commit `docs/TRACE-MATRIX.md`
-   alongside the change. CI gates on `--check`.
+   - On an L1, the `**v1.0.0 Status**:` line must start with a bare word (`Active`,
+     `Deferred`, `Partial`, `Rewritten`). The generator reads it to compute
+     scope-adjusted coverage, and prose before the word makes it unparseable.
+2. Write the test and tag it. **In C++ the tag is a Catch2 tag:**
+
+   ```cpp
+   TEST_CASE("rejection errors name the offending byte offset",
+             "[json][L3-CPP-019]") { ... }
+   ```
+
+   The generator reads requirement ids straight out of the `TEST_CASE` tag string, so a
+   tag is the whole mechanism — there is nothing else to register. Catch2 can also select
+   on it, which makes the matrix entry a runnable command:
+   `./filemover_tests "[L3-CPP-019]"`. The legacy pytest form
+   (`@pytest.mark.requirement("L2-CAT-NNN")`) is still understood, for the Python tests
+   that live on `main`.
+
+3. Choose the verification method honestly. `T` commits you to a test that can actually
+   fail. If the evidence is a build gate rather than an assertion — "compiles clean under
+   `-Werror` on GCC 4.8.5" — the method is `D`, not `T`; marking it `T` leaves a
+   permanent hole in the matrix against a requirement that is in fact gated on every
+   commit. `L3-CPP-013` was exactly this mistake.
+4. Regenerate: `python3 scripts/build-trace-matrix.py`, and commit `docs/TRACE-MATRIX.md`
+   alongside the change. CI and the pre-commit hook both gate on `--check`.
+
+---
+
+> **The workflows below describe the retired Python implementation** and the modules they
+> name (`cli.py`, `diagnostics.py`, `logging_config.py`) are not in this branch. They are
+> kept because the *shape* of each workflow — define an option once and let it drive
+> validation, docs, and diagnostics; never let a probe raise; keep machine output on
+> stdout — is the design the C++ is being built toward. Each gets rewritten as the
+> corresponding C++ lands. Tracked in `docs/ROADMAP.md`.
 
 ## Workflow: adding a CLI flag
 
@@ -131,24 +173,36 @@ sheet above and *CI architecture* below).
 
 ## CI architecture
 
-`.github/workflows/ci.yml` runs, all via `poetry run`:
+`.github/workflows/cpp-ci.yml` carries twelve jobs; `make check-ci` reproduces all of
+them locally in a container, so a red branch is avoidable:
 
-- **linux-container** — the full suite (unit, `doctor`, and the POSIX end-to-end tests —
-  `AF_UNIX` control plane + `fcntl` lock) inside official `python:X-slim` Docker containers
-  across 3.10–3.14. (GitHub Actions job `container:` is Linux-only.)
-- **windows** — the full suite on the `windows-latest` VM (3.12 + 3.14); the POSIX-only
-  end-to-end tests auto-skip, so this covers the cross-platform logic and the `doctor`
-  suite. (Windows job containers are not supported by GitHub Actions.)
-- **package** — `poetry check --strict --lock` + `poetry build`.
-- **python-coverage** — the combined line+branch coverage gate (`fail_under` in
-  `pyproject.toml`).
-- **mypy** — strict, analysed as Python 3.10.
-- **ruff** — `check` + `format --check`.
-- **pylint**, **vulture**, **bandit** — lint, dead-code, security.
-- **trace-matrix** — `build-trace-matrix.py --check`.
+- **build & test (g++-14)** — fast feedback on a modern toolchain.
+- **build & test (gcc 4.8.5)** — the SLES 12 SP5 fidelity tier, in the official `gcc:4.8`
+  image. It runs the **full suite**, not just a compile; that is what closes the gap
+  between the instrumented build and the shipped one. Do not reduce it to `make all`.
+- **ASan + UBSan + LSan**, **ThreadSanitizer**, **Valgrind memcheck** — three separate
+  jobs. TSan cannot share a binary with ASan: their shadow-memory layouts conflict.
+- **Vendored file integrity** — SHA-256 against `cpp/VENDORED.md`. A repository-wide edit
+  once rewrote an identifier *inside* the vendored Catch2 header and every other gate
+  passed; a compiler cannot tell, only a checksum can.
+- **Locale-free parsers** — greps the parser sources for `<cctype>` and the `strtoul`
+  family (`L3-CPP-052`). A source gate because the runtime test needs a locale the
+  runners do not always have.
+- **cppcheck** and **clang-tidy** — they disagree often enough to justify both.
+  clang-tidy needs a compilation database, and `scripts/assert-compile-db.sh` proves the
+  database actually covers the sources: an empty one made the gate skip every file and
+  exit zero.
+- **Fuzz corpus replay** and **Fuzz (60s)** — the regression gate and a short live
+  session. The deep burn-in is nightly, in `cpp-fuzz.yml`.
+- **Coverage (gcov)** — reported per PR and consumed by SonarCloud.
 
 `codeql.yml` and `sonarcloud.yml` add security and quality scanning (SonarCloud requires
-the repo be onboarded and a `SONAR_TOKEN` secret set).
+the repo be onboarded and a `SONAR_TOKEN` secret set). Both are C++-only on this branch.
+
+- **Requirements trace matrix** — `build-trace-matrix.py --check`. This gate used to live
+  in the Python workflow and moved here when that was removed: it covers the
+  *requirements*, not either implementation, so it outlives both. The pre-commit hook
+  runs it too.
 
 The pre-commit hook (`.githooks/pre-commit`, enabled via `scripts/install-hooks.sh`) runs
 the cheap file checks plus ruff/mypy/pytest and the trace-matrix parity check, so failures

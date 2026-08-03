@@ -182,8 +182,8 @@ final name in a partially written state.
 The system shall move files by same-filesystem atomic rename.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: **Rewritten.** This originally required three strategies —
-same-filesystem move, cross-filesystem copy, and an external command — carried
+**v1.0.0 Status**: Rewritten — this originally required three strategies:
+same-filesystem move, cross-filesystem copy, and an external command, carried
 over from the inherited design's `L1-023`. Two of the three are gone:
 
 - The **cross-filesystem copy** clause contradicted `L1-SEC-007`, which

@@ -98,6 +98,21 @@ The parser shall reject invalid arguments and choices before any service is invo
 
 ## PY — Python implementation details
 
+> **Retired for v1.0.0.** The Python implementation was removed from this branch
+> ahead of v1.0.0; it remains on `main` and at the `v0.4.2` tag. These fourteen
+> requirements are **retained verbatim, not deleted**, for the same reason
+> `L1-SYS-002..006` are: they specify a working implementation that the v1.1
+> parity work will be measured against, and deleting them would mean
+> re-deriving them from source later.
+>
+> Read them as history. They constrain no code in this branch, and their tests
+> left with the implementation, so the trace matrix reports them untested —
+> which is accurate rather than a gap to close. Where a C++ equivalent exists it
+> is an `L3-CPP-*` requirement; several have none, because the constraint was
+> language-specific (`hashlib`, `python -O`, standard-library-only imports).
+>
+> Do not add new `L3-PY-*` requirements. Do not delete these.
+
 **L3-PY-001** · Parent: L2-CFG-001 · Verification: T, I
 
 The runtime package shall import only Python 3.10 standard-library modules.
@@ -289,10 +304,18 @@ Core headers shall include no I/O, threading, or clock headers; `<iostream>`,
 `<fstream>`, `<thread>`, `<mutex>`, and `<chrono>` are prohibited in
 `cpp/include/filemover/job.hpp`.
 
-**L3-CPP-013** · Parent: L2-ARC-007 · Verification: T, I
+**L3-CPP-013** · Parent: L2-ARC-007 · Verification: D, I
 
 All core code shall compile warning-free under `-std=c++11 -Wall -Wextra -Werror` on
 GCC 4.8.5.
+
+Verification is by Demonstration, not Test. There is no runtime behavior here to
+assert, so no test case can exist and the matrix would report a permanent hole
+against a requirement that is in fact gated on every commit. The demonstration is
+the `build & test (gcc 4.8.5)` job in `.github/workflows/cpp-ci.yml` and the
+fidelity tier of `make check-ci`, both of which run the compiler with these exact
+flags and fail the build on any diagnostic. This was previously marked `T`, which
+was a modeling error rather than a missing test.
 
 **L3-CPP-014** · Parent: L2-ARC-007 · Verification: I
 

@@ -4,12 +4,12 @@ This document is the complete development setup. If a step here is wrong or
 incomplete, fix it in the same change that discovers the problem — a setup
 document that has drifted is worse than none, because it is trusted.
 
-Two implementations currently coexist:
+The implementations live on separate branches — they no longer share a tree:
 
 | Branch | Implementation | Status |
 |---|---|---|
-| `main` | Python 3.10, standard-library-only | Ships through v0.4.2 |
-| `v2-cpp` | C++11 with a REST control plane | v1.0.0 in progress |
+| `main` | Python 3.10, standard-library-only | Ships through v0.4.2; deploy this today |
+| `v2-cpp` | C++11 with a REST control plane | v1.0.0 in progress; **no Python in the tree** |
 
 `CLAUDE.md` carries the migration context and the three failure modes that
 are easy to get wrong. Read it before touching requirements.
@@ -160,15 +160,12 @@ Ubuntu's Podman has no unqualified-search registries configured, so images
 must be named in full — `docker.io/library/gcc:4.8`, not `gcc:4.8`. A bare
 name fails with `short-name ... did not resolve to an alias`.
 
-### Python tooling (only if working on `main`)
+### Python tooling
 
-```bash
-pipx install poetry
-poetry install
-```
-
-The trace-matrix generator (`scripts/build-trace-matrix.py`) is
-standard-library-only and runs without Poetry.
+Not needed on this branch. The only Python left is the trace-matrix generator
+(`scripts/build-trace-matrix.py`), which imports the standard library only and
+runs under any `python3`. Poetry and the lint/type toolchain went with the
+Python implementation; they are still on `main` if you work there.
 
 ---
 
@@ -383,9 +380,17 @@ Adding a requirement:
    or a Catch2 tag `"[L3-CPP-NNN]"` in C++.
 5. Regenerate the matrix and commit the result alongside the change.
 
-**Known gap:** the generator only scans `tests/` for pytest markers, so the
-C++ tree reports 0 tested even though the Catch2 tags exist. A Catch2 tag
-scanner is outstanding work; until it lands the matrix understates `cpp/`.
+The generator reads **both** languages: `@pytest.mark.requirement` decorators
+under `tests/` via an AST parse, and requirement ids inside Catch2 `TEST_CASE`
+tag strings under `cpp/tests/`. A tag is the entire mechanism — there is nothing
+else to register — and because Catch2 selects on tags, the matrix entry doubles
+as a runnable command: `./filemover_tests "[L3-CPP-019]"`.
+
+**Pick the verification method honestly.** `T` commits you to a test that can
+fail. When the evidence is a build gate rather than an assertion — "compiles
+clean under `-Werror` on GCC 4.8.5" — the method is `D`. Marking such a
+requirement `T` leaves a permanent hole in the matrix against something that is
+in fact gated on every commit.
 
 **Deferred requirements are not implemented.** v1.0.0 is deliberately
 narrower than v0.4.2 — see the v1.0.0 scope section of `docs/L1-REQ.md`. Do

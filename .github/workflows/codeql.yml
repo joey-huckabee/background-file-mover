@@ -4,12 +4,14 @@
 # Builds a CodeQL database per language and reports findings to GitHub code
 # scanning (Security tab).
 #
-# Two implementations coexist during the v1.0.0 migration:
-#   * Python  — needs no build; build-mode: none extracts from source.
-#   * C++     — CodeQL cannot extract C/C++ without observing a compiler, so
-#               build-mode: manual runs a real build between init and analyze.
-#               autobuild is deliberately not used: the Makefile keys BUILD_DIR
-#               on the toolchain, and autobuild's heuristics do not know that.
+# C++ only. The Python implementation was removed from this branch ahead of
+# v1.0.0; it remains on `main` and at the v0.4.2 tag, which have their own
+# workflow runs.
+#
+# CodeQL cannot extract C/C++ without observing a compiler, so build-mode:
+# manual runs a real build between init and analyze. autobuild is deliberately
+# not used: the Makefile keys BUILD_DIR on the toolchain, and autobuild's
+# heuristics do not know that.
 # ----------------------------------------
 
 name: CodeQL Security Scan
@@ -41,8 +43,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - language: python
-            build-mode: none
           - language: c-cpp
             build-mode: manual
 

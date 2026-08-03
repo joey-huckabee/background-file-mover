@@ -2,8 +2,10 @@
 status: accepted
 date: 2026-08-01
 decision-makers: Joey
-precedent: ADR-0006 (project-owned JSON parser), the existing Python no-panic
-  fuzz harness (`tests/test_fuzz.py`, `.github/workflows/fuzz.yml`, L1-ROB-001)
+precedent: ADR-0006 (project-owned JSON parser), and the Python no-panic fuzz
+  harness that existed when this was written (`tests/test_fuzz.py`,
+  `.github/workflows/fuzz.yml`, L1-ROB-001) -- both removed from this branch
+  with the Python implementation; they remain on `main` and at v0.4.2
 ---
 
 # Coverage-guided fuzzing for the untrusted-input path

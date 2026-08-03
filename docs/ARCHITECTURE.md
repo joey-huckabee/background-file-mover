@@ -1,5 +1,18 @@
 # Architecture
 
+> **This document describes the retired Python implementation (v0.4.2).**
+> The Python code was removed from this branch ahead of the C++ v1.0.0 release.
+> It remains on `main` and at the `v0.4.2` tag. **Nothing below describes code
+> that exists in this branch.**
+>
+> The file is kept on purpose rather than deleted: it is the source material for
+> the C++ rewrite, the behavior it documents is the v1.1 parity target, and
+> re-deriving it from a tag later would be slower and would lose the reasoning.
+> The rewrite is tracked in `docs/ROADMAP.md`.
+>
+> For what this branch actually specifies, read `docs/L1-REQ.md`,
+> `docs/L2-REQ.md`, `docs/L3-REQ.md`, and `docs/TRACE-MATRIX.md`.
+
 This document describes how the Background File Mover is structured and why. It is the
 orientation read before changing the transfer, control, or state code. Requirement IDs
 (e.g. L1-SYS-003) refer to `docs/L1-REQ.md` and its L2/L3 children.

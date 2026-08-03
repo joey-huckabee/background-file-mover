@@ -1,7 +1,7 @@
 # Roadmap
 
 Forward-looking milestone plan for the Background File Mover. Each milestone is a
-vertical, CI-green, fully-pytested slice that advances the requirements in
+vertical, CI-green, fully-tested slice that advances the requirements in
 `docs/L1-REQ.md` / `L2-REQ.md` / `L3-REQ.md`. Completed work lives in `CHANGELOG.md`
 and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
@@ -9,27 +9,57 @@ The ordering follows the "Recommended Initial Build Order" agreed during design:
 build the durable control and state plane first, then submission and claiming, then the
 actual bytes-moving transfer engine, then recovery and packaging.
 
+## Documentation rewrites owed
+
+The Python implementation was removed from this branch ahead of v1.0.0. Several documents
+that describe it were **kept deliberately** rather than deleted, so the behavior and
+reasoning are not lost to a tag — each opens with a banner. Every one of them owes a
+rewrite against the C++ implementation, and this list is the only thing standing between
+"kept on purpose" and "quietly stale."
+
+Rewrite each when the C++ it describes exists — not before, and not piecemeal.
+
+| Document | Rewrite when | Notes |
+|---|---|---|
+| `docs/ARCHITECTURE.md` | The manager and transfer engine exist | Process/thread model changes completely: no GIL, real worker threads, TSan already gating |
+| `docs/CLI-REFERENCE.md` | A C++ client exists, if one ever does | The thin CLI over `AF_UNIX` is gone; REST may make a bespoke client unnecessary |
+| `docs/CONFIG-REFERENCE.md` | The C++ schema settles | Pair with `config/file-mover.ini`; `[journal]` is `[storage]` now (ADR-0010) |
+| `docs/LOGGING.md` | The daemon has a logging path | The `-O`/`__debug__` gating convention is Python-specific and has no C++ analogue |
+| `docs/DEPLOYMENT.md` | The daemon can be deployed | Keep the NFS qualification checklist — it is implementation-neutral and hard-won |
+| `docs/USER-GUIDE.md` | v1.0.0 is shippable | |
+| `docs/FEATURE-INTERACTIONS.md` | The v1.1 features return | Kernel copy, bandwidth limiting, resume are all v1.1 |
+| `docs/12-FACTOR.md` | Now — it is only partly stale | Factor VII **inverted**: the `AF_UNIX` deviation became REST conformance |
+| `docs/MAINTAINER-GUIDE.md` | Per workflow, as each lands | Layout and cheat sheet are already current; the per-workflow sections are not |
+
 ## Locked decisions ("do not drop")
 
 These were settled during design and at project kickoff. Keep them
 across all future work:
 
-- **Standard-library-only runtime.** The production package imports only the Python 3.10
-  standard library (L1-SYS-009). Dev/CI tooling is dev-group-only.
+- **Dependency-free runtime.** Production code uses only the C++11 standard library,
+  POSIX, and the vendored, hash-pinned dependencies in `cpp/VENDORED.md` (L1-SYS-009).
+  This requirement previously meant "Python 3.10 standard library only" — the ID was
+  reused, not reminted, when the implementation changed.
 - **Conservative deletion.** A source file is deleted only after the destination is
   written, fsynced, published, and verified per the configured integrity policy
   (L1-SYS-003). A failure always *retains* the claimed source.
 - **Hybrid naming.** Operator-facing name is generic (`file-mover`, `/etc/file-mover`);
   on-disk staging markers are SWIT-prefixed (`.swit-moving`, `.swit-partial-`) so
   in-flight artifacts are unmistakably ours on shared NFS.
-- **Unix-socket control plane.** The CLI is a thin client; the service is the durable
-  worker and a small local command server over an `AF_UNIX` socket with length-prefixed
-  JSON. Submission is idempotent by `request_id`.
+- **~~Unix-socket control plane.~~ Superseded at v1.0.0 by REST** (ADR-0002). The
+  `AF_UNIX` socket with length-prefixed JSON is gone. What survives the change and is
+  still locked: **submission is idempotent by `request_id`.** What was *lost* and must be
+  replaced deliberately: the socket gave filesystem-permission authentication for free,
+  and a TCP listener does not — hence the authentication item below.
 - **SQLite is the durable queue.** Authoritative job/file state lives in SQLite (WAL,
   `synchronous=FULL`); recovery decisions are made from observable filesystem state plus
   durable records, never from assumptions.
-- **Poetry, root `src/` layout, full quality battery** (ruff, mypy --strict, pytest +
-  coverage, pylint, vulture, bandit, CodeQL, SonarCloud, trace-matrix `--check`).
+- **~~Poetry, root `src/` layout~~ — superseded at v1.0.0.** The build is GNU make
+  (ADR-0005) over `cpp/`. The **full quality battery is locked and grew**: two compilers
+  including the GCC 4.8.5 fidelity tier, ASan/UBSan/LSan, ThreadSanitizer, Valgrind,
+  cppcheck, clang-tidy, vendored-file integrity, locale-free parser verification,
+  coverage, coverage-guided fuzzing with committed corpora, CodeQL, SonarCloud, and
+  trace-matrix `--check`.
 
 ## Milestones
 
@@ -180,10 +210,14 @@ Requirements: L1-SYS-002, L2-STO-001..005, plus test-completeness across all cat
 
 ## Known gaps (decision needed)
 
+> **Read this section as of v0.4.0.** It describes the traceability position of the
+> Python implementation, whose tests left this branch with it. The C++ position is
+> different and much earlier — see the scope-adjusted figure in `docs/TRACE-MATRIX.md`.
+
 A **traceability audit** (v0.4.0) reconciled the trace matrix with the code: every
-implemented requirement now carries a `@pytest.mark.requirement` test marker (or a declared
-Inspection method), so a `Draft` status in the matrix now means *genuinely unbuilt*, not
-merely untested. The claim/filesystem and transfer/deletion data-safety requirements
+implemented requirement then carried a `@pytest.mark.requirement` test marker (or a
+declared Inspection method), so a `Draft` status in the matrix meant *genuinely unbuilt*,
+not merely untested. The claim/filesystem and transfer/deletion data-safety requirements
 (`L2-FS-*`, `L2-POSIX-*`, `L2-CLN-001/005`, `L2-COPY-*`, `L2-DST-*`, `L2-DEL-*`) are now
 tested. The requirements still `Draft` are unimplemented features specified during design —
 each needs an **implement-or-withdraw** decision:
@@ -431,8 +465,9 @@ checking the string first and trusting the conversion afterwards.
 | **Collision suffix walk** | The inherited design walks `.1`–`.1000`, each probe a `link()` attempt. On NFS that is up to 1000 round-trips per collision, and with a `{name}`-only template collision is the normal case rather than the exception. The cap is also arbitrary. Re-evaluate once the fd-relative layer exists — it may be better addressed by making collisions rare by construction than by walking. | M6 review |
 | **cpp-httplib on GCC 4.8.5** | **Answered — rejected.** No tag is viable: it routes with `std::regex`, unimplemented in libstdc++ before GCC 4.9. Measured in the container — a literal route registers, a parameterised one throws `regex_error`, and the latest tag will not compile at all. HTTP is hand-rolled (ADR-0012), which also closes the last TBD in ADR-0004. | ADR-0004, closed M9/M10 |
 | **Authentication** | v1.0.0 ships none; the bind address is the only access control (`L1-API-006`). Needs a decision before any non-loopback deployment. | L1 merge |
-| **Trace matrix and Catch2** | The generator reads only pytest markers, so the C++ tree reports 0 tested despite thousands of passing assertions. | Requirements merge |
-| **Stale locked decisions** | The section at the top of this file still asserts Python-stdlib-only and a Unix-socket control plane. Needs a superseded-at-v1.0.0 pass. | L1 merge |
+| **Trace matrix and Catch2** | **Answered — implemented.** The generator now reads requirement ids out of Catch2 `TEST_CASE` tag strings as well as pytest markers, so a tag is the whole tracing mechanism. This had to land *before* the Python removal: without it, deleting `tests/` would have taken the matrix to zero tested. | Requirements merge, closed at the Python removal |
+| **Stale locked decisions** | **Answered — done.** The locked-decisions section above now marks the Unix-socket control plane and the Poetry/`src` layout as superseded at v1.0.0, and records what the socket's removal *cost* rather than only that it changed. | L1 merge, closed at the Python removal |
+| **Deferred-family verification** | The 69 L2/L3 requirements under the five Deferred L1s are excluded from the scope-adjusted coverage figure, which is right for release reporting — but it means nothing gates them, and their Python tests are gone. Before v1.1 begins, decide whether they are re-verified against the C++ or re-derived from scratch. | Python removal |
 
 ## Deferred to v1.1
 

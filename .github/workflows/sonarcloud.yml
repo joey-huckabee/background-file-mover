@@ -7,9 +7,13 @@
 #   3. Add repo secrets: SONAR_TOKEN, SONAR_PROJECT_KEY, SONAR_ORGANIZATION.
 # Until those secrets exist, every analysis step is skipped (safe no-op).
 #
-# Both implementations are analyzed in ONE scanner invocation. A SonarCloud
-# project holds a single analysis per branch, so a second workflow scanning
-# C++ separately would overwrite the Python results rather than add to them.
+# C++ only. The Python implementation was removed from this branch ahead of
+# v1.0.0; it remains on `main` and at the v0.4.2 tag.
+#
+# Keep this as ONE scanner invocation. A SonarCloud project holds a single
+# analysis per branch, so a second workflow scanning another language would
+# overwrite these results rather than add to them — worth remembering if a
+# second language ever returns.
 #
 # C/C++ analysis needs the scanner to see how each file was compiled. Rather
 # than the legacy build-wrapper, this uses sonar.cfamily.compile-commands with
@@ -17,8 +21,8 @@
 # database clangd uses locally (see CONTRIBUTING.md).
 #
 # Note: SonarCloud's CFamily analyzer is free for public repositories; private
-# repositories need a paid plan. If C++ issues never appear while Python ones
-# do, check the plan before debugging the workflow.
+# repositories need a paid plan. If C++ issues never appear at all, check the
+# plan before debugging the workflow.
 name: Analyze with SonarCloud
 
 on:
@@ -56,23 +60,6 @@ jobs:
         with:
           fetch-depth: 0  # full history for accurate Sonar analysis
 
-      - name: Install Poetry
-        run: pipx install poetry==2.3.4
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: poetry
-          cache-dependency-path: poetry.lock
-
-      - name: Install dependencies
-        run: poetry install --no-interaction --no-ansi
-
-      - name: Python coverage (XML)
-        run: poetry run pytest --cov --cov-report=xml   # -> coverage.xml
-
-      # --- C++ -----------------------------------------------------------
       # bear records the compilation database the CFamily analyzer needs.
       - name: Install bear
         run: sudo apt-get update -q && sudo apt-get install -y -q bear
@@ -105,11 +92,9 @@ jobs:
           args=(
             "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
             "-Dsonar.organization=${SONAR_ORGANIZATION}"
-            "-Dsonar.sources=src,cpp/src,cpp/include"
-            "-Dsonar.tests=tests,cpp/tests"
-            "-Dsonar.exclusions=dist/**,**/__pycache__/**,docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus-*/**,transcripts/**"
-            "-Dsonar.python.version=3.10"
-            "-Dsonar.python.coverage.reportPaths=coverage.xml"
+            "-Dsonar.sources=cpp/src,cpp/include"
+            "-Dsonar.tests=cpp/tests"
+            "-Dsonar.exclusions=docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus-*/**"
             "-Dsonar.cfamily.compile-commands=cpp/compile_commands.json"
             "-Dsonar.cfamily.gcov.reportsPath=cpp/build/coverage/report"
           )

@@ -104,6 +104,36 @@ TEST_CASE("top-level value must be an object", "[json][L3-CPP-017]") {
     REQUIRE(accepts("null") == false);
 }
 
+TEST_CASE("rejection errors name the offending byte offset",
+          "[json][L3-CPP-019]") {
+    // L3-CPP-019 has two halves. The non-empty half is asserted centrally in
+    // accepts(); the offset half had no test at all until this one, even though
+    // the parser has always reported it. An error that says only "invalid
+    // literal" about a 4 KB request body is not diagnosable, which is the whole
+    // reason the requirement asks for a position.
+    struct Row {
+        const char* input;
+        const char* expected;  // substring, so the message wording stays free
+    };
+    const Row rows[] = {
+        {"nope", "at offset 0"},               // fails on the very first byte
+        {"{,}", "at offset 1"},                // first byte inside the object
+        {"{\"a\" 1}", "at offset 5"},          // the missing ':'
+        {"{\"a\": tru}", "at offset 6"},       // truncated literal
+        {"{\"a\":01}", "at offset 6"},         // the digit after the leading 0
+        {"{\"a\":1,}", "at offset 7"},         // trailing comma, at the brace
+    };
+
+    for (std::size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); ++i) {
+        INFO("input " << rows[i].input);
+        Value v;
+        std::string error;
+        REQUIRE(filemover::json::parse(rows[i].input, v, error) == false);
+        CHECK(error.empty() == false);
+        CHECK(error.find(rows[i].expected) != std::string::npos);
+    }
+}
+
 TEST_CASE("trailing content after the value is rejected",
           "[json][L3-CPP-024]") {
     // The picojson defect that motivated whole-input consumption: a body

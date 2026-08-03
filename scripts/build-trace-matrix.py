@@ -7,9 +7,16 @@ This tool walks three sources and emits a single trace matrix document:
 2. ``docs/L2-REQ.md``, ``docs/L3-REQ.md`` — for L2/L3 ids with ``Parent:`` fields
 3. ``tests/`` — for every ``@pytest.mark.requirement("L<N>-<CAT>-<NNN>")`` marker,
    collected via an AST parse
+4. ``cpp/tests/`` — for every requirement id appearing in a Catch2 ``TEST_CASE``
+   tag string, e.g. ``TEST_CASE("...", "[http][L3-CPP-046]")``
+
+Both test languages feed one matrix. That matters more than it sounds: during the
+C++ migration a requirement may be evidenced by a Python test, a C++ test, both, or
+neither, and a matrix that could see only one language would report a coverage
+number that was wrong in a direction nobody would think to question.
 
 The output per requirement row includes its L2/L3 children (from parent fields) and
-the test artifacts (from markers) in pytest discovery format. Status is rolled up per
+the test artifacts (from markers) in each language's discovery format. Status is rolled up per
 :func:`compute_status`. The coverage-summary denominator is every L2 and L3 requirement
 plus any Test-verifiable L1 *leaves* (L1s with no L2 decomposition); composite L1s are
 verified transitively through their counted children.
@@ -34,9 +41,26 @@ L2_DOC = ROOT / "docs" / "L2-REQ.md"
 L3_DOC = ROOT / "docs" / "L3-REQ.md"
 TRACE_DOC = ROOT / "docs" / "TRACE-MATRIX.md"
 PY_TESTS_DIR = ROOT / "tests"
+CPP_TESTS_DIR = ROOT / "cpp" / "tests"
+
+# Catch2 test declaration: TEST_CASE("name", "[tag][tag]"). clang-format splits
+# these across lines freely, so the pattern tolerates arbitrary whitespace and
+# does not anchor to the start of a line.
+CPP_TEST_CASE = re.compile(
+    r"TEST_CASE\s*\(\s*\"(?P<name>(?:[^\"\\]|\\.)*)\"\s*,\s*\"(?P<tags>[^\"]*)\"",
+    re.DOTALL,
+)
 
 REQ_ID_PATTERN = re.compile(r"L(?P<level>[123])-(?P<cat>[A-Z]+)-(?P<num>\d+)")
 L1_HEADER = re.compile(r"^###\s+(L1-[A-Z]+-\d+)\s*$", re.MULTILINE)
+# "**v1.0.0 Status**: Deferred -- ..." The value is the first bare word; prose
+# after a dash or em-dash is commentary. Values seen: Active, Deferred,
+# Partial, Rewritten.
+L1_STATUS_LINE = re.compile(r"^\*\*v1\.0\.0 Status\*\*:\s*(?P<status>[A-Za-z]+)", re.MULTILINE)
+# A requirement whose L1 ancestor carries one of these is not in v1.0.0 scope,
+# so counting it against v1.0.0 coverage reports a gap that is a deliberate
+# decision rather than missing work.
+OUT_OF_SCOPE_STATUSES = frozenset({"Deferred"})
 L2_PARENT_LINE = re.compile(r"^\*\*Parent\*\*:\s+(L1-[A-Z]+-\d+)\s*$", re.MULTILINE)
 L3_LINE = re.compile(
     r"^\*\*L3-([A-Z]+)-(\d+)\*\*\s+·\s+Parent:\s+(L2-[A-Z]+-\d+)\s+·\s+Verification:\s+([^\n]+)",
@@ -112,6 +136,24 @@ def parse_l1_methods(doc: str) -> dict[str, set[str]]:
         m = L1_L2_VM_LINE.search(body)
         if m:
             result[l1_id] = _extract_methods(m.group(1))
+    return result
+
+
+def parse_l1_statuses(doc: str) -> dict[str, str]:
+    """Return mapping L1-id -> v1.0.0 status word (Active, Deferred, ...).
+
+    An L1 with no status line is treated as Active by the caller. That default is
+    deliberate: a requirement is in scope until someone says otherwise, so a
+    forgotten annotation over-reports the work remaining rather than hiding it.
+    """
+    result: dict[str, str] = {}
+    blocks = re.split(r"^###\s+(L1-[A-Z]+-\d+)\s*$", doc, flags=re.MULTILINE)
+    for i in range(1, len(blocks), 2):
+        l1_id = blocks[i]
+        body = blocks[i + 1] if i + 1 < len(blocks) else ""
+        m = L1_STATUS_LINE.search(body)
+        if m:
+            result[l1_id] = m.group("status")
     return result
 
 
@@ -197,10 +239,43 @@ def _extract_pytest_requirement_id(decorator: ast.expr) -> str | None:
     return None
 
 
+def collect_cpp_markers(tests_dir: Path) -> dict[str, list[str]]:
+    """Walk every ``.cpp`` file under tests_dir and collect Catch2 tag markers.
+
+    A requirement id written as a Catch2 tag -- ``"[http][L3-CPP-046]"`` -- is the
+    C++ equivalent of ``@pytest.mark.requirement``. Tags are the right carrier
+    because Catch2 can select on them directly, so the artifact string this emits
+    is a runnable command rather than a label:
+
+        ./filemover_tests "[L3-CPP-046]"
+
+    A single TEST_CASE may name several requirements, and the same requirement may
+    be tagged in several test cases; both are normal and both are recorded.
+    """
+    marker_map: dict[str, list[str]] = defaultdict(list)
+    if not tests_dir.is_dir():
+        return marker_map
+    for cpp_file in sorted(tests_dir.rglob("*.cpp")):
+        try:
+            source = cpp_file.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        rel = cpp_file.relative_to(ROOT).as_posix()
+        for match in CPP_TEST_CASE.finditer(source):
+            tags = match.group("tags")
+            for req_id in REQ_ID_PATTERN.findall(tags):
+                # findall returns the group tuple (level, cat, num).
+                level, cat, num = req_id
+                marker_map[f"L{level}-{cat}-{num}"].append(f"{rel}::[{match.group('name')}]")
+    return marker_map
+
+
 def collect_all_markers() -> dict[str, list[str]]:
-    """Collect and de-duplicate the Python requirement markers."""
+    """Collect and de-duplicate requirement markers from both test languages."""
     merged: dict[str, list[str]] = defaultdict(list)
     for req_id, artifacts in collect_python_markers(PY_TESTS_DIR).items():
+        merged[req_id].extend(artifacts)
+    for req_id, artifacts in collect_cpp_markers(CPP_TESTS_DIR).items():
         merged[req_id].extend(artifacts)
     for req_id in merged:
         merged[req_id] = sorted(set(merged[req_id]))
@@ -215,6 +290,7 @@ def build_matrix() -> str:
 
     l1_ids = parse_l1_ids(l1_doc)
     l1_methods = parse_l1_methods(l1_doc)
+    l1_statuses = parse_l1_statuses(l1_doc)
     l2_parent = parse_l2_parent_map(l2_doc)
     l2_methods = parse_l2_methods(l2_doc)
     l3_parent = parse_l3_parent_map(l3_doc)
@@ -242,9 +318,9 @@ def build_matrix() -> str:
     lines.append("")
     lines.append(
         "Forward trace from L1 through L2 and L3 to verification artifacts. This file is "
-        "regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, and the "
-        "`@pytest.mark.requirement` markers in `tests/` each time "
-        "`scripts/build-trace-matrix.py` is run."
+        "regenerated from `L1-REQ.md`, `L2-REQ.md`, `L3-REQ.md`, the "
+        "`@pytest.mark.requirement` markers in `tests/`, and the Catch2 tag markers in "
+        "`cpp/tests/`, each time `scripts/build-trace-matrix.py` is run."
     )
     lines.append("")
     lines.append("## Status rollup")
@@ -329,7 +405,8 @@ def build_matrix() -> str:
     lines.append("## Coverage summary")
     lines.append("")
     lines.append(
-        "* **Tested** — at least one `@pytest.mark.requirement` marker names this " "requirement."
+        "* **Tested** — at least one `@pytest.mark.requirement` marker or Catch2 tag "
+        "names this requirement."
     )
     lines.append(
         "* **Verified** — Tested, OR the spec declares verification by Inspection / "
@@ -402,6 +479,60 @@ def build_matrix() -> str:
             f"{verified_n} of {countable} ({verified_pct:.1f}%)."
         )
         lines.append("")
+
+        # Scope-adjusted view. The figures above count every requirement ever
+        # specified, including the families whose L1 parent is Deferred to a later
+        # release -- so during the C++ migration they understate v1.0.0 progress by
+        # measuring against work that was deliberately postponed. Both numbers are
+        # published: the unadjusted one is the honest total, the adjusted one is the
+        # one that answers "are we ready to ship v1.0.0".
+        deferred_l1s = {
+            l1 for l1, status in l1_statuses.items() if status in OUT_OF_SCOPE_STATUSES
+        }
+        if deferred_l1s:
+            out_of_scope: set[str] = set()
+            for l2_id, parent_l1 in l2_parent.items():
+                if parent_l1 in deferred_l1s:
+                    out_of_scope.add(l2_id)
+            for l3_id, parent_l2 in l3_parent.items():
+                if parent_l2 in out_of_scope:
+                    out_of_scope.add(l3_id)
+            out_of_scope |= {l1 for l1 in l1_leaves if l1 in deferred_l1s}
+
+            in_scope_countable = countable - len(out_of_scope)
+            in_scope_tested = tested_n - sum(1 for r in out_of_scope if test_markers.get(r))
+            all_methods = {**l1_methods, **l2_methods, **l3_methods}
+            in_scope_verified = verified_n - sum(
+                1 for r in out_of_scope if _is_verified(r, all_methods)
+            )
+            lines.append(
+                f"### v1.0.0 scope-adjusted coverage"
+            )
+            lines.append("")
+            lines.append(
+                f"{len(deferred_l1s)} L1 requirement(s) are annotated **Deferred** for "
+                f"v1.0.0, which places {len(out_of_scope)} L2/L3 requirement(s) outside "
+                f"this release. They remain specified verbatim and are counted above; they "
+                f"are excluded here so the release figure is not diluted by work that was "
+                f"postponed on purpose."
+            )
+            lines.append("")
+            if in_scope_countable > 0:
+                lines.append(
+                    f"**In v1.0.0 scope — tested**: {in_scope_tested} of "
+                    f"{in_scope_countable} ({in_scope_tested * 100 / in_scope_countable:.1f}%)."
+                )
+                lines.append("")
+                lines.append(
+                    f"**In v1.0.0 scope — verified**: {in_scope_verified} of "
+                    f"{in_scope_countable} "
+                    f"({in_scope_verified * 100 / in_scope_countable:.1f}%)."
+                )
+                lines.append("")
+            lines.append(
+                f"Deferred L1s: {', '.join(sorted(deferred_l1s, key=_sort_key))}."
+            )
+            lines.append("")
 
     orphan_l2s = [l2 for l2 in l2_parent if l2_parent[l2] not in l1_ids]
     orphan_l3s = [l3 for l3 in l3_parent if l3_parent[l3] not in l2_parent]
