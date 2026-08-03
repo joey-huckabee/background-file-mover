@@ -42,7 +42,12 @@ bool parse_uint(const std::string& token,
                 unsigned long min_value,
                 unsigned long max_value,
                 unsigned long& value) {
-    if (token.empty() || token[0] == '-' || token[0] == '+') {
+    // Requiring a leading digit covers the sign characters and also the
+    // whitespace strtoul silently skips — an earlier version rejected only
+    // '-' and '+', which left " 80" accepted despite the comment above. The
+    // caller trims, so it was not reachable from a config file, but the
+    // helper's contract should not depend on that.
+    if (token.empty() || token[0] < '0' || token[0] > '9') {
         return false;
     }
     errno = 0;
@@ -284,7 +289,9 @@ bool load_config_from_string(const std::string& text,
 bool load_config_file(const std::string& path,
                       Config& out,
                       std::string& error) {
-    std::ifstream file(path.c_str(), std::ios::binary);
+    // const: the stream is only ever tested and drained through rdbuf(), both
+    // const members. clang-tidy's misc-const-correctness flags it otherwise.
+    const std::ifstream file(path.c_str(), std::ios::binary);
     if (!file) {
         error = path + ": cannot open: " + std::strerror(errno);
         return false;
