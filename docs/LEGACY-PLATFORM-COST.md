@@ -19,12 +19,29 @@ itself was standards-conformant; **the toolchain was the problem.**
 
 | | Lines | Status |
 |---|---:|---|
-| Written in-house so far | **1,085** | Delivered, fully tested |
-| Projected for the HTTP layer | **~1,170** | Designed, not yet integrated |
-| **Total attributable to the platform** | **~2,255** | |
+| JSON parser + tests + fuzz harness + seed generator | **1,148** | Delivered, fully tested |
+| HTTP request-head parser + tests + fuzz harness + seeds + locale gate | **1,059** | Delivered, fully tested |
+| **Delivered, attributable to the platform** | **2,207** | |
+| Projected: HTTP routing and socket server | **~600** | Designed, not yet built |
+| **Projected total** | **~2,800** | |
 
 These are lines of security-sensitive, network-facing parsing code that a
 modern toolchain would have let us consume as a dependency instead.
+
+**The HTTP figure is now measured, not projected.** The request-head parser
+shipped and the earlier estimate held: 1,059 lines against ~1,170 projected for
+the parsing half. What remains projected is the routing and socket-server
+layer, deferred until the job manager exists.
+
+The delivered code is not merely written but carried to the standard the rest
+of the project is held to: **100% line coverage on the HTTP parser** and 99% on
+the JSON parser, both continuously fuzzed with committed regression corpora,
+both verified on GCC 4.8.5 itself rather than only on a modern compiler, and
+both governed by a written standard for hand-rolled components
+(`docs/HAND-ROLLED-COMPONENTS.md`). That is the honest cost to report — not
+"we wrote a parser," but **"we permanently own a network-facing parser and its
+entire verification apparatus."** The maintenance liability, not the line
+count, is the number that matters at renewal time.
 
 ---
 
@@ -84,9 +101,9 @@ library can pass compilation while failing at runtime.
 
 ## What this costs
 
-**Direct engineering cost.** Roughly 2,255 lines of code that would otherwise
-have been three `#include` statements. That is development, review, and test
-effort already spent or committed.
+**Direct engineering cost.** 2,207 lines delivered, ~2,800 projected, that
+would otherwise have been three `#include` statements. That is development,
+review, and test effort already spent or committed.
 
 **Ongoing maintenance.** Upstream libraries receive security fixes from a
 community. Ours do not. Every defect in this code is ours to find and fix, for
@@ -101,13 +118,19 @@ to use established libraries for them.
 **Mitigations in place.** Because that risk was understood, the code carries
 controls a vendored dependency would not have needed:
 
-* Coverage-guided fuzzing with a retained regression corpus (38 seeds; 3.8
-  million executions per run, zero crashes to date)
+* Coverage-guided fuzzing with retained regression corpora — two targets, 75
+  committed seeds, 3.4 million executions per 90-second run, zero crashes to
+  date
 * A deliberately minimal accepted grammar — everything unnecessary is rejected
   rather than parsed
-* Six independent CI gates: two compilers, AddressSanitizer, ThreadSanitizer,
-  Valgrind, and two static analyzers
-* 98% line coverage on the delivered components
+* Fourteen independent CI gates, including two compilers, AddressSanitizer +
+  UndefinedBehavior + LeakSanitizer, ThreadSanitizer, Valgrind, two static
+  analyzers, and a source gate proving the parsers never call locale-sensitive
+  classification functions
+* **100% line coverage on the HTTP parser, 99% on the JSON parser**
+* A written standard these components are built to
+  (`docs/HAND-ROLLED-COMPONENTS.md`), so the next one does not depend on
+  remembering what made these two acceptable
 
 ---
 
