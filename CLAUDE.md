@@ -44,7 +44,10 @@ so. **v1.0.0 is narrower than v0.4.2** — see the three easy-to-get-wrong items
 - `docs/HAND-ROLLED-COMPONENTS.md` — the standard every hand-rolled parser is built to.
 - `docs/MIGRATION-PROVENANCE.md` — what the inherited C++ design series contributed and,
   more usefully, what was rejected and why.
-- `docs/ROADMAP.md` — forward-looking milestones plus pinned "do not drop" decisions.
+- `docs/ROADMAP.md` — **start here in a new session.** Opens with a *Where we left off*
+  block (current milestone, live coverage figure, next action), then the **C1–C9 v1.0.0
+  milestone plan**, then the merge cadence and the pinned "do not drop" decisions. The
+  `M1–M8` section further down is Python history, not outstanding work.
 - `docs/MAINTAINER-GUIDE.md` — repo layout, local dev setup, command cheat sheet, CI
   architecture. Start here when onboarding.
 

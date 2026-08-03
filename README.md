@@ -31,8 +31,9 @@ the codebase more than any other decision; see `docs/LEGACY-PLATFORM-COST.md`.
 **Under active construction — not yet shippable.** The JSON codec, configuration loader,
 job state machine, rename template engine, and HTTP request parser are delivered and
 tested. The durable store, job manager, transfer engine, socket server, and dashboard are
-not yet built. `docs/TRACE-MATRIX.md` carries the live figure; `docs/ROADMAP.md` has the
-plan.
+not yet built. In v1.0.0 scope, **48 of 226 requirements (21.2%)** carry test evidence.
+`docs/TRACE-MATRIX.md` carries the live figure; `docs/ROADMAP.md` opens with where the
+work stands and the **C1–C9** plan to v1.0.0.
 
 The **Python implementation** (v0.4.2) was removed from this branch ahead of v1.0.0. It
 remains on `main` and at the `v0.4.2` tag, and is still the version to deploy today.

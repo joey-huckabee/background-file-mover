@@ -5,9 +5,231 @@ vertical, CI-green, fully-tested slice that advances the requirements in
 `docs/L1-REQ.md` / `L2-REQ.md` / `L3-REQ.md`. Completed work lives in `CHANGELOG.md`
 and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
-The ordering follows the "Recommended Initial Build Order" agreed during design:
-build the durable control and state plane first, then submission and claiming, then the
-actual bytes-moving transfer engine, then recovery and packaging.
+---
+
+# WHERE WE LEFT OFF
+
+**Date:** 2026-08-03 · **Branch:** `v2-cpp` · **Current milestone: C1 — not started.**
+
+**C0 (the foundation) is delivered.** Five components are built, tested, fuzzed where
+they touch untrusted input, and green on every gate including the GCC 4.8.5 fidelity
+tier: the strict-subset **JSON parser** and REST codec, the **configuration loader**, the
+**job model and state machine**, the **rename template engine**, and the **HTTP
+request-head parser**. The full CI apparatus is in place — fifteen gates — and the
+Python implementation has been removed from this branch.
+
+**Nothing that moves a file exists yet.** There is no durable store, no filesystem layer,
+no move engine, no job manager, no socket server, no daemon entry point. The service
+cannot start, because there is no `main`.
+
+```
+In v1.0.0 scope:  48 of 226 requirements verified  (21.2%)
+Tests:            6,800 assertions / 97 cases      (all tiers green)
+```
+
+**The next action is C1 — the durable store.** Everything else depends on it, and its
+first task is vendoring the SQLite amalgamation, which is the one `pending` row in
+`cpp/VENDORED.md`.
+
+Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
+before starting anything.
+
+---
+
+## v1.0.0 milestone plan (C1–C9)
+
+Nine milestones remain. The ordering is a dependency chain, not a preference: C3 cannot
+be written safely before C2 exists, and C2's guarantees are meaningless without C1's
+commit record. Deviating from the order means building the data-safety layer last, which
+is how the security requirements get retrofitted instead of designed in — the exact
+mistake `docs/CYBERSECURITY.md` §10 documents.
+
+Milestone numbering is `C` for the C++ implementation, distinct from the Python `M1–M8`
+retained further down for history.
+
+**Merge to `main` at each milestone boundary** — see *Merge cadence* below.
+
+### C1 — Durable store (SQLite)
+
+Authoritative job state in SQLite (WAL, `synchronous=FULL`) behind a repository
+interface, per ADR-0010.
+
+- **Advances:** `L2-STO-001..005`, `L2-JOB-001..015` (14 in v1.0.0 scope)
+- **First task:** vendor the SQLite amalgamation and fill in the `pending` row in
+  `cpp/VENDORED.md` with a pinned version and SHA-256. It is public domain, so ADR-0007
+  is satisfied, but ADR-0004 still requires the hash gate.
+- **Carries the three hardest ideas in the project**, all inherited from the M8 triage
+  and none of them optional:
+  - `L2-JOB-013` **write-ahead ordering** — the intent is durable *before* the job
+    exists. A crash between acting and recording loses the file.
+  - `L2-JOB-014` **phase-dependent write-failure handling** — a durable-write failure
+    before the commit point aborts; after it, the process halts. Treating both as a
+    retry counter lets the record drift from the filesystem.
+  - `L2-JOB-015` **durable, monotonic job sequence** across restarts. Without it,
+    identifiers repeat after every restart and `{seq}` collides.
+- **Done when:** a fresh store initializes on first boot (`L2-JOB-011`); a corrupt store
+  is a hard error, never a silent reset (`L2-JOB-012`); `error` is present if and only if
+  state is `FAILED`, enforced as a `CHECK` constraint (`L2-JOB-010`); and a kill-at-every-
+  statement test leaves the store readable and the sequence non-repeating.
+
+### C2 — fd-relative filesystem layer
+
+The layer every later milestone touches the disk through. No path-based
+check-then-act anywhere.
+
+- **Advances:** `L2-SEC-001..016` (16), `L2-NFS-001..008` (8)
+- **Scope boundary, from `L1-SEC-007`:** same filesystem only, regular files only. Both
+  remove attack surface rather than save effort — `linkat` does not work on directories,
+  and NFS has no `RENAME_NOREPLACE`, so an atomic no-clobber directory move does not
+  exist on the target filesystem at all.
+- **Primary/fallback, and note which is which:** `renameat2(RENAME_NOREPLACE)` is the
+  primary; on NFS it is unavailable, so `linkat` + `unlinkat` is not a degraded path
+  there but *the* path. Test both deliberately.
+- **Done when:** every filesystem call is `openat`/`fstatat`/`renameat2`/`linkat`/
+  `unlinkat` relative to a held descriptor with `O_NOFOLLOW`; a symlink-swap fault
+  injection suite cannot find a window; and the NFS behaviors in `docs/CYBERSECURITY.md`
+  §4 each have a probe.
+
+### C3 — Move engine (single commit point)
+
+The bytes actually move. One atomic commit point: everything before it disposable,
+everything after it idempotent.
+
+- **Advances:** `L1-SEC-001`, `L1-SEC-002`, `L1-SYS-015`, `L2-XFR-001..003`, the
+  in-scope `L2-COPY-*`
+- **Explicitly not here:** claim semantics, integrity verification, conservative
+  deletion, recovery-by-resumption. Those are `L1-SYS-002..006`, **deferred to v1.1**.
+  Do not implement them early to feel complete — v1.0.0 is deliberately narrower.
+- **Also not here:** any external command. ADR-0011 removed `ExecTransfer`; a free-text
+  command in configuration makes the config file executable and voids the commit-point
+  guarantee.
+- **Done when:** `SIGKILL` between every pair of phases leaves a state the next start can
+  reconcile, and no failure path can delete a source whose destination is not durably in
+  place.
+
+### C4 — Job manager and worker pool
+
+The first threads in the project. ThreadSanitizer has been gating since before any
+thread existed (`L2-ARC-008`), deliberately.
+
+- **Advances:** `L2-MGR-001..003`, `L2-LIF-*` (3 in scope), `L2-RTY-*` (5 in scope)
+- **Adopt the practices already triaged in:** latch-based concurrency tests and an
+  injected clock, so scheduling is deterministic in tests rather than hopeful.
+- **Done when:** TSan is green under a suite that deliberately interleaves submit,
+  cancel, and shutdown; and a worker crash cannot wedge the queue.
+
+### C5 — REST control plane
+
+The routes and socket server deferred from the M9/M10 triage. The request-head parser
+they sit on is already delivered.
+
+- **Advances:** `L2-CTL-001..016` (the pre-existing 16)
+- **Two rules kept from the inherited design, worth re-reading before starting:** bytes
+  beyond the declared `Content-Length` are a `400` — no pipelining, no smuggled second
+  request; and the integration test fires the hostile battery *first* (garbage, oversized
+  head → 431, gigabyte declaration → 413, chunked → 400, trailing bytes → 400) and then
+  proves the same server instance still completes a real job.
+- **Open design point, flagged at triage and still open:** the inherited server was
+  serial-accept, which contradicts `L2-SEC-010` (one stalled connection must not block
+  others) and needs `L2-SEC-009` per-syscall timeouts. Decide the concurrency model
+  before writing it, not after.
+- **Done when:** the hostile battery passes, timeouts are per-syscall rather than
+  per-request, and a stalled client cannot starve another.
+
+### C6 — Daemon entry point
+
+`main`, signals, and the startup sequence. The service becomes runnable here.
+
+- **Advances:** `L2-CTL-017..020`, `L2-EVT-001..005`
+- **Requirements already written for this, from the final triage:** handler assigns only
+  to a `volatile sig_atomic_t` (`L2-CTL-017`); `SIGPIPE` ignored process-wide
+  (`L2-CTL-018`); `--check` config validation for systemd `ExecStartPre` (`L2-CTL-019`);
+  ordered startup with reverse-order teardown (`L2-CTL-020`).
+- **Do not copy the inherited 200 ms `nanosleep` wait loop.** Block on `sigsuspend` or a
+  self-pipe; a daemon should not wake five times a second forever to poll a flag.
+- **Done when:** `systemctl start/stop` is clean, `--check` fails the unit on a bad
+  config before anything is created, and shutdown drains rather than aborts.
+
+### C7 — Operator dashboard
+
+- **Advances:** `L2-DASH-001..003`
+- **`L2-DASH-003` is the load-bearing one:** every dynamic value enters the DOM through
+  `textContent`/`createTextNode`, never `innerHTML`. Paths are attacker-influenced by
+  definition — whoever can create a file chooses its name — and the operator's browser
+  holds the one session with authority over this service.
+- **Done when:** single self-contained page, no external resources, and a test feeds a
+  filename containing markup and proves it renders as text.
+
+### C8 — Packaging, hardening, deployment
+
+- **Advances:** `L2-SEC-014`, `L2-ENV-001..003`
+- **The hardened unit is already specified** and is stronger than the inherited one:
+  `ProtectSystem=strict`, `ReadWritePaths=` limited to managed trees, `NoNewPrivileges`,
+  `PrivateTmp`, `ProtectHome`, a trimmed `CapabilityBoundingSet=`, a dedicated service
+  account, and `UMask=0077`.
+- **Done when:** the service installs and runs unprivileged on RHEL 9 (SELinux) and
+  SLES 12 SP5 (AppArmor), and the environment diagnostic gates the deployment.
+
+### C9 — Qualification and documentation
+
+The milestone that makes v1.0.0 *shippable* rather than merely built.
+
+- **NFS qualification on real hardware** — the checklist in `docs/DEPLOYMENT.md` is
+  implementation-neutral and hard-won; keep it through the rewrite.
+- **The documentation rewrites owed** (table below) come due here.
+- **Done when:** the scope-adjusted trace figure is at 100% for in-scope requirements,
+  every retired-banner document has been rewritten or consciously re-deferred, and the
+  release checklist passes on both target platforms.
+
+### Milestone-to-coverage expectations
+
+A rough shape of the in-scope trace figure as each lands, so a number that comes out
+badly wrong is a signal rather than a surprise:
+
+| After | In-scope verified (approx.) |
+|---|---|
+| C0 (today) | 21% |
+| C1 | ~30% |
+| C2 | ~45% |
+| C3 | ~55% |
+| C4 | ~63% |
+| C5 | ~75% |
+| C6 | ~82% |
+| C7 | ~85% |
+| C8 | ~92% |
+| C9 | 100% in-scope |
+
+These are estimates from requirement counts per family, not commitments. The figure that
+matters is the one `build-trace-matrix.py` prints.
+
+## Merge cadence — milestones on `main`
+
+`v2-cpp` merges into `main` at each milestone boundary. **These merges are progress
+markers, not releases: no version bump, no tag, no changelog release heading.**
+
+```bash
+# from a clean, fully green v2-cpp
+git checkout main
+git merge --no-ff v2-cpp -m "Merge: C<N> — <milestone name>"
+git checkout v2-cpp
+```
+
+`--no-ff` is required so each milestone is one identifiable commit in `main`'s history.
+
+**Bar for merging — the same as for committing, no lower:**
+
+1. `make check-ci` green (read the tail of the log, not a pipeline's exit code)
+2. the GCC 4.8.5 container tier green
+3. `python3 scripts/build-trace-matrix.py --check` clean
+4. `docs/TRACE-MATRIX.md` regenerated and committed
+
+**The Python implementation is safe.** It is preserved in full by the `v0.4.2` tag —
+verified, 38 source files — so merging the C++ branch into `main` removes Python from
+`main`'s *tip* but destroys nothing. `v0.4.2` remains the version to deploy until v1.0.0
+ships.
+
+**Pushing to `origin` is a separate, deliberate act.** Merging locally marks the
+milestone; publishing it is the maintainer's call.
 
 ## Documentation rewrites owed
 
@@ -61,13 +283,19 @@ across all future work:
   coverage, coverage-guided fuzzing with committed corpora, CodeQL, SonarCloud, and
   trace-matrix `--check`.
 
-## Milestones
+## Milestones M1–M8 — the Python implementation (historical)
 
-**Status:** M1–M8 are delivered — the product is feature-complete for the first release
-(systemd service, submit/claim, durable state, integrity, retry, crash recovery, and the
-no-panic fuzz harness). Per-milestone detail lives in `CHANGELOG.md`; the roadmap now
-tracks the post-1.0 deferred items below. The milestone descriptions are retained here
-for reference.
+> **This section is history, not a plan.** M1–M8 describe the **Python** implementation
+> delivered through v0.4.2, which shipped and is tagged. The forward plan is
+> **C1–C9 above**. Nothing in this section is outstanding work.
+>
+> It is kept because the milestone shapes were sound and the C++ plan reuses several of
+> them, and because "M6 transfer engine" appears in ADRs and commit messages that would
+> otherwise dangle. Do not schedule against it.
+
+**Status:** M1–M8 were delivered — the Python product was feature-complete for its first
+release (systemd service, submit/claim, durable state, integrity, retry, crash recovery,
+and the no-panic fuzz harness). Per-milestone detail lives in `CHANGELOG.md`.
 
 ### M1 — Foundation & Requirements Baseline ✅
 
@@ -260,26 +488,27 @@ part of the deferred **S3 adapter** rather than a standalone gap.
 
 # v1.0.0 — C++ / REST implementation
 
-Tracked on the `v2-cpp` branch. The milestone list above (M1–M8) belongs to the
-**Python** implementation and is delivered; it is retained for history. The
-inherited external design used its own M1–M12 numbering, which is deliberately
-not carried into this repository.
+Tracked on the `v2-cpp` branch. **The forward plan is C1–C9 at the top of this file**;
+this section records what is already delivered and the architecture it sits on. The
+M1–M8 list above belongs to the Python implementation. The inherited external design
+used its own M1–M12 numbering, deliberately not carried into this repository.
 
-> **The "Locked decisions" section above is stale on this branch.** It asserts
-> a standard-library-only Python runtime and an `AF_UNIX` control plane, both
-> superseded — see ADR-0001 (C++11) and ADR-0002 (REST). It is left unedited
-> because it accurately records what was locked for v0.4.2. A superseded-at-
-> v1.0.0 pass is itself a roadmap item below.
-
-## Delivered
+## Delivered — the C0 foundation
 
 | Component | Requirements | Notes |
 |---|---|---|
 | Core job state machine | `L3-CPP-001..015`, `L3-CPP-041` | Pure logic, clock-free, exhaustive transition table |
-| Strict JSON parser | `L3-CPP-016..024` | Project-owned (ADR-0006), fuzzed, hostile-input tested |
+| Strict JSON parser | `L3-CPP-016..024` | Project-owned (ADR-0006), fuzzed, hostile-input tested, 99% line coverage |
 | REST API codec | `L3-CPP-025..032` | Strict-reject; parser confined behind it |
 | Configuration loader | `L3-CPP-033..040` | Strict schema, all-errors reporting, `[storage]` section |
-| CI pipeline | — | Six tiers, toolchains pinned by explicit version |
+| Rename template engine | `L3-CPP-042..045` | Pure, clock-free; validates its own result against `.`, `..`, `/`, NUL |
+| HTTP request-head parser | `L3-CPP-046..052` | Hand-rolled (ADR-0012), fuzzed, locale-free, **100%** line coverage |
+| CI pipeline | — | Fifteen gates, toolchains pinned by explicit version |
+
+Every one of these is pure or near-pure logic. That is not an accident of ordering — it
+is why they could be finished to this standard before any of them could move a byte. C1
+onward is where the project acquires state, threads, and a filesystem, and the cost per
+requirement rises accordingly.
 
 ## Security and file-management architecture
 
