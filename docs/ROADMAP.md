@@ -282,7 +282,7 @@ privileged interference is impossible.
 
 ### Testing obligations that cannot be deferred
 
-The guarantees live in crash-window behaviour, which ordinary tests never
+The guarantees live in crash-window behavior, which ordinary tests never
 reach. Recovery logic that only runs during disasters is the worst possible
 place for untested code.
 
@@ -368,7 +368,7 @@ four milestones this one builds something we actually need.
 
 2. **Remove locale dependence.** `valid_header_name` uses `std::isalnum` and
    `lower()` uses `std::tolower`, both **locale-sensitive**. A parser on
-   untrusted input must not change behaviour because something in the process
+   untrusted input must not change behavior because something in the process
    called `setlocale`. Replace with explicit range checks — the same reasoning
    that made the JSON parser use explicit tables.
 

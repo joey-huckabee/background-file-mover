@@ -397,7 +397,7 @@ whenever a choice constrains future work: toolchain, dependency, protocol,
 storage, or a policy that will outlive the person who made it.
 
 An ADR must record the **real** driver. If a decision is organizational
-rather than technical, say so — ADR-0007 excludes BSD licences by internal
+rather than technical, say so — ADR-0007 excludes BSD licenses by internal
 policy and states explicitly that it is not a compatibility finding, so a
 future maintainer who checks compatibility, finds no conflict, and concludes
 the entry is a mistake does not reverse it.
@@ -410,12 +410,12 @@ this reason.
 
 ## 8. Vendored dependencies
 
-Governed by ADR-0004 (pinning and provenance) and ADR-0007 (licence policy).
+Governed by ADR-0004 (pinning and provenance) and ADR-0007 (license policy).
 
 * Files under `cpp/third_party/` are **never edited**. Unavoidable changes
   live as `.patch` files applied at build time.
 * Every entry in `cpp/VENDORED.md` records upstream URL, pinned tag, SHA-256,
-  and licence.
+  and license.
 * **BSD-2-Clause and BSD-3-Clause are excluded by internal policy.** Check
   ADR-0007 before introducing any dependency, including test-only ones.
 

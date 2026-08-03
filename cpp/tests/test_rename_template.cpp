@@ -65,7 +65,7 @@ TEST_CASE("a leading dot is not an extension separator",
     // {ext} is empty for both, so it is checked with a literal prefix rather
     // than alone: a bare "{ext}" expands to the empty string, which
     // L3-CPP-044 rejects outright. Asserting it "expands to empty" would be
-    // asserting behaviour the requirement forbids — the exact error the
+    // asserting behavior the requirement forbids — the exact error the
     // inherited milestone logged against its own test suite, reproduced here
     // before being caught the same way.
     CHECK(expand("x{ext}", ".bashrc") == std::string("x"));

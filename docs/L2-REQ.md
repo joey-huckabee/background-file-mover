@@ -1753,7 +1753,7 @@ validated before recovery acts on it.
 #### L2-SEC-013
 
 On SELinux platforms, delivered objects shall carry the destination tree's
-default context, applied before the commit rename so that no wrongly labelled
+default context, applied before the commit rename so that no wrongly labeled
 object is ever observable at the final path. Source contexts shall not be
 preserved. On AppArmor platforms, the software shall run under a profile
 enumerating exactly the paths it may access.
@@ -1796,7 +1796,7 @@ rather than being assumed from the policy request.
 
 **Verification Method**: Demonstration (D)
 
-## NFS — network filesystem behaviour
+## NFS — network filesystem behavior
 
 The recordings arrive on a shared NFS mount by design, so NFS is a primary
 target rather than an edge case. Generic guidance defers this to "a design
@@ -1851,7 +1851,7 @@ fault.
 
 #### L2-NFS-005
 
-The software shall tolerate NFS silly-rename artefacts (`.nfsXXXX`) appearing
+The software shall tolerate NFS silly-rename artifacts (`.nfsXXXX`) appearing
 in managed directories and shall not treat them as unexpected entries.
 
 Unlinking a file another client holds open does not remove it; the server

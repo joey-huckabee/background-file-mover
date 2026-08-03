@@ -161,6 +161,7 @@ check-ci:
 	      echo "--- versions ---" && \
 	      $(CI_CXX) --version | head -1 && \
 	      $(CI_TIDY) --version | grep -i version | head -1 && \
+	      echo "--- vendored hashes ---" && sh scripts/verify-vendored.sh && \
 	      echo "--- functional ---" && \
 	      make clean-all && make check CXX=$(CI_CXX) && \
 	      echo "--- sanitizers ---" && make check SANITIZE=1 CXX=$(CI_CXX) && \
@@ -278,6 +279,14 @@ fuzz-corpus: fuzz
 # silently stopped covering api_codec.cpp and config.cpp when they landed,
 # leaving the job green while it checked less and less.
 TIDY ?= clang-tidy
+
+# Verifies vendored files against the hashes in VENDORED.md (ADR-0004).
+# A repository-wide edit once rewrote an identifier inside the vendored Catch2
+# header and every other gate passed -- the compiler cannot tell, only the
+# checksum can.
+.PHONY: verify-vendored
+verify-vendored:
+	@sh scripts/verify-vendored.sh
 
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)

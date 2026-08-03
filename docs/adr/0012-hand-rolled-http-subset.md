@@ -19,7 +19,7 @@ module.
 The spike has run.
 
 > **Numbering note.** The originating external design recorded this decision
-> as its own "ADR-0007". That number is taken here by the licence policy, so
+> as its own "ADR-0007". That number is taken here by the license policy, so
 > the decision is renumbered into this repository's sequence. Content is
 > assessed on its merits, not inherited with its identifier.
 

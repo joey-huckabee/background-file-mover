@@ -293,14 +293,14 @@ is enabled and *removes* them when it is disabled (L2-RSM-002).
 
 ## Feature interactions
 
-The copy-path behaviours above are independently configurable but interact through two shared
+The copy-path behaviors above are independently configurable but interact through two shared
 mechanisms, both in `transfer/copy_engine.py`: the **engine choice** made once per file in
 `_copy` (`if use_kernel_copy and available and not _rate_limited(): kernel else buffered`), and
 the **per-buffer hooks** — `rate_limiter.throttle(...)` (buffered loop only) and
 `interrupt_check()` (both loops). The operator-facing consequences and recommendations live in
 `docs/FEATURE-INTERACTIONS.md`; the mechanism-level matrix is below.
 
-| Combination | Where | Behaviour |
+| Combination | Where | Behavior |
 |-------------|-------|-----------|
 | Bandwidth limit + kernel copy | `_copy` engine choice | A non-zero limit forces the **buffered** engine — the kernel loop cannot be paced (L3-PY-011). Chosen per file at copy start. |
 | Partial resume + kernel copy | `_copy_via_kernel`, `_open_destination` | Compatible: seek to the offset and `copy_file_range` continues; the fallback truncates to `base_offset`, not zero (L3-PY-012). |

@@ -1,15 +1,15 @@
 # Feature interactions and combined use
 
-The Background File Mover has several independently-configurable behaviours. Most combine
+The Background File Mover has several independently-configurable behaviors. Most combine
 cleanly, but a few **interact** in ways that are not obvious from their individual
 descriptions. This guide is for operators deciding *which options to enable together* and
 what to expect from each combination. For the internal mechanism see
 `docs/ARCHITECTURE.md` § *Feature interactions*; for per-option syntax see
 `docs/CONFIG-REFERENCE.md` and `docs/CLI-REFERENCE.md`.
 
-## The tunable behaviours
+## The tunable behaviors
 
-| Behaviour | Set by | Default |
+| Behavior | Set by | Default |
 |-----------|--------|---------|
 | **Kernel-assisted copy** | `[transfer] use_kernel_copy` | `true` |
 | **Bandwidth limit** | `[transfer] max_bytes_per_second`, live via `file-mover throttle` | `0` (unlimited) |

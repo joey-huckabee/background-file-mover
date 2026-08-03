@@ -339,7 +339,7 @@ together, each identified by file and line.
 the *first* error", carried over from the inherited design. That contradicted
 `L2-CFG-008`, a pre-existing child requirement demanding all issues be reported
 together — a parent contradicting its own child, introduced by porting the inherited L1
-without checking it against the L2 already in the repository. The all-issues behaviour
+without checking it against the L2 already in the repository. The all-issues behavior
 wins: it is what the Python implementation already does, and it spares operators a
 fix-one-restart-repeat loop.
 

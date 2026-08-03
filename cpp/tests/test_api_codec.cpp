@@ -6,7 +6,7 @@
 // The four picojson characterization tests this suite inherited are gone.
 // They existed to pin a vendored parser's quirks so a tag bump would fail
 // loudly; with the parser project-owned (ADR-0006) that role belongs to
-// test_json.cpp, which specifies the behaviour rather than characterizing
+// test_json.cpp, which specifies the behavior rather than characterizing
 // someone else's.
 
 #include "catch2/catch.hpp"

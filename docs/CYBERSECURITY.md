@@ -314,7 +314,7 @@ directory, **not** from the source file. A same-filesystem `rename` preserves
 the original context, which can be equally wrong at the destination.
 
 **Control.** Label objects with the destination tree's default context
-**before** the commit rename, so a wrongly labelled object is never observable
+**before** the commit rename, so a wrongly labeled object is never observable
 at the final path. Context is **destination-determined**; source contexts are
 not preserved. File context mappings are installed persistently via
 `semanage fcontext`, not per-file `chcon`.
@@ -378,7 +378,7 @@ is the worst outcome this system has.
 
 ## 8. Testing
 
-The guarantees live in crash-window behaviour, which ordinary tests never
+The guarantees live in crash-window behavior, which ordinary tests never
 reach. Recovery logic that only runs during disasters is the worst possible
 place for untested code.
 

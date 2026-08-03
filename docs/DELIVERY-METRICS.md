@@ -48,9 +48,9 @@ time.
 
 ---
 
-## 3. Engineering artefacts delivered
+## 3. Engineering artifacts delivered
 
-| Artefact | Count |
+| Artifact | Count |
 |---|---:|
 | Requirements written and traced (L1 → L2 → L3) | **280** |
 | Architecture decision records | 12 |
@@ -74,9 +74,9 @@ mode is losing customer data.
 | Finding | Consequence had it shipped |
 |---|---|
 | **btrfs misclassified as a network filesystem** | Service would refuse to start on a valid local volume |
-| **CI reported "all gates passed" while analysing nothing** | An empty compilation database made the static analyser skip every file and exit zero |
+| **CI reported "all gates passed" while analysing nothing** | An empty compilation database made the static analyzer skip every file and exit zero |
 | **Static-analysis job silently stopped covering new files** | A hardcoded file list was never updated; the gate stayed green while checking less of the codebase |
-| **A "clean" analyser report that was not clean** | An output filter discarded every real finding; three defects were reported as zero |
+| **A "clean" analyzer report that was not clean** | An output filter discarded every real finding; three defects were reported as zero |
 | **Two contradictions between our own requirements** | A parent requirement contradicted its own child; both were marked active |
 | **Configuration file was executable** | A free-text command field would have granted code execution to anyone able to edit the config |
 
@@ -110,14 +110,53 @@ project's architecture, integrating what fit, and rejecting what did not —
 architectural grounds. The analysis is real engineering work, but the report
 should not claim origination of designs that arrived from elsewhere.
 
-**Conventional-effort comparison.** Deliberately not stated as a single
-multiplier. A defensible range for traced, tested, multi-gate systems C++ is
-50–150 SLOC per engineer-day for code, and substantially slower for
-requirements and decision records. Applied to 3,903 lines of code and 5,717
-lines of specification, that implies **several engineer-weeks**. Management is
-better placed than this report to select the comparison rate for the
-organisation; the measured inputs above are provided so that calculation can
-be made with real numbers rather than estimates.
+**Conventional-effort comparison.** The calculation below is an estimate, not
+a measurement. Rates are stated so the arithmetic can be checked and the rates
+substituted.
+
+| Work product | Volume | Rate assumed | Engineer-days |
+|---|---:|---|---:|
+| Code, tests, build, CI | 3,903 lines | 50–150 SLOC/day | 26–78 |
+| Requirements written and traced | 280 requirements | 15–25/day | 11–19 |
+| Architecture decision records | 12 records | 1–2 days each | 12–24 |
+| Architecture and process documentation | 1,906 lines | 300–500 lines/day | 4–6 |
+| **Total** | | | **53–127** |
+
+At a 5-day week that is **11 to 25 engineer-weeks** — roughly **three to six
+months for one engineer**, or six to twelve weeks for a team of two.
+
+Notes on the rates, since they carry the whole result:
+
+* **50–150 SLOC/day** is a conventional range for systems C++ delivered to a
+  finished standard — designed, reviewed, tested, and traced — not lines typed.
+  High-assurance work is often quoted lower still (10–50). The low end of the
+  range is used here rather than the lowest defensible figure.
+* **Requirements at 15–25/day** assumes adaptation rather than origination.
+  Each requirement needs a parent, a verification method, and consistency
+  checking against the other 279. Originating them from scratch would be
+  slower.
+* **ADRs at 1–2 days each** reflects that each records options considered and
+  rejected, which is the part that takes the time. Several here also required
+  empirical work — the toolchain compatibility ADR involved building and
+  running four library versions against the deployment compiler.
+
+**Against a measured floor of 7.1 hours of active time** (§5), and a realistic
+9–12 hours, the comparison is between roughly **one working day and roughly
+three to six months of one engineer**.
+
+That ratio is large enough to warrant scepticism, so the honest qualifications:
+
+* The 7.1 hours is a floor and the conventional figure is an estimate. The two
+  are not measured the same way.
+* A substantial part of the specification output adapts design material
+  produced in separate AI sessions. A human team would not have had that input
+  either — but neither did this work originate all of it.
+* Volume is not the same as value. §6 argues this point against the figures
+  above.
+* The comparison assumes producing **the same artifacts to the same standard**:
+  280 traced requirements, 12 decision records, ten CI gates, fuzzing with a
+  retained corpus. A team asked only for working code would finish far sooner
+  and deliver something different.
 
 ---
 
@@ -144,7 +183,7 @@ against a threat model rather than retrofitting it — but it means a portion of
 the requirements output is not yet verified by tests.
 
 **Single-operator measurement.** These figures reflect one engineer on one
-project. They are not a basis for organisation-wide projection without
+project. They are not a basis for organization-wide projection without
 comparable measurement elsewhere.
 
 ---

@@ -38,7 +38,7 @@ modern toolchain would have let us consume as a dependency instead.
 patches to restore 4.8 compatibility were closed as won't-fix.
 
 **picojson** — the fallback, technically viable on 4.8. Rejected for a
-non-technical reason: it is BSD-2-Clause, excluded by internal licence policy.
+non-technical reason: it is BSD-2-Clause, excluded by internal license policy.
 
 **Result:** a project-owned JSON parser — 525 lines of implementation plus 340
 lines of tests and an 88-line fuzzing harness.
@@ -106,7 +106,7 @@ controls a vendored dependency would not have needed:
 * A deliberately minimal accepted grammar — everything unnecessary is rejected
   rather than parsed
 * Six independent CI gates: two compilers, AddressSanitizer, ThreadSanitizer,
-  Valgrind, and two static analysers
+  Valgrind, and two static analyzers
 * 98% line coverage on the delivered components
 
 ---

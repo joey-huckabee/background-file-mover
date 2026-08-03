@@ -145,6 +145,21 @@ jobs:
       - name: Memcheck
         run: make -C cpp check-valgrind
 
+  # Vendored files must byte-match the hashes in VENDORED.md (ADR-0004).
+  #
+  # This gate exists because a repository-wide text substitution once rewrote
+  # an identifier *inside* the vendored Catch2 header. The build passed —
+  # declaration and definition were renamed consistently — and so did every
+  # other gate. A compiler cannot tell that a dependency was edited; only a
+  # checksum can.
+  vendored-integrity:
+    name: Vendored file integrity
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify hashes
+        run: make -C cpp verify-vendored
+
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:

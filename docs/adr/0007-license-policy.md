@@ -68,7 +68,7 @@ All other permissive licenses remain acceptable, specifically including:
 
 **The MIT row is empty, and that is not a policy change.** MIT remains
 permitted. cpp-httplib was the only MIT candidate and it was rejected on
-toolchain grounds — GCC 4.8's unimplemented `<regex>` — not licence ones
+toolchain grounds — GCC 4.8's unimplemented `<regex>` — not license ones
 (ADR-0012). Stated explicitly so an empty row is not later misread as MIT
 having become unacceptable.
 
@@ -76,7 +76,7 @@ having become unacceptable.
 decision as "ADR-0007". That identifier belongs to this policy in this
 repository; the HTTP decision is **ADR-0012** here. Inherited material is
 renumbered into this sequence rather than adopted with its identifier, so a
-reference to "ADR-0007" in this repository always means the licence policy.
+reference to "ADR-0007" in this repository always means the license policy.
 
 BSD-3-Clause is deliberately left undecided rather than assumed. It differs
 from BSD-2-Clause only by the non-endorsement clause; if the driver for the
