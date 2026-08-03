@@ -30,6 +30,47 @@ An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
 
 All drops so far are fully retired. Where they ended up:
 
+**Seventh drop (`rest-file-mover-m10`, HTTP server + startup recovery) — one
+component adopted, the rest deferred or rejected:**
+
+This drop opened with a compatibility verdict we had reached independently:
+cpp-httplib routes through `std::regex`, and libstdc++ had no working `<regex>`
+before GCC 4.9. We had already measured it across every tag from v0.5.12 to
+0.51.0 and recorded the result in ADR-0012, so the drop confirmed the decision
+rather than making it.
+
+| Inherited material | Outcome |
+|---|---|
+| **HTTP request-head parser** | **Adopted** as `cpp/src/http_parser.cpp`, `L3-CPP-046..052` — the first component built under `docs/HAND-ROLLED-COMPONENTS.md`. Three changes were required before it could land; see below. |
+| Duplicate-header rejection | **Adopted.** The inherited map was last-wins, which is a request-smuggling vector; the drop's own author caught it mid-build. Duplicate `Content-Length` and duplicate names generally are now rejected outright. |
+| `Transfer-Encoding` → 400, over-cap → 413, strict-digit `Content-Length` | **Adopted** as the `content_length_for` policy. |
+| Routes (`http_routes.cpp`) | **Deferred.** Pure and well-shaped, but they bind to `JobManager`, which does not exist here yet. The status/response *shapes* are recorded; the code lands with the manager. |
+| Server (`http_server.cpp`) | **Deferred** with the routes. Two rules from it are worth keeping and are captured in the roadmap: bytes beyond the declared `Content-Length` are a 400 (no pipelining, no smuggled second request), and the hostile-battery-then-still-works integration test. |
+| Startup recovery (`recovery`) | **Rejected** — journal-backed, superseded by ADR-0010. Two *concepts* survive: replay must go through `Job::transition` so an illegal transition fails recovery loudly, and recovered in-flight jobs are **not** auto-requeued (a half-moved file is an operator decision). |
+| `picojson`, `journal.*`, `rename.cpp`, `transfer.cpp` | **Not ported** — rejected in earlier drops, re-shipped by the snapshot. |
+
+Three changes were needed before the parser could be adopted, and they are the
+reason `docs/HAND-ROLLED-COMPONENTS.md` exists:
+
+1. **Header split.** The inherited `http.hpp` pulled in `config.hpp` and
+   `manager.hpp`, so the parser could not be tested — or fuzzed — without
+   constructing a service. It is now `http_parser.hpp`: standard library only,
+   no project dependencies.
+2. **Locale-free classification.** The original used `std::isalnum` and
+   `std::tolower`, both locale-sensitive. A parser on untrusted network input
+   must not change what it accepts because something else in the process called
+   `setlocale`. Replaced with explicit ASCII range checks. Likewise `strtoull`
+   for `Content-Length`, replaced with digit accumulation and an overflow guard.
+3. **Renumbering** from the inherited `L3-CPP-079..092` to `L3-CPP-046..052`.
+
+**A second inherited-test reproduction.** The drop's own log recorded fixing one
+wrong expectation — that bare-LF framing is `Bad`. It is `NeedMore`; the size
+cap and read timeout handle it. I wrote the assertion the wrong way round
+anyway and the test caught it. That is now twice in three drops that reading
+the honesty log did not prevent repeating what the log described. It is a
+record of hazards, not an inoculation — same conclusion as the `{ext}` case
+below, now with enough repetitions to call it a pattern.
+
 **Sixth drop (`rest-file-mover-m8`, job manager) — no code, but the best ideas
 so far:**
 
@@ -127,8 +168,6 @@ existing decision, not making a new one.
 those two against the repository isolated the one upstream change
 (`from_string`) from ~900 KB of already-integrated material. Worth repeating:
 find the files you have not touched, and diff those first.
-
-**Second drop (`rest-file-mover-m3`, config loader):**
 
 **Second drop (`rest-file-mover-m3`, config loader):**
 

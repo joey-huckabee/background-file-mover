@@ -63,10 +63,16 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp
+# Parsers that sit on untrusted input and must classify characters with
+# explicit ranges (L3-CPP-052). config.cpp is deliberately NOT here: it reads a
+# trusted local file and its one strtoul call is guarded token-wise by
+# parse_uint (L3-CPP-038).
+PARSER_SRC := src/http_parser.cpp src/json.cpp
+
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -149,7 +155,10 @@ CI_CXX    ?= g++-14
 CI_GCOV   ?= gcov-14
 CI_TIDY   ?= clang-tidy-20
 CI_FUZZ   ?= clang++-20
-CI_PKGS   ?= g++-14 make clang-20 clang-tidy-20 cppcheck valgrind bear
+# `locales` is here so tr_TR.UTF-8 can be generated below. Without it the
+# locale-independence test in test_http_parser.cpp finds setlocale returning
+# NULL and downgrades itself to a warning (L3-CPP-052).
+CI_PKGS   ?= g++-14 make clang-20 clang-tidy-20 cppcheck valgrind bear locales
 
 .PHONY: check-ci
 check-ci:
@@ -161,7 +170,12 @@ check-ci:
 	      echo "--- versions ---" && \
 	      $(CI_CXX) --version | head -1 && \
 	      $(CI_TIDY) --version | grep -i version | head -1 && \
+	      { locale-gen tr_TR.UTF-8 >/dev/null 2>&1 || \
+	        { echo "locale-gen tr_TR.UTF-8 failed; the L3-CPP-052 runtime check will only warn" >&2; \
+	          exit 1; }; } && \
 	      echo "--- vendored hashes ---" && sh scripts/verify-vendored.sh && \
+	      echo "--- locale-free parsers ---" && \
+	      sh scripts/assert-locale-free.sh $(PARSER_SRC) && \
 	      echo "--- functional ---" && \
 	      make clean-all && make check CXX=$(CI_CXX) && \
 	      echo "--- sanitizers ---" && make check SANITIZE=1 CXX=$(CI_CXX) && \
@@ -229,45 +243,59 @@ coverage: $(COV_OBJ)
 # prevents it forever.
 FUZZ_CXX      ?= clang++
 FUZZ_DIR      := build/fuzz
-FUZZ_BIN      := $(FUZZ_DIR)/fuzz_json
 FUZZ_SECONDS  ?= 60
-CORPUS        := fuzz/corpus
-REGRESSION    := fuzz/corpus-regression
 FUZZ_FLAGS    := -std=c++11 -Wall -Wextra -O1 -g \
                  -fsanitize=fuzzer,address,undefined \
                  -fno-omit-frame-pointer -fno-sanitize-recover=all
 
+# One entry per hand-rolled component that reads untrusted bytes
+# (docs/HAND-ROLLED-COMPONENTS.md §2.4). Each target keeps its own corpora,
+# because a corpus that mixes JSON documents with HTTP heads guides the
+# fuzzer toward neither.
+FUZZ_TARGETS  := json http
+# Derived, so adding a target to the list above cannot leave format-check
+# silently covering fewer files than the build does.
+FUZZ_SRC      := $(patsubst %,fuzz/fuzz_%.cpp,$(FUZZ_TARGETS))
+
+fuzz_bin       = $(FUZZ_DIR)/fuzz_$(1)
+fuzz_corpus    = fuzz/corpus-$(1)
+fuzz_regress   = fuzz/corpus-regression-$(1)
+
+.PHONY: fuzz fuzz-run fuzz-corpus
 fuzz:
 	@mkdir -p $(FUZZ_DIR)
-	$(FUZZ_CXX) $(CPPFLAGS) $(FUZZ_FLAGS) \
-	    fuzz/fuzz_json.cpp $(LIB_SRC) -o $(FUZZ_BIN)
+	@for t in $(FUZZ_TARGETS); do \
+	  echo "building fuzz target: $$t"; \
+	  $(FUZZ_CXX) $(CPPFLAGS) $(FUZZ_FLAGS) \
+	    fuzz/fuzz_$$t.cpp $(LIB_SRC) -o $(FUZZ_DIR)/fuzz_$$t || exit 1; \
+	done
 
 # libFuzzer WRITES newly-interesting inputs into the FIRST corpus directory
 # it is given and treats the rest as read-only seeds. Pointing it straight at
-# the committed corpus would bury 38 curated seeds under hundreds of generated
-# ones, so the working corpus is a scratch directory under build/.
-#
-# Promote a generated input to the committed corpus only deliberately, when it
-# covers a branch the seeds miss.
+# the committed corpus would bury the curated seeds under generated ones, so
+# the working corpus is scratch space under build/.
 fuzz-run: fuzz
-	@mkdir -p $(FUZZ_DIR)/artifacts $(FUZZ_DIR)/corpus
-	$(FUZZ_BIN) $(FUZZ_DIR)/corpus $(CORPUS) $(REGRESSION) \
-	    -max_total_time=$(FUZZ_SECONDS) \
-	    -max_len=65536 \
-	    -artifact_prefix=$(FUZZ_DIR)/artifacts/ \
-	    -print_final_stats=1
+	@for t in $(FUZZ_TARGETS); do \
+	  mkdir -p $(FUZZ_DIR)/artifacts-$$t $(FUZZ_DIR)/corpus-$$t; \
+	  echo "=== fuzzing $$t for $(FUZZ_SECONDS)s ==="; \
+	  $(FUZZ_DIR)/fuzz_$$t $(FUZZ_DIR)/corpus-$$t \
+	    fuzz/corpus-$$t fuzz/corpus-regression-$$t \
+	    -max_total_time=$(FUZZ_SECONDS) -max_len=65536 \
+	    -artifact_prefix=$(FUZZ_DIR)/artifacts-$$t/ \
+	    -print_final_stats=1 || exit 1; \
+	done
 
-# Replays the committed seeds and every retained crash reproducer once, then
-# exits. This is the regression gate — cheap enough for every PR, unlike a
-# timed session.
-#
+# Replays committed seeds and retained crash reproducers once, then exits.
 # -runs=0 stops mutation but does NOT make the run read-only: libFuzzer still
-# copies coverage-increasing inputs between corpus directories, into the first
-# one. A scratch directory therefore goes first here too, or the gate quietly
-# rewrites the corpus it is supposed to be checking.
+# copies coverage-increasing inputs into the first directory, so a scratch
+# directory goes first here too.
 fuzz-corpus: fuzz
-	@mkdir -p $(FUZZ_DIR)/replay
-	$(FUZZ_BIN) -runs=0 $(FUZZ_DIR)/replay $(CORPUS) $(REGRESSION)
+	@for t in $(FUZZ_TARGETS); do \
+	  mkdir -p $(FUZZ_DIR)/replay-$$t; \
+	  echo "=== replaying $$t corpus ==="; \
+	  $(FUZZ_DIR)/fuzz_$$t -runs=0 $(FUZZ_DIR)/replay-$$t \
+	    fuzz/corpus-$$t fuzz/corpus-regression-$$t || exit 1; \
+	done
 
 # --- Static analysis -----------------------------------------------------
 # Requires compile_commands.json. Without it clang-tidy cannot resolve
@@ -288,13 +316,23 @@ TIDY ?= clang-tidy
 verify-vendored:
 	@sh scripts/verify-vendored.sh
 
+# L3-CPP-052. The runtime test switches to tr_TR.UTF-8 and re-parses, but
+# setlocale returns NULL where that locale is not generated and the test then
+# downgrades itself to a warning. check-ci and the CI runner now generate it,
+# and the gcc:4.8 image cannot (its Jessie apt sources are archived), so the
+# coverage is uneven by environment. This gate is not: grepping the source
+# cannot be skipped, so it holds wherever the runtime check does not.
+.PHONY: locale-free
+locale-free:
+	@sh scripts/assert-locale-free.sh $(PARSER_SRC)
+
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
 	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
-	    fuzz/fuzz_json.cpp include/filemover/*.hpp
+	    $(FUZZ_SRC) include/filemover/*.hpp
 
 # NOTE: the two -Wno-maybe-uninitialized exemptions that previously covered
 # api_codec.o and test_api_codec.o were removed with picojson (ADR-0006).

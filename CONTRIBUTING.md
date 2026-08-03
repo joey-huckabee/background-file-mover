@@ -293,33 +293,37 @@ ASan+UBSan. libFuzzer requires clang; the code under test is identical
 because the source is strictly C++11-conformant and compiled from one body.
 
 ```bash
-make fuzz                        # build the fuzzer
-make fuzz-corpus                 # replay committed corpus once (the PR gate)
-make fuzz-run                    # live session, FUZZ_SECONDS=60 by default
+make fuzz                        # build every fuzz target
+make fuzz-corpus                 # replay committed corpora once (the PR gate)
+make fuzz-run                    # live session, FUZZ_SECONDS=60 per target
 make fuzz-run FUZZ_SECONDS=1800  # what the nightly burn-in runs
-sh fuzz/make-seeds.sh            # regenerate the seed corpus
+sh fuzz/make-seeds.sh            # regenerate the JSON seed corpus
+sh fuzz/make-seeds-http.sh       # regenerate the HTTP seed corpus
 ```
 
-Three directories, and the distinction matters:
+There are **two targets**, listed in the Makefile's `FUZZ_TARGETS`: `json`
+(`fuzz/fuzz_json.cpp`) and `http` (`fuzz/fuzz_http.cpp`). Every target gets its
+own corpora, keyed by name — the `make` targets loop over all of them, so
+adding a third means adding one word to `FUZZ_TARGETS` and two directories.
 
 | Path | Committed | Purpose |
 |---|---|---|
-| `cpp/fuzz/corpus/` | yes | Curated seeds, one per interesting branch. Hand-written. |
-| `cpp/fuzz/corpus-regression/` | yes | Minimized crash reproducers. Replayed by every PR. |
-| `cpp/build/fuzz/corpus/` | no | libFuzzer's working corpus. Regenerated, mostly noise. |
+| `cpp/fuzz/corpus-<target>/` | yes | Curated seeds, one per interesting branch. Hand-written. |
+| `cpp/fuzz/corpus-regression-<target>/` | yes | Minimized crash reproducers. Replayed by every PR. |
+| `cpp/build/fuzz/corpus-<target>/` | no | libFuzzer's working corpus. Regenerated, mostly noise. |
 
 **libFuzzer writes into the first corpus directory it is given**, and this is
 true even with `-runs=0` — it still copies coverage-increasing inputs between
 directories. Both Makefile targets therefore pass a scratch directory first
 and the committed ones after, as read-only seeds. Point a fuzzing command
-straight at `fuzz/corpus/` and it will bury 38 curated seeds under hundreds
-of generated ones within a minute.
+straight at `fuzz/corpus-json/` and it will bury the curated seeds under
+hundreds of generated ones within a minute.
 
 When the fuzzer finds a crash, the reproducer lands in
-`cpp/build/fuzz/artifacts/` (and is uploaded as a CI artifact). Minimize it,
-give it a name that says what it exercises, and commit it to
-`corpus-regression/`. That retention is where the long-term value is —
-fuzzers find bugs once, corpora prevent them forever.
+`cpp/build/fuzz/artifacts-<target>/` (and is uploaded as a CI artifact).
+Minimize it, give it a name that says what it exercises, and commit it to the
+matching `corpus-regression-<target>/`. That retention is where the long-term
+value is — fuzzers find bugs once, corpora prevent them forever.
 
 ## 5a. Coverage
 
@@ -459,7 +463,10 @@ cd cpp
 make clean-all
 make check                                    # functional
 make check SANITIZE=1                         # sanitizers
+make check THREAD=1                           # ThreadSanitizer
 make check-valgrind                           # memcheck
+make verify-vendored                          # vendored file hashes
+make locale-free                              # L3-CPP-052 source gate
 make fuzz-corpus                              # fuzz regression gate
 make coverage                                 # coverage report
 cppcheck --enable=warning,portability --error-exitcode=1 \
@@ -473,3 +480,18 @@ python scripts/build-trace-matrix.py --check   # traceability gate
 ```
 
 CI runs the same set. Running it locally first is cheaper than a red branch.
+
+One test needs a locale that most machines do not have. The
+locale-independence check in `tests/test_http_parser.cpp` parses under
+`tr_TR.UTF-8`, where `std::tolower('I')` does not yield `'i'`. If the locale is
+not generated, `setlocale` returns `NULL` and the test emits a `warning:`
+saying so rather than reporting a clean pass. `make check-ci` and the CI
+runner both generate it; to run it for real on the host:
+
+```bash
+sudo locale-gen tr_TR.UTF-8
+```
+
+`make locale-free` is the gate that does not depend on the environment — it
+greps the parser sources for `<cctype>` and the `strtoul` family. See
+`docs/HAND-ROLLED-COMPONENTS.md` §5.1 for why both exist.

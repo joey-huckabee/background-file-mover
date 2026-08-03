@@ -56,7 +56,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-20 clang-tidy-20 cppcheck valgrind
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-20 clang-tidy-20 cppcheck valgrind locales
+      # The locale-independence test (L3-CPP-052) parses under tr_TR.UTF-8,
+      # where std::tolower('I') does not yield 'i'. setlocale returns NULL if
+      # the locale is not generated and the test downgrades to a warning, so
+      # generate it and let the check actually run.
+      - name: Generate the Turkish locale
+        run: sudo locale-gen tr_TR.UTF-8
       # Printed so a runner-image or package change shows up as a visible diff
       # in the log rather than as an unexplained warning in some other job.
       - name: Toolchain versions
@@ -160,6 +166,23 @@ jobs:
       - name: Verify hashes
         run: make -C cpp verify-vendored
 
+  # L3-CPP-052: the untrusted-input parsers must classify characters with
+  # explicit ranges, never <cctype> or the strtoul family.
+  #
+  # This is a source gate rather than only a unit test on purpose. The runtime
+  # test switches to tr_TR.UTF-8 and re-parses — the real proof, since
+  # std::tolower('I') under Turkish does not yield 'i' — but setlocale returns
+  # NULL where that locale is not generated, and it is not generated on the
+  # runner. The test therefore degrades to a warning exactly where it would
+  # otherwise run. Grep cannot be skipped by the environment.
+  locale-free:
+    name: Locale-free parsers
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify
+        run: make -C cpp locale-free
+
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:
@@ -235,7 +258,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fuzz-artifacts-short
-          path: cpp/build/fuzz/artifacts/
+          path: cpp/build/fuzz/artifacts-*/
           if-no-files-found: ignore
 
   # Coverage runs here so the number is visible per-PR even when the

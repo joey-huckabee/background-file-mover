@@ -107,7 +107,7 @@ jobs:
             "-Dsonar.organization=${SONAR_ORGANIZATION}"
             "-Dsonar.sources=src,cpp/src,cpp/include"
             "-Dsonar.tests=tests,cpp/tests"
-            "-Dsonar.exclusions=dist/**,**/__pycache__/**,docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus/**,transcripts/**"
+            "-Dsonar.exclusions=dist/**,**/__pycache__/**,docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus-*/**,transcripts/**"
             "-Dsonar.python.version=3.10"
             "-Dsonar.python.coverage.reportPaths=coverage.xml"
             "-Dsonar.cfamily.compile-commands=cpp/compile_commands.json"

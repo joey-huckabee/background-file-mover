@@ -215,7 +215,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-CTL-015 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-015 | L3-CPP-047, L3-CPP-049, L3-CPP-052 | _(TBD)_ | Draft |
 | L2-ENV-003 | _(none)_ | `tests/test_diagnostics.py::test_probe_exception_is_reported_never_raised` | Implemented |
 | L2-JSON-002 | L3-CPP-019, L3-CPP-020, L3-CPP-027, L3-CPP-028 | _(TBD)_ | Draft |
 | L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024, L3-CPP-030 | _(TBD)_ | Draft |
@@ -231,8 +231,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L1-API-001 | L2-CTL-001, L2-CTL-005, L2-CTL-014 | _(none)_ | Partially Implemented |
 | L1-API-002 | L2-CTL-013 | _(none)_ | Draft |
-| L1-API-003 | L2-CTL-002 | _(none)_ | Implemented |
-| L1-API-004 | L2-CTL-003 | _(none)_ | Implemented |
+| L1-API-003 | L2-CTL-002 | _(none)_ | Partially Implemented |
+| L1-API-004 | L2-CTL-003 | _(none)_ | Partially Implemented |
 | L1-API-005 | L2-CTL-016 | _(none)_ | Implemented |
 | L1-API-006 | L2-CTL-007 | _(none)_ | Implemented |
 
@@ -241,11 +241,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
 | L2-CTL-001 | L3-CTL-003 | `tests/test_control_integration.py::test_client_rejects_mismatched_response_id`<br>`tests/test_control_integration.py::test_full_request_response_over_socketpair`<br>`tests/test_control_unix.py::test_server_and_client_over_unix_socket`<br>`tests/test_dispatcher.py::test_response_echoes_request_id` | Implemented |
-| L2-CTL-002 | L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Implemented |
-| L2-CTL-003 | _(none)_ | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Implemented |
+| L2-CTL-002 | L3-CPP-046, L3-CTL-001, L3-PY-006 | `tests/test_constants.py::test_protocol_version_is_positive`<br>`tests/test_dispatcher.py::test_missing_request_id_is_bad_request`<br>`tests/test_dispatcher.py::test_non_object_arguments_rejected`<br>`tests/test_dispatcher.py::test_unsupported_protocol_version_rejected`<br>`tests/test_protocol.py::test_encode_decode_roundtrip`<br>`tests/test_protocol.py::test_length_prefix_is_four_byte_big_endian`<br>`tests/test_protocol.py::test_send_and_receive_over_socketpair`<br>`tests/test_protocol.py::test_truncated_message_raises_on_close`<br>`tests/test_protocol.py::test_unserialisable_message_raises` | Partially Implemented |
+| L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `tests/test_protocol.py::test_oversized_message_rejected_before_reading_body` | Partially Implemented |
 | L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `tests/test_cli.py::test_service_error_response_is_operation_failed`<br>`tests/test_dispatcher.py::test_commands_are_reported_sorted`<br>`tests/test_dispatcher.py::test_known_command_is_dispatched`<br>`tests/test_dispatcher.py::test_missing_command_is_bad_request`<br>`tests/test_dispatcher.py::test_unknown_command_rejected` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | `tests/test_control_unix.py::test_bind_refuses_non_socket_file`<br>`tests/test_control_unix.py::test_bind_removes_dead_stale_socket` | Implemented |
-| L2-CTL-013 | L3-CPP-025, L3-CPP-029 | _(TBD)_ | Draft |
+| L2-CTL-013 | L3-CPP-025, L3-CPP-029, L3-CPP-051 | _(TBD)_ | Draft |
 | L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-016 | _(none)_ | _(TBD)_ | Implemented (I) |
 
@@ -356,14 +356,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
-| CPP | 0 | 0 | 45 | 0 | 0 | 0 | 3 |
-| **Total** | **41** | **194** | **85** | **113** | **24** | **132** | **27** |
+| CPP | 0 | 0 | 52 | 0 | 0 | 0 | 3 |
+| **Total** | **41** | **194** | **92** | **113** | **24** | **132** | **27** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 283 (48.4%).
+**Tested by at least one test marker**: 137 of 290 (47.2%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 283 (56.5%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 290 (55.2%).
 
 ### Orphan check
 

@@ -519,3 +519,76 @@ through them produces `..` or a path separator.
 `expand_rename_template` shall perform no I/O and shall read no clock; the
 timestamp is supplied by the caller, keeping the function deterministic and
 testable without a fixture.
+
+### HTTP/1.1 request parser (ADR-0012)
+
+Verified by `cpp/tests/test_http_parser.cpp` and fuzzed by
+`cpp/fuzz/fuzz_http.cpp`.
+
+The parser only. Route handling and the socket server arrive with the job
+manager; a parser that forces its consumers to include the configuration and
+the job manager is doing more than one job
+(`docs/HAND-ROLLED-COMPONENTS.md` §1.2).
+
+Renumbered from the inherited `L3-CPP-079..092`, which collided with this
+repository's sequence.
+
+**L3-CPP-046** · Parent: L2-CTL-002 · Verification: T
+
+The request line shall be METHOD SP target SP version CRLF, with METHOD 1..16
+characters of `[A-Z]`, target beginning `/` and free of whitespace and control
+characters, and version exactly `HTTP/1.0` or `HTTP/1.1`.
+
+**L3-CPP-047** · Parent: L2-CTL-015 · Verification: T
+
+Headers shall be `name: value` with token names lowercased on output and
+values OWS-trimmed and free of control characters. obs-fold continuation lines
+shall be rejected, more than 64 headers shall be rejected, and a duplicate
+header name shall be rejected.
+
+Duplicates are refused rather than resolved. A map assignment silently takes
+the last value, and two parties disagreeing about which duplicate wins is the
+mechanism behind request smuggling — the same reasoning that made duplicate
+JSON member names an error in ADR-0009.
+
+**L3-CPP-048** · Parent: L2-CTL-003 · Verification: T
+
+Absence of CRLFCRLF within the configured head cap shall yield `TooLarge`, so
+a client dribbling bytes without ever completing a head is bounded.
+
+**L3-CPP-049** · Parent: L2-CTL-015 · Verification: T
+
+Any proper prefix of a valid head shall yield `NeedMore`, and the output
+request shall be left unmodified except on `Ok`.
+
+Bare-LF framing is `NeedMore` rather than `Bad`: the head is incomplete, not
+malformed, and the cap of `L3-CPP-048` or the socket timeout ends it. Treating
+an unterminated prefix as permanently invalid is a judgment a streaming parser
+is not entitled to make.
+
+**L3-CPP-050** · Parent: L2-CTL-003 · Verification: T
+
+An absent `Content-Length` shall mean zero. A present value shall be strict
+base-10 digits consuming the whole token, accumulated with an explicit
+overflow guard. Any `Transfer-Encoding` shall be rejected with 400, and a
+value above the configured body cap with 413.
+
+Any `Transfer-Encoding` is refused rather than ignored: no chunked decoder
+exists to desync, but ignoring the header is what lets a TE/CL disagreement
+smuggle a request past an intermediary.
+
+**L3-CPP-051** · Parent: L2-CTL-013 · Verification: T
+
+A serialized response shall carry the status line, `Content-Type`,
+`Content-Length`, `Connection: close`, an `Allow` header when the response
+supplies one, CRLF framing throughout, and then the body.
+
+**L3-CPP-052** · Parent: L2-CTL-015 · Verification: T, I
+
+Character classification in the parser shall use explicit ranges and shall not
+use `<cctype>`.
+
+`std::isalnum` and `std::tolower` are locale-sensitive. A parser on untrusted
+network input must not change what it accepts because something elsewhere in
+the process called `setlocale`, and a test asserts identical behavior under
+two locales.

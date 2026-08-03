@@ -9,7 +9,7 @@ name: C++ fuzz burn-in
 #
 # When this job finds a crash, the reproducer is uploaded as an artifact. The
 # workflow deliberately does NOT commit it: minimizing the input and adding it
-# to cpp/fuzz/corpus-regression/ is a human step, because the minimized case
+# to the matching cpp/fuzz/corpus-regression-<target>/ is a human step, because the minimized case
 # should be readable and named for what it exercises.
 
 on:
@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cpp-fuzz-artifacts
-          path: cpp/build/fuzz/artifacts/
+          path: cpp/build/fuzz/artifacts-*/
           if-no-files-found: ignore
 
       # The corpus libFuzzer accumulated during the run. Useful for seeding a
@@ -71,6 +71,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cpp-fuzz-corpus
-          path: cpp/build/fuzz/corpus/
+          path: cpp/build/fuzz/corpus-*/
           retention-days: 7
           if-no-files-found: ignore

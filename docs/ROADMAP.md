@@ -343,21 +343,28 @@ produced.
 | Queue / worker / drain semantics | Already specified as `L2-MGR-001..003`; the implementation confirms the shape. |
 | `JobManager` code, journal wiring, pipeline | **Not ported.** |
 
-## M9/M10 disposition (HTTP layer and recovery)
+## M9/M10 disposition (HTTP layer and recovery) — CLOSED
 
 The first drop containing code worth adopting beyond a pure helper. ADR-0012
 committed the project to a hand-rolled HTTP/1.1 subset, so unlike the previous
 four milestones this one builds something we actually need.
 
+**Status: the parser is landed.** `cpp/src/http_parser.cpp`, `L3-CPP-046..052`,
+with the three fixes below applied, a second libFuzzer target
+(`cpp/fuzz/fuzz_http.cpp`, 37 seeds), and the first component built to
+`docs/HAND-ROLLED-COMPONENTS.md`. The routes and server remain deferred with
+the job manager; the recovery design remains rejected. What stays open from
+this milestone is tracked in **M7** below, not here.
+
 | Delivered | Outcome |
 |---|---|
-| `parse_request_head`, `content_length_for`, `serialize_response` | **Adopt**, with the fixes below. Pure functions, strict posture, and the untrusted-input surface ADR-0008 requires fuzzing. |
+| `parse_request_head`, `content_length_for`, `serialize_response` | **Adopted** — `L3-CPP-046..052`, with the fixes below. Pure functions, strict posture, and the untrusted-input surface ADR-0008 requires fuzzing. |
 | `http_routes.cpp` | **Defer.** Depends on the job manager, which does not exist. |
 | `http_server.cpp` | **Defer.** Socket loop needs config and manager; also needs review against `L2-SEC-009` (per-syscall timeouts) and `L2-SEC-010` (one stalled connection must not block others — the server is serial-accept). |
 | `manager.cpp` recovery | **Reject as written.** Journal-based (ADR-0010 chose SQLite), and its non-fatal write-failure handling contradicts `L2-JOB-014`. |
-| Test suite (493 lines) | **Adapt** with the parser; the prefix sweep and hostile battery are worth keeping. |
+| Test suite (493 lines) | **Adapted** — the parser's share landed as `cpp/tests/test_http_parser.cpp`, keeping the prefix sweep. The hostile battery is an integration test against a socket, so it is deferred with the server. |
 
-### Fixes required before adopting the parser
+### Fixes applied before adopting the parser
 
 1. **Split the header.** `http.hpp` is monolithic: the pure parser, the route
    handlers, and the socket server share one header that includes
@@ -372,7 +379,14 @@ four milestones this one builds something we actually need.
    called `setlocale`. Replace with explicit range checks — the same reasoning
    that made the JSON parser use explicit tables.
 
-3. **Renumber** `L3-CPP-079..092` into this repository's sequence.
+3. **Renumber** `L3-CPP-079..092` into this repository's sequence — landed as
+   `L3-CPP-046..052`.
+
+A fourth change was made that the review had not anticipated: `content_length_for`
+used `strtoull`, which accepts leading whitespace and a `+`/`-` sign and reports
+overflow through `errno`. Replaced with explicit digit accumulation and an
+overflow guard, so the strict-digit rule is enforced by the code rather than by
+checking the string first and trusting the conversion afterwards.
 
 ### What the parser gets right, and is worth preserving
 

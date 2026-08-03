@@ -182,23 +182,64 @@ Before a hand-rolled component is considered done:
 
 ## 5. Applying this to the HTTP parser
 
-The inherited HTTP parser is adopted subject to this standard, which requires
-three changes before it lands:
+The HTTP parser was the first component adopted under this standard. It is
+`cpp/src/http_parser.cpp` / `include/filemover/http_parser.hpp`, tracing
+`L3-CPP-046..052`. Three changes were required before it could land:
 
-1. **Split the header** (§1.2). `http.hpp` becomes `http_parser.hpp` — pure,
+1. **Split the header** (§1.2). `http.hpp` became `http_parser.hpp` — pure,
    standard-library only. Routes and server follow when the job manager
    exists.
 2. **Remove locale dependence.** `std::isalnum` and `std::tolower` are
    locale-sensitive; a parser on untrusted input must not change behavior
-   because something in the process called `setlocale`. Explicit range checks,
-   as the JSON parser uses.
+   because something in the process called `setlocale`. Replaced with explicit
+   range checks, as the JSON parser uses.
 3. **Renumber** the inherited `L3-CPP-079..092` into this repository's
-   sequence.
+   sequence, as `L3-CPP-046..052`.
 
-It already satisfies the properties in §2.3 — the prefix sweep in particular —
+A fourth change surfaced during the port that the review had not anticipated:
+`content_length_for` used `strtoull`, which accepts leading whitespace and a
+sign and reports overflow out-of-band through `errno`. It now accumulates
+digits explicitly with an overflow guard, so the strict-digit rule is enforced
+by the code rather than by checking the string first and trusting the
+conversion afterwards.
+
+It already satisfied the properties in §2.3 — the prefix sweep in particular —
 and its strictness decisions (duplicate headers rejected, any
 `Transfer-Encoding` refused, bytes past `Content-Length` refused) are the kind
-§3.4 asks for.
+§3.4 asks for. It has a fuzz target and committed corpus per §2.4
+(`fuzz/fuzz_http.cpp`, 37 seeds).
 
-What it will need that it does not yet have: a fuzz target and committed
-corpus (§2.4), and the coverage floor measured per file (§2.5).
+### 5.1 What the locale property cost, and the general lesson
+
+The locale rule is the one place where a test alone turned out not to be
+enough, and it is worth recording why.
+
+The obvious test sets `tr_TR.UTF-8` and re-parses. Turkish is the right choice:
+`std::tolower('I')` there does not yield `'i'`, because the Turkish lowercase
+of I is dotless `ı` and does not fit in a byte, so the call returns `'I'`
+unchanged and a locale-sensitive parser would key `IF-MATCH` under `iF-mATCH`
+and miss every lookup. Two things went wrong with it anyway:
+
+- The first version parsed a fixture with **no capital `I` in any header
+  name**, so it would have passed against a locale-sensitive parser. A test
+  for a hazard has to actually contain the hazard.
+- `setlocale` returns `NULL` when the locale is not generated, and it is not
+  generated in any of our CI containers. The test silently degraded to running
+  the `C` case twice and reporting a pass.
+
+The fix is both halves: the fixture now carries `IF-MATCH`, the test `WARN`s
+when the locale is unavailable instead of reporting a clean pass, and
+`scripts/assert-locale-free.sh` greps the parser sources for `<cctype>` and the
+`strtoul` family as a gate the environment cannot skip (`make locale-free`,
+plus a CI job of the same name).
+
+**Generalize this.** For any property in §2.3, ask what happens when the
+mechanism the test depends on is missing. If the answer is "the test passes",
+it is not a gate. Prefer checks that fail closed — and where the property is
+"this code does not call X", grepping for X is a legitimate and cheap gate,
+not a substitute for the test but a complement to it.
+
+That gate earned its keep on its first run: `config.cpp`'s `parse_uint`
+documented that it rejected `" 80"`, but checked only for a leading `-` or `+`
+while `strtoul` skips whitespace. It was unreachable — the caller trims — but
+the stated contract was false, and it now requires a leading digit.

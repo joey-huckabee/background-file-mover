@@ -6,3 +6,13 @@ poetry.lock text eol=lf
 *.jpg binary
 *.ico binary
 *.pdf binary
+
+# Fuzzing corpora are byte-exact test vectors, not text. The HTTP seeds make
+# this load-bearing: CRLF framing is precisely what they exercise, and the
+# `* text=auto eol=lf` rule above would rewrite every "\r\n" to "\n" on commit.
+# The parser answers NeedMore rather than Ok for a bare-LF head, so normalized
+# seeds would still "replay" green while testing something else entirely --
+# a corpus quietly measuring the wrong thing is worse than no corpus.
+cpp/fuzz/corpus-*/** -text
+cpp/fuzz/corpus-regression-*/** -text
+cpp/fuzz/make-seeds*.sh -text

@@ -157,7 +157,7 @@ L1/L2/L3 trace matrix, and SonarCloud quality gate remain green.
   (job orchestration stays in `TransferCoordinator`), the control-response wire format into
   `presentation.py`, the lifecycle operations into `control/lifecycle.py`, the pause/cancel
   registry into `transfer/control_signals.py`, and partial cleanup into
-  `transfer/partials.py` — reducing class/function complexity with no behaviour change.
+  `transfer/partials.py` — reducing class/function complexity with no behavior change.
 
 ### Security
 
@@ -190,7 +190,7 @@ L1/L2/L3 trace matrix remain green.
 
 ### Security
 
-- Validate and normalise the operator-supplied configuration path before it is read:
+- Validate and normalize the operator-supplied configuration path before it is read:
   reject NUL bytes, resolve to an absolute real path, and require an existing regular file,
   closing a path-injection finding.
 
