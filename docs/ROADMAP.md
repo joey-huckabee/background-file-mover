@@ -343,6 +343,29 @@ produced.
 | Queue / worker / drain semantics | Already specified as `L2-MGR-001..003`; the implementation confirms the shape. |
 | `JobManager` code, journal wiring, pipeline | **Not ported.** |
 
+## M11/M12 disposition (dashboard and daemon entry point) — CLOSED
+
+The final drop, and the end of the inherited design series. No code adopted;
+four requirements and one compliance fix. Full triage in
+`docs/MIGRATION-PROVENANCE.md`.
+
+| Delivered | Outcome |
+|---|---|
+| `LICENSES/` for vendored dependencies | **Adopted** — and it found a real gap. `catch.hpp` references an "accompanying file `LICENSE_1_0.txt`" that did not exist here. Now vendored, hash-pinned, gated by `make verify-vendored`. |
+| `textContent`-only DOM insertion | **Adopted** as `L2-DASH-003`. |
+| Signal handler sets only `volatile sig_atomic_t`; `SIGPIPE` ignored | **Adopted** as `L2-CTL-017`, `L2-CTL-018`. |
+| `--check` config validation, run as systemd `ExecStartPre` | **Adopted** as `L2-CTL-019`. |
+| Ordered startup, reverse-order teardown | **Adopted** as `L2-CTL-020`. |
+| `src/main.cpp` | **Not ported** — composes the journal (rejected, ADR-0010), the manager and HTTP server (deferred), and a transfer strategy (`ExecTransfer` removed, ADR-0011). Its 200 ms `nanosleep` wait loop is explicitly **not** the pattern to copy; block on `sigsuspend` or a self-pipe. |
+| `deploy/filemover.service` | **Superseded** by `L2-SEC-014`, which is stronger (`ProtectSystem=strict`, `ReadWritePaths=`, `CapabilityBoundingSet=`, `UMask=0077`). |
+| `dashboard.cpp` | **Deferred** with the dashboard; `L2-DASH-001..003` hold the obligations. |
+
+**The inherited-design series is now closed.** `transcripts/` is deleted. Eight
+snapshots produced one adopted component, two adopted helpers, and ~20
+requirements; everything else was superseded, deferred, or rejected. If another
+design conversation arrives, recreate `transcripts/` as scratch and follow the
+same rubric.
+
 ## M9/M10 disposition (HTTP layer and recovery) — CLOSED
 
 The first drop containing code worth adopting beyond a pure helper. ADR-0012

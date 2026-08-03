@@ -83,9 +83,12 @@ implementation, which remains authoritative on `main` and ships through v0.4.2.
 - **`cpp/README.md`** — build commands, CI tiers, design rules, target REST API shape.
 - **`docs/adr/`** — MADR-format decision records, numbered `0001`+. Read these before
   changing the toolchain, the vendoring set, the JSON parser, or the HTTP surface.
-- **`transcripts/`** — staging area for design material not yet retired into the specs,
-  following the `docs/CAPTURE.md` precedent. **An empty `transcripts/` means the repo is
-  ready for the next milestone drop.** See `transcripts/README.md` for the triage rubric.
+- **`docs/MIGRATION-PROVENANCE.md`** — what the inherited C++ design series contributed
+  and, more usefully, what was rejected and why. The eight milestone snapshots are fully
+  triaged and deleted; `transcripts/` no longer exists. **Read this before
+  re-introducing anything from that material, or before assuming a gap in `cpp/` is an
+  oversight — several are deliberate.** If a new design conversation arrives, recreate
+  `transcripts/` as scratch, follow the same triage rubric, and delete it again.
 
 Three things that are easy to get wrong:
 

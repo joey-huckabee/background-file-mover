@@ -43,7 +43,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | `tests/test_models.py::test_state_enums_have_expected_terminals` | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Implemented |
 | L1-SYS-016 | L2-JOB-011 | _(none)_ | Draft |
-| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-006, L2-CTL-009, L2-CTL-011, L2-ENV-001, L2-ENV-002, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
+| L1-SYS-008 | L2-ARC-006, L2-BWL-002, L2-CFG-007, L2-CFG-009, L2-CFG-010, L2-CFG-011, L2-CLI-001, L2-CLI-002, L2-CLI-003, L2-CLI-004, L2-CLI-005, L2-CLI-006, L2-CLI-007, L2-CLI-011, L2-CTL-006, L2-CTL-009, L2-CTL-011, L2-CTL-017, L2-CTL-018, L2-CTL-019, L2-CTL-020, L2-ENV-001, L2-ENV-002, L2-LIF-002, L2-LIF-004, L2-LIF-005, L2-RTY-006 | _(none)_ | Partially Implemented |
 | L1-SYS-019 | _(none)_ | _(none)_ | Draft |
 | L1-SYS-020 | _(none)_ | _(none)_ | Draft |
 
@@ -110,6 +110,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-009 | _(none)_ | `tests/test_control_unix.py::test_service_run_serves_queries_then_stops` | Implemented |
 | L2-CTL-011 | L3-PY-010 | `tests/test_control_unix.py::test_service_run_notifies_readiness`<br>`tests/test_systemd.py::test_notify_is_noop_without_notify_socket`<br>`tests/test_systemd.py::test_notify_ready_and_stopping_send_datagrams`<br>`tests/test_systemd.py::test_notify_returns_false_on_unreachable_socket`<br>`tests/test_systemd.py::test_notify_translates_abstract_socket` | Implemented |
 | L2-CTL-012 | _(none)_ | `tests/test_systemd.py::test_notify_watchdog_sends_keepalive` | Implemented |
+| L2-CTL-017 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-018 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-019 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-020 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-001 | _(none)_ | `tests/test_transfer.py::test_full_transfer_publishes_and_deletes_source` | Implemented |
 | L2-DEL-002 | _(none)_ | `tests/test_transfer.py::test_unexpected_staging_file_is_not_deleted` | Implemented |
 | L2-DEL-003 | _(none)_ | `tests/test_transfer.py::test_missing_claimed_source_fails_and_retains` | Implemented |
@@ -255,7 +259,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-OBS-001 | L2-DASH-001, L2-DASH-002 | _(none)_ | Partially Implemented |
+| L1-OBS-001 | L2-DASH-001, L2-DASH-002, L2-DASH-003 | _(none)_ | Partially Implemented |
 | L1-OBS-002 | L2-CTL-010, L2-JOB-006 | _(none)_ | Implemented |
 | L1-OBS-003 | L2-CORE-004 | _(none)_ | Partially Implemented |
 
@@ -267,6 +271,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-010 | _(none)_ | `tests/test_cli.py::test_health_renders_json`<br>`tests/test_cli.py::test_health_reports_service_unavailable_when_down`<br>`tests/test_service.py::test_health_handler` | Implemented |
 | L2-DASH-001 | _(none)_ | _(TBD)_ | Implemented (D) |
 | L2-DASH-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-DASH-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-006 | _(none)_ | `tests/test_cli.py::test_query_commands_report_service_unavailable_when_down`<br>`tests/test_cli.py::test_status_found_renders_human`<br>`tests/test_cli.py::test_status_not_found_returns_job_not_found`<br>`tests/test_repository.py::test_list_jobs_filters_by_state`<br>`tests/test_repository.py::test_statistics_aggregate`<br>`tests/test_service.py::test_list_handler`<br>`tests/test_service.py::test_resolve_state_selector`<br>`tests/test_service.py::test_stats_handler`<br>`tests/test_service.py::test_status_handler_found_and_missing` | Implemented |
 
 ### L1-SEC: Filesystem security discipline (L1/L2)
@@ -342,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 5 | 0 | 5 | 0 |
 | DST | 0 | 5 | 0 | 5 | 0 | 5 | 0 |
 | DEL | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
-| CTL | 0 | 16 | 4 | 11 | 4 | 13 | 4 |
+| CTL | 0 | 20 | 4 | 11 | 4 | 13 | 4 |
 | JOB | 0 | 15 | 3 | 7 | 3 | 8 | 3 |
 | SUB | 0 | 5 | 2 | 4 | 2 | 4 | 2 |
 | REC | 0 | 4 | 0 | 4 | 0 | 4 | 0 |
@@ -353,17 +358,17 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | XFR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| DASH | 0 | 2 | 0 | 0 | 0 | 1 | 0 |
+| DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 3 | 0 | 3 |
 | PY | 0 | 0 | 14 | 0 | 10 | 0 | 10 |
 | CPP | 0 | 0 | 52 | 0 | 0 | 0 | 3 |
-| **Total** | **41** | **194** | **92** | **113** | **24** | **132** | **27** |
+| **Total** | **41** | **199** | **92** | **113** | **24** | **132** | **27** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 137 of 290 (47.2%).
+**Tested by at least one test marker**: 137 of 295 (46.4%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 290 (55.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 160 of 295 (54.2%).
 
 ### Orphan check
 

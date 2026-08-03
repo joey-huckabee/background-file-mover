@@ -1076,6 +1076,70 @@ The service shall handle SIGTERM and SIGINT and shut down cleanly.
 
 **Verification Method**: Test (T)
 
+#### L2-CTL-017
+
+A signal handler shall do nothing but assign to a `volatile sig_atomic_t` flag
+that the main loop observes; it shall not log, allocate, take a lock, or touch
+durable state.
+
+Only async-signal-safe functions may run in a handler, and almost nothing this
+service does qualifies. The failure this prevents is specific and ugly: a
+SIGTERM arriving while a thread holds the allocator or the durable-store lock
+deadlocks the process against itself during shutdown, which presents as a
+service that will not stop and gets `SIGKILL`ed by systemd's `TimeoutStopSec`
+— converting a clean shutdown into exactly the abrupt termination the
+commit-point invariants have to survive.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-CTL-018
+
+The service shall ignore `SIGPIPE` process-wide.
+
+The default disposition terminates the process. A REST control plane writes to
+sockets that clients may close at any moment, so the default turns a
+disconnecting client into a killed daemon — remotely, without authentication,
+and while a transfer is in flight. Writes must fail with `EPIPE` and be handled
+where they occur.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
+#### L2-CTL-019
+
+The service shall provide a configuration-validation mode that loads and
+validates the configuration, reports any faults with the loader's
+`file:line: message` diagnostic, and exits without starting the service,
+without opening the durable store, and without binding a socket.
+
+This is what lets a deployment gate on configuration before the service is
+allowed to touch anything: run it as systemd `ExecStartPre` and an invalid
+config fails the unit outright instead of half-starting a daemon that then
+dies with its state directory already created. It is the C++ counterpart of
+the Python implementation's `doctor` gate (`L2-ENV-001..003`), and shares its
+parent for that reason.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T), Demonstration (D)
+
+#### L2-CTL-020
+
+Startup shall bring subsystems up in dependency order and shall stop everything
+already started if any later step fails; shutdown shall tear down in the
+reverse order, ending with the durable store synced and closed.
+
+A failure partway through startup that leaves a worker pool running or a socket
+bound produces a process that is neither serving nor exited — the state an
+operator cannot diagnose and systemd will not restart correctly.
+
+**Parent**: L1-SYS-008
+
+**Verification Method**: Test (T)
+
 #### L2-CTL-010
 
 The software shall expose service status and aggregate job statistics at
@@ -1602,6 +1666,23 @@ The dashboard shall be a single embedded HTML and JavaScript page polling
 #### L2-DASH-002
 
 The dashboard shall function without external network resources.
+
+**Parent**: L1-OBS-001
+
+**Verification Method**: Test (T), Inspection (I)
+
+#### L2-DASH-003
+
+The dashboard shall insert every dynamic value into the DOM through
+`textContent` or `createTextNode` only, and shall never assign to `innerHTML`.
+
+Filesystem paths and error strings reach the page from the API, and a path is
+attacker-influenced in exactly the way the `L1-SEC-*` invariants already
+assume: whoever can create a file can choose its name. A name containing
+markup becomes script execution in an operator's browser the moment it is
+assigned to `innerHTML`, and the operator holds the one account with authority
+over this service. Text-node insertion removes the injection path rather than
+escaping it, so there is no escaping function left to get wrong.
 
 **Parent**: L1-OBS-001
 

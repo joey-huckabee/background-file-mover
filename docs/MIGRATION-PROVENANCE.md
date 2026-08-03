@@ -1,34 +1,75 @@
-# transcripts/ — staging area for design material awaiting integration
+# Migration provenance — what the inherited C++ design contributed, and what it did not
 
-This directory holds design conversations and milestone artifacts produced
-outside the repository that have **not yet been retired into the specs**.
+**Status: closed.** Eight milestone snapshots were delivered from an outside
+design conversation and staged in a `transcripts/` directory, integrated one
+drop at a time. All eight are triaged and retired; the directory and the
+snapshots are deleted. This document is what remains of them — the record
+rather than the scaffolding.
 
-It follows the precedent set by `docs/CAPTURE.md`, the original design
-conversation for the Python implementation: land the raw material in-tree,
-mine it into requirements and ADRs commit by commit, then delete it. Raw
-transcript content never becomes reference documentation — the specs are the
-reference, and this directory is scaffolding.
+## Why this is kept
 
-## Protocol
+Most of the inherited material was **not** adopted, and the reasons are the
+valuable part. Without them the same code arrives again — in a later proposal,
+or through a maintainer's entirely reasonable instinct that a rename engine
+ought to just call `rename()` — and gets adopted on its second pass because
+nobody remembers it was already examined and refused. A rejection with a
+written reason is a durable decision; a rejection with no record is a decision
+that expires.
 
-1. Drop a conversation export and/or milestone zip contents here.
-2. Integrate each piece into its permanent home:
-   - decisions → `docs/adr/`
-   - requirements → `docs/L1-REQ.md`, `docs/L2-REQ.md`, `docs/L3-REQ.md`
-   - code, build, CI → `cpp/`, `.github/workflows/`
-3. **Delete each file from this directory as it is integrated.**
-4. When this directory contains nothing but this README, the repository is
-   **ready for the next milestone conversation and zip drop**.
+So: read this before re-introducing anything listed below, and before
+concluding that a gap in the C++ tree is an oversight. Several of them are
+deliberate.
 
-An empty `transcripts/` is the ready signal. A non-empty one is a to-do list.
+**Standing caveat.** The originating conversation designed a standalone project
+from scratch, without knowledge of this repository's requirements, locked
+decisions, or constraints. It was found to contain at least one fabricated
+premise — its ADR-0001 cited a non-existent prior C++ implementation of this
+project, corrected in place. Verify factual claims from this material before
+promoting them into a spec.
 
-## Not yet integrated
-
-| File | Blocked on |
+| Bucket | Action taken |
 |---|---|
-| — | **Nothing. Ready for the next drop.** |
+| ADOPT | New capability with no equivalent here |
+| REDUNDANT | Re-derives an existing requirement — dropped, mapped to the existing ID |
+| CONFLICT | Contradicts an existing requirement — **repo wins by default** |
+| SUPERSEDE | Genuinely better, with a written reason |
+| DEFER | Good, but not v1.0.0 — moved to `docs/ROADMAP.md` |
 
-All drops so far are fully retired. Where they ended up:
+## Where each drop ended up
+
+**Eighth and final drop (`rest-file-mover-complete`, M11 dashboard + M12 daemon
+entry point) — no code adopted; four requirements and one compliance fix:**
+
+The complete twelve-milestone tree. Diffing every re-shipped file against ours
+found **no upstream changes** — the only deltas were our own comments and
+renumbering — so the genuinely new material was M11, M12, `deploy/`, and
+`LICENSES/`.
+
+| Inherited material | Outcome |
+|---|---|
+| **Vendored license texts (`LICENSES/`)** | **Adopted, and it caught a real gap.** `catch.hpp` says "See accompanying file `LICENSE_1_0.txt`" and no such file existed here. `VENDORED.md` recorded the license *name*, which is inventory, not compliance — BSL-1.0 requires the text travel with the source. Now vendored at `third_party/catch2/LICENSE_1_0.txt`, hash-pinned, and gated by `make verify-vendored`. |
+| **`textContent`-only DOM insertion** | **Adopted as `L2-DASH-003`.** The best idea in the drop. Paths are attacker-influenced by definition — whoever can create a file chooses its name — and the operator's browser is the one session with authority over the service. Text-node insertion removes the injection path instead of escaping it. |
+| **Signal handler sets only a `volatile sig_atomic_t`** | **Adopted as `L2-CTL-017`.** Async-signal-safety, with a concrete failure mode: a SIGTERM landing while a thread holds the allocator or the store lock deadlocks shutdown, systemd `SIGKILL`s on `TimeoutStopSec`, and a clean stop becomes the abrupt termination the commit-point invariants must survive. |
+| **`SIGPIPE` ignored process-wide** | **Adopted as `L2-CTL-018`.** The default disposition turns a client disconnecting mid-response into a killed daemon — remotely, unauthenticated. |
+| **`--check` config validation as `ExecStartPre`** | **Adopted as `L2-CTL-019`.** A bad config fails the unit instead of half-starting a daemon. Parented to `L1-SYS-008` to match the Python `doctor` gate (`L2-ENV-001..003`), which is the same idea. |
+| Ordered startup / reverse-order teardown | **Adopted as `L2-CTL-020`.** |
+| `src/main.cpp` | **Not ported.** It wires journal → replay → recover → manager → transfer strategy → HTTP server; the journal is rejected (ADR-0010), the manager and server are deferred, and `ExecTransfer` was removed (ADR-0011). Nothing it composes exists here yet. |
+| Its 200 ms `nanosleep` wait loop | **Rejected as a pattern.** A daemon that wakes five times a second forever to check a flag should block instead — `sigsuspend` or a self-pipe. Noted so it is not copied in when `main.cpp` is eventually written. |
+| `deploy/filemover.service` | **Superseded by our own `L2-SEC-014`**, which is strictly stronger: `ProtectSystem=strict` rather than `full`, plus `ReadWritePaths=`, a trimmed `CapabilityBoundingSet=`, and `UMask=0077`. |
+| `dashboard.cpp` (embedded HTML/CSS/JS) | **Deferred** with the dashboard. Cleanly built and genuinely self-contained, but it binds to an API shape we have not built. `L2-DASH-001..003` hold the obligations. |
+| `LICENSES/BSD-2-Clause-picojson.txt` | **Not applicable** — picojson is excluded by ADR-0007 and was removed. |
+| Everything else | Re-shipped snapshot, already triaged in earlier drops. |
+
+**One claim in the closing narrative is now false, in our favor.** It states
+that "the one thing this environment couldn't verify is the true GCC 4.8.5
+build." We verify it on every run: `make check-ci`'s fidelity tier plus a
+`gcc:4.8` container job in `cpp-ci.yml`, running the full suite rather than a
+compile. Their open risk is closed here.
+
+**Its final ledger does not describe this repository** — "25 L1s, ~30 L2s, 100
+L3-CPPs, seven ADRs" counts the inherited tree, not ours (twelve ADRs, a
+narrower v1.0.0, `L1-SYS-002/003/004/005/006` deferred to v1.1). Do not quote
+those figures upward; use `docs/TRACE-MATRIX.md`, which is generated.
 
 **Seventh drop (`rest-file-mover-m10`, HTTP server + startup recovery) — one
 component adopted, the rest deferred or rejected:**
@@ -198,21 +239,23 @@ anything in a drop is new.
 | Journal durability design | **Superseded** by ADR-0010 (SQLite); no retirement step needed |
 | Milestone numbering (M1..M12) | Deliberately dropped — this repo tracks requirements, not inherited milestones |
 
-## Caveat on inherited material
+## What the series was worth, in one paragraph
 
-The originating conversation designed a standalone project from scratch and
-did not know this repository's existing requirements, locked decisions, or
-constraints. Material here is **triaged, not adopted wholesale**:
+Eight snapshots of a complete, working, twelve-milestone C++ service produced,
+in this repository, **one adopted component** (the HTTP request-head parser),
+one adopted pure helper (the rename template engine), one adopted core function
+(`from_string`), and roughly twenty requirements. Everything else was
+superseded, deferred, or rejected — not because it was bad work, but because it
+was built against a different set of constraints: a journal where we chose
+SQLite, path-based filesystem calls where our security requirements demand
+fd-relative ones, a `[transfer]` strategy with an exec escape hatch we removed
+on principle. The pattern that held across every drop is that the **reasoning**
+ported and the **code** usually did not, and the later drops were mined almost
+entirely for reasoning. That is a real result, and it is worth knowing before
+commissioning the next one.
 
-| Bucket | Action |
-|---|---|
-| ADOPT | New capability with no equivalent here |
-| REDUNDANT | Re-derives an existing requirement — drop, map to the existing ID |
-| CONFLICT | Contradicts an existing requirement — **repo wins by default** |
-| SUPERSEDE | Genuinely better, with a written reason |
-| DEFER | Good, but not v1.0.0 — goes to `docs/ROADMAP.md` |
-
-Inherited material has already been found to contain at least one fabricated
-premise (ADR-0001 cited a non-existent prior C++ implementation of this
-project, corrected in place). Verify factual claims before promoting them
-into a spec.
+The corollary, recorded twice in the notes above and worth stating plainly: the
+drops' own honesty logs described bugs that were then reproduced here anyway
+while porting the very code the log was about — the `{ext}` empty-expansion
+case in M6, the bare-LF framing verdict in M9/M10. Reading a hazard log is not
+protection against the hazard. Tests are.

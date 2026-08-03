@@ -442,17 +442,20 @@ messages are the human-authored record of intent.
 
 ---
 
-## 10. `transcripts/`
+## 10. Design material produced outside the repository
 
-Staging area for design material produced outside the repository, following
-the `docs/CAPTURE.md` precedent: land it, mine it into requirements and ADRs
-commit by commit, then delete it. Raw transcript content never becomes
-reference documentation.
+The convention, following the `docs/CAPTURE.md` precedent: land raw material in
+a scratch `transcripts/` directory, mine it into requirements and ADRs commit by
+commit, then delete it. Raw transcript content never becomes reference
+documentation — the specs are the reference. An empty (or absent)
+`transcripts/` is the ready signal for the next drop.
 
-**An empty `transcripts/` is the ready signal for the next milestone drop.**
-See `transcripts/README.md` for the triage rubric — inherited material is
-triaged, not adopted, and has already been caught carrying a fabricated
-premise.
+The inherited C++ design series ran to eight milestone snapshots and is closed;
+`transcripts/` is gone. What survived it is `docs/MIGRATION-PROVENANCE.md`,
+which records where each drop landed and — the part worth keeping — why most of
+it was **not** adopted. Read it before re-introducing anything from that
+material. Inherited material is triaged, not adopted, and was caught carrying a
+fabricated premise.
 
 ---
 
