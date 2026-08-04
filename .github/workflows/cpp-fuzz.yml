@@ -32,6 +32,12 @@ concurrency:
   group: cpp-fuzz-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# See cpp-ci.yml: a `container:` job defaults to `sh` rather than `bash`, so
+# this restores the shell the steps were written against.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fuzz:
     name: libFuzzer burn-in

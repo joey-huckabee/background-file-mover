@@ -44,6 +44,15 @@ concurrency:
   group: cpp-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# A job with `container:` defaults to `sh`, not `bash`. Every step here happens
+# to be POSIX-clean today, so this changes nothing now — it is here so that the
+# first bash-ism someone writes fails on their branch rather than mysteriously
+# only inside a container. Containerising a job should not change the language
+# its steps are written in.
+defaults:
+  run:
+    shell: bash
+
 env:
   # Applied to every job. The Makefile honours CXX, so this selects the
   # compiler for the functional, sanitizer, and coverage tiers alike.

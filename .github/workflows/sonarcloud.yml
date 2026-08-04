@@ -39,6 +39,20 @@ permissions:
   pull-requests: read     # allows SonarCloud to decorate PRs
   security-events: write  # needed to upload SARIF results to GitHub
 
+# A job with `container:` defaults to `sh`, not `bash` — GitHub only defaults to
+# bash when it can find it on the runner. Moving this job into the toolchain
+# image therefore changed the language its steps are written in, and the scanner
+# invocation below uses a bash array:
+#
+#   /__w/_temp/....sh: 29: Syntax error: "(" unexpected
+#
+# Declared at workflow level rather than patched into the one step that broke,
+# because the point of the image is to remove divergence between local and CI,
+# and silently swapping the shell is a divergence of exactly that kind.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   sonarcloud:
     runs-on: ubuntu-24.04
