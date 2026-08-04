@@ -9,14 +9,16 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-03 · **Branch:** `v2-cpp` · **Current milestone: C1 — not started.**
+**Date:** 2026-08-03 · **Branch:** `c1-durable-store` · **Current milestone: C1 — in
+progress, dependency vendored, no store code written yet.**
 
-**C0 (the foundation) is delivered.** Five components are built, tested, fuzzed where
-they touch untrusted input, and green on every gate including the GCC 4.8.5 fidelity
-tier: the strict-subset **JSON parser** and REST codec, the **configuration loader**, the
-**job model and state machine**, the **rename template engine**, and the **HTTP
-request-head parser**. The full CI apparatus is in place — fifteen gates — and the
-Python implementation has been removed from this branch.
+**C0 (the foundation) is delivered and merged.** Five components are built, tested,
+fuzzed where they touch untrusted input, and green on every gate including the GCC 4.8.5
+fidelity tier: the strict-subset **JSON parser** and REST codec, the **configuration
+loader**, the **job model and state machine**, the **rename template engine**, and the
+**HTTP request-head parser**. The full CI apparatus is in place — fifteen gates. C0 was
+merged into `main` and published, `v2-cpp` was retired, and work now happens on one
+branch per milestone (see *Merge cadence*).
 
 **Nothing that moves a file exists yet.** There is no durable store, no filesystem layer,
 no move engine, no job manager, no socket server, no daemon entry point. The service
@@ -24,14 +26,26 @@ cannot start, because there is no `main`.
 
 ```
 In v1.0.0 scope:  48 of 226 requirements verified  (21.2%)
-Tests:            6,800 assertions / 97 cases      (all tiers green)
+Tests:            6,820 assertions / 102 cases     (all tiers green)
 ```
 
-**The next action is C1 — the durable store.** Everything else depends on it, and its
-first task is vendoring the SQLite amalgamation, which is the one `pending` row in
-`cpp/VENDORED.md`.
+**C1's first task is done: SQLite is vendored.** The amalgamation is pinned at **3.53.4**
+in `cpp/VENDORED.md` — two rows, one per file — compiled by its own Makefile rule, and
+linked into the test binary. The latest release turned out to be viable on GCC 4.8.5, so
+no version step-back was needed; the measurements and the two build-flag decisions they
+forced are recorded in `cpp/VENDORED.md`.
 
-Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
+Note that **the coverage figure did not move, and should not have.** Vendoring a
+dependency verifies no requirement, so `tests/test_sqlite_vendor.cpp` carries no
+requirement tag. The +20 assertions are integration checks on the vendoring itself: that
+`sqlite3.c` and `sqlite3.h` are the same release, and that the compile-time hardening
+actually took effect.
+
+**The next action is the store itself** — schema, the repository interface behind which
+all SQL is confined (`L2-JOB-009`), and then the three hard ideas C1 carries:
+write-ahead ordering (`L2-JOB-013`), phase-dependent write-failure handling
+(`L2-JOB-014`), and the durable monotonic sequence (`L2-JOB-015`). None of those exists
+yet. Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
 before starting anything.
 
 ---
@@ -55,9 +69,12 @@ Authoritative job state in SQLite (WAL, `synchronous=FULL`) behind a repository
 interface, per ADR-0010.
 
 - **Advances:** `L2-STO-001..005`, `L2-JOB-001..015` (14 in v1.0.0 scope)
-- **First task:** vendor the SQLite amalgamation and fill in the `pending` row in
-  `cpp/VENDORED.md` with a pinned version and SHA-256. It is public domain, so ADR-0007
-  is satisfied, but ADR-0004 still requires the hash gate.
+- **First task — done.** The SQLite amalgamation is vendored and pinned at 3.53.4 with
+  per-file SHA-256s, and `make verify-vendored` now checks four files rather than two.
+  Two things learned doing it, both recorded in `cpp/VENDORED.md`: the `pending` row's
+  `sqlite3.{c,h}` shorthand could never have been checked, because the verifier parses
+  one path and one hash per row and silently skips a row it cannot parse; and the CI
+  container had no C compiler at all, since `g++-14` alone provides no `cc`.
 - **Carries the three hardest ideas in the project**, all inherited from the M8 triage
   and none of them optional:
   - `L2-JOB-013` **write-ahead ordering** — the intent is durable *before* the job
@@ -204,17 +221,36 @@ matters is the one `build-trace-matrix.py` prints.
 
 ## Merge cadence — milestones on `main`
 
-`v2-cpp` merges into `main` at each milestone boundary. **These merges are progress
-markers, not releases: no version bump, no tag, no changelog release heading.**
+Each milestone is developed on **its own branch off `main`** and merged back at the
+milestone boundary. **These merges are progress markers, not releases: no version bump,
+no tag, no changelog release heading.**
+
+Branch naming is `c<N>-<short-name>`: `c1-durable-store`, `c2-fs-layer`, and so on.
 
 ```bash
-# from a clean, fully green v2-cpp
+# from a clean, fully green milestone branch
 git checkout main
-git merge --no-ff v2-cpp -m "Merge: C<N> — <milestone name>"
-git checkout v2-cpp
+git merge --no-ff c1-durable-store -m "Merge: C1 — durable store"
+git push origin main
+
+# the finished milestone leaves no branch behind
+git branch -d c1-durable-store
+git push origin --delete c1-durable-store
+
+# the next milestone starts from main, not from the previous branch
+git checkout -b c2-fs-layer
+git push -u origin c2-fs-layer
 ```
 
 `--no-ff` is required so each milestone is one identifiable commit in `main`'s history.
+
+**Why not one long-lived branch.** Every C++ commit through C0 sat on a single `v2-cpp`
+branch. By the time C0 closed it had been merged into `main` but not deleted, so the two
+refs described identical content while the existence of a separate branch implied they
+diverged — and `origin/v2-cpp` was seven commits stale on top of that. A branch per
+milestone makes the unit of work, the unit of review, and the unit of merge the same
+thing, and a finished milestone leaves nothing behind to go stale. `v2-cpp` was retired
+at the C0 boundary; every commit it carried is reachable from `main`.
 
 **Bar for merging — the same as for committing, no lower:**
 
@@ -226,10 +262,20 @@ git checkout v2-cpp
 **The Python implementation is safe.** It is preserved in full by the `v0.4.2` tag —
 verified, 38 source files — so merging the C++ branch into `main` removes Python from
 `main`'s *tip* but destroys nothing. `v0.4.2` remains the version to deploy until v1.0.0
-ships.
+ships. The tag is on `origin` as well as locally, at `9930a60`, which was `origin/main`'s
+tip before the C0 merge was published; confirm that with `git ls-remote --tags origin`
+before any operation that rewrites what `main` points at.
 
-**Pushing to `origin` is a separate, deliberate act.** Merging locally marks the
-milestone; publishing it is the maintainer's call.
+**Publishing is part of closing a milestone, not a separate errand.** `main` is pushed
+at the boundary and the milestone branch is deleted on `origin` once merged. Leaving the
+merge unpublished is what let `origin/main` fall 34 commits behind during C0.
+
+One sharp edge worth knowing before it costs an hour: `git branch -d` refuses to delete a
+branch that is ahead of *its own upstream*, even when the branch is fully merged into
+`main` — the message says "not fully merged", which reads as data loss and is not.
+Delete the remote branch first, then the local one. To satisfy yourself before deleting,
+`git merge-base --is-ancestor <branch> origin/main` answers the question that actually
+matters.
 
 ## Documentation rewrites owed
 
@@ -488,7 +534,8 @@ part of the deferred **S3 adapter** rather than a standalone gap.
 
 # v1.0.0 — C++ / REST implementation
 
-Tracked on the `v2-cpp` branch. **The forward plan is C1–C9 at the top of this file**;
+Tracked on the current milestone branch off `main` — see *Merge cadence* below.
+**The forward plan is C1–C9 at the top of this file**;
 this section records what is already delivered and the architecture it sits on. The
 M1–M8 list above belongs to the Python implementation. The inherited external design
 used its own M1–M12 numbering, deliberately not carried into this repository.

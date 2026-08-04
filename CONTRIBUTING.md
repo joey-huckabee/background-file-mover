@@ -8,8 +8,13 @@ The implementations live on separate branches — they no longer share a tree:
 
 | Branch | Implementation | Status |
 |---|---|---|
-| `main` | Python 3.10, standard-library-only | Ships through v0.4.2; deploy this today |
-| `v2-cpp` | C++11 with a REST control plane | v1.0.0 in progress; **no Python in the tree** |
+| `main` | C++11 with a REST control plane | v1.0.0 in progress; **no Python in the tree** |
+| `c<N>-<name>` | The milestone in flight, cut from `main` | Currently `c1-durable-store`; merged and deleted at the boundary |
+| tag `v0.4.2` | Python 3.10, standard-library-only | **Deploy this today.** Not a branch — the Python tree was removed from `main` when C0 merged |
+
+The long-lived `v2-cpp` branch is gone: it merged into `main` at the C0 boundary and was
+deleted. Work happens on one branch per milestone — see *Merge cadence* in
+`docs/ROADMAP.md`.
 
 `CLAUDE.md` carries the migration context and the three failure modes that
 are easy to get wrong. Read it before touching requirements.
@@ -122,7 +127,7 @@ sudo apt install -y \
 
 git clone git@github.com:joey-huckabee/background-file-mover.git ~/GIT/background-file-mover
 cd ~/GIT/background-file-mover
-git checkout v2-cpp
+git checkout c1-durable-store   # or whichever milestone is in flight
 ```
 
 ### GitHub authentication — use SSH

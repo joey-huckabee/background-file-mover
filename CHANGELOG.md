@@ -7,21 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Work on the `v2-cpp` branch toward the C++11 / REST **v1.0.0**. These entries describe
-that branch; `main` still ships the Python implementation at v0.4.2.
+Work toward the C++11 / REST **v1.0.0**, on one branch per milestone off `main`
+(currently `c1-durable-store`). The `v2-cpp` branch these entries were originally written
+against merged into `main` at the C0 boundary and was retired.
+
+**`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
+tag, not a branch.
+
+### Added
+
+- **SQLite is vendored and pinned at 3.53.4** (ADR-0010, ADR-0004), filling the last
+  `pending` row in `cpp/VENDORED.md`. The zip was authenticated against upstream's
+  published SHA3-256 and byte size before extraction, and `sqlite3.c` / `sqlite3.h` are
+  hash-pinned individually — `make verify-vendored` checks four files now, not two.
+  The latest release proved viable on GCC 4.8.5, so no version step-back was needed.
+  It compiles by its own Makefile rule, with `-Werror` intact: `-fno-strict-aliasing`
+  removes the type-punning diagnostics at their cause rather than suppressing them, and
+  `-Wextra` is dropped because its style warnings can only be satisfied by editing a file
+  ADR-0004 forbids editing. Extension loading, double-quoted string literals, and memory
+  accounting are compiled out.
+- **`tests/test_sqlite_vendor.cpp`**, covering the two things a vendoring commit can get
+  wrong that no other gate would catch: `sqlite3.c` and `sqlite3.h` drifting to different
+  releases despite each being individually hash-intact, and the compile-time hardening
+  silently not taking effect. It carries **no requirement tag** and does not move the
+  trace figure — vendoring a dependency verifies no requirement.
 
 ### Removed
 
-- **The Python implementation is no longer in the `v2-cpp` branch.** `src/file_mover/`,
+- **The Python implementation is no longer in the tree.** `src/file_mover/`,
   the pytest suite, `pyproject.toml`, `poetry.lock`, `packaging/systemd/`, and the Python
-  CI workflows (`ci.yml`, `fuzz.yml`) were deleted. Nothing is lost: that code ships from
-  `main` and is tagged `v0.4.2`, which remains the version to deploy today.
+  CI workflows (`ci.yml`, `fuzz.yml`) were deleted. Nothing is lost: that code is tagged
+  `v0.4.2` — on `origin` as well as locally — which remains the version to deploy today.
   `scripts/build-trace-matrix.py` stayed — it is repository infrastructure covering the
   requirements rather than either implementation, and it imports only the standard
   library, so it needs no Python packaging.
 
 ### Changed
 
+- **One branch per milestone, replacing the long-lived `v2-cpp` branch.** C0 merged into
+  `main` with `--no-ff` and was published; `v2-cpp` was deleted locally and on `origin`.
+  Work now happens on `c<N>-<short-name>` branches cut from `main` and deleted at the
+  boundary. The cadence, and the `git branch -d` refusal that makes a fully-merged branch
+  look unmerged, are documented in `docs/ROADMAP.md`.
+- **CI pins a C compiler.** `CC` is set to `gcc-14` alongside `CXX: g++-14`, and the jobs
+  that compile now install `gcc-14`. The `g++-14` package alone leaves no usable `cc`, so
+  the first build with a C translation unit in it failed with `make: cc: No such file or
+  directory`; the runner's default `cc` is gcc-13, a different compiler from the one
+  building the C++ objects. The fidelity job blanks `CC` as it already blanked `CXX`.
 - **The trace-matrix generator reads Catch2 tags as well as pytest markers.** A
   requirement id inside a `TEST_CASE` tag string — `TEST_CASE("...",
   "[json][L3-CPP-019]")` — now counts as verification evidence. Until this landed the

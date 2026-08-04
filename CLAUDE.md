@@ -79,13 +79,16 @@ Merge: Release v0.4.2
 Bodies explain *why*, and record decisions that were reversed or premises that turned
 out to be wrong — a future maintainer should not have to re-derive them.
 
-## C++ / REST migration (in progress on `v2-cpp`)
+## C++ / REST migration (in progress on the current milestone branch)
 
 The service is being reimplemented in **C++11** with a **REST control plane** replacing
 the `AF_UNIX` socket.
 
-- **Branch**: `v2-cpp`. The Python tree was **removed** ahead of v1.0.0; it remains on
-  `main` and at the `v0.4.2` tag. `cpp/` is the only implementation in this branch.
+- **Branch**: one per milestone, cut from `main` and named `c<N>-<short-name>` —
+  currently `c1-durable-store`. The long-lived `v2-cpp` branch was retired when C0
+  merged; see *Merge cadence* in `docs/ROADMAP.md` before merging or branching. The
+  Python tree was **removed** ahead of v1.0.0 and is preserved by the `v0.4.2` tag, on
+  `origin` as well as locally. `cpp/` is the only implementation on `main` now.
 - **`docs/adr/`** — MADR-format decision records, numbered `0001`+. Read these before
   changing the toolchain, the vendoring set, the JSON parser, or the HTTP surface.
 - **`docs/MIGRATION-PROVENANCE.md`** — what the inherited C++ design series contributed
