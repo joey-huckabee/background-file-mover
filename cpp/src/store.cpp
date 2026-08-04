@@ -507,6 +507,77 @@ bool JobStore::update_state(const std::string& id,
     return true;
 }
 
+WriteFailureAction JobStore::record_transition(const std::string& id,
+                                               JobState to,
+                                               std::int64_t now_ms,
+                                               const std::string& error_message,
+                                               CommitPhase phase,
+                                               std::string& error) {
+    if (update_state(id, to, now_ms, error_message, error)) {
+        return WriteFailureAction::None;
+    }
+
+    // L2-JOB-014. The phase decides, and the two answers are opposites --
+    // which is why the caller has to state the phase rather than let this
+    // guess. `error` is already set by update_state; it is extended rather
+    // than replaced so the operator sees both the cause and the consequence.
+    std::ostringstream os;
+    os << error;
+    if (phase == CommitPhase::BeforeCommitPoint) {
+        os << " [before the commit point: aborting the job. Nothing has "
+              "happened and the source is untouched.]";
+        error = os.str();
+        return WriteFailureAction::AbortJob;
+    }
+    os << " [AFTER the commit point: halting. The move is real but unrecorded."
+          " The source must NOT be deleted and this needs an operator.]";
+    error = os.str();
+    return WriteFailureAction::HaltProcess;
+}
+
+bool JobStore::inject_write_fault(WriteFault fault, std::string& error) {
+    if (!is_open()) {
+        error = "store: not open";
+        return false;
+    }
+
+    switch (fault) {
+        case WriteFault::None:
+            // Both mechanisms are lifted, because a test may have armed either
+            // and leaving one set would silently poison whatever ran next.
+            if (!exec(impl_->db, "PRAGMA query_only=OFF;",
+                      "clearing query_only", error)) {
+                return false;
+            }
+            return exec(impl_->db, "PRAGMA max_page_count=1073741823;",
+                        "clearing the page limit", error);
+
+        case WriteFault::Refused:
+            return exec(impl_->db, "PRAGMA query_only=ON;",
+                        "arming a write refusal", error);
+
+        case WriteFault::Full: {
+            // max_page_count clamps upward to the current page count rather
+            // than shrinking the file, so pinning it to today's size makes the
+            // next write that needs a NEW page fail with SQLITE_FULL. Writes
+            // that fit in existing free space still succeed -- which is why
+            // the deterministic tests use Refused and this mode is reserved
+            // for proving a genuine out-of-space error is handled too.
+            int pages = 0;
+            if (!query_int(impl_->db, "PRAGMA page_count;", pages, error)) {
+                return false;
+            }
+            std::ostringstream os;
+            os << "PRAGMA max_page_count=" << pages << ";";
+            return exec(impl_->db, os.str().c_str(), "arming a full store",
+                        error);
+        }
+    }
+
+    error = "store: unknown write fault";
+    return false;
+}
+
 bool JobStore::mark_needs_attention(const std::string& id,
                                     const std::string& reason,
                                     std::string& error) {

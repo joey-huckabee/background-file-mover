@@ -27,6 +27,26 @@ tag, not a branch.
   files may still exist. Intent is recorded before any filesystem action (`L2-JOB-013`),
   and the job sequence is committed before it is handed out, so a crash can lose a
   number but never issue one twice (`L2-JOB-015`).
+- **Phase-dependent write-failure handling (`L2-JOB-014`), with the fault injection that
+  makes it testable.** `record_transition` takes the `CommitPhase` and returns `AbortJob`
+  before the commit point and `HaltProcess` after — the same failure, the opposite
+  verdict — and always sets an error, because the requirement's last clause is that the
+  software never continues silently. Treating both phases as one retryable condition is
+  the specific mistake it exists to prevent: before the commit point, continuing means
+  acting with no durable record; after it, going on to delete the source leaves reality
+  and the record disagreeing.
+- **`JobStore::inject_write_fault` provokes a real refusal from SQLite's write path** —
+  `PRAGMA query_only` for a deterministic `SQLITE_READONLY`, and `PRAGMA max_page_count`
+  for a genuine `SQLITE_FULL`. Two decisions worth keeping: it is **not** behind an
+  `#ifdef`, because conditional compilation would mean the failure handling under test is
+  not the one that ships — and `L2-JOB-014` is exactly where that would matter; and it
+  provokes a real refusal rather than substituting a return value, because what has to
+  work is detecting SQLite failing, not us pretending it did.
+- **The attention flag is documented and tested as best-effort.** If the durable write
+  failed because the store is unwritable, recording the flag is another write to that
+  same store and fails too. That is why `L2-JOB-014` also requires logging at high
+  severity: the log is the guarantee, the flag is the convenience that survives when the
+  store is inconsistent rather than unreachable.
 - **State transitions are validated by the core state machine, not re-implemented.**
   `update_state` loads the job, calls `Job::transition`, and writes only if the core
   accepts — one set of rules, in the component that already owns them. The schema

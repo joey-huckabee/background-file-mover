@@ -27,10 +27,13 @@
 #include <string>
 #include <vector>
 
+using filemover::CommitPhase;
 using filemover::Job;
 using filemover::JobState;
 using filemover::JobStore;
 using filemover::StoreOpenResult;
+using filemover::WriteFailureAction;
+using filemover::WriteFault;
 
 namespace {
 
@@ -530,6 +533,149 @@ TEST_CASE("two connections may address the same store",
     REQUIRE(first.next_sequence(a, error) == true);
     REQUIRE(second.next_sequence(b, error) == true);
     CHECK(b > a);
+}
+
+// --- L2-JOB-014: phase-dependent write-failure handling ------------------
+//
+// The requirement is about what happens when a durable write FAILS, so these
+// tests make it fail for real: PRAGMA query_only makes SQLite refuse writes
+// from its own write path. Nothing here substitutes a return value, because
+// what has to work is detecting SQLite failing rather than us pretending it
+// did.
+
+TEST_CASE("a write that succeeds requires no action", "[store][L2-JOB-014]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("ok"), error) == true);
+    CHECK(store.record_transition("ok", JobState::Renaming, 2000, "",
+                                  CommitPhase::BeforeCommitPoint,
+                                  error) == WriteFailureAction::None);
+}
+
+TEST_CASE("a write failure before the commit point aborts the job",
+          "[store][L2-JOB-014]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("pre"), error) == true);
+    REQUIRE(store.inject_write_fault(WriteFault::Refused, error) == true);
+
+    error.clear();
+    CHECK(store.record_transition("pre", JobState::Renaming, 2000, "",
+                                  CommitPhase::BeforeCommitPoint,
+                                  error) == WriteFailureAction::AbortJob);
+
+    // "In neither case shall the software continue silently."
+    CHECK(error.empty() == false);
+
+    // Nothing happened, so nothing should have been recorded either.
+    REQUIRE(store.inject_write_fault(WriteFault::None, error) == true);
+    Job loaded(std::string(), std::string(), std::string(), 0);
+    bool found = false;
+    REQUIRE(store.load("pre", loaded, found, error) == true);
+    REQUIRE(found == true);
+    CHECK(loaded.state == JobState::Queued);
+}
+
+TEST_CASE("a write failure after the commit point halts instead of aborting",
+          "[store][L2-JOB-014]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("post"), error) == true);
+    REQUIRE(store.update_state("post", JobState::Renaming, 2000, "", error) ==
+            true);
+    REQUIRE(store.inject_write_fault(WriteFault::Refused, error) == true);
+
+    error.clear();
+    const WriteFailureAction action =
+        store.record_transition("post", JobState::Transferring, 3000, "",
+                                CommitPhase::AfterCommitPoint, error);
+
+    // The same failure, the opposite verdict. Treating both phases as one
+    // retryable condition is the mistake this requirement exists to prevent.
+    CHECK(action == WriteFailureAction::HaltProcess);
+    CHECK(action != WriteFailureAction::AbortJob);
+    CHECK(error.empty() == false);
+    CHECK(error.find("source must NOT be deleted") != std::string::npos);
+}
+
+TEST_CASE("the attention flag is best-effort when the store is unwritable",
+          "[store][L2-JOB-014]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("flag"), error) == true);
+    REQUIRE(store.inject_write_fault(WriteFault::Refused, error) == true);
+
+    // This is the uncomfortable case worth pinning down rather than
+    // discovering in production: the HaltProcess path wants to flag the job,
+    // but flagging is another write to the store that just refused one. It
+    // fails, and it must fail loudly.
+    //
+    // That is exactly why L2-JOB-014 also requires logging at high severity.
+    // The log is the guarantee; the flag is the convenience that survives when
+    // the store is inconsistent rather than unreachable.
+    error.clear();
+    CHECK(store.mark_needs_attention("flag", "halted after commit", error) ==
+          false);
+    CHECK(error.empty() == false);
+
+    // Once writable again the flag lands, so the failure above was the
+    // injected condition rather than a broken code path.
+    REQUIRE(store.inject_write_fault(WriteFault::None, error) == true);
+    CHECK(store.mark_needs_attention("flag", "halted after commit", error) ==
+          true);
+}
+
+TEST_CASE("a genuinely full store fails cleanly, not silently",
+          "[store][L2-JOB-014]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.inject_write_fault(WriteFault::Full, error) == true);
+
+    // SQLITE_FULL rather than a refusal, so this covers the out-of-space error
+    // class as well as the read-only one. It takes a payload large enough to
+    // need a new page; the loop is bounded so a future SQLite that packs rows
+    // differently fails this test loudly instead of hanging.
+    const std::string bulky(4096, 'x');
+    bool saw_failure = false;
+    for (int i = 0; i < 64 && !saw_failure; ++i) {
+        std::ostringstream id;
+        id << "full-" << i;
+        Job job(id.str(), bulky, bulky, 1000);
+        error.clear();
+        if (!store.record_intent(job, error)) {
+            saw_failure = true;
+            CHECK(error.empty() == false);
+        }
+    }
+    CHECK(saw_failure == true);
+
+    // And the store is intact afterwards: a full disk is not corruption.
+    REQUIRE(store.inject_write_fault(WriteFault::None, error) == true);
+    std::map<JobState, std::uint64_t> counts;
+    CHECK(store.counts_by_state(counts, error) == true);
+}
+
+TEST_CASE("arming a fault on a closed store is an error",
+          "[store][L2-JOB-014]") {
+    JobStore store;
+    std::string error;
+    CHECK(store.inject_write_fault(WriteFault::Refused, error) == false);
+    CHECK(error.empty() == false);
 }
 
 // --- misuse of a closed store --------------------------------------------

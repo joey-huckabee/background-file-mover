@@ -39,6 +39,47 @@ enum class StoreOpenResult {
     CreatedFresh      // nothing was there; first boot, zero jobs
 };
 
+// Which side of the move's single atomic commit point a durable write sits on.
+// L2-JOB-014 handles the two cases in opposite directions, so the caller must
+// say which it is in; there is no safe default, and guessing here would pick
+// the wrong one silently.
+enum class CommitPhase {
+    BeforeCommitPoint,   // nothing has happened yet; the source is untouched
+    AfterCommitPoint     // the move is real, whether or not it was recorded
+};
+
+// What the caller must do when a durable write fails (L2-JOB-014).
+//
+// Returned rather than decided internally because the store cannot carry it
+// out: aborting a job and halting a process are the move engine's actions.
+// What the store owes is the classification and the guarantee that a failure
+// is never reported as success.
+enum class WriteFailureAction {
+    None,          // the write succeeded; carry on
+    AbortJob,      // before the commit point: discard the entry, touch nothing
+    HaltProcess    // after the commit point: do NOT delete the source, flag the
+                   // job for an operator, log at high severity
+};
+
+// Durability fault injection, for the tests that verify the above.
+//
+// Deliberately NOT behind an #ifdef. Conditional compilation would mean the
+// failure handling exercised by the tests is not the failure handling that
+// ships, and L2-JOB-014 is precisely the requirement where that difference
+// would matter most. Default off, and the only way to arm it is an explicit
+// call that no production path makes.
+//
+// Both modes provoke a real refusal from SQLite's own write path rather than a
+// return value we substitute. That distinction is the point: what has to work
+// is detecting SQLite failing, not us pretending it did.
+enum class WriteFault {
+    None,      // disarmed
+    Refused,   // PRAGMA query_only -- SQLITE_READONLY. Deterministic: every
+               // write fails, regardless of whether it would grow the file.
+    Full       // PRAGMA max_page_count pinned to the current size -- a real
+               // SQLITE_FULL, but only once a write actually needs a new page.
+};
+
 class JobStore {
   public:
     JobStore();
@@ -96,18 +137,41 @@ class JobStore {
                       const std::string& error_message,
                       std::string& error);
 
-    // L2-JOB-014, the after-the-commit-point half. When a durable write fails
-    // after the move has committed, the source must NOT be deleted and the job
-    // must be flagged for an operator. This records that flag.
+    // L2-JOB-014. Records a transition, and classifies any durable-write
+    // failure by the phase it happened in.
     //
-    // The phase policy itself — abort before the commit point, halt after —
-    // belongs to the move engine (C3), which is the only component that knows
-    // which side of the commit point it is on. What C1 owes it is a durable
-    // place to record the verdict, and the guarantee that a failed write is
-    // always reported rather than counted and swallowed.
+    // Returns None on success. On failure it returns AbortJob before the
+    // commit point and HaltProcess after it, and always sets `error` — the
+    // requirement's last clause is that the software never continues silently,
+    // so there is no path here that fails quietly or returns a retry count.
+    //
+    // Treating both phases as one retryable condition is the specific mistake
+    // this exists to prevent: before the commit point, continuing means acting
+    // with no durable record, and a crash then leaves an orphaned file nobody
+    // can account for; after it, the move is real but unrecorded, and going on
+    // to delete the source leaves reality and the record disagreeing — the
+    // exact ambiguity L1-SEC-002 exists to rule out.
+    WriteFailureAction record_transition(const std::string& id,
+                                         JobState to,
+                                         std::int64_t now_ms,
+                                         const std::string& error_message,
+                                         CommitPhase phase,
+                                         std::string& error);
+
+    // Flags a job for an operator. Used on the HaltProcess path.
+    //
+    // Best-effort by nature, and the caller must treat it that way. If the
+    // durable write failed because the store is unwritable, then recording the
+    // flag is another write to that same unwritable store and will fail too.
+    // That is why L2-JOB-014 also requires logging at high severity: the log is
+    // the guarantee, and this flag is the convenience that survives when the
+    // store is merely inconsistent rather than unreachable.
     bool mark_needs_attention(const std::string& id,
                               const std::string& reason,
                               std::string& error);
+
+    // Arms or disarms durability fault injection. See WriteFault.
+    bool inject_write_fault(WriteFault fault, std::string& error);
 
     // `found` distinguishes "no such job" from "the query failed", which a
     // bool return alone would conflate.

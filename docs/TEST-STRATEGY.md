@@ -19,8 +19,9 @@ the failure?".
 | Coverage-guided fuzzing | **In place** — JSON and HTTP, committed corpora (ADR-0008) | C0 |
 | Sanitizers / Valgrind | **In place** — ASan, UBSan, LSan, TSan, memcheck | C0 |
 | Fidelity (GCC 4.8.5) | **In place** — full suite, not just a compile | C0 |
+| Fault injection | **In place** for durable writes (`WriteFault`) | C1 |
+| Coverage floor | **In place** — `COVERAGE_MIN`, a ratchet | C1 |
 | Migration / upgrade | **Proposed** — see *Start now* | C1 |
-| Fault injection | **Proposed** — see *Start now* | C1–C3 |
 | Conformance corpora | **Proposed** — see *Start now* | C1 |
 | Concurrency (deterministic) | Planned — latch-based, injected clock | C4 |
 | Hostile / negative (REST) | Planned — the hostile battery | C5 |
@@ -40,26 +41,33 @@ Check in a small, real v1 store as a binary fixture and assert that opening it
 migrates cleanly and preserves its rows. Repeat per schema version, forever.
 The cost of starting is one file; the cost of starting late is archaeology.
 
-### 2. Fault injection
+### ~~2. Fault injection~~ — done, and worth reading as a pattern
 
-**Why now:** `L2-JOB-014` is *about* durable-write failure — abort before the
-commit point, halt after — and there is currently no way to make a durable
-write fail on demand. A requirement whose whole subject is a failure mode
-cannot be verified without producing that failure. This is the single largest
-gap in C1's verification, and it is why `src/store.cpp` sits near 75% line
-coverage while the rest of the tree is 91–100%: the uncovered quarter is almost
-entirely "what happens when this write fails".
+`JobStore::inject_write_fault` arms a real refusal from SQLite's own write
+path. Two modes, because they fail differently:
 
-Three privilege-free techniques, in increasing order of bluntness:
+* `WriteFault::Refused` — `PRAGMA query_only`, giving `SQLITE_READONLY`.
+  Deterministic: every write fails regardless of whether it would grow the
+  file, which is what makes the phase-policy tests reliable.
+* `WriteFault::Full` — `PRAGMA max_page_count` pinned to the current size,
+  giving a genuine `SQLITE_FULL`. Only bites once a write needs a new page, so
+  it is used to prove the out-of-space error class is handled rather than to
+  drive precise scenarios.
 
-* `PRAGMA max_page_count` — makes further writes fail with `SQLITE_FULL`
-  without filling a real disk. Cheapest and most targeted.
-* `setrlimit(RLIMIT_FSIZE)` in a forked child, with `SIGXFSZ` ignored, so
-  writes fail with `EFBIG` at a chosen size. Exercises the real errno path.
-* A read-only directory, so WAL sidecar creation fails at open.
+Two decisions in it are the reusable part:
 
-The forked-child pattern already used by the crash suite applies directly: the
-injected limit dies with the child instead of leaking into later tests.
+**Not behind an `#ifdef`.** Conditional compilation would mean the failure
+handling exercised by the tests is not the failure handling that ships, and
+`L2-JOB-014` is exactly the requirement where that difference would matter.
+Default off, armed only by an explicit call no production path makes.
+
+**A real refusal, not a substituted return value.** What has to work is
+detecting SQLite failing, not us pretending it did. A mocked failure would test
+the branch and not the detection.
+
+`setrlimit(RLIMIT_FSIZE)` in a forked child, with `SIGXFSZ` ignored, remains
+the technique for a true `EFBIG` from the kernel — worth adding when C2 starts
+writing files rather than rows.
 
 ### 3. Conformance corpora
 

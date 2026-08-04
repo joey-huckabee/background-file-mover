@@ -50,17 +50,14 @@ The figure came out at 37.2% against an estimate of ~30%, which is worth explain
 rather than celebrating: C1's requirements are traced directly at L2, and the milestone
 carried more of them than the per-family estimate assumed.
 
-**Two items remain before C1 is honestly done:**
+**`L2-JOB-014` is finished on the store side.** `record_transition` classifies a
+durable-write failure by commit phase — abort before, halt after — and is tested against
+a real SQLite refusal through `inject_write_fault`, not a mocked return value. C3
+inherits the decision and carries it out.
 
-1. **`L2-JOB-014` is half-built.** The durable half exists — a job can be flagged for
-   operator attention, and a failed write is always reported rather than counted and
-   swallowed. The *phase policy* (abort before the commit point, halt after) belongs to
-   the move engine, because C3 is the only component that knows which side of the commit
-   point it is on. What is missing today is not the code so much as the means to test it:
-   there is no way to make a durable write fail on demand. See `docs/TEST-STRATEGY.md`.
-2. **Fault injection.** The store's uncovered quarter is almost entirely write-failure
-   handling. A requirement whose subject *is* a failure mode cannot be verified without
-   producing that failure.
+**What is left for C2 onward:** migration fixtures and conformance corpora, both in
+`docs/TEST-STRATEGY.md`, and a true kernel-level `EFBIG` injection once C2 starts writing
+files rather than rows.
 
 Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
 before starting anything.
@@ -106,17 +103,27 @@ interface, per ADR-0010.
   state is `FAILED`, enforced as a `CHECK` constraint (`L2-JOB-010`); and a kill-at-every-
   statement test leaves the store readable and the sequence non-repeating.
 
-  **Status: met, except for `L2-JOB-014`.** All four done-when clauses are satisfied and
-  tested. `L2-JOB-013` and `L2-JOB-015` are built. `L2-JOB-014` has its durable half —
-  the attention flag, and a write failure that is always reported rather than counted and
-  swallowed — but the phase policy itself lands with C3, which is the only component that
-  knows which side of the commit point it is on.
+  **Status: met.** All four done-when clauses are satisfied and tested, and all three of
+  the hard ideas are built.
 
-  The honest blocker is not the policy but the means to test it: nothing can currently
-  make a durable write fail on demand, which is also why `store.cpp` sits at 75.5% line
-  coverage against 91–100% elsewhere. A requirement whose subject *is* a failure mode
-  cannot be verified without producing that failure. `docs/TEST-STRATEGY.md` records
-  three privilege-free ways to produce it; pick one before C3 needs the answer.
+  `L2-JOB-014` is complete on the store side. `record_transition` takes the `CommitPhase`
+  and returns `AbortJob` before the commit point, `HaltProcess` after — the same failure,
+  the opposite verdict — and always sets an error, so there is no path that continues
+  silently. It is verified against a *real* SQLite write refusal rather than a mocked
+  return value, via `inject_write_fault`, because what has to work is detecting SQLite
+  failing rather than us pretending it did.
+
+  What remains for C3 is only *carrying out* the verdict: aborting a job and halting a
+  move are the engine's actions, and the engine is the component that knows which side of
+  the commit point it is on. The classification is settled here so C3 inherits a decision
+  rather than making one.
+
+  One consequence is worth knowing before C3 relies on it: on the `HaltProcess` path the
+  attention flag is **best-effort**. If the durable write failed because the store is
+  unwritable, recording the flag is another write to that same store and fails too. That
+  is why the requirement also demands logging at high severity — the log is the
+  guarantee; the flag is the convenience that survives when the store is inconsistent
+  rather than unreachable. There is a test pinning exactly this.
 
 ### C2 — fd-relative filesystem layer
 
