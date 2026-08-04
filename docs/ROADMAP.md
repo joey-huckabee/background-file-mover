@@ -9,8 +9,15 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-04 · **Branch:** `c1-durable-store` · **Current milestone: C1 — the
-durable store is built and tested; two items remain, both named below.**
+**Date:** 2026-08-04 · **Branch:** `c2-fs-layer` · **Current milestone: C2 — not started.
+C1 is merged.**
+
+**Start with `docs/C2-PLAN.md`.** It was written before any C2 code and its pre-flight
+measurements change the design rather than the implementation — most importantly that
+`renameat2`, `RENAME_NOREPLACE` and `SYS_renameat2` are all absent on the target
+toolchain, so the primary rename strategy has to go through `syscall(2)` with constants
+we supply. Code calling `renameat2` directly compiles on a modern host and fails to link
+on SLES 12 SP5.
 
 **C0 (the foundation) is delivered and merged.** Five components are built, tested,
 fuzzed where they touch untrusted input, and green on every gate including the GCC 4.8.5
@@ -55,9 +62,17 @@ durable-write failure by commit phase — abort before, halt after — and is te
 a real SQLite refusal through `inject_write_fault`, not a mocked return value. C3
 inherits the decision and carries it out.
 
+**The CI apparatus was audited at the close of C1**, after it broke three times in as
+many milestones. All eight gates were negative-tested — the violation each exists to
+catch was deliberately introduced and the failure confirmed — and three findings came
+out of it worth remembering: the pre-commit hook had never run in this clone
+(`core.hooksPath` unset *and* the file not executable); it would have rejected the SQLite
+vendoring outright, because its 1 MB limit had no exemption for hash-pinned vendored
+files; and SonarCloud was analysing a `g++-13` build while every gate verifies `g++-14`.
+
 **What is left for C2 onward:** migration fixtures and conformance corpora, both in
-`docs/TEST-STRATEGY.md`, and a true kernel-level `EFBIG` injection once C2 starts writing
-files rather than rows.
+`docs/TEST-STRATEGY.md`, and a true kernel-level `EFBIG` injection now that C2 starts
+writing files rather than rows.
 
 Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
 before starting anything.
