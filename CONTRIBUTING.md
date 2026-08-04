@@ -78,9 +78,35 @@ cd cpp && make check-ci
 ```
 
 That executes functional, sanitizer, Valgrind, cppcheck, and clang-tidy tiers
-inside the same `ubuntu:24.04` image CI uses. It installs packages on each run
-(~40s), which is the price of not maintaining a second distro — and it is only
-paid when reproducing CI rather than on every build.
+inside a **prebuilt toolchain image**, `ghcr.io/joey-huckabee/bfm-ci`, built
+from `.github/ci-image/Dockerfile`.
+
+It used to run bare `ubuntu:24.04` and apt-install the toolchain on every
+invocation (~40s), justified as the price of not maintaining a second distro.
+That was the right trade while this repository maintained no images; it already
+maintains the GCC 4.8.5 mirror, so the trade changed. The image is also *the
+pin* — the package list lives in the Dockerfile and is deliberately not copied
+back into the Makefile, because two copies of a pinned toolchain is how pins
+drift apart.
+
+Tags are dates, never `latest`, so a run always names the toolchain it used.
+Rebuild and repush when a pinned version changes, then update `CI_IMAGE` in
+`cpp/Makefile` in the same commit:
+
+```bash
+podman build -t ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD \
+    -f .github/ci-image/Dockerfile .github/ci-image
+podman push ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD
+```
+
+The package must be **public**, for the same reason the fidelity mirror must
+be: it lives in a user namespace rather than the repository's.
+
+The tiers compile with `make -j$(CI_JOBS)`, defaulting to `nproc`. Do not
+expect much from raising it — the vendored `sqlite3.c` is a single 9.5 MB
+translation unit that takes ~49s by itself against ~1.4s for a typical C++
+file, so it is the critical path and a parallel build is close to "compile
+sqlite3.c".
 
 `make versions` prints the host toolchain; CI prints the same in its log, so a
 runner-image change is a visible diff rather than a mysterious failure

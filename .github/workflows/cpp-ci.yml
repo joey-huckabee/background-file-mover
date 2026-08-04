@@ -74,9 +74,9 @@ jobs:
       - name: Toolchain versions
         run: make -C cpp versions
       - name: Build
-        run: make -C cpp all
+        run: make -C cpp -j$(nproc) all
       - name: Test
-        run: make -C cpp check
+        run: make -C cpp -j$(nproc) check
 
   # Fidelity job: the official gcc:4.8 image (Debian 7 "wheezy", glibc 2.13,
   # GCC 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
@@ -126,7 +126,7 @@ jobs:
       - name: Build and test
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ghcr.io/joey-huckabee/gcc-4.8:4.8.5 \
-            sh -c "make -C cpp clean && make -C cpp check"
+            sh -c "make -C cpp clean && make -C cpp -j\$(nproc) check"
 
   # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),
   # LSan (leaks) — all fatal on first finding. Modern toolchain only: GCC
@@ -139,7 +139,7 @@ jobs:
       - name: Install toolchain
         run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14
       - name: Build & test (instrumented)
-        run: make -C cpp check SANITIZE=1
+        run: make -C cpp -j$(nproc) check SANITIZE=1
 
   # ThreadSanitizer (L2-ARC-008). A separate job, not an extra flag on the
   # sanitizer build: TSan and ASan cannot coexist in one binary because their
@@ -158,7 +158,7 @@ jobs:
       - name: Install toolchain
         run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14
       - name: Build & test (TSan)
-        run: make -C cpp check THREAD=1
+        run: make -C cpp -j$(nproc) check THREAD=1
 
   # Valgrind memcheck structures detection differently from the sanitizers;
   # --error-exitcode=1 fails on any finding, including still-reachable blocks.
@@ -170,7 +170,7 @@ jobs:
       - name: Install toolchain
         run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14 valgrind
       - name: Build
-        run: make -C cpp all
+        run: make -C cpp -j$(nproc) all
       - name: Memcheck
         run: make -C cpp check-valgrind
 
@@ -254,7 +254,7 @@ jobs:
       - name: Generate compilation database
         run: |
           make -C cpp clean-all
-          bear --output cpp/compile_commands.json -- make -C cpp all
+          bear --output cpp/compile_commands.json -- make -C cpp -j$(nproc) all
       - name: Assert the database covers the sources
         run: |
           cd cpp
@@ -311,7 +311,7 @@ jobs:
       # gcov must match the compiler that produced the notes files, or it
       # reports "version mismatch" and emits nothing usable.
       - name: Build instrumented and run
-        run: make -C cpp coverage GCOV=gcov-14
+        run: make -C cpp -j$(nproc) coverage GCOV=gcov-14
       - name: Summarize
         run: |
           {

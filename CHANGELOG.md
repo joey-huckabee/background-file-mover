@@ -66,6 +66,23 @@ tag, not a branch.
   `CONTRIBUTING.md`, and `CLAUDE.md` each spelled out their own `docker`/`podman` command,
   which is how CI and developers came to pull different images without anyone noticing.
   One target, one `GCC48_IMAGE`, both callers.
+- **The CI tiers compile in parallel.** `make -j` across `check-ci`, `check-gcc48`, and
+  every compiling workflow job, with `CI_JOBS` defaulting to `nproc`. Measured on a
+  16-core host: the default tier went from **97s to 52s** from clean, and five
+  consecutive clean parallel builds passed — the test that matters, since a missing
+  prerequisite surfaces under `-j` as an intermittent failure rather than a reproducible
+  one. It will not scale past this: the vendored `sqlite3.c` is a single 9.5 MB
+  translation unit taking **48.8s** against 1.35s for a typical C++ file, so a parallel
+  build is now almost exactly "compile sqlite3.c".
+- **`make check-ci` runs from a prebuilt toolchain image** (`.github/ci-image/Dockerfile`,
+  published as `ghcr.io/joey-huckabee/bfm-ci`) instead of apt-installing the toolchain on
+  every invocation. The Makefile used to justify that cost as "the price of not
+  maintaining a second distro"; the repository already maintains the GCC 4.8.5 mirror, so
+  the trade changed. The image *is* the pin, which is why the package list is not
+  duplicated back into the Makefile. Tags are dates, never `latest`, so a run always
+  names the toolchain it used. The runtime `locale-gen` became an assertion that
+  `tr_TR.UTF-8` exists, so a future image dropping it fails the gate rather than quietly
+  downgrading the L3-CPP-052 check to a warning.
 - **SonarCloud coverage is ingested rather than silently discarded.** The scanner now runs
   with `sonar.projectBaseDir=cpp`. gcov records the path it compiled with -- `src/config.cpp`,
   relative to `cpp/` -- and scanning from the repository root made SonarCloud look for

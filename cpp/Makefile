@@ -210,7 +210,15 @@ check-valgrind: $(TEST_BIN)
 # These must match .github/workflows/cpp-ci.yml. Tools are pinned by explicit
 # version rather than taking the image defaults, so an Ubuntu image refresh
 # cannot change what the gates check.
-CI_IMAGE  ?= docker.io/library/ubuntu:24.04
+# A prebuilt toolchain image (.github/ci-image/Dockerfile), not bare ubuntu:24.04.
+# This target used to apt-get install the toolchain on every invocation, and
+# carried the note "That is the price of not maintaining a second distro."
+# That price was right while this repository maintained no images; it already
+# maintains the GCC 4.8.5 mirror, so the trade changed.
+#
+# Tagged by date, never `latest`, so a run always names the toolchain it used.
+# Rebuild and repush when a pinned version changes -- see the Dockerfile.
+CI_IMAGE  ?= ghcr.io/joey-huckabee/bfm-ci:2026-08-03
 CI_ENGINE ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CI_CXX    ?= g++-14
 # The vendored SQLite amalgamation is C, so this image needs a C compiler too.
@@ -223,10 +231,20 @@ CI_CC     ?= gcc-14
 CI_GCOV   ?= gcov-14
 CI_TIDY   ?= clang-tidy-20
 CI_FUZZ   ?= clang++-20
-# `locales` is here so tr_TR.UTF-8 can be generated below. Without it the
-# locale-independence test in test_http_parser.cpp finds setlocale returning
-# NULL and downgrades itself to a warning (L3-CPP-052).
-CI_PKGS   ?= g++-14 gcc-14 make clang-20 clang-tidy-20 cppcheck valgrind bear locales
+# The package list moved into .github/ci-image/Dockerfile. It is deliberately
+# not duplicated here: two copies of a pinned toolchain is how the pins drift.
+# Parallel compilation for the CI tiers. Measured on a 16-core host: the
+# default tier went from 97s to 52s from clean.
+#
+# Do not expect it to scale further. The vendored sqlite3.c is a single 9.5 MB
+# translation unit that takes 48.8s on its own, against 1.35s for a typical C++
+# file, so it *is* the critical path -- a parallel build is now almost exactly
+# "compile sqlite3.c". Adding cores past that buys nothing.
+#
+# Verified deterministic across five consecutive builds from clean, which is
+# the test that matters: a missing prerequisite surfaces under -j as an
+# intermittent failure, never a reproducible one.
+CI_JOBS   ?= $(shell nproc 2>/dev/null || echo 4)
 
 # --- Deployment-fidelity tier (GCC 4.8.5) --------------------------------
 # A MIRROR of docker.io/library/gcc:4.8, not that image directly.
@@ -249,37 +267,35 @@ GCC48_IMAGE ?= ghcr.io/joey-huckabee/gcc-4.8:4.8.5
 .PHONY: check-gcc48
 check-gcc48:
 	$(CI_ENGINE) run --rm -v $(CURDIR)/..:/src -w /src $(GCC48_IMAGE) \
-	    sh -c "make -C cpp clean && make -C cpp check"
+	    sh -c "make -C cpp clean && make -C cpp -j$(CI_JOBS) check"
 
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
 	$(CI_ENGINE) run --rm --cap-add=SYS_PTRACE \
 	    -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
-	      apt-get update -qq >/dev/null 2>&1 && \
-	      apt-get install -y -qq $(CI_PKGS) >/dev/null 2>&1 && \
 	      echo "--- versions ---" && \
 	      $(CI_CXX) --version | head -1 && \
 	      $(CI_TIDY) --version | grep -i version | head -1 && \
-	      { locale-gen tr_TR.UTF-8 >/dev/null 2>&1 || \
-	        { echo "locale-gen tr_TR.UTF-8 failed; the L3-CPP-052 runtime check will only warn" >&2; \
+	      { locale -a 2>/dev/null | grep -qi "^tr_TR" || \
+	        { echo "tr_TR.UTF-8 missing from $(CI_IMAGE); the L3-CPP-052 runtime check would only warn" >&2; \
 	          exit 1; }; } && \
 	      echo "--- vendored hashes ---" && sh scripts/verify-vendored.sh && \
 	      echo "--- locale-free parsers ---" && \
 	      sh scripts/assert-locale-free.sh $(PARSER_SRC) && \
 	      echo "--- functional ---" && \
-	      make clean-all && make check CXX=$(CI_CXX) CC=$(CI_CC) && \
-	      echo "--- sanitizers ---" && make check SANITIZE=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
-	      echo "--- thread sanitizer ---" && make check THREAD=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
-	      echo "--- valgrind ---" && make check-valgrind CXX=$(CI_CXX) CC=$(CI_CC) && \
+	      make clean-all && make -j$(CI_JOBS) check CXX=$(CI_CXX) CC=$(CI_CC) && \
+	      echo "--- sanitizers ---" && make -j$(CI_JOBS) check SANITIZE=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
+	      echo "--- thread sanitizer ---" && make -j$(CI_JOBS) check THREAD=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
+	      echo "--- valgrind ---" && make -j$(CI_JOBS) check-valgrind CXX=$(CI_CXX) CC=$(CI_CC) && \
 	      echo "--- coverage ---" && \
-	      make coverage CXX=$(CI_CXX) CC=$(CI_CC) GCOV=$(CI_GCOV) >/dev/null && \
+	      make -j$(CI_JOBS) coverage CXX=$(CI_CXX) CC=$(CI_CC) GCOV=$(CI_GCOV) >/dev/null && \
 	      echo "--- cppcheck ---" && \
 	      cppcheck --enable=warning,portability --error-exitcode=1 \
 	        --inline-suppr --std=c++11 -Iinclude src/ tests/ && \
 	      echo "--- clang-tidy ---" && \
 	      make clean-all >/dev/null && \
-	      bear --output compile_commands.json -- make all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null 2>&1 && \
+	      bear --output compile_commands.json -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null 2>&1 && \
 	      sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC) && \
 	      make tidy TIDY=$(CI_TIDY) && \
 	      echo "--- fuzz corpus ---" && \
