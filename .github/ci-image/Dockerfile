@@ -17,10 +17,12 @@
 # downgrades itself to a warning, so the gate silently checks less.
 #
 # Rebuild and push when a pinned version changes -- tags are dates, never
-# `latest`, so a run always names the toolchain it used:
+# `latest`, so a run always names the toolchain it used. A same-day rebuild
+# takes a `.N` suffix rather than overwriting the tag, because a tag that
+# changes meaning makes an old CI log impossible to interpret:
 #
 #   podman build -t ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD \
-#       -f .github/ci-image/Dockerfile .
+#       -f .github/ci-image/Dockerfile .github/ci-image
 #   podman push ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD
 #
 # Then update CI_IMAGE in cpp/Makefile and the `container:` references in
@@ -59,6 +61,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # Listed explicitly rather than dropping --no-install-recommends, so the image
 # states what it needs instead of inheriting it by luck.
+#
+# git is here for actions/checkout, which runs *inside* this image once the
+# workflow jobs declare it as their `container:`. Without git the action still
+# succeeds, but silently falls back to downloading a REST tarball -- a degraded
+# path with no repository metadata, which would quietly break anything that
+# later needs history.
+#
+# ccache backs the vendored SQLite object only; see CCACHE in cpp/Makefile for
+# why it is scoped that narrowly.
 RUN apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends \
         g++-14 \
@@ -70,6 +81,8 @@ RUN apt-get update -qq && \
         cppcheck \
         valgrind \
         bear \
+        ccache \
+        git \
         locales \
         ca-certificates && \
     locale-gen tr_TR.UTF-8 && \

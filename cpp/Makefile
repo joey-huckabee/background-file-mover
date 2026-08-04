@@ -120,6 +120,23 @@ SQLITE_DEFS := -DSQLITE_THREADSAFE=1 \
 SQLITE_CFLAGS ?= -O2 -g -Wall -Werror -fno-strict-aliasing $(SAN_FLAGS)
 SQLITE_LDLIBS := -lpthread -lm
 
+# ccache, applied to THIS object and nothing else.
+#
+# sqlite3.c takes 48.8s to compile against 1.35s for a typical C++ file, and
+# check-ci rebuilds it five or six times per run -- once per tier, plus after
+# each clean-all. It is also the one source here that never changes: ADR-0004
+# forbids editing vendored files, so every one of those rebuilds produces a
+# byte-identical object. That is the ideal case for a compiler cache.
+#
+# Deliberately NOT applied to the project's own sources. The win there is a
+# second or two, and the coverage tier compiles with --coverage, where ccache
+# has to get .gcno placement right for gcov to resolve anything. That is a real
+# risk taken for no measurable gain, and this project's coverage reporting has
+# already been broken once by a path-resolution subtlety.
+#
+# Empty when ccache is not installed, so the rule degrades to a plain compile.
+CCACHE ?= $(shell command -v ccache 2>/dev/null)
+
 # Parsers that sit on untrusted input and must classify characters with
 # explicit ranges (L3-CPP-052). config.cpp is deliberately NOT here: it reads a
 # trusted local file and its one strtoul call is guarded token-wise by
@@ -149,7 +166,7 @@ $(BUILD_DIR)/tests/%.o: tests/%.cpp
 # rule serves build/<toolchain>/ and build/coverage/ alike.
 %/third_party/sqlite3.o: $(SQLITE_SRC)
 	@mkdir -p $(dir $@)
-	$(CC) $(SQLITE_DEFS) $(SQLITE_CFLAGS) -c $< -o $@
+	$(CCACHE) $(CC) $(SQLITE_DEFS) $(SQLITE_CFLAGS) -c $< -o $@
 
 $(TEST_BIN): $(LIB_OBJ) $(TEST_OBJ) $(SQLITE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(SQLITE_LDLIBS)
@@ -178,17 +195,37 @@ toolchain:
 # below is an *instrument*, not a target: it hosts the sanitizers, libFuzzer,
 # and clang-tidy that GCC 4.8 cannot. Its version still has to be pinned,
 # because analysis tools change what they report between releases.
+#
+# Each line guards on `command -v` before running the tool. The obvious form,
+#   tool --version | head -1 || echo MISSING
+# can never print MISSING: the exit status of a pipeline is the *last*
+# command's, and head succeeds on empty input. A missing tool printed a blank
+# line instead -- silent, in the one target whose whole purpose is visibility.
+# Found when the CI jobs moved into a container that has gcov-14 but no
+# unversioned gcov.
 versions:
 	@echo "--- host toolchain (CI pins ubuntu-24.04 / g++-14 / clang-tidy-20) ---"
-	@printf '%-12s ' "g++";        $(CXX) --version 2>/dev/null | head -1 || echo "MISSING"
-	@printf '%-12s ' "make";       make --version 2>/dev/null | head -1 || echo "MISSING"
-	@printf '%-12s ' "clang++";    $(FUZZ_CXX) --version 2>/dev/null | head -1 || echo "MISSING"
-	@printf '%-12s ' "clang-tidy"; clang-tidy --version 2>/dev/null | grep -i 'version' | head -1 || echo "MISSING"
-	@printf '%-12s ' "valgrind";   valgrind --version 2>/dev/null || echo "MISSING"
-	@printf '%-12s ' "cppcheck";   cppcheck --version 2>/dev/null || echo "MISSING"
-	@printf '%-12s ' "gcov";       gcov --version 2>/dev/null | head -1 || echo "MISSING"
+	@printf '%-12s ' "g++";        (command -v $(CXX) >/dev/null 2>&1 && $(CXX) --version 2>/dev/null | head -1) || echo "MISSING"
+	@printf '%-12s ' "make";       (command -v make >/dev/null 2>&1 && make --version 2>/dev/null | head -1) || echo "MISSING"
+	@printf '%-12s ' "cc";         (command -v $(CC) >/dev/null 2>&1 && $(CC) --version 2>/dev/null | head -1) || echo "MISSING"
+	@printf '%-12s ' "clang++";    (command -v $(FUZZ_CXX) >/dev/null 2>&1 && $(FUZZ_CXX) --version 2>/dev/null | head -1) || echo "MISSING"
+	@# $(TIDY), not a bare `clang-tidy`: the pinned binary is clang-tidy-20 and
+	@# the unversioned name is a different package that need not be installed.
+	@# Reporting the wrong one made this line read MISSING while the gate it
+	@# describes was working.
+	@printf '%-12s ' "clang-tidy"; (command -v $(TIDY) >/dev/null 2>&1 && $(TIDY) --version 2>/dev/null | grep -i 'version' | head -1) || echo "MISSING"
+	@printf '%-12s ' "valgrind";   (command -v valgrind >/dev/null 2>&1 && valgrind --version 2>/dev/null) || echo "MISSING"
+	@printf '%-12s ' "cppcheck";   (command -v cppcheck >/dev/null 2>&1 && cppcheck --version 2>/dev/null) || echo "MISSING"
+	@printf '%-12s ' "ccache";     (command -v ccache >/dev/null 2>&1 && ccache --version 2>/dev/null | head -1) || echo "MISSING (sqlite3.o will rebuild each tier)"
+	@printf '%-12s ' "gcov";       (command -v $(GCOV) >/dev/null 2>&1 && $(GCOV) --version 2>/dev/null | head -1) || echo "MISSING"
 	@echo "--- deployment target (fidelity tier) ---"
-	@printf '%-12s ' "gcc 4.8.5";  $(CI_ENGINE) run --rm $(GCC48_IMAGE) g++ --version 2>/dev/null | head -1 || echo "container unavailable"
+	@# The guard is load-bearing now that CI jobs run *inside* a container: there
+	@# is no container engine in there, and without it this line printed a blank
+	@# version rather than saying why -- in the one target whose entire job is
+	@# making the toolchain visible.
+	@printf '%-12s ' "gcc 4.8.5";  (command -v $(CI_ENGINE) >/dev/null 2>&1 && \
+	    $(CI_ENGINE) run --rm $(GCC48_IMAGE) g++ --version 2>/dev/null | head -1) || \
+	    echo "no container engine here (expected inside a CI container)"
 
 check-valgrind: $(TEST_BIN)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all \
@@ -218,7 +255,12 @@ check-valgrind: $(TEST_BIN)
 #
 # Tagged by date, never `latest`, so a run always names the toolchain it used.
 # Rebuild and repush when a pinned version changes -- see the Dockerfile.
-CI_IMAGE  ?= ghcr.io/joey-huckabee/bfm-ci:2026-08-03
+CI_IMAGE  ?= ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+
+# Survives between check-ci runs, which is the entire point: the container is
+# discarded on exit, so an in-container cache would start cold every time and
+# save nothing. Lives outside the repository so `git clean` cannot wipe it.
+CCACHE_HOST_DIR ?= $(HOME)/.cache/background-file-mover-ccache
 CI_ENGINE ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CI_CXX    ?= g++-14
 # The vendored SQLite amalgamation is C, so this image needs a C compiler too.
@@ -272,7 +314,9 @@ check-gcc48:
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
+	@mkdir -p $(CCACHE_HOST_DIR)
 	$(CI_ENGINE) run --rm --cap-add=SYS_PTRACE \
+	    -v $(CCACHE_HOST_DIR):/ccache -e CCACHE_DIR=/ccache \
 	    -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
 	      echo "--- versions ---" && \
 	      $(CI_CXX) --version | head -1 && \

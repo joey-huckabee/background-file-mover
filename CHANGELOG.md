@@ -74,6 +74,23 @@ tag, not a branch.
   one. It will not scale past this: the vendored `sqlite3.c` is a single 9.5 MB
   translation unit taking **48.8s** against 1.35s for a typical C++ file, so a parallel
   build is now almost exactly "compile sqlite3.c".
+- **The vendored SQLite object is cached with ccache.** It is the one source here that
+  never changes — ADR-0004 forbids editing vendored files — and the most expensive to
+  build, so every one of the five or six rebuilds per `check-ci` run produced a
+  byte-identical object at ~49s each. Measured in the CI container: **60s cold, 0s warm.**
+  Scoped to that object alone and deliberately not applied to the project's own sources,
+  where the saving is a second or two and the coverage tier compiles with `--coverage`,
+  which requires ccache to place `.gcno` files where gcov can resolve them — a real risk
+  for no measurable gain, in a project whose coverage reporting has already been broken
+  once by a path-resolution subtlety.
+- **Every compiling CI job runs in the toolchain image.** Nine of the thirteen jobs in
+  `cpp-ci.yml` declare it as their `container:` and no longer `apt-get install` anything,
+  so CI and `make check-ci` now execute the same toolchain rather than two independently
+  pinned copies of it. The ASan job carries `options: --cap-add=SYS_PTRACE`: LeakSanitizer
+  uses ptrace, containers block it by default, and it was previously exempt only because
+  GitHub's runner is not a container. The remaining four jobs stay on the runner
+  deliberately — the fidelity job drives `docker run` itself, and the vendored-integrity,
+  trace-matrix, and locale-free gates need no compiler.
 - **`make check-ci` runs from a prebuilt toolchain image** (`.github/ci-image/Dockerfile`,
   published as `ghcr.io/joey-huckabee/bfm-ci`) instead of apt-installing the toolchain on
   every invocation. The Makefile used to justify that cost as "the price of not

@@ -108,14 +108,39 @@ translation unit that takes ~49s by itself against ~1.4s for a typical C++
 file, so it is the critical path and a parallel build is close to "compile
 sqlite3.c".
 
+That object is therefore cached with **ccache**, and nothing else is. It is the
+only source here that never changes (ADR-0004 forbids editing vendored files)
+and the most expensive to build, so the five or six rebuilds a `check-ci` run
+performs were producing an identical object each time. Measured in the
+container: **60s cold, 0s warm**.
+
+The cache lives at `$(CCACHE_HOST_DIR)` — `~/.cache/background-file-mover-ccache`
+by default — and is mounted into the container. It is outside the repository on
+purpose, so `git clean` cannot wipe it, and it survives between runs, which is
+the whole point: the container is discarded on exit, so an in-container cache
+would start cold every time.
+
+ccache is **not** applied to the project's own sources. The saving there is a
+second or two, and the coverage tier compiles with `--coverage`, where ccache
+has to place `.gcno` files exactly where gcov will look for them. That is a
+real risk for no measurable gain — and this project's coverage reporting has
+already been broken once by a path-resolution subtlety.
+
+If ccache is not installed, `CCACHE` is empty and the rule degrades to a plain
+compile, so nothing depends on its presence.
+
 `make versions` prints the host toolchain; CI prints the same in its log, so a
 runner-image change is a visible diff rather than a mysterious failure
 somewhere else.
 
 One gotcha: **LeakSanitizer needs `ptrace`**, which containers block by
 default. `make check-ci` passes `--cap-add=SYS_PTRACE`; without it LSan dies
-with a fatal error that reads like a test failure. GitHub's runner is not a
-container and does not need this.
+with a fatal error that reads like a test failure.
+
+This used to come with the note "GitHub's runner is not a container and does
+not need this." That stopped being true when the sanitizer job moved into the
+toolchain image, so it now declares `options: --cap-add=SYS_PTRACE` on its
+`container:` for exactly the same reason.
 
 ### Why not `/mnt/c`
 
