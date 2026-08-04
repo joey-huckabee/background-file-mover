@@ -36,14 +36,19 @@ jobs:
   fuzz:
     name: libFuzzer burn-in
     runs-on: ubuntu-24.04
+    # The same toolchain image as cpp-ci.yml, so the nightly burn-in fuzzes
+    # binaries built by the same clang that the per-PR replay gate uses. This
+    # job used to apt-install its own clang-20, which pinned the same version
+    # but by a separate mechanism -- two pins that can drift apart is the
+    # arrangement that let the fidelity tier break unnoticed.
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
+      # libFuzzer links ASan and UBSan, and LeakSanitizer needs ptrace, which
+      # containers block by default.
+      options: --cap-add=SYS_PTRACE
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
-      # Pinned by explicit version, like every other tool in the pipeline.
-      # clang-20 is newer than the image default and is what cpp-ci.yml uses.
-      - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
 
       - name: Toolchain versions
         run: clang++-20 --version | head -1

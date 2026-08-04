@@ -18,7 +18,13 @@
 #   C++ (skipped if nothing under cpp/ is staged):
 #     6. make -C cpp verify-vendored
 #     7. make -C cpp locale-free
+#    7b. make -C cpp sql-confined
 #     8. make -C cpp check      (compiles with -Werror, then runs the suite)
+#
+#   Files under cpp/third_party/ are exempt from the byte-level rules (2 and
+#   4): they are vendored verbatim under ADR-0004 and pinned by SHA-256, which
+#   is a stronger guarantee than either rule, and enforcing them there would
+#   make a conforming dependency uncommittable.
 
 set -euo pipefail
 
@@ -45,6 +51,25 @@ if ! git diff --cached --check; then
     fail "whitespace issues — fix and re-stage"
 fi
 
+# Vendored dependencies are exempt from the byte-level file rules below.
+#
+# ADR-0004 forbids editing anything under third_party/, and every file there is
+# pinned by SHA-256 and checked by `make verify-vendored` — a stronger guarantee
+# than either rule provides. Enforcing them here would put the hook in direct
+# conflict with the vendoring policy: a dependency that ships CRLF could only
+# be committed by rewriting it, which changes its hash and breaks the gate that
+# actually matters.
+#
+# Found the hard way. This hook was never installed in the clone where SQLite
+# was vendored (core.hooksPath was unset), and the 9.5 MB amalgamation would
+# have been rejected outright by the size rule below.
+is_vendored() {
+    case "$1" in
+        cpp/third_party/*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # ── 2. CRLF line endings ──────────────────────────────────────────────
 step "scanning for CRLF in staged text files"
 crlf_files=()
@@ -52,6 +77,7 @@ for file in "${STAGED[@]}"; do
     case "$file" in
         *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin) continue ;;
     esac
+    if is_vendored "$file"; then continue; fi
     if git show ":$file" 2>/dev/null | grep -qU $'\r'; then
         crlf_files+=("$file")
     fi
@@ -75,10 +101,11 @@ if (( ${#conflict_files[@]} > 0 )); then
 fi
 
 # ── 4. Large staged files (> 1 MB) ────────────────────────────────────
-step "checking staged file sizes (limit: 1 MB)"
+step "checking staged file sizes (limit: 1 MB, vendored files exempt)"
 LIMIT=$((1024 * 1024))
 oversize=()
 for file in "${STAGED[@]}"; do
+    if is_vendored "$file"; then continue; fi
     size=$(git cat-file -s ":$file" 2>/dev/null || echo 0)
     if (( size > LIMIT )); then
         oversize+=("$file ($size bytes)")
@@ -86,7 +113,9 @@ for file in "${STAGED[@]}"; do
 done
 if (( ${#oversize[@]} > 0 )); then
     printf '  %s\n' "${oversize[@]}" >&2
-    fail "files over 1 MB staged. Add to .gitignore or use git-lfs."
+    fail "files over 1 MB staged. Add to .gitignore or use git-lfs.
+       (Vendored files under cpp/third_party/ are exempt — they are
+        hash-pinned and checked by \`make verify-vendored\`.)"
 fi
 
 # ── 5. Trace matrix parity ────────────────────────────────────────────
@@ -128,6 +157,14 @@ fi
 step "make -C cpp locale-free"
 if ! make -C cpp locale-free; then
     fail "a parser uses locale-sensitive classification (L3-CPP-052)"
+fi
+
+# ── 7b. SQL confinement ───────────────────────────────────────────────
+# Cheap, and it catches the mistake at the moment it is made rather than in
+# CI: L2-JOB-009 keeps SQL and sqlite3.h behind the JobStore interface.
+step "make -C cpp sql-confined"
+if ! make -C cpp sql-confined; then
+    fail "SQL or sqlite3.h escaped the repository interface (L2-JOB-009)"
 fi
 
 # ── 8. Build and test ─────────────────────────────────────────────────

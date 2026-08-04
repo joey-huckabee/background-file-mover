@@ -70,7 +70,7 @@ jobs:
     name: build & test (g++-14)
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       # No toolchain install and no locale-gen: both are baked into the image,
@@ -138,12 +138,15 @@ jobs:
       # because podman still accepts schema 1 -- a local/CI divergence that hid
       # the breakage. Schema 1 is being removed outright, so re-pointing at the
       # upstream tag would not have survived either.
+      # Driven through the Makefile target rather than a hand-written
+      # `docker run`, so this job and a developer's `make check-gcc48` are the
+      # same command reading the same GCC48_IMAGE. Three separately maintained
+      # copies of this invocation are exactly how CI and local came to pull
+      # different images without either noticing.
       - name: Toolchain versions
-        run: docker run --rm ghcr.io/joey-huckabee/gcc-4.8:4.8.5 sh -c "g++ --version | head -1; make --version | head -1"
+        run: make -C cpp versions
       - name: Build and test
-        run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ghcr.io/joey-huckabee/gcc-4.8:4.8.5 \
-            sh -c "make -C cpp clean && make -C cpp -j\$(nproc) check"
+        run: make -C cpp check-gcc48
 
   # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),
   # LSan (leaks) — all fatal on first finding. Modern toolchain only: GCC
@@ -152,7 +155,7 @@ jobs:
     name: ASan + UBSan + LSan
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
       # LeakSanitizer uses ptrace, which containers block by default. Before
       # this job ran in a container it did not need the capability -- GitHub's
       # runner is not a container. It does now, and without it LSan dies with a
@@ -182,7 +185,7 @@ jobs:
     name: ThreadSanitizer
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       - name: Restore the SQLite object cache
@@ -199,7 +202,7 @@ jobs:
     name: Valgrind memcheck
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       - name: Restore the SQLite object cache
@@ -276,7 +279,7 @@ jobs:
     name: cppcheck
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       - name: Analyze
@@ -293,7 +296,7 @@ jobs:
     name: clang-tidy
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       # bear records only the compiler invocations it observes, so the tree
@@ -327,7 +330,7 @@ jobs:
     name: Fuzz corpus replay
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       - name: Replay committed corpus
@@ -340,7 +343,7 @@ jobs:
     name: Fuzz (60s)
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       - name: Fuzz
@@ -359,7 +362,7 @@ jobs:
     name: Coverage (gcov)
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
       # gcov must match the compiler that produced the notes files, or it

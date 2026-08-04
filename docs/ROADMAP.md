@@ -130,6 +130,15 @@ interface, per ADR-0010.
 The layer every later milestone touches the disk through. No path-based
 check-then-act anywhere.
 
+**A detailed plan exists: `docs/C2-PLAN.md`.** Read it before starting. Its
+pre-flight measurements change the design rather than the implementation — most
+importantly, the target toolchain has **no `renameat2` wrapper and no
+`RENAME_NOREPLACE` constant** (both need glibc ≥ 2.28; SLES 12 SP5 ships 2.22),
+so it must be called through `syscall(2)` with constants we supply. Code that
+calls `renameat2` directly compiles on a modern host and fails to link on the
+target. The plan also splits out the four requirements the roadmap assigns to
+C2 that actually belong to C4, C8 and C9.
+
 - **Advances:** `L2-SEC-001..016` (16), `L2-NFS-001..008` (8)
 - **Scope boundary, from `L1-SEC-007`:** same filesystem only, regular files only. Both
   remove attack surface rather than save effort — `linkat` does not work on directories,

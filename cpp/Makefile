@@ -255,7 +255,7 @@ check-valgrind: $(TEST_BIN)
 #
 # Tagged by date, never `latest`, so a run always names the toolchain it used.
 # Rebuild and repush when a pinned version changes -- see the Dockerfile.
-CI_IMAGE  ?= ghcr.io/joey-huckabee/bfm-ci:2026-08-03.2
+CI_IMAGE  ?= ghcr.io/joey-huckabee/bfm-ci:2026-08-04
 
 # Survives between check-ci runs, which is the entire point: the container is
 # discarded on exit, so an in-container cache would start cold every time and

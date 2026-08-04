@@ -43,10 +43,22 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-24.04
 
+    # The same toolchain image cpp-ci.yml uses. Until this changed, SonarCloud
+    # was the one workflow still apt-installing its own tools, and it installed
+    # only `bear` -- so it built the compilation database with the runner's
+    # default g++-13 while every gate in cpp-ci.yml verifies g++-14. The
+    # analysis therefore described a compilation that CI never checked.
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
+
     env:
       SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
       SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # Pinned to match cpp-ci.yml. gcov must match the compiler that produced
+      # the notes files or it reports a version mismatch and emits nothing.
+      CXX: g++-14
+      CC: gcc-14
 
     steps:
       - name: Check Sonar secrets (safe)
@@ -60,19 +72,17 @@ jobs:
         with:
           fetch-depth: 0  # full history for accurate Sonar analysis
 
-      # bear records the compilation database the CFamily analyzer needs.
-      - name: Install bear
-        run: sudo apt-get update -q && sudo apt-get install -y -q bear
-
+      # bear records the compilation database the CFamily analyzer needs, and
+      # ships in the toolchain image alongside the compiler it records.
       - name: C++ compilation database
         run: |
           make -C cpp clean-all
-          bear --output cpp/compile_commands.json -- make -C cpp all
+          bear --output cpp/compile_commands.json -- make -C cpp -j$(nproc) all
 
       # Coverage is a separate -O0 --coverage build in its own tier, so the
       # instrumented objects never mix with the ones bear just recorded.
       - name: C++ coverage (gcov)
-        run: make -C cpp coverage
+        run: make -C cpp -j$(nproc) coverage GCOV=gcov-14
 
       - name: Install SonarScanner
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_PROJECT_KEY != '' && env.SONAR_ORGANIZATION != '' }}

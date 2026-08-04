@@ -174,6 +174,7 @@ sudo apt install -y \
     valgrind cppcheck \
     clang clangd clang-format clang-tidy \
     bear \
+    ccache \
     podman
 
 git clone git@github.com:joey-huckabee/background-file-mover.git ~/GIT/background-file-mover
@@ -210,6 +211,7 @@ What each piece is for:
 | `clang` | sanitizer and **libFuzzer** tiers (ADR-0008); GCC 4.8 can host neither |
 | `clangd` | C++ language server for editor completion, diagnostics, go-to-definition |
 | `bear` | records a `compile_commands.json` from a Make build so `clangd` understands the project |
+| `ccache` | caches the vendored `sqlite3.o`. Optional — the build degrades to a plain compile without it — but without it every clean build pays ~49s to recompile a 9.5 MB file that never changes. `make versions` says `MISSING` when it is absent. |
 | `podman` | runs the GCC 4.8.5 fidelity tier in a container |
 
 Ubuntu's Podman has no unqualified-search registries configured, so images

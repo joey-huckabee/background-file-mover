@@ -70,6 +70,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # ccache backs the vendored SQLite object only; see CCACHE in cpp/Makefile for
 # why it is scoped that narrowly.
+#
+# curl and unzip are for the SonarCloud job, which downloads the scanner CLI.
+# They are here so that workflow can run in this image too: it was the last one
+# still apt-installing its own toolchain, which meant SonarCloud analysed a
+# compilation built by a different compiler from the one CI verifies.
 RUN apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends \
         g++-14 \
@@ -83,6 +88,8 @@ RUN apt-get update -qq && \
         bear \
         ccache \
         git \
+        curl \
+        unzip \
         locales \
         ca-certificates && \
     locale-gen tr_TR.UTF-8 && \
