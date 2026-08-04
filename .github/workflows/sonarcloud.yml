@@ -89,14 +89,30 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
           SONAR_QG_WAIT: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
         run: |
+          # projectBaseDir is cpp/, and every path below is relative to it.
+          #
+          # This is load-bearing, not tidiness. gcov records the source path it
+          # was compiled with, and the objects are built from cpp/, so a report
+          # says "Source:src/config.cpp". Scanning from the repository root made
+          # SonarCloud resolve that against the root -- <root>/src/config.cpp,
+          # which does not exist and is not in sonar.sources -- so it logged
+          #
+          #   WARN File not analysed by Sonar, so ignoring coverage: .../src/config.cpp
+          #
+          # for every file, discarded the entire report, and let the Zero
+          # Coverage Sensor record 0%. The analysis still succeeded, so this
+          # stayed invisible until a default-branch push waited on the Quality
+          # Gate and failed it. Rebasing onto cpp/ makes the recorded paths
+          # resolve as written.
           args=(
             "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
             "-Dsonar.organization=${SONAR_ORGANIZATION}"
-            "-Dsonar.sources=cpp/src,cpp/include"
-            "-Dsonar.tests=cpp/tests"
-            "-Dsonar.exclusions=docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus-*/**"
-            "-Dsonar.cfamily.compile-commands=cpp/compile_commands.json"
-            "-Dsonar.cfamily.gcov.reportsPath=cpp/build/coverage/report"
+            "-Dsonar.projectBaseDir=cpp"
+            "-Dsonar.sources=src,include"
+            "-Dsonar.tests=tests"
+            "-Dsonar.exclusions=third_party/**,build/**,fuzz/corpus-*/**"
+            "-Dsonar.cfamily.compile-commands=compile_commands.json"
+            "-Dsonar.cfamily.gcov.reportsPath=build/coverage/report"
           )
           if [ "$SONAR_QG_WAIT" = "true" ]; then
             echo "Default branch push (${GITHUB_REF_NAME}) - waiting for Quality Gate..."

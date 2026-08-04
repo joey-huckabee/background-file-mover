@@ -78,10 +78,11 @@ jobs:
       - name: Test
         run: make -C cpp check
 
-  # Fidelity job: official gcc:4.8 Docker image (Debian Jessie base, GCC
-  # 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
-  # It is a proxy, not the target: different glibc (2.19 vs 2.22), no
-  # systemd, no NFS. It proves C++11 conformance, not deployability.
+  # Fidelity job: the official gcc:4.8 image (Debian 7 "wheezy", glibc 2.13,
+  # GCC 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
+  # It is a proxy, not the target: older glibc (2.13 vs 2.22), no systemd, no
+  # NFS. It proves C++11 conformance, not deployability. Being *older* than the
+  # target makes it a conservative floor: passing here implies passing there.
   #
   # This does NOT use a job-level `container:`. Doing so runs every step
   # inside the image, and node-based actions (checkout, upload-artifact)
@@ -105,11 +106,26 @@ jobs:
       CC: ""
     steps:
       - uses: actions/checkout@v6
+      # A mirror of docker.io/library/gcc:4.8, byte-identical, republished with
+      # a v2s2 manifest. Keep this in step with GCC48_IMAGE in cpp/Makefile.
+      #
+      # The upstream tag cannot be used here any more. It was pushed in 2016
+      # with a Docker manifest v2 *schema 1*, which modern Docker refuses by
+      # default, so this job died at the pull:
+      #
+      #   docker: [DEPRECATION NOTICE] ... schema 1 support is disabled by
+      #   default and will be removed in an upcoming release
+      #   Process completed with exit code 125
+      #
+      # It failed before compiling anything, while the same tier passed locally
+      # because podman still accepts schema 1 -- a local/CI divergence that hid
+      # the breakage. Schema 1 is being removed outright, so re-pointing at the
+      # upstream tag would not have survived either.
       - name: Toolchain versions
-        run: docker run --rm gcc:4.8 sh -c "g++ --version | head -1; make --version | head -1"
+        run: docker run --rm ghcr.io/joey-huckabee/gcc-4.8:4.8.5 sh -c "g++ --version | head -1; make --version | head -1"
       - name: Build and test
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src gcc:4.8 \
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ghcr.io/joey-huckabee/gcc-4.8:4.8.5 \
             sh -c "make -C cpp clean && make -C cpp check"
 
   # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),

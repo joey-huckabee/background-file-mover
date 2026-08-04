@@ -54,6 +54,25 @@ tag, not a branch.
   the first build with a C translation unit in it failed with `make: cc: No such file or
   directory`; the runner's default `cc` is gcc-13, a different compiler from the one
   building the C++ objects. The fidelity job blanks `CC` as it already blanked `CXX`.
+- **The GCC 4.8.5 fidelity tier runs from a mirror, `ghcr.io/joey-huckabee/gcc-4.8:4.8.5`.**
+  `docker.io/library/gcc:4.8` was pushed in 2016 with a Docker manifest v2 *schema 1*,
+  which modern Docker disables by default; the CI job had been dying at the pull with
+  `exit code 125` before compiling anything, while the same tier passed locally because
+  podman still accepts schema 1. The mirror is that image republished with a v2s2
+  manifest. Schema 1 is slated for removal outright, so pinning the upstream tag would
+  not have survived. **The tier that decides whether the code ships had not actually run
+  in CI for some time.**
+- **`make check-gcc48` replaces three hand-written container invocations.** `cpp-ci.yml`,
+  `CONTRIBUTING.md`, and `CLAUDE.md` each spelled out their own `docker`/`podman` command,
+  which is how CI and developers came to pull different images without anyone noticing.
+  One target, one `GCC48_IMAGE`, both callers.
+- **SonarCloud coverage is ingested rather than silently discarded.** The scanner now runs
+  with `sonar.projectBaseDir=cpp`. gcov records the path it compiled with -- `src/config.cpp`,
+  relative to `cpp/` -- and scanning from the repository root made SonarCloud look for
+  `<root>/src/config.cpp`, log `File not analysed by Sonar, so ignoring coverage` for
+  every file, drop the whole report, and let the Zero Coverage Sensor record 0%. The
+  analysis still succeeded, so this stayed invisible until a default-branch push waited
+  on the Quality Gate and failed it.
 - **The trace-matrix generator reads Catch2 tags as well as pytest markers.** A
   requirement id inside a `TEST_CASE` tag string — `TEST_CASE("...",
   "[json][L3-CPP-019]")` — now counts as verification evidence. Until this landed the
@@ -79,6 +98,14 @@ tag, not a branch.
 
 ### Fixed
 
+- **The fidelity container was documented as the wrong operating system.** Six places
+  described `gcc:4.8` as a Debian Jessie base with glibc 2.19; it is Debian 7.10
+  "wheezy" with **glibc 2.13**, confirmed from `/etc/os-release` and `getconf`. The error
+  was benign in direction -- 2.13 is *older* than the SLES 12 SP5 target's 2.22, making
+  the tier a more conservative floor than advertised rather than a weaker one, so every
+  "passes on 4.8.5" conclusion still holds. Corrected in `cpp-ci.yml`, `cpp/README.md`,
+  `CONTRIBUTING.md`, `cpp/Makefile`, and ADR-0001 and ADR-0005 (a factual correction to
+  their context sections; no decision changed).
 - **`L3-CPP-019` was implemented but untested.** The JSON parser has always reported the
   byte offset of a rejection; nothing asserted it. The non-empty half of the requirement
   was covered incidentally by a test helper, which is what disguised the gap.

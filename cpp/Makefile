@@ -188,7 +188,7 @@ versions:
 	@printf '%-12s ' "cppcheck";   cppcheck --version 2>/dev/null || echo "MISSING"
 	@printf '%-12s ' "gcov";       gcov --version 2>/dev/null | head -1 || echo "MISSING"
 	@echo "--- deployment target (fidelity tier) ---"
-	@printf '%-12s ' "gcc:4.8";    (docker run --rm gcc:4.8 g++ --version 2>/dev/null || podman run --rm docker.io/library/gcc:4.8 g++ --version 2>/dev/null) | head -1 || echo "container unavailable"
+	@printf '%-12s ' "gcc 4.8.5";  $(CI_ENGINE) run --rm $(GCC48_IMAGE) g++ --version 2>/dev/null | head -1 || echo "container unavailable"
 
 check-valgrind: $(TEST_BIN)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all \
@@ -227,6 +227,29 @@ CI_FUZZ   ?= clang++-20
 # locale-independence test in test_http_parser.cpp finds setlocale returning
 # NULL and downgrades itself to a warning (L3-CPP-052).
 CI_PKGS   ?= g++-14 gcc-14 make clang-20 clang-tidy-20 cppcheck valgrind bear locales
+
+# --- Deployment-fidelity tier (GCC 4.8.5) --------------------------------
+# A MIRROR of docker.io/library/gcc:4.8, not that image directly.
+#
+# The upstream image was published in 2016 with a Docker manifest v2 *schema 1*.
+# Modern Docker disables schema 1 by default, so the CI job died at the pull
+# with "exit code 125" before compiling anything -- while the same tier passed
+# locally, because podman still accepts schema 1. That divergence is exactly
+# what this Makefile exists to prevent: local and CI must pull the same bytes.
+# The mirror is the identical image republished with a v2s2 manifest.
+#
+# Schema 1 support is slated for removal outright, so re-pointing at the
+# upstream tag is not a fix that survives.
+GCC48_IMAGE ?= ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+
+# Runs the fidelity tier the way CI runs it. Previously this command lived only
+# in prose -- CONTRIBUTING.md, CLAUDE.md, and cpp-ci.yml each spelled out their
+# own docker/podman invocation, which is how CI ended up pulling a different
+# image from the one developers pulled. One target, one image, both callers.
+.PHONY: check-gcc48
+check-gcc48:
+	$(CI_ENGINE) run --rm -v $(CURDIR)/..:/src -w /src $(GCC48_IMAGE) \
+	    sh -c "make -C cpp clean && make -C cpp check"
 
 .PHONY: check-ci
 check-ci:
@@ -391,7 +414,7 @@ verify-vendored:
 # L3-CPP-052. The runtime test switches to tr_TR.UTF-8 and re-parses, but
 # setlocale returns NULL where that locale is not generated and the test then
 # downgrades itself to a warning. check-ci and the CI runner now generate it,
-# and the gcc:4.8 image cannot (its Jessie apt sources are archived), so the
+# and the gcc:4.8 image cannot (its wheezy apt sources are archived), so the
 # coverage is uneven by environment. This gate is not: grepping the source
 # cannot be skipped, so it holds wherever the runtime check does not.
 .PHONY: locale-free

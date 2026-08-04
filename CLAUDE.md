@@ -143,8 +143,14 @@ failing gate more than once.
 The gcc 4.8.5 fidelity tier runs in a container:
 
 ```
-podman run --rm -v ~/GIT/background-file-mover:/src gcc:4.8 sh -c "cd /src/cpp && make check"
+cd ~/GIT/background-file-mover/cpp && make check-gcc48
 ```
+
+That target and the CI job pull the **same** image, `ghcr.io/joey-huckabee/gcc-4.8:4.8.5`
+— a byte-identical mirror of `docker.io/library/gcc:4.8`, republished with a v2s2
+manifest. Do not go back to the upstream tag: it carries a 2016 schema-1 manifest that
+modern Docker refuses, which broke the CI job at the pull while podman kept accepting it
+locally. Hand-writing the `docker run` invocation is what let those two drift apart.
 
 From Windows, the repository is reachable at
 `\\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover` — that is where new

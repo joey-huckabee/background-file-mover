@@ -84,7 +84,8 @@ The cost of C++11 is accepted as ergonomic only.
 
 ## Verification
 
-`gcc:4.8` is a *proxy* for the target, not the target: Debian glibc 2.19 vs
-SUSE 2.22, no systemd, no NFS. It verifies C++11 conformance only.
+`gcc:4.8` is a *proxy* for the target, not the target: Debian 7 "wheezy" with
+glibc 2.13 vs SUSE 2.22, no systemd, no NFS. It verifies C++11 conformance
+only.
 Deployability is verified on real SLES 12 SP5 hardware via the runbook and
 NFS qualification checklist in `docs/DEPLOYMENT.md`.

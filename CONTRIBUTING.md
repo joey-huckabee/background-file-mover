@@ -162,8 +162,9 @@ What each piece is for:
 | `podman` | runs the GCC 4.8.5 fidelity tier in a container |
 
 Ubuntu's Podman has no unqualified-search registries configured, so images
-must be named in full — `docker.io/library/gcc:4.8`, not `gcc:4.8`. A bare
-name fails with `short-name ... did not resolve to an alias`.
+must be named in full — `docker.io/library/ubuntu:24.04`, not `ubuntu:24.04`.
+A bare name fails with `short-name ... did not resolve to an alias`. The
+fidelity image is already fully qualified (`ghcr.io/...`), so it is unaffected.
 
 ### Python tooling
 
@@ -237,9 +238,51 @@ cppcheck --enable=warning,portability --error-exitcode=1 \
 The GCC 4.8.5 fidelity tier:
 
 ```bash
-podman run --rm -v ~/GIT/background-file-mover:/src \
-    docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
+make check-gcc48
 ```
+
+This target and the CI job pull the **same** image,
+`ghcr.io/joey-huckabee/gcc-4.8:4.8.5` — a byte-identical mirror of
+`docker.io/library/gcc:4.8`, republished with a v2s2 manifest.
+
+The upstream tag is no longer usable. It was pushed in 2016 with a Docker
+manifest v2 *schema 1*, which modern Docker disables by default, so the CI job
+failed at the pull with `exit code 125` before compiling anything — while this
+tier kept passing locally, because podman still accepts schema 1. Schema 1 is
+being removed outright, so pinning the upstream tag is not a fix that lasts.
+
+The invocation lives in the Makefile rather than in prose precisely because
+three hand-written copies of it are how local and CI came to pull different
+images in the first place.
+
+#### Recreating the mirror
+
+The mirror is infrastructure this project owns, so the recipe belongs here
+rather than in one person's shell history. It must be produced with a tool
+that can still *read* schema 1 — podman and skopeo can, current Docker cannot,
+which is the whole reason the mirror exists.
+
+```bash
+podman pull docker.io/library/gcc:4.8
+podman tag  docker.io/library/gcc:4.8 ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+podman login ghcr.io -u <user> --password-stdin   # needs a write:packages token
+podman push --format v2s2 ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+```
+
+Verify the conversion actually happened rather than assuming it — the point of
+the exercise is the manifest, not the upload:
+
+```bash
+podman manifest inspect ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+# schemaVersion must be 2, and mediaType
+# application/vnd.docker.distribution.manifest.v2+json.
+# If it still says manifest.v1+prettyjws, nothing was fixed.
+```
+
+The package must be **public**, or CI cannot pull it: it lives in a user
+namespace rather than the repository's, so a workflow's `GITHUB_TOKEN` has no
+implicit read access to it. Publishing a byte-identical copy of an
+already-public image discloses nothing.
 
 ### Build directories are keyed on toolchain
 
@@ -282,8 +325,9 @@ The GCC 4.8 job runs the **full test suite**, not a compile check. That is
 what closes the gap between the instrumented build and the shipped build,
 since the sanitizers never run against the GCC 4.8 compilation.
 
-`gcc:4.8` is a *proxy*, not the target: Debian glibc 2.19 versus SUSE 2.22,
-no systemd, no NFS. Deployability is verified on real hardware per
+`gcc:4.8` is a *proxy*, not the target: Debian 7 "wheezy" with glibc 2.13
+versus SUSE 2.22, no systemd, no NFS. Older rather than merely different, so
+it is a conservative floor. Deployability is verified on real hardware per
 `docs/DEPLOYMENT.md`.
 
 ---
@@ -485,8 +529,7 @@ make coverage                                 # coverage report
 cppcheck --enable=warning,portability --error-exitcode=1 \
          --inline-suppr --std=c++11 -Iinclude src/ tests/
 make clean-all && bear -- make all && make tidy    # see the note below
-podman run --rm -v ~/GIT/background-file-mover:/src \
-    docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
+make check-gcc48                              # GCC 4.8.5 fidelity tier
 
 cd ..
 python scripts/build-trace-matrix.py --check   # traceability gate
