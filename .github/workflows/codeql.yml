@@ -19,9 +19,9 @@ name: CodeQL Security Scan
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ main, v2-cpp ]
+    branches: [ main, 'c*-*' ]
   push:
-    branches: [ main, v2-cpp ]
+    branches: [ main, 'c*-*' ]
   schedule:
     - cron: '0 3 * * 1'  # weekly, Monday 03:00 UTC
 
