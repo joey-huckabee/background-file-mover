@@ -89,25 +89,37 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
           SONAR_QG_WAIT: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
         run: |
-          # projectBaseDir is cpp/, and every path below is relative to it.
+          # Run from cpp/, so the scanner's working directory and its project
+          # base directory are the same place and every relative path below
+          # means one thing.
           #
-          # This is load-bearing, not tidiness. gcov records the source path it
-          # was compiled with, and the objects are built from cpp/, so a report
-          # says "Source:src/config.cpp". Scanning from the repository root made
-          # SonarCloud resolve that against the root -- <root>/src/config.cpp,
-          # which does not exist and is not in sonar.sources -- so it logged
+          # Why this matters, and it is not tidiness. gcov records the path a
+          # file was compiled with, and the objects are built from cpp/, so a
+          # report reads "Source:src/config.cpp". Scanning from the repository
+          # root made SonarCloud resolve that against the root --
+          # <root>/src/config.cpp, which does not exist and is not in
+          # sonar.sources -- so it logged
           #
           #   WARN File not analysed by Sonar, so ignoring coverage: .../src/config.cpp
           #
-          # for every file, discarded the entire report, and let the Zero
-          # Coverage Sensor record 0%. The analysis still succeeded, so this
+          # once per file, discarded the entire report, and let the Zero
+          # Coverage Sensor record 0%. The analysis still succeeded, so it
           # stayed invisible until a default-branch push waited on the Quality
-          # Gate and failed it. Rebasing onto cpp/ makes the recorded paths
-          # resolve as written.
+          # Gate and failed it.
+          #
+          # The first attempt at this fix set -Dsonar.projectBaseDir=cpp and
+          # left the scanner running from the root. That is not equivalent:
+          # sonar.cfamily.compile-commands is resolved against the *working
+          # directory*, not against projectBaseDir, so the analysis died with
+          #
+          #   NoSuchFileException: <root>/compile_commands.json
+          #
+          # Two different base directories for two properties is a trap; cd
+          # removes it by making them the same directory.
+          cd cpp
           args=(
             "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
             "-Dsonar.organization=${SONAR_ORGANIZATION}"
-            "-Dsonar.projectBaseDir=cpp"
             "-Dsonar.sources=src,include"
             "-Dsonar.tests=tests"
             "-Dsonar.exclusions=third_party/**,build/**,fuzz/corpus-*/**"
