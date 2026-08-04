@@ -670,6 +670,38 @@ TEST_CASE("a genuinely full store fails cleanly, not silently",
     CHECK(store.counts_by_state(counts, error) == true);
 }
 
+TEST_CASE("a failed sequence bump rolls back and issues nothing",
+          "[store][L2-JOB-014][L2-JOB-015]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    std::uint64_t before = 0;
+    REQUIRE(store.next_sequence(before, error) == true);
+
+    // The sequence bump is a transaction: BEGIN IMMEDIATE, UPDATE, read,
+    // COMMIT. Until now nothing exercised what happens when the UPDATE fails
+    // partway through, which is the path that decides whether a number can be
+    // issued twice -- the one guarantee L2-JOB-015 makes.
+    REQUIRE(store.inject_write_fault(WriteFault::Refused, error) == true);
+    error.clear();
+    std::uint64_t during = 12345;
+    CHECK(store.next_sequence(during, error) == false);
+    CHECK(error.empty() == false);
+    // The out-parameter must be left alone on failure; a caller that ignored
+    // the return value would otherwise use a number that was never committed.
+    CHECK(during == 12345u);
+
+    // After the rollback the store is still usable and the sequence resumes
+    // without repeating. A transaction left open would deadlock the next bump
+    // instead, which is what makes this worth asserting rather than assuming.
+    REQUIRE(store.inject_write_fault(WriteFault::None, error) == true);
+    std::uint64_t after = 0;
+    REQUIRE(store.next_sequence(after, error) == true);
+    CHECK(after > before);
+}
+
 TEST_CASE("arming a fault on a closed store is an error",
           "[store][L2-JOB-014]") {
     JobStore store;
