@@ -10,12 +10,19 @@ All vendored licenses must satisfy the license policy in ADR-0007.
 |---|---|---|---|---|---|
 | Catch2 (v2 line) | v2.13.10 | `third_party/catch2/catch.hpp` | `3725c0f0a75f376a5005dde31ead0feb8f7da7507644c201b814443de8355170` | BSL-1.0 | vendored |
 | Catch2 license text | v1.0 (BSL) | `third_party/catch2/LICENSE_1_0.txt` | `c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566` | BSL-1.0 | vendored |
-| SQLite (amalgamation) | TBD (pin at integration) | `third_party/sqlite/sqlite3.{c,h}` | TBD | Public domain | pending (ADR-0010) |
+| SQLite (amalgamation) | 3.53.4 (2026-07-24) | `third_party/sqlite/sqlite3.c` | `b1dd5d74ec7f29055a6684fa06fb3c2f6821c87dd38f9a458dfd2e8a1db28189` | Public domain | vendored |
+| SQLite (amalgamation) | 3.53.4 (2026-07-24) | `third_party/sqlite/sqlite3.h` | `919e7f2e8ed1d8f56ac17b412b8971c76aa5d1a879752cc6058f75e7d5910e1d` | Public domain | vendored |
 
 Upstream sources:
 - Catch2: https://github.com/catchorg/Catch2 (release asset `catch.hpp`)
 - Boost Software License 1.0: https://www.boost.org/LICENSE_1_0.txt
-- SQLite: https://sqlite.org/download.html (`sqlite-amalgamation-*.zip`)
+- SQLite: https://sqlite.org/download.html — `2026/sqlite-amalgamation-3530400.zip`,
+  2946650 bytes, upstream SHA3-256
+  `628a44cfe82c66aed1ccbbe85a562d2e33ebe64b3288981ed76285612227934e`
+
+Only `sqlite3.c` and `sqlite3.h` are vendored. The zip also ships `shell.c` (the
+`sqlite3` CLI) and `sqlite3ext.h` (the loadable-extension interface); neither is used,
+and extensions are compiled out entirely — see the build flags below.
 
 ## Why the license text is a vendored file and not a note
 
@@ -39,6 +46,40 @@ SQLite is the one vendored dependency that is not a single header and is too lar
 audit line by line (~250 kLOC). ADR-0010 records why that is accepted: it is public
 domain, it sees only codec-validated values rather than untrusted input, and it is
 confined behind a repository interface (L2-JOB-009).
+
+It is also the first dependency to occupy **two rows**. `scripts/verify-vendored.sh`
+parses one path and one hash per row, so the `sqlite3.{c,h}` shorthand the pending row
+used would have matched nothing and been silently skipped — the script only fails on a
+row it *can* parse and finds wrong. Two rows, two hashes, two files checked.
+
+### On SQLite 3.53.4 and GCC 4.8.5
+
+Measured in the `gcc:4.8` container rather than inferred, following the precedent
+ADR-0012 set for cpp-httplib: a portability claim about the deployment toolchain is
+tested, not assumed.
+
+The latest release was viable, so no version step-back was needed. `sqlite3.c` compiles
+under GCC 4.8.5 at `-O2 -Wall`, links, and runs. The probe exercised what C1 actually
+depends on rather than merely calling `sqlite3_libversion()`: `journal_mode=WAL`,
+`synchronous=FULL`, and a `CHECK` constraint of the shape `L2-JOB-010` requires — which
+both accepted a legal row and rejected `FAILED` with a null error.
+
+The container reports **glibc 2.13**, older than the SLES 12 SP5 target's 2.22, so it is
+a conservative floor: passing there implies passing on the target.
+
+**`sqlite3.c` must not be compiled under this project's `-Werror`.** At `-O2 -Wall` GCC
+4.8.5 emits three `-Wstrict-aliasing` warnings from `sqlite3Int64ToText` and
+`sqlite3FpDecode`, where SQLite writes digit pairs through a `u16*` cast. The code is
+deliberate and upstream is aware of it; the project's own translation units keep
+`-Werror`, and the vendored unit is compiled by its own rule with
+`-fno-strict-aliasing` instead. Suppressing the warning would be the wrong fix —
+`-fno-strict-aliasing` changes what the optimizer is permitted to assume, which is the
+actual requirement.
+
+One diagnostic worth writing down because it wastes an afternoon otherwise: `ldd
+--version` **segfaults** in the `gcc:4.8` image. It is a defect in that image's ancient
+`ldd` shell script, has nothing to do with SQLite, and appears in build logs immediately
+next to the compile step. Use `getconf GNU_LIBC_VERSION` to read the glibc version there.
 
 ## Removed
 

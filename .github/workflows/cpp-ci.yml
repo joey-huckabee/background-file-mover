@@ -48,6 +48,12 @@ env:
   # Applied to every job. The Makefile honours CXX, so this selects the
   # compiler for the functional, sanitizer, and coverage tiers alike.
   CXX: g++-14
+  # The vendored SQLite amalgamation is C, so the build needs a C compiler as
+  # well. Pinned alongside CXX for the same reason: the runner's default `cc`
+  # is gcc-13, a different compiler from the g++-14 that builds the C++
+  # objects. Every job that compiles must install gcc-14 explicitly -- the
+  # `g++-14` package alone does not provide a usable `cc`.
+  CC: gcc-14
 
 jobs:
   build-test-modern:
@@ -56,7 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-20 clang-tidy-20 cppcheck valgrind locales
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14 clang-20 clang-tidy-20 cppcheck valgrind locales
       # The locale-independence test (L3-CPP-052) parses under tr_TR.UTF-8,
       # where std::tolower('I') does not yield 'i'. setlocale returns NULL if
       # the locale is not generated and the test downgrades to a warning, so
@@ -96,6 +102,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CXX: ""
+      CC: ""
     steps:
       - uses: actions/checkout@v6
       - name: Toolchain versions
@@ -114,7 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14
       - name: Build & test (instrumented)
         run: make -C cpp check SANITIZE=1
 
@@ -133,7 +140,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14
       - name: Build & test (TSan)
         run: make -C cpp check THREAD=1
 
@@ -145,7 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 valgrind
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14 valgrind
       - name: Build
         run: make -C cpp all
       - name: Memcheck
@@ -223,7 +230,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-tidy-20 bear
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14 clang-tidy-20 bear
       # bear records only the compiler invocations it observes, so the tree
       # must be clean first. A pre-built tree yields an empty database, and
       # clang-tidy then skips every file and exits 0 — a gate that passes
@@ -284,7 +291,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 gcc-14
       # gcov must match the compiler that produced the notes files, or it
       # reports "version mismatch" and emits nothing usable.
       - name: Build instrumented and run
