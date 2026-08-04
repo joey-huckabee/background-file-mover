@@ -259,6 +259,17 @@ jobs:
       - name: Verify
         run: make -C cpp locale-free
 
+  # L2-JOB-009. SQL and the vendored sqlite3.h stay behind the JobStore
+  # interface (ADR-0010). The requirement's stated method is Inspection, which
+  # is the method that quietly stops happening; this makes it mechanical.
+  sql-confinement:
+    name: SQL confinement
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify
+        run: make -C cpp sql-confined
+
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:

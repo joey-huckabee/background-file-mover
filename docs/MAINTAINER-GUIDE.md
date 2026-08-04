@@ -173,7 +173,7 @@ sheet above and *CI architecture* below).
 
 ## CI architecture
 
-`.github/workflows/cpp-ci.yml` carries thirteen jobs; `make check-ci` reproduces all of
+`.github/workflows/cpp-ci.yml` carries fourteen jobs; `make check-ci` reproduces all of
 them locally in a container, so a red branch is avoidable.
 
 Nine of them — every job that compiles — run inside the toolchain image
@@ -197,6 +197,11 @@ itself, and the vendored-integrity, trace-matrix, and locale-free gates need no 
 - **Vendored file integrity** — SHA-256 against `cpp/VENDORED.md`. A repository-wide edit
   once rewrote an identifier *inside* the vendored Catch2 header and every other gate
   passed; a compiler cannot tell, only a checksum can.
+- **SQL confinement** — fails the build if `sqlite3.h` or SQL appears outside
+  `src/store.cpp` and the allow-listed vendoring smoke test (`L2-JOB-009`, ADR-0010).
+  The requirement's stated method is Inspection; this makes it mechanical, because
+  inspection is the method that silently stops happening the week someone wants one
+  quick query somewhere else.
 - **Locale-free parsers** — greps the parser sources for `<cctype>` and the `strtoul`
   family (`L3-CPP-052`). A source gate because the runtime test needs a locale the
   runners do not always have.

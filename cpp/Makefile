@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -143,7 +143,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -327,6 +327,8 @@ check-ci:
 	      echo "--- vendored hashes ---" && sh scripts/verify-vendored.sh && \
 	      echo "--- locale-free parsers ---" && \
 	      sh scripts/assert-locale-free.sh $(PARSER_SRC) && \
+	      echo "--- sql confinement ---" && \
+	      sh scripts/assert-sql-confined.sh && \
 	      echo "--- functional ---" && \
 	      make clean-all && make -j$(CI_JOBS) check CXX=$(CI_CXX) CC=$(CI_CC) && \
 	      echo "--- sanitizers ---" && make -j$(CI_JOBS) check SANITIZE=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
@@ -351,6 +353,14 @@ check-ci:
 # build. Produces .gcno/.gcda beside the objects and .gcov files in
 # build/coverage/.
 GCOV    ?= gcov
+# A floor, not a target, and a ratchet: raise it deliberately when a milestone
+# lands well above it, never lower it quietly to make a build pass. Set below
+# the current figure on purpose, so a new component arriving partially covered
+# does not block the work that will cover it.
+#
+# 100% of error paths that are never *taken* proves nothing; a fault-injected
+# 80% is worth more than a contrived 95%. See docs/TEST-STRATEGY.md.
+COVERAGE_MIN ?= 85
 COV_DIR := build/coverage
 COV_BIN := $(COV_DIR)/filemover_tests
 COV_FLAGS := -std=c++11 -Wall -Wextra -Werror -O0 -g --coverage
@@ -384,7 +394,7 @@ coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
 	$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) | tail -n +1
 	@mv -f *.gcov $(COV_DIR)/report/ 2>/dev/null || true
 	@echo
-	@sh scripts/coverage-summary.sh $(COV_DIR)/report
+	@sh scripts/coverage-summary.sh $(COV_DIR)/report plain $(COVERAGE_MIN)
 
 # --- Fuzzing (ADR-0008) --------------------------------------------------
 # libFuzzer requires clang; GCC 4.8 can host neither it nor LSan. The source
@@ -408,6 +418,20 @@ FUZZ_FLAGS    := -std=c++11 -Wall -Wextra -O1 -g \
 # because a corpus that mixes JSON documents with HTTP heads guides the
 # fuzzer toward neither.
 FUZZ_TARGETS  := json http
+
+# What the fuzz targets link. Subtractive rather than a written-out list, so a
+# new source is fuzzed by default and *excluding* one is a deliberate act --
+# the same reasoning that keeps clang-tidy on $(LIB_SRC). A hand-maintained
+# list is how a component quietly stops being covered.
+#
+# store.cpp is out because it needs the vendored SQLite object, and dragging a
+# 9.5 MB amalgamation into every fuzz build costs about a minute per target for
+# code no fuzz target reaches: these consume bytes with no I/O, no threads and
+# no clock (ADR-0008). If a fuzz target for the store is ever written -- a
+# database file is untrusted input in a way a job record is not -- this
+# exclusion is the thing to revisit.
+FUZZ_EXCLUDE  := src/store.cpp
+FUZZ_LIB_SRC  := $(filter-out $(FUZZ_EXCLUDE),$(LIB_SRC))
 # Derived, so adding a target to the list above cannot leave format-check
 # silently covering fewer files than the build does.
 FUZZ_SRC      := $(patsubst %,fuzz/fuzz_%.cpp,$(FUZZ_TARGETS))
@@ -422,7 +446,7 @@ fuzz:
 	@for t in $(FUZZ_TARGETS); do \
 	  echo "building fuzz target: $$t"; \
 	  $(FUZZ_CXX) $(CPPFLAGS) $(FUZZ_FLAGS) \
-	    fuzz/fuzz_$$t.cpp $(LIB_SRC) -o $(FUZZ_DIR)/fuzz_$$t || exit 1; \
+	    fuzz/fuzz_$$t.cpp $(FUZZ_LIB_SRC) -o $(FUZZ_DIR)/fuzz_$$t || exit 1; \
 	done
 
 # libFuzzer WRITES newly-interesting inputs into the FIRST corpus directory
@@ -480,6 +504,13 @@ verify-vendored:
 .PHONY: locale-free
 locale-free:
 	@sh scripts/assert-locale-free.sh $(PARSER_SRC)
+
+# L2-JOB-009. The requirement's stated method is Inspection, and inspection is
+# precisely what stops happening once someone needs one quick query elsewhere.
+# ADR-0010's containment only holds if something checks it.
+.PHONY: sql-confined
+sql-confined:
+	@sh scripts/assert-sql-confined.sh
 
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)

@@ -9,8 +9,8 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-03 · **Branch:** `c1-durable-store` · **Current milestone: C1 — in
-progress, dependency vendored, no store code written yet.**
+**Date:** 2026-08-04 · **Branch:** `c1-durable-store` · **Current milestone: C1 — the
+durable store is built and tested; two items remain, both named below.**
 
 **C0 (the foundation) is delivered and merged.** Five components are built, tested,
 fuzzed where they touch untrusted input, and green on every gate including the GCC 4.8.5
@@ -25,27 +25,44 @@ no move engine, no job manager, no socket server, no daemon entry point. The ser
 cannot start, because there is no `main`.
 
 ```
-In v1.0.0 scope:  48 of 226 requirements verified  (21.2%)
-Tests:            6,820 assertions / 102 cases     (all tiers green)
+In v1.0.0 scope:  84 of 226 requirements verified  (37.2%)
+Tests:            7,308 assertions / 127 cases     (all tiers green)
+Line coverage:    90.8% overall, 75.5% for the new store
 ```
 
-**C1's first task is done: SQLite is vendored.** The amalgamation is pinned at **3.53.4**
-in `cpp/VENDORED.md` — two rows, one per file — compiled by its own Makefile rule, and
-linked into the test binary. The latest release turned out to be viable on GCC 4.8.5, so
-no version step-back was needed; the measurements and the two build-flag decisions they
-forced are recorded in `cpp/VENDORED.md`.
+**SQLite is vendored** at **3.53.4**, pinned per file in `cpp/VENDORED.md`, verified on
+real GCC 4.8.5 rather than assumed.
 
-Note that **the coverage figure did not move, and should not have.** Vendoring a
-dependency verifies no requirement, so `tests/test_sqlite_vendor.cpp` carries no
-requirement tag. The +20 assertions are integration checks on the vendoring itself: that
-`sqlite3.c` and `sqlite3.h` are the same release, and that the compile-time hardening
-actually took effect.
+**The durable store exists.** `JobStore` (`cpp/include/filemover/store.hpp`,
+`cpp/src/store.cpp`) is the repository interface ADR-0010 called for: WAL and
+`synchronous=FULL` both *read back* after being set rather than assumed, idempotent
+migration keyed on `PRAGMA user_version`, an absent store treated as first boot
+(`L2-JOB-011`), a corrupt or newer-than-known store refused outright with the damage
+named and the bytes left untouched (`L2-JOB-012`), write-ahead intent recording
+(`L2-JOB-013`), and a durable monotonic sequence committed before it is handed out
+(`L2-JOB-015`).
 
-**The next action is the store itself** — schema, the repository interface behind which
-all SQL is confined (`L2-JOB-009`), and then the three hard ideas C1 carries:
-write-ahead ordering (`L2-JOB-013`), phase-dependent write-failure handling
-(`L2-JOB-014`), and the durable monotonic sequence (`L2-JOB-015`). None of those exists
-yet. Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
+`L2-JOB-009` stopped being an inspection: `make sql-confined` fails the build if
+`sqlite3.h` or SQL appears outside the repository. Like every gate here it was verified
+by deliberately introducing the violation and confirming it fails.
+
+The figure came out at 37.2% against an estimate of ~30%, which is worth explaining
+rather than celebrating: C1's requirements are traced directly at L2, and the milestone
+carried more of them than the per-family estimate assumed.
+
+**Two items remain before C1 is honestly done:**
+
+1. **`L2-JOB-014` is half-built.** The durable half exists — a job can be flagged for
+   operator attention, and a failed write is always reported rather than counted and
+   swallowed. The *phase policy* (abort before the commit point, halt after) belongs to
+   the move engine, because C3 is the only component that knows which side of the commit
+   point it is on. What is missing today is not the code so much as the means to test it:
+   there is no way to make a durable write fail on demand. See `docs/TEST-STRATEGY.md`.
+2. **Fault injection.** The store's uncovered quarter is almost entirely write-failure
+   handling. A requirement whose subject *is* a failure mode cannot be verified without
+   producing that failure.
+
+Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
 before starting anything.
 
 ---
@@ -88,6 +105,18 @@ interface, per ADR-0010.
   is a hard error, never a silent reset (`L2-JOB-012`); `error` is present if and only if
   state is `FAILED`, enforced as a `CHECK` constraint (`L2-JOB-010`); and a kill-at-every-
   statement test leaves the store readable and the sequence non-repeating.
+
+  **Status: met, except for `L2-JOB-014`.** All four done-when clauses are satisfied and
+  tested. `L2-JOB-013` and `L2-JOB-015` are built. `L2-JOB-014` has its durable half —
+  the attention flag, and a write failure that is always reported rather than counted and
+  swallowed — but the phase policy itself lands with C3, which is the only component that
+  knows which side of the commit point it is on.
+
+  The honest blocker is not the policy but the means to test it: nothing can currently
+  make a durable write fail on demand, which is also why `store.cpp` sits at 75.5% line
+  coverage against 91–100% elsewhere. A requirement whose subject *is* a failure mode
+  cannot be verified without producing that failure. `docs/TEST-STRATEGY.md` records
+  three privilege-free ways to produce it; pick one before C3 needs the answer.
 
 ### C2 — fd-relative filesystem layer
 

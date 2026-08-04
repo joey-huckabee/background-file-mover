@@ -16,6 +16,40 @@ tag, not a branch.
 
 ### Added
 
+- **The durable job store (C1).** `JobStore` in `cpp/include/filemover/store.hpp` and
+  `cpp/src/store.cpp` — SQLite in WAL mode with `synchronous=FULL` behind the repository
+  interface ADR-0010 called for. Both pragmas are **read back** after being set: SQLite
+  silently accepts a PRAGMA it does not understand, so "we set it" and "it is set" are
+  different claims. Schema migration is idempotent and keyed on `PRAGMA user_version`;
+  an absent store is first boot (`L2-JOB-011`); a corrupt store, or one written by a
+  newer build, is refused with the damage named and the bytes left untouched
+  (`L2-JOB-012`) — continuing past it would discard the record of jobs whose source
+  files may still exist. Intent is recorded before any filesystem action (`L2-JOB-013`),
+  and the job sequence is committed before it is handed out, so a crash can lose a
+  number but never issue one twice (`L2-JOB-015`).
+- **State transitions are validated by the core state machine, not re-implemented.**
+  `update_state` loads the job, calls `Job::transition`, and writes only if the core
+  accepts — one set of rules, in the component that already owns them. The schema
+  additionally enforces `L2-JOB-010` as a `CHECK` constraint, so a row that could not
+  have come from a legal transition cannot be stored even by a future caller that
+  bypasses the method. The duplication is deliberate: the core check governs this
+  process, the constraint governs the file.
+- **A kill-at-every-statement crash suite.** Forks a child, has it perform a growing
+  number of durable writes, then `SIGKILL`s it outright — no unwinding, no `close()`, no
+  cleanup — and verifies the store reopens, reports itself as existing rather than
+  silently recreated, and never reissues a sequence number. The kill is real because the
+  property is about what the *file* looks like when a process dies mid-write, and an
+  injected in-process error still unwinds and lets SQLite tidy up, which is exactly what
+  a crash does not do.
+- **`make sql-confined` turns `L2-JOB-009` from an inspection into a gate.** SQL and
+  `sqlite3.h` appear only in the repository implementation and the vendoring smoke test,
+  which is allow-listed explicitly with its reason. Inspection is the verification method
+  that quietly stops happening — it holds until the week someone needs one quick query
+  elsewhere and no tool objects. Verified by introducing the violation and confirming the
+  gate fails.
+- **`docs/TEST-STRATEGY.md`** — which kinds of testing exist, which are deferred and
+  why, and which get disproportionately more expensive the longer they are put off
+  (migration fixtures, fault injection, conformance corpora, a coverage floor).
 - **SQLite is vendored and pinned at 3.53.4** (ADR-0010, ADR-0004), filling the last
   `pending` row in `cpp/VENDORED.md`. The zip was authenticated against upstream's
   published SHA3-256 and byte size before extraction, and `sqlite3.c` / `sqlite3.h` are
@@ -66,6 +100,19 @@ tag, not a branch.
   `CONTRIBUTING.md`, and `CLAUDE.md` each spelled out their own `docker`/`podman` command,
   which is how CI and developers came to pull different images without anyone noticing.
   One target, one `GCC48_IMAGE`, both callers.
+- **Coverage is a gate, not just a number.** `make coverage` now fails below
+  `COVERAGE_MIN` (85%, against an actual 90.8%). Measured-but-unenforced coverage can
+  only decay, and it decays invisibly — nobody notices two points a milestone until it
+  is twenty. The floor sits deliberately below the current figure so a new component
+  landing partially covered does not block the work that will cover it, and it is a
+  **ratchet**: raised deliberately, never lowered quietly to make a build pass.
+- **The fuzz targets link a subtractive source list.** They built from `$(LIB_SRC)`,
+  which now contains a translation unit requiring the vendored SQLite object, so they
+  stopped linking. `FUZZ_LIB_SRC` is `$(LIB_SRC)` minus an explicit exclusion — a new
+  source is fuzzed by default and removing one is deliberate, rather than a hand-written
+  list that silently stops covering things. `store.cpp` is excluded because the fuzz
+  targets consume bytes with no I/O, and compiling a 9.5 MB amalgamation into every fuzz
+  build costs about a minute per target for code no fuzzer reaches.
 - **The CI tiers compile in parallel.** `make -j` across `check-ci`, `check-gcc48`, and
   every compiling workflow job, with `CI_JOBS` defaulting to `nproc`. Measured on a
   16-core host: the default tier went from **97s to 52s** from clean, and five
