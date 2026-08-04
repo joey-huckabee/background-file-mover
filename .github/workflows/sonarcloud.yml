@@ -28,9 +28,9 @@ name: Analyze with SonarCloud
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ main, v2-cpp ]
+    branches: [ main, 'c*-*' ]
   push:
-    branches: [ main, v2-cpp ]
+    branches: [ main, 'c*-*' ]
   schedule:
     - cron: '0 3 * * 1'  # weekly, Monday 03:00 UTC
 
@@ -39,14 +39,40 @@ permissions:
   pull-requests: read     # allows SonarCloud to decorate PRs
   security-events: write  # needed to upload SARIF results to GitHub
 
+# A job with `container:` defaults to `sh`, not `bash` — GitHub only defaults to
+# bash when it can find it on the runner. Moving this job into the toolchain
+# image therefore changed the language its steps are written in, and the scanner
+# invocation below uses a bash array:
+#
+#   /__w/_temp/....sh: 29: Syntax error: "(" unexpected
+#
+# Declared at workflow level rather than patched into the one step that broke,
+# because the point of the image is to remove divergence between local and CI,
+# and silently swapping the shell is a divergence of exactly that kind.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   sonarcloud:
     runs-on: ubuntu-24.04
+
+    # The same toolchain image cpp-ci.yml uses. Until this changed, SonarCloud
+    # was the one workflow still apt-installing its own tools, and it installed
+    # only `bear` -- so it built the compilation database with the runner's
+    # default g++-13 while every gate in cpp-ci.yml verifies g++-14. The
+    # analysis therefore described a compilation that CI never checked.
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
 
     env:
       SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
       SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # Pinned to match cpp-ci.yml. gcov must match the compiler that produced
+      # the notes files or it reports a version mismatch and emits nothing.
+      CXX: g++-14
+      CC: gcc-14
 
     steps:
       - name: Check Sonar secrets (safe)
@@ -60,19 +86,17 @@ jobs:
         with:
           fetch-depth: 0  # full history for accurate Sonar analysis
 
-      # bear records the compilation database the CFamily analyzer needs.
-      - name: Install bear
-        run: sudo apt-get update -q && sudo apt-get install -y -q bear
-
+      # bear records the compilation database the CFamily analyzer needs, and
+      # ships in the toolchain image alongside the compiler it records.
       - name: C++ compilation database
         run: |
           make -C cpp clean-all
-          bear --output cpp/compile_commands.json -- make -C cpp all
+          bear --output cpp/compile_commands.json -- make -C cpp -j$(nproc) all
 
       # Coverage is a separate -O0 --coverage build in its own tier, so the
       # instrumented objects never mix with the ones bear just recorded.
       - name: C++ coverage (gcov)
-        run: make -C cpp coverage
+        run: make -C cpp -j$(nproc) coverage GCOV=gcov-14
 
       - name: Install SonarScanner
         if: ${{ env.SONAR_TOKEN != '' && env.SONAR_PROJECT_KEY != '' && env.SONAR_ORGANIZATION != '' }}
@@ -89,14 +113,42 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
           SONAR_QG_WAIT: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
         run: |
+          # Run from cpp/, so the scanner's working directory and its project
+          # base directory are the same place and every relative path below
+          # means one thing.
+          #
+          # Why this matters, and it is not tidiness. gcov records the path a
+          # file was compiled with, and the objects are built from cpp/, so a
+          # report reads "Source:src/config.cpp". Scanning from the repository
+          # root made SonarCloud resolve that against the root --
+          # <root>/src/config.cpp, which does not exist and is not in
+          # sonar.sources -- so it logged
+          #
+          #   WARN File not analysed by Sonar, so ignoring coverage: .../src/config.cpp
+          #
+          # once per file, discarded the entire report, and let the Zero
+          # Coverage Sensor record 0%. The analysis still succeeded, so it
+          # stayed invisible until a default-branch push waited on the Quality
+          # Gate and failed it.
+          #
+          # The first attempt at this fix set -Dsonar.projectBaseDir=cpp and
+          # left the scanner running from the root. That is not equivalent:
+          # sonar.cfamily.compile-commands is resolved against the *working
+          # directory*, not against projectBaseDir, so the analysis died with
+          #
+          #   NoSuchFileException: <root>/compile_commands.json
+          #
+          # Two different base directories for two properties is a trap; cd
+          # removes it by making them the same directory.
+          cd cpp
           args=(
             "-Dsonar.projectKey=${SONAR_PROJECT_KEY}"
             "-Dsonar.organization=${SONAR_ORGANIZATION}"
-            "-Dsonar.sources=cpp/src,cpp/include"
-            "-Dsonar.tests=cpp/tests"
-            "-Dsonar.exclusions=docs/**,.github/**,sonar-scanner*.zip,sonar-scanner-*/**,cpp/third_party/**,cpp/build/**,cpp/fuzz/corpus-*/**"
-            "-Dsonar.cfamily.compile-commands=cpp/compile_commands.json"
-            "-Dsonar.cfamily.gcov.reportsPath=cpp/build/coverage/report"
+            "-Dsonar.sources=src,include"
+            "-Dsonar.tests=tests"
+            "-Dsonar.exclusions=third_party/**,build/**,fuzz/corpus-*/**"
+            "-Dsonar.cfamily.compile-commands=compile_commands.json"
+            "-Dsonar.cfamily.gcov.reportsPath=build/coverage/report"
           )
           if [ "$SONAR_QG_WAIT" = "true" ]; then
             echo "Default branch push (${GITHUB_REF_NAME}) - waiting for Quality Gate..."

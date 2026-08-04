@@ -173,18 +173,35 @@ sheet above and *CI architecture* below).
 
 ## CI architecture
 
-`.github/workflows/cpp-ci.yml` carries twelve jobs; `make check-ci` reproduces all of
-them locally in a container, so a red branch is avoidable:
+`.github/workflows/cpp-ci.yml` carries fourteen jobs; `make check-ci` reproduces all of
+them locally in a container, so a red branch is avoidable.
+
+Nine of them — every job that compiles — run inside the toolchain image
+`ghcr.io/joey-huckabee/bfm-ci` (built from `.github/ci-image/Dockerfile`), so CI and
+`check-ci` execute the *same* toolchain rather than two separately pinned copies of it.
+The other four stay on the runner deliberately: the fidelity job drives `docker run`
+itself, and the vendored-integrity, trace-matrix, and locale-free gates need no compiler.
 
 - **build & test (g++-14)** — fast feedback on a modern toolchain.
-- **build & test (gcc 4.8.5)** — the SLES 12 SP5 fidelity tier, in the official `gcc:4.8`
-  image. It runs the **full suite**, not just a compile; that is what closes the gap
-  between the instrumented build and the shipped one. Do not reduce it to `make all`.
-- **ASan + UBSan + LSan**, **ThreadSanitizer**, **Valgrind memcheck** — three separate
-  jobs. TSan cannot share a binary with ASan: their shadow-memory layouts conflict.
+- **build & test (gcc 4.8.5)** — the SLES 12 SP5 fidelity tier, running
+  `ghcr.io/joey-huckabee/gcc-4.8:4.8.5`, a mirror of the official `gcc:4.8` image
+  republished with a v2s2 manifest. It runs the **full suite**, not just a compile; that
+  is what closes the gap between the instrumented build and the shipped one. Do not
+  reduce it to `make all`, and do not point it back at the upstream tag — that image
+  carries a 2016 schema-1 manifest which modern Docker refuses, and this job silently
+  failed at the pull for some time because podman still accepted it locally.
+- **ASan + UBSan + LSan** — carries `--cap-add=SYS_PTRACE`. LeakSanitizer uses ptrace and
+  containers block it by default; the job needed no capability before it ran in one.
+- **ThreadSanitizer** and **Valgrind memcheck** — separate jobs from the sanitizer one.
+  TSan cannot share a binary with ASan: their shadow-memory layouts conflict.
 - **Vendored file integrity** — SHA-256 against `cpp/VENDORED.md`. A repository-wide edit
   once rewrote an identifier *inside* the vendored Catch2 header and every other gate
   passed; a compiler cannot tell, only a checksum can.
+- **SQL confinement** — fails the build if `sqlite3.h` or SQL appears outside
+  `src/store.cpp` and the allow-listed vendoring smoke test (`L2-JOB-009`, ADR-0010).
+  The requirement's stated method is Inspection; this makes it mechanical, because
+  inspection is the method that silently stops happening the week someone wants one
+  quick query somewhere else.
 - **Locale-free parsers** — greps the parser sources for `<cctype>` and the `strtoul`
   family (`L3-CPP-052`). A source gate because the runtime test needs a locale the
   runners do not always have.

@@ -7,21 +7,173 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Work on the `v2-cpp` branch toward the C++11 / REST **v1.0.0**. These entries describe
-that branch; `main` still ships the Python implementation at v0.4.2.
+Work toward the C++11 / REST **v1.0.0**, on one branch per milestone off `main`
+(currently `c1-durable-store`). The `v2-cpp` branch these entries were originally written
+against merged into `main` at the C0 boundary and was retired.
+
+**`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
+tag, not a branch.
+
+### Added
+
+- **The durable job store (C1).** `JobStore` in `cpp/include/filemover/store.hpp` and
+  `cpp/src/store.cpp` — SQLite in WAL mode with `synchronous=FULL` behind the repository
+  interface ADR-0010 called for. Both pragmas are **read back** after being set: SQLite
+  silently accepts a PRAGMA it does not understand, so "we set it" and "it is set" are
+  different claims. Schema migration is idempotent and keyed on `PRAGMA user_version`;
+  an absent store is first boot (`L2-JOB-011`); a corrupt store, or one written by a
+  newer build, is refused with the damage named and the bytes left untouched
+  (`L2-JOB-012`) — continuing past it would discard the record of jobs whose source
+  files may still exist. Intent is recorded before any filesystem action (`L2-JOB-013`),
+  and the job sequence is committed before it is handed out, so a crash can lose a
+  number but never issue one twice (`L2-JOB-015`).
+- **Phase-dependent write-failure handling (`L2-JOB-014`), with the fault injection that
+  makes it testable.** `record_transition` takes the `CommitPhase` and returns `AbortJob`
+  before the commit point and `HaltProcess` after — the same failure, the opposite
+  verdict — and always sets an error, because the requirement's last clause is that the
+  software never continues silently. Treating both phases as one retryable condition is
+  the specific mistake it exists to prevent: before the commit point, continuing means
+  acting with no durable record; after it, going on to delete the source leaves reality
+  and the record disagreeing.
+- **`JobStore::inject_write_fault` provokes a real refusal from SQLite's write path** —
+  `PRAGMA query_only` for a deterministic `SQLITE_READONLY`, and `PRAGMA max_page_count`
+  for a genuine `SQLITE_FULL`. Two decisions worth keeping: it is **not** behind an
+  `#ifdef`, because conditional compilation would mean the failure handling under test is
+  not the one that ships — and `L2-JOB-014` is exactly where that would matter; and it
+  provokes a real refusal rather than substituting a return value, because what has to
+  work is detecting SQLite failing, not us pretending it did.
+- **The attention flag is documented and tested as best-effort.** If the durable write
+  failed because the store is unwritable, recording the flag is another write to that
+  same store and fails too. That is why `L2-JOB-014` also requires logging at high
+  severity: the log is the guarantee, the flag is the convenience that survives when the
+  store is inconsistent rather than unreachable.
+- **State transitions are validated by the core state machine, not re-implemented.**
+  `update_state` loads the job, calls `Job::transition`, and writes only if the core
+  accepts — one set of rules, in the component that already owns them. The schema
+  additionally enforces `L2-JOB-010` as a `CHECK` constraint, so a row that could not
+  have come from a legal transition cannot be stored even by a future caller that
+  bypasses the method. The duplication is deliberate: the core check governs this
+  process, the constraint governs the file.
+- **A kill-at-every-statement crash suite.** Forks a child, has it perform a growing
+  number of durable writes, then `SIGKILL`s it outright — no unwinding, no `close()`, no
+  cleanup — and verifies the store reopens, reports itself as existing rather than
+  silently recreated, and never reissues a sequence number. The kill is real because the
+  property is about what the *file* looks like when a process dies mid-write, and an
+  injected in-process error still unwinds and lets SQLite tidy up, which is exactly what
+  a crash does not do.
+- **`make sql-confined` turns `L2-JOB-009` from an inspection into a gate.** SQL and
+  `sqlite3.h` appear only in the repository implementation and the vendoring smoke test,
+  which is allow-listed explicitly with its reason. Inspection is the verification method
+  that quietly stops happening — it holds until the week someone needs one quick query
+  elsewhere and no tool objects. Verified by introducing the violation and confirming the
+  gate fails.
+- **`docs/TEST-STRATEGY.md`** — which kinds of testing exist, which are deferred and
+  why, and which get disproportionately more expensive the longer they are put off
+  (migration fixtures, fault injection, conformance corpora, a coverage floor).
+- **SQLite is vendored and pinned at 3.53.4** (ADR-0010, ADR-0004), filling the last
+  `pending` row in `cpp/VENDORED.md`. The zip was authenticated against upstream's
+  published SHA3-256 and byte size before extraction, and `sqlite3.c` / `sqlite3.h` are
+  hash-pinned individually — `make verify-vendored` checks four files now, not two.
+  The latest release proved viable on GCC 4.8.5, so no version step-back was needed.
+  It compiles by its own Makefile rule, with `-Werror` intact: `-fno-strict-aliasing`
+  removes the type-punning diagnostics at their cause rather than suppressing them, and
+  `-Wextra` is dropped because its style warnings can only be satisfied by editing a file
+  ADR-0004 forbids editing. Extension loading, double-quoted string literals, and memory
+  accounting are compiled out.
+- **`tests/test_sqlite_vendor.cpp`**, covering the two things a vendoring commit can get
+  wrong that no other gate would catch: `sqlite3.c` and `sqlite3.h` drifting to different
+  releases despite each being individually hash-intact, and the compile-time hardening
+  silently not taking effect. It carries **no requirement tag** and does not move the
+  trace figure — vendoring a dependency verifies no requirement.
 
 ### Removed
 
-- **The Python implementation is no longer in the `v2-cpp` branch.** `src/file_mover/`,
+- **The Python implementation is no longer in the tree.** `src/file_mover/`,
   the pytest suite, `pyproject.toml`, `poetry.lock`, `packaging/systemd/`, and the Python
-  CI workflows (`ci.yml`, `fuzz.yml`) were deleted. Nothing is lost: that code ships from
-  `main` and is tagged `v0.4.2`, which remains the version to deploy today.
+  CI workflows (`ci.yml`, `fuzz.yml`) were deleted. Nothing is lost: that code is tagged
+  `v0.4.2` — on `origin` as well as locally — which remains the version to deploy today.
   `scripts/build-trace-matrix.py` stayed — it is repository infrastructure covering the
   requirements rather than either implementation, and it imports only the standard
   library, so it needs no Python packaging.
 
 ### Changed
 
+- **One branch per milestone, replacing the long-lived `v2-cpp` branch.** C0 merged into
+  `main` with `--no-ff` and was published; `v2-cpp` was deleted locally and on `origin`.
+  Work now happens on `c<N>-<short-name>` branches cut from `main` and deleted at the
+  boundary. The cadence, and the `git branch -d` refusal that makes a fully-merged branch
+  look unmerged, are documented in `docs/ROADMAP.md`.
+- **CI pins a C compiler.** `CC` is set to `gcc-14` alongside `CXX: g++-14`, and the jobs
+  that compile now install `gcc-14`. The `g++-14` package alone leaves no usable `cc`, so
+  the first build with a C translation unit in it failed with `make: cc: No such file or
+  directory`; the runner's default `cc` is gcc-13, a different compiler from the one
+  building the C++ objects. The fidelity job blanks `CC` as it already blanked `CXX`.
+- **The GCC 4.8.5 fidelity tier runs from a mirror, `ghcr.io/joey-huckabee/gcc-4.8:4.8.5`.**
+  `docker.io/library/gcc:4.8` was pushed in 2016 with a Docker manifest v2 *schema 1*,
+  which modern Docker disables by default; the CI job had been dying at the pull with
+  `exit code 125` before compiling anything, while the same tier passed locally because
+  podman still accepts schema 1. The mirror is that image republished with a v2s2
+  manifest. Schema 1 is slated for removal outright, so pinning the upstream tag would
+  not have survived. **The tier that decides whether the code ships had not actually run
+  in CI for some time.**
+- **`make check-gcc48` replaces three hand-written container invocations.** `cpp-ci.yml`,
+  `CONTRIBUTING.md`, and `CLAUDE.md` each spelled out their own `docker`/`podman` command,
+  which is how CI and developers came to pull different images without anyone noticing.
+  One target, one `GCC48_IMAGE`, both callers.
+- **Coverage is a gate, not just a number.** `make coverage` now fails below
+  `COVERAGE_MIN` (85%, against an actual 90.8%). Measured-but-unenforced coverage can
+  only decay, and it decays invisibly — nobody notices two points a milestone until it
+  is twenty. The floor sits deliberately below the current figure so a new component
+  landing partially covered does not block the work that will cover it, and it is a
+  **ratchet**: raised deliberately, never lowered quietly to make a build pass.
+- **The fuzz targets link a subtractive source list.** They built from `$(LIB_SRC)`,
+  which now contains a translation unit requiring the vendored SQLite object, so they
+  stopped linking. `FUZZ_LIB_SRC` is `$(LIB_SRC)` minus an explicit exclusion — a new
+  source is fuzzed by default and removing one is deliberate, rather than a hand-written
+  list that silently stops covering things. `store.cpp` is excluded because the fuzz
+  targets consume bytes with no I/O, and compiling a 9.5 MB amalgamation into every fuzz
+  build costs about a minute per target for code no fuzzer reaches.
+- **The CI tiers compile in parallel.** `make -j` across `check-ci`, `check-gcc48`, and
+  every compiling workflow job, with `CI_JOBS` defaulting to `nproc`. Measured on a
+  16-core host: the default tier went from **97s to 52s** from clean, and five
+  consecutive clean parallel builds passed — the test that matters, since a missing
+  prerequisite surfaces under `-j` as an intermittent failure rather than a reproducible
+  one. It will not scale past this: the vendored `sqlite3.c` is a single 9.5 MB
+  translation unit taking **48.8s** against 1.35s for a typical C++ file, so a parallel
+  build is now almost exactly "compile sqlite3.c".
+- **The vendored SQLite object is cached with ccache.** It is the one source here that
+  never changes — ADR-0004 forbids editing vendored files — and the most expensive to
+  build, so every one of the five or six rebuilds per `check-ci` run produced a
+  byte-identical object at ~49s each. Measured in the CI container: **60s cold, 0s warm.**
+  Scoped to that object alone and deliberately not applied to the project's own sources,
+  where the saving is a second or two and the coverage tier compiles with `--coverage`,
+  which requires ccache to place `.gcno` files where gcov can resolve them — a real risk
+  for no measurable gain, in a project whose coverage reporting has already been broken
+  once by a path-resolution subtlety.
+- **Every compiling CI job runs in the toolchain image.** Nine of the thirteen jobs in
+  `cpp-ci.yml` declare it as their `container:` and no longer `apt-get install` anything,
+  so CI and `make check-ci` now execute the same toolchain rather than two independently
+  pinned copies of it. The ASan job carries `options: --cap-add=SYS_PTRACE`: LeakSanitizer
+  uses ptrace, containers block it by default, and it was previously exempt only because
+  GitHub's runner is not a container. The remaining four jobs stay on the runner
+  deliberately — the fidelity job drives `docker run` itself, and the vendored-integrity,
+  trace-matrix, and locale-free gates need no compiler.
+- **`make check-ci` runs from a prebuilt toolchain image** (`.github/ci-image/Dockerfile`,
+  published as `ghcr.io/joey-huckabee/bfm-ci`) instead of apt-installing the toolchain on
+  every invocation. The Makefile used to justify that cost as "the price of not
+  maintaining a second distro"; the repository already maintains the GCC 4.8.5 mirror, so
+  the trade changed. The image *is* the pin, which is why the package list is not
+  duplicated back into the Makefile. Tags are dates, never `latest`, so a run always
+  names the toolchain it used. The runtime `locale-gen` became an assertion that
+  `tr_TR.UTF-8` exists, so a future image dropping it fails the gate rather than quietly
+  downgrading the L3-CPP-052 check to a warning.
+- **SonarCloud coverage is ingested rather than silently discarded.** The scanner now runs
+  with `sonar.projectBaseDir=cpp`. gcov records the path it compiled with -- `src/config.cpp`,
+  relative to `cpp/` -- and scanning from the repository root made SonarCloud look for
+  `<root>/src/config.cpp`, log `File not analysed by Sonar, so ignoring coverage` for
+  every file, drop the whole report, and let the Zero Coverage Sensor record 0%. The
+  analysis still succeeded, so this stayed invisible until a default-branch push waited
+  on the Quality Gate and failed it.
 - **The trace-matrix generator reads Catch2 tags as well as pytest markers.** A
   requirement id inside a `TEST_CASE` tag string — `TEST_CASE("...",
   "[json][L3-CPP-019]")` — now counts as verification evidence. Until this landed the
@@ -47,6 +199,14 @@ that branch; `main` still ships the Python implementation at v0.4.2.
 
 ### Fixed
 
+- **The fidelity container was documented as the wrong operating system.** Six places
+  described `gcc:4.8` as a Debian Jessie base with glibc 2.19; it is Debian 7.10
+  "wheezy" with **glibc 2.13**, confirmed from `/etc/os-release` and `getconf`. The error
+  was benign in direction -- 2.13 is *older* than the SLES 12 SP5 target's 2.22, making
+  the tier a more conservative floor than advertised rather than a weaker one, so every
+  "passes on 4.8.5" conclusion still holds. Corrected in `cpp-ci.yml`, `cpp/README.md`,
+  `CONTRIBUTING.md`, `cpp/Makefile`, and ADR-0001 and ADR-0005 (a factual correction to
+  their context sections; no decision changed).
 - **`L3-CPP-019` was implemented but untested.** The JSON parser has always reported the
   byte offset of a rejection; nothing asserted it. The non-empty half of the requirement
   was covered incidentally by a test helper, which is what disguised the gap.

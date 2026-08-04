@@ -9,8 +9,9 @@ precedent: none — first project in this line to require building inside the gc
 
 ## Context and Problem Statement
 
-SLES 12 ships an old CMake, and the gcc:4.8 CI container (Debian Jessie base)
-has archived apt repositories, making CMake installation unreliable there.
+SLES 12 ships an old CMake, and the gcc:4.8 CI container (Debian 7 "wheezy"
+base) has archived apt repositories, making CMake installation unreliable
+there.
 The project is a handful of translation units with one test binary.
 
 ## Decision Drivers

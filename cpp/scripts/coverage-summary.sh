@@ -1,7 +1,16 @@
 #!/bin/sh
 # Summarizes gcov output for the C++ tree.
 #
-# Usage:  sh scripts/coverage-summary.sh <gcov-report-dir> [markdown]
+# Usage:  sh scripts/coverage-summary.sh <gcov-report-dir> [plain|markdown] [min%]
+#
+# With a third argument, the total is a GATE: below it, this exits non-zero.
+# Coverage that is only ever printed can only decay, and it decays invisibly --
+# nobody notices a number falling two points a milestone until it is twenty.
+#
+# The floor is a RATCHET. Raise it deliberately when a milestone lands well
+# above it; never lower it quietly to make a build pass. Lowering it is a
+# decision worth arguing for in a commit message, which is exactly the friction
+# it is meant to create.
 #
 # gcov annotates each source line with an execution count in the first
 # colon-delimited field:
@@ -16,6 +25,7 @@ set -eu
 
 DIR="${1:-build/coverage/report}"
 FORMAT="${2:-plain}"
+MIN="${3:-}"
 
 if [ ! -d "$DIR" ]; then
     echo "coverage-summary: no such directory: $DIR" >&2
@@ -73,4 +83,24 @@ if [ "$FORMAT" = "markdown" ]; then
         "$total_cov" "$total_inst" "$total_pct"
 else
     printf '%-20s %5s / %-5s  %s\n' "TOTAL" "$total_cov" "$total_inst" "$total_pct"
+fi
+
+if [ -n "$MIN" ]; then
+    if [ "$total_inst" -eq 0 ]; then
+        echo "coverage-summary: nothing instrumented; cannot check a floor" >&2
+        exit 1
+    fi
+    # awk rather than shell arithmetic: these are percentages with a decimal
+    # place, and `[ 89.7 -lt 90 ]` is a syntax error, not a comparison.
+    below=$(awk "BEGIN { print ($total_cov * 100 / $total_inst < $MIN) ? 1 : 0 }")
+    if [ "$below" -eq 1 ]; then
+        echo "" >&2
+        echo "coverage-summary: total $total_pct is below the floor of $MIN%" >&2
+        echo "" >&2
+        echo "Add tests for what regressed. If the floor itself is wrong --" >&2
+        echo "a new component landing partially covered, say -- change it" >&2
+        echo "deliberately in cpp/Makefile and say why in the commit." >&2
+        exit 1
+    fi
+    printf 'coverage floor: %s >= %s%% OK\n' "$total_pct" "$MIN"
 fi

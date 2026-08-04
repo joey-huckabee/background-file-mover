@@ -72,8 +72,9 @@ because node-based actions cannot execute against its old glibc. For a
 private repository, switch the clone URL to the tokenized form shown in the
 workflow comment.
 
-`gcc:4.8` is a *proxy* for the target, not the target: Debian glibc 2.19 vs
-SUSE 2.22, no systemd, no NFS.
+`gcc:4.8` is a *proxy* for the target, not the target: Debian 7 "wheezy" with
+glibc 2.13 vs SUSE 2.22, no systemd, no NFS. Older, not merely different —
+which makes it a conservative floor rather than an approximation.
 
 ## REST API (target shape)
 

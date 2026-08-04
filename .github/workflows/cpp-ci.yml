@@ -44,38 +44,71 @@ concurrency:
   group: cpp-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# A job with `container:` defaults to `sh`, not `bash`. Every step here happens
+# to be POSIX-clean today, so this changes nothing now — it is here so that the
+# first bash-ism someone writes fails on their branch rather than mysteriously
+# only inside a container. Containerising a job should not change the language
+# its steps are written in.
+defaults:
+  run:
+    shell: bash
+
 env:
   # Applied to every job. The Makefile honours CXX, so this selects the
   # compiler for the functional, sanitizer, and coverage tiers alike.
   CXX: g++-14
+  # The vendored SQLite amalgamation is C, so the build needs a C compiler as
+  # well. Pinned alongside CXX because a bare `cc` is a different compiler from
+  # the g++-14 that builds the C++ objects.
+  #
+  # gcc-14 is supplied by the toolchain image rather than installed per job --
+  # the `g++-14` package alone leaves no usable `cc`, which is what broke the
+  # build the first time a C translation unit landed. The image lists it
+  # explicitly for that reason.
+  CC: gcc-14
+  # Where ccache keeps the vendored SQLite object between runs. Named
+  # explicitly rather than left to default under $HOME, because these jobs run
+  # inside a container where HOME is /github/home -- a cache path that is wrong
+  # does not fail, it just silently caches nothing, which is the worst outcome
+  # for a performance change. Only sqlite3.o is cached; see CCACHE in
+  # cpp/Makefile for why it is scoped that narrowly.
+  CCACHE_DIR: /github/home/.ccache
 
 jobs:
   build-test-modern:
     name: build & test (g++-14)
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-20 clang-tidy-20 cppcheck valgrind locales
-      # The locale-independence test (L3-CPP-052) parses under tr_TR.UTF-8,
-      # where std::tolower('I') does not yield 'i'. setlocale returns NULL if
-      # the locale is not generated and the test downgrades to a warning, so
-      # generate it and let the check actually run.
-      - name: Generate the Turkish locale
-        run: sudo locale-gen tr_TR.UTF-8
-      # Printed so a runner-image or package change shows up as a visible diff
-      # in the log rather than as an unexplained warning in some other job.
+      # No toolchain install and no locale-gen: both are baked into the image,
+      # which is also where their versions are pinned. tr_TR.UTF-8 ships in the
+      # image because the locale-independence test (L3-CPP-052) parses under it,
+      # where std::tolower('I') does not yield 'i' -- and setlocale returning
+      # NULL makes that test downgrade itself to a warning rather than fail.
+      #
+      # Keyed on the vendored source itself: it changes only when SQLite is
+      # re-pinned, which is exactly when the cached object must be discarded.
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
+      # Printed so a toolchain change shows up as a visible diff in the log
+      # rather than as an unexplained warning in some other job.
       - name: Toolchain versions
         run: make -C cpp versions
       - name: Build
-        run: make -C cpp all
+        run: make -C cpp -j$(nproc) all
       - name: Test
-        run: make -C cpp check
+        run: make -C cpp -j$(nproc) check
 
-  # Fidelity job: official gcc:4.8 Docker image (Debian Jessie base, GCC
-  # 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
-  # It is a proxy, not the target: different glibc (2.19 vs 2.22), no
-  # systemd, no NFS. It proves C++11 conformance, not deployability.
+  # Fidelity job: the official gcc:4.8 image (Debian 7 "wheezy", glibc 2.13,
+  # GCC 4.8.5) — the closest public proxy for the SLES 12 SP5 system compiler.
+  # It is a proxy, not the target: older glibc (2.13 vs 2.22), no systemd, no
+  # NFS. It proves C++11 conformance, not deployability. Being *older* than the
+  # target makes it a conservative floor: passing here implies passing there.
   #
   # This does NOT use a job-level `container:`. Doing so runs every step
   # inside the image, and node-based actions (checkout, upload-artifact)
@@ -96,14 +129,33 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CXX: ""
+      CC: ""
     steps:
       - uses: actions/checkout@v6
+      # A mirror of docker.io/library/gcc:4.8, byte-identical, republished with
+      # a v2s2 manifest. Keep this in step with GCC48_IMAGE in cpp/Makefile.
+      #
+      # The upstream tag cannot be used here any more. It was pushed in 2016
+      # with a Docker manifest v2 *schema 1*, which modern Docker refuses by
+      # default, so this job died at the pull:
+      #
+      #   docker: [DEPRECATION NOTICE] ... schema 1 support is disabled by
+      #   default and will be removed in an upcoming release
+      #   Process completed with exit code 125
+      #
+      # It failed before compiling anything, while the same tier passed locally
+      # because podman still accepts schema 1 -- a local/CI divergence that hid
+      # the breakage. Schema 1 is being removed outright, so re-pointing at the
+      # upstream tag would not have survived either.
+      # Driven through the Makefile target rather than a hand-written
+      # `docker run`, so this job and a developer's `make check-gcc48` are the
+      # same command reading the same GCC48_IMAGE. Three separately maintained
+      # copies of this invocation are exactly how CI and local came to pull
+      # different images without either noticing.
       - name: Toolchain versions
-        run: docker run --rm gcc:4.8 sh -c "g++ --version | head -1; make --version | head -1"
+        run: make -C cpp versions
       - name: Build and test
-        run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src gcc:4.8 \
-            sh -c "make -C cpp clean && make -C cpp check"
+        run: make -C cpp check-gcc48
 
   # ASan (heap/stack overflow, use-after-free), UBSan (undefined behavior),
   # LSan (leaks) — all fatal on first finding. Modern toolchain only: GCC
@@ -111,12 +163,23 @@ jobs:
   sanitizers:
     name: ASan + UBSan + LSan
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
+      # LeakSanitizer uses ptrace, which containers block by default. Before
+      # this job ran in a container it did not need the capability -- GitHub's
+      # runner is not a container. It does now, and without it LSan dies with a
+      # fatal error that reads like a test failure rather than a permissions
+      # problem. `make check-ci` passes the same flag for the same reason.
+      options: --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
       - name: Build & test (instrumented)
-        run: make -C cpp check SANITIZE=1
+        run: make -C cpp -j$(nproc) check SANITIZE=1
 
   # ThreadSanitizer (L2-ARC-008). A separate job, not an extra flag on the
   # sanitizer build: TSan and ASan cannot coexist in one binary because their
@@ -130,24 +193,34 @@ jobs:
   thread-sanitizer:
     name: ThreadSanitizer
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
       - name: Build & test (TSan)
-        run: make -C cpp check THREAD=1
+        run: make -C cpp -j$(nproc) check THREAD=1
 
   # Valgrind memcheck structures detection differently from the sanitizers;
   # --error-exitcode=1 fails on any finding, including still-reachable blocks.
   valgrind:
     name: Valgrind memcheck
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 valgrind
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
       - name: Build
-        run: make -C cpp all
+        run: make -C cpp -j$(nproc) all
       - name: Memcheck
         run: make -C cpp check-valgrind
 
@@ -198,15 +271,26 @@ jobs:
       - name: Verify
         run: make -C cpp locale-free
 
+  # L2-JOB-009. SQL and the vendored sqlite3.h stay behind the JobStore
+  # interface (ADR-0010). The requirement's stated method is Inspection, which
+  # is the method that quietly stops happening; this makes it mechanical.
+  sql-confinement:
+    name: SQL confinement
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify
+        run: make -C cpp sql-confined
+
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:
     name: cppcheck
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install cppcheck
-        run: sudo apt-get update -q && sudo apt-get install -y -q cppcheck
       - name: Analyze
         run: >
           cppcheck --enable=warning,portability --error-exitcode=1
@@ -220,18 +304,23 @@ jobs:
   clang-tidy:
     name: clang-tidy
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14 clang-tidy-20 bear
       # bear records only the compiler invocations it observes, so the tree
       # must be clean first. A pre-built tree yields an empty database, and
       # clang-tidy then skips every file and exits 0 — a gate that passes
       # having analyzed nothing.
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
       - name: Generate compilation database
         run: |
           make -C cpp clean-all
-          bear --output cpp/compile_commands.json -- make -C cpp all
+          bear --output cpp/compile_commands.json -- make -C cpp -j$(nproc) all
       - name: Assert the database covers the sources
         run: |
           cd cpp
@@ -249,10 +338,10 @@ jobs:
   fuzz-regression:
     name: Fuzz corpus replay
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
       - name: Replay committed corpus
         run: make -C cpp fuzz-corpus FUZZ_CXX=clang++-20
 
@@ -262,10 +351,10 @@ jobs:
   fuzz-short:
     name: Fuzz (60s)
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install clang
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20
       - name: Fuzz
         run: make -C cpp fuzz-run FUZZ_SECONDS=60 FUZZ_CXX=clang++-20
       - name: Upload crash reproducers
@@ -281,14 +370,19 @@ jobs:
   coverage:
     name: Coverage (gcov)
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/joey-huckabee/bfm-ci:2026-08-04
     steps:
       - uses: actions/checkout@v6
-      - name: Install toolchain
-        run: sudo apt-get update -q && sudo apt-get install -y -q g++-14
       # gcov must match the compiler that produced the notes files, or it
       # reports "version mismatch" and emits nothing usable.
+      - name: Restore the SQLite object cache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.ccache
+          key: ccache-${{ github.job }}-${{ hashFiles('cpp/third_party/sqlite/sqlite3.c') }}
       - name: Build instrumented and run
-        run: make -C cpp coverage GCOV=gcov-14
+        run: make -C cpp -j$(nproc) coverage GCOV=gcov-14
       - name: Summarize
         run: |
           {

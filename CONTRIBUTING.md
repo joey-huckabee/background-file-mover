@@ -8,8 +8,13 @@ The implementations live on separate branches — they no longer share a tree:
 
 | Branch | Implementation | Status |
 |---|---|---|
-| `main` | Python 3.10, standard-library-only | Ships through v0.4.2; deploy this today |
-| `v2-cpp` | C++11 with a REST control plane | v1.0.0 in progress; **no Python in the tree** |
+| `main` | C++11 with a REST control plane | v1.0.0 in progress; **no Python in the tree** |
+| `c<N>-<name>` | The milestone in flight, cut from `main` | Currently `c1-durable-store`; merged and deleted at the boundary |
+| tag `v0.4.2` | Python 3.10, standard-library-only | **Deploy this today.** Not a branch — the Python tree was removed from `main` when C0 merged |
+
+The long-lived `v2-cpp` branch is gone: it merged into `main` at the C0 boundary and was
+deleted. Work happens on one branch per milestone — see *Merge cadence* in
+`docs/ROADMAP.md`.
 
 `CLAUDE.md` carries the migration context and the three failure modes that
 are easy to get wrong. Read it before touching requirements.
@@ -73,9 +78,56 @@ cd cpp && make check-ci
 ```
 
 That executes functional, sanitizer, Valgrind, cppcheck, and clang-tidy tiers
-inside the same `ubuntu:24.04` image CI uses. It installs packages on each run
-(~40s), which is the price of not maintaining a second distro — and it is only
-paid when reproducing CI rather than on every build.
+inside a **prebuilt toolchain image**, `ghcr.io/joey-huckabee/bfm-ci`, built
+from `.github/ci-image/Dockerfile`.
+
+It used to run bare `ubuntu:24.04` and apt-install the toolchain on every
+invocation (~40s), justified as the price of not maintaining a second distro.
+That was the right trade while this repository maintained no images; it already
+maintains the GCC 4.8.5 mirror, so the trade changed. The image is also *the
+pin* — the package list lives in the Dockerfile and is deliberately not copied
+back into the Makefile, because two copies of a pinned toolchain is how pins
+drift apart.
+
+Tags are dates, never `latest`, so a run always names the toolchain it used.
+Rebuild and repush when a pinned version changes, then update `CI_IMAGE` in
+`cpp/Makefile` in the same commit:
+
+```bash
+podman build -t ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD \
+    -f .github/ci-image/Dockerfile .github/ci-image
+podman push ghcr.io/joey-huckabee/bfm-ci:YYYY-MM-DD
+```
+
+The package must be **public**, for the same reason the fidelity mirror must
+be: it lives in a user namespace rather than the repository's.
+
+The tiers compile with `make -j$(CI_JOBS)`, defaulting to `nproc`. Do not
+expect much from raising it — the vendored `sqlite3.c` is a single 9.5 MB
+translation unit that takes ~49s by itself against ~1.4s for a typical C++
+file, so it is the critical path and a parallel build is close to "compile
+sqlite3.c".
+
+That object is therefore cached with **ccache**, and nothing else is. It is the
+only source here that never changes (ADR-0004 forbids editing vendored files)
+and the most expensive to build, so the five or six rebuilds a `check-ci` run
+performs were producing an identical object each time. Measured in the
+container: **60s cold, 0s warm**.
+
+The cache lives at `$(CCACHE_HOST_DIR)` — `~/.cache/background-file-mover-ccache`
+by default — and is mounted into the container. It is outside the repository on
+purpose, so `git clean` cannot wipe it, and it survives between runs, which is
+the whole point: the container is discarded on exit, so an in-container cache
+would start cold every time.
+
+ccache is **not** applied to the project's own sources. The saving there is a
+second or two, and the coverage tier compiles with `--coverage`, where ccache
+has to place `.gcno` files exactly where gcov will look for them. That is a
+real risk for no measurable gain — and this project's coverage reporting has
+already been broken once by a path-resolution subtlety.
+
+If ccache is not installed, `CCACHE` is empty and the rule degrades to a plain
+compile, so nothing depends on its presence.
 
 `make versions` prints the host toolchain; CI prints the same in its log, so a
 runner-image change is a visible diff rather than a mysterious failure
@@ -83,8 +135,12 @@ somewhere else.
 
 One gotcha: **LeakSanitizer needs `ptrace`**, which containers block by
 default. `make check-ci` passes `--cap-add=SYS_PTRACE`; without it LSan dies
-with a fatal error that reads like a test failure. GitHub's runner is not a
-container and does not need this.
+with a fatal error that reads like a test failure.
+
+This used to come with the note "GitHub's runner is not a container and does
+not need this." That stopped being true when the sanitizer job moved into the
+toolchain image, so it now declares `options: --cap-add=SYS_PTRACE` on its
+`container:` for exactly the same reason.
 
 ### Why not `/mnt/c`
 
@@ -118,11 +174,12 @@ sudo apt install -y \
     valgrind cppcheck \
     clang clangd clang-format clang-tidy \
     bear \
+    ccache \
     podman
 
 git clone git@github.com:joey-huckabee/background-file-mover.git ~/GIT/background-file-mover
 cd ~/GIT/background-file-mover
-git checkout v2-cpp
+git checkout c1-durable-store   # or whichever milestone is in flight
 ```
 
 ### GitHub authentication — use SSH
@@ -154,11 +211,13 @@ What each piece is for:
 | `clang` | sanitizer and **libFuzzer** tiers (ADR-0008); GCC 4.8 can host neither |
 | `clangd` | C++ language server for editor completion, diagnostics, go-to-definition |
 | `bear` | records a `compile_commands.json` from a Make build so `clangd` understands the project |
+| `ccache` | caches the vendored `sqlite3.o`. Optional — the build degrades to a plain compile without it — but without it every clean build pays ~49s to recompile a 9.5 MB file that never changes. `make versions` says `MISSING` when it is absent. |
 | `podman` | runs the GCC 4.8.5 fidelity tier in a container |
 
 Ubuntu's Podman has no unqualified-search registries configured, so images
-must be named in full — `docker.io/library/gcc:4.8`, not `gcc:4.8`. A bare
-name fails with `short-name ... did not resolve to an alias`.
+must be named in full — `docker.io/library/ubuntu:24.04`, not `ubuntu:24.04`.
+A bare name fails with `short-name ... did not resolve to an alias`. The
+fidelity image is already fully qualified (`ghcr.io/...`), so it is unaffected.
 
 ### Python tooling
 
@@ -232,9 +291,51 @@ cppcheck --enable=warning,portability --error-exitcode=1 \
 The GCC 4.8.5 fidelity tier:
 
 ```bash
-podman run --rm -v ~/GIT/background-file-mover:/src \
-    docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
+make check-gcc48
 ```
+
+This target and the CI job pull the **same** image,
+`ghcr.io/joey-huckabee/gcc-4.8:4.8.5` — a byte-identical mirror of
+`docker.io/library/gcc:4.8`, republished with a v2s2 manifest.
+
+The upstream tag is no longer usable. It was pushed in 2016 with a Docker
+manifest v2 *schema 1*, which modern Docker disables by default, so the CI job
+failed at the pull with `exit code 125` before compiling anything — while this
+tier kept passing locally, because podman still accepts schema 1. Schema 1 is
+being removed outright, so pinning the upstream tag is not a fix that lasts.
+
+The invocation lives in the Makefile rather than in prose precisely because
+three hand-written copies of it are how local and CI came to pull different
+images in the first place.
+
+#### Recreating the mirror
+
+The mirror is infrastructure this project owns, so the recipe belongs here
+rather than in one person's shell history. It must be produced with a tool
+that can still *read* schema 1 — podman and skopeo can, current Docker cannot,
+which is the whole reason the mirror exists.
+
+```bash
+podman pull docker.io/library/gcc:4.8
+podman tag  docker.io/library/gcc:4.8 ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+podman login ghcr.io -u <user> --password-stdin   # needs a write:packages token
+podman push --format v2s2 ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+```
+
+Verify the conversion actually happened rather than assuming it — the point of
+the exercise is the manifest, not the upload:
+
+```bash
+podman manifest inspect ghcr.io/joey-huckabee/gcc-4.8:4.8.5
+# schemaVersion must be 2, and mediaType
+# application/vnd.docker.distribution.manifest.v2+json.
+# If it still says manifest.v1+prettyjws, nothing was fixed.
+```
+
+The package must be **public**, or CI cannot pull it: it lives in a user
+namespace rather than the repository's, so a workflow's `GITHUB_TOKEN` has no
+implicit read access to it. Publishing a byte-identical copy of an
+already-public image discloses nothing.
 
 ### Build directories are keyed on toolchain
 
@@ -277,8 +378,9 @@ The GCC 4.8 job runs the **full test suite**, not a compile check. That is
 what closes the gap between the instrumented build and the shipped build,
 since the sanitizers never run against the GCC 4.8 compilation.
 
-`gcc:4.8` is a *proxy*, not the target: Debian glibc 2.19 versus SUSE 2.22,
-no systemd, no NFS. Deployability is verified on real hardware per
+`gcc:4.8` is a *proxy*, not the target: Debian 7 "wheezy" with glibc 2.13
+versus SUSE 2.22, no systemd, no NFS. Older rather than merely different, so
+it is a conservative floor. Deployability is verified on real hardware per
 `docs/DEPLOYMENT.md`.
 
 ---
@@ -480,8 +582,7 @@ make coverage                                 # coverage report
 cppcheck --enable=warning,portability --error-exitcode=1 \
          --inline-suppr --std=c++11 -Iinclude src/ tests/
 make clean-all && bear -- make all && make tidy    # see the note below
-podman run --rm -v ~/GIT/background-file-mover:/src \
-    docker.io/library/gcc:4.8 sh -c "cd /src/cpp && make check"
+make check-gcc48                              # GCC 4.8.5 fidelity tier
 
 cd ..
 python scripts/build-trace-matrix.py --check   # traceability gate

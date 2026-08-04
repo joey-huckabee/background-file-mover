@@ -9,27 +9,55 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-03 · **Branch:** `v2-cpp` · **Current milestone: C1 — not started.**
+**Date:** 2026-08-04 · **Branch:** `c1-durable-store` · **Current milestone: C1 — the
+durable store is built and tested; two items remain, both named below.**
 
-**C0 (the foundation) is delivered.** Five components are built, tested, fuzzed where
-they touch untrusted input, and green on every gate including the GCC 4.8.5 fidelity
-tier: the strict-subset **JSON parser** and REST codec, the **configuration loader**, the
-**job model and state machine**, the **rename template engine**, and the **HTTP
-request-head parser**. The full CI apparatus is in place — fifteen gates — and the
-Python implementation has been removed from this branch.
+**C0 (the foundation) is delivered and merged.** Five components are built, tested,
+fuzzed where they touch untrusted input, and green on every gate including the GCC 4.8.5
+fidelity tier: the strict-subset **JSON parser** and REST codec, the **configuration
+loader**, the **job model and state machine**, the **rename template engine**, and the
+**HTTP request-head parser**. The full CI apparatus is in place — fifteen gates. C0 was
+merged into `main` and published, `v2-cpp` was retired, and work now happens on one
+branch per milestone (see *Merge cadence*).
 
 **Nothing that moves a file exists yet.** There is no durable store, no filesystem layer,
 no move engine, no job manager, no socket server, no daemon entry point. The service
 cannot start, because there is no `main`.
 
 ```
-In v1.0.0 scope:  48 of 226 requirements verified  (21.2%)
-Tests:            6,800 assertions / 97 cases      (all tiers green)
+In v1.0.0 scope:  84 of 226 requirements verified  (37.2%)
+Tests:            7,308 assertions / 127 cases     (all tiers green)
+Line coverage:    90.8% overall, 75.5% for the new store
 ```
 
-**The next action is C1 — the durable store.** Everything else depends on it, and its
-first task is vendoring the SQLite amalgamation, which is the one `pending` row in
-`cpp/VENDORED.md`.
+**SQLite is vendored** at **3.53.4**, pinned per file in `cpp/VENDORED.md`, verified on
+real GCC 4.8.5 rather than assumed.
+
+**The durable store exists.** `JobStore` (`cpp/include/filemover/store.hpp`,
+`cpp/src/store.cpp`) is the repository interface ADR-0010 called for: WAL and
+`synchronous=FULL` both *read back* after being set rather than assumed, idempotent
+migration keyed on `PRAGMA user_version`, an absent store treated as first boot
+(`L2-JOB-011`), a corrupt or newer-than-known store refused outright with the damage
+named and the bytes left untouched (`L2-JOB-012`), write-ahead intent recording
+(`L2-JOB-013`), and a durable monotonic sequence committed before it is handed out
+(`L2-JOB-015`).
+
+`L2-JOB-009` stopped being an inspection: `make sql-confined` fails the build if
+`sqlite3.h` or SQL appears outside the repository. Like every gate here it was verified
+by deliberately introducing the violation and confirming it fails.
+
+The figure came out at 37.2% against an estimate of ~30%, which is worth explaining
+rather than celebrating: C1's requirements are traced directly at L2, and the milestone
+carried more of them than the per-family estimate assumed.
+
+**`L2-JOB-014` is finished on the store side.** `record_transition` classifies a
+durable-write failure by commit phase — abort before, halt after — and is tested against
+a real SQLite refusal through `inject_write_fault`, not a mocked return value. C3
+inherits the decision and carries it out.
+
+**What is left for C2 onward:** migration fixtures and conformance corpora, both in
+`docs/TEST-STRATEGY.md`, and a true kernel-level `EFBIG` injection once C2 starts writing
+files rather than rows.
 
 Read `docs/CYBERSECURITY.md` before starting C2, and this file's *Locked decisions*
 before starting anything.
@@ -55,9 +83,12 @@ Authoritative job state in SQLite (WAL, `synchronous=FULL`) behind a repository
 interface, per ADR-0010.
 
 - **Advances:** `L2-STO-001..005`, `L2-JOB-001..015` (14 in v1.0.0 scope)
-- **First task:** vendor the SQLite amalgamation and fill in the `pending` row in
-  `cpp/VENDORED.md` with a pinned version and SHA-256. It is public domain, so ADR-0007
-  is satisfied, but ADR-0004 still requires the hash gate.
+- **First task — done.** The SQLite amalgamation is vendored and pinned at 3.53.4 with
+  per-file SHA-256s, and `make verify-vendored` now checks four files rather than two.
+  Two things learned doing it, both recorded in `cpp/VENDORED.md`: the `pending` row's
+  `sqlite3.{c,h}` shorthand could never have been checked, because the verifier parses
+  one path and one hash per row and silently skips a row it cannot parse; and the CI
+  container had no C compiler at all, since `g++-14` alone provides no `cc`.
 - **Carries the three hardest ideas in the project**, all inherited from the M8 triage
   and none of them optional:
   - `L2-JOB-013` **write-ahead ordering** — the intent is durable *before* the job
@@ -72,10 +103,41 @@ interface, per ADR-0010.
   state is `FAILED`, enforced as a `CHECK` constraint (`L2-JOB-010`); and a kill-at-every-
   statement test leaves the store readable and the sequence non-repeating.
 
+  **Status: met.** All four done-when clauses are satisfied and tested, and all three of
+  the hard ideas are built.
+
+  `L2-JOB-014` is complete on the store side. `record_transition` takes the `CommitPhase`
+  and returns `AbortJob` before the commit point, `HaltProcess` after — the same failure,
+  the opposite verdict — and always sets an error, so there is no path that continues
+  silently. It is verified against a *real* SQLite write refusal rather than a mocked
+  return value, via `inject_write_fault`, because what has to work is detecting SQLite
+  failing rather than us pretending it did.
+
+  What remains for C3 is only *carrying out* the verdict: aborting a job and halting a
+  move are the engine's actions, and the engine is the component that knows which side of
+  the commit point it is on. The classification is settled here so C3 inherits a decision
+  rather than making one.
+
+  One consequence is worth knowing before C3 relies on it: on the `HaltProcess` path the
+  attention flag is **best-effort**. If the durable write failed because the store is
+  unwritable, recording the flag is another write to that same store and fails too. That
+  is why the requirement also demands logging at high severity — the log is the
+  guarantee; the flag is the convenience that survives when the store is inconsistent
+  rather than unreachable. There is a test pinning exactly this.
+
 ### C2 — fd-relative filesystem layer
 
 The layer every later milestone touches the disk through. No path-based
 check-then-act anywhere.
+
+**A detailed plan exists: `docs/C2-PLAN.md`.** Read it before starting. Its
+pre-flight measurements change the design rather than the implementation — most
+importantly, the target toolchain has **no `renameat2` wrapper and no
+`RENAME_NOREPLACE` constant** (both need glibc ≥ 2.28; SLES 12 SP5 ships 2.22),
+so it must be called through `syscall(2)` with constants we supply. Code that
+calls `renameat2` directly compiles on a modern host and fails to link on the
+target. The plan also splits out the four requirements the roadmap assigns to
+C2 that actually belong to C4, C8 and C9.
 
 - **Advances:** `L2-SEC-001..016` (16), `L2-NFS-001..008` (8)
 - **Scope boundary, from `L1-SEC-007`:** same filesystem only, regular files only. Both
@@ -204,17 +266,36 @@ matters is the one `build-trace-matrix.py` prints.
 
 ## Merge cadence — milestones on `main`
 
-`v2-cpp` merges into `main` at each milestone boundary. **These merges are progress
-markers, not releases: no version bump, no tag, no changelog release heading.**
+Each milestone is developed on **its own branch off `main`** and merged back at the
+milestone boundary. **These merges are progress markers, not releases: no version bump,
+no tag, no changelog release heading.**
+
+Branch naming is `c<N>-<short-name>`: `c1-durable-store`, `c2-fs-layer`, and so on.
 
 ```bash
-# from a clean, fully green v2-cpp
+# from a clean, fully green milestone branch
 git checkout main
-git merge --no-ff v2-cpp -m "Merge: C<N> — <milestone name>"
-git checkout v2-cpp
+git merge --no-ff c1-durable-store -m "Merge: C1 — durable store"
+git push origin main
+
+# the finished milestone leaves no branch behind
+git branch -d c1-durable-store
+git push origin --delete c1-durable-store
+
+# the next milestone starts from main, not from the previous branch
+git checkout -b c2-fs-layer
+git push -u origin c2-fs-layer
 ```
 
 `--no-ff` is required so each milestone is one identifiable commit in `main`'s history.
+
+**Why not one long-lived branch.** Every C++ commit through C0 sat on a single `v2-cpp`
+branch. By the time C0 closed it had been merged into `main` but not deleted, so the two
+refs described identical content while the existence of a separate branch implied they
+diverged — and `origin/v2-cpp` was seven commits stale on top of that. A branch per
+milestone makes the unit of work, the unit of review, and the unit of merge the same
+thing, and a finished milestone leaves nothing behind to go stale. `v2-cpp` was retired
+at the C0 boundary; every commit it carried is reachable from `main`.
 
 **Bar for merging — the same as for committing, no lower:**
 
@@ -226,10 +307,20 @@ git checkout v2-cpp
 **The Python implementation is safe.** It is preserved in full by the `v0.4.2` tag —
 verified, 38 source files — so merging the C++ branch into `main` removes Python from
 `main`'s *tip* but destroys nothing. `v0.4.2` remains the version to deploy until v1.0.0
-ships.
+ships. The tag is on `origin` as well as locally, at `9930a60`, which was `origin/main`'s
+tip before the C0 merge was published; confirm that with `git ls-remote --tags origin`
+before any operation that rewrites what `main` points at.
 
-**Pushing to `origin` is a separate, deliberate act.** Merging locally marks the
-milestone; publishing it is the maintainer's call.
+**Publishing is part of closing a milestone, not a separate errand.** `main` is pushed
+at the boundary and the milestone branch is deleted on `origin` once merged. Leaving the
+merge unpublished is what let `origin/main` fall 34 commits behind during C0.
+
+One sharp edge worth knowing before it costs an hour: `git branch -d` refuses to delete a
+branch that is ahead of *its own upstream*, even when the branch is fully merged into
+`main` — the message says "not fully merged", which reads as data loss and is not.
+Delete the remote branch first, then the local one. To satisfy yourself before deleting,
+`git merge-base --is-ancestor <branch> origin/main` answers the question that actually
+matters.
 
 ## Documentation rewrites owed
 
@@ -488,7 +579,8 @@ part of the deferred **S3 adapter** rather than a standalone gap.
 
 # v1.0.0 — C++ / REST implementation
 
-Tracked on the `v2-cpp` branch. **The forward plan is C1–C9 at the top of this file**;
+Tracked on the current milestone branch off `main` — see *Merge cadence* below.
+**The forward plan is C1–C9 at the top of this file**;
 this section records what is already delivered and the architecture it sits on. The
 M1–M8 list above belongs to the Python implementation. The inherited external design
 used its own M1–M12 numbering, deliberately not carried into this repository.
