@@ -260,33 +260,43 @@ void JobManager::Impl::run_worker() {
     }
     MoveEngine engine(store);
 
+    // One lock object for the whole loop, released around the move and taken
+    // again after it, rather than two scoped locks per iteration. Two separate
+    // unique_locks occupy the same stack slot on alternate halves of the loop,
+    // which is correct C++ but leaves ThreadSanitizer tracking what looks like
+    // one lock being acquired twice without an intervening release.
+    std::unique_lock<std::mutex> lock(impl->mutex);
+
     for (;;) {
         std::string job_id;
         MoveRequest request;
         MoveStrategy strategy = MoveStrategy::RenameNoReplace;
 
-        {
-            std::unique_lock<std::mutex> lock(impl->mutex);
-            while (impl->runnable.empty() && !impl->stopping) {
-                impl->work_ready.wait(lock);
-            }
-            if (impl->runnable.empty() && impl->stopping) {
-                return;
-            }
-            job_id = impl->runnable.front();
-            impl->runnable.pop_front();
-            request = impl->requests[job_id];
-            strategy = impl->strategy;
-            impl->active.insert(job_id);
-            engine.set_phase_hook(impl->hook, impl->hook_user);
+        while (impl->runnable.empty() && !impl->stopping) {
+            impl->work_ready.wait(lock);
         }
+        if (impl->runnable.empty() && impl->stopping) {
+            return;
+        }
+        job_id = impl->runnable.front();
+        impl->runnable.pop_front();
+        request = impl->requests[job_id];
+        strategy = impl->strategy;
+        impl->active.insert(job_id);
+        engine.set_phase_hook(impl->hook, impl->hook_user);
 
         std::string error;
-        const MoveOutcome outcome =
-            engine.execute(job_id, request, strategy, error);
+        MoveOutcome outcome = MoveOutcome::Rejected;
+        {
+            // The move runs unlocked -- it is the slow part, and holding the
+            // manager's lock across it would serialize the whole pool onto one
+            // job at a time, which is the opposite of having a pool.
+            lock.unlock();
+            outcome = engine.execute(job_id, request, strategy, error);
+            lock.lock();
+        }
 
         {
-            std::unique_lock<std::mutex> lock(impl->mutex);
             impl->active.erase(job_id);
             if (outcome == MoveOutcome::AbortedBeforeCommit) {
                 // The attempt failed with the source untouched. Whatever went
