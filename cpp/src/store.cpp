@@ -19,7 +19,7 @@ namespace {
 // Bumped only alongside a migration below. PRAGMA user_version is SQLite's own
 // slot for this and lives in the database header, so it costs no table and
 // cannot disagree with the schema it describes.
-const int kSchemaVersion = 1;
+const int kSchemaVersion = 2;
 
 // A connection that blocks briefly rather than returning SQLITE_BUSY the
 // instant another writer holds the lock. WAL keeps readers out of the way, so
@@ -147,6 +147,15 @@ const char* const kSchemaSql =
     "  error            TEXT NOT NULL DEFAULT '',"
     "  needs_attention  INTEGER NOT NULL DEFAULT 0,"
     "  attention_reason TEXT NOT NULL DEFAULT '',"
+    // Schema v2, for L2-RTY-003. last_error is separate from `error` and not
+    // a duplicate of it: the CHECK below binds `error` to be non-empty if and
+    // only if the state is FAILED, so a job that failed once and is waiting to
+    // retry -- and is therefore NOT FAILED -- has nowhere else to record why.
+    // Overloading `error` would mean breaking the invariant or losing the
+    // diagnosis.
+    "  attempts         INTEGER NOT NULL DEFAULT 0,"
+    "  next_retry_ms    INTEGER NOT NULL DEFAULT 0,"
+    "  last_error       TEXT NOT NULL DEFAULT '',"
     "  CHECK (state IN ('QUEUED','RENAMING','TRANSFERRING','DONE','FAILED')),"
     "  CHECK ((length(error) > 0) = (state = 'FAILED')),"
     "  CHECK (needs_attention IN (0,1))"
@@ -159,6 +168,18 @@ const char* const kSchemaSql =
     "  next INTEGER NOT NULL"
     ");"
     "INSERT OR IGNORE INTO job_sequence (id, next) VALUES (1, 0);";
+
+// v1 -> v2. Separate from kSchemaSql because CREATE TABLE IF NOT EXISTS does
+// nothing to a table that already exists: a store written by the v1 build has
+// the old column set, and only ALTER adds to it.
+//
+// Column defaults carry the existing rows across without a data migration --
+// zero attempts, no scheduled retry, no recorded failure is exactly right for
+// jobs that predate retry.
+const char* const kMigrateV1ToV2 =
+    "ALTER TABLE job ADD COLUMN attempts      INTEGER NOT NULL DEFAULT 0;"
+    "ALTER TABLE job ADD COLUMN next_retry_ms INTEGER NOT NULL DEFAULT 0;"
+    "ALTER TABLE job ADD COLUMN last_error    TEXT    NOT NULL DEFAULT '';";
 
 }  // namespace
 
@@ -311,8 +332,17 @@ bool JobStore::open(const std::string& path,
         return false;
     }
     if (version < kSchemaVersion) {
+        // version 0 is a store with no schema at all -- create the current one
+        // outright. Any other version below the current one is an existing
+        // store that needs its migrations applied in order, and CREATE TABLE
+        // IF NOT EXISTS would do nothing for it.
+        const char* const step =
+            (version == 0) ? kSchemaSql : kMigrateV1ToV2;
+        const char* const what =
+            (version == 0) ? "applying schema" : "migrating v1 to v2";
+
         if (!exec(db, "BEGIN IMMEDIATE;", "beginning migration", error) ||
-            !exec(db, kSchemaSql, "applying schema", error)) {
+            !exec(db, step, what, error)) {
             rollback_quietly(db);
             sqlite3_close(db);
             return false;
@@ -714,6 +744,116 @@ bool JobStore::counts_by_state(std::map<JobState, std::uint64_t>& out,
         }
         out[state] =
             static_cast<std::uint64_t>(sqlite3_column_int64(stmt.get(), 1));
+    }
+    return true;
+}
+
+bool JobStore::record_attempt(const std::string& id,
+                              std::int64_t next_retry_ms,
+                              const std::string& reason,
+                              std::string& error) {
+    if (!is_open()) {
+        error = "store: not open";
+        return false;
+    }
+
+    static const char* const kSql =
+        "UPDATE job SET attempts = attempts + 1, next_retry_ms = ?,"
+        "               last_error = ?"
+        " WHERE id = ?;";
+
+    Stmt stmt;
+    if (sqlite3_prepare_v2(impl_->db, kSql, -1, stmt.out(), 0) != SQLITE_OK) {
+        error = fail(impl_->db, "preparing record_attempt");
+        return false;
+    }
+    sqlite3_bind_int64(stmt.get(), 1, next_retry_ms);
+    sqlite3_bind_text(stmt.get(), 2, reason.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt.get(), 3, id.c_str(), -1, SQLITE_TRANSIENT);
+
+    if (sqlite3_step(stmt.get()) != SQLITE_DONE) {
+        error = fail(impl_->db, "recording attempt for job '" + id + "'");
+        return false;
+    }
+    if (sqlite3_changes(impl_->db) == 0) {
+        error = "store: no such job '" + id + "'";
+        return false;
+    }
+    return true;
+}
+
+bool JobStore::load_retry_state(const std::string& id,
+                                RetryState& out,
+                                bool& found,
+                                std::string& error) {
+    found = false;
+    out = RetryState();
+    if (!is_open()) {
+        error = "store: not open";
+        return false;
+    }
+
+    static const char* const kSql =
+        "SELECT attempts, next_retry_ms, last_error FROM job WHERE id = ?;";
+
+    Stmt stmt;
+    if (sqlite3_prepare_v2(impl_->db, kSql, -1, stmt.out(), 0) != SQLITE_OK) {
+        error = fail(impl_->db, "preparing load_retry_state");
+        return false;
+    }
+    sqlite3_bind_text(stmt.get(), 1, id.c_str(), -1, SQLITE_TRANSIENT);
+
+    const int rc = sqlite3_step(stmt.get());
+    if (rc == SQLITE_DONE) {
+        return true;
+    }
+    if (rc != SQLITE_ROW) {
+        error = fail(impl_->db, "loading retry state for '" + id + "'");
+        return false;
+    }
+
+    out.attempts = sqlite3_column_int(stmt.get(), 0);
+    out.next_retry_ms = sqlite3_column_int64(stmt.get(), 1);
+    out.last_error = column_text(stmt.get(), 2);
+    found = true;
+    return true;
+}
+
+bool JobStore::due_jobs(std::int64_t now_ms,
+                        std::vector<std::string>& out,
+                        std::string& error) {
+    out.clear();
+    if (!is_open()) {
+        error = "store: not open";
+        return false;
+    }
+
+    // Ordered by next_retry_ms then created_at_ms, so a job that has been
+    // waiting longest goes first and a burst of retries does not starve the
+    // jobs that never failed.
+    static const char* const kSql =
+        "SELECT id FROM job"
+        " WHERE state = 'QUEUED' AND next_retry_ms <= ?"
+        " ORDER BY next_retry_ms, created_at_ms, id;";
+
+    Stmt stmt;
+    if (sqlite3_prepare_v2(impl_->db, kSql, -1, stmt.out(), 0) != SQLITE_OK) {
+        error = fail(impl_->db, "preparing due_jobs");
+        return false;
+    }
+    sqlite3_bind_int64(stmt.get(), 1, now_ms);
+
+    for (;;) {
+        const int rc = sqlite3_step(stmt.get());
+        if (rc == SQLITE_DONE) {
+            break;
+        }
+        if (rc != SQLITE_ROW) {
+            error = fail(impl_->db, "listing due jobs");
+            out.clear();
+            return false;
+        }
+        out.push_back(column_text(stmt.get(), 0));
     }
     return true;
 }

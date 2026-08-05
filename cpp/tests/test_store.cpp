@@ -132,7 +132,7 @@ TEST_CASE("migrations are idempotent across opens", "[store][L2-JOB-004]") {
 
         int version = 0;
         REQUIRE(store.schema_version(version, error) == true);
-        CHECK(version == 1);
+        CHECK(version == 2);
     }
 }
 
@@ -217,9 +217,14 @@ TEST_CASE("a store written by a newer build is refused, not guessed at",
     }
 
     // user_version lives at byte 60 of the SQLite file header as a 4-byte
-    // big-endian integer. Setting it to 2 is exactly what a future build with
-    // a migration would leave behind, without needing that build to exist.
-    const unsigned char future_version[4] = {0x00, 0x00, 0x00, 0x02};
+    // big-endian integer. Setting it above the current version is exactly what
+    // a future build with a migration would leave behind, without needing that
+    // build to exist.
+    //
+    // Bumped from 2 to 3 when the schema itself reached 2 -- the value has to
+    // stay ahead of kSchemaVersion or this test silently starts asserting that
+    // a *current* store opens, which it would, proving nothing.
+    const unsigned char future_version[4] = {0x00, 0x00, 0x00, 0x03};
     poke(dir.db(), 60, future_version, sizeof(future_version));
 
     JobStore store;
@@ -807,10 +812,14 @@ TEST_CASE("opening a second store closes the first connection",
 // --- migrating a store written by an older build -------------------------
 //
 // tests/fixtures/store-v1.db was produced by the build that owned schema v1
-// and must never be regenerated -- see the README beside it. Today it only
-// proves v1 opens as v1, which sounds circular. It stops being circular the
-// day a v2 migration lands, and by then a genuine v1 store would be
-// impossible to obtain. That is the whole reason it exists now.
+// and must never be regenerated -- see the README beside it.
+//
+// When it was frozen in C1 these tests admitted to proving something circular:
+// that v1 opens as v1. That stopped being true in C4, which added the schema v2
+// columns L2-RTY-003 requires. These now exercise a real migration against a
+// database an older build actually wrote, which could not have been obtained
+// after the fact. The argument for adding a fixture before there is anything
+// to migrate to is this test.
 
 namespace {
 
@@ -860,7 +869,8 @@ TEST_CASE("a store written by an older build opens and keeps its rows",
 
     int version = 0;
     REQUIRE(store.schema_version(version, error) == true);
-    CHECK(version == 1);
+    // Migrated on open, in place, without being asked.
+    CHECK(version == 2);
 
     // The rows survive, which is what a migration has to preserve and what a
     // "does it open" check on its own would not catch.
@@ -879,6 +889,142 @@ TEST_CASE("a store written by an older build opens and keeps its rows",
     REQUIRE(found == true);
     CHECK(failed.state == JobState::Failed);
     CHECK(failed.error == std::string("disk full during transfer"));
+}
+
+TEST_CASE("migrating a v1 store adds the retry columns with sane defaults",
+          "[store][L2-JOB-004][L2-RTY-003]") {
+    TempDir dir;
+    std::string why;
+    REQUIRE(copy_fixture(dir.db(), why) == true);
+
+    JobStore store;
+    StoreOpenResult result = StoreOpenResult::CreatedFresh;
+    std::string error;
+    REQUIRE(store.open(dir.db(), result, error) == true);
+
+    // Rows that predate retry come across as never-attempted, never-scheduled,
+    // no recorded failure -- which is exactly right for jobs written by a build
+    // that had no concept of a retry.
+    JobStore::RetryState retry;
+    bool found = false;
+    REQUIRE(store.load_retry_state("fixture-queued", retry, found, error) ==
+            true);
+    REQUIRE(found == true);
+    CHECK(retry.attempts == 0);
+    CHECK(retry.next_retry_ms == 0);
+    CHECK(retry.last_error.empty() == true);
+
+    // And the new columns are writable on a migrated row, not merely present.
+    REQUIRE(store.record_attempt("fixture-queued", 5000, "disk was busy",
+                                 error) == true);
+    REQUIRE(store.load_retry_state("fixture-queued", retry, found, error) ==
+            true);
+    CHECK(retry.attempts == 1);
+    CHECK(retry.next_retry_ms == 5000);
+    CHECK(retry.last_error == std::string("disk was busy"));
+}
+
+TEST_CASE("migration is idempotent across repeated opens",
+          "[store][L2-JOB-004]") {
+    TempDir dir;
+    std::string why;
+    REQUIRE(copy_fixture(dir.db(), why) == true);
+
+    for (int i = 0; i < 3; ++i) {
+        JobStore store;
+        StoreOpenResult result = StoreOpenResult::CreatedFresh;
+        std::string error;
+        REQUIRE(store.open(dir.db(), result, error) == true);
+        int version = 0;
+        REQUIRE(store.schema_version(version, error) == true);
+        CHECK(version == 2);
+    }
+    // Re-running ALTER TABLE would fail with "duplicate column name", so this
+    // proves the version check gates the migration rather than the migration
+    // being harmlessly repeatable.
+}
+
+TEST_CASE("a job awaiting retry records why without being FAILED",
+          "[store][L2-RTY-003][L2-JOB-010]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("retry-me"), error) == true);
+    REQUIRE(store.record_attempt("retry-me", 9000, "ESTALE from the export",
+                                 error) == true);
+
+    // The job is still QUEUED, so the L2-JOB-010 CHECK forbids `error` being
+    // populated. last_error exists precisely so the diagnosis is not lost to
+    // that invariant.
+    Job job(std::string(), std::string(), std::string(), 0);
+    bool found = false;
+    REQUIRE(store.load("retry-me", job, found, error) == true);
+    CHECK(job.state == JobState::Queued);
+    CHECK(job.error.empty() == true);
+
+    JobStore::RetryState retry;
+    REQUIRE(store.load_retry_state("retry-me", retry, found, error) == true);
+    CHECK(retry.last_error == std::string("ESTALE from the export"));
+}
+
+TEST_CASE("only due jobs are dispatched", "[store][L2-RTY-003]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("never-failed", 1000), error) == true);
+    REQUIRE(store.record_intent(make_job("waiting", 1001), error) == true);
+    REQUIRE(store.record_attempt("waiting", 5000, "not yet", error) == true);
+
+    std::vector<std::string> due;
+    REQUIRE(store.due_jobs(4999, due, error) == true);
+    // A job that never failed has next_retry_ms == 0 and is always due, which
+    // is what makes a first attempt indistinguishable from a retry to the
+    // dispatcher.
+    REQUIRE(due.size() == 1u);
+    CHECK(due[0] == std::string("never-failed"));
+
+    REQUIRE(store.due_jobs(5000, due, error) == true);
+    CHECK(due.size() == 2u);
+
+    // A job that is no longer QUEUED is never dispatched again.
+    REQUIRE(store.update_state("never-failed", JobState::Renaming, 6000, "",
+                               error) == true);
+    REQUIRE(store.due_jobs(9999, due, error) == true);
+    REQUIRE(due.size() == 1u);
+    CHECK(due[0] == std::string("waiting"));
+}
+
+TEST_CASE("recording an attempt against an unknown job is an error",
+          "[store][L2-RTY-003]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    CHECK(store.record_attempt("ghost", 1, "why", error) == false);
+    CHECK(error.empty() == false);
+
+    JobStore::RetryState retry;
+    bool found = true;
+    CHECK(store.load_retry_state("ghost", retry, found, error) == true);
+    CHECK(found == false);
+}
+
+TEST_CASE("retry state on a closed store fails cleanly",
+          "[store][L2-RTY-003]") {
+    JobStore store;
+    std::string error;
+    JobStore::RetryState retry;
+    bool found = false;
+    std::vector<std::string> due;
+
+    CHECK(store.record_attempt("x", 1, "why", error) == false);
+    CHECK(store.load_retry_state("x", retry, found, error) == false);
+    CHECK(store.due_jobs(0, due, error) == false);
 }
 
 TEST_CASE("the sequence in an older store does not restart",

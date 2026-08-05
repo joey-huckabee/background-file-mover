@@ -145,12 +145,12 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-001 | L3-JOB-002 | `cpp/tests/test_store.cpp::[close is idempotent and safe on a store never opened]`<br>`cpp/tests/test_store.cpp::[every operation on a closed store fails cleanly]`<br>`cpp/tests/test_store.cpp::[loading an unknown job is not an error]` | Partially Implemented |
 | L2-JOB-002 | L3-JOB-001, L3-PY-007 | `cpp/tests/test_store.cpp::[WAL journaling is actually in effect]` | Partially Implemented |
 | L2-JOB-003 | _(none)_ | `cpp/tests/test_store.cpp::[closing a store releases it for reopening]`<br>`cpp/tests/test_store.cpp::[opening a second store closes the first connection]`<br>`cpp/tests/test_store.cpp::[two connections may address the same store]` | Implemented |
-| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[a store written by an older build opens and keeps its rows]`<br>`cpp/tests/test_store.cpp::[migrations are idempotent across opens]` | Implemented |
+| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[a store written by an older build opens and keeps its rows]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[migration is idempotent across repeated opens]`<br>`cpp/tests/test_store.cpp::[migrations are idempotent across opens]` | Implemented |
 | L2-JOB-005 | _(none)_ | `cpp/tests/test_store.cpp::[an illegal transition is rejected and writes nothing]`<br>`cpp/tests/test_store.cpp::[legal transitions are persisted]`<br>`cpp/tests/test_store.cpp::[updating an unknown job is an error]` | Implemented |
 | L2-JOB-007 | L3-JOB-003 | _(TBD)_ | Draft |
 | L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-JOB-010 | _(none)_ | `cpp/tests/test_store.cpp::[FAILED requires an error and other states forbid one]` | Implemented |
+| L2-JOB-010 | _(none)_ | `cpp/tests/test_store.cpp::[FAILED requires an error and other states forbid one]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]` | Implemented |
 | L2-JOB-011 | _(none)_ | `cpp/tests/test_store.cpp::[an absent store is first boot, not an error]`<br>`cpp/tests/test_store.cpp::[reopening an existing store reports it as existing]` | Implemented |
 | L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
 | L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
@@ -187,7 +187,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-RSM-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-003 | _(none)_ | `cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
 | L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-006 | _(none)_ | _(TBD)_ | Draft |
@@ -344,7 +344,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | LIF | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | RSM | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | ENV | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| RTY | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| RTY | 0 | 6 | 0 | 1 | 0 | 1 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | CTL | 0 | 20 | 4 | 0 | 0 | 2 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
-| **Total** | **41** | **199** | **92** | **28** | **48** | **48** | **52** |
+| **Total** | **41** | **199** | **92** | **29** | **48** | **49** | **52** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 76 of 295 (25.8%).
+**Tested by at least one test marker**: 77 of 295 (26.1%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 101 of 295 (34.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 102 of 295 (34.6%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 75 of 226 (33.2%).
+**In v1.0.0 scope — tested**: 76 of 226 (33.6%).
 
-**In v1.0.0 scope — verified**: 100 of 226 (44.2%).
+**In v1.0.0 scope — verified**: 101 of 226 (44.7%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
