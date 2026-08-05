@@ -333,6 +333,8 @@ check-ci:
 	      sh scripts/assert-fd-relative.sh && \
 	      echo "--- no shell invocation ---" && \
 	      sh scripts/assert-no-shell.sh && \
+	      echo "--- strong hashing only ---" && \
+	      sh scripts/assert-strong-hash.sh && \
 	      echo "--- functional ---" && \
 	      make clean-all && make -j$(CI_JOBS) check CXX=$(CI_CXX) CC=$(CI_CC) && \
 	      echo "--- sanitizers ---" && make -j$(CI_JOBS) check SANITIZE=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
@@ -566,6 +568,14 @@ fd-relative:
 .PHONY: no-shell
 no-shell:
 	@sh scripts/assert-no-shell.sh
+
+# L2-SEC-015. Preventive: integrity verification is deferred to v1.1, so this
+# finds nothing today. It exists so the constraint is enforced the moment the
+# feature arrives rather than remembered afterwards -- v1.1 being exactly when
+# someone reaches for the first hash function they recognise.
+.PHONY: strong-hash
+strong-hash:
+	@sh scripts/assert-strong-hash.sh
 
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)

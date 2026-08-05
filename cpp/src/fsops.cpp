@@ -549,13 +549,24 @@ bool move_within(const DirHandle& from_dir,
     return true;
 }
 
-bool is_interrupted_move(const DirHandle& from_dir,
+const char* to_string(MoveState state) {
+    switch (state) {
+        case MoveState::NotStarted:  return "NOT_STARTED";
+        case MoveState::Interrupted: return "INTERRUPTED";
+        case MoveState::Collision:   return "COLLISION";
+        case MoveState::Completed:   return "COMPLETED";
+        case MoveState::BothMissing: return "BOTH_MISSING";
+    }
+    return "NOT_STARTED";
+}
+
+bool classify_move_state(const DirHandle& from_dir,
                          const std::string& from_name,
                          const DirHandle& to_dir,
                          const std::string& to_name,
-                         bool& interrupted,
+                         MoveState& out,
                          std::string& error) {
-    interrupted = false;
+    out = MoveState::NotStarted;
 
     FileIdentity from;
     if (!classify(from_dir, from_name, from, error)) {
@@ -566,12 +577,45 @@ bool is_interrupted_move(const DirHandle& from_dir,
         return false;
     }
 
-    // Both present and the same inode: our own linkat landed and the unlinkat
-    // did not. The naive reading — "the target exists, therefore collision" —
-    // would fail a move that had all but completed.
-    if (from.kind != EntryKind::Missing && to.kind != EntryKind::Missing) {
-        interrupted = from.same_object_as(to);
+    const bool have_from = from.kind != EntryKind::Missing;
+    const bool have_to = to.kind != EntryKind::Missing;
+
+    if (have_from && have_to) {
+        // Same inode: our own linkat landed and the unlinkat did not. The
+        // naive reading — "the target exists, therefore collision" — would
+        // fail a move that had all but completed.
+        out = from.same_object_as(to) ? MoveState::Interrupted
+                                      : MoveState::Collision;
+    } else if (have_from) {
+        out = MoveState::NotStarted;
+    } else if (have_to) {
+        out = MoveState::Completed;
+    } else {
+        // L2-SEC-011. Neither name exists, which the one-path invariant calls
+        // impossible — and which quarantine by endpoint security produces
+        // routinely by removing the source after intent was recorded. Reported
+        // as a state rather than treated as a contradiction; the policy
+        // (failed-external, log loudly, never retry automatically) belongs to
+        // the move engine, which is what "not this layer's business" means
+        // here.
+        out = MoveState::BothMissing;
     }
+    return true;
+}
+
+bool is_interrupted_move(const DirHandle& from_dir,
+                         const std::string& from_name,
+                         const DirHandle& to_dir,
+                         const std::string& to_name,
+                         bool& interrupted,
+                         std::string& error) {
+    MoveState state = MoveState::NotStarted;
+    if (!classify_move_state(from_dir, from_name, to_dir, to_name, state,
+                             error)) {
+        interrupted = false;
+        return false;
+    }
+    interrupted = (state == MoveState::Interrupted);
     return true;
 }
 

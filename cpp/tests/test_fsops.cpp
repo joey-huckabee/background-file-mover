@@ -399,6 +399,86 @@ TEST_CASE("an interrupted link/unlink pair is not a collision",
     CHECK(interrupted == true);
 }
 
+TEST_CASE("every move state is distinguished, including neither present",
+          "[fsops][L2-NFS-003][L2-SEC-011]") {
+    using filemover::MoveState;
+    std::string error;
+    MoveState state = MoveState::NotStarted;
+
+    SECTION("source only") {
+        TempTree tree;
+        tree.write_file("src.txt", "payload");
+        DirHandle dir;
+        open_tree(tree, dir);
+        REQUIRE(filemover::classify_move_state(dir, "src.txt", dir, "dst.txt",
+                                               state, error) == true);
+        CHECK(state == MoveState::NotStarted);
+    }
+
+    SECTION("destination only") {
+        TempTree tree;
+        tree.write_file("dst.txt", "payload");
+        DirHandle dir;
+        open_tree(tree, dir);
+        REQUIRE(filemover::classify_move_state(dir, "src.txt", dir, "dst.txt",
+                                               state, error) == true);
+        CHECK(state == MoveState::Completed);
+    }
+
+    SECTION("both, one inode -- an interrupted link/unlink pair") {
+        TempTree tree;
+        tree.write_file("src.txt", "payload");
+        DirHandle dir;
+        open_tree(tree, dir);
+        REQUIRE(::link(tree.child("src.txt").c_str(),
+                       tree.child("dst.txt").c_str()) == 0);
+        REQUIRE(filemover::classify_move_state(dir, "src.txt", dir, "dst.txt",
+                                               state, error) == true);
+        CHECK(state == MoveState::Interrupted);
+    }
+
+    SECTION("both, different inodes -- a genuine collision") {
+        TempTree tree;
+        tree.write_file("src.txt", "ours");
+        tree.write_file("dst.txt", "someone else's");
+        DirHandle dir;
+        open_tree(tree, dir);
+        REQUIRE(filemover::classify_move_state(dir, "src.txt", dir, "dst.txt",
+                                               state, error) == true);
+        CHECK(state == MoveState::Collision);
+    }
+
+    SECTION("neither present -- the state the invariant calls impossible") {
+        // L2-SEC-011. Quarantine by endpoint security removes the source after
+        // intent was recorded, and nothing was ever written to the
+        // destination. A naive "exactly one path exists" assertion fires here;
+        // this is a modelled outcome instead.
+        TempTree tree;
+        DirHandle dir;
+        open_tree(tree, dir);
+        REQUIRE(filemover::classify_move_state(dir, "src.txt", dir, "dst.txt",
+                                               state, error) == true);
+        CHECK(state == MoveState::BothMissing);
+        CHECK(error.empty() == true);
+    }
+}
+
+TEST_CASE("move state tokens are stable", "[fsops][L2-SEC-011]") {
+    using filemover::MoveState;
+    // Logged when recovery reports what it found, so these are an operator
+    // interface rather than debug output.
+    CHECK(std::string(filemover::to_string(MoveState::NotStarted)) ==
+          "NOT_STARTED");
+    CHECK(std::string(filemover::to_string(MoveState::Interrupted)) ==
+          "INTERRUPTED");
+    CHECK(std::string(filemover::to_string(MoveState::Collision)) ==
+          "COLLISION");
+    CHECK(std::string(filemover::to_string(MoveState::Completed)) ==
+          "COMPLETED");
+    CHECK(std::string(filemover::to_string(MoveState::BothMissing)) ==
+          "BOTH_MISSING");
+}
+
 TEST_CASE("a genuine collision is distinguished from an interrupted move",
           "[fsops][L2-NFS-003]") {
     TempTree tree;

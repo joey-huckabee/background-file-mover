@@ -181,6 +181,11 @@ if ! make -C cpp no-shell; then
     fail "a shell invocation appeared (L2-SEC-008, ADR-0011)"
 fi
 
+step "make -C cpp strong-hash"
+if ! make -C cpp strong-hash; then
+    fail "a weak hash was used for file verification (L2-SEC-015)"
+fi
+
 # ── 8. Build and test ─────────────────────────────────────────────────
 # -Werror is on, so this is the compile gate as well as the test gate.
 step "make -C cpp check"

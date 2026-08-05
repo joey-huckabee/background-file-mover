@@ -297,7 +297,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence in an older store does not restart]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
 | L2-NFS-001 | _(none)_ | `cpp/tests/test_fsops.cpp::[the move strategy is detected by attempting the operation]` | Implemented |
 | L2-NFS-002 | _(none)_ | `cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
-| L2-NFS-003 | _(none)_ | `cpp/tests/test_fsops.cpp::[a genuine collision is distinguished from an interrupted move]`<br>`cpp/tests/test_fsops.cpp::[an interrupted link/unlink pair is not a collision]` | Implemented |
+| L2-NFS-003 | _(none)_ | `cpp/tests/test_fsops.cpp::[a genuine collision is distinguished from an interrupted move]`<br>`cpp/tests/test_fsops.cpp::[an interrupted link/unlink pair is not a collision]`<br>`cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]` | Implemented |
 | L2-NFS-004 | _(none)_ | `cpp/tests/test_fsops.cpp::[ESTALE is retryable rather than a fault]` | Implemented |
 | L2-NFS-005 | _(none)_ | `cpp/tests/test_fsops.cpp::[silly-rename artifacts appear in a listing and are recognised]`<br>`cpp/tests/test_fsops.cpp::[silly-rename artifacts are recognised]` | Implemented |
 | L2-NFS-006 | _(none)_ | _(TBD)_ | Implemented (I) |
@@ -311,7 +311,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SEC-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-010 | _(none)_ | _(TBD)_ | Draft |
-| L2-SEC-011 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-011 | _(none)_ | `cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]`<br>`cpp/tests/test_fsops.cpp::[move state tokens are stable]` | Implemented |
 | L2-SEC-012 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-013 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-015 | _(none)_ | _(TBD)_ | Implemented (I) |
@@ -351,7 +351,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| SEC | 7 | 16 | 0 | 7 | 0 | 10 | 0 |
+| SEC | 7 | 16 | 0 | 8 | 0 | 11 | 0 |
 | NFS | 0 | 8 | 0 | 6 | 0 | 8 | 0 |
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
-| **Total** | **41** | **199** | **92** | **25** | **48** | **45** | **52** |
+| **Total** | **41** | **199** | **92** | **26** | **48** | **46** | **52** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 73 of 295 (24.7%).
+**Tested by at least one test marker**: 74 of 295 (25.1%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 98 of 295 (33.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 99 of 295 (33.6%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 72 of 226 (31.9%).
+**In v1.0.0 scope — tested**: 73 of 226 (32.3%).
 
-**In v1.0.0 scope — verified**: 97 of 226 (42.9%).
+**In v1.0.0 scope — verified**: 98 of 226 (43.4%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

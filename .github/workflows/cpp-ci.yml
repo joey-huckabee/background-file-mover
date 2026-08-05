@@ -300,6 +300,10 @@ jobs:
         run: make -C cpp fd-relative
       - name: No shell invocation
         run: make -C cpp no-shell
+      # L2-SEC-015. Preventive -- integrity verification is deferred to v1.1,
+      # so this finds nothing today and exists to be there when it arrives.
+      - name: Strong hashing only
+        run: make -C cpp strong-hash
 
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).

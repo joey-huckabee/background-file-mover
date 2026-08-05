@@ -190,10 +190,37 @@ bool move_within(const DirHandle& from_dir,
                  MoveStrategy strategy,
                  std::string& error);
 
-// L2-NFS-003: after an interrupted LinkThenUnlink, both names point at one
-// inode. That is the safe direction — nothing is lost — but recovery must tell
-// it apart from a genuine collision, which the naive "target exists, fail"
-// reading gets wrong. True when `to_name` is the same object as `from_name`.
+// Where a move got to, judged from what is on disk (L2-NFS-003, L2-SEC-011).
+//
+// The naive invariant says exactly one of the two names exists. Both of the
+// interesting states break it, and both are real:
+//
+//   Interrupted — a crash between linkat and unlinkat leaves BOTH names on one
+//                 inode. The obvious reading, "the target exists, therefore
+//                 collision", fails a move that had all but completed.
+//   BothMissing — quarantine by endpoint security removes the source after we
+//                 recorded intent, so NEITHER name exists. L2-SEC-011 makes
+//                 this a third modelled outcome rather than an assertion
+//                 failure, because it is a state the world can genuinely be in.
+enum class MoveState {
+    NotStarted,   // source present, destination absent
+    Interrupted,  // both present, same inode — our own linkat landed
+    Collision,    // both present, different inodes — someone else's file
+    Completed,    // source absent, destination present
+    BothMissing   // neither present (L2-SEC-011)
+};
+
+const char* to_string(MoveState state);
+
+bool classify_move_state(const DirHandle& from_dir,
+                         const std::string& from_name,
+                         const DirHandle& to_dir,
+                         const std::string& to_name,
+                         MoveState& out,
+                         std::string& error);
+
+// Narrower question, same judgement — kept because recovery for the NFS
+// fallback asks exactly this and reads better for it (L2-NFS-003).
 bool is_interrupted_move(const DirHandle& from_dir,
                          const std::string& from_name,
                          const DirHandle& to_dir,
