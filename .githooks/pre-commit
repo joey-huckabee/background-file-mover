@@ -76,7 +76,7 @@ step "scanning for CRLF in staged text files"
 crlf_files=()
 for file in "${STAGED[@]}"; do
     case "$file" in
-        *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin) continue ;;
+        *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin|*.db) continue ;;
     esac
     if is_vendored "$file"; then continue; fi
     if git show ":$file" 2>/dev/null | grep -qU $'\r'; then

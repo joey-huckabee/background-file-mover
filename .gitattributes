@@ -16,3 +16,10 @@ poetry.lock text eol=lf
 cpp/fuzz/corpus-*/** -text
 cpp/fuzz/corpus-regression-*/** -text
 cpp/fuzz/make-seeds*.sh -text
+
+# Schema fixtures are frozen SQLite databases, byte-exact by definition and by
+# purpose: their whole value is being the file an *older* build produced. The
+# rule at the top would rewrite any byte inside one that happened to look like
+# a line ending, giving a database corrupt in a way no diff would show.
+*.db binary
+cpp/tests/fixtures/** -text
