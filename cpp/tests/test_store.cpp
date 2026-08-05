@@ -670,6 +670,38 @@ TEST_CASE("a genuinely full store fails cleanly, not silently",
     CHECK(store.counts_by_state(counts, error) == true);
 }
 
+TEST_CASE("a failed sequence bump rolls back and issues nothing",
+          "[store][L2-JOB-014][L2-JOB-015]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    std::uint64_t before = 0;
+    REQUIRE(store.next_sequence(before, error) == true);
+
+    // The sequence bump is a transaction: BEGIN IMMEDIATE, UPDATE, read,
+    // COMMIT. Until now nothing exercised what happens when the UPDATE fails
+    // partway through, which is the path that decides whether a number can be
+    // issued twice -- the one guarantee L2-JOB-015 makes.
+    REQUIRE(store.inject_write_fault(WriteFault::Refused, error) == true);
+    error.clear();
+    std::uint64_t during = 12345;
+    CHECK(store.next_sequence(during, error) == false);
+    CHECK(error.empty() == false);
+    // The out-parameter must be left alone on failure; a caller that ignored
+    // the return value would otherwise use a number that was never committed.
+    CHECK(during == 12345u);
+
+    // After the rollback the store is still usable and the sequence resumes
+    // without repeating. A transaction left open would deadlock the next bump
+    // instead, which is what makes this worth asserting rather than assuming.
+    REQUIRE(store.inject_write_fault(WriteFault::None, error) == true);
+    std::uint64_t after = 0;
+    REQUIRE(store.next_sequence(after, error) == true);
+    CHECK(after > before);
+}
+
 TEST_CASE("arming a fault on a closed store is an error",
           "[store][L2-JOB-014]") {
     JobStore store;
@@ -770,6 +802,103 @@ TEST_CASE("opening a second store closes the first connection",
     bool found = true;
     REQUIRE(store.load("in-first", loaded, found, error) == true);
     CHECK(found == false);
+}
+
+// --- migrating a store written by an older build -------------------------
+//
+// tests/fixtures/store-v1.db was produced by the build that owned schema v1
+// and must never be regenerated -- see the README beside it. Today it only
+// proves v1 opens as v1, which sounds circular. It stops being circular the
+// day a v2 migration lands, and by then a genuine v1 store would be
+// impossible to obtain. That is the whole reason it exists now.
+
+namespace {
+
+// Opening a store can write to it: pragmas persist in the file header and a
+// migration would rewrite user_version. A fixture mutated by the test that
+// reads it is no longer a fixture, so every test works on a copy.
+bool copy_fixture(const std::string& to, std::string& why) {
+    FILE* in = std::fopen("tests/fixtures/store-v1.db", "rb");
+    if (in == 0) {
+        why = "cannot open tests/fixtures/store-v1.db (run from cpp/)";
+        return false;
+    }
+    FILE* out = std::fopen(to.c_str(), "wb");
+    if (out == 0) {
+        std::fclose(in);
+        why = "cannot create " + to;
+        return false;
+    }
+    char buffer[8192];
+    size_t n = 0;
+    while ((n = std::fread(buffer, 1, sizeof(buffer), in)) > 0) {
+        if (std::fwrite(buffer, 1, n, out) != n) {
+            std::fclose(in);
+            std::fclose(out);
+            why = "short write copying the fixture";
+            return false;
+        }
+    }
+    std::fclose(in);
+    return std::fclose(out) == 0;
+}
+
+}  // namespace
+
+TEST_CASE("a store written by an older build opens and keeps its rows",
+          "[store][L2-JOB-004]") {
+    TempDir dir;
+    std::string why;
+    REQUIRE(copy_fixture(dir.db(), why) == true);
+
+    JobStore store;
+    StoreOpenResult result = StoreOpenResult::CreatedFresh;
+    std::string error;
+    REQUIRE(store.open(dir.db(), result, error) == true);
+    // Recognised as an existing store, not silently recreated.
+    CHECK(result == StoreOpenResult::OpenedExisting);
+
+    int version = 0;
+    REQUIRE(store.schema_version(version, error) == true);
+    CHECK(version == 1);
+
+    // The rows survive, which is what a migration has to preserve and what a
+    // "does it open" check on its own would not catch.
+    std::map<JobState, std::uint64_t> counts;
+    REQUIRE(store.counts_by_state(counts, error) == true);
+    CHECK(counts[JobState::Queued] == 1u);
+    CHECK(counts[JobState::Renaming] == 1u);
+    CHECK(counts[JobState::Done] == 1u);
+    CHECK(counts[JobState::Failed] == 1u);
+
+    // The FAILED row keeps its message, so the L2-JOB-010 invariant is pinned
+    // into the frozen schema rather than only into today's code.
+    Job failed(std::string(), std::string(), std::string(), 0);
+    bool found = false;
+    REQUIRE(store.load("fixture-failed", failed, found, error) == true);
+    REQUIRE(found == true);
+    CHECK(failed.state == JobState::Failed);
+    CHECK(failed.error == std::string("disk full during transfer"));
+}
+
+TEST_CASE("the sequence in an older store does not restart",
+          "[store][L2-JOB-015]") {
+    TempDir dir;
+    std::string why;
+    REQUIRE(copy_fixture(dir.db(), why) == true);
+
+    JobStore store;
+    StoreOpenResult result = StoreOpenResult::CreatedFresh;
+    std::string error;
+    REQUIRE(store.open(dir.db(), result, error) == true);
+
+    std::uint64_t next = 0;
+    REQUIRE(store.next_sequence(next, error) == true);
+
+    // The fixture consumed seven. A build that reset the counter on open --
+    // or a migration that rebuilt the table without carrying it -- would hand
+    // out 1 here and collide every identifier the old store had already used.
+    CHECK(next > 7u);
 }
 
 // --- kill at every statement ---------------------------------------------

@@ -16,6 +16,35 @@ tag, not a branch.
 
 ### Added
 
+- **The fd-relative filesystem layer (C2).** `filemover/fsops.hpp` — every filesystem
+  operation on a managed tree takes a `DirHandle` and a *name*, never a path. That shape
+  is the requirement rather than a style choice: `L2-SEC-001` prohibits path-based
+  operations because each one re-resolves every component, so any of them can be swapped
+  between the check and the act. An API that cannot express a path is a stronger
+  guarantee than a rule saying not to write one.
+- **`renameat2` is reached through `syscall(2)`, as `L2-SEC-007` anticipated.** Measured
+  on the fidelity toolchain before any code was written: SLES 12 SP5 ships glibc 2.22 and
+  the wrapper arrived in 2.28, so `RENAME_NOREPLACE` and `SYS_renameat2` are undefined
+  there too. Calling it directly compiles clean on a modern host and fails to link on the
+  target. The syscall number is guarded by `#if defined(__x86_64__)` with a `#error`,
+  because a wrong constant on a new architecture would not fail to build — it would call
+  a *different* syscall.
+- **Both move strategies are primary, tested paths.** `LinkThenUnlink` is not a fallback:
+  NFSv3 has no equivalent operation and NFSv4's `RENAME` carries no no-replace flag, so on
+  the mount where the recordings live it is what production runs on every move
+  (`L2-NFS-002`, CYBERSECURITY §4.1). The strategy is an explicit parameter, so tests
+  cover both on any filesystem instead of whichever the test machine happens to support.
+- **An interrupted `linkat`/`unlinkat` pair is distinguished from a genuine collision**
+  (`L2-NFS-003`). The pair is not atomic together; a crash between them leaves both names
+  on one inode. The naive reading — "the target exists, therefore collision" — fails a
+  move that had all but completed. Reproduced in tests with a hard link, needing neither a
+  crash nor NFS.
+- **`make fd-relative` and `make no-shell`** turn `L2-SEC-001` and `L2-SEC-008` from
+  Inspection into mechanical gates. `fd-relative` bans the path-taking *headers* rather
+  than matching call sites: a translation unit that cannot see `<fcntl.h>` cannot call
+  `open()` whatever it names its own methods. The call-site version flagged
+  `JobStore::open` — a method declaration — and a gate with false positives gets disabled,
+  which is worse than one with a known blind spot.
 - **The durable job store (C1).** `JobStore` in `cpp/include/filemover/store.hpp` and
   `cpp/src/store.cpp` — SQLite in WAL mode with `synchronous=FULL` behind the repository
   interface ADR-0010 called for. Both pragmas are **read back** after being set: SQLite

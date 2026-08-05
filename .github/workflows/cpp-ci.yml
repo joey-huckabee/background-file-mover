@@ -253,6 +253,12 @@ jobs:
       - uses: actions/checkout@v6
       - name: Check for drift
         run: python3 scripts/build-trace-matrix.py --check
+      # Git ignores a hook that is not executable: it prints a hint and carries
+      # on, so a hook that never runs is indistinguishable from one that
+      # passed. This regressed twice, both times because the file was edited by
+      # a tool that rewrites it and a rewrite drops the permission bits.
+      - name: Hooks are executable in the index
+        run: sh scripts/assert-hook-mode.sh
 
   # L3-CPP-052: the untrusted-input parsers must classify characters with
   # explicit ranges, never <cctype> or the strtoul family.
@@ -281,6 +287,23 @@ jobs:
       - uses: actions/checkout@v6
       - name: Verify
         run: make -C cpp sql-confined
+
+  # L2-SEC-001 and L2-SEC-008. Both are specified as Inspection, and both are
+  # now mechanical: filesystem access on managed trees goes through the
+  # fd-relative layer, and nothing anywhere invokes a shell (ADR-0011).
+  filesystem-discipline:
+    name: fd-relative + no-shell
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: fd-relative filesystem access
+        run: make -C cpp fd-relative
+      - name: No shell invocation
+        run: make -C cpp no-shell
+      # L2-SEC-015. Preventive -- integrity verification is deferred to v1.1,
+      # so this finds nothing today and exists to be there when it arrives.
+      - name: Strong hashing only
+        run: make -C cpp strong-hash
 
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).

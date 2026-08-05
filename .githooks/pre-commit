@@ -19,6 +19,7 @@
 #     6. make -C cpp verify-vendored
 #     7. make -C cpp locale-free
 #    7b. make -C cpp sql-confined
+#    7c. make -C cpp fd-relative, make -C cpp no-shell
 #     8. make -C cpp check      (compiles with -Werror, then runs the suite)
 #
 #   Files under cpp/third_party/ are exempt from the byte-level rules (2 and
@@ -75,7 +76,7 @@ step "scanning for CRLF in staged text files"
 crlf_files=()
 for file in "${STAGED[@]}"; do
     case "$file" in
-        *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin) continue ;;
+        *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin|*.db) continue ;;
     esac
     if is_vendored "$file"; then continue; fi
     if git show ":$file" 2>/dev/null | grep -qU $'\r'; then
@@ -165,6 +166,24 @@ fi
 step "make -C cpp sql-confined"
 if ! make -C cpp sql-confined; then
     fail "SQL or sqlite3.h escaped the repository interface (L2-JOB-009)"
+fi
+
+# ── 7c. Filesystem discipline ─────────────────────────────────────────
+# Both are greps, so they cost nothing next to the build below, and both
+# catch the mistake at the moment it is made rather than in CI.
+step "make -C cpp fd-relative"
+if ! make -C cpp fd-relative; then
+    fail "a path-based filesystem call escaped the fd-relative layer (L2-SEC-001)"
+fi
+
+step "make -C cpp no-shell"
+if ! make -C cpp no-shell; then
+    fail "a shell invocation appeared (L2-SEC-008, ADR-0011)"
+fi
+
+step "make -C cpp strong-hash"
+if ! make -C cpp strong-hash; then
+    fail "a weak hash was used for file verification (L2-SEC-015)"
 fi
 
 # ── 8. Build and test ─────────────────────────────────────────────────
