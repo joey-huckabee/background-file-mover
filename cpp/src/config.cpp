@@ -173,7 +173,8 @@ bool load_config_from_string(const std::string& text,
                               "duplicate section [" + name + "]"));
                 continue;
             }
-            if (name != "http" && name != "jobs" && name != "storage") {
+            if (name != "http" && name != "jobs" && name != "storage" &&
+                name != "retry") {
                 issues.add(at(origin, line_no,  // L3-CPP-036
                               "unknown section [" + name + "]"));
                 // Still recorded as the current section, so its keys produce
@@ -261,6 +262,33 @@ bool load_config_from_string(const std::string& text,
             } else {
                 cfg.storage_database_path = value;
             }
+        } else if (section == "retry" && key == "max_attempts") {
+            // L2-RTY-005: a bounded attempt count. Unbounded retry against a
+            // permanent failure is how a queue fills with work that can never
+            // succeed.
+            if (!parse_uint(value, 1, 100, n)) {
+                issues.add(at(origin, line_no,
+                              "retry.max_attempts must be an integer in "
+                              "1..100"));
+            } else {
+                cfg.retry_max_attempts = static_cast<unsigned>(n);
+            }
+        } else if (section == "retry" && key == "backoff_initial_ms") {
+            if (!parse_uint(value, 1, 3600000, n)) {
+                issues.add(at(origin, line_no,
+                              "retry.backoff_initial_ms must be an integer in "
+                              "1..3600000"));
+            } else {
+                cfg.retry_backoff_initial_ms = static_cast<std::uint32_t>(n);
+            }
+        } else if (section == "retry" && key == "backoff_max_ms") {
+            if (!parse_uint(value, 1, 3600000, n)) {
+                issues.add(at(origin, line_no,
+                              "retry.backoff_max_ms must be an integer in "
+                              "1..3600000"));
+            } else {
+                cfg.retry_backoff_max_ms = static_cast<std::uint32_t>(n);
+            }
         } else {
             std::string message = "unknown key \"";
             message += key;
@@ -274,6 +302,18 @@ bool load_config_from_string(const std::string& text,
     if (cfg.storage_database_path.empty()) {  // L3-CPP-039
         issues.add(origin +
                    ": missing required parameter storage.database_path");
+    }
+
+    // Cross-field: a floor above its ceiling is not a range. Both values are
+    // named, because "invalid backoff" would send an operator to look at one
+    // of two lines with no way to tell which is wrong.
+    if (cfg.retry_backoff_initial_ms > cfg.retry_backoff_max_ms) {
+        std::ostringstream os;
+        os << origin << ": retry.backoff_initial_ms ("
+           << cfg.retry_backoff_initial_ms
+           << ") must not exceed retry.backoff_max_ms ("
+           << cfg.retry_backoff_max_ms << ")";
+        issues.add(os.str());
     }
 
     if (!issues.empty()) {

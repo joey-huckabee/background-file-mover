@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -143,7 +143,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -153,13 +153,30 @@ TEST_BIN := $(BUILD_DIR)/filemover_tests
 
 all: $(TEST_BIN)
 
+# Header dependency tracking. Not a convenience -- a correctness requirement.
+#
+# Without this, make rebuilds a .o only when its .cpp is newer, so editing a
+# header leaves every object that included it stale. Adding a declaration is
+# survivable; changing a struct's LAYOUT is not. The C4 retry fields grew
+# Config by twelve bytes, and a stale test object kept the old size: the test
+# put the small Config on its stack, and load_config_from_string assigned the
+# large one over it -- straight past the end. That surfaced as "stack smashing
+# detected" in a test not touched in three milestones, an ODR violation
+# manufactured by the build system rather than by any source file.
+#
+# -MMD writes a .d beside each .o listing the headers it included; -MP adds a
+# phony target per header so a DELETED header does not wedge make with "no
+# rule to make target". The generated files are included at the foot of this
+# file, guarded with '-' so a first build (when none exist yet) is clean.
+DEPFLAGS := -MMD -MP
+
 $(BUILD_DIR)/src/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/tests/%.o: tests/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # A pattern rule, not an explicit path, so the coverage tier reuses this recipe
 # instead of duplicating it. The stem is the build directory, which is how one
@@ -382,7 +399,7 @@ COV_SQLITE_OBJ := $(COV_DIR)/third_party/sqlite3.o
 # one object per source keeps the correspondence obvious.
 $(COV_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(COV_FLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(COV_FLAGS) $(DEPFLAGS) -c $< -o $@
 
 coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
 	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
@@ -478,7 +495,7 @@ FUZZ_TARGETS  := json http
 # subtractive design -- and still the right trade: the alternative is a
 # hand-written include list that stops covering a new parser silently, and a
 # link error is a far better failure than a fuzz target quietly testing less.
-FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp
+FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp src/manager.cpp
 FUZZ_LIB_SRC  := $(filter-out $(FUZZ_EXCLUDE),$(LIB_SRC))
 # Derived, so adding a target to the list above cannot leave format-check
 # silently covering fewer files than the build does.
@@ -590,6 +607,13 @@ tidy:
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
 	    $(FUZZ_SRC) include/filemover/*.hpp
+
+# Generated header dependencies (see DEPFLAGS above). Leading '-' because none
+# of these exist on a first build, and their absence is not an error. Kept at
+# the foot of the file so the included rules cannot displace the default goal.
+-include $(LIB_OBJ:.o=.d)
+-include $(TEST_OBJ:.o=.d)
+-include $(COV_OBJ:.o=.d)
 
 # NOTE: the two -Wno-maybe-uninitialized exemptions that previously covered
 # api_codec.o and test_api_codec.o were removed with picojson (ADR-0006).

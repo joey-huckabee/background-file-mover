@@ -38,8 +38,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-021 | L2-CORE-002 | _(none)_ | Implemented |
 | L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Partially Implemented |
 | L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Implemented |
-| L1-SYS-017 | L2-MGR-001 | _(none)_ | Draft |
-| L1-SYS-018 | L2-MGR-003 | _(none)_ | Draft |
+| L1-SYS-017 | L2-MGR-001 | _(none)_ | Implemented |
+| L1-SYS-018 | L2-MGR-003 | _(none)_ | Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | _(none)_ | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-016 | L2-JOB-011 | _(none)_ | Implemented |
@@ -155,13 +155,13 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
 | L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
 | L2-LIF-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-002 | _(none)_ | `cpp/tests/test_manager.cpp::[pausing a job that is mid-move is refused, not forced]` | Implemented |
 | L2-LIF-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-MGR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-004 | _(none)_ | `cpp/tests/test_manager.cpp::[a paused job is not dispatched until resumed]` | Implemented |
+| L2-LIF-005 | _(none)_ | `cpp/tests/test_manager.cpp::[cancelling a queued job removes it and marks it FAILED]`<br>`cpp/tests/test_manager.cpp::[command result tokens are stable]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands reject unknown jobs with a typed error]`<br>`cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[resuming a job that is not paused is an invalid state]`<br>`cpp/tests/test_manager.cpp::[submitting before start is refused]` | Implemented |
+| L2-MGR-001 | _(none)_ | `cpp/tests/test_manager.cpp::[a failing job does not wedge the queue]`<br>`cpp/tests/test_manager.cpp::[workers drain the queue and each job runs once]` | Implemented |
 | L2-MGR-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-MGR-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-MGR-003 | _(none)_ | `cpp/tests/test_manager.cpp::[shutdown is idempotent and safe without start]`<br>`cpp/tests/test_manager.cpp::[shutdown stops intake, finishes in-flight work and joins]` | Implemented |
 | L2-NFS-007 | _(none)_ | `cpp/tests/test_fsops.cpp::[publishing a missing temporary is an error]`<br>`cpp/tests/test_fsops.cpp::[publishing is a two-hop rename inside the destination directory]` | Implemented |
 | L2-POSIX-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-002 | _(none)_ | _(TBD)_ | Draft |
@@ -186,11 +186,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-RSM-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-RSM-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-003 | _(none)_ | `cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
+| L2-RTY-002 | _(none)_ | `cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
+| L2-RTY-003 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
 | L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
+| L2-RTY-006 | _(none)_ | `cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]` | Implemented |
 | L2-SEC-014 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-001 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-002 | _(none)_ | _(TBD)_ | Draft |
@@ -341,10 +341,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
 | COPY | 0 | 11 | 0 | 0 | 0 | 1 | 0 |
 | BWL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| LIF | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| LIF | 0 | 5 | 0 | 3 | 0 | 3 | 0 |
 | RSM | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | ENV | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| RTY | 0 | 6 | 0 | 1 | 0 | 1 | 0 |
+| RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | CTL | 0 | 20 | 4 | 0 | 0 | 2 | 0 |
@@ -356,27 +356,27 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| MGR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | XFR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
-| **Total** | **41** | **199** | **92** | **29** | **48** | **49** | **52** |
+| **Total** | **41** | **199** | **92** | **37** | **48** | **57** | **52** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 77 of 295 (26.1%).
+**Tested by at least one test marker**: 85 of 295 (28.8%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 102 of 295 (34.6%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 110 of 295 (37.3%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 76 of 226 (33.6%).
+**In v1.0.0 scope — tested**: 84 of 226 (37.2%).
 
-**In v1.0.0 scope — verified**: 101 of 226 (44.7%).
+**In v1.0.0 scope — verified**: 109 of 226 (48.2%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
