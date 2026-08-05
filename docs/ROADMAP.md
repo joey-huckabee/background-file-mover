@@ -9,8 +9,8 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-04 · **Branch:** `c2-fs-layer` · **Current milestone: C2 — not started.
-C1 is merged.**
+**Date:** 2026-08-04 · **Branch:** `c2-fs-layer` · **Current milestone: C2 — the
+filesystem layer is built; the move engine's callers are not written yet.**
 
 **Start with `docs/C2-PLAN.md`.** It was written before any C2 code and its pre-flight
 measurements change the design rather than the implementation — most importantly that
@@ -32,10 +32,15 @@ no move engine, no job manager, no socket server, no daemon entry point. The ser
 cannot start, because there is no `main`.
 
 ```
-In v1.0.0 scope:  84 of 226 requirements verified  (37.2%)
-Tests:            7,308 assertions / 127 cases     (all tiers green)
-Line coverage:    90.8% overall, 75.5% for the new store
+In v1.0.0 scope:  97 of 226 requirements verified  (42.9%)
+Tests:            7,638 assertions / 161 cases     (all tiers green)
+Line coverage:    90.5% overall (fsops 85.3%, store 79.6%)
 ```
+
+The figure landed at 42.9% against `docs/C2-PLAN.md`'s revised estimate of ~43%, not the
+roadmap's original ~45% — because four of the sixteen `L2-SEC-*` requirements listed
+under C2 actually belong to C4, C8 and C9. The plan said so before the work started,
+which is the only reason the number reads as correct rather than as a shortfall.
 
 **SQLite is vendored** at **3.53.4**, pinned per file in `cpp/VENDORED.md`, verified on
 real GCC 4.8.5 rather than assumed.

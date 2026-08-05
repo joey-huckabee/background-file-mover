@@ -282,6 +282,19 @@ jobs:
       - name: Verify
         run: make -C cpp sql-confined
 
+  # L2-SEC-001 and L2-SEC-008. Both are specified as Inspection, and both are
+  # now mechanical: filesystem access on managed trees goes through the
+  # fd-relative layer, and nothing anywhere invokes a shell (ADR-0011).
+  filesystem-discipline:
+    name: fd-relative + no-shell
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: fd-relative filesystem access
+        run: make -C cpp fd-relative
+      - name: No shell invocation
+        run: make -C cpp no-shell
+
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).
   static-analysis:

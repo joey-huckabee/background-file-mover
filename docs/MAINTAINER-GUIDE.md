@@ -173,7 +173,7 @@ sheet above and *CI architecture* below).
 
 ## CI architecture
 
-`.github/workflows/cpp-ci.yml` carries fourteen jobs; `make check-ci` reproduces all of
+`.github/workflows/cpp-ci.yml` carries fifteen jobs; `make check-ci` reproduces all of
 them locally in a container, so a red branch is avoidable.
 
 Nine of them — every job that compiles — run inside the toolchain image
@@ -202,6 +202,12 @@ itself, and the vendored-integrity, trace-matrix, and locale-free gates need no 
   The requirement's stated method is Inspection; this makes it mechanical, because
   inspection is the method that silently stops happening the week someone wants one
   quick query somewhere else.
+- **fd-relative + no-shell** — `L2-SEC-001` and `L2-SEC-008`, the same story. The first
+  bans the path-taking *headers* outside the filesystem layer rather than matching call
+  sites: a translation unit that cannot see `<fcntl.h>` cannot call `open()` whatever it
+  names its own methods. An earlier call-site version flagged `JobStore::open`, a method
+  declaration — and a gate with false positives gets switched off, which is worse than
+  one with a known blind spot.
 - **Locale-free parsers** — greps the parser sources for `<cctype>` and the `strtoul`
   family (`L3-CPP-052`). A source gate because the runtime test needs a locale the
   runners do not always have.

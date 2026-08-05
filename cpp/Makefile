@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -143,7 +143,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -329,6 +329,10 @@ check-ci:
 	      sh scripts/assert-locale-free.sh $(PARSER_SRC) && \
 	      echo "--- sql confinement ---" && \
 	      sh scripts/assert-sql-confined.sh && \
+	      echo "--- fd-relative filesystem access ---" && \
+	      sh scripts/assert-fd-relative.sh && \
+	      echo "--- no shell invocation ---" && \
+	      sh scripts/assert-no-shell.sh && \
 	      echo "--- functional ---" && \
 	      make clean-all && make -j$(CI_JOBS) check CXX=$(CI_CXX) CC=$(CI_CC) && \
 	      echo "--- sanitizers ---" && make -j$(CI_JOBS) check SANITIZE=1 CXX=$(CI_CXX) CC=$(CI_CC) && \
@@ -511,6 +515,21 @@ locale-free:
 .PHONY: sql-confined
 sql-confined:
 	@sh scripts/assert-sql-confined.sh
+
+# L2-SEC-001 and L2-SEC-008, both specified as Inspection, for the same reason
+# as sql-confined above: inspection is the method that stops happening.
+#
+# fd-relative bans the path-taking headers rather than matching call sites. A
+# translation unit that cannot see <fcntl.h> cannot call open() whatever it
+# names its own methods -- the call-site version of this gate flagged
+# JobStore::open, and a gate with false positives gets disabled.
+.PHONY: fd-relative
+fd-relative:
+	@sh scripts/assert-fd-relative.sh
+
+.PHONY: no-shell
+no-shell:
+	@sh scripts/assert-no-shell.sh
 
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
