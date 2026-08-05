@@ -253,6 +253,12 @@ jobs:
       - uses: actions/checkout@v6
       - name: Check for drift
         run: python3 scripts/build-trace-matrix.py --check
+      # Git ignores a hook that is not executable: it prints a hint and carries
+      # on, so a hook that never runs is indistinguishable from one that
+      # passed. This regressed twice, both times because the file was edited by
+      # a tool that rewrites it and a rewrite drops the permission bits.
+      - name: Hooks are executable in the index
+        run: sh scripts/assert-hook-mode.sh
 
   # L3-CPP-052: the untrusted-input parsers must classify characters with
   # explicit ranges, never <cctype> or the strtoul family.
