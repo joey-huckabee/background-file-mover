@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -143,7 +143,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -472,7 +472,13 @@ FUZZ_TARGETS  := json http
 # no clock (ADR-0008). If a fuzz target for the store is ever written -- a
 # database file is untrusted input in a way a job record is not -- this
 # exclusion is the thing to revisit.
-FUZZ_EXCLUDE  := src/store.cpp
+#
+# mover.cpp follows store.cpp because it calls into it. This is the second time
+# adding a source to LIB_SRC broke the fuzz link, which is the cost of the
+# subtractive design -- and still the right trade: the alternative is a
+# hand-written include list that stops covering a new parser silently, and a
+# link error is a far better failure than a fuzz target quietly testing less.
+FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp
 FUZZ_LIB_SRC  := $(filter-out $(FUZZ_EXCLUDE),$(LIB_SRC))
 # Derived, so adding a target to the list above cannot leave format-check
 # silently covering fewer files than the build does.
