@@ -364,6 +364,55 @@ Rewrite each when the C++ it describes exists — not before, and not piecemeal.
 | `docs/12-FACTOR.md` | Now — it is only partly stale | Factor VII **inverted**: the `AF_UNIX` deviation became REST conformance |
 | `docs/MAINTAINER-GUIDE.md` | Per workflow, as each lands | Layout and cheat sheet are already current; the per-workflow sections are not |
 
+## Owed: restore branch coverage reporting
+
+**Status: temporarily disabled. Restore when the tree is stable — no later than
+C9.** This is tracked here rather than left as a Makefile comment because a
+measure taken "for now" and recorded nowhere is a measure that becomes
+permanent.
+
+**What was changed.** `make coverage` runs `gcov` without `-b`, so the reports
+SonarCloud consumes carry line coverage only. Before this, the SonarCloud
+Quality Gate on `main` failed `new_coverage` at 71.3% against a threshold of
+80%, and every other condition passed.
+
+**Why.** SonarCloud blends line and condition coverage into one figure, and
+gcov's condition data for C++ counts every exception-unwind edge the compiler
+emits. Measured across the tree: **1,296 lines to cover with 114 uncovered
+(91.2%), against 2,273 conditions with 909 uncovered (60.0%)** — and of 685
+never-taken branches sampled across three files, **502 (73%) sit on source
+lines containing no conditional at all**: `std::ostringstream os;`,
+`os << "store: " << what;`, `return fail(...)`. They are reachable only by
+forcing an allocation failure.
+
+The clearest case is `http_parser.cpp`, which has **100% line coverage** and
+still reported 82.3%, because of 83 untaken branches of which 61 are on lines
+with no branch in them. The gate was failing on an artifact rather than a gap.
+
+**What was deliberately NOT done.** The branch data is still produced and still
+inspected — `make coverage-branches` plus `scripts/branch-coverage-audit.py`
+separate the roughly 200 genuinely untaken branches from the ~670 unreachable
+ones. Dropping branch measurement entirely would have hidden real gaps, which
+is the outcome to avoid. `store.cpp` alone carries 120 worth acting on.
+
+**What has to be true to restore it.**
+
+1. The ~200 genuine untaken branches are closed or individually justified —
+   most need the fault injection `docs/TEST-STRATEGY.md` describes, since they
+   are error paths in code that talks to SQLite and the filesystem.
+2. A way to stop counting compiler-emitted edges. Options not yet evaluated:
+   compiling the coverage tier with `-fno-exceptions` (the project throws
+   nothing, but Catch2 requires exceptions, so the library and the test binary
+   would need different flags), or a coverage tool that distinguishes the two —
+   `llvm-cov` with a Clang coverage build is the obvious candidate and the
+   toolchain already carries clang for fuzzing.
+3. Only then re-enable `-b` and raise the gate, with the *measured* number
+   rather than an assumed one.
+
+Restoring this is a prerequisite for C9 claiming the tree is qualified: a
+coverage figure that omits branch data is a weaker claim than one that includes
+it, and the release should not make the weaker claim silently.
+
 ## Locked decisions ("do not drop")
 
 These were settled during design and at project kickoff. Keep them

@@ -394,11 +394,47 @@ coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
 	@# them (gcov-11 against g++-14 output, say) fails with a version
 	@# mismatch and emits nothing usable, so CI passes GCOV=gcov-14
 	@# alongside CXX=g++-14.
+	@# NO -b here, deliberately, and this is a TEMPORARY measure -- see the
+	@# "Restore branch coverage reporting" entry in docs/ROADMAP.md.
+	@#
+	@# gcov's branch data for C++ is dominated by edges the compiler emits and
+	@# no test can take. Measured across three files: of 685 never-taken
+	@# branches, 502 (73%) sit on source lines containing no conditional at all
+	@# -- `std::ostringstream os;`, `os << "store: " << what;`, `return
+	@# fail(...)`. They are exception-unwind paths from std::string and
+	@# ostringstream, reachable only by forcing an allocation failure.
+	@#
+	@# SonarCloud blends line and condition coverage into one number, so
+	@# feeding it that data reported 71.3% for a tree with 91.2% line coverage,
+	@# and http_parser.cpp -- which has 100% line coverage -- came out at 82.3%.
+	@# The gate was then failing on an artifact rather than on a gap.
+	@#
+	@# The roughly 240 genuinely untaken branches are real and still worth
+	@# closing. `make coverage-branches` keeps them visible; dropping the data
+	@# entirely would hide them, which is the thing to avoid.
 	@mkdir -p $(COV_DIR)/report
-	$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) | tail -n +1
+	$(GCOV) -r -o $(COV_DIR)/src $(LIB_SRC) | tail -n +1
 	@mv -f *.gcov $(COV_DIR)/report/ 2>/dev/null || true
 	@echo
 	@sh scripts/coverage-summary.sh $(COV_DIR)/report plain $(COVERAGE_MIN)
+
+# Branch coverage, for looking at rather than for gating on. Writes to its own
+# directory so the .gcov files SonarCloud consumes stay line-only.
+#
+# The audit script separates the branches worth acting on from the ones the
+# compiler emitted, which is the distinction that makes the raw number
+# useless on its own.
+.PHONY: coverage-branches
+coverage-branches: $(COV_OBJ) $(COV_SQLITE_OBJ)
+	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
+	./$(COV_BIN) --use-colour no >/dev/null
+	@mkdir -p $(COV_DIR)/branches
+	@$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) >/dev/null
+	@mv -f *.gcov $(COV_DIR)/branches/ 2>/dev/null || true
+	@for f in $(COV_DIR)/branches/*.gcov; do \
+	    python3 scripts/branch-coverage-audit.py "$$f" | head -5; \
+	    echo; \
+	done
 
 # --- Fuzzing (ADR-0008) --------------------------------------------------
 # libFuzzer requires clang; GCC 4.8 can host neither it nor LSan. The source
