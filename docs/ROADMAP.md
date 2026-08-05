@@ -9,15 +9,49 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-04 · **Branch:** `c2-fs-layer` · **Current milestone: C2 — the
-filesystem layer is built; the move engine's callers are not written yet.**
+**Date:** 2026-08-05 · **Branch:** `c3-move-engine` · **Current milestone: C3 — the move
+engine is built. C2 is merged.**
 
-**Start with `docs/C2-PLAN.md`.** It was written before any C2 code and its pre-flight
-measurements change the design rather than the implementation — most importantly that
-`renameat2`, `RENAME_NOREPLACE` and `SYS_renameat2` are all absent on the target
-toolchain, so the primary rename strategy has to go through `syscall(2)` with constants
-we supply. Code calling `renameat2` directly compiles on a modern host and fails to link
-on SLES 12 SP5.
+**Start with `docs/C3-PLAN.md`.** It records two spec inconsistencies found while reading
+the requirements, both left unfixed because they change the headline coverage figure and
+are therefore decisions rather than cleanups:
+
+1. **`L2-COPY-001/002/003/011` describe copying, which v1.0.0 does not do**, yet they are
+   counted in scope because their parent `L1-SYS-001` is Active. They probably belong
+   under `L1-SYS-003`, which is already Deferred.
+2. **`v1.0.0 Status` annotations on L2 requirements are decorative.** `L2-XFR-002` says
+   *Deferred → v1.1* and the trace generator never reads it — it scopes by L1 status
+   alone. Someone wrote a deferral that has no effect.
+
+`docs/C2-PLAN.md` remains worth reading for the constraint it established: `renameat2`,
+`RENAME_NOREPLACE` and `SYS_renameat2` are all absent on the target toolchain, so the
+rename goes through `syscall(2)` with constants we supply. Code calling it directly
+compiles on a modern host and fails to link on SLES 12 SP5.
+
+```
+In v1.0.0 scope:  100 of 226 requirements verified (44.2%)
+Tests:            8,067 assertions / 187 cases      (all tiers green)
+Line coverage:    88.0% overall (mover 76.5%, fsops 81.3%, store 79.6%)
+```
+
+The figure moved only two points, against the roadmap's ~55% estimate and C3-PLAN's
+revised ~48–50%. Both were wrong for the same reason, now written down: a milestone's
+contribution depends on how many requirements it is the **first** to verify, not on how
+much work it is. C3 adds only `L2-XFR-001` and `L2-XFR-004` as newly traced; everything
+else it touches was already traced by C1 and C2, and the L1s it satisfies are composite
+and counted transitively. Estimate future milestones by listing the specific untraced IDs
+they will close.
+
+**The move engine exists and the commit point is real.** `MoveEngine`
+(`cpp/include/filemover/mover.hpp`) runs six phases with exactly one atomic commit —
+the rename out of the source directory. Before it nothing has happened; after it every
+step is idempotent, including the state machine. **No path deletes a source whose
+destination is not in place, structurally rather than by care:** the source is never
+deleted, it is renamed, and one syscall both removes the old name and creates the new.
+
+The kill-after-every-phase suite found two real idempotency bugs — the engine re-issued
+transitions the store correctly refused, on both sides of the commit point. That is the
+suite doing exactly what it exists for.
 
 **C0 (the foundation) is delivered and merged.** Five components are built, tested,
 fuzzed where they touch untrusted input, and green on every gate including the GCC 4.8.5

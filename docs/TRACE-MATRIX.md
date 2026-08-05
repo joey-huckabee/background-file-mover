@@ -33,11 +33,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-006 | L2-COPY-007 | _(none)_ | Draft |
 | L1-SYS-013 | L2-REN-001, L2-REN-002, L2-REN-003 | _(none)_ | Partially Implemented |
 | L1-SYS-014 | L2-NFS-007, L2-XFR-002 | _(none)_ | Partially Implemented |
-| L1-SYS-015 | L2-XFR-001 | _(none)_ | Draft |
+| L1-SYS-015 | L2-XFR-001 | `cpp/tests/test_mover.cpp::[a move delivers the file and records DONE]` | Implemented |
 | L1-SYS-010 | L2-ARC-001, L2-ARC-002, L2-ARC-003, L2-ARC-004, L2-ARC-005, L2-CFG-002, L2-CFG-003, L2-CFG-004, L2-CFG-006, L2-CFG-008, L2-CLI-010, L2-CLN-004, L2-CTL-004, L2-CTL-008, L2-CTL-012, L2-RTY-001, L2-RTY-002, L2-RTY-005 | _(none)_ | Partially Implemented |
 | L1-SYS-021 | L2-CORE-002 | _(none)_ | Implemented |
 | L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Partially Implemented |
-| L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Partially Implemented |
+| L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Implemented |
 | L1-SYS-017 | L2-MGR-001 | _(none)_ | Draft |
 | L1-SYS-018 | L2-MGR-003 | _(none)_ | Draft |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | _(none)_ | Partially Implemented |
@@ -202,9 +202,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SUB-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-SUB-004 | L3-SUB-002 | _(TBD)_ | Draft |
 | L2-SUB-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-XFR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-XFR-001 | _(none)_ | `cpp/tests/test_mover.cpp::[the progress callback reports start and finish]` | Implemented |
 | L2-XFR-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-XFR-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-XFR-004 | _(none)_ | `cpp/tests/test_mover.cpp::[a missing source is refused]`<br>`cpp/tests/test_mover.cpp::[outcome and phase tokens are stable]` | Implemented |
 
 ### L1-ROB: Robustness / no-panic (L1 leaf)
 
@@ -225,7 +225,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JSON-003 | L3-CPP-016, L3-CPP-017, L3-CPP-018, L3-CPP-022, L3-CPP-023, L3-CPP-024, L3-CPP-030 | `cpp/tests/test_api_codec.cpp::[encode_error escapes hostile messages]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_api_codec.cpp::[encoded output survives a round-trip through the parser]`<br>`cpp/tests/test_json.cpp::[a leading byte-order mark is rejected]`<br>`cpp/tests/test_json.cpp::[accepts the documented subset]`<br>`cpp/tests/test_json.cpp::[duplicate member names are rejected]`<br>`cpp/tests/test_json.cpp::[embedded NUL is rejected]`<br>`cpp/tests/test_json.cpp::[escape() output parses back to the original]`<br>`cpp/tests/test_json.cpp::[floating point and exponents are rejected]`<br>`cpp/tests/test_json.cpp::[integers outside int64 are rejected]`<br>`cpp/tests/test_json.cpp::[integers parse across the int64 range]`<br>`cpp/tests/test_json.cpp::[invalid UTF-8 is rejected]`<br>`cpp/tests/test_json.cpp::[literals other than true/false are rejected]`<br>`cpp/tests/test_json.cpp::[malformed escapes are rejected]`<br>`cpp/tests/test_json.cpp::[malformed numbers are rejected]`<br>`cpp/tests/test_json.cpp::[string values round-trip exactly]`<br>`cpp/tests/test_json.cpp::[structural malformations are rejected]`<br>`cpp/tests/test_json.cpp::[surrogate handling rejects unpaired halves]`<br>`cpp/tests/test_json.cpp::[top-level value must be an object]`<br>`cpp/tests/test_json.cpp::[trailing content after the value is rejected]`<br>`cpp/tests/test_json.cpp::[unescaped control characters are rejected]` | Implemented |
 | L2-JSON-004 | L3-CPP-021, L3-CPP-031 | `cpp/tests/test_api_codec.cpp::[decode bounds path length at PATH_MAX]`<br>`cpp/tests/test_json.cpp::[nesting depth is bounded]`<br>`cpp/tests/test_json.cpp::[size limits are enforced]` | Implemented |
 | L2-JSON-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-SEC-006 | L3-CPP-044 | `cpp/tests/test_fsops.cpp::[external paths are validated before use]`<br>`cpp/tests/test_rename_template.cpp::[an expansion that could escape its directory is rejected]` | Implemented |
+| L2-SEC-006 | L3-CPP-044 | `cpp/tests/test_fsops.cpp::[external paths are validated before use]`<br>`cpp/tests/test_mover.cpp::[a relative directory is refused before any syscall]`<br>`cpp/tests/test_rename_template.cpp::[an expansion that could escape its directory is rejected]` | Implemented |
 
 ### L1-API: REST control interface (L1)
 
@@ -280,8 +280,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-SEC-001 | L2-NFS-002 | _(none)_ | Implemented |
-| L1-SEC-002 | L2-JOB-014, L2-NFS-006, L2-NFS-008, L2-SEC-001, L2-SEC-002 | _(none)_ | Implemented |
+| L1-SEC-001 | L2-NFS-002 | `cpp/tests/test_mover.cpp::[a move delivers the file and records DONE]`<br>`cpp/tests/test_mover.cpp::[an occupied destination is not clobbered]`<br>`cpp/tests/test_mover.cpp::[recovery refuses to clobber a foreign file at the staging name]`<br>`cpp/tests/test_mover.cpp::[the staging name is SWIT-prefixed and job-specific]` | Implemented |
+| L1-SEC-002 | L2-JOB-014, L2-NFS-006, L2-NFS-008, L2-SEC-001, L2-SEC-002 | `cpp/tests/test_mover.cpp::[a durable write failure after the commit point halts]`<br>`cpp/tests/test_mover.cpp::[killing after any phase leaves a state recovery can reconcile]`<br>`cpp/tests/test_mover.cpp::[recovery finishes a move interrupted after the commit]`<br>`cpp/tests/test_mover.cpp::[recovery is idempotent once the move is already published]`<br>`cpp/tests/test_mover.cpp::[recovery re-drives a move that never committed]` | Implemented |
 | L1-SEC-003 | L2-JOB-013, L2-JOB-015, L2-NFS-003, L2-SEC-012 | _(none)_ | Partially Implemented |
 | L1-SEC-004 | L2-NFS-004, L2-NFS-005, L2-SEC-009, L2-SEC-010, L2-SEC-011, L2-SEC-016 | _(none)_ | Partially Implemented |
 | L1-SEC-005 | L2-SEC-003, L2-SEC-004, L2-SEC-005, L2-SEC-008, L2-SEC-013, L2-SEC-015 | _(none)_ | Partially Implemented |
@@ -292,8 +292,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-JOB-013 | _(none)_ | `cpp/tests/test_store.cpp::[a duplicate id is refused rather than overwriting]`<br>`cpp/tests/test_store.cpp::[a recorded intent is durable before the call returns]` | Implemented |
-| L2-JOB-014 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[a genuinely full store fails cleanly, not silently]`<br>`cpp/tests/test_store.cpp::[a job can be flagged for operator attention]`<br>`cpp/tests/test_store.cpp::[a write failure after the commit point halts instead of aborting]`<br>`cpp/tests/test_store.cpp::[a write failure before the commit point aborts the job]`<br>`cpp/tests/test_store.cpp::[a write that succeeds requires no action]`<br>`cpp/tests/test_store.cpp::[arming a fault on a closed store is an error]`<br>`cpp/tests/test_store.cpp::[the attention flag is best-effort when the store is unwritable]` | Implemented |
+| L2-JOB-013 | _(none)_ | `cpp/tests/test_mover.cpp::[a move with no durable intent is refused]`<br>`cpp/tests/test_store.cpp::[a duplicate id is refused rather than overwriting]`<br>`cpp/tests/test_store.cpp::[a recorded intent is durable before the call returns]` | Implemented |
+| L2-JOB-014 | _(none)_ | `cpp/tests/test_mover.cpp::[a durable write failure after the commit point halts]`<br>`cpp/tests/test_mover.cpp::[a durable write failure before the commit point aborts]`<br>`cpp/tests/test_mover.cpp::[killing after any phase leaves a state recovery can reconcile]`<br>`cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[a genuinely full store fails cleanly, not silently]`<br>`cpp/tests/test_store.cpp::[a job can be flagged for operator attention]`<br>`cpp/tests/test_store.cpp::[a write failure after the commit point halts instead of aborting]`<br>`cpp/tests/test_store.cpp::[a write failure before the commit point aborts the job]`<br>`cpp/tests/test_store.cpp::[a write that succeeds requires no action]`<br>`cpp/tests/test_store.cpp::[arming a fault on a closed store is an error]`<br>`cpp/tests/test_store.cpp::[the attention flag is best-effort when the store is unwritable]` | Implemented |
 | L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence in an older store does not restart]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
 | L2-NFS-001 | _(none)_ | `cpp/tests/test_fsops.cpp::[the move strategy is detected by attempting the operation]` | Implemented |
 | L2-NFS-002 | _(none)_ | `cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
@@ -305,13 +305,13 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SEC-001 | _(none)_ | `cpp/tests/test_fsops.cpp::[a name containing a separator is refused]`<br>`cpp/tests/test_fsops.cpp::[a subdirectory opens by name from its parent]`<br>`cpp/tests/test_fsops.cpp::[closing a directory handle is idempotent]`<br>`cpp/tests/test_fsops.cpp::[every operation on a closed directory fails cleanly]`<br>`cpp/tests/test_fsops.cpp::[listing a closed directory fails cleanly]`<br>`cpp/tests/test_fsops.cpp::[listing leaves the handle usable]`<br>`cpp/tests/test_fsops.cpp::[moving refuses a name that is not a plain entry name]` | Implemented |
 | L2-SEC-002 | _(none)_ | `cpp/tests/test_fsops.cpp::[a file swapped between classify and open is refused]`<br>`cpp/tests/test_fsops.cpp::[a regular file opens and reports the same identity]` | Implemented |
 | L2-SEC-003 | _(none)_ | `cpp/tests/test_fsops.cpp::[a directory root opens and a missing one does not]`<br>`cpp/tests/test_fsops.cpp::[a symlink put in place of a regular file is refused]`<br>`cpp/tests/test_fsops.cpp::[a symlinked root is refused, not followed]` | Implemented |
-| L2-SEC-004 | _(none)_ | `cpp/tests/test_fsops.cpp::[a directory lists its entries with types, minus . and ..]`<br>`cpp/tests/test_fsops.cpp::[an absent entry is an answer, not a failure]`<br>`cpp/tests/test_fsops.cpp::[entries are classified by type before anything acts on them]`<br>`cpp/tests/test_fsops.cpp::[enum names round-trip to stable tokens]`<br>`cpp/tests/test_fsops.cpp::[listing twice returns the same entries]`<br>`cpp/tests/test_fsops.cpp::[only regular files are opened]` | Implemented |
+| L2-SEC-004 | _(none)_ | `cpp/tests/test_fsops.cpp::[a directory lists its entries with types, minus . and ..]`<br>`cpp/tests/test_fsops.cpp::[an absent entry is an answer, not a failure]`<br>`cpp/tests/test_fsops.cpp::[entries are classified by type before anything acts on them]`<br>`cpp/tests/test_fsops.cpp::[enum names round-trip to stable tokens]`<br>`cpp/tests/test_fsops.cpp::[listing twice returns the same entries]`<br>`cpp/tests/test_fsops.cpp::[only regular files are opened]`<br>`cpp/tests/test_mover.cpp::[a non-regular source is refused]` | Implemented |
 | L2-SEC-005 | _(none)_ | `cpp/tests/test_fsops.cpp::[a source owned by the trusted uid is accepted]`<br>`cpp/tests/test_fsops.cpp::[a world-writable source directory without the sticky bit is refused]` | Implemented |
 | L2-SEC-007 | _(none)_ | `cpp/tests/test_fsops.cpp::[a move of a missing source fails under both strategies]`<br>`cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
 | L2-SEC-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-010 | _(none)_ | _(TBD)_ | Draft |
-| L2-SEC-011 | _(none)_ | `cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]`<br>`cpp/tests/test_fsops.cpp::[move state tokens are stable]` | Implemented |
+| L2-SEC-011 | _(none)_ | `cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]`<br>`cpp/tests/test_fsops.cpp::[move state tokens are stable]`<br>`cpp/tests/test_mover.cpp::[recovery reports failed-external when both names are gone]` | Implemented |
 | L2-SEC-012 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-013 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-015 | _(none)_ | _(TBD)_ | Implemented (I) |
@@ -357,26 +357,26 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| XFR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| XFR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
-| **Total** | **41** | **199** | **92** | **26** | **48** | **46** | **52** |
+| **Total** | **41** | **199** | **92** | **28** | **48** | **48** | **52** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 74 of 295 (25.1%).
+**Tested by at least one test marker**: 76 of 295 (25.8%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 99 of 295 (33.6%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 101 of 295 (34.2%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 73 of 226 (32.3%).
+**In v1.0.0 scope — tested**: 75 of 226 (33.2%).
 
-**In v1.0.0 scope — verified**: 98 of 226 (43.4%).
+**In v1.0.0 scope — verified**: 100 of 226 (44.2%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
