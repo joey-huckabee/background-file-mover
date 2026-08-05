@@ -3,6 +3,7 @@
 
 #include "filemover/fsops.hpp"
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -243,6 +244,92 @@ bool classify(const DirHandle& dir,
     out.dev = st.st_dev;
     out.ino = st.st_ino;
     out.kind = kind_from_mode(st.st_mode);
+    return true;
+}
+
+bool read_entries(const DirHandle& dir,
+                  std::vector<DirEntry>& out,
+                  std::string& error) {
+    out.clear();
+    if (!dir.is_open()) {
+        error = "fsops: directory is not open";
+        return false;
+    }
+
+    // fdopendir takes ownership of the descriptor it is given and closedir
+    // closes it, so it gets a duplicate. Handing it the DirHandle's own fd
+    // would leave the handle holding a closed descriptor and every later
+    // operation on it failing with EBADF -- a fault that would surface far
+    // from its cause.
+    const int dup_fd = ::dup(dir.fd());
+    if (dup_fd < 0) {
+        error = errno_message("cannot duplicate directory descriptor", errno);
+        return false;
+    }
+
+    DIR* handle = ::fdopendir(dup_fd);
+    if (handle == 0) {
+        error = errno_message("cannot read directory", errno);
+        ::close(dup_fd);
+        return false;
+    }
+    // Start from the beginning: a duplicated descriptor shares its file offset
+    // with the original, so a second listing would otherwise resume where the
+    // first stopped and silently return nothing.
+    ::rewinddir(handle);
+
+    for (;;) {
+        errno = 0;
+        const struct dirent* ent = ::readdir(handle);
+        if (ent == 0) {
+            if (errno != 0) {
+                error = errno_message("reading directory", errno);
+                ::closedir(handle);
+                out.clear();
+                return false;
+            }
+            break;
+        }
+
+        const std::string name = ent->d_name;
+        if (name == "." || name == "..") {
+            continue;
+        }
+
+        DirEntry entry;
+        entry.name = name;
+
+        // d_type is an optimisation, not a guarantee. NFS commonly reports
+        // DT_UNKNOWN, so on the mount the recordings live on this fstatat is
+        // the normal path rather than a fallback.
+        switch (ent->d_type) {
+            case DT_REG:  entry.kind = EntryKind::Regular;     break;
+            case DT_DIR:  entry.kind = EntryKind::Directory;   break;
+            case DT_LNK:  entry.kind = EntryKind::Symlink;     break;
+            case DT_FIFO: entry.kind = EntryKind::Fifo;        break;
+            case DT_SOCK: entry.kind = EntryKind::Socket;      break;
+            case DT_BLK:  entry.kind = EntryKind::BlockDevice; break;
+            case DT_CHR:  entry.kind = EntryKind::CharDevice;  break;
+            default: {
+                struct stat st;
+                if (::fstatat(dir.fd(), name.c_str(), &st,
+                              AT_SYMLINK_NOFOLLOW) == 0) {
+                    entry.kind = kind_from_mode(st.st_mode);
+                } else if (errno == ENOENT) {
+                    // Vanished between the readdir and the stat. Expected on a
+                    // live tree, and not this function's problem to resolve --
+                    // the caller sees Missing and decides.
+                    entry.kind = EntryKind::Missing;
+                } else {
+                    entry.kind = EntryKind::Unknown;
+                }
+                break;
+            }
+        }
+        out.push_back(entry);
+    }
+
+    ::closedir(handle);
     return true;
 }
 

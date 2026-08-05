@@ -27,6 +27,7 @@
 #include <sys/types.h>
 
 #include <string>
+#include <vector>
 
 namespace filemover {
 
@@ -121,6 +122,30 @@ class DirHandle {
     DirHandle& operator=(const DirHandle&);
     int fd_;
 };
+
+// One entry from a directory listing.
+struct DirEntry {
+    std::string name;
+    EntryKind kind;
+
+    DirEntry() : kind(EntryKind::Unknown) {}
+};
+
+// Lists a directory through its held descriptor. `.` and `..` are never
+// returned; they are not entries a caller should have to filter.
+//
+// The kind is taken from the readdir result where the filesystem supplies one
+// and falls back to fstatat where it does not. That fallback is not defensive
+// programming: NFS commonly answers DT_UNKNOWN, so on the mount where the
+// recordings actually live the fallback is the normal path — the same shape as
+// RENAME_NOREPLACE in L2-NFS-002.
+//
+// Silly-rename artifacts ARE returned. Filtering them here would hide them
+// from a caller that needs to know they exist; is_silly_rename() classifies
+// them (L2-NFS-005).
+bool read_entries(const DirHandle& dir,
+                  std::vector<DirEntry>& out,
+                  std::string& error);
 
 // fstatat with AT_SYMLINK_NOFOLLOW. A missing entry is reported as
 // EntryKind::Missing with a true return: absence is an answer, not a failure.

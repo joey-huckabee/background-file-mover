@@ -78,9 +78,9 @@ class TempTree {
         // Only ever one level deep in these tests; recursion is not needed and
         // opendir would add an include for no benefit.
         static const char* const kNames[] = {
-            "src.txt",   "dst.txt",     "other.txt", "a.txt",  "b.txt",
-            "tmp.part",  "final.txt",   "link",      "fifo",   "sub/inner.txt",
-            ".nfs0001",  "swapped.txt", "probe.txt", 0};
+            "src.txt",   "dst.txt",     "other.txt",     "a.txt", "b.txt",
+            "tmp.part",  "final.txt",   "link",          "fifo",  "sub/inner.txt",
+            ".nfs0001",  "swapped.txt", "probe.txt",     0};
         for (int i = 0; kNames[i] != 0; ++i) {
             ::unlink((dir + "/" + kNames[i]).c_str());
         }
@@ -438,6 +438,119 @@ TEST_CASE("publishing a missing temporary is an error",
 
     std::string error;
     CHECK(filemover::publish(dir, "tmp.part", "final.txt", error) == false);
+    CHECK(error.empty() == false);
+}
+
+// --- directory listing ---------------------------------------------------
+
+namespace {
+
+const filemover::DirEntry* find_entry(
+    const std::vector<filemover::DirEntry>& entries, const std::string& name) {
+    for (std::vector<filemover::DirEntry>::const_iterator it = entries.begin();
+         it != entries.end(); ++it) {
+        if (it->name == name) {
+            return &*it;
+        }
+    }
+    return 0;
+}
+
+}  // namespace
+
+TEST_CASE("a directory lists its entries with types, minus . and ..",
+          "[fsops][L2-SEC-004]") {
+    TempTree tree;
+    tree.write_file("a.txt", "one");
+    tree.write_file("b.txt", "two");
+    REQUIRE(::mkdir(tree.child("sub").c_str(), 0700) == 0);
+    REQUIRE(::symlink(tree.child("a.txt").c_str(), tree.child("link").c_str()) ==
+            0);
+
+    DirHandle dir;
+    open_tree(tree, dir);
+
+    std::vector<filemover::DirEntry> entries;
+    std::string error;
+    REQUIRE(filemover::read_entries(dir, entries, error) == true);
+
+    CHECK(find_entry(entries, ".") == 0);
+    CHECK(find_entry(entries, "..") == 0);
+
+    REQUIRE(find_entry(entries, "a.txt") != 0);
+    CHECK(find_entry(entries, "a.txt")->kind == EntryKind::Regular);
+    REQUIRE(find_entry(entries, "sub") != 0);
+    CHECK(find_entry(entries, "sub")->kind == EntryKind::Directory);
+    // Reported as a symlink, not as what it points at -- the same posture as
+    // classify().
+    REQUIRE(find_entry(entries, "link") != 0);
+    CHECK(find_entry(entries, "link")->kind == EntryKind::Symlink);
+}
+
+TEST_CASE("listing twice returns the same entries",
+          "[fsops][L2-SEC-004]") {
+    TempTree tree;
+    tree.write_file("a.txt", "one");
+    DirHandle dir;
+    open_tree(tree, dir);
+
+    std::vector<filemover::DirEntry> first;
+    std::vector<filemover::DirEntry> second;
+    std::string error;
+    REQUIRE(filemover::read_entries(dir, first, error) == true);
+    REQUIRE(filemover::read_entries(dir, second, error) == true);
+
+    // A duplicated descriptor shares its offset with the original, so without
+    // an explicit rewind the second listing resumes at the end and returns
+    // nothing -- a silent empty result, which is the worst kind.
+    CHECK(first.size() == second.size());
+    CHECK(second.size() == 1u);
+}
+
+TEST_CASE("listing leaves the handle usable", "[fsops][L2-SEC-001]") {
+    TempTree tree;
+    tree.write_file("a.txt", "one");
+    DirHandle dir;
+    open_tree(tree, dir);
+
+    std::vector<filemover::DirEntry> entries;
+    std::string error;
+    REQUIRE(filemover::read_entries(dir, entries, error) == true);
+
+    // closedir() closes the descriptor it was handed. If it had been given the
+    // handle's own fd rather than a duplicate, everything after this would
+    // fail with EBADF -- far from the cause.
+    CHECK(dir.is_open() == true);
+    CHECK(classify_ok(dir, "a.txt").kind == EntryKind::Regular);
+}
+
+TEST_CASE("silly-rename artifacts appear in a listing and are recognised",
+          "[fsops][L2-NFS-005]") {
+    TempTree tree;
+    tree.write_file("a.txt", "real");
+    tree.write_file(".nfs0001", "held open by another client");
+
+    DirHandle dir;
+    open_tree(tree, dir);
+
+    std::vector<filemover::DirEntry> entries;
+    std::string error;
+    REQUIRE(filemover::read_entries(dir, entries, error) == true);
+
+    // Returned rather than filtered: hiding them would deny a caller the
+    // information it needs to decide. The requirement is that they are not
+    // treated as *unexpected*, which is a classification, not a suppression.
+    REQUIRE(find_entry(entries, ".nfs0001") != 0);
+    CHECK(filemover::is_silly_rename(".nfs0001") == true);
+    CHECK(filemover::is_silly_rename("a.txt") == false);
+}
+
+TEST_CASE("listing a closed directory fails cleanly", "[fsops][L2-SEC-001]") {
+    DirHandle closed;
+    std::vector<filemover::DirEntry> entries;
+    std::string error;
+    CHECK(filemover::read_entries(closed, entries, error) == false);
+    CHECK(entries.empty() == true);
     CHECK(error.empty() == false);
 }
 
