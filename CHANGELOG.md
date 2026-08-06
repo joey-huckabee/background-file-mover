@@ -8,11 +8,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 Work toward the C++11 / REST **v1.0.0**, on one branch per milestone off `main`
-(currently `c1-durable-store`). The `v2-cpp` branch these entries were originally written
+(currently `c4-job-manager`). The `v2-cpp` branch these entries were originally written
 against merged into `main` at the C0 boundary and was retired.
 
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
+
+### Added — C4, the job manager
+
+- **The job manager and worker pool** — the project's first threads.
+  `filemover/manager.hpp`. N workers, each with its own `JobStore` connection
+  (`L2-JOB-003`). The constructor takes a store **path**, not a store, so sharing one
+  handle across threads is not an available mistake. One mutex guards all shared state:
+  the states interact — a job moves between runnable, waiting, paused and active — and
+  lock ordering between four mutexes is a bug waiting for the first person who takes them
+  in a new order.
+- **Lifecycle commands return typed results** (`L2-LIF-005`) — `Ok`, `UnknownJob`,
+  `InvalidState`, `NotRunning`, `StoreError` — rather than a bool and a string a caller
+  would have to parse to decide what to do.
+- **Retry with bounded exponential backoff** (`L2-RTY-001/002/003/005`). Schema columns
+  `attempts`, `next_retry_ms`, `last_error`. `last_error` is separate from `error` and not
+  a duplicate of it: the store's `CHECK` binds `error` to be non-empty if and only if the
+  state is FAILED, so a job that failed once and is waiting to retry — and is therefore
+  *not* FAILED — has nowhere else to record why.
+- **A denial is distinguished from a transient failure.** `MoveOutcome::Rejected` fails
+  the job outright; only a pre-commit abort is retried (`L2-RTY-002`). Every `Rejected`
+  site in the engine refuses the request itself — an unusable path, a missing source, a
+  non-regular file — and none of those become true later.
+- **Manual retry submits a new job** (`L2-RTY-006`), returning its id. The failed job
+  stays FAILED permanently, because `L1-SYS-021` makes that state terminal and reviving it
+  would erase the record that the job ever failed — which is exactly what an operator
+  investigating later needs. A `retry_of` column links the attempt to the one it replaces,
+  so the chain is reconstructible from the durable record alone. Ids are
+  `<root>-retry-<n>` with any existing suffix stripped, so a third attempt is
+  `job-retry-3` and not `job-retry-2-retry-1`.
+- **A `[retry]` configuration section** — `max_attempts` (1..100, default 3),
+  `backoff_initial_ms`, `backoff_max_ms`, with cross-field validation naming *both* values
+  when the floor exceeds the ceiling, because "invalid backoff" would send an operator to
+  look at one of two lines with no way to tell which is wrong.
+- **A latch-based concurrency suite.** The move engine's phase hook holds a worker at a
+  chosen phase, so an interleaving is *made* to happen rather than hoped for. A sleep
+  makes a race likely; a latch makes it certain, which is the difference between a test
+  that fails when the code is wrong and one that fails when the machine is busy.
+- **Header dependency tracking in the build** (`-MMD -MP`). There was none, so every
+  incremental build since the project began was unsound across a header change.
+- **A gate banning permission-based failure injection in tests**
+  (`assert-no-permission-tests.sh`), negative-tested across ten accept/reject cases
+  including the `01777`-accept versus `01500`-reject boundary.
+
+### Fixed — C4
+
+- **A failed move marked the job permanently unretryable.** The move engine wrote FAILED
+  when the commit rename failed. FAILED is terminal, so neither automatic backoff nor
+  operator-initiated retry could ever return that job to work — every transient failure
+  would have become a permanent loss requiring manual re-submission. The engine now leaves
+  the job in RENAMING, which is what actually happened, and `execute()` re-drives it by
+  skipping phase 2.
+- **A whole class of failure fell through the job manager.** Jobs refused before anything
+  happened were neither retried nor failed; they stayed QUEUED forever with no worker
+  owning them, indefinitely occupying the queue and reading as pending work.
+- **The manager mutex was held across blocking SQLite writes.** A submit arriving while a
+  worker held the database write lock could stall the entire pool for `busy_timeout` —
+  five seconds — because that mutex is what every worker takes to pick up its next job.
+  Commands now claim the id, write outside the lock, and publish; workers record failures
+  unlocked. `L2-JOB-013` is preserved exactly, since publishing is what makes a job
+  runnable.
+- **`clock_gettime` needs `-lrt` on the deployment target.** It lives in `librt` on the
+  target's glibc and in `libc` on newer ones, so the link succeeded on three modern
+  toolchains and every sanitizer tier and failed only on GCC 4.8.5.
+- **ThreadSanitizer was red on the manager suite.** `std::condition_variable::wait_until`
+  — correct C++ — breaks TSan's accounting for the mutex passed to it: it subsequently
+  believes the mutex is held after an explicit unlock, reports a phantom double lock, and
+  treats everything that mutex guards as unsynchronised. Isolated in a standalone program
+  with no project code, running one loop three ways from a single binary: `wait()` 0
+  warnings, `wait_until()` 11–19, bounded poll 0. `wait_idle` now polls. Full account in
+  `docs/C4-TSAN-RESOLVED.md`.
+- **A retry test asserted nothing where it mattered most.** It forced a failure by making
+  a directory read-only; root bypasses that check and the fidelity container runs as root,
+  so on the one tier modelling the production platform the move succeeded and six
+  assertions tested the opposite path from the one they named.
+- **`assert-hook-mode.sh` inspected the index rather than the file git runs.** Written to
+  catch a silently-dead pre-commit hook, it reported all hooks healthy while the hook was
+  dead, because an edit had cleared the working-tree execute bit while the index kept
+  `100755`.
+
+### Changed — C4
+
+- **Schema migrations were removed until v1.0.0 ships.** Before release there are no
+  databases in the field — every store is a developer or CI database and all of them are
+  disposable — so a schema change recreates rather than migrates. The version check stays
+  and now refuses a mismatch in *either* direction, because without a migration path an
+  older database is exactly as unreadable as a newer one. Owed back before the first
+  schema change after release; recorded in `docs/ROADMAP.md` with the trap to avoid.
+- **`L2-CLI-001` no longer names `argparse`** — a Python library in a requirement for a
+  C++ project. It now states the dependency constraint and the option forms, leaving the
+  mechanism to an ADR at the milestone that builds the CLI, because `getopt(3)` is POSIX
+  but short-options-only while `getopt_long(3)` is a GNU extension.
+- **`L2-CLI-006` carries the full output-stream contract.** The CLI writes its *result* to
+  stdout and diagnostics to stderr; the service writes its event stream split by severity.
+  The two process types have opposite stdout contracts, which is the part implemented
+  wrongly when it is not written down. The service half had been specified only in the
+  retired `L3-PY-013`.
+
+### Removed — C4
+
+- **The `L3-PY-*` requirement category.** Fourteen requirements specifying Python
+  mechanisms for an implementation no longer on this branch. Each was inspected before
+  deletion so no *feature* left with its mechanism: twelve carried nothing their L2 parent
+  did not already require, and five substantive constraints were preserved — most
+  importantly the requirement to `fsync` the containing **directory** and not only the
+  file, now `L3-CPP-053`. `L2-POSIX-009` asks only for the file, so that was the only
+  written requirement demanding the directory sync. A rename is atomic, but atomicity is
+  not durability.
+- **`L2-COPY-001/002/003/011` left v1.0.0 scope**, reparented to the already-deferred
+  `L1-SYS-003`. They describe a copy engine `L1-SEC-007` forbids at this release, so the
+  matrix was reporting four requirements as owed that could not be satisfied without
+  violating another.
 
 ### Added
 

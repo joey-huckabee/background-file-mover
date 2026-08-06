@@ -111,6 +111,27 @@ struct JobManager::Impl {
     std::set<std::string> paused;
     std::set<std::string> active;
 
+    // Ids claimed by a command that has released the manager mutex to do its
+    // durable write and has not published the job yet. Without this a second
+    // submit of the same id could slip through the window between the claim
+    // and the insert into `requests`.
+    std::set<std::string> pending;
+
+    // Guards the manager's OWN store connection, and nothing else.
+    //
+    // Separate from `mutex` on purpose: a command's durable write can block for
+    // busy_timeout -- five seconds -- when a worker holds the database write
+    // lock, and holding the manager mutex across that stalls every worker,
+    // because `mutex` is what they take to pick up their next job. This mutex
+    // makes concurrent commands safe to share one connection (L2-JOB-003)
+    // without coupling them to dispatch.
+    //
+    // LOCK ORDER: never hold `mutex` while taking `store_mutex`. Nothing here
+    // takes both at once; commands release `mutex` before the write and retake
+    // it afterwards. Workers never take `store_mutex` at all -- each has its
+    // own connection.
+    mutable std::mutex store_mutex;
+
     bool running;
     bool stopping;
     std::vector<std::thread> workers;
@@ -139,9 +160,11 @@ struct JobManager::Impl {
     void fail_permanently(JobStore& store,
                           const std::string& job_id,
                           const std::string& reason);
-    void handle_failure(JobStore& store,
+    bool handle_failure(JobStore& store,
                         const std::string& job_id,
-                        const std::string& failure);
+                        const std::string& failure,
+                        std::int64_t now_ms,
+                        std::int64_t& due_ms);
 };
 
 JobManager::JobManager(const std::string& store_path, const Config& config)
@@ -202,22 +225,32 @@ bool JobManager::Impl::take_runnable(const std::string& job_id) {
 // real and re-running it would act on a source that no longer exists;
 // FailedExternal is excluded because L2-SEC-011 says so outright.
 //
-// Caller holds the lock.
-void JobManager::Impl::handle_failure(JobStore& store,
+// Caller must NOT hold the lock. Every store call below can block on
+// busy_timeout, and holding the manager mutex across one stalls the whole pool.
+// The only shared state this touches is `config`, which is copied at
+// construction and never mutated, and the clock, which is snapshotted by the
+// caller for the same reason.
+//
+// Returns true when the job should run again later, with `due_ms` set to when.
+// The caller records that under the lock -- `waiting` is dispatch state and
+// belongs to the mutex, even though the durable write does not.
+bool JobManager::Impl::handle_failure(JobStore& store,
                                       const std::string& job_id,
-                                      const std::string& failure) {
+                                      const std::string& failure,
+                                      std::int64_t now_ms,
+                                      std::int64_t& due_ms) {
     JobStore::RetryState state;
     bool found = false;
     std::string load_error;
     if (!store.load_retry_state(job_id, state, found, load_error) || !found) {
-        return;
+        return false;
     }
 
     const unsigned attempts = static_cast<unsigned>(state.attempts) + 1;
     if (attempts < config.retry_max_attempts) {
         const std::int64_t due =
-            now() + backoff_for(attempts, config.retry_backoff_initial_ms,
-                                config.retry_backoff_max_ms);
+            now_ms + backoff_for(attempts, config.retry_backoff_initial_ms,
+                                 config.retry_backoff_max_ms);
         std::string record_error;
         if (store.record_attempt(job_id, due, failure, record_error)) {
             // The durable state is left exactly where the engine stopped --
@@ -231,9 +264,10 @@ void JobManager::Impl::handle_failure(JobStore& store,
             // L1-SYS-021 does not define. The difference between "queued" and
             // "queued, waiting out a backoff" lives in next_retry_ms, which is
             // exactly what that column is for.
-            waiting[job_id] = due;
+            due_ms = due;
+            return true;
         }
-        return;
+        return false;
     }
 
     // L2-RTY-005: the attempt ceiling. Unbounded retry against a permanent
@@ -241,13 +275,14 @@ void JobManager::Impl::handle_failure(JobStore& store,
     std::ostringstream os;
     os << "gave up after " << attempts << " attempts: " << failure;
     fail_permanently(store, job_id, os.str());
+    return false;
 }
 
 // Ends a job with no further retry: records the reason durably and settles the
 // state at FAILED. Reached both from the attempt ceiling and from an outright
 // denial, which want identical handling once the verdict is in.
 //
-// Caller holds the lock.
+// Caller must NOT hold the lock, for the same reason as handle_failure.
 void JobManager::Impl::fail_permanently(JobStore& store,
                                         const std::string& job_id,
                                         const std::string& reason) {
@@ -313,24 +348,34 @@ void JobManager::Impl::run_worker() {
         impl->active.insert(job_id);
         engine.set_phase_hook(impl->hook, impl->hook_user);
 
+        // Snapshotted while the lock is held. The clock is installed by
+        // set_clock() before start(), so this is stable, but reading it under
+        // the lock keeps that a fact rather than an assumption.
+        const std::int64_t now_ms = impl->now();
+
         std::string error;
         MoveOutcome outcome = MoveOutcome::Rejected;
+        bool reschedule = false;
+        std::int64_t due_ms = 0;
         {
             // The move runs unlocked -- it is the slow part, and holding the
             // manager's lock across it would serialize the whole pool onto one
             // job at a time, which is the opposite of having a pool.
+            //
+            // The failure recording that follows it runs unlocked for a
+            // sharper reason: those store calls can block on busy_timeout for
+            // five seconds when another connection holds the write lock, and
+            // this mutex is the one every other worker needs to pick up its
+            // next job. Recording a failure must not stall the pool.
             lock.unlock();
             outcome = engine.execute(job_id, request, strategy, error);
-            lock.lock();
-        }
 
-        {
-            impl->active.erase(job_id);
             if (outcome == MoveOutcome::AbortedBeforeCommit) {
                 // The attempt failed with the source untouched. Whatever went
                 // wrong may not still be wrong in a minute, so this is the
                 // retryable class (L2-RTY-001).
-                impl->handle_failure(store, job_id, error);
+                reschedule = impl->handle_failure(store, job_id, error, now_ms,
+                                                  due_ms);
             } else if (outcome == MoveOutcome::Rejected) {
                 // L2-RTY-002: a denial is permanent, so it is failed outright
                 // rather than rescheduled. Every Rejected site in the engine is
@@ -345,6 +390,15 @@ void JobManager::Impl::run_worker() {
                 // like pending work.
                 impl->fail_permanently(store, job_id, error);
             }
+
+            lock.lock();
+        }
+
+        // Back under the lock, and only in-memory dispatch state is touched
+        // here -- everything durable was written above, unlocked.
+        impl->active.erase(job_id);
+        if (reschedule) {
+            impl->waiting[job_id] = due_ms;
         }
     }
 }
@@ -418,20 +472,46 @@ void JobManager::shutdown() {
 CommandResult JobManager::submit(const std::string& job_id,
                                  const MoveRequest& request,
                                  std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
-    if (!impl_->running) {
-        error = "manager: not running";
-        return CommandResult::NotRunning;
+    std::int64_t now_ms = 0;
+    {
+        std::unique_lock<std::mutex> lock(impl_->mutex);
+        if (!impl_->running) {
+            error = "manager: not running";
+            return CommandResult::NotRunning;
+        }
+        // Claim the id before releasing the mutex. Two concurrent submits of
+        // the same id would otherwise both pass this point and both attempt the
+        // durable write; the store would refuse the second, but only after the
+        // first had already been published.
+        if (impl_->requests.find(job_id) != impl_->requests.end() ||
+            !impl_->pending.insert(job_id).second) {
+            error = "manager: job '" + job_id + "' already exists";
+            return CommandResult::InvalidState;
+        }
+        now_ms = impl_->now();
     }
 
-    // Durable first (L2-JOB-013). The engine refuses a job it cannot find, so
-    // this ordering is enforced downstream rather than merely intended here.
+    // Durable first (L2-JOB-013), and deliberately OUTSIDE the manager mutex.
+    // record_intent can block on busy_timeout for five seconds when a worker
+    // holds the database write lock, and this mutex is what every worker takes
+    // to pick up its next job -- so holding it here stalls the entire pool on
+    // one submit. store_mutex keeps concurrent commands safe on the shared
+    // connection without coupling them to dispatch.
     Job job(job_id, request.source_dir + "/" + request.source_name,
-            request.dest_dir + "/" + request.dest_name, impl_->now());
-    if (!impl_->store.record_intent(job, error)) {
+            request.dest_dir + "/" + request.dest_name, now_ms);
+    bool recorded = false;
+    {
+        std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+        recorded = impl_->store.record_intent(job, error);
+    }
+
+    std::unique_lock<std::mutex> lock(impl_->mutex);
+    impl_->pending.erase(job_id);
+    if (!recorded) {
         return CommandResult::StoreError;
     }
-
+    // Published only now, so the job becomes runnable strictly after its intent
+    // is durable -- which is the whole of L2-JOB-013.
     impl_->requests[job_id] = request;
     impl_->runnable.push_back(job_id);
     impl_->work_ready.notify_one();
@@ -517,20 +597,30 @@ CommandResult JobManager::cancel(const std::string& job_id,
 CommandResult JobManager::retry(const std::string& job_id,
                                 std::string& new_job_id,
                                 std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
     new_job_id.clear();
 
-    if (!impl_->running) {
-        error = "manager: not running";
-        return CommandResult::NotRunning;
+    MoveRequest move;
+    std::int64_t now_ms = 0;
+    {
+        std::unique_lock<std::mutex> lock(impl_->mutex);
+        if (!impl_->running) {
+            error = "manager: not running";
+            return CommandResult::NotRunning;
+        }
+        std::map<std::string, MoveRequest>::const_iterator request =
+            impl_->requests.find(job_id);
+        if (request == impl_->requests.end()) {
+            error = "manager: no such job '" + job_id + "'";
+            return CommandResult::UnknownJob;
+        }
+        move = request->second;
+        now_ms = impl_->now();
     }
 
-    std::map<std::string, MoveRequest>::const_iterator request =
-        impl_->requests.find(job_id);
-    if (request == impl_->requests.end()) {
-        error = "manager: no such job '" + job_id + "'";
-        return CommandResult::UnknownJob;
-    }
+    // Every store call from here to the publish runs outside the manager mutex,
+    // guarded only by store_mutex -- same reasoning as submit(). Probing for a
+    // free id is several loads, each of which can block on busy_timeout.
+    std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
 
     Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
@@ -564,19 +654,30 @@ CommandResult JobManager::retry(const std::string& job_id,
         if (!impl_->store.load(candidate, existing, taken, error)) {
             return CommandResult::StoreError;
         }
-        if (!taken && impl_->requests.find(candidate) ==
-                          impl_->requests.end()) {
+        if (taken) {
+            continue;
+        }
+        // LOCK ORDER: store_mutex is already held and the manager mutex is
+        // taken inside it. That nesting is the only one permitted -- nothing
+        // anywhere takes the manager mutex first and then store_mutex, so
+        // there is no cycle. submit() avoids nesting entirely by releasing one
+        // before taking the other.
+        std::unique_lock<std::mutex> lock(impl_->mutex);
+        if (impl_->requests.find(candidate) == impl_->requests.end() &&
+            impl_->pending.insert(candidate).second) {
             break;
         }
     }
 
-    const MoveRequest& move = request->second;
     Job fresh(candidate, move.source_dir + "/" + move.source_name,
-              move.dest_dir + "/" + move.dest_name, impl_->now());
-    if (!impl_->store.record_intent(fresh, job_id, error)) {
+              move.dest_dir + "/" + move.dest_name, now_ms);
+    const bool recorded = impl_->store.record_intent(fresh, job_id, error);
+
+    std::unique_lock<std::mutex> lock(impl_->mutex);
+    impl_->pending.erase(candidate);
+    if (!recorded) {
         return CommandResult::StoreError;
     }
-
     impl_->requests[candidate] = move;
     impl_->runnable.push_back(candidate);
     impl_->work_ready.notify_one();

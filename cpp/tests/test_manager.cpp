@@ -257,6 +257,62 @@ TEST_CASE("workers drain the queue and each job runs once",
     }
 }
 
+TEST_CASE("a duplicate job id is refused rather than published twice",
+          "[manager][L2-JOB-013][L2-LIF-005]") {
+    Fixture fx;
+    fx.write_source("only-once");
+    JobManager manager(fx.db(), fx.config(1));
+    std::string error;
+    REQUIRE(manager.start(error) == true);
+
+    REQUIRE(manager.submit("only-once", fx.request("only-once"), error) ==
+            CommandResult::Ok);
+    // The claim survives the window in which submit releases the manager mutex
+    // to do its durable write. Before that window existed the store's INSERT
+    // was the only defence; now the id is reserved in memory as well, because
+    // the store cannot refuse a duplicate that has not been written yet.
+    CHECK(manager.submit("only-once", fx.request("only-once"), error) ==
+          CommandResult::InvalidState);
+    CHECK(error.empty() == false);
+
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+    CHECK(fx.kind_in(fx.dst(), "only-once.done") == EntryKind::Regular);
+}
+
+TEST_CASE("a job can be submitted while a worker is mid-move",
+          "[manager][L2-MGR-001]") {
+    Fixture fx;
+    fx.write_source("held");
+    fx.write_source("second");
+
+    JobManager manager(fx.db(), fx.config(1));
+    Latch latch;
+    latch.at = MovePhase::Commit;
+    manager.set_phase_hook(Latch::hook, &latch);
+
+    std::string error;
+    REQUIRE(manager.start(error) == true);
+    REQUIRE(manager.submit("held", fx.request("held"), error) ==
+            CommandResult::Ok);
+    latch.wait_arrival();
+
+    // The submit path takes the manager mutex, releases it for its durable
+    // write, and retakes it. This exercises that sequence while a worker is
+    // genuinely in flight -- the interleaving the claim set exists to make
+    // safe.
+    REQUIRE(manager.submit("second", fx.request("second"), error) ==
+            CommandResult::Ok);
+
+    latch.release();
+    manager.set_phase_hook(0, 0);
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    CHECK(fx.kind_in(fx.dst(), "held.done") == EntryKind::Regular);
+    CHECK(fx.kind_in(fx.dst(), "second.done") == EntryKind::Regular);
+}
+
 TEST_CASE("submitting before start is refused", "[manager][L2-LIF-005]") {
     Fixture fx;
     JobManager manager(fx.db(), fx.config(2));

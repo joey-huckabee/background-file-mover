@@ -9,24 +9,58 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-05 · **Branch:** `c3-move-engine` · **Current milestone: C3 — the move
-engine is built. C2 is merged.**
+**Date:** 2026-08-06 · **Branch:** `c4-job-manager` · **Current milestone: C4 — the job
+manager and worker pool are built. C3 is merged. C4 is ready to merge.**
 
-**Start with `docs/C3-PLAN.md`.** It records two spec inconsistencies found while reading
-the requirements, both left unfixed because they change the headline coverage figure and
-are therefore decisions rather than cleanups:
+**Every tier is green**, including the ones that were not when C4 started:
 
-1. **`L2-COPY-001/002/003/011` describe copying, which v1.0.0 does not do**, yet they are
-   counted in scope because their parent `L1-SYS-001` is Active. They probably belong
-   under `L1-SYS-003`, which is already Deferred.
-2. **`v1.0.0 Status` annotations on L2 requirements are decorative.** `L2-XFR-002` says
-   *Deferred → v1.1* and the trace generator never reads it — it scopes by L1 status
-   alone. Someone wrote a deferral that has no effect.
+```
+In v1.0.0 scope:  109 of 214 requirements verified (50.9%)
+Tests:            8,519 assertions / 208 cases
+Line coverage:    87.5% overall (floor 85%)
+Tiers:            default, GCC 4.8.5 fidelity, ASan/UBSan/LSan,
+                  ThreadSanitizer, Valgrind, coverage, clang-tidy,
+                  seven source gates -- all green
+```
+
+**The denominator moved and the numerator did not.** 226 → 214 because three
+scoping defects were corrected, not because work was verified. Do not read 44.2% → 50.9%
+as six points of progress; roughly half of it is the denominator being made honest.
+
+**Read `docs/C4-TSAN-RESOLVED.md` before writing any threaded code.** The headline:
+`std::condition_variable::wait_until` breaks ThreadSanitizer's accounting for the mutex
+passed to it — it then believes the mutex is held after an explicit unlock, reports a
+phantom double lock, and treats everything that mutex guards as unsynchronised. Correct
+C++, unusable under TSan. Do not reach for a timed wait on a mutex that also guards data.
+
+**The rule the manager now follows: no store call happens with the manager mutex held.**
+A durable write can block on `busy_timeout` for five seconds, and that mutex is what every
+worker takes to pick up its next job. Commands claim an id, write outside the lock, then
+publish. `store_mutex` may be held while taking the manager mutex; the reverse is never
+done.
+
+### Decisions taken during C4 (previously open)
+
+1. **`L2-COPY-001/002/003/011` reparented** from `L1-SYS-001` to the already-deferred
+   `L1-SYS-003`. `L2-COPY-004` deliberately stayed: despite the prefix it constrains
+   concurrency generally and applies to the C4 worker pool.
+2. **Decorative `v1.0.0 Status` annotations removed.** Deferral is expressible only at L1,
+   where the generator enforces it.
+3. **The `L3-PY-*` category deleted** — with each of the fourteen inspected first so no
+   feature left with its mechanism. Five substantive constraints were preserved; see the
+   table in `docs/L3-REQ.md`.
+4. **Manual retry submits a new job** rather than reviving the failed one, because FAILED
+   is terminal and the record of the failure is what an operator needs.
+5. **Schema migrations dropped until v1.0.0 ships** — see *Owed* below.
 
 `docs/C2-PLAN.md` remains worth reading for the constraint it established: `renameat2`,
 `RENAME_NOREPLACE` and `SYS_renameat2` are all absent on the target toolchain, so the
 rename goes through `syscall(2)` with constants we supply. Code calling it directly
 compiles on a modern host and fails to link on SLES 12 SP5.
+
+**Historical — the figures as they stood at the close of C3.** The denominator has since
+been corrected from 226 to 214, so these are not comparable to the current numbers above
+without that adjustment.
 
 ```
 In v1.0.0 scope:  100 of 226 requirements verified (44.2%)
