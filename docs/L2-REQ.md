@@ -219,11 +219,26 @@ identifier.
 
 #### L2-CLI-001
 
-The command-line interface shall be built with argparse using only the standard library.
+The command-line interface shall be implemented using only C++11 standard-library and
+POSIX functionality, with no third-party dependency, and shall accept both short
+(`-v`) and long (`--log-level`) option forms.
 
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T), Inspection (I)
+
+Previously this requirement read "shall be built with **argparse** using only the
+standard library" — a Python library named in a requirement for a C++ project. It
+survived the removal of the Python implementation because the `L3-PY-*` requirements
+were where anyone thought to look for Python mechanisms, and nobody expected to find
+one at L2.
+
+Mechanism is deliberately not specified here. `getopt(3)` is POSIX but handles only
+short options; `getopt_long(3)` handles both but is a GNU extension rather than POSIX,
+so choosing it is a decision about what "POSIX only" means on this project and belongs
+in an ADR at the milestone that builds the CLI — not in a requirement that predates it.
+What this requirement fixes is the dependency constraint and the option forms operators
+will type.
 
 #### L2-CLI-002
 
@@ -260,11 +275,38 @@ The CLI shall write machine output to stdout with no interleaved logging.
 
 #### L2-CLI-006
 
-The CLI shall write diagnostics and logs to stderr.
+The software shall write its output to the standard streams and shall manage no log
+files, with the stream contract differing by process type:
+
+- **CLI invocations** shall write the command **result** to stdout and all diagnostics,
+  warnings and errors to stderr. Nothing but the result reaches stdout.
+- **The service** (`service run`) shall write its log event stream to the standard
+  streams, split by severity: `INFO` and `DEBUG` to stdout, `WARNING` and above to
+  stderr.
+
+The software shall never open, name, rotate or delete a log file, and shall not require
+a terminal.
 
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T)
+
+The two process types have **opposite** stdout contracts, which is the part that gets
+implemented wrongly if it is not written down. A CLI's output *is* its result, so a
+stray log line on stdout corrupts it — `--output json` piped into a parser is the case
+that breaks. A daemon has no result, so its logs *are* its output.
+
+This satisfies twelve-factor XI (logs as an event stream the environment routes, never
+app-managed files) while keeping the Unix convention that `WARNING` and above belong on
+stderr, so `journalctl -p warning` and `2>/dev/null` both behave as an operator expects.
+Under the default systemd deployment journald captures both streams and applies the
+priority split; under a container runtime both are captured as the container log.
+
+Previously this requirement read only "The CLI shall write diagnostics and logs to
+stderr" — correct as far as it went, but silent on the service, which is the process
+that actually produces the logs. The service half was specified only in the retired
+`L3-PY-013`, so deleting the Python requirements left it with no requirement at all
+until this revision. Full contract and operator guidance in `docs/LOGGING.md`.
 
 #### L2-CLI-007
 
