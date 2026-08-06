@@ -620,8 +620,20 @@ no-permission-tests:
 strong-hash:
 	@sh scripts/assert-strong-hash.sh
 
+# The minimum clang-tidy major version this gate is meaningful at. CI runs
+# CI_TIDY (clang-tidy-20); a developer running an older one gets a PASS that
+# means "my clang-tidy does not know about these checks", which is the most
+# expensive kind of green.
+#
+# This is not hypothetical. C4 landed on a machine with clang-tidy 14 and was
+# clean locally while CI failed with twenty misc-const-correctness errors --
+# that check arrived in clang-tidy 17, so the local run could not see what the
+# gate enforces. The build must not report success for a check it did not run.
+TIDY_MIN_MAJOR ?= 17
+
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
+	@sh scripts/assert-tidy-version.sh $(TIDY) $(TIDY_MIN_MAJOR)
 	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
 format-check:

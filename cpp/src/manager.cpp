@@ -126,10 +126,11 @@ struct JobManager::Impl {
     // makes concurrent commands safe to share one connection (L2-JOB-003)
     // without coupling them to dispatch.
     //
-    // LOCK ORDER: never hold `mutex` while taking `store_mutex`. Nothing here
-    // takes both at once; commands release `mutex` before the write and retake
-    // it afterwards. Workers never take `store_mutex` at all -- each has its
-    // own connection.
+    // LOCK ORDER: `store_mutex` may be held while taking `mutex`. The reverse
+    // is never done, so there is no cycle. submit() avoids nesting entirely by
+    // releasing one before taking the other; retry() nests, because probing for
+    // a free id has to consult both the durable record and the live maps.
+    // Workers never take `store_mutex` at all -- each has its own connection.
     mutable std::mutex store_mutex;
 
     bool running;
@@ -176,34 +177,34 @@ JobManager::~JobManager() {
 }
 
 void JobManager::set_clock(ClockFn fn, void* user_data) {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     impl_->clock = (fn != 0) ? fn : monotonic_now;
     impl_->clock_user = user_data;
 }
 
 void JobManager::set_strategy(MoveStrategy strategy) {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     impl_->strategy = strategy;
 }
 
 void JobManager::set_phase_hook(MoveEngine::PhaseHook hook, void* user_data) {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     impl_->hook = hook;
     impl_->hook_user = user_data;
 }
 
 bool JobManager::is_running() const {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     return impl_->running;
 }
 
 std::size_t JobManager::runnable_count() const {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     return impl_->runnable.size();
 }
 
 std::size_t JobManager::active_count() const {
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     return impl_->active.size();
 }
 
@@ -406,7 +407,7 @@ void JobManager::Impl::run_worker() {
 bool JobManager::start(std::string& error) {
     unsigned count = 0;
     {
-        std::unique_lock<std::mutex> lock(impl_->mutex);
+        const std::unique_lock<std::mutex> lock(impl_->mutex);
         if (impl_->running) {
             return true;
         }
@@ -436,7 +437,7 @@ bool JobManager::start(std::string& error) {
         spawned.push_back(std::thread(&JobManager::Impl::run_worker, impl_));
     }
 
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     for (std::size_t i = 0; i < spawned.size(); ++i) {
         impl_->workers.push_back(std::move(spawned[i]));
     }
@@ -446,7 +447,7 @@ bool JobManager::start(std::string& error) {
 void JobManager::shutdown() {
     std::vector<std::thread> to_join;
     {
-        std::unique_lock<std::mutex> lock(impl_->mutex);
+        const std::unique_lock<std::mutex> lock(impl_->mutex);
         if (!impl_->running) {
             return;
         }
@@ -465,7 +466,7 @@ void JobManager::shutdown() {
         }
     }
 
-    std::lock_guard<std::mutex> guard(impl_->mutex);
+    const std::lock_guard<std::mutex> guard(impl_->mutex);
     impl_->store.close();
 }
 
@@ -474,7 +475,7 @@ CommandResult JobManager::submit(const std::string& job_id,
                                  std::string& error) {
     std::int64_t now_ms = 0;
     {
-        std::unique_lock<std::mutex> lock(impl_->mutex);
+        const std::unique_lock<std::mutex> lock(impl_->mutex);
         if (!impl_->running) {
             error = "manager: not running";
             return CommandResult::NotRunning;
@@ -497,15 +498,15 @@ CommandResult JobManager::submit(const std::string& job_id,
     // to pick up its next job -- so holding it here stalls the entire pool on
     // one submit. store_mutex keeps concurrent commands safe on the shared
     // connection without coupling them to dispatch.
-    Job job(job_id, request.source_dir + "/" + request.source_name,
+    const Job job(job_id, request.source_dir + "/" + request.source_name,
             request.dest_dir + "/" + request.dest_name, now_ms);
     bool recorded = false;
     {
-        std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+        const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
         recorded = impl_->store.record_intent(job, error);
     }
 
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     impl_->pending.erase(job_id);
     if (!recorded) {
         return CommandResult::StoreError;
@@ -520,7 +521,7 @@ CommandResult JobManager::submit(const std::string& job_id,
 
 CommandResult JobManager::pause(const std::string& job_id,
                                 std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -541,7 +542,7 @@ CommandResult JobManager::pause(const std::string& job_id,
 
 CommandResult JobManager::resume(const std::string& job_id,
                                  std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -557,7 +558,7 @@ CommandResult JobManager::resume(const std::string& job_id,
 
 CommandResult JobManager::cancel(const std::string& job_id,
                                  std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -602,12 +603,12 @@ CommandResult JobManager::retry(const std::string& job_id,
     MoveRequest move;
     std::int64_t now_ms = 0;
     {
-        std::unique_lock<std::mutex> lock(impl_->mutex);
+        const std::unique_lock<std::mutex> lock(impl_->mutex);
         if (!impl_->running) {
             error = "manager: not running";
             return CommandResult::NotRunning;
         }
-        std::map<std::string, MoveRequest>::const_iterator request =
+        const std::map<std::string, MoveRequest>::const_iterator request =
             impl_->requests.find(job_id);
         if (request == impl_->requests.end()) {
             error = "manager: no such job '" + job_id + "'";
@@ -620,7 +621,7 @@ CommandResult JobManager::retry(const std::string& job_id,
     // Every store call from here to the publish runs outside the manager mutex,
     // guarded only by store_mutex -- same reasoning as submit(). Probing for a
     // free id is several loads, each of which can block on busy_timeout.
-    std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+    const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
 
     Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
@@ -662,18 +663,18 @@ CommandResult JobManager::retry(const std::string& job_id,
         // anywhere takes the manager mutex first and then store_mutex, so
         // there is no cycle. submit() avoids nesting entirely by releasing one
         // before taking the other.
-        std::unique_lock<std::mutex> lock(impl_->mutex);
+        const std::unique_lock<std::mutex> lock(impl_->mutex);
         if (impl_->requests.find(candidate) == impl_->requests.end() &&
             impl_->pending.insert(candidate).second) {
             break;
         }
     }
 
-    Job fresh(candidate, move.source_dir + "/" + move.source_name,
+    const Job fresh(candidate, move.source_dir + "/" + move.source_name,
               move.dest_dir + "/" + move.dest_name, now_ms);
     const bool recorded = impl_->store.record_intent(fresh, job_id, error);
 
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     impl_->pending.erase(candidate);
     if (!recorded) {
         return CommandResult::StoreError;
@@ -687,7 +688,7 @@ CommandResult JobManager::retry(const std::string& job_id,
 }
 
 std::size_t JobManager::pump(std::string& error) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
+    const std::unique_lock<std::mutex> lock(impl_->mutex);
     if (!impl_->running) {
         error = "manager: not running";
         return 0;
@@ -753,13 +754,13 @@ bool JobManager::wait_idle(int timeout_ms) {
     int waited = 0;
     for (;;) {
         {
-            std::unique_lock<std::mutex> lock(impl_->mutex);
+            const std::unique_lock<std::mutex> lock(impl_->mutex);
             if (impl_->runnable.empty() && impl_->active.empty()) {
                 return true;
             }
         }
         if (waited >= timeout_ms) {
-            std::unique_lock<std::mutex> lock(impl_->mutex);
+            const std::unique_lock<std::mutex> lock(impl_->mutex);
             return impl_->runnable.empty() && impl_->active.empty();
         }
         struct timespec ts;
