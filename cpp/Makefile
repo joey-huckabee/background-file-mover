@@ -118,7 +118,17 @@ SQLITE_DEFS := -DSQLITE_THREADSAFE=1 \
 #
 # Verified clean under GCC 4.8.5, GCC 11, and clang with exactly these flags.
 SQLITE_CFLAGS ?= -O2 -g -Wall -Werror -fno-strict-aliasing $(SAN_FLAGS)
-SQLITE_LDLIBS := -lpthread -lm
+
+# The link line for every binary here, not just SQLite's needs. It was called
+# SQLITE_LDLIBS while SQLite was the only thing driving it, and kept that name
+# after it stopped being true.
+#
+# -lrt is for clock_gettime, which C4's manager calls for its monotonic clock.
+# On the glibc that ships with the deployment target it lives in librt; it moved
+# into libc proper in later versions, where -lrt resolves to a stub and costs
+# nothing. Omitting it links fine on every modern tier and fails only on GCC
+# 4.8.5 -- which is exactly what happened, and exactly what that tier is for.
+LINK_LIBS := -lpthread -lm -lrt
 
 # ccache, applied to THIS object and nothing else.
 #
@@ -186,7 +196,7 @@ $(BUILD_DIR)/tests/%.o: tests/%.cpp
 	$(CCACHE) $(CC) $(SQLITE_DEFS) $(SQLITE_CFLAGS) -c $< -o $@
 
 $(TEST_BIN): $(LIB_OBJ) $(TEST_OBJ) $(SQLITE_OBJ)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(SQLITE_LDLIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LINK_LIBS)
 
 check: $(TEST_BIN)
 	$(TEST_BIN) --use-colour no
@@ -350,6 +360,8 @@ check-ci:
 	      sh scripts/assert-fd-relative.sh && \
 	      echo "--- no shell invocation ---" && \
 	      sh scripts/assert-no-shell.sh && \
+	      echo "--- no permission-based test failures ---" && \
+	      sh scripts/assert-no-permission-tests.sh && \
 	      echo "--- strong hashing only ---" && \
 	      sh scripts/assert-strong-hash.sh && \
 	      echo "--- functional ---" && \
@@ -402,7 +414,7 @@ $(COV_DIR)/%.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(COV_FLAGS) $(DEPFLAGS) -c $< -o $@
 
 coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
-	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
+	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(LINK_LIBS)
 	./$(COV_BIN) --use-colour no
 	@# gcov must run from here, not from the report directory: it resolves
 	@# each source by the relative path recorded at compile time, and writes
@@ -445,7 +457,7 @@ coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
 # useless on its own.
 .PHONY: coverage-branches
 coverage-branches: $(COV_OBJ) $(COV_SQLITE_OBJ)
-	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
+	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(LINK_LIBS)
 	./$(COV_BIN) --use-colour no >/dev/null
 	@mkdir -p $(COV_DIR)/branches
 	@$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) >/dev/null
@@ -591,6 +603,14 @@ fd-relative:
 .PHONY: no-shell
 no-shell:
 	@sh scripts/assert-no-shell.sh
+
+# A test that removes write permission to force a failure asserts nothing when
+# the process is root, and the GCC 4.8.5 fidelity container runs as root. C4's
+# retry tests were written that way and silently exercised the success path
+# there. Negative-tested by scripts/gate-selftest.sh.
+.PHONY: no-permission-tests
+no-permission-tests:
+	@sh scripts/assert-no-permission-tests.sh
 
 # L2-SEC-015. Preventive: integrity verification is deferred to v1.1, so this
 # finds nothing today. It exists so the constraint is enforced the moment the

@@ -19,7 +19,8 @@
 #     6. make -C cpp verify-vendored
 #     7. make -C cpp locale-free
 #    7b. make -C cpp sql-confined
-#    7c. make -C cpp fd-relative, make -C cpp no-shell
+#    7c. make -C cpp fd-relative, make -C cpp no-shell,
+#        make -C cpp no-permission-tests
 #     8. make -C cpp check      (compiles with -Werror, then runs the suite)
 #
 #   Files under cpp/third_party/ are exempt from the byte-level rules (2 and
@@ -179,6 +180,11 @@ fi
 step "make -C cpp no-shell"
 if ! make -C cpp no-shell; then
     fail "a shell invocation appeared (L2-SEC-008, ADR-0011)"
+fi
+
+step "make -C cpp no-permission-tests"
+if ! make -C cpp no-permission-tests; then
+    fail "a test induces failure by denying permission; root ignores that"
 fi
 
 step "make -C cpp strong-hash"

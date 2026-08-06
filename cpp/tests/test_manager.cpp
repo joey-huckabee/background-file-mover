@@ -76,6 +76,19 @@ class Fixture {
         REQUIRE(::close(fd) == 0);
     }
 
+    // Occupies the name a committed-but-unpublished object would take, so the
+    // commit rename fails with EEXIST under either MoveStrategy. This is the
+    // project's uid-independent way to force a pre-commit abort; the C3 suite
+    // uses the same lever (tests/test_mover.cpp).
+    void occupy_staging_name(const std::string& job_id) const {
+        const std::string staging =
+            dst() + "/" + filemover::MoveEngine::staging_name(job_id);
+        const int fd = ::open(staging.c_str(), O_WRONLY | O_CREAT | O_EXCL,
+                              0600);
+        REQUIRE(fd >= 0);
+        REQUIRE(::close(fd) == 0);
+    }
+
     MoveRequest request(const std::string& name) const {
         MoveRequest r;
         r.source_dir = src();
@@ -489,12 +502,20 @@ TEST_CASE("a retryable failure is rescheduled with backoff and persisted",
     manager.set_clock(TestClock::read, &clock);
 
     // A retryable failure, not a denial. The source is present and valid, so
-    // the request passes validation and fails at the commit rename with
-    // EACCES against a read-only destination -- MoveOutcome::AbortedBeforeCommit,
-    // source untouched. A missing source would be the wrong lever here: that
-    // is Rejected, which is permanent by design and must NOT retry.
+    // the request passes validation and fails at the commit rename --
+    // MoveOutcome::AbortedBeforeCommit, source untouched. A missing source
+    // would be the wrong lever: that is Rejected, permanent by design, and
+    // must NOT retry.
+    //
+    // The failure is induced by occupying the staging name, so the rename
+    // fails with EEXIST. An earlier version made the destination directory
+    // read-only instead, which worked locally and silently tested NOTHING in
+    // the GCC 4.8.5 container, because that runs as root and root bypasses
+    // directory permission checks -- the move simply succeeded and the test
+    // asserted against a retry that never happened. Anything gated on file
+    // permissions is not a test on this project's fidelity tier.
     fx.write_source("flaky");
-    REQUIRE(::chmod(fx.dst().c_str(), 0500) == 0);
+    fx.occupy_staging_name("flaky");
 
     std::string error;
     REQUIRE(manager.start(error) == true);
@@ -525,7 +546,6 @@ TEST_CASE("a retryable failure is rescheduled with backoff and persisted",
     REQUIRE(manager.wait_idle(30000) == true);
     manager.shutdown();
     CHECK(fx.retry_of("flaky").attempts == 2);
-    REQUIRE(::chmod(fx.dst().c_str(), 0700) == 0);
 }
 
 TEST_CASE("retry stops at the configured attempt ceiling",
@@ -542,7 +562,7 @@ TEST_CASE("retry stops at the configured attempt ceiling",
     manager.set_clock(TestClock::read, &clock);
 
     fx.write_source("hopeless");
-    REQUIRE(::chmod(fx.dst().c_str(), 0500) == 0);
+    fx.occupy_staging_name("hopeless");
 
     std::string error;
     REQUIRE(manager.start(error) == true);
@@ -554,7 +574,6 @@ TEST_CASE("retry stops at the configured attempt ceiling",
     REQUIRE(manager.pump(error) == 1u);
     REQUIRE(manager.wait_idle(30000) == true);
     manager.shutdown();
-    REQUIRE(::chmod(fx.dst().c_str(), 0700) == 0);
 
     // Bounded: the second attempt hits the ceiling and the job is FAILED
     // rather than retried forever. Unbounded retry against a permanent error
