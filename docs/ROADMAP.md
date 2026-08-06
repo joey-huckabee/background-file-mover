@@ -12,6 +12,24 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 **Date:** 2026-08-06 · **Branch:** `c5-rest-control-plane` · **C4 is merged. Next
 milestone: C5 — the REST control plane.**
 
+> **One thing is red and needs you: the SonarCloud Quality Gate failed on `main`
+> after the C4 merge.** `C++ CI` and `CodeQL` both passed, and every local tier is
+> green — default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind, coverage 87.5%,
+> clang-tidy. The scanner ran, parsed every `.gcov`, and reported
+> `QUALITY GATE STATUS: FAILED` without naming the condition in the log.
+>
+> I could not diagnose it: `sonar.projectKey` is a repository secret and is masked in
+> the workflow output, so the API is unreachable without it and the dashboard needs
+> your login. **The likely candidate is `new_coverage`** — it is the condition that
+> failed once before, at 71.3% against a threshold of 80%, and C4 touched
+> `store.cpp` (79.7% line coverage) and `mover.cpp` (77.6%), whose modified lines all
+> count as new code. C3 passed this gate at 88.2% new coverage, so this is a
+> regression introduced by C4 rather than a standing failure.
+>
+> The dashboard will name the condition in one click. If it is `new_coverage`, the
+> fix is tests for the uncovered error paths in `retry()` and `handle_failure()` —
+> the `StoreError` returns are the obvious gap.
+
 ### Start here for C5
 
 **Read `docs/CYBERSECURITY.md` and the C5 entry below before writing anything.** The
