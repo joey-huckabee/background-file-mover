@@ -34,6 +34,16 @@ int main(int argc, char** argv) {
     // nothing else changed to explain it.
     const bool no_overlap = (argc > 2);
 
+    // argv[3] present => "no SQL in the unlocked region" mode. A relative
+    // source_dir is rejected by validate_external_path at the top of
+    // MoveEngine::execute, BEFORE the first store_.load -- so the worker's
+    // unlocked window contains no SQLite at all. The manager still touches the
+    // store afterwards, but under its own mutex.
+    //
+    // This isolates the one thing the clean tsan_pattern.cpp lacks: SQLite
+    // running in the gap between lock.unlock() and lock.lock().
+    const bool no_sql_unlocked = (argc > 3);
+
     JobManager manager(cfg.storage_database_path, cfg);
     std::string error;
     if (!manager.start(error)) {
@@ -41,7 +51,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    for (int i = 0; i < 12; ++i) {
+    const int njobs = (getenv("NJOBS") != 0) ? atoi(getenv("NJOBS")) : 12;
+    for (int i = 0; i < njobs; ++i) {
         std::ostringstream name;
         name << "f" << i;
         const int fd =
@@ -52,7 +63,7 @@ int main(int argc, char** argv) {
             ::close(fd);
         }
         MoveRequest r;
-        r.source_dir = src;
+        r.source_dir = no_sql_unlocked ? std::string("relative/src") : src;
         r.source_name = name.str();
         r.dest_dir = dst;
         r.dest_name = name.str() + ".done";
@@ -63,7 +74,7 @@ int main(int argc, char** argv) {
     }
 
     if (no_overlap) {
-        for (int i = 0; i < 12; ++i) {
+        for (int i = 0; i < njobs; ++i) {
             std::ostringstream name;
             name << "f" << i;
             manager.resume(name.str(), error);

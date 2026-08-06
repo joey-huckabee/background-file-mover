@@ -152,21 +152,100 @@ lock is explained. That is the thread to pull.
   lock report disappears and the race count is unchanged, so the races are not
   merely downstream of that one report being printed.
 
+## Eliminated by experiment (2026-08-06, second pass)
+
+The residual seven were read individually rather than in aggregate, which is
+what the earlier passes should have done. Findings, in order:
+
+**All seven are the same phenomenon.** Every one is an access to manager state —
+`runnable`, `active`, `stopping`, and the strings inside them — where TSan
+records **both sides as holding the same mutex M9**. That is impossible if TSan's
+happens-before for M9 is intact, so all seven are downstream of one broken
+thing. The double lock reported at `manager.cpp:321` is that thing: TSan
+believes the `lock.unlock()` two lines earlier never happened.
+
+**They are perfectly deterministic.** Seven on every run, unchanged by
+`flush_memory_ms=0`. So this is structural, not a timing artifact and not
+shadow-memory pressure.
+
+`cpp/tsan_pattern.cpp` was then grown step by step toward the real manager. Each
+row below is a clean run — the reports did **not** appear:
+
+| Pattern-test configuration | Warnings |
+|---|---:|
+| Bare lock/unlock/relock loop over the same containers | 0 |
+| + heap-allocated shared state (`new`, not main's stack) | 0 |
+| + member-function thread entry (`std::thread(&S::run, s)`) | 0 |
+| + threads spawned outside the lock, then lock retaken to record them | 0 |
+| + `running`/`stopping` flags and a `shutdown()` that swaps the worker vector and joins | 0 |
+| + one SQLite connection per worker, all on one shared file | 0 |
+| + SQLite writes in the **unlocked** window | 0 |
+| + SQLite writes **while the mutex is held** | 0 |
+
+So the following are all **ruled out** as causes: the locking discipline itself;
+heap versus stack state; member-function thread entry; spawning threads outside
+the lock; the shutdown/join shape; the presence of SQLite; SQLite contending
+across connections on one file; and SQLite running either inside or outside the
+critical section.
+
+**Two of my own earlier hypotheses died here.** The first pass concluded the
+reports were an artifact of the Catch2 harness — disproved by the standalone
+reproducer. The second concluded SQLite's `fcntl` locking was the cause, on the
+strength of TSan's "as if synchronized via sleep" annotation pointing into
+SQLite's busy handler — disproved by the table above, and by the manager
+reporting the *same seven* with SQLite removed from the worker's unlocked window
+entirely (`tsan_repro 1 nooverlap nosql`, which rejects each job at
+`validate_external_path` before any store or filesystem call).
+
+The "as if synchronized via sleep" annotation is real but incidental: it
+explains the *bulk* volume at four workers, not the residual seven.
+
+**One SQLite finding worth keeping.** Four threads calling `sqlite3_open`
+simultaneously as their first SQLite call *does* race inside
+`sqlite3_initialize`. The manager avoids it by accident rather than by design:
+`start()` opens the manager's own connection before spawning any worker, so
+initialization happens single-threaded. Nothing records that this ordering is
+load-bearing, and a future refactor that opens worker stores before the
+manager's would reintroduce it. Worth a comment in `start()` at minimum.
+
 ## What is still owed
 
-The next question is narrow and well-posed: **what produces the seven reports
-that survive with one worker and no submit overlap?** Everything else is
-downstream of that answer.
+The question is now sharp: **the manager reports seven; a program with the same
+locking, the same structure, and the same SQLite usage reports zero.** Something
+in `run_worker()` or its callees differs from the model in a way that breaks
+TSan's tracking of one mutex, and the elimination table above says it is not any
+of the obvious candidates.
 
-1. **Enumerate those seven specifically.** They are few enough to read
-   individually rather than in aggregate — which is what the earlier passes did,
-   and why the volume kept hiding the signal. Run
-   `/tmp/tsan_repro 1 nooverlap` and work through each report's two stacks.
-   Candidates not yet excluded: `shutdown()` closing the manager's store while a
-   worker is still finishing; `resume()` and `wait_idle()` touching shared state
-   concurrently with worker execution; and the raw `syscall(SYS_renameat2, ...)`
-   in `fsops.cpp`, which TSan cannot intercept the way it intercepts `renameat`.
-2. **Only then decide the remedy.** A `race:sqlite3.c` suppression will NOT work —
+Continue the bisection from the other end — start from the real manager and
+remove, rather than from a model and add:
+
+1. ~~Run the reproducer with zero jobs submitted.~~ **Done — and it is clean.**
+   `NJOBS=0 tsan_repro 1` reports **0** warnings across repeated runs: one
+   worker starts, waits on the condition variable, and shuts down with no
+   findings at all. `NJOBS=1 tsan_repro 1` reports **13**, equally
+   deterministically.
+
+   So the job-processing path is required, and the search is now confined to
+   `run_worker()` lines 306–331 plus `engine.execute()`. Start, the condition
+   variable wait, shutdown, and join are all exonerated — which is a large part
+   of the function gone.
+
+   **The minimal failing case is one worker and one job.** That is small enough
+   to step through in a debugger, and it is where the next session should begin.
+   (Note the counts are not comparable across modes: 12 jobs with `nooverlap`
+   gives 7, one job without gives 13. Each configuration is internally
+   deterministic; only compare like with like.)
+2. **Then stub `engine.execute()` to `return MoveOutcome::Rejected;`** — the one
+   thing the model cannot replicate is the real callee. `nosql` mode already
+   shows the *work* execute does is irrelevant (a relative path is rejected
+   before any store or filesystem call, and the seven persist), which points at
+   the call itself rather than its contents. Confirm that.
+3. **Suspect the raw syscall.** `fsops.cpp` issues
+   `syscall(SYS_renameat2, ...)` directly because glibc 2.22 has no wrapper.
+   TSan intercepts `renameat` but cannot see a raw `syscall()`. This is the one
+   construct in the real code that has no counterpart anywhere in the clean
+   model — though note it is not reached in `nosql` mode, which weakens it.
+4. **Only then decide the remedy.** A `race:sqlite3.c` suppression will NOT work —
    the reported accesses are in the manager's own containers, not in SQLite, so
    the suppression would not match. The realistic options are a
    `called_from_lib`-style suppression, wrapping store calls in
