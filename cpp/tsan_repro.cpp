@@ -27,6 +27,13 @@ int main(int argc, char** argv) {
     cfg.jobs_workers = (argc > 1) ? atoi(argv[1]) : 4;
     cfg.storage_database_path = base + "/state.db";
 
+    // argv[2] present => "no overlap" mode. Each job is paused the instant it
+    // is submitted and resumed only once every submit has finished, so the main
+    // thread's SQLite writes never overlap a worker's. If the reports vanish in
+    // this mode and not otherwise, cross-connection contention is the cause and
+    // nothing else changed to explain it.
+    const bool no_overlap = (argc > 2);
+
     JobManager manager(cfg.storage_database_path, cfg);
     std::string error;
     if (!manager.start(error)) {
@@ -50,6 +57,17 @@ int main(int argc, char** argv) {
         r.dest_dir = dst;
         r.dest_name = name.str() + ".done";
         manager.submit(name.str(), r, error);
+        if (no_overlap) {
+            manager.pause(name.str(), error);
+        }
+    }
+
+    if (no_overlap) {
+        for (int i = 0; i < 12; ++i) {
+            std::ostringstream name;
+            name << "f" << i;
+            manager.resume(name.str(), error);
+        }
     }
 
     manager.wait_idle(30000);
