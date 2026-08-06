@@ -121,7 +121,7 @@ TEST_CASE("reopening an existing store reports it as existing",
     open_ok(second, dir.db(), StoreOpenResult::OpenedExisting);
 }
 
-TEST_CASE("migrations are idempotent across opens", "[store][L2-JOB-004]") {
+TEST_CASE("schema creation is idempotent across opens", "[store][L2-JOB-004]") {
     TempDir dir;
     std::string error;
 
@@ -208,26 +208,46 @@ void poke(const std::string& path,
 
 }  // namespace
 
-TEST_CASE("a store written by a newer build is refused, not guessed at",
+TEST_CASE("a store whose schema does not match this build is refused",
           "[store][L2-JOB-004][L2-JOB-012]") {
-    TempDir dir;
-    {
+    // Both directions, because this build carries no migration path: an older
+    // database is exactly as unreadable as a newer one and both must be
+    // refused rather than opened and misread. Before migrations were dropped
+    // only the newer case was rejected and the older case was migrated, so a
+    // single-direction test would now pass while missing half the contract.
+    //
+    // 0 is excluded deliberately -- that means "no schema yet" and is the one
+    // value that must succeed.
+    const int foreign_versions[] = {2, 7, 99};
+
+    for (std::size_t i = 0; i < 3; ++i) {
+        const int foreign = foreign_versions[i];
+        INFO("schema version " << foreign);
+
+        TempDir dir;
+        {
+            JobStore store;
+            open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+        }
+
+        // user_version lives at byte 60 of the SQLite file header as a 4-byte
+        // big-endian integer. Writing it directly produces a database this
+        // build did not write without needing another build to exist.
+        const unsigned char header[4] = {
+            0x00, 0x00, static_cast<unsigned char>((foreign >> 8) & 0xFF),
+            static_cast<unsigned char>(foreign & 0xFF)};
+        poke(dir.db(), 60, header, sizeof(header));
+
         JobStore store;
-        open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+        StoreOpenResult result = StoreOpenResult::CreatedFresh;
+        std::string error;
+        REQUIRE(store.open(dir.db(), result, error) == false);
+        // The message has to tell an operator what to do about it, and the
+        // remedy pre-v1.0.0 is to delete the file rather than wait for a
+        // migration that is never coming.
+        CHECK(error.find("delete the database") != std::string::npos);
+        CHECK(store.is_open() == false);
     }
-
-    // user_version lives at byte 60 of the SQLite file header as a 4-byte
-    // big-endian integer. Setting it to 2 is exactly what a future build with
-    // a migration would leave behind, without needing that build to exist.
-    const unsigned char future_version[4] = {0x00, 0x00, 0x00, 0x02};
-    poke(dir.db(), 60, future_version, sizeof(future_version));
-
-    JobStore store;
-    StoreOpenResult result = StoreOpenResult::CreatedFresh;
-    std::string error;
-    REQUIRE(store.open(dir.db(), result, error) == false);
-    CHECK(error.find("newer") != std::string::npos);
-    CHECK(store.is_open() == false);
 }
 
 TEST_CASE("a store with a damaged page is refused and left intact",
@@ -804,101 +824,120 @@ TEST_CASE("opening a second store closes the first connection",
     CHECK(found == false);
 }
 
-// --- migrating a store written by an older build -------------------------
-//
-// tests/fixtures/store-v1.db was produced by the build that owned schema v1
-// and must never be regenerated -- see the README beside it. Today it only
-// proves v1 opens as v1, which sounds circular. It stops being circular the
-// day a v2 migration lands, and by then a genuine v1 store would be
-// impossible to obtain. That is the whole reason it exists now.
-
-namespace {
-
-// Opening a store can write to it: pragmas persist in the file header and a
-// migration would rewrite user_version. A fixture mutated by the test that
-// reads it is no longer a fixture, so every test works on a copy.
-bool copy_fixture(const std::string& to, std::string& why) {
-    FILE* in = std::fopen("tests/fixtures/store-v1.db", "rb");
-    if (in == 0) {
-        why = "cannot open tests/fixtures/store-v1.db (run from cpp/)";
-        return false;
-    }
-    FILE* out = std::fopen(to.c_str(), "wb");
-    if (out == 0) {
-        std::fclose(in);
-        why = "cannot create " + to;
-        return false;
-    }
-    char buffer[8192];
-    size_t n = 0;
-    while ((n = std::fread(buffer, 1, sizeof(buffer), in)) > 0) {
-        if (std::fwrite(buffer, 1, n, out) != n) {
-            std::fclose(in);
-            std::fclose(out);
-            why = "short write copying the fixture";
-            return false;
-        }
-    }
-    std::fclose(in);
-    return std::fclose(out) == 0;
-}
-
-}  // namespace
-
-TEST_CASE("a store written by an older build opens and keeps its rows",
-          "[store][L2-JOB-004]") {
+TEST_CASE("a job awaiting retry records why without being FAILED",
+          "[store][L2-RTY-003][L2-JOB-010]") {
     TempDir dir;
-    std::string why;
-    REQUIRE(copy_fixture(dir.db(), why) == true);
-
     JobStore store;
-    StoreOpenResult result = StoreOpenResult::CreatedFresh;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
     std::string error;
-    REQUIRE(store.open(dir.db(), result, error) == true);
-    // Recognised as an existing store, not silently recreated.
-    CHECK(result == StoreOpenResult::OpenedExisting);
+    REQUIRE(store.record_intent(make_job("retry-me"), error) == true);
+    REQUIRE(store.record_attempt("retry-me", 9000, "ESTALE from the export",
+                                 error) == true);
 
-    int version = 0;
-    REQUIRE(store.schema_version(version, error) == true);
-    CHECK(version == 1);
-
-    // The rows survive, which is what a migration has to preserve and what a
-    // "does it open" check on its own would not catch.
-    std::map<JobState, std::uint64_t> counts;
-    REQUIRE(store.counts_by_state(counts, error) == true);
-    CHECK(counts[JobState::Queued] == 1u);
-    CHECK(counts[JobState::Renaming] == 1u);
-    CHECK(counts[JobState::Done] == 1u);
-    CHECK(counts[JobState::Failed] == 1u);
-
-    // The FAILED row keeps its message, so the L2-JOB-010 invariant is pinned
-    // into the frozen schema rather than only into today's code.
-    Job failed(std::string(), std::string(), std::string(), 0);
+    // The job is still QUEUED, so the L2-JOB-010 CHECK forbids `error` being
+    // populated. last_error exists precisely so the diagnosis is not lost to
+    // that invariant.
+    Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
-    REQUIRE(store.load("fixture-failed", failed, found, error) == true);
-    REQUIRE(found == true);
-    CHECK(failed.state == JobState::Failed);
-    CHECK(failed.error == std::string("disk full during transfer"));
+    REQUIRE(store.load("retry-me", job, found, error) == true);
+    CHECK(job.state == JobState::Queued);
+    CHECK(job.error.empty() == true);
+
+    JobStore::RetryState retry;
+    REQUIRE(store.load_retry_state("retry-me", retry, found, error) == true);
+    CHECK(retry.last_error == std::string("ESTALE from the export"));
 }
 
-TEST_CASE("the sequence in an older store does not restart",
-          "[store][L2-JOB-015]") {
+TEST_CASE("only due jobs are dispatched", "[store][L2-RTY-003]") {
     TempDir dir;
-    std::string why;
-    REQUIRE(copy_fixture(dir.db(), why) == true);
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    REQUIRE(store.record_intent(make_job("never-failed", 1000), error) == true);
+    REQUIRE(store.record_intent(make_job("waiting", 1001), error) == true);
+    REQUIRE(store.record_attempt("waiting", 5000, "not yet", error) == true);
+
+    std::vector<std::string> due;
+    REQUIRE(store.due_jobs(4999, due, error) == true);
+    // A job that never failed has next_retry_ms == 0 and is always due, which
+    // is what makes a first attempt indistinguishable from a retry to the
+    // dispatcher.
+    REQUIRE(due.size() == 1u);
+    CHECK(due[0] == std::string("never-failed"));
+
+    REQUIRE(store.due_jobs(5000, due, error) == true);
+    CHECK(due.size() == 2u);
+
+    // A job that is no longer QUEUED is never dispatched again.
+    REQUIRE(store.update_state("never-failed", JobState::Renaming, 6000, "",
+                               error) == true);
+    REQUIRE(store.due_jobs(9999, due, error) == true);
+    REQUIRE(due.size() == 1u);
+    CHECK(due[0] == std::string("waiting"));
+}
+
+TEST_CASE("recording an attempt against an unknown job is an error",
+          "[store][L2-RTY-003]") {
+    TempDir dir;
+    JobStore store;
+    open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+
+    std::string error;
+    CHECK(store.record_attempt("ghost", 1, "why", error) == false);
+    CHECK(error.empty() == false);
+
+    JobStore::RetryState retry;
+    bool found = true;
+    CHECK(store.load_retry_state("ghost", retry, found, error) == true);
+    CHECK(found == false);
+}
+
+TEST_CASE("retry state on a closed store fails cleanly",
+          "[store][L2-RTY-003]") {
+    JobStore store;
+    std::string error;
+    JobStore::RetryState retry;
+    bool found = false;
+    std::vector<std::string> due;
+
+    CHECK(store.record_attempt("x", 1, "why", error) == false);
+    CHECK(store.load_retry_state("x", retry, found, error) == false);
+    CHECK(store.due_jobs(0, due, error) == false);
+}
+
+TEST_CASE("the sequence does not restart when a store is reopened",
+          "[store][L2-JOB-015]") {
+    // This used to run against a frozen v1 database, which made it a migration
+    // test that happened to check the sequence. The property it actually cares
+    // about is that the counter is durable across a reopen, and building the
+    // starting state here tests that directly -- and keeps testing it now that
+    // the fixture is gone with the migration path.
+    TempDir dir;
+    std::string error;
+
+    {
+        JobStore store;
+        open_ok(store, dir.db(), StoreOpenResult::CreatedFresh);
+        std::uint64_t issued = 0;
+        for (int i = 0; i < 7; ++i) {
+            REQUIRE(store.next_sequence(issued, error) == true);
+        }
+        CHECK(issued == 7u);
+    }
 
     JobStore store;
     StoreOpenResult result = StoreOpenResult::CreatedFresh;
-    std::string error;
     REQUIRE(store.open(dir.db(), result, error) == true);
+    REQUIRE(result == StoreOpenResult::OpenedExisting);
 
     std::uint64_t next = 0;
     REQUIRE(store.next_sequence(next, error) == true);
 
-    // The fixture consumed seven. A build that reset the counter on open --
-    // or a migration that rebuilt the table without carrying it -- would hand
-    // out 1 here and collide every identifier the old store had already used.
-    CHECK(next > 7u);
+    // A build that reset the counter on open would hand out 1 here and collide
+    // with every identifier the store had already issued.
+    CHECK(next == 8u);
 }
 
 // --- kill at every statement ---------------------------------------------

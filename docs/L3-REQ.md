@@ -3,13 +3,35 @@
 Level 3 requirements state component-level implementation behavior. Each L3 declares a
 single L2 **Parent** and its verification method(s) on one compact line, followed by the
 obligation text. Cross-cutting component obligations use category codes `INT`, `EVT`,
-and `CLI`; per-implementation technology constraints use `PY` for the Python
-implementation and `CPP` for the C++ implementation. Live status is tracked in
+and `CLI`; C++ technology constraints use `CPP`. Live status is tracked in
 `docs/TRACE-MATRIX.md`.
 
-`PY` and `CPP` requirements describe two implementations of the same system and are not
-expected to both be satisfied at once — see the v1.0.0 scope section of
-`docs/L1-REQ.md`.
+> **The `L3-PY-*` category was deleted on 2026-08-06.** Fourteen requirements
+> specified Python mechanisms — `hashlib`, `argparse`, `os.replace`, `python -O` — for
+> an implementation that no longer exists on this branch. They counted against the
+> v1.0.0 denominator and could never be verified by C++ code.
+>
+> Each was inspected before deletion to be certain no *feature* left with the
+> mechanism. Twelve carried nothing their L2 parent did not already require. Five
+> carried a substantive constraint that the parent did **not** imply, and those were
+> preserved rather than dropped:
+>
+> | Retired | Constraint that survived | Now lives in |
+> |---|---|---|
+> | `L3-PY-004` | fsync the containing **directory**, not only the file | `L3-CPP-053` |
+> | `L3-PY-010` | readiness notification is a no-op when unrequested | `L3-CPP-054` |
+> | `L3-PY-011` | a throughput limit forces the buffered copy strategy | `L2-BWL-001` |
+> | `L3-PY-012` | resume truncates to the offset, never to zero | `L2-RSM-001` |
+> | `L3-PY-006` | control-plane framing | superseded by `L2-CTL-002` (ADR-0012) |
+>
+> The directory-fsync case is the one that justifies the whole exercise. The code in
+> `cpp/src/fsops.cpp` already does it, but `L2-POSIX-009` asks only for the *file* to be
+> synced — so `L3-PY-004` was the only written requirement demanding the directory sync,
+> and deleting it unexamined would have left that call with nothing to protect it. A
+> rename is atomic, but atomicity is not durability.
+>
+> Identifiers are retired and shall not be reused. Do not add new `L3-PY-*`
+> requirements.
 
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 **D** = Demonstration.
@@ -95,102 +117,6 @@ Result rendering shall be separate from command execution.
 **L3-CLI-005** · Parent: L2-CLI-001 · Verification: T
 
 The parser shall reject invalid arguments and choices before any service is invoked.
-
-## PY — Python implementation details
-
-> **Retired for v1.0.0.** The Python implementation was removed from this branch
-> ahead of v1.0.0; it remains on `main` and at the `v0.4.2` tag. These fourteen
-> requirements are **retained verbatim, not deleted**, for the same reason
-> `L1-SYS-002..006` are: they specify a working implementation that the v1.1
-> parity work will be measured against, and deleting them would mean
-> re-deriving them from source later.
->
-> Read them as history. They constrain no code in this branch, and their tests
-> left with the implementation, so the trace matrix reports them untested —
-> which is accurate rather than a gap to close. Where a C++ equivalent exists it
-> is an `L3-CPP-*` requirement; several have none, because the constraint was
-> language-specific (`hashlib`, `python -O`, standard-library-only imports).
->
-> Do not add new `L3-PY-*` requirements. Do not delete these.
-
-**L3-PY-001** · Parent: L2-CFG-001 · Verification: T, I
-
-The runtime package shall import only Python 3.10 standard-library modules.
-
-**L3-PY-002** · Parent: L2-DPR-004 · Verification: T
-
-Hashing shall be implemented with `hashlib`.
-
-**L3-PY-003** · Parent: L2-DPR-005 · Verification: T
-
-Atomic destination publication shall use `os.replace`.
-
-**L3-PY-004** · Parent: L2-POSIX-009 · Verification: T
-
-Durability shall use `os.fsync` on both the file and its containing directory.
-
-**L3-PY-005** · Parent: L2-POSIX-008 · Verification: T
-
-Exclusive temporary-file creation shall use `os.open` with `O_CREAT | O_EXCL |
-O_NOFOLLOW`.
-
-**L3-PY-006** · Parent: L2-CTL-002 · Verification: T
-
-The control protocol shall frame each message with a 4-byte big-endian length prefix.
-
-**L3-PY-007** · Parent: L2-JOB-002 · Verification: T
-
-Durable state shall use `sqlite3` with `journal_mode=WAL` and `synchronous=FULL`.
-
-**L3-PY-008** · Parent: L2-CLI-001 · Verification: T, I
-
-The command-line interface shall be implemented with `argparse`.
-
-**L3-PY-009** · Parent: L2-COPY-011 · Verification: T
-
-Kernel-assisted copy shall use `os.copy_file_range` and fall back to the buffered loop on
-an unsupported errno (e.g. `ENOSYS`, `EOPNOTSUPP`, `EXDEV`) or when the syscall is
-unavailable, while propagating genuine I/O errors.
-
-**L3-PY-010** · Parent: L2-CTL-011 · Verification: T
-
-Service-manager notification shall use a standard-library `AF_UNIX` datagram sent to
-`$NOTIFY_SOCKET` (handling the abstract-namespace `@` prefix) and shall be a no-op when
-the variable is unset or the send fails.
-
-**L3-PY-011** · Parent: L2-BWL-001 · Verification: T
-
-Copy-throughput limiting shall be implemented in userspace as a thread-safe token bucket
-(no third-party or operating-system traffic-shaping dependency), paced in the buffered
-copy loop; because kernel-assisted `copy_file_range` cannot be paced from userspace, a
-non-zero limit shall force the buffered copy strategy.
-
-**L3-PY-012** · Parent: L2-RSM-001 · Verification: T
-
-Partial-file resume shall determine the resume offset from the fsynced partial's size
-(`os.stat`/`os.fstat`), `os.lseek` both descriptors to it, and continue with either copy
-strategy; the kernel-copy fallback shall truncate to the resume offset (never zero) so an
-already-copied prefix is preserved.
-
-**L3-PY-013** · Parent: L2-CLI-006 · Verification: T
-
-The service shall configure logging from the `[logging] level` (an explicit CLI
-`-v`/`--log-level` taking precedence) and write its event stream to the standard streams
-without managing log files (twelve-factor): `INFO`/`DEBUG` to stdout and `WARNING` and above
-to stderr, letting the environment route it. Valid-but-consequential option combinations
-(a bandwidth limit with kernel copy; resume without full destination hashing) shall be
-surfaced as advisories by `file-mover doctor` and logged once at service start, never
-raised as errors.
-
-**L3-PY-014** · Parent: L2-CLI-006 · Verification: T
-
-Logging shall be gated and context-aware: job/file correlation shall be carried in
-structured fields (`extra={"job_id", "file_id"}`) via stable `file_mover.<area>` loggers,
-not logger names. A per-level gate (`LogGate`) computed once at configuration shall let a
-call site skip a disabled level with a single boolean read — no `isEnabledFor`, argument
-evaluation, formatting, or dispatch — and a level of `OFF` shall disable all logging. Hot
-paths shall guard with `if __debug__ and GATE.debug:` so DEBUG is removed from the bytecode
-under `python -O`; cold paths may call directly.
 
 ## CTL — Control-plane components
 
@@ -615,3 +541,30 @@ use `<cctype>`.
 network input must not change what it accepts because something elsewhere in
 the process called `setlocale`, and a test asserts identical behavior under
 two locales.
+
+**L3-CPP-053** · Parent: L2-POSIX-009 · Verification: T
+
+Durability shall `fsync` **both** the destination file and the directory
+containing it, before the file is given its final name.
+
+The directory fsync is the half that is easy to omit and impossible to notice.
+A `rename` is atomic, but atomicity is not durability: until the containing
+directory's own metadata is synced, a crash can leave a correctly-written file
+under no name at all. The parent requirement asks only for the file to be
+synced, which a reasonable implementer satisfies while still losing data.
+
+Carried forward from the retired `L3-PY-004`, which was the only written
+requirement demanding it. `cpp/src/fsops.cpp` already does both; before this
+requirement existed, deleting either call would have broken nothing that any
+gate could see.
+
+**L3-CPP-054** · Parent: L2-CTL-011 · Verification: T
+
+Service-manager readiness notification shall be a no-op when the environment
+does not request it — when `$NOTIFY_SOCKET` is unset — and a failure to send
+shall not fail the service.
+
+Without this the service starts under a service manager and refuses to start
+anywhere else, including in tests and at an operator's shell. Carried forward
+from the retired `L3-PY-010`, whose parent requires the notification to happen
+but says nothing about what happens when there is nothing to notify.

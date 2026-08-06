@@ -78,7 +78,7 @@ gotcha below.
 
 - **Mechanism.** Throttling happens in the userspace buffered loop; the kernel copy loop
   never consults the limiter. So any non-zero limit forces the buffered engine for every
-  file copied while the limit is in force (L3-PY-011).
+  file copied while the limit is in force (L2-BWL-001).
 - **Consequence.** Turning on a bandwidth limit trades the kernel-copy fast path for
   throughput control. `file-mover throttle 0` restores kernel-copy eligibility.
 - **Recommendation.** Only set a limit when you actually need to protect a shared link;
@@ -88,7 +88,7 @@ gotcha below.
 
 - **Mechanism.** Resume reads the partial's size (`os.stat`), seeks both descriptors, and
   continues with whichever engine is selected; the kernel fallback truncates to the resume
-  offset (L3-PY-012).
+  offset (L2-RSM-001).
 - **Consequence.** None — resume works at full kernel speed for the remaining bytes.
 - **Recommendation.** Leave both enabled (the defaults).
 

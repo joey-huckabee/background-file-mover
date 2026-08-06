@@ -496,8 +496,11 @@ TEST_CASE("a genuine collision is distinguished from an interrupted move",
 
 // --- publishing ----------------------------------------------------------
 
+// L3-CPP-053 is tagged here because publish() is what performs both fsyncs --
+// the file and the directory containing it. The directory sync is the half
+// nothing else requires: L2-POSIX-009 asks only for the file to be synced.
 TEST_CASE("publishing is a two-hop rename inside the destination directory",
-          "[fsops][L2-NFS-007]") {
+          "[fsops][L2-NFS-007][L3-CPP-053]") {
     TempTree tree;
     tree.write_file("tmp.part", "complete payload");
     DirHandle dir;

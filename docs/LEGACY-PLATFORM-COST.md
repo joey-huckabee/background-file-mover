@@ -3,7 +3,7 @@
 **Prepared for:** engineering management
 **Subject:** components this project must build in-house because the deployment
 target is SUSE Linux Enterprise Server 12 SP5
-**Status:** current as of the v1.0.0 C++ implementation in progress
+**Status:** current as of 2026-08-05, milestone C4 (job manager and worker pool)
 
 ---
 
@@ -31,7 +31,16 @@ modern toolchain would have let us consume as a dependency instead.
 **The HTTP figure is now measured, not projected.** The request-head parser
 shipped and the earlier estimate held: 1,059 lines against ~1,170 projected for
 the parsing half. What remains projected is the routing and socket-server
-layer, deferred until the job manager exists.
+layer, deferred until the job manager exists. The job manager now exists (C4),
+so that work is next and the estimate becomes testable.
+
+**The line count is the visible cost and not the largest one.** Since this
+document was last revised, the platform target has produced two further
+defects that had nothing to do with rejected libraries — a link failure and a
+test that silently inverted itself — both described under "the recurring tax"
+below. Neither adds a line to the table above. Both cost real engineering time,
+and both were found only because the fidelity tier runs the full suite on the
+actual compiler rather than checking that the code compiles.
 
 The delivered code is not merely written but carried to the standard the rest
 of the project is held to: **100% line coverage on the HTTP parser** and 99% on
@@ -99,6 +108,41 @@ library can pass compilation while failing at runtime.
 
 ---
 
+## The recurring tax
+
+The rejected libraries are a one-time cost that can be counted. The platform
+also levies a continuing one that does not appear in any line count: **code that
+is correct on every modern toolchain and wrong on the target.** Two instances
+from the C4 milestone, both found by the fidelity tier and neither findable
+without it.
+
+**A symbol that moved between libraries.** The job manager calls
+`clock_gettime` for its monotonic clock. On the target's glibc that symbol lives
+in `librt`; in later versions it moved into `libc` proper. The link therefore
+succeeded on GCC 11, GCC 14, clang, and all four sanitizer tiers, and failed
+only on GCC 4.8.5. The fix is one linker flag. The point is that nothing in the
+source suggests a portability question, and no amount of code review on a modern
+machine would have surfaced it.
+
+**A test that inverted itself on the target.** C4's retry tests forced a failure
+by making a directory read-only. The fidelity container runs as **root**, and
+root bypasses directory permission checks — so on the one tier that models the
+production platform, the operation succeeded and the tests asserted the opposite
+path from the one they named. This is the more expensive class: not a build
+failure, which is loud, but a green tier that had stopped testing the behaviour
+in question. A gate now bans permission-based failure injection in tests
+outright.
+
+Neither of these is a library rejection, so neither is counted in the table
+above. Both consumed engineering time, and both argue the same thing the
+rejections do: **the fidelity tier must run the full suite on the real compiler,
+not merely prove the code compiles.** That tier is the single most valuable
+control this platform constraint has forced the project to build, and it is
+also the one most often proposed as a candidate for being trimmed to a compile
+check to save CI minutes. It should not be.
+
+---
+
 ## What this costs
 
 **Direct engineering cost.** 2,207 lines delivered, ~2,800 projected, that
@@ -118,12 +162,12 @@ to use established libraries for them.
 **Mitigations in place.** Because that risk was understood, the code carries
 controls a vendored dependency would not have needed:
 
-* Coverage-guided fuzzing with retained regression corpora — two targets, 75
+* Coverage-guided fuzzing with retained regression corpora — two targets, 77
   committed seeds, 3.4 million executions per 90-second run, zero crashes to
   date
 * A deliberately minimal accepted grammar — everything unnecessary is rejected
   rather than parsed
-* Fourteen independent CI gates, including two compilers, AddressSanitizer +
+* Sixteen independent CI gates, including two compilers, AddressSanitizer +
   UndefinedBehavior + LeakSanitizer, ThreadSanitizer, Valgrind, two static
   analyzers, and a source gate proving the parsers never call locale-sensitive
   classification functions

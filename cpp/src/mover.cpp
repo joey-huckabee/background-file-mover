@@ -184,10 +184,20 @@ MoveOutcome MoveEngine::execute(const std::string& job_id,
                      strategy, error)) {
         // Still before the commit point in effect: the rename did not happen,
         // so the source remains at its original name.
-        std::string ignored;
-        store_.record_transition(job_id, JobState::Failed,
-                                 next_tick(tick), error,
-                                 CommitPhase::BeforeCommitPoint, ignored);
+        //
+        // The job is deliberately LEFT IN RENAMING rather than marked FAILED.
+        // Marking it here was this engine deciding that a failed attempt ends
+        // the job, which was true while nothing above it could retry and is
+        // not true now (C4). FAILED is terminal under L1-SYS-021 --
+        // is_legal_transition permits no edge out of it -- so writing it here
+        // made the job permanently unretryable, and neither the automatic
+        // backoff of L2-RTY-001 nor the manual retry of L2-RTY-006 could ever
+        // return it to work.
+        //
+        // RENAMING is the honest state: phase 2 recorded it, the source is
+        // untouched, and re-entering execute() with the job in RENAMING skips
+        // phase 2 and re-drives the rename. Ending the job is the caller's
+        // decision, and it can still get there -- RENAMING -> FAILED is legal.
         return MoveOutcome::AbortedBeforeCommit;
     }
     if (hook_ != 0) {

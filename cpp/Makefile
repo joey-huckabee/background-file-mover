@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -118,7 +118,17 @@ SQLITE_DEFS := -DSQLITE_THREADSAFE=1 \
 #
 # Verified clean under GCC 4.8.5, GCC 11, and clang with exactly these flags.
 SQLITE_CFLAGS ?= -O2 -g -Wall -Werror -fno-strict-aliasing $(SAN_FLAGS)
-SQLITE_LDLIBS := -lpthread -lm
+
+# The link line for every binary here, not just SQLite's needs. It was called
+# SQLITE_LDLIBS while SQLite was the only thing driving it, and kept that name
+# after it stopped being true.
+#
+# -lrt is for clock_gettime, which C4's manager calls for its monotonic clock.
+# On the glibc that ships with the deployment target it lives in librt; it moved
+# into libc proper in later versions, where -lrt resolves to a stub and costs
+# nothing. Omitting it links fine on every modern tier and fails only on GCC
+# 4.8.5 -- which is exactly what happened, and exactly what that tier is for.
+LINK_LIBS := -lpthread -lm -lrt
 
 # ccache, applied to THIS object and nothing else.
 #
@@ -143,7 +153,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -153,13 +163,30 @@ TEST_BIN := $(BUILD_DIR)/filemover_tests
 
 all: $(TEST_BIN)
 
+# Header dependency tracking. Not a convenience -- a correctness requirement.
+#
+# Without this, make rebuilds a .o only when its .cpp is newer, so editing a
+# header leaves every object that included it stale. Adding a declaration is
+# survivable; changing a struct's LAYOUT is not. The C4 retry fields grew
+# Config by twelve bytes, and a stale test object kept the old size: the test
+# put the small Config on its stack, and load_config_from_string assigned the
+# large one over it -- straight past the end. That surfaced as "stack smashing
+# detected" in a test not touched in three milestones, an ODR violation
+# manufactured by the build system rather than by any source file.
+#
+# -MMD writes a .d beside each .o listing the headers it included; -MP adds a
+# phony target per header so a DELETED header does not wedge make with "no
+# rule to make target". The generated files are included at the foot of this
+# file, guarded with '-' so a first build (when none exist yet) is clean.
+DEPFLAGS := -MMD -MP
+
 $(BUILD_DIR)/src/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/tests/%.o: tests/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # A pattern rule, not an explicit path, so the coverage tier reuses this recipe
 # instead of duplicating it. The stem is the build directory, which is how one
@@ -169,7 +196,7 @@ $(BUILD_DIR)/tests/%.o: tests/%.cpp
 	$(CCACHE) $(CC) $(SQLITE_DEFS) $(SQLITE_CFLAGS) -c $< -o $@
 
 $(TEST_BIN): $(LIB_OBJ) $(TEST_OBJ) $(SQLITE_OBJ)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(SQLITE_LDLIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LINK_LIBS)
 
 check: $(TEST_BIN)
 	$(TEST_BIN) --use-colour no
@@ -333,6 +360,8 @@ check-ci:
 	      sh scripts/assert-fd-relative.sh && \
 	      echo "--- no shell invocation ---" && \
 	      sh scripts/assert-no-shell.sh && \
+	      echo "--- no permission-based test failures ---" && \
+	      sh scripts/assert-no-permission-tests.sh && \
 	      echo "--- strong hashing only ---" && \
 	      sh scripts/assert-strong-hash.sh && \
 	      echo "--- functional ---" && \
@@ -382,10 +411,10 @@ COV_SQLITE_OBJ := $(COV_DIR)/third_party/sqlite3.o
 # one object per source keeps the correspondence obvious.
 $(COV_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(COV_FLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(COV_FLAGS) $(DEPFLAGS) -c $< -o $@
 
 coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
-	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
+	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(LINK_LIBS)
 	./$(COV_BIN) --use-colour no
 	@# gcov must run from here, not from the report directory: it resolves
 	@# each source by the relative path recorded at compile time, and writes
@@ -428,7 +457,7 @@ coverage: $(COV_OBJ) $(COV_SQLITE_OBJ)
 # useless on its own.
 .PHONY: coverage-branches
 coverage-branches: $(COV_OBJ) $(COV_SQLITE_OBJ)
-	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(SQLITE_LDLIBS)
+	$(CXX) $(COV_FLAGS) $(COV_OBJ) $(COV_SQLITE_OBJ) -o $(COV_BIN) $(LINK_LIBS)
 	./$(COV_BIN) --use-colour no >/dev/null
 	@mkdir -p $(COV_DIR)/branches
 	@$(GCOV) -b -r -o $(COV_DIR)/src $(LIB_SRC) >/dev/null
@@ -478,7 +507,7 @@ FUZZ_TARGETS  := json http
 # subtractive design -- and still the right trade: the alternative is a
 # hand-written include list that stops covering a new parser silently, and a
 # link error is a far better failure than a fuzz target quietly testing less.
-FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp
+FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp src/manager.cpp
 FUZZ_LIB_SRC  := $(filter-out $(FUZZ_EXCLUDE),$(LIB_SRC))
 # Derived, so adding a target to the list above cannot leave format-check
 # silently covering fewer files than the build does.
@@ -575,6 +604,14 @@ fd-relative:
 no-shell:
 	@sh scripts/assert-no-shell.sh
 
+# A test that removes write permission to force a failure asserts nothing when
+# the process is root, and the GCC 4.8.5 fidelity container runs as root. C4's
+# retry tests were written that way and silently exercised the success path
+# there. Negative-tested by scripts/gate-selftest.sh.
+.PHONY: no-permission-tests
+no-permission-tests:
+	@sh scripts/assert-no-permission-tests.sh
+
 # L2-SEC-015. Preventive: integrity verification is deferred to v1.1, so this
 # finds nothing today. It exists so the constraint is enforced the moment the
 # feature arrives rather than remembered afterwards -- v1.1 being exactly when
@@ -583,13 +620,32 @@ no-shell:
 strong-hash:
 	@sh scripts/assert-strong-hash.sh
 
+# The minimum clang-tidy major version this gate is meaningful at. CI runs
+# CI_TIDY (clang-tidy-20); a developer running an older one gets a PASS that
+# means "my clang-tidy does not know about these checks", which is the most
+# expensive kind of green.
+#
+# This is not hypothetical. C4 landed on a machine with clang-tidy 14 and was
+# clean locally while CI failed with twenty misc-const-correctness errors --
+# that check arrived in clang-tidy 17, so the local run could not see what the
+# gate enforces. The build must not report success for a check it did not run.
+TIDY_MIN_MAJOR ?= 17
+
 tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
+	@sh scripts/assert-tidy-version.sh $(TIDY) $(TIDY_MIN_MAJOR)
 	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
 	    $(FUZZ_SRC) include/filemover/*.hpp
+
+# Generated header dependencies (see DEPFLAGS above). Leading '-' because none
+# of these exist on a first build, and their absence is not an error. Kept at
+# the foot of the file so the included rules cannot displace the default goal.
+-include $(LIB_OBJ:.o=.d)
+-include $(TEST_OBJ:.o=.d)
+-include $(COV_OBJ:.o=.d)
 
 # NOTE: the two -Wno-maybe-uninitialized exemptions that previously covered
 # api_codec.o and test_api_codec.o were removed with picojson (ADR-0006).

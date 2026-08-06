@@ -9,24 +9,58 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-05 · **Branch:** `c3-move-engine` · **Current milestone: C3 — the move
-engine is built. C2 is merged.**
+**Date:** 2026-08-06 · **Branch:** `c4-job-manager` · **Current milestone: C4 — the job
+manager and worker pool are built. C3 is merged. C4 is ready to merge.**
 
-**Start with `docs/C3-PLAN.md`.** It records two spec inconsistencies found while reading
-the requirements, both left unfixed because they change the headline coverage figure and
-are therefore decisions rather than cleanups:
+**Every tier is green**, including the ones that were not when C4 started:
 
-1. **`L2-COPY-001/002/003/011` describe copying, which v1.0.0 does not do**, yet they are
-   counted in scope because their parent `L1-SYS-001` is Active. They probably belong
-   under `L1-SYS-003`, which is already Deferred.
-2. **`v1.0.0 Status` annotations on L2 requirements are decorative.** `L2-XFR-002` says
-   *Deferred → v1.1* and the trace generator never reads it — it scopes by L1 status
-   alone. Someone wrote a deferral that has no effect.
+```
+In v1.0.0 scope:  109 of 214 requirements verified (50.9%)
+Tests:            8,519 assertions / 208 cases
+Line coverage:    87.5% overall (floor 85%)
+Tiers:            default, GCC 4.8.5 fidelity, ASan/UBSan/LSan,
+                  ThreadSanitizer, Valgrind, coverage, clang-tidy,
+                  seven source gates -- all green
+```
+
+**The denominator moved and the numerator did not.** 226 → 214 because three
+scoping defects were corrected, not because work was verified. Do not read 44.2% → 50.9%
+as six points of progress; roughly half of it is the denominator being made honest.
+
+**Read `docs/C4-TSAN-RESOLVED.md` before writing any threaded code.** The headline:
+`std::condition_variable::wait_until` breaks ThreadSanitizer's accounting for the mutex
+passed to it — it then believes the mutex is held after an explicit unlock, reports a
+phantom double lock, and treats everything that mutex guards as unsynchronised. Correct
+C++, unusable under TSan. Do not reach for a timed wait on a mutex that also guards data.
+
+**The rule the manager now follows: no store call happens with the manager mutex held.**
+A durable write can block on `busy_timeout` for five seconds, and that mutex is what every
+worker takes to pick up its next job. Commands claim an id, write outside the lock, then
+publish. `store_mutex` may be held while taking the manager mutex; the reverse is never
+done.
+
+### Decisions taken during C4 (previously open)
+
+1. **`L2-COPY-001/002/003/011` reparented** from `L1-SYS-001` to the already-deferred
+   `L1-SYS-003`. `L2-COPY-004` deliberately stayed: despite the prefix it constrains
+   concurrency generally and applies to the C4 worker pool.
+2. **Decorative `v1.0.0 Status` annotations removed.** Deferral is expressible only at L1,
+   where the generator enforces it.
+3. **The `L3-PY-*` category deleted** — with each of the fourteen inspected first so no
+   feature left with its mechanism. Five substantive constraints were preserved; see the
+   table in `docs/L3-REQ.md`.
+4. **Manual retry submits a new job** rather than reviving the failed one, because FAILED
+   is terminal and the record of the failure is what an operator needs.
+5. **Schema migrations dropped until v1.0.0 ships** — see *Owed* below.
 
 `docs/C2-PLAN.md` remains worth reading for the constraint it established: `renameat2`,
 `RENAME_NOREPLACE` and `SYS_renameat2` are all absent on the target toolchain, so the
 rename goes through `syscall(2)` with constants we supply. Code calling it directly
 compiles on a modern host and fails to link on SLES 12 SP5.
+
+**Historical — the figures as they stood at the close of C3.** The denominator has since
+been corrected from 226 to 214, so these are not comparable to the current numbers above
+without that adjustment.
 
 ```
 In v1.0.0 scope:  100 of 226 requirements verified (44.2%)
@@ -398,6 +432,46 @@ Rewrite each when the C++ it describes exists — not before, and not piecemeal.
 | `docs/12-FACTOR.md` | Now — it is only partly stale | Factor VII **inverted**: the `AF_UNIX` deviation became REST conformance |
 | `docs/MAINTAINER-GUIDE.md` | Per workflow, as each lands | Layout and cheat sheet are already current; the per-workflow sections are not |
 
+## Owed: reinstate schema migrations before the first post-v1.0.0 schema change
+
+**Status: deliberately removed. MUST return before any schema change that
+follows the v1.0.0 release.** Tracked here rather than in a code comment alone
+because this is a decision with an expiry date, and the thing that expires is
+the reason it was safe.
+
+**What was changed.** `JobStore` carries no migration path. `kSchemaVersion` is
+1 and stays at 1; the schema is defined solely by `kSchemaSql`. A database whose
+`user_version` does not match is **refused in either direction** with a message
+telling the operator to delete the file. `kMigrateV1ToV2`, `kMigrateV2ToV3`, the
+migration table and its loop, and `tests/fixtures/store-v1.db` were all deleted.
+
+**Why it was safe.** Before v1.0.0 ships there are no databases in the field.
+Every store is a developer or CI database and all of them are disposable, so a
+schema change can recreate rather than migrate. Maintaining a migration chain
+for databases that do not exist is cost without benefit — and it is cost with a
+sharp edge: the migration dispatch was found applying exactly one step and then
+stamping `user_version` with the target version, so the moment a second
+migration existed a v1 store would have been migrated to v2, labelled v3, and
+left silently missing a column. That defect could only exist because migrations
+existed.
+
+**What must happen, and when.** The moment v1.0.0 is released this stops being
+true, because a released build creates databases somebody else owns. Before the
+*first* schema change after that release:
+
+1. Restore an ordered migration table and a loop that applies every step in
+   turn — not a single step chosen by condition, which is what broke before.
+2. Freeze a fixture database written by the released build, and test the full
+   chain against it rather than only the most recent step.
+3. Change the version-mismatch message: "delete the database" is correct advice
+   only while the data is disposable, and becomes dangerous advice the moment
+   it is not.
+
+**The trap to avoid.** The refusal message and the missing migration path are
+the same decision viewed from two sides. Restoring migrations without rewriting
+that message leaves a build that can migrate but still tells operators to delete
+their data.
+
 ## Owed: restore branch coverage reporting
 
 **Status: temporarily disabled. Restore when the tree is stable — no later than
@@ -505,7 +579,7 @@ hierarchy, enums) and a runnable `file-mover --help`; no transfer behavior yet.
 convert → validate ranges/cross-field) returning a frozen `ApplicationConfig`;
 `ConfigurationValidationError` that collects all issues; `file-mover config validate`
 and a partial `doctor`.
-Requirements: L2-CFG-001..011, L2-ARC-001..006, L3-PY-001.
+Requirements: L2-CFG-001..011, L2-ARC-001..006.
 
 ### M3 — Control Plane (first executable milestone)
 
@@ -514,14 +588,14 @@ recovery; `CommandDispatcher` (static command→handler map); singleton process 
 `health` command; `service run` skeleton (no transfers). **Done-when:** systemd starts
 the service, the CLI reaches it over the socket, `health` succeeds, the service stops
 cleanly, and a stale socket is recovered safely.
-Requirements: L2-EVT-001..005, L3-EVT-001..005, L3-PY-006, L2-CLI-005/006/010/011.
+Requirements: L2-EVT-001..005, L3-EVT-001..005, L2-CTL-002, L2-CLI-005/006/010/011.
 
 ### M4 — Durable Job State
 
 `SQLiteJobRepository` (schema, WAL/`synchronous=FULL`/`busy_timeout`, per-thread
 connections, migrations); `JobRecord`/`FileRecord` dataclasses and the state-machine
 transition map; `JobQueryService`; `status`, `list`, `stats`.
-Requirements: L1-SYS-007, L2-RTY-003, L3-PY-007.
+Requirements: L1-SYS-007, L2-RTY-003, L2-JOB-002.
 
 ### M5 — Submission & Claiming
 
@@ -529,7 +603,7 @@ Requirements: L1-SYS-007, L2-RTY-003, L3-PY-007.
 identity); `FileClaimManager` (same-device atomic rename into `.swit-moving/<job>/`);
 `ManifestWriter` (atomic temp+replace); `JobSubmissionService`; idempotent `submit`.
 Requirements: L1-SYS-004, L2-FS-001..005, L2-POSIX-001..006, L2-CLI-008/009,
-L2-DST-005, L3-INT-003/004, L3-PY-005.
+L2-DST-005, L3-INT-003/004, L2-POSIX-008.
 
 ### M6 — Transfer Engine
 
@@ -540,7 +614,7 @@ directory fsync; source cleanup; `ErrorClassifier` + durable classified retry wi
 backoff.
 Requirements: L1-SYS-001/003/006, L2-DPR-001..007, L2-COPY-001..010,
 L2-POSIX-007..012, L2-DST-001..004, L2-DEL-001..004, L2-RTY-001..006,
-L3-INT-001..007, L3-PY-002/003/004.
+L3-INT-001..007, L2-DPR-004/005, L3-CPP-053.
 
 ### M7 — Recovery & Service Integration
 
@@ -669,13 +743,13 @@ part of the deferred **S3 adapter** rather than a standalone gap.
 
 - **Dynamic bandwidth limiting** (v0.2.0) — a userspace token-bucket throughput ceiling
   (`[transfer] max_bytes_per_second`), adjustable live with `file-mover throttle`
-  (L2-BWL-001..004, L3-PY-011). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
+  (L2-BWL-001..004). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
 - **Job lifecycle control** (v0.3.0) — `cancel` / `pause` / `resume` commands with
   cooperative cancellation of in-flight copies; cancel always retains the source
   (L2-LIF-001..005). See `docs/ARCHITECTURE.md` § *Lifecycle control*.
 - **Partial-file byte-offset resume** (v0.3.0) — resume an interrupted copy from its
   fsynced partial (`[transfer] resume_partial_files`) instead of restarting from zero,
-  with a hash-verified restart fallback (L2-RSM-001..003, L3-PY-012). See
+  with a hash-verified restart fallback (L2-RSM-001..003). See
   `docs/ARCHITECTURE.md` § *Partial-file resume*.
 
 ---

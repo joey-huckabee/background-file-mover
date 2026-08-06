@@ -26,9 +26,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-009 | L2-ARC-007, L2-ARC-008, L2-CFG-001, L2-CFG-005, L2-JOB-009, L2-JSON-001, L2-STO-005 | _(none)_ | Partially Implemented |
 | L1-SYS-011 | _(none)_ | _(none)_ | Implemented (D) |
 | L1-SYS-012 | L2-SEC-014 | _(none)_ | Implemented |
-| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
+| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-004, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Draft |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | _(none)_ | Draft |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-COPY-011, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | _(none)_ | Partially Implemented |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | _(none)_ | Draft |
 | L1-SYS-006 | L2-COPY-007 | _(none)_ | Draft |
 | L1-SYS-013 | L2-REN-001, L2-REN-002, L2-REN-003 | _(none)_ | Partially Implemented |
@@ -38,8 +38,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-021 | L2-CORE-002 | _(none)_ | Implemented |
 | L1-SYS-022 | L2-CORE-001, L2-CORE-003, L2-MGR-002 | _(none)_ | Partially Implemented |
 | L1-SYS-023 | L2-JOB-010, L2-XFR-004 | _(none)_ | Implemented |
-| L1-SYS-017 | L2-MGR-001 | _(none)_ | Draft |
-| L1-SYS-018 | L2-MGR-003 | _(none)_ | Draft |
+| L1-SYS-017 | L2-MGR-001 | _(none)_ | Implemented |
+| L1-SYS-018 | L2-MGR-003 | _(none)_ | Implemented |
 | L1-SYS-007 | L2-DST-005, L2-EVT-001, L2-EVT-002, L2-EVT-003, L2-EVT-004, L2-EVT-005, L2-JOB-001, L2-JOB-002, L2-JOB-003, L2-JOB-005, L2-JOB-007, L2-JOB-008, L2-JOB-012, L2-POSIX-004, L2-RTY-003, L2-STO-004, L2-SUB-004 | _(none)_ | Partially Implemented |
 | L1-SYS-005 | L2-CLN-002, L2-COPY-010, L2-JOB-004, L2-POSIX-012, L2-REC-001, L2-REC-002, L2-REC-003, L2-RSM-001, L2-RSM-002, L2-RTY-004 | _(none)_ | Partially Implemented |
 | L1-SYS-016 | L2-JOB-011 | _(none)_ | Implemented |
@@ -59,11 +59,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-ARC-006 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-ARC-007 | L3-CPP-013, L3-CPP-014 | _(TBD)_ | Implemented |
 | L2-ARC-008 | _(none)_ | _(TBD)_ | Draft |
-| L2-BWL-001 | L3-PY-011 | _(TBD)_ | Draft |
+| L2-BWL-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-BWL-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-BWL-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-BWL-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-CFG-001 | L3-CPP-033, L3-CPP-040, L3-PY-001 | `cpp/tests/test_config.cpp::[a local path passes the storage location check]`<br>`cpp/tests/test_config.cpp::[accepts a minimal valid configuration]`<br>`cpp/tests/test_config.cpp::[accepts the documented syntax]`<br>`cpp/tests/test_config.cpp::[an unresolvable storage path is reported, not assumed local]`<br>`cpp/tests/test_config.cpp::[arbitrary input never crashes the loader]`<br>`cpp/tests/test_config.cpp::[inline comments are not supported]`<br>`cpp/tests/test_config.cpp::[network filesystem magics are classified correctly]` | Partially Implemented |
+| L2-CFG-001 | L3-CPP-033, L3-CPP-040 | `cpp/tests/test_config.cpp::[a local path passes the storage location check]`<br>`cpp/tests/test_config.cpp::[accepts a minimal valid configuration]`<br>`cpp/tests/test_config.cpp::[accepts the documented syntax]`<br>`cpp/tests/test_config.cpp::[an unresolvable storage path is reported, not assumed local]`<br>`cpp/tests/test_config.cpp::[arbitrary input never crashes the loader]`<br>`cpp/tests/test_config.cpp::[inline comments are not supported]`<br>`cpp/tests/test_config.cpp::[network filesystem magics are classified correctly]` | Implemented |
 | L2-CFG-002 | L3-CPP-036, L3-CPP-037 | `cpp/tests/test_config.cpp::[an embedded NUL in the database path is rejected]`<br>`cpp/tests/test_config.cpp::[duplicates are rejected]`<br>`cpp/tests/test_config.cpp::[http.bind rejects empty and whitespace-bearing values]`<br>`cpp/tests/test_config.cpp::[unknown sections and keys are rejected]` | Implemented |
 | L2-CFG-003 | L3-CPP-039 | `cpp/tests/test_config.cpp::[a missing required parameter is named]`<br>`cpp/tests/test_config.cpp::[applies documented defaults for every optional parameter]`<br>`cpp/tests/test_config.cpp::[the bind default is loopback]` | Implemented |
 | L2-CFG-004 | L3-CPP-038 | `cpp/tests/test_config.cpp::[integer ranges are enforced at both ends]`<br>`cpp/tests/test_config.cpp::[integers parse strictly]` | Implemented |
@@ -74,12 +74,12 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CFG-009 | L3-CPP-034 | `cpp/tests/test_config.cpp::[an unterminated section header says so precisely]`<br>`cpp/tests/test_config.cpp::[every line-level error is reported as origin:line: message]`<br>`cpp/tests/test_config.cpp::[malformed lines are rejected]` | Implemented |
 | L2-CFG-010 | _(none)_ | _(TBD)_ | Draft |
 | L2-CFG-011 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-CLI-001 | L3-CLI-005, L3-PY-008 | _(TBD)_ | Draft |
+| L2-CLI-001 | L3-CLI-005 | _(TBD)_ | Draft |
 | L2-CLI-002 | L3-CLI-002, L3-CLI-003 | _(TBD)_ | Draft |
 | L2-CLI-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-004 | L3-CLI-004 | _(TBD)_ | Draft |
 | L2-CLI-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLI-006 | L3-PY-013, L3-PY-014 | _(TBD)_ | Draft |
+| L2-CLI-006 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
@@ -100,7 +100,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-COPY-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-COPY-010 | _(none)_ | _(TBD)_ | Draft |
-| L2-COPY-011 | L3-PY-009 | _(TBD)_ | Draft |
+| L2-COPY-011 | _(none)_ | _(TBD)_ | Draft |
 | L2-CORE-001 | L3-CPP-001, L3-CPP-002, L3-CPP-003, L3-CPP-004, L3-CPP-015, L3-CPP-041 | `cpp/tests/test_job.cpp::[from_string is the exact inverse of to_string]`<br>`cpp/tests/test_job.cpp::[from_string rejects anything to_string never emits]`<br>`cpp/tests/test_job.cpp::[is_legal_transition matches the specified table exhaustively]`<br>`cpp/tests/test_job.cpp::[state tokens are stable, unique, uppercase]`<br>`cpp/tests/test_job.cpp::[terminal predicate covers exactly Done and Failed]`<br>`cpp/tests/test_job.cpp::[terminal states accept no further transitions]` | Implemented |
 | L2-CORE-002 | L3-CPP-005, L3-CPP-009, L3-CPP-010, L3-CPP-011 | `cpp/tests/test_job.cpp::[construction establishes Queued with coherent timestamps]`<br>`cpp/tests/test_job.cpp::[failure is reachable from every non-terminal state and records the error]`<br>`cpp/tests/test_job.cpp::[happy path lifecycle updates state and timestamps]` | Implemented |
 | L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | `cpp/tests/test_job.cpp::[terminal states accept no further transitions]`<br>`cpp/tests/test_job.cpp::[transition rejects every illegal pair and leaves the job unmodified]`<br>`cpp/tests/test_job.cpp::[transition to Failed requires a non-empty error message]`<br>`cpp/tests/test_job.cpp::[transition to non-Failed states rejects an error message]` | Implemented |
@@ -108,7 +108,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
-| L2-CTL-011 | L3-PY-010 | _(TBD)_ | Draft |
+| L2-CTL-011 | L3-CPP-054 | _(TBD)_ | Draft |
 | L2-CTL-012 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-017 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-018 | _(none)_ | _(TBD)_ | Draft |
@@ -121,8 +121,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-DPR-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DPR-002 | L3-INT-005 | _(TBD)_ | Draft |
 | L2-DPR-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006, L3-PY-002 | _(TBD)_ | Draft |
-| L2-DPR-005 | L3-PY-003 | _(TBD)_ | Draft |
+| L2-DPR-004 | L3-INT-001, L3-INT-002, L3-INT-003, L3-INT-006 | _(TBD)_ | Draft |
+| L2-DPR-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-DPR-006 | _(none)_ | _(TBD)_ | Draft |
 | L2-DPR-007 | L3-INT-007 | _(TBD)_ | Draft |
 | L2-DST-001 | _(none)_ | _(TBD)_ | Draft |
@@ -143,25 +143,25 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-FS-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-001 | L3-JOB-002 | `cpp/tests/test_store.cpp::[close is idempotent and safe on a store never opened]`<br>`cpp/tests/test_store.cpp::[every operation on a closed store fails cleanly]`<br>`cpp/tests/test_store.cpp::[loading an unknown job is not an error]` | Partially Implemented |
-| L2-JOB-002 | L3-JOB-001, L3-PY-007 | `cpp/tests/test_store.cpp::[WAL journaling is actually in effect]` | Partially Implemented |
+| L2-JOB-002 | L3-JOB-001 | `cpp/tests/test_store.cpp::[WAL journaling is actually in effect]` | Partially Implemented |
 | L2-JOB-003 | _(none)_ | `cpp/tests/test_store.cpp::[closing a store releases it for reopening]`<br>`cpp/tests/test_store.cpp::[opening a second store closes the first connection]`<br>`cpp/tests/test_store.cpp::[two connections may address the same store]` | Implemented |
-| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[a store written by an older build opens and keeps its rows]`<br>`cpp/tests/test_store.cpp::[migrations are idempotent across opens]` | Implemented |
+| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store whose schema does not match this build is refused]`<br>`cpp/tests/test_store.cpp::[schema creation is idempotent across opens]` | Implemented |
 | L2-JOB-005 | _(none)_ | `cpp/tests/test_store.cpp::[an illegal transition is rejected and writes nothing]`<br>`cpp/tests/test_store.cpp::[legal transitions are persisted]`<br>`cpp/tests/test_store.cpp::[updating an unknown job is an error]` | Implemented |
 | L2-JOB-007 | L3-JOB-003 | _(TBD)_ | Draft |
 | L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-JOB-010 | _(none)_ | `cpp/tests/test_store.cpp::[FAILED requires an error and other states forbid one]` | Implemented |
+| L2-JOB-010 | _(none)_ | `cpp/tests/test_store.cpp::[FAILED requires an error and other states forbid one]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]` | Implemented |
 | L2-JOB-011 | _(none)_ | `cpp/tests/test_store.cpp::[an absent store is first boot, not an error]`<br>`cpp/tests/test_store.cpp::[reopening an existing store reports it as existing]` | Implemented |
-| L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
+| L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store whose schema does not match this build is refused]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
 | L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
 | L2-LIF-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-002 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-002 | _(none)_ | `cpp/tests/test_manager.cpp::[pausing a job that is mid-move is refused, not forced]` | Implemented |
 | L2-LIF-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-LIF-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-MGR-001 | _(none)_ | _(TBD)_ | Draft |
+| L2-LIF-004 | _(none)_ | `cpp/tests/test_manager.cpp::[a paused job is not dispatched until resumed]` | Implemented |
+| L2-LIF-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a duplicate job id is refused rather than published twice]`<br>`cpp/tests/test_manager.cpp::[cancelling a queued job removes it and marks it FAILED]`<br>`cpp/tests/test_manager.cpp::[command result tokens are stable]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands reject unknown jobs with a typed error]`<br>`cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[resuming a job that is not paused is an invalid state]`<br>`cpp/tests/test_manager.cpp::[submitting before start is refused]` | Implemented |
+| L2-MGR-001 | _(none)_ | `cpp/tests/test_manager.cpp::[a failing job does not wedge the queue]`<br>`cpp/tests/test_manager.cpp::[a job can be submitted while a worker is mid-move]`<br>`cpp/tests/test_manager.cpp::[workers drain the queue and each job runs once]` | Implemented |
 | L2-MGR-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-MGR-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-MGR-003 | _(none)_ | `cpp/tests/test_manager.cpp::[shutdown is idempotent and safe without start]`<br>`cpp/tests/test_manager.cpp::[shutdown stops intake, finishes in-flight work and joins]` | Implemented |
 | L2-NFS-007 | _(none)_ | `cpp/tests/test_fsops.cpp::[publishing a missing temporary is an error]`<br>`cpp/tests/test_fsops.cpp::[publishing is a two-hop rename inside the destination directory]` | Implemented |
 | L2-POSIX-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-002 | _(none)_ | _(TBD)_ | Draft |
@@ -170,8 +170,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-POSIX-005 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-006 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-007 | _(none)_ | _(TBD)_ | Draft |
-| L2-POSIX-008 | L3-PY-005 | _(TBD)_ | Draft |
-| L2-POSIX-009 | L3-PY-004 | _(TBD)_ | Draft |
+| L2-POSIX-008 | _(none)_ | _(TBD)_ | Draft |
+| L2-POSIX-009 | L3-CPP-053 | `cpp/tests/test_fsops.cpp::[publishing is a two-hop rename inside the destination directory]` | Implemented |
 | L2-POSIX-010 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-011 | _(none)_ | _(TBD)_ | Draft |
 | L2-POSIX-012 | _(none)_ | _(TBD)_ | Draft |
@@ -182,15 +182,15 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-REN-001 | L3-CPP-042, L3-CPP-043 | `cpp/tests/test_rename_template.cpp::[a leading dot is not an extension separator]`<br>`cpp/tests/test_rename_template.cpp::[expands every documented field]`<br>`cpp/tests/test_rename_template.cpp::[malformed templates are rejected by name]`<br>`cpp/tests/test_rename_template.cpp::[sequence is zero-padded to six digits]`<br>`cpp/tests/test_rename_template.cpp::[timestamps render as UTC from the supplied millis]` | Implemented |
 | L2-REN-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-REN-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-RSM-001 | L3-PY-012 | _(TBD)_ | Draft |
+| L2-RSM-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-RSM-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-RSM-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-001 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-002 | _(none)_ | `cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
+| L2-RTY-003 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
 | L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-RTY-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-RTY-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
+| L2-RTY-006 | _(none)_ | `cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[manual retry submits a new job and leaves the failed one alone]`<br>`cpp/tests/test_manager.cpp::[retrying a retry does not nest the identifier]` | Implemented |
 | L2-SEC-014 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-001 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-002 | _(none)_ | _(TBD)_ | Draft |
@@ -245,7 +245,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
 | L2-CTL-001 | L3-CTL-003 | _(TBD)_ | Draft |
-| L2-CTL-002 | L3-CPP-046, L3-CTL-001, L3-PY-006 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
+| L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
 | L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | _(TBD)_ | Draft |
@@ -292,9 +292,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-JOB-013 | _(none)_ | `cpp/tests/test_mover.cpp::[a move with no durable intent is refused]`<br>`cpp/tests/test_store.cpp::[a duplicate id is refused rather than overwriting]`<br>`cpp/tests/test_store.cpp::[a recorded intent is durable before the call returns]` | Implemented |
+| L2-JOB-013 | _(none)_ | `cpp/tests/test_manager.cpp::[a duplicate job id is refused rather than published twice]`<br>`cpp/tests/test_mover.cpp::[a move with no durable intent is refused]`<br>`cpp/tests/test_store.cpp::[a duplicate id is refused rather than overwriting]`<br>`cpp/tests/test_store.cpp::[a recorded intent is durable before the call returns]` | Implemented |
 | L2-JOB-014 | _(none)_ | `cpp/tests/test_mover.cpp::[a durable write failure after the commit point halts]`<br>`cpp/tests/test_mover.cpp::[a durable write failure before the commit point aborts]`<br>`cpp/tests/test_mover.cpp::[killing after any phase leaves a state recovery can reconcile]`<br>`cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[a genuinely full store fails cleanly, not silently]`<br>`cpp/tests/test_store.cpp::[a job can be flagged for operator attention]`<br>`cpp/tests/test_store.cpp::[a write failure after the commit point halts instead of aborting]`<br>`cpp/tests/test_store.cpp::[a write failure before the commit point aborts the job]`<br>`cpp/tests/test_store.cpp::[a write that succeeds requires no action]`<br>`cpp/tests/test_store.cpp::[arming a fault on a closed store is an error]`<br>`cpp/tests/test_store.cpp::[the attention flag is best-effort when the store is unwritable]` | Implemented |
-| L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence in an older store does not restart]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
+| L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart when a store is reopened]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
 | L2-NFS-001 | _(none)_ | `cpp/tests/test_fsops.cpp::[the move strategy is detected by attempting the operation]` | Implemented |
 | L2-NFS-002 | _(none)_ | `cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
 | L2-NFS-003 | _(none)_ | `cpp/tests/test_fsops.cpp::[a genuine collision is distinguished from an interrupted move]`<br>`cpp/tests/test_fsops.cpp::[an interrupted link/unlink pair is not a collision]`<br>`cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]` | Implemented |
@@ -341,10 +341,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | STO | 0 | 5 | 0 | 0 | 0 | 4 | 0 |
 | COPY | 0 | 11 | 0 | 0 | 0 | 1 | 0 |
 | BWL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| LIF | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| LIF | 0 | 5 | 0 | 3 | 0 | 3 | 0 |
 | RSM | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | ENV | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| RTY | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | CTL | 0 | 20 | 4 | 0 | 0 | 2 | 0 |
@@ -356,27 +356,27 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
-| MGR | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| MGR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | XFR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
-| PY | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
-| CPP | 0 | 0 | 52 | 0 | 48 | 0 | 52 |
-| **Total** | **41** | **199** | **92** | **28** | **48** | **48** | **52** |
+| PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
+| **Total** | **41** | **199** | **80** | **37** | **49** | **57** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 76 of 295 (25.8%).
+**Tested by at least one test marker**: 86 of 283 (30.4%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 101 of 295 (34.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 111 of 283 (39.2%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 75 of 226 (33.2%).
+**In v1.0.0 scope — tested**: 84 of 214 (39.3%).
 
-**In v1.0.0 scope — verified**: 100 of 226 (44.2%).
+**In v1.0.0 scope — verified**: 109 of 214 (50.9%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

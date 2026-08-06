@@ -290,7 +290,11 @@ TEST_CASE("an occupied destination is not clobbered",
               MoveOutcome::AbortedBeforeCommit);
         // The commit never happened, so the source is still there.
         CHECK(fx.kind_in(fx.src(), "in.dat") == EntryKind::Regular);
-        CHECK(fx.state_of("job-c") == JobState::Failed);
+        // RENAMING, not FAILED. The engine records the attempt it began and
+        // stops; it does not declare the job over. FAILED is terminal, so
+        // writing it here made a retryable failure permanent -- see the note
+        // on the phase 3 failure path in mover.cpp.
+        CHECK(fx.state_of("job-c") == JobState::Renaming);
     }
 }
 

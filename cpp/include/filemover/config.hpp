@@ -23,6 +23,10 @@
 //             max_body_bytes  optional, default 65536, range 1..16777216
 //   [jobs]    workers         optional, default 4, range 1..64
 //   [storage] database_path   REQUIRED, non-empty, no embedded NUL
+//   [retry]   max_attempts        optional, default 3,     range 1..100
+//             backoff_initial_ms  optional, default 1000,  range 1..3600000
+//             backoff_max_ms      optional, default 60000, range 1..3600000
+//             Cross-field: backoff_initial_ms <= backoff_max_ms (L2-RTY-005)
 //
 // The section is [storage] rather than the [journal] of the inherited
 // design: ADR-0010 chose SQLite over an append-only journal, and a
@@ -39,6 +43,9 @@ struct Config {
     std::uint32_t http_max_body_bytes;
     unsigned jobs_workers;
     std::string storage_database_path;
+    unsigned retry_max_attempts;
+    std::uint32_t retry_backoff_initial_ms;
+    std::uint32_t retry_backoff_max_ms;
 
     // L3-CPP-039: documented defaults for every optional parameter.
     Config()
@@ -46,7 +53,10 @@ struct Config {
           http_port(8080),
           http_max_body_bytes(65536),
           jobs_workers(4),
-          storage_database_path() {}
+          storage_database_path(),
+          retry_max_attempts(3),
+          retry_backoff_initial_ms(1000),
+          retry_backoff_max_ms(60000) {}
 };
 
 // Parse and validate configuration text.

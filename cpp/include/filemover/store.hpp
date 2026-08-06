@@ -120,6 +120,17 @@ class JobStore {
     // silently erase the record of an in-flight move.
     bool record_intent(const Job& job, std::string& error);
 
+    // As above, recording that this job replaces a FAILED one (L2-RTY-006).
+    //
+    // Manual retry submits a NEW job rather than reviving the failed one:
+    // FAILED is terminal under L1-SYS-021, and walking back out of it would
+    // erase the record that the job ever failed. `retry_of` is what keeps the
+    // two connected, so the chain of attempts stays reconstructible from the
+    // durable record alone.
+    bool record_intent(const Job& job,
+                       const std::string& retry_of,
+                       std::string& error);
+
     // Apply a state transition and persist it.
     //
     // L2-JOB-005: the transition is validated by the core state machine
@@ -204,6 +215,45 @@ class JobStore {
     // The schema version recorded in the store, for diagnostics and for the
     // migration path a future schema change will need.
     bool schema_version(int& out, std::string& error);
+
+    // L2-RTY-003: attempt count, next-retry time and last failure, durable so
+    // a restart does not forget that a job has already failed four times.
+    //
+    // `last_error` is deliberately not `error`: the L2-JOB-010 CHECK binds
+    // `error` to be non-empty if and only if the state is FAILED, and a job
+    // awaiting a retry is not FAILED. Without a second column there is nowhere
+    // to record why it is waiting.
+    struct RetryState {
+        int attempts;
+        std::int64_t next_retry_ms;
+        std::string last_error;
+        // The FAILED job this one replaces, or empty for a directly submitted
+        // job (L2-RTY-006).
+        std::string retry_of;
+
+        RetryState() : attempts(0), next_retry_ms(0) {}
+    };
+
+    // Records one failed attempt: increments the count, schedules the next
+    // eligible time, and stores the reason. Does not change job state — the
+    // caller decides whether this is a retry or a terminal failure, because
+    // that decision belongs to the retry policy rather than the store.
+    bool record_attempt(const std::string& id,
+                        std::int64_t next_retry_ms,
+                        const std::string& reason,
+                        std::string& error);
+
+    bool load_retry_state(const std::string& id,
+                          RetryState& out,
+                          bool& found,
+                          std::string& error);
+
+    // Queued jobs whose next-retry time has arrived. A job that has never
+    // failed has next_retry_ms == 0 and is therefore always due, which is what
+    // makes a first attempt indistinguishable from a retry to the dispatcher.
+    bool due_jobs(std::int64_t now_ms,
+                  std::vector<std::string>& out,
+                  std::string& error);
 
   private:
     struct Impl;
