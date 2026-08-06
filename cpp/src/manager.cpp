@@ -100,7 +100,10 @@ struct JobManager::Impl {
     // waiting for the first person who takes them in a new order.
     mutable std::mutex mutex;
     std::condition_variable work_ready;   // workers wait here
-    std::condition_variable idle_changed; // wait_idle waits here
+    // There is deliberately no idle_changed condition variable. wait_idle()
+    // polls under the lock instead -- see the note there for why a timed
+    // condition wait had to go. A condvar nothing waits on is dead state that
+    // reads like a synchronisation point.
 
     std::deque<std::string> runnable;
     std::map<std::string, MoveRequest> requests;
@@ -342,7 +345,6 @@ void JobManager::Impl::run_worker() {
                 // like pending work.
                 impl->fail_permanently(store, job_id, error);
             }
-            impl->idle_changed.notify_all();
         }
     }
 }
@@ -613,17 +615,58 @@ std::size_t JobManager::pump(std::string& error) {
 }
 
 bool JobManager::wait_idle(int timeout_ms) {
-    std::unique_lock<std::mutex> lock(impl_->mutex);
-    const std::chrono::steady_clock::time_point deadline =
-        std::chrono::steady_clock::now() +
-        std::chrono::milliseconds(timeout_ms);
-    while (!impl_->runnable.empty() || !impl_->active.empty()) {
-        if (impl_->idle_changed.wait_until(lock, deadline) ==
-            std::cv_status::timeout) {
+    // A bounded poll rather than a timed condition wait, and the reason is
+    // ThreadSanitizer rather than taste.
+    //
+    // This was `idle_changed.wait_until(lock, deadline)`, which is correct C++
+    // and which TSan cannot model. `wait_until` lowers to
+    // pthread_cond_timedwait, and TSan's accounting for the mutex does not
+    // survive it: it subsequently believes the mutex is still held after an
+    // explicit unlock, reports a phantom "double lock", and from then on treats
+    // every access guarded by that mutex as unsynchronised -- producing race
+    // reports in which BOTH sides are recorded as holding the same mutex, which
+    // is impossible.
+    //
+    // Demonstrated in isolation rather than inferred. cpp/tsan_pattern.cpp is a
+    // standalone program with no project code that runs the same loop three
+    // ways from one binary, selected at runtime so nothing else differs:
+    //
+    //     wait()          0 warnings
+    //     wait_until()   11-19 warnings
+    //     bounded poll    0 warnings
+    //
+    // Reproducible across runs at four workers. See docs/C4-TSAN-OPEN.md.
+    //
+    // Polling is acceptable here specifically because this is a test helper for
+    // waiting out quiescence, not a synchronisation mechanism: nothing depends
+    // on the 1 ms granularity, and a missed wakeup costs a millisecond rather
+    // than correctness. The project's preference for latches over sleeps is
+    // about making an interleaving HAPPEN, which is a different problem and is
+    // still served by the phase hook.
+    //
+    // The predicate is read under the lock. runnable and active change together
+    // in run_worker -- a job is popped from one and inserted into the other in
+    // the same critical section -- so there is no window in which both look
+    // empty while a job is in flight.
+    const int kPollMs = 1;
+    int waited = 0;
+    for (;;) {
+        {
+            std::unique_lock<std::mutex> lock(impl_->mutex);
+            if (impl_->runnable.empty() && impl_->active.empty()) {
+                return true;
+            }
+        }
+        if (waited >= timeout_ms) {
+            std::unique_lock<std::mutex> lock(impl_->mutex);
             return impl_->runnable.empty() && impl_->active.empty();
         }
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = kPollMs * 1000000L;
+        ::nanosleep(&ts, 0);
+        waited += kPollMs;
     }
-    return true;
 }
 
 }  // namespace filemover
