@@ -398,6 +398,46 @@ Rewrite each when the C++ it describes exists — not before, and not piecemeal.
 | `docs/12-FACTOR.md` | Now — it is only partly stale | Factor VII **inverted**: the `AF_UNIX` deviation became REST conformance |
 | `docs/MAINTAINER-GUIDE.md` | Per workflow, as each lands | Layout and cheat sheet are already current; the per-workflow sections are not |
 
+## Owed: reinstate schema migrations before the first post-v1.0.0 schema change
+
+**Status: deliberately removed. MUST return before any schema change that
+follows the v1.0.0 release.** Tracked here rather than in a code comment alone
+because this is a decision with an expiry date, and the thing that expires is
+the reason it was safe.
+
+**What was changed.** `JobStore` carries no migration path. `kSchemaVersion` is
+1 and stays at 1; the schema is defined solely by `kSchemaSql`. A database whose
+`user_version` does not match is **refused in either direction** with a message
+telling the operator to delete the file. `kMigrateV1ToV2`, `kMigrateV2ToV3`, the
+migration table and its loop, and `tests/fixtures/store-v1.db` were all deleted.
+
+**Why it was safe.** Before v1.0.0 ships there are no databases in the field.
+Every store is a developer or CI database and all of them are disposable, so a
+schema change can recreate rather than migrate. Maintaining a migration chain
+for databases that do not exist is cost without benefit — and it is cost with a
+sharp edge: the migration dispatch was found applying exactly one step and then
+stamping `user_version` with the target version, so the moment a second
+migration existed a v1 store would have been migrated to v2, labelled v3, and
+left silently missing a column. That defect could only exist because migrations
+existed.
+
+**What must happen, and when.** The moment v1.0.0 is released this stops being
+true, because a released build creates databases somebody else owns. Before the
+*first* schema change after that release:
+
+1. Restore an ordered migration table and a loop that applies every step in
+   turn — not a single step chosen by condition, which is what broke before.
+2. Freeze a fixture database written by the released build, and test the full
+   chain against it rather than only the most recent step.
+3. Change the version-mismatch message: "delete the database" is correct advice
+   only while the data is disposable, and becomes dangerous advice the moment
+   it is not.
+
+**The trap to avoid.** The refusal message and the missing migration path are
+the same decision viewed from two sides. Restoring migrations without rewriting
+that message leaves a build that can migrate but still tells operators to delete
+their data.
+
 ## Owed: restore branch coverage reporting
 
 **Status: temporarily disabled. Restore when the tree is stable — no later than

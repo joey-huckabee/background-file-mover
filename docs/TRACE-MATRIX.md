@@ -26,9 +26,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-009 | L2-ARC-007, L2-ARC-008, L2-CFG-001, L2-CFG-005, L2-JOB-009, L2-JSON-001, L2-STO-005 | _(none)_ | Partially Implemented |
 | L1-SYS-011 | _(none)_ | _(none)_ | Implemented (D) |
 | L1-SYS-012 | L2-SEC-014 | _(none)_ | Implemented |
-| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-004, L2-COPY-011, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
+| L1-SYS-001 | L2-BWL-001, L2-BWL-003, L2-BWL-004, L2-COPY-004, L2-REC-004, L2-STO-001, L2-STO-002, L2-STO-003 | _(none)_ | Partially Implemented |
 | L1-SYS-002 | L2-CLI-008, L2-CLI-009, L2-SUB-001, L2-SUB-002 | _(none)_ | Draft |
-| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | _(none)_ | Draft |
+| L1-SYS-003 | L2-CLN-001, L2-CLN-003, L2-CLN-005, L2-COPY-001, L2-COPY-002, L2-COPY-003, L2-COPY-005, L2-COPY-006, L2-COPY-008, L2-COPY-009, L2-COPY-011, L2-DEL-001, L2-DEL-002, L2-DEL-003, L2-DEL-004, L2-DPR-001, L2-DPR-002, L2-DPR-003, L2-DPR-004, L2-DPR-005, L2-DPR-006, L2-DPR-007, L2-DST-001, L2-DST-002, L2-DST-003, L2-DST-004, L2-LIF-001, L2-LIF-003, L2-POSIX-007, L2-POSIX-008, L2-POSIX-009, L2-POSIX-010, L2-POSIX-011, L2-RSM-003, L2-SUB-005 | _(none)_ | Draft |
 | L1-SYS-004 | L2-FS-001, L2-FS-002, L2-FS-003, L2-FS-004, L2-FS-005, L2-POSIX-001, L2-POSIX-002, L2-POSIX-003, L2-POSIX-005, L2-POSIX-006, L2-SUB-003 | _(none)_ | Draft |
 | L1-SYS-006 | L2-COPY-007 | _(none)_ | Draft |
 | L1-SYS-013 | L2-REN-001, L2-REN-002, L2-REN-003 | _(none)_ | Partially Implemented |
@@ -145,14 +145,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-JOB-001 | L3-JOB-002 | `cpp/tests/test_store.cpp::[close is idempotent and safe on a store never opened]`<br>`cpp/tests/test_store.cpp::[every operation on a closed store fails cleanly]`<br>`cpp/tests/test_store.cpp::[loading an unknown job is not an error]` | Partially Implemented |
 | L2-JOB-002 | L3-JOB-001, L3-PY-007 | `cpp/tests/test_store.cpp::[WAL journaling is actually in effect]` | Partially Implemented |
 | L2-JOB-003 | _(none)_ | `cpp/tests/test_store.cpp::[closing a store releases it for reopening]`<br>`cpp/tests/test_store.cpp::[opening a second store closes the first connection]`<br>`cpp/tests/test_store.cpp::[two connections may address the same store]` | Implemented |
-| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[a store written by an older build opens and keeps its rows]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[migration is idempotent across repeated opens]`<br>`cpp/tests/test_store.cpp::[migrations are idempotent across opens]` | Implemented |
+| L2-JOB-004 | _(none)_ | `cpp/tests/test_store.cpp::[a store whose schema does not match this build is refused]`<br>`cpp/tests/test_store.cpp::[schema creation is idempotent across opens]` | Implemented |
 | L2-JOB-005 | _(none)_ | `cpp/tests/test_store.cpp::[an illegal transition is rejected and writes nothing]`<br>`cpp/tests/test_store.cpp::[legal transitions are persisted]`<br>`cpp/tests/test_store.cpp::[updating an unknown job is an error]` | Implemented |
 | L2-JOB-007 | L3-JOB-003 | _(TBD)_ | Draft |
 | L2-JOB-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-JOB-009 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-JOB-010 | _(none)_ | `cpp/tests/test_store.cpp::[FAILED requires an error and other states forbid one]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]` | Implemented |
 | L2-JOB-011 | _(none)_ | `cpp/tests/test_store.cpp::[an absent store is first boot, not an error]`<br>`cpp/tests/test_store.cpp::[reopening an existing store reports it as existing]` | Implemented |
-| L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[a store written by a newer build is refused, not guessed at]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
+| L2-JOB-012 | _(none)_ | `cpp/tests/test_store.cpp::[a corrupt store is a hard error and is never recreated]`<br>`cpp/tests/test_store.cpp::[a store whose schema does not match this build is refused]`<br>`cpp/tests/test_store.cpp::[a store with a damaged page is refused and left intact]`<br>`cpp/tests/test_store.cpp::[an unopenable path is an error, not a crash]` | Implemented |
 | L2-JSON-001 | L3-CPP-032 | _(TBD)_ | Implemented |
 | L2-LIF-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-LIF-002 | _(none)_ | `cpp/tests/test_manager.cpp::[pausing a job that is mid-move is refused, not forced]` | Implemented |
@@ -187,10 +187,10 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-RSM-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-002 | _(none)_ | `cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
-| L2-RTY-003 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[migrating a v1 store adds the retry columns with sane defaults]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
+| L2-RTY-003 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_store.cpp::[a job awaiting retry records why without being FAILED]`<br>`cpp/tests/test_store.cpp::[only due jobs are dispatched]`<br>`cpp/tests/test_store.cpp::[recording an attempt against an unknown job is an error]`<br>`cpp/tests/test_store.cpp::[retry state on a closed store fails cleanly]` | Implemented |
 | L2-RTY-004 | _(none)_ | _(TBD)_ | Draft |
 | L2-RTY-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a retryable failure is rescheduled with backoff and persisted]`<br>`cpp/tests/test_manager.cpp::[retry stops at the configured attempt ceiling]` | Implemented |
-| L2-RTY-006 | _(none)_ | `cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]` | Implemented |
+| L2-RTY-006 | _(none)_ | `cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[manual retry submits a new job and leaves the failed one alone]`<br>`cpp/tests/test_manager.cpp::[retrying a retry does not nest the identifier]` | Implemented |
 | L2-SEC-014 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-001 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-STO-002 | _(none)_ | _(TBD)_ | Draft |
@@ -294,7 +294,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L2-JOB-013 | _(none)_ | `cpp/tests/test_mover.cpp::[a move with no durable intent is refused]`<br>`cpp/tests/test_store.cpp::[a duplicate id is refused rather than overwriting]`<br>`cpp/tests/test_store.cpp::[a recorded intent is durable before the call returns]` | Implemented |
 | L2-JOB-014 | _(none)_ | `cpp/tests/test_mover.cpp::[a durable write failure after the commit point halts]`<br>`cpp/tests/test_mover.cpp::[a durable write failure before the commit point aborts]`<br>`cpp/tests/test_mover.cpp::[killing after any phase leaves a state recovery can reconcile]`<br>`cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[a genuinely full store fails cleanly, not silently]`<br>`cpp/tests/test_store.cpp::[a job can be flagged for operator attention]`<br>`cpp/tests/test_store.cpp::[a write failure after the commit point halts instead of aborting]`<br>`cpp/tests/test_store.cpp::[a write failure before the commit point aborts the job]`<br>`cpp/tests/test_store.cpp::[a write that succeeds requires no action]`<br>`cpp/tests/test_store.cpp::[arming a fault on a closed store is an error]`<br>`cpp/tests/test_store.cpp::[the attention flag is best-effort when the store is unwritable]` | Implemented |
-| L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence in an older store does not restart]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
+| L2-JOB-015 | _(none)_ | `cpp/tests/test_store.cpp::[a failed sequence bump rolls back and issues nothing]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart across a reopen]`<br>`cpp/tests/test_store.cpp::[the sequence does not restart when a store is reopened]`<br>`cpp/tests/test_store.cpp::[the sequence is monotonic within a process]` | Implemented |
 | L2-NFS-001 | _(none)_ | `cpp/tests/test_fsops.cpp::[the move strategy is detected by attempting the operation]` | Implemented |
 | L2-NFS-002 | _(none)_ | `cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
 | L2-NFS-003 | _(none)_ | `cpp/tests/test_fsops.cpp::[a genuine collision is distinguished from an interrupted move]`<br>`cpp/tests/test_fsops.cpp::[an interrupted link/unlink pair is not a collision]`<br>`cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]` | Implemented |
@@ -372,11 +372,11 @@ The countable requirement set is every L2 and L3 requirement plus the 4 Test-ver
 
 ### v1.0.0 scope-adjusted coverage
 
-5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
+5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 74 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 84 of 226 (37.2%).
+**In v1.0.0 scope — tested**: 84 of 221 (38.0%).
 
-**In v1.0.0 scope — verified**: 109 of 226 (48.2%).
+**In v1.0.0 scope — verified**: 109 of 221 (49.3%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

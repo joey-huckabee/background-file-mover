@@ -16,10 +16,24 @@
 namespace filemover {
 namespace {
 
-// Bumped only alongside a migration below. PRAGMA user_version is SQLite's own
-// slot for this and lives in the database header, so it costs no table and
-// cannot disagree with the schema it describes.
-const int kSchemaVersion = 2;
+// PRAGMA user_version is SQLite's own slot for this and lives in the database
+// header, so it costs no table and cannot disagree with the schema it
+// describes.
+//
+// There is deliberately NO migration path, and this number does not climb with
+// each schema change. Until v1.0.0 ships there are no databases in the field:
+// every store is a developer or CI database and all of them are disposable, so
+// a schema change recreates rather than migrates.
+//
+// That is a decision with an expiry date. The moment v1.0.0 is released this
+// stops being true, and the migration machinery has to come back before the
+// first schema change after it. Recorded in docs/ROADMAP.md.
+//
+// What remains is the check, which is cheap and still worth having: a database
+// whose version does not match this build is REFUSED rather than opened and
+// misread. A store written by a different schema is not a store this build
+// understands, in either direction.
+const int kSchemaVersion = 1;
 
 // A connection that blocks briefly rather than returning SQLITE_BUSY the
 // instant another writer holds the lock. WAL keeps readers out of the way, so
@@ -156,6 +170,11 @@ const char* const kSchemaSql =
     "  attempts         INTEGER NOT NULL DEFAULT 0,"
     "  next_retry_ms    INTEGER NOT NULL DEFAULT 0,"
     "  last_error       TEXT NOT NULL DEFAULT '',"
+    // Schema v3, for L2-RTY-006. The id of the FAILED job this one replaces,
+    // or '' for a job that was submitted directly. Manual retry records a new
+    // job rather than reviving the old one, because FAILED is terminal under
+    // L1-SYS-021 and reviving it would erase the record that it ever failed.
+    "  retry_of         TEXT NOT NULL DEFAULT '',"
     "  CHECK (state IN ('QUEUED','RENAMING','TRANSFERRING','DONE','FAILED')),"
     "  CHECK ((length(error) > 0) = (state = 'FAILED')),"
     "  CHECK (needs_attention IN (0,1))"
@@ -176,11 +195,6 @@ const char* const kSchemaSql =
 // Column defaults carry the existing rows across without a data migration --
 // zero attempts, no scheduled retry, no recorded failure is exactly right for
 // jobs that predate retry.
-const char* const kMigrateV1ToV2 =
-    "ALTER TABLE job ADD COLUMN attempts      INTEGER NOT NULL DEFAULT 0;"
-    "ALTER TABLE job ADD COLUMN next_retry_ms INTEGER NOT NULL DEFAULT 0;"
-    "ALTER TABLE job ADD COLUMN last_error    TEXT    NOT NULL DEFAULT '';";
-
 }  // namespace
 
 struct JobStore::Impl {
@@ -314,35 +328,36 @@ bool JobStore::open(const std::string& path,
         return false;
     }
 
-    // L2-JOB-004: idempotent migration. CREATE TABLE IF NOT EXISTS makes
-    // re-running harmless, and user_version records where we got to.
+    // L2-JOB-004: idempotent schema creation. CREATE TABLE IF NOT EXISTS makes
+    // re-running harmless, and user_version records what was written.
     int version = 0;
     if (!query_int(db, "PRAGMA user_version;", version, error)) {
         sqlite3_close(db);
         return false;
     }
-    if (version > kSchemaVersion) {
+    // Any version other than 0 (empty) or ours is refused, in EITHER direction.
+    // Pre-v1.0.0 there is no migration path by design -- see kSchemaVersion --
+    // so an older database is exactly as unreadable as a newer one, and the
+    // remedy for both is to delete it. Saying so is more useful than a message
+    // about which build is ahead.
+    if (version != 0 && version != kSchemaVersion) {
         std::ostringstream os;
-        os << "store: schema version " << version
-           << " was written by a newer build; this one understands "
-           << kSchemaVersion
-           << ". Refusing to start rather than guessing at the difference.";
+        os << "store: database schema version " << version
+           << " does not match this build's version " << kSchemaVersion
+           << ". This is a pre-v1.0.0 build and carries no migration path: "
+           << "delete the database file and restart. Refusing to open it "
+           << "rather than misread it.";
         error = os.str();
         sqlite3_close(db);
         return false;
     }
-    if (version < kSchemaVersion) {
-        // version 0 is a store with no schema at all -- create the current one
-        // outright. Any other version below the current one is an existing
-        // store that needs its migrations applied in order, and CREATE TABLE
-        // IF NOT EXISTS would do nothing for it.
-        const char* const step =
-            (version == 0) ? kSchemaSql : kMigrateV1ToV2;
-        const char* const what =
-            (version == 0) ? "applying schema" : "migrating v1 to v2";
-
-        if (!exec(db, "BEGIN IMMEDIATE;", "beginning migration", error) ||
-            !exec(db, step, what, error)) {
+    if (version == 0) {
+        if (!exec(db, "BEGIN IMMEDIATE;", "beginning schema creation", error)) {
+            rollback_quietly(db);
+            sqlite3_close(db);
+            return false;
+        }
+        if (!exec(db, kSchemaSql, "applying schema", error)) {
             rollback_quietly(db);
             sqlite3_close(db);
             return false;
@@ -353,7 +368,7 @@ bool JobStore::open(const std::string& path,
         set_version << "PRAGMA user_version=" << kSchemaVersion << ";";
         if (!exec(db, set_version.str().c_str(), "recording schema version",
                   error) ||
-            !exec(db, "COMMIT;", "committing migration", error)) {
+            !exec(db, "COMMIT;", "committing schema creation", error)) {
             rollback_quietly(db);
             sqlite3_close(db);
             return false;
@@ -375,6 +390,12 @@ bool JobStore::schema_version(int& out, std::string& error) {
 }
 
 bool JobStore::record_intent(const Job& job, std::string& error) {
+    return record_intent(job, std::string(), error);
+}
+
+bool JobStore::record_intent(const Job& job,
+                             const std::string& retry_of,
+                             std::string& error) {
     if (!is_open()) {
         error = "store: not open";
         return false;
@@ -386,8 +407,8 @@ bool JobStore::record_intent(const Job& job, std::string& error) {
     static const char* const kSql =
         "INSERT INTO job (id, source_path, dest_path, state, created_at_ms,"
         "                 updated_at_ms, finished_at_ms, bytes_total,"
-        "                 bytes_moved, error)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?);";
+        "                 bytes_moved, error, retry_of)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?);";
 
     Stmt stmt;
     if (sqlite3_prepare_v2(impl_->db, kSql, -1, stmt.out(), 0) != SQLITE_OK) {
@@ -410,6 +431,7 @@ bool JobStore::record_intent(const Job& job, std::string& error) {
     sqlite3_bind_int64(stmt.get(), 9,
                        static_cast<sqlite3_int64>(job.bytes_moved));
     sqlite3_bind_text(stmt.get(), 10, job.error.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt.get(), 11, retry_of.c_str(), -1, SQLITE_TRANSIENT);
 
     if (sqlite3_step(stmt.get()) != SQLITE_DONE) {
         error = fail(impl_->db, "recording intent for job '" + job.id + "'");
@@ -794,7 +816,8 @@ bool JobStore::load_retry_state(const std::string& id,
     }
 
     static const char* const kSql =
-        "SELECT attempts, next_retry_ms, last_error FROM job WHERE id = ?;";
+        "SELECT attempts, next_retry_ms, last_error, retry_of"
+        " FROM job WHERE id = ?;";
 
     Stmt stmt;
     if (sqlite3_prepare_v2(impl_->db, kSql, -1, stmt.out(), 0) != SQLITE_OK) {
@@ -815,6 +838,7 @@ bool JobStore::load_retry_state(const std::string& id,
     out.attempts = sqlite3_column_int(stmt.get(), 0);
     out.next_retry_ms = sqlite3_column_int64(stmt.get(), 1);
     out.last_error = column_text(stmt.get(), 2);
+    out.retry_of = column_text(stmt.get(), 3);
     found = true;
     return true;
 }

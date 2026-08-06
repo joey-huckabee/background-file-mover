@@ -628,11 +628,27 @@ library, POSIX, and the vendored set recorded in `cpp/VENDORED.md`.
 
 ## COPY — Copy engine
 
+> **Parenting note (2026-08-05).** `L2-COPY-001`, `002`, `003`, and `011` were
+> reparented from `L1-SYS-001` to `L1-SYS-003`. They describe a copy engine, and
+> `L1-SEC-007` forbids building one at v1.0.0 — but `L1-SYS-001` is Active, so
+> the trace matrix counted them in v1.0.0 scope and reported four requirements
+> as owed that could not be satisfied without violating another requirement.
+> This is the same class of contradiction caught earlier with `L1-SYS-015`.
+>
+> `L1-SYS-003` is Deferred and already parents `L2-COPY-005/006/008/009`, so the
+> four now sit with the rest of the copy family. The v1.0.0 denominator falls
+> from 226 to 222.
+>
+> `L2-COPY-004` deliberately stays under `L1-SYS-001`. Despite its COPY prefix it
+> constrains concurrency generally — "shall not derive concurrency from CPU count
+> without an explicit cap" — and that applies to the C4 worker pool, which is
+> built and shipping. It is a live v1.0.0 obligation, not a deferred one.
+
 #### L2-COPY-001
 
 The software shall copy files using a bounded-memory read/write loop.
 
-**Parent**: L1-SYS-001
+**Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
 
@@ -640,7 +656,7 @@ The software shall copy files using a bounded-memory read/write loop.
 
 The software shall use a configurable and validated copy buffer size.
 
-**Parent**: L1-SYS-001
+**Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
 
@@ -648,7 +664,7 @@ The software shall use a configurable and validated copy buffer size.
 
 The software shall use configurable, bounded per-file concurrency.
 
-**Parent**: L1-SYS-001
+**Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
 
@@ -715,7 +731,7 @@ is safely replaced.
 The software may use a kernel-assisted file copy when configured and available, and shall
 fall back to the bounded buffered copy without failing the transfer when it is not.
 
-**Parent**: L1-SYS-001
+**Parent**: L1-SYS-003
 
 **Verification Method**: Test (T)
 
@@ -1623,11 +1639,19 @@ name, so the destination never appears under its final name partially written.
 
 **Verification Method**: Test (T)
 
-**v1.0.0 Status**: Deferred → v1.1 with cross-filesystem support (`L1-SEC-007`). A
-same-filesystem move is an atomic rename with no partial state to expose, so the
-temporary-name pattern has nothing to protect against until copying exists. The same
-pattern is separately required by `L2-NFS-007` for delivery into a directory consumers
-watch, where cross-client visibility — not partial writing — is the hazard.
+**Note**: this requirement is only reachable once cross-filesystem copying exists
+(`L1-SEC-007`). A same-filesystem move is an atomic rename with no partial state to
+expose, so the temporary-name pattern has nothing to protect against until copying
+does. The same pattern is separately required by `L2-NFS-007` for delivery into a
+directory consumers watch, where cross-client visibility — not partial writing — is
+the hazard.
+
+This was previously written as a `**v1.0.0 Status**: Deferred → v1.1` field, which
+read as authoritative and was never honoured: `scripts/build-trace-matrix.py` scopes
+by **L1** status only, so the deferral had no effect and the requirement counted in
+scope regardless. A status field nothing reads is worse than no field, so it is now
+ordinary prose. **Deferral is expressible only at L1**, where it is actually
+enforced — see the parenting note under COPY for how that is done.
 
 > **L2-XFR-003 was removed and its identifier is retired.** It required an
 > external-command transfer strategy launched via `fork`/`execvp`. See ADR-0011: a

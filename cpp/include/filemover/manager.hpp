@@ -82,9 +82,20 @@ class JobManager {
     // with a rename engine the safe points are the phase boundaries.
     CommandResult cancel(const std::string& job_id, std::string& error);
 
-    // L2-RTY-006: manual retry of a retained failed job. Returns it to QUEUED
-    // and clears the retry schedule so it runs at the next dispatch.
-    CommandResult retry(const std::string& job_id, std::string& error);
+    // L2-RTY-006: manual retry of a retained failed job.
+    //
+    // Submits a NEW job for the same move and returns its id in `new_job_id`.
+    // The failed job is left FAILED, permanently: L1-SYS-021 makes that state
+    // terminal, and reviving it would overwrite the record that it ever failed.
+    // The new job records `retry_of`, so the chain of attempts is
+    // reconstructible from the durable record alone.
+    //
+    // The id is derived as "<root>-retry-<n>", where <root> strips any existing
+    // retry suffix so a third attempt is "job-retry-3" rather than
+    // "job-retry-2-retry-1", and <n> is the first value not already taken.
+    CommandResult retry(const std::string& job_id,
+                        std::string& new_job_id,
+                        std::string& error);
 
     // Moves retry-scheduled jobs whose time has come onto the runnable queue.
     // Called by the caller's loop rather than by an internal timer thread, so

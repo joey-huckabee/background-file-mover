@@ -385,10 +385,12 @@ TEST_CASE("lifecycle commands reject unknown jobs with a typed error",
     std::string error;
     REQUIRE(manager.start(error) == true);
 
+    std::string spawned;
     CHECK(manager.pause("ghost", error) == CommandResult::UnknownJob);
     CHECK(manager.resume("ghost", error) == CommandResult::UnknownJob);
     CHECK(manager.cancel("ghost", error) == CommandResult::UnknownJob);
-    CHECK(manager.retry("ghost", error) == CommandResult::UnknownJob);
+    CHECK(manager.retry("ghost", spawned, error) == CommandResult::UnknownJob);
+    CHECK(spawned.empty() == true);
     CHECK(error.empty() == false);
 
     manager.shutdown();
@@ -596,7 +598,87 @@ TEST_CASE("manual retry of a non-FAILED job is refused",
     REQUIRE(manager.wait_idle(30000) == true);
 
     // A typed refusal rather than a panic or a silent no-op (L2-LIF-005).
-    CHECK(manager.retry("done1", error) == CommandResult::InvalidState);
+    std::string spawned;
+    CHECK(manager.retry("done1", spawned, error) ==
+          CommandResult::InvalidState);
+    CHECK(spawned.empty() == true);
     CHECK(error.empty() == false);
     manager.shutdown();
+}
+
+// --- manual retry (L2-RTY-006) --------------------------------------------
+
+TEST_CASE("manual retry submits a new job and leaves the failed one alone",
+          "[manager][L2-RTY-006]") {
+    Fixture fx;
+    Config cfg = fx.config(1);
+    cfg.retry_max_attempts = 1;  // fail on the first attempt, no auto-retry
+    JobManager manager(fx.db(), cfg);
+
+    std::string error;
+    REQUIRE(manager.start(error) == true);
+    // No source file: Rejected, which is permanent and not auto-retried.
+    REQUIRE(manager.submit("doomed", fx.request("doomed"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+    REQUIRE(fx.state_of("doomed") == JobState::Failed);
+
+    // Now make the move possible and retry by hand.
+    fx.write_source("doomed");
+    std::string spawned;
+    REQUIRE(manager.retry("doomed", spawned, error) == CommandResult::Ok);
+    CHECK(spawned == std::string("doomed-retry-1"));
+
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    // The new job ran and delivered.
+    CHECK(fx.state_of(spawned) == JobState::Done);
+    CHECK(fx.kind_in(fx.dst(), "doomed.done") == EntryKind::Regular);
+
+    // The failed job is untouched and still FAILED -- permanently. That record
+    // is the whole reason retry does not revive it: an operator investigating
+    // later needs to see that this move failed and why.
+    CHECK(fx.state_of("doomed") == JobState::Failed);
+
+    // And the two are linked, so the chain is reconstructible from the durable
+    // record without consulting anything in memory.
+    CHECK(fx.retry_of(spawned).retry_of == std::string("doomed"));
+    // A directly submitted job has no predecessor.
+    CHECK(fx.retry_of("doomed").retry_of.empty() == true);
+}
+
+TEST_CASE("retrying a retry does not nest the identifier",
+          "[manager][L2-RTY-006]") {
+    Fixture fx;
+    Config cfg = fx.config(1);
+    cfg.retry_max_attempts = 1;
+    JobManager manager(fx.db(), cfg);
+
+    std::string error;
+    REQUIRE(manager.start(error) == true);
+    REQUIRE(manager.submit("flaky", fx.request("flaky"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+
+    std::string first;
+    REQUIRE(manager.retry("flaky", first, error) == CommandResult::Ok);
+    CHECK(first == std::string("flaky-retry-1"));
+    REQUIRE(manager.wait_idle(30000) == true);
+    REQUIRE(fx.state_of(first) == JobState::Failed);
+
+    // Retrying the retry yields -retry-2, NOT flaky-retry-1-retry-1. The id is
+    // operator-facing and a name recording the shape of the chain rather than
+    // its length becomes unreadable after two attempts.
+    std::string second;
+    REQUIRE(manager.retry(first, second, error) == CommandResult::Ok);
+    CHECK(second == std::string("flaky-retry-2"));
+
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    // Each links to the attempt it actually replaced, so the chain is walkable
+    // one step at a time rather than collapsed onto the original.
+    CHECK(fx.retry_of(second).retry_of == first);
+    CHECK(fx.retry_of(first).retry_of == std::string("flaky"));
 }

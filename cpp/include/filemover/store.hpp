@@ -120,6 +120,17 @@ class JobStore {
     // silently erase the record of an in-flight move.
     bool record_intent(const Job& job, std::string& error);
 
+    // As above, recording that this job replaces a FAILED one (L2-RTY-006).
+    //
+    // Manual retry submits a NEW job rather than reviving the failed one:
+    // FAILED is terminal under L1-SYS-021, and walking back out of it would
+    // erase the record that the job ever failed. `retry_of` is what keeps the
+    // two connected, so the chain of attempts stays reconstructible from the
+    // durable record alone.
+    bool record_intent(const Job& job,
+                       const std::string& retry_of,
+                       std::string& error);
+
     // Apply a state transition and persist it.
     //
     // L2-JOB-005: the transition is validated by the core state machine
@@ -216,6 +227,9 @@ class JobStore {
         int attempts;
         std::int64_t next_retry_ms;
         std::string last_error;
+        // The FAILED job this one replaces, or empty for a directly submitted
+        // job (L2-RTY-006).
+        std::string retry_of;
 
         RetryState() : attempts(0), next_retry_ms(0) {}
     };

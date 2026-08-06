@@ -30,6 +30,31 @@ std::int64_t monotonic_now(void* /*user*/) {
            static_cast<std::int64_t>(ts.tv_nsec) / 1000000;
 }
 
+// Strips a trailing "-retry-<digits>" so retrying a retry stays flat:
+// "job-retry-2" retried again yields "job-retry-3", not
+// "job-retry-2-retry-1". Ids are operator-facing, and a name that records the
+// shape of the retry chain rather than its length gets unreadable fast.
+//
+// Only a well-formed suffix is stripped. A job genuinely named "backup-retry-x"
+// keeps its name, because the digits are what make the suffix ours.
+std::string strip_retry_suffix(const std::string& id) {
+    const std::string marker("-retry-");
+    const std::string::size_type at = id.rfind(marker);
+    if (at == std::string::npos) {
+        return id;
+    }
+    const std::string::size_type first = at + marker.size();
+    if (first >= id.size()) {
+        return id;
+    }
+    for (std::string::size_type i = first; i < id.size(); ++i) {
+        if (id[i] < '0' || id[i] > '9') {
+            return id;
+        }
+    }
+    return id.substr(0, at);
+}
+
 // L2-RTY-005: bounded exponential backoff. Doubling from the initial delay,
 // clamped to the maximum, so a long-running failure settles at a fixed poll
 // rate rather than growing without limit.
@@ -488,9 +513,19 @@ CommandResult JobManager::cancel(const std::string& job_id,
 }
 
 CommandResult JobManager::retry(const std::string& job_id,
+                                std::string& new_job_id,
                                 std::string& error) {
     std::unique_lock<std::mutex> lock(impl_->mutex);
-    if (impl_->requests.find(job_id) == impl_->requests.end()) {
+    new_job_id.clear();
+
+    if (!impl_->running) {
+        error = "manager: not running";
+        return CommandResult::NotRunning;
+    }
+
+    std::map<std::string, MoveRequest>::const_iterator request =
+        impl_->requests.find(job_id);
+    if (request == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
     }
@@ -498,22 +533,54 @@ CommandResult JobManager::retry(const std::string& job_id,
     Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
     if (!impl_->store.load(job_id, job, found, error) || !found) {
+        error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
     }
     if (job.state != JobState::Failed) {
-        // L2-LIF-005: an invalid transition is a typed error, not a panic.
+        // L2-LIF-005: a refusal is a typed error, not a panic.
         error = "manager: job '" + job_id + "' is " + to_string(job.state) +
                 "; only a FAILED job can be retried";
         return CommandResult::InvalidState;
     }
 
-    // FAILED is terminal in the core state machine, so a manual retry cannot
-    // walk backwards through it. The job is re-recorded under its own id after
-    // the old row is cleared -- which is why retry lives here rather than in
-    // the store: it is a lifecycle decision, not a state transition.
-    error = "manager: manual retry requires re-submission at v1.0.0; the core "
-            "state machine makes FAILED terminal (L1-SYS-021)";
-    return CommandResult::InvalidState;
+    // A NEW job, not a revival. FAILED is terminal under L1-SYS-021, so there
+    // is no legal edge back to QUEUED -- and there should not be one: the
+    // record that this move failed, and why, is exactly what an operator needs
+    // to still be there after the retry. retry_of links the two.
+    const std::string root = strip_retry_suffix(job_id);
+    std::string candidate;
+    for (int n = 1;; ++n) {
+        std::ostringstream os;
+        os << root << "-retry-" << n;
+        candidate = os.str();
+
+        // Free means free in BOTH the durable record and this manager's live
+        // maps. Checking only the store would let a retry collide with a job
+        // submitted in this process but not yet recorded.
+        bool taken = false;
+        Job existing(std::string(), std::string(), std::string(), 0);
+        if (!impl_->store.load(candidate, existing, taken, error)) {
+            return CommandResult::StoreError;
+        }
+        if (!taken && impl_->requests.find(candidate) ==
+                          impl_->requests.end()) {
+            break;
+        }
+    }
+
+    const MoveRequest& move = request->second;
+    Job fresh(candidate, move.source_dir + "/" + move.source_name,
+              move.dest_dir + "/" + move.dest_name, impl_->now());
+    if (!impl_->store.record_intent(fresh, job_id, error)) {
+        return CommandResult::StoreError;
+    }
+
+    impl_->requests[candidate] = move;
+    impl_->runnable.push_back(candidate);
+    impl_->work_ready.notify_one();
+
+    new_job_id = candidate;
+    return CommandResult::Ok;
 }
 
 std::size_t JobManager::pump(std::string& error) {
