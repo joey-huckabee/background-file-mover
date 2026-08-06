@@ -258,7 +258,7 @@ every concurrent file copy, so the cap is **global across the service**, not per
 
 Because the throttle lives in the userspace read/write loop, an active limit **forces the
 buffered copy strategy**: kernel-assisted `copy_file_range` moves bytes entirely inside the
-kernel, where there is no loop in which to pace them (L3-PY-011). Setting a limit therefore
+kernel, where there is no loop in which to pace them (L2-BWL-001). Setting a limit therefore
 trades the kernel-copy fast path for controllable throughput — a deliberate, operator-driven
 choice. The clock and sleep function are injectable, so the limiter is verified with
 deterministic, wall-clock-free tests.
@@ -295,7 +295,7 @@ lifecycle control, **this leans on the OS**:
 2. `os.lseek` moves both the source and destination descriptors to that offset.
 3. The copy continues with either strategy; for the kernel path, `os.copy_file_range` reads
    and writes from the descriptors' current offsets, and its buffered fallback truncates back
-   to the resume offset — **never to zero** — so the already-copied prefix survives (L3-PY-012).
+   to the resume offset — **never to zero** — so the already-copied prefix survives (L2-RSM-001).
 
 Correctness rests on two guarantees. A **clean pause** fsyncs the partial, so its prefix is
 exactly right and resume is lossless. A **crash-torn** partial (a partially-written final
@@ -315,8 +315,8 @@ the **per-buffer hooks** — `rate_limiter.throttle(...)` (buffered loop only) a
 
 | Combination | Where | Behavior |
 |-------------|-------|-----------|
-| Bandwidth limit + kernel copy | `_copy` engine choice | A non-zero limit forces the **buffered** engine — the kernel loop cannot be paced (L3-PY-011). Chosen per file at copy start. |
-| Partial resume + kernel copy | `_copy_via_kernel`, `_open_destination` | Compatible: seek to the offset and `copy_file_range` continues; the fallback truncates to `base_offset`, not zero (L3-PY-012). |
+| Bandwidth limit + kernel copy | `_copy` engine choice | A non-zero limit forces the **buffered** engine — the kernel loop cannot be paced (L2-BWL-001). Chosen per file at copy start. |
+| Partial resume + kernel copy | `_copy_via_kernel`, `_open_destination` | Compatible: seek to the offset and `copy_file_range` continues; the fallback truncates to `base_offset`, not zero (L2-RSM-001). |
 | Pause/cancel + either engine | `interrupt_check()` at both loops | Cooperative stop at the next buffer boundary (~`copy_buffer_size_bytes`), in the kernel *and* buffered loops. |
 | Runtime `throttle` + in-flight kernel copy | engine chosen at copy start | The running kernel copy never reads the limiter, so a live rate change applies from the **next** file; a buffered copy honours it immediately (`RateLimiter.set_rate`). |
 | Low limit + pause/cancel/shutdown | buffered loop order | `interrupt_check()` runs *after* `throttle()`, so a long throttle sleep delays the stop by up to one chunk. |
@@ -329,7 +329,7 @@ gotcha in the user guide.
 
 ## Logging & observability
 
-Logging is centralized, gated, and context-aware (`logging_config.py`, L3-PY-013/014). Three
+Logging is centralized, gated, and context-aware (`logging_config.py`, L2-CLI-006). Three
 concerns are kept separate:
 
 - **Level policy** — `LogGate`, a set of per-level booleans computed once by
@@ -423,7 +423,7 @@ what is on disk, not from assumptions about what the previous process finished
 
 The service integrates with the init system via the `sd_notify` protocol
 (`file_mover/systemd.py`), using only a standard-library `AF_UNIX` datagram — no
-`libsystemd` dependency (L3-PY-010):
+`libsystemd` dependency (L3-CPP-054):
 
 - **Readiness.** Under `Type=notify`, systemd sets `NOTIFY_SOCKET` and waits for a
   `READY=1` datagram before marking the unit started. The service sends it at exactly the

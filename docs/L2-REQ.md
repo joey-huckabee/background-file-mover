@@ -740,7 +740,14 @@ fall back to the bounded buffered copy without failing the transfer when it is n
 #### L2-BWL-001
 
 The software shall support a configurable maximum aggregate copy throughput, expressed in
-bytes per second, that bounds how fast source data is transferred.
+bytes per second, that bounds how fast source data is transferred. Because a
+kernel-assisted copy cannot be paced from userspace, a non-zero limit shall force the
+buffered copy strategy.
+
+The second sentence was carried up from the retired `L3-PY-011` when the Python
+requirements were deleted. It is a constraint on the feature rather than on how the
+feature was written, and without it an implementation can honour the limit for buffered
+copies and silently ignore it whenever the kernel path is taken.
 
 **Parent**: L1-SYS-001
 
@@ -826,7 +833,13 @@ typed error, never panicking or corrupting durable state.
 #### L2-RSM-001
 
 The software shall be able to resume an interrupted file copy from the byte offset of its
-fsynced partial destination rather than re-copying the file from byte zero.
+fsynced partial destination rather than re-copying the file from byte zero. Where a
+resume path truncates the partial destination, it shall truncate to the resume offset and
+never to zero, so an already-copied prefix is preserved.
+
+The second sentence was carried up from the retired `L3-PY-012`. Truncating to zero on
+resume is the specific mistake that turns a resume feature into a slower version of
+starting over, and it is not excluded by the sentence above it.
 
 **Parent**: L1-SYS-005
 

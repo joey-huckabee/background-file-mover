@@ -545,7 +545,7 @@ hierarchy, enums) and a runnable `file-mover --help`; no transfer behavior yet.
 convert → validate ranges/cross-field) returning a frozen `ApplicationConfig`;
 `ConfigurationValidationError` that collects all issues; `file-mover config validate`
 and a partial `doctor`.
-Requirements: L2-CFG-001..011, L2-ARC-001..006, L3-PY-001.
+Requirements: L2-CFG-001..011, L2-ARC-001..006.
 
 ### M3 — Control Plane (first executable milestone)
 
@@ -554,14 +554,14 @@ recovery; `CommandDispatcher` (static command→handler map); singleton process 
 `health` command; `service run` skeleton (no transfers). **Done-when:** systemd starts
 the service, the CLI reaches it over the socket, `health` succeeds, the service stops
 cleanly, and a stale socket is recovered safely.
-Requirements: L2-EVT-001..005, L3-EVT-001..005, L3-PY-006, L2-CLI-005/006/010/011.
+Requirements: L2-EVT-001..005, L3-EVT-001..005, L2-CTL-002, L2-CLI-005/006/010/011.
 
 ### M4 — Durable Job State
 
 `SQLiteJobRepository` (schema, WAL/`synchronous=FULL`/`busy_timeout`, per-thread
 connections, migrations); `JobRecord`/`FileRecord` dataclasses and the state-machine
 transition map; `JobQueryService`; `status`, `list`, `stats`.
-Requirements: L1-SYS-007, L2-RTY-003, L3-PY-007.
+Requirements: L1-SYS-007, L2-RTY-003, L2-JOB-002.
 
 ### M5 — Submission & Claiming
 
@@ -569,7 +569,7 @@ Requirements: L1-SYS-007, L2-RTY-003, L3-PY-007.
 identity); `FileClaimManager` (same-device atomic rename into `.swit-moving/<job>/`);
 `ManifestWriter` (atomic temp+replace); `JobSubmissionService`; idempotent `submit`.
 Requirements: L1-SYS-004, L2-FS-001..005, L2-POSIX-001..006, L2-CLI-008/009,
-L2-DST-005, L3-INT-003/004, L3-PY-005.
+L2-DST-005, L3-INT-003/004, L2-POSIX-008.
 
 ### M6 — Transfer Engine
 
@@ -580,7 +580,7 @@ directory fsync; source cleanup; `ErrorClassifier` + durable classified retry wi
 backoff.
 Requirements: L1-SYS-001/003/006, L2-DPR-001..007, L2-COPY-001..010,
 L2-POSIX-007..012, L2-DST-001..004, L2-DEL-001..004, L2-RTY-001..006,
-L3-INT-001..007, L3-PY-002/003/004.
+L3-INT-001..007, L2-DPR-004/005, L3-CPP-053.
 
 ### M7 — Recovery & Service Integration
 
@@ -709,13 +709,13 @@ part of the deferred **S3 adapter** rather than a standalone gap.
 
 - **Dynamic bandwidth limiting** (v0.2.0) — a userspace token-bucket throughput ceiling
   (`[transfer] max_bytes_per_second`), adjustable live with `file-mover throttle`
-  (L2-BWL-001..004, L3-PY-011). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
+  (L2-BWL-001..004). See `docs/ARCHITECTURE.md` § *Bandwidth limiting*.
 - **Job lifecycle control** (v0.3.0) — `cancel` / `pause` / `resume` commands with
   cooperative cancellation of in-flight copies; cancel always retains the source
   (L2-LIF-001..005). See `docs/ARCHITECTURE.md` § *Lifecycle control*.
 - **Partial-file byte-offset resume** (v0.3.0) — resume an interrupted copy from its
   fsynced partial (`[transfer] resume_partial_files`) instead of restarting from zero,
-  with a hash-verified restart fallback (L2-RSM-001..003, L3-PY-012). See
+  with a hash-verified restart fallback (L2-RSM-001..003). See
   `docs/ARCHITECTURE.md` § *Partial-file resume*.
 
 ---
