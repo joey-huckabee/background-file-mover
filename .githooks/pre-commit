@@ -192,6 +192,11 @@ if ! make -C cpp no-timed-condwait; then
     fail "a timed condition wait appeared; it breaks ThreadSanitizer"
 fi
 
+step "make -C cpp manager-lock"
+if ! make -C cpp manager-lock; then
+    fail "a raw lock on the manager mutex disables the store assertion"
+fi
+
 step "make -C cpp strong-hash"
 if ! make -C cpp strong-hash; then
     fail "a weak hash was used for file verification (L2-SEC-015)"

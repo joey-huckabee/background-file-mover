@@ -409,6 +409,8 @@ check-ci:
 	      sh scripts/assert-no-permission-tests.sh && \
 	      echo "--- no timed condition waits ---" && \
 	      sh scripts/assert-no-timed-condwait.sh && \
+	      echo "--- manager mutex taken only through ManagerLock ---" && \
+	      sh scripts/assert-manager-lock.sh && \
 	      echo "--- strong hashing only ---" && \
 	      sh scripts/assert-strong-hash.sh && \
 	      echo "--- functional ---" && \
@@ -666,6 +668,13 @@ no-permission-tests:
 .PHONY: no-timed-condwait
 no-timed-condwait:
 	@sh scripts/assert-no-timed-condwait.sh
+
+# Every acquisition of the manager mutex must go through ManagerLock, which
+# maintains the thread-local depth count that store_for_command asserts on. A
+# raw unique_lock or lock_guard silently disables the assertion for that path.
+.PHONY: manager-lock
+manager-lock:
+	@sh scripts/assert-manager-lock.sh
 
 # L2-SEC-015. Preventive: integrity verification is deferred to v1.1, so this
 # finds nothing today. It exists so the constraint is enforced the moment the

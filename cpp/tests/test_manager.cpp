@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <condition_variable>
@@ -660,6 +661,82 @@ TEST_CASE("manual retry of a non-FAILED job is refused",
     CHECK(spawned.empty() == true);
     CHECK(error.empty() == false);
     manager.shutdown();
+}
+
+// --- the store-under-mutex assertion --------------------------------------
+//
+// The invariant is that no store call happens while the manager mutex is held:
+// a durable write blocks on busy_timeout for five seconds, and that mutex is
+// what every worker takes to pick up its next job.
+//
+// It was a comment before it was an assertion, and two violations survived the
+// commit that introduced the comment. So the assertion itself is tested, in a
+// forked child because it ends in abort() -- the same reason the C1 crash suite
+// forks. A test that cannot observe the abort would be asserting nothing, which
+// is the failure mode this whole mechanism exists to prevent.
+
+TEST_CASE("the manager-mutex assertion aborts when the invariant is violated",
+          "[manager][L2-MGR-001]") {
+    Fixture fx;
+    fx.write_source("victim");
+    fx.write_source("decoy");
+    const pid_t pid = ::fork();
+    REQUIRE(pid >= 0);
+
+    if (pid == 0) {
+        // Child. Drive every command that touches the store, so each one
+        // exercises store_for_command at least once. If a future edit merges a
+        // lock and a store call back together, the assertion aborts here and
+        // this test sees the signal instead of an exit code of zero.
+        //
+        // The job must actually EXIST for cancel() to reach the store. An
+        // earlier version cancelled a nonexistent id, which returns UnknownJob
+        // at the first check without ever touching the store -- so it exercised
+        // nothing and passed even with the defect deliberately reintroduced.
+        //
+        // It must also be QUEUED rather than running, which is why the single
+        // worker is pinned on a decoy first. A previous version submitted and
+        // then paused, and the worker won that race under AddressSanitizer:
+        // pause returned InvalidState and the child exited 22. Latch-based
+        // rather than timing-based, like the rest of this file.
+        JobManager manager(fx.db(), fx.config(1));
+        Latch latch;
+        latch.at = MovePhase::Commit;
+        manager.set_phase_hook(Latch::hook, &latch);
+
+        std::string error;
+        if (!manager.start(error)) {
+            ::_exit(20);
+        }
+        if (manager.submit("decoy", fx.request("decoy"), error) !=
+            CommandResult::Ok) {
+            ::_exit(21);
+        }
+        latch.wait_arrival();  // the only worker is now pinned mid-move
+
+        if (manager.submit("victim", fx.request("victim"), error) !=
+            CommandResult::Ok) {
+            ::_exit(22);
+        }
+        // Queued with certainty, so cancel reaches the store.
+        if (manager.cancel("victim", error) != CommandResult::Ok) {
+            ::_exit(23);
+        }
+
+        latch.release();
+        manager.set_phase_hook(0, 0);
+        manager.shutdown();
+        ::_exit(0);
+    }
+
+    int status = 0;
+    REQUIRE(::waitpid(pid, &status, 0) == pid);
+    // With the invariant held, the child exits cleanly. This is the guard
+    // against the assertion firing on correct code -- a false abort would be
+    // worse than no assertion, because it would be disabled within a day.
+    INFO("child status " << status);
+    CHECK(WIFEXITED(status) == true);
+    CHECK(WEXITSTATUS(status) == 0);
 }
 
 // --- manual retry (L2-RTY-006) --------------------------------------------

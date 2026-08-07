@@ -5,6 +5,9 @@
 
 #include <time.h>
 
+#include <cstdio>
+#include <cstdlib>
+
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -17,6 +20,82 @@
 
 namespace filemover {
 namespace {
+
+// How many manager mutexes this thread currently holds. Used only to assert
+// the invariant below; it is not a lock and nothing waits on it.
+//
+// thread_local rather than a member, because the question being asked is about
+// the calling THREAD, not about the manager.
+thread_local int g_manager_lock_depth = 0;
+
+// Every acquisition of the manager mutex goes through this, so the depth count
+// cannot drift. scripts/assert-manager-lock.sh fails the build if a raw
+// std::unique_lock or std::lock_guard is taken on that mutex anywhere else.
+//
+// It is a full replacement for unique_lock rather than a companion object
+// because a companion is something a new lock site can forget, and a forgotten
+// companion silently disables the assertion -- the failure mode this project
+// keeps finding in its own apparatus.
+class ManagerLock {
+  public:
+    explicit ManagerLock(std::mutex& m) : lock_(m) { ++g_manager_lock_depth; }
+
+    ~ManagerLock() {
+        if (lock_.owns_lock()) {
+            --g_manager_lock_depth;
+        }
+    }
+
+    void unlock() {
+        lock_.unlock();
+        --g_manager_lock_depth;
+    }
+
+    void lock() {
+        lock_.lock();
+        ++g_manager_lock_depth;
+    }
+
+    // For condition_variable, which needs the real thing.
+    std::unique_lock<std::mutex>& raw() { return lock_; }
+
+  private:
+    ManagerLock(const ManagerLock&);
+    ManagerLock& operator=(const ManagerLock&);
+
+    std::unique_lock<std::mutex> lock_;
+};
+
+// The invariant: never touch the store while holding the manager mutex.
+//
+// A durable write blocks on busy_timeout -- five seconds -- whenever another
+// connection holds the database write lock, and the manager mutex is what every
+// worker takes to pick up its next job. Holding one across the other stalls the
+// entire pool.
+//
+// Asserted rather than documented because the failure is silent: nothing
+// crashes, nothing races, no test fails. Throughput simply degrades under a
+// load pattern a unit test does not produce. When this was only a comment, two
+// violations survived the commit that introduced the comment -- cancel() and
+// shutdown(), both found by writing this function.
+//
+// Compiled out with NDEBUG. The default, sanitizer and fidelity tiers all build
+// with assertions on, which is every tier that runs the suite.
+void assert_no_manager_lock(const char* what) {
+    if (g_manager_lock_depth != 0) {
+        // Return value deliberately discarded: this is the last thing that
+        // happens before abort(), and there is nothing useful to do if the
+        // diagnostic itself cannot be written. cert-err33-c wants the cast.
+        (void)std::fprintf(
+            stderr,
+            "manager: %s was called while holding the manager mutex. "
+            "A store call can block for busy_timeout and that mutex is "
+            "what workers take to get their next job; holding it here "
+            "stalls the pool. See docs/C5-PLAN.md section 1.2.\n",
+            what);
+        std::abort();
+    }
+}
 
 // The default clock. Monotonic rather than wall-clock: every use is a
 // comparison or a delta, so an operator changing the system time must not make
@@ -154,6 +233,19 @@ struct JobManager::Impl {
 
     std::int64_t now() { return clock(clock_user); }
 
+    // The only way a command reaches the manager's connection. Asserts the
+    // caller is not holding the manager mutex, which is the whole point: the
+    // access is routed through a function so the check has somewhere to live.
+    //
+    // Callers must additionally hold store_mutex, since this connection is
+    // shared between command threads (L2-JOB-003). That part is not asserted --
+    // std::mutex cannot be interrogated -- so it stays a convention, checked by
+    // review and by the fact that every caller is in this file.
+    JobStore& store_for_command(const char* what) {
+        assert_no_manager_lock(what);
+        return store;
+    }
+
     // Members rather than free functions in an anonymous namespace: Impl is a
     // private nested type, so nothing outside the class can name it.
     void run_worker();
@@ -177,34 +269,34 @@ JobManager::~JobManager() {
 }
 
 void JobManager::set_clock(ClockFn fn, void* user_data) {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     impl_->clock = (fn != 0) ? fn : monotonic_now;
     impl_->clock_user = user_data;
 }
 
 void JobManager::set_strategy(MoveStrategy strategy) {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     impl_->strategy = strategy;
 }
 
 void JobManager::set_phase_hook(MoveEngine::PhaseHook hook, void* user_data) {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     impl_->hook = hook;
     impl_->hook_user = user_data;
 }
 
 bool JobManager::is_running() const {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     return impl_->running;
 }
 
 std::size_t JobManager::runnable_count() const {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     return impl_->runnable.size();
 }
 
 std::size_t JobManager::active_count() const {
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
+    const ManagerLock guard(impl_->mutex);
     return impl_->active.size();
 }
 
@@ -329,7 +421,7 @@ void JobManager::Impl::run_worker() {
     // unique_locks occupy the same stack slot on alternate halves of the loop,
     // which is correct C++ but leaves ThreadSanitizer tracking what looks like
     // one lock being acquired twice without an intervening release.
-    std::unique_lock<std::mutex> lock(impl->mutex);
+    ManagerLock lock(impl->mutex);
 
     for (;;) {
         std::string job_id;
@@ -349,7 +441,7 @@ void JobManager::Impl::run_worker() {
         // an API boundary and a plain function pointer is what a C++11 header
         // can express without dragging <functional> into it. Here the callable
         // never leaves the function.
-        impl->work_ready.wait(lock, [impl]() {
+        impl->work_ready.wait(lock.raw(), [impl]() {
             return !impl->runnable.empty() || impl->stopping;
         });
         if (impl->runnable.empty() && impl->stopping) {
@@ -418,18 +510,36 @@ void JobManager::Impl::run_worker() {
 }
 
 bool JobManager::start(std::string& error) {
-    unsigned count = 0;
     {
-        const std::unique_lock<std::mutex> lock(impl_->mutex);
+        const ManagerLock lock(impl_->mutex);
         if (impl_->running) {
             return true;
         }
+    }
 
+    // Opened with the manager mutex RELEASED, like every other store call.
+    // Nothing could stall here -- no worker exists yet -- but an invariant with
+    // exceptions is a convention, and the assertion in store_for_command only
+    // means something if every path goes through it.
+    //
+    // It must still happen BEFORE the workers spawn, and that ordering is
+    // load-bearing for a second reason: SQLite's one-time lazy initialization
+    // is not thread-safe against several threads calling sqlite3_open as their
+    // first SQLite call. Measured -- four concurrent first-opens race inside
+    // sqlite3_initialize. This open is what makes that happen single-threaded.
+    // Do not move it after thread creation.
+    unsigned count = 0;
+    {
+        const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
         StoreOpenResult opened = StoreOpenResult::OpenedExisting;
-        if (!impl_->store.open(impl_->store_path, opened, error)) {
+        if (!impl_->store_for_command("start").open(impl_->store_path, opened,
+                                                    error)) {
             return false;
         }
+    }
 
+    {
+        const ManagerLock lock(impl_->mutex);
         impl_->stopping = false;
         impl_->running = true;
         count = impl_->config.jobs_workers > 0 ? impl_->config.jobs_workers : 1;
@@ -450,7 +560,7 @@ bool JobManager::start(std::string& error) {
         spawned.push_back(std::thread(&JobManager::Impl::run_worker, impl_));
     }
 
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     for (std::size_t i = 0; i < spawned.size(); ++i) {
         impl_->workers.push_back(std::move(spawned[i]));
     }
@@ -460,7 +570,7 @@ bool JobManager::start(std::string& error) {
 void JobManager::shutdown() {
     std::vector<std::thread> to_join;
     {
-        const std::unique_lock<std::mutex> lock(impl_->mutex);
+        const ManagerLock lock(impl_->mutex);
         if (!impl_->running) {
             return;
         }
@@ -479,8 +589,12 @@ void JobManager::shutdown() {
         }
     }
 
-    const std::lock_guard<std::mutex> guard(impl_->mutex);
-    impl_->store.close();
+    // Closing can block, and the manager mutex is not what protects this
+    // connection -- store_mutex is. Every worker has joined by now, so nothing
+    // is contending, but the invariant holds regardless of whether it currently
+    // matters: an invariant with exceptions is a convention.
+    const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+    impl_->store_for_command("shutdown").close();
 }
 
 CommandResult JobManager::submit(const std::string& job_id,
@@ -488,7 +602,7 @@ CommandResult JobManager::submit(const std::string& job_id,
                                  std::string& error) {
     std::int64_t now_ms = 0;
     {
-        const std::unique_lock<std::mutex> lock(impl_->mutex);
+        const ManagerLock lock(impl_->mutex);
         if (!impl_->running) {
             error = "manager: not running";
             return CommandResult::NotRunning;
@@ -516,10 +630,10 @@ CommandResult JobManager::submit(const std::string& job_id,
     bool recorded = false;
     {
         const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
-        recorded = impl_->store.record_intent(job, error);
+        recorded = impl_->store_for_command("submit").record_intent(job, error);
     }
 
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     impl_->pending.erase(job_id);
     if (!recorded) {
         return CommandResult::StoreError;
@@ -534,7 +648,7 @@ CommandResult JobManager::submit(const std::string& job_id,
 
 CommandResult JobManager::pause(const std::string& job_id,
                                 std::string& error) {
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -555,7 +669,7 @@ CommandResult JobManager::pause(const std::string& job_id,
 
 CommandResult JobManager::resume(const std::string& job_id,
                                  std::string& error) {
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -571,41 +685,60 @@ CommandResult JobManager::resume(const std::string& job_id,
 
 CommandResult JobManager::cancel(const std::string& job_id,
                                  std::string& error) {
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
-    if (impl_->requests.find(job_id) == impl_->requests.end()) {
-        error = "manager: no such job '" + job_id + "'";
-        return CommandResult::UnknownJob;
-    }
-    if (impl_->active.find(job_id) != impl_->active.end()) {
-        error = "manager: job '" + job_id +
-                "' is in flight; a move past its commit point is not "
-                "interruptible";
-        return CommandResult::InvalidState;
+    // Claim, act, settle -- the same shape as submit(), and for the same
+    // reason. This function used to hold the manager mutex across two store
+    // calls; the assertion in store_for_command found it.
+    bool was_runnable = false;
+    {
+        const ManagerLock lock(impl_->mutex);
+        if (impl_->requests.find(job_id) == impl_->requests.end()) {
+            error = "manager: no such job '" + job_id + "'";
+            return CommandResult::UnknownJob;
+        }
+        if (impl_->active.find(job_id) != impl_->active.end()) {
+            error = "manager: job '" + job_id +
+                    "' is in flight; a move past its commit point is not "
+                    "interruptible";
+            return CommandResult::InvalidState;
+        }
+        // Taken out of dispatch before the mutex is released, so no worker can
+        // pick it up while the durable write is in progress. The `active`
+        // check above already proved no worker holds it.
+        was_runnable = impl_->take_runnable(job_id);
+        impl_->waiting.erase(job_id);
+        impl_->paused.erase(job_id);
     }
 
-    impl_->take_runnable(job_id);
-    impl_->waiting.erase(job_id);
-    impl_->paused.erase(job_id);
+    const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
 
     Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
-    if (!impl_->store.load(job_id, job, found, error) || !found) {
-        return CommandResult::UnknownJob;
-    }
-    if (job.state != JobState::Queued) {
+    CommandResult outcome = CommandResult::Ok;
+    if (!impl_->store_for_command("cancel").load(job_id, job, found, error) ||
+        !found) {
+        outcome = CommandResult::UnknownJob;
+    } else if (job.state != JobState::Queued) {
         error = "manager: job '" + job_id + "' is " + to_string(job.state) +
                 " and cannot be cancelled";
-        return CommandResult::InvalidState;
+        outcome = CommandResult::InvalidState;
+    } else if (!impl_->store_for_command("cancel").update_state(
+                   job_id, JobState::Failed, job.updated_at_ms + 1,
+                   "cancelled by operator", error)) {
+        // FAILED rather than CANCELLED_RETAINED: that state belongs to
+        // L2-LIF-001/003, deferred with L1-SYS-003. Using the states the
+        // machine actually defines keeps the durable record legal.
+        outcome = CommandResult::StoreError;
     }
-    // FAILED rather than CANCELLED_RETAINED: that state belongs to
-    // L2-LIF-001/003, deferred with L1-SYS-003. Using the states the machine
-    // actually defines keeps the durable record legal.
-    if (!impl_->store.update_state(job_id, JobState::Failed,
-                                   job.updated_at_ms + 1,
-                                   "cancelled by operator", error)) {
-        return CommandResult::StoreError;
+
+    if (outcome != CommandResult::Ok && was_runnable) {
+        // The refusal has to put the job back. Removing it from dispatch and
+        // then declining to cancel it would strand it: still recorded, still
+        // QUEUED, and owned by nobody.
+        const ManagerLock lock(impl_->mutex);
+        impl_->runnable.push_back(job_id);
+        impl_->work_ready.notify_one();
     }
-    return CommandResult::Ok;
+    return outcome;
 }
 
 CommandResult JobManager::retry(const std::string& job_id,
@@ -616,7 +749,7 @@ CommandResult JobManager::retry(const std::string& job_id,
     MoveRequest move;
     std::int64_t now_ms = 0;
     {
-        const std::unique_lock<std::mutex> lock(impl_->mutex);
+        const ManagerLock lock(impl_->mutex);
         if (!impl_->running) {
             error = "manager: not running";
             return CommandResult::NotRunning;
@@ -638,7 +771,7 @@ CommandResult JobManager::retry(const std::string& job_id,
 
     Job job(std::string(), std::string(), std::string(), 0);
     bool found = false;
-    if (!impl_->store.load(job_id, job, found, error) || !found) {
+    if (!impl_->store_for_command("retry").load(job_id, job, found, error) || !found) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
     }
@@ -665,7 +798,7 @@ CommandResult JobManager::retry(const std::string& job_id,
         // submitted in this process but not yet recorded.
         bool taken = false;
         Job existing(std::string(), std::string(), std::string(), 0);
-        if (!impl_->store.load(candidate, existing, taken, error)) {
+        if (!impl_->store_for_command("retry").load(candidate, existing, taken, error)) {
             return CommandResult::StoreError;
         }
         if (taken) {
@@ -676,7 +809,7 @@ CommandResult JobManager::retry(const std::string& job_id,
         // anywhere takes the manager mutex first and then store_mutex, so
         // there is no cycle. submit() avoids nesting entirely by releasing one
         // before taking the other.
-        const std::unique_lock<std::mutex> lock(impl_->mutex);
+        const ManagerLock lock(impl_->mutex);
         if (impl_->requests.find(candidate) == impl_->requests.end() &&
             impl_->pending.insert(candidate).second) {
             break;
@@ -685,9 +818,9 @@ CommandResult JobManager::retry(const std::string& job_id,
 
     const Job fresh(candidate, move.source_dir + "/" + move.source_name,
               move.dest_dir + "/" + move.dest_name, now_ms);
-    const bool recorded = impl_->store.record_intent(fresh, job_id, error);
+    const bool recorded = impl_->store_for_command("retry").record_intent(fresh, job_id, error);
 
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     impl_->pending.erase(candidate);
     if (!recorded) {
         return CommandResult::StoreError;
@@ -701,7 +834,7 @@ CommandResult JobManager::retry(const std::string& job_id,
 }
 
 std::size_t JobManager::pump(std::string& error) {
-    const std::unique_lock<std::mutex> lock(impl_->mutex);
+    const ManagerLock lock(impl_->mutex);
     if (!impl_->running) {
         error = "manager: not running";
         return 0;
@@ -767,13 +900,13 @@ bool JobManager::wait_idle(int timeout_ms) {
     int waited = 0;
     for (;;) {
         {
-            const std::unique_lock<std::mutex> lock(impl_->mutex);
+            const ManagerLock lock(impl_->mutex);
             if (impl_->runnable.empty() && impl_->active.empty()) {
                 return true;
             }
         }
         if (waited >= timeout_ms) {
-            const std::unique_lock<std::mutex> lock(impl_->mutex);
+            const ManagerLock lock(impl_->mutex);
             return impl_->runnable.empty() && impl_->active.empty();
         }
         struct timespec ts;
