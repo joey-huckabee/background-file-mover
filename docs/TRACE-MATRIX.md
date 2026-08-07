@@ -244,7 +244,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-CTL-001 | L3-CTL-003 | _(TBD)_ | Draft |
+| L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
 | L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
 | L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]` | Partially Implemented |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 0 | 0 | 2 | 0 |
+| CTL | 0 | 20 | 4 | 1 | 0 | 3 | 0 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **37** | **49** | **57** | **53** |
+| **Total** | **41** | **199** | **80** | **38** | **49** | **58** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 86 of 283 (30.4%).
+**Tested by at least one test marker**: 87 of 283 (30.7%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 111 of 283 (39.2%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 112 of 283 (39.6%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 84 of 214 (39.3%).
+**In v1.0.0 scope — tested**: 85 of 214 (39.7%).
 
-**In v1.0.0 scope — verified**: 109 of 214 (50.9%).
+**In v1.0.0 scope — verified**: 110 of 214 (51.4%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

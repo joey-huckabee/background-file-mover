@@ -48,7 +48,18 @@ banned_headers='^[[:space:]]*#[[:space:]]*include[[:space:]]*<(fcntl\.h|dirent\.
 # matched any `open(` and flagged JobStore::open -- a method declaration, not a
 # syscall. A gate with false positives gets disabled, which is worse than a
 # gate with a known blind spot, so this one only claims what it can prove.
-banned_calls='::(open|creat|stat|lstat|rename|unlink|rmdir|mkdir|opendir|chmod|chown|lchown|symlink|readlink|access|truncate|utimes)[[:space:]]*\('
+#
+# The leading guard distinguishes a GLOBAL `::open(` from a MEMBER
+# `ListenSocket::open(`. Without it the pattern matches the tail of any
+# qualified name ending in one of these words, which is a false positive on the
+# out-of-line definition of any method called open, stat or rename.
+#
+# That blind spot survived until C5 only by luck: JobStore::open is defined in
+# store.cpp and config.cpp defines nothing of the sort, and both files are on
+# the allowlist below, so the pattern was never tested against a qualified
+# member outside it. ListenSocket::open in server.cpp is the first, and the
+# gate flagged a function that opens a socket, not a file.
+banned_calls='(^|[^A-Za-z_0-9])::(open|creat|stat|lstat|rename|unlink|rmdir|mkdir|opendir|chmod|chown|lchown|symlink|readlink|access|truncate|utimes)[[:space:]]*\('
 
 status=0
 for f in $(find src include -name '*.cpp' -o -name '*.hpp' 2>/dev/null | sort); do
