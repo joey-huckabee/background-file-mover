@@ -636,6 +636,29 @@ tidy:
 	@sh scripts/assert-tidy-version.sh $(TIDY) $(TIDY_MIN_MAJOR)
 	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
 
+# Runs the clang-tidy gate the way CI runs it, in the CI image, with CI's
+# binary. The same reasoning as check-gcc48 above: one target, one image, both
+# callers.
+#
+# This exists because the local and CI binaries are not the same and cannot
+# easily be made the same. Ubuntu 22.04 ships clang-tidy up to 15; CI uses 20.
+# `make tidy` on a 22.04 host therefore either lies (before TIDY_MIN_MAJOR) or
+# refuses (after it), and neither tells a developer whether their change passes.
+# This does.
+#
+# It regenerates compile_commands.json inside the image, because clang-tidy
+# aborts outright on a database recorded by a different compiler -- which is
+# how it fails if you mount a locally-built tree and run only the tidy step.
+#
+# Wipes the build tree first, as check-gcc48 does, so the objects and the
+# database describe the same compiler.
+.PHONY: tidy-ci
+tidy-ci:
+	$(CI_ENGINE) run --rm -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
+	  make clean-all >/dev/null && \
+	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null && \
+	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
+
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
 	    $(FUZZ_SRC) include/filemover/*.hpp

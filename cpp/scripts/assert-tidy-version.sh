@@ -41,12 +41,17 @@ if [ "$major" -lt "$want" ]; then
     echo "CI enforces, so it would report a clean run having tested less than it" >&2
     echo "claims -- misc-const-correctness, for one, arrived in clang-tidy 17." >&2
     echo "" >&2
-    echo "Install a newer one and point the build at it:" >&2
-    echo "    sudo apt-get install clang-tidy-20" >&2
-    echo "    make tidy TIDY=clang-tidy-20" >&2
+    echo "Run the gate the way CI does, in the CI image, with CI's binary:" >&2
     echo "" >&2
-    echo "Or run the gate the way CI does, in the CI image:" >&2
-    echo "    make check-ci" >&2
+    echo "    make tidy-ci" >&2
+    echo "" >&2
+    echo "That needs nothing installed and is what the gate actually enforces." >&2
+    echo "Ubuntu 22.04 ships clang-tidy up to 15, so 'apt-get install" >&2
+    echo "clang-tidy-20' will not work there without adding LLVM's own apt" >&2
+    echo "repository -- which then has to be kept in step with the CI image." >&2
+    echo "" >&2
+    echo "If you do have a new enough binary, point the build at it:" >&2
+    echo "    make tidy TIDY=clang-tidy-20" >&2
     exit 1
 fi
 
