@@ -194,6 +194,66 @@ bool ListenSocket::open(const std::string& bind_address,
     return true;
 }
 
+// --- bounded I/O (L2-SEC-009) ---------------------------------------------
+
+IoResult read_some(int fd, char* buffer, std::size_t capacity,
+                   std::size_t& got) {
+    got = 0;
+    if (buffer == 0 || capacity == 0) {
+        return IoResult::Error;
+    }
+    for (;;) {
+        const ssize_t n = ::recv(fd, buffer, capacity, 0);
+        if (n > 0) {
+            got = static_cast<std::size_t>(n);
+            return IoResult::Ok;
+        }
+        if (n == 0) {
+            return IoResult::PeerClosed;
+        }
+        if (errno == EINTR) {
+            // A signal is not a stall. Retrying restarts the deadline, which is
+            // correct: the client has not been given extra time, the syscall
+            // simply never got to wait.
+            continue;
+        }
+        // SO_RCVTIMEO reports expiry as EAGAIN/EWOULDBLOCK on a blocking
+        // socket. Reported as TimedOut rather than Error so a caller can fail
+        // just this connection and say why -- L2-SEC-009 wants the suspicion
+        // recorded, not swallowed.
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return IoResult::TimedOut;
+        }
+        return IoResult::Error;
+    }
+}
+
+IoResult write_all(int fd, const char* data, std::size_t length) {
+    if (data == 0 && length != 0) {
+        return IoResult::Error;
+    }
+    std::size_t sent = 0;
+    while (sent < length) {
+        // MSG_NOSIGNAL: a client that vanishes mid-response must not deliver
+        // SIGPIPE and kill the whole service. The error comes back as EPIPE
+        // and fails this connection alone.
+        const ssize_t n =
+            ::send(fd, data + sent, length - sent, MSG_NOSIGNAL);
+        if (n > 0) {
+            sent += static_cast<std::size_t>(n);
+            continue;
+        }
+        if (n < 0 && errno == EINTR) {
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return IoResult::TimedOut;
+        }
+        return IoResult::Error;
+    }
+    return IoResult::Ok;
+}
+
 // --- the accept loop and handler pool (ADR-0013) --------------------------
 
 namespace {
@@ -212,6 +272,17 @@ const char kServiceUnavailable[] =
     "\r\n"
     "{\"error\":\"all connection handlers are busy; retry shortly\"}";
 
+void set_deadline(int fd, int option, int milliseconds) {
+    struct timeval tv;
+    tv.tv_sec = milliseconds / 1000;
+    // The multiplication is done in the destination's type. In int it would
+    // overflow above about 2147 ms of remainder -- unreachable here, since the
+    // remainder is under 1000, but the compiler is right that the expression
+    // does not say so.
+    tv.tv_usec = static_cast<suseconds_t>(milliseconds % 1000) * 1000;
+    (void)::setsockopt(fd, SOL_SOCKET, option, &tv, sizeof(tv));
+}
+
 // A send deadline on every accepted descriptor.
 //
 // Belongs here rather than in the handler because the REJECTION path writes
@@ -220,16 +291,12 @@ const char kServiceUnavailable[] =
 // the single-slow-client outage ADR-0013 exists to prevent, on the one path
 // that never reaches a handler.
 //
-// L2-SEC-009 wants a configurable timeout on every blocking syscall; this is
-// the floor, and the configurable form arrives with the read path.
-void set_send_deadline(int fd, int seconds) {
-    struct timeval tv;
-    tv.tv_sec = seconds;
-    tv.tv_usec = 0;
-    (void)::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+// Both deadlines are configurable per ServerOptions, which is what L2-SEC-009
+// asks for.
+void set_deadlines(int fd, int recv_ms, int send_ms) {
+    set_deadline(fd, SO_RCVTIMEO, recv_ms);
+    set_deadline(fd, SO_SNDTIMEO, send_ms);
 }
-
-const int kRejectSendTimeoutSeconds = 5;
 
 }  // namespace
 
@@ -237,6 +304,7 @@ struct ConnectionServer::Impl {
     ListenSocket listener;
     ConnectionHandler handler;
     void* user_data;
+    ServerOptions options;
 
     // Wakes the accept thread out of poll() on shutdown. A pipe rather than a
     // poll timeout: a timeout makes shutdown take up to one tick and makes the
@@ -324,7 +392,10 @@ void ConnectionServer::Impl::run_acceptor() {
             // permanent outage.
             continue;
         }
-        set_send_deadline(conn, kRejectSendTimeoutSeconds);
+        // Set before the descriptor goes anywhere: the rejection below writes
+        // from THIS thread, so a refused client that never reads would
+        // otherwise block the accept loop.
+        set_deadlines(conn, options.recv_timeout_ms, options.send_timeout_ms);
 
         bool accepted = false;
         {
@@ -411,6 +482,18 @@ bool ConnectionServer::start(const std::string& bind_address,
                              ConnectionHandler handler,
                              void* user_data,
                              std::string& error) {
+    ServerOptions options;
+    options.handlers = handlers;
+    return start(bind_address, port, options, handler, user_data, error);
+}
+
+bool ConnectionServer::start(const std::string& bind_address,
+                             std::uint16_t port,
+                             const ServerOptions& options,
+                             ConnectionHandler handler,
+                             void* user_data,
+                             std::string& error) {
+    const unsigned handlers = options.handlers;
     {
         const std::lock_guard<std::mutex> guard(impl_->mutex);
         if (impl_->running) {
@@ -420,6 +503,13 @@ bool ConnectionServer::start(const std::string& bind_address,
     }
     if (handlers == 0) {
         error = "server: handler count must be at least 1";
+        return false;
+    }
+    if (options.recv_timeout_ms <= 0 || options.send_timeout_ms <= 0) {
+        // A zero timeout means "block forever" to setsockopt, which is exactly
+        // the configuration L2-SEC-009 exists to forbid -- and it would arrive
+        // silently, as a default-constructed int.
+        error = "server: receive and send timeouts must be positive";
         return false;
     }
     if (handler == 0) {
@@ -449,6 +539,7 @@ bool ConnectionServer::start(const std::string& bind_address,
         impl_->wake_write = wake[1];
         impl_->handler = handler;
         impl_->user_data = user_data;
+        impl_->options = options;
         impl_->idle = handlers;
         impl_->stopping = false;
         impl_->running = true;

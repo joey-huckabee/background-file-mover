@@ -80,6 +80,50 @@ extern const int kDefaultBacklog;
 // <functional> stays cheap to include.
 typedef void (*ConnectionHandler)(int fd, void* user_data);
 
+// How one I/O attempt ended.
+//
+// Distinguished rather than collapsed into a byte count, because a handler must
+// treat these differently: a timeout is a suspected stall and fails only this
+// connection (L2-SEC-009), a closed peer is an ordinary end, and an error is
+// neither. A caller reading "0 or -1" from recv cannot tell the first two apart
+// without inspecting errno, and the one that forgets treats a stall as a normal
+// disconnect and says nothing about it.
+enum class IoResult {
+    Ok,          // `got` bytes transferred
+    PeerClosed,  // orderly shutdown by the other end
+    TimedOut,    // the deadline expired with no progress
+    Error        // anything else; errno is still set
+};
+
+// One recv, bounded by the descriptor's receive deadline.
+//
+// The deadline is per SYSCALL, not per request: a client that keeps sending is
+// never cut off for being slow overall, only for going silent for longer than
+// the timeout. That is what L2-SEC-009 asks for — "every potentially blocking
+// system call subject to a configurable timeout" — and it is why the timeout
+// lives on the socket rather than on a wall-clock budget for the whole
+// exchange.
+IoResult read_some(int fd, char* buffer, std::size_t capacity,
+                   std::size_t& got);
+
+// Writes everything or reports why it could not, resuming after a partial
+// write. Each individual send is bounded by the descriptor's send deadline.
+IoResult write_all(int fd, const char* data, std::size_t length);
+
+// Tunables for ConnectionServer.
+//
+// Timeouts default to five seconds. That is long enough that a healthy client
+// on a slow link is never cut off, and short enough that a stalled connection
+// releases its handler before an operator notices.
+struct ServerOptions {
+    unsigned handlers;
+    int recv_timeout_ms;
+    int send_timeout_ms;
+
+    ServerOptions() : handlers(4), recv_timeout_ms(5000),
+                      send_timeout_ms(5000) {}
+};
+
 // The accept loop and its bounded pool of handler threads (ADR-0013).
 //
 // One thread accepts; `handlers` threads serve. When every handler is busy the
@@ -97,6 +141,16 @@ class ConnectionServer {
 
     // Binds, then starts the accept thread and the pool. `handlers` must be at
     // least 1. On failure nothing is left running and `error` says why.
+    bool start(const std::string& bind_address,
+               std::uint16_t port,
+               const ServerOptions& options,
+               ConnectionHandler handler,
+               void* user_data,
+               std::string& error);
+
+    // As above with default timeouts. Kept because most callers care only
+    // about the handler count, and a five-argument call that is all defaults
+    // but one reads worse than two overloads.
     bool start(const std::string& bind_address,
                std::uint16_t port,
                unsigned handlers,

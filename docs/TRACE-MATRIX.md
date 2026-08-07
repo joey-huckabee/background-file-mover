@@ -283,7 +283,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SEC-001 | L2-NFS-002 | `cpp/tests/test_mover.cpp::[a move delivers the file and records DONE]`<br>`cpp/tests/test_mover.cpp::[an occupied destination is not clobbered]`<br>`cpp/tests/test_mover.cpp::[recovery refuses to clobber a foreign file at the staging name]`<br>`cpp/tests/test_mover.cpp::[the staging name is SWIT-prefixed and job-specific]` | Implemented |
 | L1-SEC-002 | L2-JOB-014, L2-NFS-006, L2-NFS-008, L2-SEC-001, L2-SEC-002 | `cpp/tests/test_mover.cpp::[a durable write failure after the commit point halts]`<br>`cpp/tests/test_mover.cpp::[killing after any phase leaves a state recovery can reconcile]`<br>`cpp/tests/test_mover.cpp::[recovery finishes a move interrupted after the commit]`<br>`cpp/tests/test_mover.cpp::[recovery is idempotent once the move is already published]`<br>`cpp/tests/test_mover.cpp::[recovery re-drives a move that never committed]` | Implemented |
 | L1-SEC-003 | L2-JOB-013, L2-JOB-015, L2-NFS-003, L2-SEC-012 | _(none)_ | Partially Implemented |
-| L1-SEC-004 | L2-NFS-004, L2-NFS-005, L2-SEC-009, L2-SEC-010, L2-SEC-011, L2-SEC-016 | _(none)_ | Partially Implemented |
+| L1-SEC-004 | L2-NFS-004, L2-NFS-005, L2-SEC-009, L2-SEC-010, L2-SEC-011, L2-SEC-016 | _(none)_ | Implemented |
 | L1-SEC-005 | L2-SEC-003, L2-SEC-004, L2-SEC-005, L2-SEC-008, L2-SEC-013, L2-SEC-015 | _(none)_ | Partially Implemented |
 | L1-SEC-006 | L2-NFS-001, L2-SEC-007 | _(none)_ | Implemented |
 | L1-SEC-007 | _(none)_ | _(none)_ | Draft |
@@ -309,7 +309,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SEC-005 | _(none)_ | `cpp/tests/test_fsops.cpp::[a source owned by the trusted uid is accepted]`<br>`cpp/tests/test_fsops.cpp::[a world-writable source directory without the sticky bit is refused]` | Implemented |
 | L2-SEC-007 | _(none)_ | `cpp/tests/test_fsops.cpp::[a move of a missing source fails under both strategies]`<br>`cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
 | L2-SEC-008 | _(none)_ | _(TBD)_ | Draft |
-| L2-SEC-009 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-009 | _(none)_ | `cpp/tests/test_connection_server.cpp::[a non-positive timeout is refused rather than meaning 'forever']`<br>`cpp/tests/test_connection_server.cpp::[a peer that closes is distinguished from one that stalls]`<br>`cpp/tests/test_connection_server.cpp::[the deadline is per syscall, not a budget for the whole exchange]`<br>`cpp/tests/test_connection_server.cpp::[write_all reports a vanished peer rather than raising SIGPIPE]` | Implemented |
 | L2-SEC-010 | _(none)_ | `cpp/tests/test_connection_server.cpp::[a stalled handler does not stop other connections being served]`<br>`cpp/tests/test_connection_server.cpp::[saturation answers 503 rather than queueing without limit]` | Implemented |
 | L2-SEC-011 | _(none)_ | `cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]`<br>`cpp/tests/test_fsops.cpp::[move state tokens are stable]`<br>`cpp/tests/test_mover.cpp::[recovery reports failed-external when both names are gone]` | Implemented |
 | L2-SEC-012 | _(none)_ | _(TBD)_ | Draft |
@@ -351,7 +351,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| SEC | 7 | 16 | 0 | 9 | 0 | 12 | 0 |
+| SEC | 7 | 16 | 0 | 10 | 0 | 13 | 0 |
 | NFS | 0 | 8 | 0 | 6 | 0 | 8 | 0 |
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **39** | **49** | **59** | **53** |
+| **Total** | **41** | **199** | **80** | **40** | **49** | **60** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 88 of 283 (31.1%).
+**Tested by at least one test marker**: 89 of 283 (31.4%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 113 of 283 (39.9%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 114 of 283 (40.3%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 86 of 214 (40.2%).
+**In v1.0.0 scope — tested**: 87 of 214 (40.7%).
 
-**In v1.0.0 scope — verified**: 111 of 214 (51.9%).
+**In v1.0.0 scope — verified**: 112 of 214 (52.3%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
