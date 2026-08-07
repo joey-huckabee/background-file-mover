@@ -187,6 +187,11 @@ if ! make -C cpp no-permission-tests; then
     fail "a test induces failure by denying permission; root ignores that"
 fi
 
+step "make -C cpp no-timed-condwait"
+if ! make -C cpp no-timed-condwait; then
+    fail "a timed condition wait appeared; it breaks ThreadSanitizer"
+fi
+
 step "make -C cpp strong-hash"
 if ! make -C cpp strong-hash; then
     fail "a weak hash was used for file verification (L2-SEC-015)"

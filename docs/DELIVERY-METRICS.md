@@ -4,7 +4,7 @@
 **Subject:** measured output and effort for the C++/REST migration of
 Background File Mover, developed using Claude Code
 **Period:** 2026-08-01 to 2026-08-05
-**Status:** v1.0.0 in progress — milestones C1–C4 delivered, C4 not yet merged
+**Status:** v1.0.0 in progress — milestones C1–C4 delivered and merged to main
 
 ---
 
@@ -20,7 +20,7 @@ Background File Mover, developed using Claude Code
 | Total lines authored | **25,175** *(excludes vendored and generated files)* | 11,082 |
 | Test assertions passing | **8,443** across 207 test cases | 6,800 / 97 |
 | Line coverage, C++ components delivered | **87.6%** | 97.4% |
-| Independent CI quality gates | **16** | 15 |
+| Independent CI quality gates | **17** | 15 |
 | **Requirements verified, in v1.0.0 scope** | **109 of 226 (48.2%)** | 48 / 226 (21.2%) |
 
 Active time is derived from commit timestamps clustered into sessions, not
@@ -101,8 +101,8 @@ still growing; code is simply growing faster.
 | Artifact | Count | Previous |
 |---|---:|---:|
 | Requirements written and traced (L1 → L2 → L3) | **332** | 332 |
-| Architecture decision records | 12 | 12 |
-| Independent CI quality gates | **16** | 15 |
+| Architecture decision records | **13** | 12 |
+| Independent CI quality gates | **17** | 15 |
 | Toolchains verified against | 3 | 3 |
 | Coverage-guided fuzz targets | 2 | 2 |
 | Fuzz executions (90-second run, zero crashes) | 3.4 million *(carried forward, not re-measured)* | 3.4 million |
@@ -111,16 +111,30 @@ The requirement count is unchanged, which is the point: C2 through C4 built
 what was already specified rather than discovering new obligations mid-flight.
 Verification against those requirements rose from 21.2% to 48.2%.
 
-The sixteen gates: functional build; GCC 4.8.5 deployment-target fidelity
+> **The ADR and gate counts above are current; every other figure in this report
+> is as of the measurement point.** ADR-0013 (the REST server's concurrency
+> model) and the seventeenth gate (no timed condition waits) both landed after
+> the C4 merge, as C5 groundwork. They are counted here because a stale artifact
+> count misleads in a way a stale line count does not — but the line-count table
+> in §2 still reflects the measurement point, so the two do not agree. That is
+> deliberate, not an oversight.
+
+The seventeen gates: functional build; GCC 4.8.5 deployment-target fidelity
 running the **full** suite, not a compile; AddressSanitizer + UndefinedBehavior
 + LeakSanitizer; ThreadSanitizer; Valgrind memcheck; vendored-file integrity by
 SHA-256; locale-free parser verification; SQL confinement; fd-relative
 filesystem access; no-shell-invocation; strong-hash-only; no permission-based
-test failures; clang-tidy; fuzz corpus replay; coverage against a floor; and the
-requirements trace matrix. CodeQL, SonarCloud, and a nightly fuzzing burn-in run
-on top of these.
+test failures; no timed condition waits; clang-tidy; fuzz corpus replay;
+coverage against a floor; and the requirements trace matrix. CodeQL, SonarCloud,
+and a nightly fuzzing burn-in run on top of these.
 
-**Six of the sixteen exist because a gate was found passing without doing its
+The newest, *no timed condition waits*, is preventive rather than remedial in
+the usual sense: it bans a construct that is correct C++ but that
+ThreadSanitizer cannot model, after that construct cost C4 thirty-two false race
+reports and three investigation passes. It exists because C5 needs timeouts and
+is exactly where someone would reach for one.
+
+**Six of the seventeen exist because a gate was found passing without doing its
 job** — vendored integrity, locale-free parsers, the compile-database assertion
 inside clang-tidy, the hook-mode check, the header-dependency tracking that
 turned out to be absent entirely, and the newest: a gate that bans tests which
@@ -308,7 +322,7 @@ That ratio is large enough to warrant scepticism, so the honest qualifications:
 * Volume is not the same as value. §6 argues this point against the figures
   above.
 * The comparison assumes producing **the same artifacts to the same standard**:
-  332 traced requirements, 12 decision records, sixteen CI gates, two fuzz
+  332 traced requirements, 13 decision records, seventeen CI gates, two fuzz
   targets with retained corpora. A team asked only for working code would
   finish far sooner and deliver something different.
 * **The system is not finished.** These figures measure a v1.0.0 in progress.

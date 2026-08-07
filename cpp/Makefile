@@ -407,6 +407,8 @@ check-ci:
 	      sh scripts/assert-no-shell.sh && \
 	      echo "--- no permission-based test failures ---" && \
 	      sh scripts/assert-no-permission-tests.sh && \
+	      echo "--- no timed condition waits ---" && \
+	      sh scripts/assert-no-timed-condwait.sh && \
 	      echo "--- strong hashing only ---" && \
 	      sh scripts/assert-strong-hash.sh && \
 	      echo "--- functional ---" && \
@@ -656,6 +658,14 @@ no-shell:
 .PHONY: no-permission-tests
 no-permission-tests:
 	@sh scripts/assert-no-permission-tests.sh
+
+# wait_for/wait_until break ThreadSanitizer's tracking of the mutex passed to
+# them, turning every access that mutex guards into a false race. C4 cost 32
+# warnings and three investigation passes to that. C5 needs timeouts for
+# L2-SEC-009 and is exactly where someone reaches for one.
+.PHONY: no-timed-condwait
+no-timed-condwait:
+	@sh scripts/assert-no-timed-condwait.sh
 
 # L2-SEC-015. Preventive: integrity verification is deferred to v1.1, so this
 # finds nothing today. It exists so the constraint is enforced the moment the
