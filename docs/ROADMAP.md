@@ -12,23 +12,27 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 **Date:** 2026-08-06 · **Branch:** `c5-rest-control-plane` · **C4 is merged. Next
 milestone: C5 — the REST control plane.**
 
-> **One thing is red and needs you: the SonarCloud Quality Gate failed on `main`
-> after the C4 merge.** `C++ CI` and `CodeQL` both passed, and every local tier is
-> green — default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind, coverage 87.5%,
-> clang-tidy. The scanner ran, parsed every `.gcov`, and reported
-> `QUALITY GATE STATUS: FAILED` without naming the condition in the log.
+> **The SonarCloud gate failure after the C4 merge is diagnosed and fixed.**
 >
-> I could not diagnose it: `sonar.projectKey` is a repository secret and is masked in
-> the workflow output, so the API is unreachable without it and the dashboard needs
-> your login. **The likely candidate is `new_coverage`** — it is the condition that
-> failed once before, at 71.3% against a threshold of 80%, and C4 touched
-> `store.cpp` (79.7% line coverage) and `mover.cpp` (77.6%), whose modified lines all
-> count as new code. C3 passed this gate at 88.2% new coverage, so this is a
-> regression introduced by C4 rather than a standing failure.
+> The project is public, and the key is `background-file-mover` under organization
+> `joey-huckabee` — **not** the `owner_repo` form the GitHub integration usually
+> generates. That is why an earlier guess at the key returned "Component key not
+> found" and led to the wrong conclusion below. Query it without credentials:
 >
-> The dashboard will name the condition in one click. If it is `new_coverage`, the
-> fix is tests for the uncovered error paths in `retry()` and `handle_failure()` —
-> the `StoreError` returns are the obvious gap.
+> ```
+> curl -s 'https://sonarcloud.io/api/qualitygates/project_status?projectKey=background-file-mover&branch=main'
+> curl -s 'https://sonarcloud.io/api/issues/search?componentKeys=background-file-mover&branch=main&types=BUG'
+> ```
+>
+> **The failing condition was `new_reliability_rating` — 5 (E) against a threshold
+> of 1 (A)** — caused by exactly one Blocker issue: `cpp:S5404` on
+> `manager.cpp`, *"Add a condition argument to this call to wait."*
+>
+> **A guess recorded here was wrong and is corrected rather than deleted.** This note
+> previously said the likely cause was `new_coverage`. It was not: coverage passed at
+> **87.8%** against a threshold of 80. Every other condition passed too. The lesson is
+> the one this project keeps relearning — the dashboard was one unauthenticated HTTP
+> request away, and reasoning stood in for reading it.
 
 ### Start here for C5
 

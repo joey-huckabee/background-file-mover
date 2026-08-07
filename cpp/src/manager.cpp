@@ -336,9 +336,22 @@ void JobManager::Impl::run_worker() {
         MoveRequest request;
         MoveStrategy strategy = MoveStrategy::RenameNoReplace;
 
-        while (impl->runnable.empty() && !impl->stopping) {
-            impl->work_ready.wait(lock);
-        }
+        // The predicate overload rather than a bare wait() inside a while loop.
+        // The two are equivalent -- wait(lock, pred) is specified as
+        // `while (!pred()) wait(lock);` -- and the loop form here was correct.
+        // This one cannot be got wrong in the way the loop form can: an `if`
+        // where a `while` was meant compiles, passes, and then drops a job the
+        // first time a spurious wakeup happens, which is exactly the kind of
+        // failure that never reproduces on demand.
+        //
+        // This is the only lambda in the codebase. Function pointers are used
+        // everywhere else -- the phase hook, the clock -- because those cross
+        // an API boundary and a plain function pointer is what a C++11 header
+        // can express without dragging <functional> into it. Here the callable
+        // never leaves the function.
+        impl->work_ready.wait(lock, [impl]() {
+            return !impl->runnable.empty() || impl->stopping;
+        });
         if (impl->runnable.empty() && impl->stopping) {
             return;
         }
