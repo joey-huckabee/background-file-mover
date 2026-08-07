@@ -104,7 +104,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CORE-001 | L3-CPP-001, L3-CPP-002, L3-CPP-003, L3-CPP-004, L3-CPP-015, L3-CPP-041 | `cpp/tests/test_job.cpp::[from_string is the exact inverse of to_string]`<br>`cpp/tests/test_job.cpp::[from_string rejects anything to_string never emits]`<br>`cpp/tests/test_job.cpp::[is_legal_transition matches the specified table exhaustively]`<br>`cpp/tests/test_job.cpp::[state tokens are stable, unique, uppercase]`<br>`cpp/tests/test_job.cpp::[terminal predicate covers exactly Done and Failed]`<br>`cpp/tests/test_job.cpp::[terminal states accept no further transitions]` | Implemented |
 | L2-CORE-002 | L3-CPP-005, L3-CPP-009, L3-CPP-010, L3-CPP-011 | `cpp/tests/test_job.cpp::[construction establishes Queued with coherent timestamps]`<br>`cpp/tests/test_job.cpp::[failure is reachable from every non-terminal state and records the error]`<br>`cpp/tests/test_job.cpp::[happy path lifecycle updates state and timestamps]` | Implemented |
 | L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | `cpp/tests/test_job.cpp::[terminal states accept no further transitions]`<br>`cpp/tests/test_job.cpp::[transition rejects every illegal pair and leaves the job unmodified]`<br>`cpp/tests/test_job.cpp::[transition to Failed requires a non-empty error message]`<br>`cpp/tests/test_job.cpp::[transition to non-Failed states rejects an error message]` | Implemented |
-| L2-CTL-004 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-004 | _(none)_ | `cpp/tests/test_http_service.cpp::[a body shorter than declared is answered, not left hanging]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]` | Implemented |
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
@@ -247,7 +247,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_connection_server.cpp::[a connection is accepted and served]`<br>`cpp/tests/test_connection_server.cpp::[shutdown is idempotent and safe without a start]`<br>`cpp/tests/test_connection_server.cpp::[shutdown lets an in-flight handler finish and joins every thread]`<br>`cpp/tests/test_connection_server.cpp::[starting an already-running server is refused]`<br>`cpp/tests/test_connection_server.cpp::[the port is released for rebinding after shutdown]`<br>`cpp/tests/test_connection_server.cpp::[the server refuses to start without handlers or a callback]`<br>`cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
 | L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
-| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]`<br>`cpp/tests/test_router.cpp::[a command against a stopped manager is 503, not a crash]`<br>`cpp/tests/test_router.cpp::[a known route with the wrong method is 405 and says Allow]`<br>`cpp/tests/test_router.cpp::[a query string does not change the route]`<br>`cpp/tests/test_router.cpp::[an unknown route is 404 with a JSON body]`<br>`cpp/tests/test_router.cpp::[every CommandResult maps to a status]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]`<br>`cpp/tests/test_router.cpp::[redundant slashes route the same way]`<br>`cpp/tests/test_router.cpp::[the error body is JSON for every refusal]` | Partially Implemented |
+| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]`<br>`cpp/tests/test_http_service.cpp::[a well-formed request with an exact body is routed]`<br>`cpp/tests/test_http_service.cpp::[an oversized declaration is refused without reading the body]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]`<br>`cpp/tests/test_router.cpp::[a command against a stopped manager is 503, not a crash]`<br>`cpp/tests/test_router.cpp::[a known route with the wrong method is 405 and says Allow]`<br>`cpp/tests/test_router.cpp::[a query string does not change the route]`<br>`cpp/tests/test_router.cpp::[an unknown route is 404 with a JSON body]`<br>`cpp/tests/test_router.cpp::[every CommandResult maps to a status]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]`<br>`cpp/tests/test_router.cpp::[redundant slashes route the same way]`<br>`cpp/tests/test_router.cpp::[the error body is JSON for every refusal]` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-013 | L3-CPP-025, L3-CPP-029, L3-CPP-051 | `cpp/tests/test_api_codec.cpp::[decode accepts exactly {source, dest} with non-empty strings]`<br>`cpp/tests/test_api_codec.cpp::[encode_job clamps byte counters that exceed int64]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_http_parser.cpp::[405 responses carry an Allow header]`<br>`cpp/tests/test_http_parser.cpp::[every status the serializer knows has a reason phrase]`<br>`cpp/tests/test_http_parser.cpp::[responses serialize with correct framing]` | Implemented |
 | L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 3 | 0 | 5 | 0 |
+| CTL | 0 | 20 | 4 | 4 | 0 | 6 | 0 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **42** | **49** | **62** | **53** |
+| **Total** | **41** | **199** | **80** | **43** | **49** | **63** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 91 of 283 (32.2%).
+**Tested by at least one test marker**: 92 of 283 (32.5%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 116 of 283 (41.0%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 117 of 283 (41.3%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 89 of 214 (41.6%).
+**In v1.0.0 scope — tested**: 90 of 214 (42.1%).
 
-**In v1.0.0 scope — verified**: 114 of 214 (53.3%).
+**In v1.0.0 scope — verified**: 115 of 214 (53.7%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
