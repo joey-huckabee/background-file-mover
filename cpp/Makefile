@@ -153,7 +153,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp tests/test_connection_server.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests

@@ -244,7 +244,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L2 ID | L3 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
+| L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_connection_server.cpp::[a connection is accepted and served]`<br>`cpp/tests/test_connection_server.cpp::[shutdown is idempotent and safe without a start]`<br>`cpp/tests/test_connection_server.cpp::[shutdown lets an in-flight handler finish and joins every thread]`<br>`cpp/tests/test_connection_server.cpp::[starting an already-running server is refused]`<br>`cpp/tests/test_connection_server.cpp::[the port is released for rebinding after shutdown]`<br>`cpp/tests/test_connection_server.cpp::[the server refuses to start without handlers or a callback]`<br>`cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
 | L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
 | L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]` | Partially Implemented |
@@ -310,7 +310,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-SEC-007 | _(none)_ | `cpp/tests/test_fsops.cpp::[a move of a missing source fails under both strategies]`<br>`cpp/tests/test_fsops.cpp::[both move strategies move a file]`<br>`cpp/tests/test_fsops.cpp::[neither strategy will clobber an existing target]` | Implemented |
 | L2-SEC-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-009 | _(none)_ | _(TBD)_ | Draft |
-| L2-SEC-010 | _(none)_ | _(TBD)_ | Draft |
+| L2-SEC-010 | _(none)_ | `cpp/tests/test_connection_server.cpp::[a stalled handler does not stop other connections being served]`<br>`cpp/tests/test_connection_server.cpp::[saturation answers 503 rather than queueing without limit]` | Implemented |
 | L2-SEC-011 | _(none)_ | `cpp/tests/test_fsops.cpp::[every move state is distinguished, including neither present]`<br>`cpp/tests/test_fsops.cpp::[move state tokens are stable]`<br>`cpp/tests/test_mover.cpp::[recovery reports failed-external when both names are gone]` | Implemented |
 | L2-SEC-012 | _(none)_ | _(TBD)_ | Draft |
 | L2-SEC-013 | _(none)_ | _(TBD)_ | Draft |
@@ -351,7 +351,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| SEC | 7 | 16 | 0 | 8 | 0 | 11 | 0 |
+| SEC | 7 | 16 | 0 | 9 | 0 | 12 | 0 |
 | NFS | 0 | 8 | 0 | 6 | 0 | 8 | 0 |
 | CORE | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | JSON | 0 | 5 | 0 | 0 | 0 | 1 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **38** | **49** | **58** | **53** |
+| **Total** | **41** | **199** | **80** | **39** | **49** | **59** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 87 of 283 (30.7%).
+**Tested by at least one test marker**: 88 of 283 (31.1%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 112 of 283 (39.6%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 113 of 283 (39.9%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 85 of 214 (39.7%).
+**In v1.0.0 scope — tested**: 86 of 214 (40.2%).
 
-**In v1.0.0 scope — verified**: 110 of 214 (51.4%).
+**In v1.0.0 scope — verified**: 111 of 214 (51.9%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

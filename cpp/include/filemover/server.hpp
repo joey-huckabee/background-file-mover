@@ -72,6 +72,65 @@ class ListenSocket {
 // longer before meeting the same limit.
 extern const int kDefaultBacklog;
 
+// Serves one accepted connection. Called on a handler thread, with the
+// descriptor owned by the server: the handler must not close it.
+//
+// A plain function pointer rather than std::function, matching the phase hook
+// and the clock. Nothing here needs to capture, and a C++11 header that avoids
+// <functional> stays cheap to include.
+typedef void (*ConnectionHandler)(int fd, void* user_data);
+
+// The accept loop and its bounded pool of handler threads (ADR-0013).
+//
+// One thread accepts; `handlers` threads serve. When every handler is busy the
+// server answers 503 and closes rather than queueing without limit — the bound
+// is the point, because without it the thread count is chosen by whoever is
+// connecting.
+//
+// This class knows nothing about routes or JSON. It owns descriptors and
+// threads, so that route handlers can stay pure functions of request and
+// manager view and be tested without a socket (L2-CTL-014).
+class ConnectionServer {
+  public:
+    ConnectionServer();
+    ~ConnectionServer();
+
+    // Binds, then starts the accept thread and the pool. `handlers` must be at
+    // least 1. On failure nothing is left running and `error` says why.
+    bool start(const std::string& bind_address,
+               std::uint16_t port,
+               unsigned handlers,
+               ConnectionHandler handler,
+               void* user_data,
+               std::string& error);
+
+    // Stops accepting, lets in-flight handlers finish the connection they are
+    // serving, and joins every thread. Idempotent, and safe without a start.
+    //
+    // The accept thread is woken through a self-pipe rather than by waiting out
+    // a poll timeout, so shutdown is prompt rather than "within the tick".
+    void shutdown();
+
+    bool is_running() const;
+
+    // The port actually bound; 0 when not running. Port 0 at start() asks the
+    // kernel to choose, which is what lets tests run without a fixed port.
+    std::uint16_t port() const;
+
+    // Connections handed to a handler, and connections refused with 503
+    // because every handler was busy. Counters exist for the tests: saturation
+    // behaviour is a requirement (ADR-0013), so it has to be observable.
+    std::size_t served_count() const;
+    std::size_t rejected_count() const;
+
+  private:
+    ConnectionServer(const ConnectionServer&);
+    ConnectionServer& operator=(const ConnectionServer&);
+
+    struct Impl;
+    Impl* impl_;
+};
+
 }  // namespace filemover
 
 #endif  // FILEMOVER_SERVER_HPP
