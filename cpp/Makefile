@@ -338,6 +338,51 @@ check-gcc48:
 	$(CI_ENGINE) run --rm -v $(CURDIR)/..:/src -w /src $(GCC48_IMAGE) \
 	    sh -c "make -C cpp clean && make -C cpp -j$(CI_JOBS) check"
 
+# The pre-push check: the gates whose LOCAL tool differs from CI's, run in the
+# CI image with CI's tools. Minutes rather than the quarter-hour check-ci takes.
+#
+# Every tool a developer runs here is older than the one CI runs. Measured
+# 2026-08-06 on Ubuntu 22.04 against the CI image (Ubuntu 24.04):
+#
+#     g++          11.4.0  vs  14.2.0
+#     clang-tidy   14.0.0  vs  20.1.2
+#     valgrind     3.18.1  vs  3.22.0
+#     cppcheck      2.7    vs   2.13.0
+#
+# That matters because a passing local run can mean "my tool does not know
+# about this check" rather than "this code is fine". It already happened once:
+# clang-tidy 14 could not see misc-const-correctness, so `make tidy` was clean
+# while CI failed with twenty errors from that one check.
+#
+# The compiler gap is the same hazard and has not bitten yet. The build is
+# -Wall -Wextra -Werror, and GCC 12 through 14 added warnings that g++ 11
+# cannot emit, so a local `make check` can pass on code CI refuses.
+#
+# Not a substitute for check-ci, which additionally runs the sanitizer,
+# Valgrind, coverage and fuzz tiers. This is what to run before pushing.
+.PHONY: verify-ci
+verify-ci:
+	@echo "Running the divergence-prone gates in $(CI_IMAGE) via $(CI_ENGINE)..."
+	$(CI_ENGINE) run --rm -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
+	  echo "--- versions ---" && \
+	  $(CI_CXX) --version | head -1 && \
+	  $(CI_TIDY) --version | grep -i version | head -1 && \
+	  echo "--- functional build and test on CI compiler ---" && \
+	  make clean-all >/dev/null && \
+	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) && \
+	  ./$$(make -s print-test-bin CXX=$(CI_CXX) CC=$(CI_CC)) --use-colour no && \
+	  echo "--- clang-tidy ---" && \
+	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
+	@echo ""
+	@echo "verify-ci OK. Note this leaves the build tree built with $(CI_CXX);"
+	@echo "your next local 'make check' will rebuild against the host compiler."
+
+# Prints the test binary path for the current toolchain, so a caller inside the
+# container can run it without duplicating the BUILD_DIR derivation.
+.PHONY: print-test-bin
+print-test-bin:
+	@echo $(TEST_BIN)
+
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
