@@ -649,6 +649,15 @@ CommandResult JobManager::submit(const std::string& job_id,
 CommandResult JobManager::pause(const std::string& job_id,
                                 std::string& error) {
     const ManagerLock lock(impl_->mutex);
+    // A command against a stopped manager is NotRunning, not UnknownJob. The
+    // job may well exist in the durable record; what is missing is the manager.
+    // Telling an operator "no such job" during startup sends them to look for
+    // the wrong problem. submit() and retry() already said this; pause, resume
+    // and cancel did not, which the router tests caught.
+    if (!impl_->running) {
+        error = "manager: not running";
+        return CommandResult::NotRunning;
+    }
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -670,6 +679,10 @@ CommandResult JobManager::pause(const std::string& job_id,
 CommandResult JobManager::resume(const std::string& job_id,
                                  std::string& error) {
     const ManagerLock lock(impl_->mutex);
+    if (!impl_->running) {  // see pause() for why this is not UnknownJob
+        error = "manager: not running";
+        return CommandResult::NotRunning;
+    }
     if (impl_->requests.find(job_id) == impl_->requests.end()) {
         error = "manager: no such job '" + job_id + "'";
         return CommandResult::UnknownJob;
@@ -691,6 +704,10 @@ CommandResult JobManager::cancel(const std::string& job_id,
     bool was_runnable = false;
     {
         const ManagerLock lock(impl_->mutex);
+        if (!impl_->running) {  // see pause() for why this is not UnknownJob
+            error = "manager: not running";
+            return CommandResult::NotRunning;
+        }
         if (impl_->requests.find(job_id) == impl_->requests.end()) {
             error = "manager: no such job '" + job_id + "'";
             return CommandResult::UnknownJob;

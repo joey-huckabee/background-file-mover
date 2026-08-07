@@ -109,7 +109,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-011 | L3-CPP-054 | _(TBD)_ | Draft |
-| L2-CTL-012 | _(none)_ | _(TBD)_ | Draft |
+| L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]` | Implemented |
 | L2-CTL-017 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-018 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-019 | _(none)_ | _(TBD)_ | Draft |
@@ -158,7 +158,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-LIF-002 | _(none)_ | `cpp/tests/test_manager.cpp::[pausing a job that is mid-move is refused, not forced]` | Implemented |
 | L2-LIF-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-LIF-004 | _(none)_ | `cpp/tests/test_manager.cpp::[a paused job is not dispatched until resumed]` | Implemented |
-| L2-LIF-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a duplicate job id is refused rather than published twice]`<br>`cpp/tests/test_manager.cpp::[cancelling a queued job removes it and marks it FAILED]`<br>`cpp/tests/test_manager.cpp::[command result tokens are stable]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands reject unknown jobs with a typed error]`<br>`cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[resuming a job that is not paused is an invalid state]`<br>`cpp/tests/test_manager.cpp::[submitting before start is refused]` | Implemented |
+| L2-LIF-005 | _(none)_ | `cpp/tests/test_manager.cpp::[a duplicate job id is refused rather than published twice]`<br>`cpp/tests/test_manager.cpp::[cancelling a queued job removes it and marks it FAILED]`<br>`cpp/tests/test_manager.cpp::[command result tokens are stable]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands reject unknown jobs with a typed error]`<br>`cpp/tests/test_manager.cpp::[manual retry of a non-FAILED job is refused]`<br>`cpp/tests/test_manager.cpp::[resuming a job that is not paused is an invalid state]`<br>`cpp/tests/test_manager.cpp::[submitting before start is refused]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]` | Implemented |
 | L2-MGR-001 | _(none)_ | `cpp/tests/test_manager.cpp::[a failing job does not wedge the queue]`<br>`cpp/tests/test_manager.cpp::[a job can be submitted while a worker is mid-move]`<br>`cpp/tests/test_manager.cpp::[the manager-mutex assertion aborts when the invariant is violated]`<br>`cpp/tests/test_manager.cpp::[workers drain the queue and each job runs once]` | Implemented |
 | L2-MGR-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-MGR-003 | _(none)_ | `cpp/tests/test_manager.cpp::[shutdown is idempotent and safe without start]`<br>`cpp/tests/test_manager.cpp::[shutdown stops intake, finishes in-flight work and joins]` | Implemented |
@@ -247,7 +247,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_connection_server.cpp::[a connection is accepted and served]`<br>`cpp/tests/test_connection_server.cpp::[shutdown is idempotent and safe without a start]`<br>`cpp/tests/test_connection_server.cpp::[shutdown lets an in-flight handler finish and joins every thread]`<br>`cpp/tests/test_connection_server.cpp::[starting an already-running server is refused]`<br>`cpp/tests/test_connection_server.cpp::[the port is released for rebinding after shutdown]`<br>`cpp/tests/test_connection_server.cpp::[the server refuses to start without handlers or a callback]`<br>`cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
 | L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
-| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]` | Partially Implemented |
+| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]`<br>`cpp/tests/test_router.cpp::[a command against a stopped manager is 503, not a crash]`<br>`cpp/tests/test_router.cpp::[a known route with the wrong method is 405 and says Allow]`<br>`cpp/tests/test_router.cpp::[a query string does not change the route]`<br>`cpp/tests/test_router.cpp::[an unknown route is 404 with a JSON body]`<br>`cpp/tests/test_router.cpp::[every CommandResult maps to a status]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]`<br>`cpp/tests/test_router.cpp::[redundant slashes route the same way]`<br>`cpp/tests/test_router.cpp::[the error body is JSON for every refusal]` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-013 | L3-CPP-025, L3-CPP-029, L3-CPP-051 | `cpp/tests/test_api_codec.cpp::[decode accepts exactly {source, dest} with non-empty strings]`<br>`cpp/tests/test_api_codec.cpp::[encode_job clamps byte counters that exceed int64]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_http_parser.cpp::[405 responses carry an Allow header]`<br>`cpp/tests/test_http_parser.cpp::[every status the serializer knows has a reason phrase]`<br>`cpp/tests/test_http_parser.cpp::[responses serialize with correct framing]` | Implemented |
 | L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 1 | 0 | 3 | 0 |
+| CTL | 0 | 20 | 4 | 3 | 0 | 5 | 0 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **40** | **49** | **60** | **53** |
+| **Total** | **41** | **199** | **80** | **42** | **49** | **62** | **53** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 89 of 283 (31.4%).
+**Tested by at least one test marker**: 91 of 283 (32.2%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 114 of 283 (40.3%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 116 of 283 (41.0%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 87 of 214 (40.7%).
+**In v1.0.0 scope — tested**: 89 of 214 (41.6%).
 
-**In v1.0.0 scope — verified**: 112 of 214 (52.3%).
+**In v1.0.0 scope — verified**: 114 of 214 (53.3%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
