@@ -338,6 +338,51 @@ check-gcc48:
 	$(CI_ENGINE) run --rm -v $(CURDIR)/..:/src -w /src $(GCC48_IMAGE) \
 	    sh -c "make -C cpp clean && make -C cpp -j$(CI_JOBS) check"
 
+# The pre-push check: the gates whose LOCAL tool differs from CI's, run in the
+# CI image with CI's tools. Minutes rather than the quarter-hour check-ci takes.
+#
+# Every tool a developer runs here is older than the one CI runs. Measured
+# 2026-08-06 on Ubuntu 22.04 against the CI image (Ubuntu 24.04):
+#
+#     g++          11.4.0  vs  14.2.0
+#     clang-tidy   14.0.0  vs  20.1.2
+#     valgrind     3.18.1  vs  3.22.0
+#     cppcheck      2.7    vs   2.13.0
+#
+# That matters because a passing local run can mean "my tool does not know
+# about this check" rather than "this code is fine". It already happened once:
+# clang-tidy 14 could not see misc-const-correctness, so `make tidy` was clean
+# while CI failed with twenty errors from that one check.
+#
+# The compiler gap is the same hazard and has not bitten yet. The build is
+# -Wall -Wextra -Werror, and GCC 12 through 14 added warnings that g++ 11
+# cannot emit, so a local `make check` can pass on code CI refuses.
+#
+# Not a substitute for check-ci, which additionally runs the sanitizer,
+# Valgrind, coverage and fuzz tiers. This is what to run before pushing.
+.PHONY: verify-ci
+verify-ci:
+	@echo "Running the divergence-prone gates in $(CI_IMAGE) via $(CI_ENGINE)..."
+	$(CI_ENGINE) run --rm -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
+	  echo "--- versions ---" && \
+	  $(CI_CXX) --version | head -1 && \
+	  $(CI_TIDY) --version | grep -i version | head -1 && \
+	  echo "--- functional build and test on CI compiler ---" && \
+	  make clean-all >/dev/null && \
+	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) && \
+	  ./$$(make -s print-test-bin CXX=$(CI_CXX) CC=$(CI_CC)) --use-colour no && \
+	  echo "--- clang-tidy ---" && \
+	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
+	@echo ""
+	@echo "verify-ci OK. Note this leaves the build tree built with $(CI_CXX);"
+	@echo "your next local 'make check' will rebuild against the host compiler."
+
+# Prints the test binary path for the current toolchain, so a caller inside the
+# container can run it without duplicating the BUILD_DIR derivation.
+.PHONY: print-test-bin
+print-test-bin:
+	@echo $(TEST_BIN)
+
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
@@ -635,6 +680,29 @@ tidy:
 	@sh scripts/assert-compile-db.sh compile_commands.json $(LIB_SRC)
 	@sh scripts/assert-tidy-version.sh $(TIDY) $(TIDY_MIN_MAJOR)
 	$(TIDY) -p . --quiet --warnings-as-errors='*' $(LIB_SRC)
+
+# Runs the clang-tidy gate the way CI runs it, in the CI image, with CI's
+# binary. The same reasoning as check-gcc48 above: one target, one image, both
+# callers.
+#
+# This exists because the local and CI binaries are not the same and cannot
+# easily be made the same. Ubuntu 22.04 ships clang-tidy up to 15; CI uses 20.
+# `make tidy` on a 22.04 host therefore either lies (before TIDY_MIN_MAJOR) or
+# refuses (after it), and neither tells a developer whether their change passes.
+# This does.
+#
+# It regenerates compile_commands.json inside the image, because clang-tidy
+# aborts outright on a database recorded by a different compiler -- which is
+# how it fails if you mount a locally-built tree and run only the tidy step.
+#
+# Wipes the build tree first, as check-gcc48 does, so the objects and the
+# database describe the same compiler.
+.PHONY: tidy-ci
+tidy-ci:
+	$(CI_ENGINE) run --rm -v $(CURDIR):/cpp -w /cpp $(CI_IMAGE) sh -c '\
+	  make clean-all >/dev/null && \
+	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null && \
+	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
 
 format-check:
 	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
