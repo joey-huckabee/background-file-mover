@@ -675,11 +675,24 @@ TEST_CASE("manual retry of a non-FAILED job is refused",
 // forks. A test that cannot observe the abort would be asserting nothing, which
 // is the failure mode this whole mechanism exists to prevent.
 
+// Success is signalled down a PIPE, not through the exit status. Under
+// Valgrind the child inherits the tool, and its leak check makes the exit
+// status non-zero whatever the child does -- the inherited still-reachable heap
+// is reported as errors and --error-exitcode applies. Asserting on the exit
+// code therefore failed the Valgrind tier while passing everywhere else.
+//
+// A byte on a pipe is the honest signal: the child writes it only after every
+// command has returned, and an abort() writes nothing.
+
 TEST_CASE("the manager-mutex assertion aborts when the invariant is violated",
           "[manager][L2-MGR-001]") {
     Fixture fx;
     fx.write_source("victim");
     fx.write_source("decoy");
+
+    int done[2] = {-1, -1};
+    REQUIRE(::pipe(done) == 0);
+
     const pid_t pid = ::fork();
     REQUIRE(pid >= 0);
 
@@ -726,17 +739,32 @@ TEST_CASE("the manager-mutex assertion aborts when the invariant is violated",
         latch.release();
         manager.set_phase_hook(0, 0);
         manager.shutdown();
-        ::_exit(0);
+
+        // Reached only if every command above returned. An abort() skips this.
+        ::close(done[0]);
+        const char ok = 'K';
+        const ssize_t written = ::write(done[1], &ok, 1);
+        ::_exit(written == 1 ? 0 : 24);
     }
+
+    ::close(done[1]);
+    char got = 0;
+    const ssize_t n = ::read(done[0], &got, 1);
+    ::close(done[0]);
 
     int status = 0;
     REQUIRE(::waitpid(pid, &status, 0) == pid);
-    // With the invariant held, the child exits cleanly. This is the guard
-    // against the assertion firing on correct code -- a false abort would be
-    // worse than no assertion, because it would be disabled within a day.
-    INFO("child status " << status);
-    CHECK(WIFEXITED(status) == true);
-    CHECK(WEXITSTATUS(status) == 0);
+
+    // With the invariant held, every command returns and the child sends its
+    // byte. This is the guard against the assertion firing on CORRECT code -- a
+    // false abort would be worse than no assertion, because it would be
+    // switched off within a day.
+    //
+    // Verified in both directions by hand: reintroducing the defect in cancel()
+    // makes the child abort with the diagnostic and this read return 0 bytes.
+    INFO("child status " << status << ", pipe bytes " << n);
+    CHECK(n == 1);
+    CHECK(got == 'K');
 }
 
 // --- manual retry (L2-RTY-006) --------------------------------------------
