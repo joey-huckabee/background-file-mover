@@ -36,38 +36,46 @@ milestone: C5 — the REST control plane.**
 
 ### Start here for C5
 
-**Read `docs/CYBERSECURITY.md` and the C5 entry below before writing anything.** The
-milestone has one open design decision that must be made *first*, because it is
-structural rather than incremental:
+**Read `docs/adr/0013-bounded-handler-pool-for-the-rest-server.md`, then
+`docs/C5-PLAN.md`.** Between them the milestone is fully specified; this section is the
+one-paragraph version.
 
-> The inherited server was serial-accept, which contradicts `L2-SEC-010` — one stalled
-> connection must not block others — and needs `L2-SEC-009` per-syscall timeouts. **Decide
-> the concurrency model before writing the server, not after.** C4 now provides a worker
-> pool and a store that is safe from several threads, so the options are wider than they
-> were at triage.
+**The concurrency decision the roadmap carried open since triage is settled.**
+ADR-0013 chooses an **accept loop feeding a bounded pool of handler threads**, and
+records why the two obvious alternatives lose. Serial-accept means one slow client is a
+total outage of the control plane — no status, no cancel, no way to find out why — and it
+needs no malice to trigger: a suspended laptop or a dead reverse proxy will do. A
+single-threaded event loop fails for a subtler reason worth knowing: route handlers call
+`JobManager`, which reaches SQLite, and a durable write blocks on `busy_timeout` for five
+seconds. In an event loop that freezes *every* connection, because they share the thread
+now parked inside `sqlite3_step`.
 
-Two rules carried from the inherited design, both worth re-reading: bytes beyond the
-declared `Content-Length` are a `400` — no pipelining, no smuggled second request — and
-the integration test fires the hostile battery *first* (garbage, oversized head → 431,
-gigabyte declaration → 413, chunked → 400, trailing bytes → 400), then proves the same
-server instance still completes a real job.
+Note what C4 changed here. Moves already continue during a stalled connection, because
+they run on worker threads — so the literal reading of `L2-SEC-010` now holds even with
+serial-accept. What does not hold is the ability to *observe or control* the service
+during an incident, which is what the requirement is for.
 
-**What C4 leaves you.** `JobManager` (`cpp/include/filemover/manager.hpp`) is the thing
-the REST layer drives: `submit`, `pause`, `resume`, `cancel`, `retry`, each returning a
-typed `CommandResult` that maps onto an HTTP status without parsing prose. The request-head
-parser and the JSON codec are already delivered and fuzzed.
+**What C4 leaves you.** `JobManager` (`cpp/include/filemover/manager.hpp`) is what the
+REST layer drives: `submit`, `pause`, `resume`, `cancel`, `retry`, each returning a typed
+`CommandResult` that maps onto a status code without parsing prose — `Ok` → 200/202,
+`UnknownJob` → 404, `InvalidState` → 409, `NotRunning` → 503, `StoreError` → 500. That is
+why it was made a typed enum. The request-head parser and JSON codec are delivered and
+fuzzed.
 
-**Two things C4 learned that will bite C5 if forgotten:**
+**The two C4 lessons are now mechanism, not memory.** Both are described in
+`docs/C5-PLAN.md` §1, with the correct alternative for each case:
 
-1. **Do not use a timed condition wait on a mutex that also guards data.**
-   `std::condition_variable::wait_until` is correct C++ and breaks ThreadSanitizer's
-   accounting for that mutex, turning every subsequent access into a false race. Full
-   account and the three-way measurement in `docs/C4-TSAN-RESOLVED.md`. A socket server
-   with per-syscall timeouts is exactly where someone reaches for one.
-2. **No store call may happen with the manager mutex held.** A durable write can block on
-   `busy_timeout` for five seconds and that mutex is what workers take to get their next
-   job. Commands claim an id, write outside the lock, then publish. `store_mutex` may be
-   held while taking the manager mutex; the reverse is never done.
+1. **No timed condition wait on a mutex that also guards data.** Enforced by
+   `make no-timed-condwait`, which fails the build on `wait_for`/`wait_until` in `src/`
+   or `include/`. C5 needs timeouts for `L2-SEC-009` and is precisely where someone
+   reaches for one — put the timeout on the syscall (`SO_RCVTIMEO`, `poll(2)`), not on a
+   condition variable. A deadline enforced by a condvar bounds the *wait*, not the
+   *syscall*, so it would not satisfy `L2-SEC-009` anyway.
+2. **No store call with the manager mutex held.** Not yet mechanised — C5-PLAN §1.2
+   specifies a debug assertion tracking the mutex owner, to be built in step 1 of the
+   sequence. The risk in C5 is the *read* path: a dashboard polling job status every
+   second, implemented as "take the manager mutex, query the store", would degrade
+   throughput continuously rather than occasionally.
 
 ---
 
