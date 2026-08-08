@@ -176,11 +176,19 @@ setInterval(poll, 2000);
 </html>
 )DASHBOARD";
 
-const std::string kPageString(kPage);
-
 }  // namespace
 
-const std::string& dashboard_html() { return kPageString; }
+const std::string& dashboard_html() {
+    // A function-local static, not a namespace-scope one. Constructing a
+    // std::string at namespace scope runs before main and can throw where
+    // nothing is able to catch it -- the process dies during dynamic
+    // initialisation, with no log line, before the service exists to report it
+    // (cert-err58-cpp). A local static is constructed on first use instead, and
+    // C++11 guarantees that initialisation is thread-safe, which matters
+    // because this is first reached from a request handler thread.
+    static const std::string page(kPage);
+    return page;
+}
 
 const char* dashboard_content_type() { return "text/html; charset=utf-8"; }
 
