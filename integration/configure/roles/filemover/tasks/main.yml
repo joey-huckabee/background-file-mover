@@ -1,0 +1,108 @@
+---
+# Installs the service the way a deployment would: a service account, the
+# shipped systemd unit, a config file, and a state directory the account owns.
+#
+# The unit file installed here is deploy/systemd/file-mover.service from the
+# repository -- NOT a copy written for the lab. A lab that installs its own
+# simplified unit tests the lab's unit, which is the one artifact nobody ships.
+
+- name: Create the service group
+  ansible.builtin.group:
+    name: "{{ fm_service_group }}"
+    system: true
+    state: present
+
+- name: Create the service account
+  ansible.builtin.user:
+    name: "{{ fm_service_user }}"
+    group: "{{ fm_service_group }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    home: "{{ fm_state_dir }}"
+    state: present
+
+- name: Install the daemon
+  ansible.builtin.copy:
+    src: "{{ fm_src_dir }}/cpp/{{ fm_daemon_rel.stdout | trim }}"
+    dest: "{{ fm_binary_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    # 0755 and root-owned: the service account must not be able to rewrite the
+    # binary it runs as. NoNewPrivileges in the unit is the other half of that.
+    mode: '0755'
+  notify: restart file-mover
+
+# SELinux labels the file by path, and a binary copied into /usr/bin inherits
+# the right type automatically -- but only if the policy has been applied since
+# the file appeared. restorecon makes that explicit rather than depending on it.
+- name: Restore the SELinux context on the daemon
+  ansible.builtin.command: restorecon -v "{{ fm_binary_path }}"
+  register: fm_restorecon_bin
+  changed_when: fm_restorecon_bin.stdout | length > 0
+
+- name: Create the configuration directory
+  ansible.builtin.file:
+    path: "{{ fm_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ fm_service_group }}"
+    # 0750: the service reads it, nothing else needs to.
+    mode: '0750'
+
+- name: Install the configuration
+  ansible.builtin.template:
+    src: file-mover.ini.j2
+    dest: "{{ fm_config_dir }}/file-mover.ini"
+    owner: root
+    group: "{{ fm_service_group }}"
+    mode: '0640'
+  notify: restart file-mover
+
+- name: Create the state directory
+  ansible.builtin.file:
+    path: "{{ fm_state_dir }}"
+    state: directory
+    owner: "{{ fm_service_user }}"
+    group: "{{ fm_service_group }}"
+    # 0750 matches UMask=0077 in the unit: nothing outside the service reads
+    # the state database, and it holds the paths of everything ever moved.
+    mode: '0750'
+
+- name: Restore the SELinux context on the state directory
+  ansible.builtin.command: restorecon -Rv "{{ fm_state_dir }}"
+  register: fm_restorecon_state
+  changed_when: fm_restorecon_state.stdout | length > 0
+
+- name: Install the shipped systemd unit
+  # From the repository, deliberately. See the note at the top of this file.
+  ansible.builtin.copy:
+    src: "{{ fm_src_dir }}/deploy/systemd/file-mover.service"
+    dest: "{{ fm_unit_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart file-mover
+
+- name: Reload systemd so the unit is visible
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+# L2-CTL-019 verified as the unit itself invokes it. Run before enabling the
+# service so a bad configuration is a clear failure here rather than a unit
+# that refuses to start for reasons that have to be dug out of the journal.
+- name: Validate the configuration the way ExecStartPre does
+  ansible.builtin.command: >-
+    {{ fm_binary_path }} --config {{ fm_config_dir }}/file-mover.ini --check
+  register: fm_check_config
+  changed_when: false
+
+- name: Enable and start the service
+  ansible.builtin.systemd:
+    name: file-mover
+    state: started
+    enabled: true

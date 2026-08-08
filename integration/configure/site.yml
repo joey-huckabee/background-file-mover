@@ -1,0 +1,44 @@
+---
+# Layer 2. Configures any reachable RHEL 9 host and installs the service.
+#
+# This file, and everything under configure/ and tests/, knows nothing about
+# Hyper-V. It is given an SSH address and a key; how that host came to exist is
+# not its concern. That boundary is what keeps a different provider -- a cloud
+# instance, a spare box, bare metal -- a matter of writing a new layer 1 rather
+# than a rewrite. scripts/assert-layer-separation.sh enforces it.
+#
+# Every task here appears in docs/INTEGRATION-INVENTORY.md with its reason.
+
+- name: Configure the file-mover integration host
+  hosts: lab
+  become: true
+
+  vars:
+    # Where the repository is synchronised to on the guest, and built.
+    fm_src_dir: /opt/file-mover-src
+
+    # Where the built artifacts are installed. Matches the paths the shipped
+    # systemd unit uses, so the lab exercises the real ones rather than a set
+    # invented for testing.
+    fm_binary_path: /usr/bin/file-mover
+    fm_config_dir: /etc/file-mover
+    fm_state_dir: /var/lib/file-mover
+    fm_unit_path: /etc/systemd/system/file-mover.service
+
+    fm_service_user: file-mover
+    fm_service_group: file-mover
+
+    # The control plane. Loopback by default in production; the lab binds to
+    # all interfaces so the tests can reach it from the control node. This is a
+    # LAB-ONLY divergence and is called out as such in the inventory doc --
+    # there is no authentication on this API (ADR-0003).
+    fm_http_bind: 0.0.0.0
+    fm_http_port: 8080
+
+  roles:
+    - role: base
+      tags: [base]
+    - role: buildtools
+      tags: [build]
+    - role: filemover
+      tags: [service]

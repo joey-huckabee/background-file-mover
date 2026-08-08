@@ -1,0 +1,71 @@
+---
+# Base host state, and the checks that make later failures readable.
+#
+# Every task here earns its place by turning a confusing downstream symptom
+# into a clear upstream one.
+
+- name: Confirm this is a RHEL 9 family host
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'RedHat'
+      - ansible_facts['distribution_major_version'] == '9'
+    fail_msg: >-
+      This playbook targets RHEL 9 (Rocky 9). Found
+      {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+      Running it elsewhere would produce a green result that says nothing about
+      the deployment target.
+
+# SELinux is the entire reason for using a real RHEL host rather than a
+# container. A lab that had quietly dropped to permissive would answer the
+# question it exists to answer, wrongly and confidently -- so it is asserted
+# rather than assumed, and asserted BEFORE anything is installed.
+- name: Confirm SELinux is enforcing
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['selinux']['status'] == 'enabled'
+      - ansible_facts['selinux']['mode'] == 'enforcing'
+    fail_msg: >-
+      SELinux is not enforcing (status={{ ansible_facts['selinux']['status'] }},
+      mode={{ ansible_facts['selinux']['mode'] | default('unknown') }}).
+      The kickstart sets enforcing; if this fails, something changed it after
+      install and every SELinux result from this lab is worthless.
+
+- name: Ensure the base packages are present
+  ansible.builtin.dnf:
+    name:
+      # Used by the tests to drive the control plane and read the journal.
+      - curl
+      - policycoreutils            # semanage, restorecon
+      - policycoreutils-python-utils
+      - setools-console            # sesearch, for diagnosing a denial
+      - audit                      # ausearch, how a denial is found at all
+    state: present
+
+- name: Ensure auditd is running so SELinux denials are actually recorded
+  ansible.builtin.systemd:
+    name: auditd
+    state: started
+    enabled: true
+
+# The firewall stays ON -- see the kickstart for why. The control-plane port is
+# opened explicitly here so that a test failure means "the service is not
+# listening" rather than "something is blocked", which is a distinction an
+# operator has to make on a real deployment too.
+- name: Ensure firewalld is running
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Open the control-plane port
+  ansible.posix.firewalld:
+    port: "{{ fm_http_port }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Set the timezone to UTC
+  # Every timestamp the service emits is UTC (format_event, cpp/src/event_log.cpp).
+  # A guest in local time turns log correlation into arithmetic.
+  community.general.timezone:
+    name: UTC

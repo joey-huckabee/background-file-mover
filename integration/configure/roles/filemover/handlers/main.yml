@@ -1,0 +1,9 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart file-mover
+  ansible.builtin.systemd:
+    name: file-mover
+    state: restarted

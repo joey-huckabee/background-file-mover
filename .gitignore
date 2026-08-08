@@ -230,3 +230,15 @@ compile_commands.events.json
 *.gcov
 *.gcda
 *.gcno
+
+# --- integration lab -------------------------------------------------------
+# The inventory holds one machine's IP address and a path to a private key.
+# Committing it would mean every checkout tried to configure somebody else's VM.
+integration/configure/inventory.ini
+integration/configure/*.retry
+
+# Never. The lab SSH key lives on D:\filemover-lab\keys and stays there.
+*.pem
+id_ed25519
+id_rsa
+fm-lab-ed25519*

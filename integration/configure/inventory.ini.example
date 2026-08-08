@@ -1,0 +1,26 @@
+# Copy to inventory.ini and put the VM's address in it.
+#
+# inventory.ini is gitignored: it holds an address and a key path specific to
+# one machine, and committing it would mean every checkout tried to configure
+# somebody else's VM.
+#
+# Get the address from:  integration\provision\hyperv\Get-TestLab.ps1
+#
+# The key lives on Windows at D:\filemover-lab\keys\fm-lab-ed25519, which WSL2
+# sees at /mnt/d/filemover-lab/keys/fm-lab-ed25519. COPY IT INTO WSL FIRST and
+# chmod 600 -- ssh refuses a key on a DrvFs mount because the permissions there
+# always read as 0777, and the error it gives does not say that.
+#
+#     mkdir -p ~/.ssh/fm-lab
+#     cp /mnt/d/filemover-lab/keys/fm-lab-ed25519 ~/.ssh/fm-lab/
+#     chmod 600 ~/.ssh/fm-lab/fm-lab-ed25519
+
+[lab]
+# 192.168.1.50 ansible_user=labadmin ansible_ssh_private_key_file=~/.ssh/fm-lab/fm-lab-ed25519
+
+[lab:vars]
+ansible_python_interpreter=/usr/bin/python3
+# The host key is unknown on a freshly built VM and changes on every rebuild.
+# Accepting it on first use is right for a lab that is destroyed and recreated;
+# it would not be right anywhere else.
+ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'

@@ -1,0 +1,31 @@
+# Managed by Ansible -- integration/configure/roles/filemover/templates/file-mover.ini.j2
+# Edits here are overwritten on the next playbook run.
+#
+# Mirrors config/file-mover.ini from the repository. Where it differs, the
+# difference is a LAB affordance and is called out in
+# docs/INTEGRATION-INVENTORY.md.
+
+[http]
+# LAB DIVERGENCE: production binds loopback, because the API has no
+# authentication of its own (ADR-0003) and loopback is the whole access
+# control at v1.0.0. The lab binds all interfaces so the control node can
+# reach it, and firewalld limits exposure to the one port.
+bind = {{ fm_http_bind }}
+port = {{ fm_http_port }}
+max_body_bytes = 65536
+
+[jobs]
+workers = 4
+
+[storage]
+database_path = {{ fm_state_dir }}/file-mover.db
+
+[retry]
+max_attempts = 3
+backoff_initial_ms = 1000
+backoff_max_ms = 60000
+
+[logging]
+# DEBUG in the lab: the tests read the journal, and the event stream is the
+# main evidence of what the service did. Production defaults to INFO.
+level = DEBUG

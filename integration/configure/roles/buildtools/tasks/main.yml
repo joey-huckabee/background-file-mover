@@ -1,0 +1,102 @@
+---
+# Builds the service from source ON THE TARGET HOST.
+#
+# WHY BUILD HERE RATHER THAN SHIP A BINARY. A binary built in WSL2 (Ubuntu
+# 22.04, glibc 2.35) will not run on Rocky 9 (glibc 2.34): glibc is backward
+# compatible, not forward, so a newer build against an older runtime fails at
+# load with a version error that reads like a corrupt file. Building on the
+# target sidesteps that entirely AND exercises the RHEL 9 toolchain, which no
+# container tier covers -- the CI image is Ubuntu 24.04 and the fidelity tier is
+# a GCC 4.8.5 image for the SLES target.
+#
+# This is a lab affordance, not a deployment model. C8 builds an RPM; when it
+# exists, this role should install that instead and the build tools should come
+# off the host. A production host does not carry a compiler.
+
+- name: Install the toolchain
+  ansible.builtin.dnf:
+    name:
+      - gcc-c++
+      - make
+      - glibc-devel
+      # SQLite is vendored as an amalgamation (ADR-0010), so no sqlite-devel:
+      # installing it would risk the build finding the system headers instead
+      # of the vendored ones and silently testing a different SQLite.
+    state: present
+
+- name: Record the toolchain versions
+  # Captured because "which compiler produced this result" is the first
+  # question asked of any integration failure, and the answer is otherwise lost
+  # the moment the VM is destroyed.
+  ansible.builtin.command: g++ --version
+  register: fm_gxx_version
+  changed_when: false
+
+- name: Show the toolchain versions
+  ansible.builtin.debug:
+    msg: "{{ fm_gxx_version.stdout_lines[0] }}"
+
+- name: Create the source directory
+  ansible.builtin.file:
+    path: "{{ fm_src_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# synchronize rather than git clone: the point is to test the working tree in
+# front of you, including changes that are not committed yet. A clone would
+# test whatever is on the remote, which is not what anyone means by "does my
+# change work on Rocky".
+- name: Synchronise the source tree
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../"
+    dest: "{{ fm_src_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=.git"
+      - "--exclude=build"
+      - "--exclude=integration"
+      - "--exclude=*.o"
+      - "--exclude=*.d"
+
+- name: Build the daemon
+  community.general.make:
+    chdir: "{{ fm_src_dir }}/cpp"
+    target: daemon
+    params:
+      NUM_THREADS: "{{ ansible_facts['processor_vcpus'] | default(2) }}"
+  register: fm_build
+  changed_when: true
+
+- name: Locate the built daemon
+  ansible.builtin.command: make --no-print-directory print-daemon-bin
+  args:
+    chdir: "{{ fm_src_dir }}/cpp"
+  register: fm_daemon_rel
+  changed_when: false
+
+- name: Confirm the daemon actually exists
+  ansible.builtin.stat:
+    path: "{{ fm_src_dir }}/cpp/{{ fm_daemon_rel.stdout | trim }}"
+  register: fm_daemon_stat
+
+- name: Fail clearly if the build produced nothing
+  ansible.builtin.assert:
+    that:
+      - fm_daemon_stat.stat.exists
+    fail_msg: >-
+      The build reported success but
+      {{ fm_src_dir }}/cpp/{{ fm_daemon_rel.stdout | trim }} does not exist.
+
+- name: Run the unit suite on the target host
+  # The same suite the other tiers run, on RHEL 9 against its own libstdc++.
+  # Not a substitute for the integration tests -- it opens no sockets against
+  # systemd and knows nothing about SELinux -- but a failure here means the
+  # platform differs in a way worth knowing before anything else is diagnosed.
+  community.general.make:
+    chdir: "{{ fm_src_dir }}/cpp"
+    target: check
+  register: fm_check
+  changed_when: true
+  failed_when: fm_check.rc != 0
