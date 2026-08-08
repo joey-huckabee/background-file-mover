@@ -30,11 +30,32 @@ tag, not a branch.
   (shellcheck `SC2034`). The test asks systemd what it actually did rather than
   inspecting the binary, so the variable had no reader.
 
+### Fixed — scratch files at fixed `/tmp` paths
+
+- **`verify-iso-signature.sh` could report a false negative, illustrated with evidence
+  of success.** It wrote gpg's diagnostics to `/tmp/gpgverify.err`. One run under `sudo`
+  left that file owned by root; every later run as a normal user then failed the
+  redirect, `set -e` treated the failed redirect as a failed verification, and the
+  handler printed **the previous run's file** as the explanation — so it announced
+  `SIGNATURE VERIFICATION FAILED` above the words `Good signature`. Diagnostics now go
+  inside the throwaway `GNUPGHOME`, which is already `mktemp -d`, mode 700, and removed
+  by the existing trap.
+- Same defect class removed from `validate.sh` (seven fixed paths) and
+  `01-service-lifecycle.sh`, where it mattered most: that script decides its own exit
+  status by reading its failure list back, so a stale or unwritable file at a
+  predictable path does not merely lose output — it decides whether the suite passes.
+  Both now use `mktemp -d` with a cleanup trap.
+
 ### Verified — integration lab
 
 - The kickstart is validated for the first time: `ksvalidator -v RHEL9` passes.
   Negative-tested on copies — a typo'd directive reports `Unknown command`, and a
   `%packages` section with no `%end` is reported against the exact line; both exit 1.
+- **ISO authenticity established.** `verify-iso-signature.sh` reports `SIGNATURE OK`
+  against the Rocky Release key 2022, fingerprint `21CB256AE16FC54C6E652949702D426D350D275D`,
+  now pinned in `provision/hyperv/rocky-gpg-fingerprint.txt` after confirmation against
+  `rockylinux.org`. Negative-tested in both directions: a tampered `CHECKSUM` gives
+  `BAD signature`, a wrong pin gives `FINGERPRINT MISMATCH`, both exit 1.
 - `integration/scripts/validate.sh` now passes with **no `SKIP` lines**: shell syntax,
   YAML, `Lab.psd1` paths, layer separation, shellcheck, yamllint, ansible-lint,
   `ansible-playbook --syntax-check`, ksvalidator.

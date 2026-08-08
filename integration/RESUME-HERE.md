@@ -35,12 +35,16 @@ Delete it once the lab has run once.
   the kickstart. That check was negative-tested on copies (a typo'd directive and an
   unterminated `%packages`) and fails on both, so the pass means something.
 
+- **ISO authenticity verified.** `verify-iso-signature.sh` reports `SIGNATURE OK` and
+  the fingerprint matches the pin, `21CB256AE16FC54C6E652949702D426D350D275D`
+  (Rocky Release key 2022), confirmed by Joey against `rockylinux.org`. Negative-tested
+  both ways: a tampered `CHECKSUM` gives `BAD signature`, a wrong pin gives
+  `FINGERPRINT MISMATCH`.
+
 ## Not done, and why
 
 | Item | Blocked on |
 |---|---|
-| GPG fingerprint pin | needs a human to confirm it against `rockylinux.org` |
-| `verify-iso-signature.sh` | not yet run |
 | Creating any VM | nothing — this is the next real step |
 | **Kickstart *semantics*** | reviewed by hand, two defects fixed (§ 4.10–4.11); still unproven until an install runs |
 
@@ -56,17 +60,16 @@ Delete it once the lab has run once.
   `command -v` still fails. Open a new shell. This is not a dotfile bug.
 - **The install script exits 1 if any tool is missing.** It used to print `MISSING`
   and exit 0, which made "installed nothing" and "installed everything" look identical.
+- **Never use a fixed `/tmp/<name>` for scratch output in these scripts.** Run one of
+  them under `sudo` once and the file is left root-owned; every later run as your own
+  user fails its redirect, `set -e` calls that a failed check, and the diagnostics get
+  read from the *earlier* run's file. `verify-iso-signature.sh` did exactly this and
+  reported `SIGNATURE VERIFICATION FAILED` while printing `Good signature` as the
+  reason. All three scripts now use `mktemp -d` with a cleanup trap.
 
 ## Next — in this order
 
-**1. Validate the ISO's authenticity and pin the key.** SHA256 (done) proves the
-bytes match the CHECKSUM file; it does not prove who wrote the CHECKSUM file:
-
-```sh
-sh integration/scripts/verify-iso-signature.sh
-```
-
-**2. Then** build the VM:
+**1.** Build the VM:
 
 ```powershell
 cd integration\provision\hyperv
@@ -75,7 +78,7 @@ cd integration\provision\hyperv
 .\Get-TestLab.ps1        # once the install finishes, ~10-15 min
 ```
 
-**3. Configure and test:**
+**2. Configure and test:**
 
 ```sh
 cd integration/configure

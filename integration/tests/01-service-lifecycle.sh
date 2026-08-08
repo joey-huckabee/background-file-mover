@@ -19,10 +19,20 @@ UNIT=file-mover.service
 CONF=/etc/file-mover/file-mover.ini
 PORT=8080
 
-pass() { echo "  ok   $1"; }
-fail() { echo "  FAIL $1" >&2; echo "$1" >> /tmp/fm-test-failures; }
+# Private scratch directory rather than fixed /tmp names. The failure list is
+# read back at the end to decide this script's exit status, so a stale or
+# unwritable file at a predictable path does not just lose output -- it decides
+# whether the suite passes. Ownership is the realistic way that happens: run
+# once as root, once as a user, and the second run inherits the first's verdict.
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT INT TERM
+FAILURES="$TMP/failures"
+CONF_BAK="$TMP/fm-conf.bak"
 
-: > /tmp/fm-test-failures
+pass() { echo "  ok   $1"; }
+fail() { echo "  FAIL $1" >&2; echo "$1" >> "$FAILURES"; }
+
+: > "$FAILURES"
 
 echo "== 01 service lifecycle =="
 
@@ -140,7 +150,7 @@ fi
 # start, because that is the path an operator hits: --check passing in a shell
 # proves less than the unit refusing to come up.
 echo "  (restarting with a deliberately broken config)"
-cp "$CONF" /tmp/fm-conf.bak
+cp "$CONF" "$CONF_BAK"
 printf '\n[nonsense]\nkey = value\n' >> "$CONF"
 systemctl stop "$UNIT"
 if systemctl start "$UNIT" 2>/dev/null; then
@@ -149,8 +159,7 @@ if systemctl start "$UNIT" 2>/dev/null; then
 else
     pass "ExecStartPre refused an invalid configuration"
 fi
-cp /tmp/fm-conf.bak "$CONF"
-rm -f /tmp/fm-conf.bak
+cp "$CONF_BAK" "$CONF"
 
 # --- a clean restart still works ------------------------------------------
 if systemctl start "$UNIT" && systemctl is-active --quiet "$UNIT"; then
@@ -185,10 +194,10 @@ fi
 # Leave the host as we found it.
 systemctl start "$UNIT" || true
 
-if [ -s /tmp/fm-test-failures ]; then
+if [ -s "$FAILURES" ]; then
     echo ""
     echo "FAILURES:"
-    sed 's/^/  /' /tmp/fm-test-failures
+    sed 's/^/  /' "$FAILURES"
     exit 1
 fi
 echo "01 service lifecycle: all checks passed"

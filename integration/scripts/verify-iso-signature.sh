@@ -100,17 +100,26 @@ else
     echo ""
 fi
 
+# gpg's diagnostics go inside the throwaway GNUPGHOME rather than a fixed name
+# in /tmp. A predictable path is not merely untidy here: run this once under
+# sudo and the file is left owned by root, after which the redirect fails for
+# your own user, `set -e` sees a failed command, and the script reports
+# SIGNATURE VERIFICATION FAILED -- then prints the PREVIOUS run's file as the
+# explanation. That is a false negative that shows evidence of success as its
+# proof of failure. GNUPGHOME is mktemp -d, mode 700, and removed by the trap.
+GPG_ERR="$GNUPGHOME/verify.err"
+
 echo "verifying the signature over CHECKSUM"
-if gpg --quiet --verify "$SIGNATURE" "$CHECKSUM" 2>/tmp/gpgverify.err; then
+if gpg --quiet --verify "$SIGNATURE" "$CHECKSUM" 2>"$GPG_ERR"; then
     echo "SIGNATURE OK"
 else
     # A clearsigned file is verified without a separate data argument; try that
     # before concluding the signature is bad.
-    if gpg --quiet --verify "$SIGNATURE" 2>>/tmp/gpgverify.err; then
+    if gpg --quiet --verify "$SIGNATURE" 2>>"$GPG_ERR"; then
         echo "SIGNATURE OK (clearsigned)"
     else
         echo "SIGNATURE VERIFICATION FAILED" >&2
-        sed 's/^/  /' /tmp/gpgverify.err >&2
+        sed 's/^/  /' "$GPG_ERR" >&2
         exit 1
     fi
 fi

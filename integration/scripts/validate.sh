@@ -14,6 +14,14 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
+# Scratch files go in a private directory, not at fixed names in /tmp. Running
+# any of this once under sudo leaves root-owned files behind, and every later
+# run as your own user then fails its redirect -- which `set -e` turns into a
+# failed check whose diagnostics are read from the earlier run's file. That
+# exact bug was live in verify-iso-signature.sh.
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT INT TERM
+
 fails=0
 report() {
     if [ "$2" -eq 0 ]; then echo "  ok    $1"; else echo "  FAIL  $1"; fails=$((fails + 1)); fi
@@ -24,22 +32,22 @@ echo "== integration lab validation =="
 # --- POSIX shell syntax ---------------------------------------------------
 echo "-- shell syntax --"
 for f in $(find . -name '*.sh' | sort); do
-    if sh -n "$f" 2>/tmp/shsyn.err; then
+    if sh -n "$f" 2>"$TMP/shsyn.err"; then
         report "$f" 0
     else
         report "$f" 1
-        sed 's/^/        /' /tmp/shsyn.err
+        sed 's/^/        /' "$TMP/shsyn.err"
     fi
 done
 
 # --- YAML syntax ----------------------------------------------------------
 echo "-- yaml syntax --"
 for f in $(find . -name '*.yml' -o -name '*.yaml' | sort); do
-    if python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" "$f" 2>/tmp/yamlsyn.err; then
+    if python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" "$f" 2>"$TMP/yamlsyn.err"; then
         report "$f" 0
     else
         report "$f" 1
-        sed 's/^/        /' /tmp/yamlsyn.err
+        sed 's/^/        /' "$TMP/yamlsyn.err"
     fi
 done
 
@@ -56,11 +64,11 @@ fi
 
 # --- the architectural rule ----------------------------------------------
 echo "-- layer separation --"
-if sh scripts/assert-layer-separation.sh >/tmp/sep.out 2>&1; then
+if sh scripts/assert-layer-separation.sh >"$TMP/sep.out" 2>&1; then
     report "layer 2 is provider-agnostic" 0
 else
     report "layer 2 is provider-agnostic" 1
-    sed 's/^/        /' /tmp/sep.out
+    sed 's/^/        /' "$TMP/sep.out"
 fi
 
 # --- optional tooling -----------------------------------------------------
@@ -76,34 +84,34 @@ else
 fi
 
 if command -v yamllint >/dev/null 2>&1; then
-    if yamllint -d relaxed configure/ >/tmp/yl.out 2>&1; then report "yamllint" 0; else
-        report "yamllint" 1; sed 's/^/        /' /tmp/yl.out; fi
+    if yamllint -d relaxed configure/ >"$TMP/yl.out" 2>&1; then report "yamllint" 0; else
+        report "yamllint" 1; sed 's/^/        /' "$TMP/yl.out"; fi
 else
     echo "  SKIP  yamllint (not installed)"
 fi
 
 if command -v ansible-lint >/dev/null 2>&1; then
-    if (cd configure && ansible-lint site.yml) >/tmp/al.out 2>&1; then report "ansible-lint" 0; else
-        report "ansible-lint" 1; sed 's/^/        /' /tmp/al.out; fi
+    if (cd configure && ansible-lint site.yml) >"$TMP/al.out" 2>&1; then report "ansible-lint" 0; else
+        report "ansible-lint" 1; sed 's/^/        /' "$TMP/al.out"; fi
 else
     echo "  SKIP  ansible-lint (not installed)"
 fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
-    if (cd configure && ansible-playbook --syntax-check site.yml) >/tmp/as.out 2>&1; then
+    if (cd configure && ansible-playbook --syntax-check site.yml) >"$TMP/as.out" 2>&1; then
         report "ansible syntax-check" 0
     else
-        report "ansible syntax-check" 1; sed 's/^/        /' /tmp/as.out
+        report "ansible syntax-check" 1; sed 's/^/        /' "$TMP/as.out"
     fi
 else
     echo "  SKIP  ansible-playbook --syntax-check (not installed)"
 fi
 
 if command -v ksvalidator >/dev/null 2>&1; then
-    if ksvalidator provision/hyperv/kickstart/rocky9-lab.ks >/tmp/ks.out 2>&1; then
+    if ksvalidator provision/hyperv/kickstart/rocky9-lab.ks >"$TMP/ks.out" 2>&1; then
         report "ksvalidator" 0
     else
-        report "ksvalidator" 1; sed 's/^/        /' /tmp/ks.out
+        report "ksvalidator" 1; sed 's/^/        /' "$TMP/ks.out"
     fi
 else
     echo "  SKIP  ksvalidator (not installed) -- the kickstart is UNVALIDATED"
