@@ -597,6 +597,44 @@ void JobManager::shutdown() {
     impl_->store_for_command("shutdown").close();
 }
 
+CommandResult JobManager::submit(const MoveRequest& request,
+                                 std::string& job_id,
+                                 std::string& error) {
+    job_id.clear();
+    {
+        // Checked before allocating, so a command against a stopped manager
+        // does not burn a sequence number to find that out.
+        const ManagerLock lock(impl_->mutex);
+        if (!impl_->running) {
+            error = "manager: not running";
+            return CommandResult::NotRunning;
+        }
+    }
+
+    std::uint64_t sequence = 0;
+    {
+        // Outside the manager mutex, like every other store call. The sequence
+        // is committed before it is returned, so the number is spent whether or
+        // not the submit below succeeds -- gaps are acceptable and repeats are
+        // not, which is the trade L2-JOB-015 already made.
+        const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+        if (!impl_->store_for_command("submit").next_sequence(sequence,
+                                                             error)) {
+            return CommandResult::StoreError;
+        }
+    }
+
+    std::ostringstream os;
+    os << "job-" << sequence;
+    const std::string allocated = os.str();
+
+    const CommandResult result = submit(allocated, request, error);
+    if (result == CommandResult::Ok) {
+        job_id = allocated;
+    }
+    return result;
+}
+
 CommandResult JobManager::submit(const std::string& job_id,
                                  const MoveRequest& request,
                                  std::string& error) {

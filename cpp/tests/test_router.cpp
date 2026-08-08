@@ -108,10 +108,12 @@ TEST_CASE("health is answered without touching the manager",
 
 TEST_CASE("an unknown route is 404 with a JSON body", "[router][L2-CTL-005]") {
     ManagerFixture fx;
-    const char* targets[] = {"/", "/nope", "/api", "/api/jobs",
+    // "/api/jobs" is deliberately absent: it is a real route now (POST creates
+    // a job), and a GET against it answers 405 rather than 404.
+    const char* targets[] = {"/", "/nope", "/api",
                              "/api/jobs/id", "/api/jobs/id/frobnicate",
                              "/api/jobs/id/pause/extra"};
-    for (std::size_t i = 0; i < 7; ++i) {
+    for (std::size_t i = 0; i < 6; ++i) {
         INFO("target " << targets[i]);
         const Response r =
             route_request(make_request("GET", targets[i]), fx.manager());
@@ -158,6 +160,73 @@ TEST_CASE("lifecycle commands on an unknown job are 404",
         CHECK(r.status == 404);
         CHECK(r.body.empty() == false);
     }
+}
+
+TEST_CASE("POST /api/jobs creates a job and answers 202 with its id",
+          "[router][L2-CTL-005][L2-JOB-015]") {
+    ManagerFixture fx;
+    fx.start();
+
+    Request r = make_request("POST", "/api/jobs");
+    r.body = "{\"source\":\"/src/a.dat\",\"dest\":\"/dst/a.dat\"}";
+    const Response response = route_request(r, fx.manager());
+
+    // 202, not 200: the job is recorded and queued, and the move has not
+    // happened. 200 would tell a client the file had already moved.
+    CHECK(response.status == 202);
+    CHECK(response.body.find("job_id") != std::string::npos);
+
+    // A second submission must get a DIFFERENT id. The sequence is committed
+    // before it is handed out, so a repeat would let a new job overwrite the
+    // record of an old one -- which is the whole reason L2-JOB-015 exists.
+    const Response second = route_request(r, fx.manager());
+    CHECK(second.status == 202);
+    CHECK(second.body != response.body);
+}
+
+TEST_CASE("POST /api/jobs rejects malformed and non-absolute paths",
+          "[router][L2-CTL-005]") {
+    ManagerFixture fx;
+    fx.start();
+
+    const char* bodies[] = {
+        "not json at all",
+        "{",
+        "{\"source\":\"relative/a\",\"dest\":\"/dst/a\"}",
+        "{\"source\":\"/src/a\",\"dest\":\"relative/a\"}",
+        // A trailing slash names a directory where a file was required, and
+        // accepting it would build a move with an empty source name.
+        "{\"source\":\"/src/\",\"dest\":\"/dst/a\"}",
+    };
+    for (std::size_t i = 0; i < 5; ++i) {
+        INFO("body " << bodies[i]);
+        Request r = make_request("POST", "/api/jobs");
+        r.body = bodies[i];
+        const Response response = route_request(r, fx.manager());
+        CHECK(response.status == 400);
+        CHECK(response.body.find('{') != std::string::npos);
+    }
+}
+
+TEST_CASE("GET /api/jobs is 405 with Allow, not 404",
+          "[router][L2-CTL-005]") {
+    ManagerFixture fx;
+    fx.start();
+    const Response r =
+        route_request(make_request("GET", "/api/jobs"), fx.manager());
+    CHECK(r.status == 405);
+    CHECK(r.allow == std::string("POST"));
+}
+
+TEST_CASE("creating a job against a stopped manager is 503",
+          "[router][L2-CTL-005]") {
+    ManagerFixture fx;  // never started
+    Request r = make_request("POST", "/api/jobs");
+    r.body = "{\"source\":\"/src/a\",\"dest\":\"/dst/a\"}";
+    const Response response = route_request(r, fx.manager());
+    // Checked before a sequence number is allocated, so a command against a
+    // stopped manager does not burn an id to find that out.
+    CHECK(response.status == 503);
 }
 
 TEST_CASE("a command against a stopped manager is 503, not a crash",

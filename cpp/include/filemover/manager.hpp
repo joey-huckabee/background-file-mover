@@ -67,6 +67,22 @@ class JobManager {
                          const MoveRequest& request,
                          std::string& error);
 
+    // Submits under a freshly allocated id and reports it.
+    //
+    // The id comes from the store's durable monotonic sequence (L2-JOB-015),
+    // which is committed before it is handed out — a crash can lose a number
+    // but can never repeat one. Gaps are acceptable; repeats would let a new
+    // job overwrite the record of an old one.
+    //
+    // Allocation lives here rather than in the caller because an id is durable
+    // state, and a REST layer minting its own would put identifier policy in
+    // the wrong place — two callers, two schemes, and no way for the store to
+    // adjudicate. Callers that already have an id (recovery, tests, an
+    // operator re-submitting a known name) still use the overload above.
+    CommandResult submit(const MoveRequest& request,
+                         std::string& job_id,
+                         std::string& error);
+
     // L2-LIF-004. A paused job is not dispatched; resume returns it to the
     // runnable queue. Pausing a job already running does not interrupt it —
     // the move is atomic past the commit point and tearing it in half is the

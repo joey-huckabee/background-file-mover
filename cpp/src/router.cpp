@@ -56,6 +56,30 @@ std::vector<std::string> path_segments(const std::string& target) {
     return out;
 }
 
+// Splits an absolute path into the directory and the final component.
+//
+// The API speaks in paths; the mover speaks in a directory and a name, because
+// every filesystem operation is fd-relative against a held DirHandle
+// (L2-SEC-001). This is the one place that conversion happens, so the split
+// rule is written down once rather than guessed at per call site.
+//
+// Refuses anything that is not absolute or has no name after the last slash. A
+// trailing slash means a directory was named where a file was required, and
+// accepting it would produce a move with an empty source name.
+bool split_path(const std::string& path, std::string& dir, std::string& name) {
+    if (path.empty() || path[0] != '/') {
+        return false;
+    }
+    const std::string::size_type slash = path.rfind('/');
+    if (slash == std::string::npos || slash + 1 >= path.size()) {
+        return false;
+    }
+    // "/file" has its directory at position 0, which is "/" rather than "".
+    dir = (slash == 0) ? std::string("/") : path.substr(0, slash);
+    name = path.substr(slash + 1);
+    return true;
+}
+
 }  // namespace
 
 int status_for(CommandResult result) {
@@ -85,6 +109,42 @@ http::Response route_request(const http::Request& request,
             return method_not_allowed("GET, HEAD");
         }
         return make(200, "{\"status\":\"ok\"}");
+    }
+
+    // POST /api/jobs -- create a job under a freshly allocated id.
+    if (seg.size() == 2 && seg[0] == "api" && seg[1] == "jobs") {
+        if (request.method != "POST") {
+            return method_not_allowed("POST");
+        }
+
+        SubmitRequest submission;
+        std::string decode_error;
+        if (!decode_submit_request(request.body, submission, decode_error)) {
+            // L2-CTL-005: malformed JSON is 400 with a JSON body. The decoder's
+            // message names the offending field or byte offset, which is more
+            // use to a client than "bad request".
+            return error_response(400, decode_error);
+        }
+
+        MoveRequest move;
+        if (!split_path(submission.source, move.source_dir,
+                        move.source_name) ||
+            !split_path(submission.dest, move.dest_dir, move.dest_name)) {
+            return error_response(
+                400,
+                "source and dest must be absolute paths naming a file");
+        }
+
+        std::string job_id;
+        std::string submit_error;
+        const CommandResult result =
+            manager.submit(move, job_id, submit_error);
+        if (result != CommandResult::Ok) {
+            return error_response(status_for(result), submit_error);
+        }
+        // 202, not 200: the job is recorded and queued, and the move has not
+        // happened yet. Answering 200 would tell a client the file had moved.
+        return make(202, "{\"job_id\":\"" + job_id + "\"}");
     }
 
     // /api/jobs/{id}/{action}

@@ -314,6 +314,56 @@ TEST_CASE("a job can be submitted while a worker is mid-move",
     CHECK(fx.kind_in(fx.dst(), "second.done") == EntryKind::Regular);
 }
 
+TEST_CASE("allocated job ids are unique and survive a restart",
+          "[manager][L2-JOB-015]") {
+    Fixture fx;
+    std::string first;
+    std::string second;
+
+    {
+        JobManager manager(fx.db(), fx.config(1));
+        std::string error;
+        REQUIRE(manager.start(error) == true);
+        fx.write_source("one");
+        REQUIRE(manager.submit(fx.request("one"), first, error) ==
+                CommandResult::Ok);
+        CHECK(first.empty() == false);
+        REQUIRE(manager.wait_idle(30000) == true);
+        manager.shutdown();
+    }
+
+    {
+        // A fresh manager over the SAME database. The sequence is durable, so
+        // it must not restart -- a repeated id would let this job overwrite
+        // the record of the one above, which is exactly what L2-JOB-015 exists
+        // to prevent. Testing this within one process would prove only that a
+        // counter increments.
+        JobManager manager(fx.db(), fx.config(1));
+        std::string error;
+        REQUIRE(manager.start(error) == true);
+        fx.write_source("two");
+        REQUIRE(manager.submit(fx.request("two"), second, error) ==
+                CommandResult::Ok);
+        manager.shutdown();
+    }
+
+    CHECK(first != second);
+    CHECK(fx.state_of(first) == JobState::Done);
+}
+
+TEST_CASE("allocating an id against a stopped manager is refused",
+          "[manager][L2-JOB-015]") {
+    Fixture fx;
+    JobManager manager(fx.db(), fx.config(1));
+    std::string job_id;
+    std::string error;
+    // Refused before a sequence number is spent. Allocating first and then
+    // discovering the manager is stopped would leave a gap for nothing.
+    CHECK(manager.submit(fx.request("x"), job_id, error) ==
+          CommandResult::NotRunning);
+    CHECK(job_id.empty() == true);
+}
+
 TEST_CASE("submitting before start is refused", "[manager][L2-LIF-005]") {
     Fixture fx;
     JobManager manager(fx.db(), fx.config(2));
