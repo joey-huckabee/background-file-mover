@@ -25,6 +25,25 @@ keyboard --vckeymap=us --xlayouts='us'
 lang en_US.UTF-8
 timezone UTC --utc
 
+# --- network ---------------------------------------------------------------
+# Explicit, and not optional. With `cdrom` as the install source Anaconda never
+# needs to bring an interface up, so with no network line here the installed
+# system's connectivity depends entirely on NetworkManager's auto-default
+# behaviour on first boot. When that does not fire the VM installs perfectly and
+# is simply unreachable -- which presents as "the build worked but SSH times
+# out", and costs an hour to trace back to a line that is not in this file.
+#
+# --device=link  : the first interface with a carrier. The VM has one NIC; this
+#                  avoids naming it, since predictable-interface-names on
+#                  Hyper-V gives eth0 or ens-something depending on the guest.
+# --activate     : brings it up during the install as well as after it.
+# --onboot=yes   : the part that matters -- the connection comes up at boot.
+# --hostname     : written to /etc/hostname by Anaconda directly. This replaces
+#                  a `hostnamectl` call in %post, which could not have worked:
+#                  %post is chrooted with no dbus, so there is no hostnamed to
+#                  answer, and the `|| true` on it swallowed the failure.
+network --bootproto=dhcp --device=link --activate --onboot=yes --hostname=fm-rocky9-01
+
 # --- installation source ---------------------------------------------------
 # cdrom: the minimal ISO carries the base packages, so the install does not
 # depend on a mirror being reachable at that moment. Package installs AFTER
@@ -75,10 +94,6 @@ sshkey --username=labadmin "@KEY@"
 %post --erroronfail
 echo 'labadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/90-labadmin
 chmod 0440 /etc/sudoers.d/90-labadmin
-
-# Predictable hostname, so the Ansible inventory and any log correlation have
-# something stable to key on.
-hostnamectl set-hostname fm-rocky9-01 || true
 %end
 
 # --- services --------------------------------------------------------------

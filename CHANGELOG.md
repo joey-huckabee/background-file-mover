@@ -14,6 +14,41 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Fixed — integration lab bootstrap
+
+- **`pykickstart` moved from apt to PyPI** in `integration/prereqs/install-control-node.sh`.
+  Ubuntu 22.04 has no such package under any name — `apt-cache search kickstart` returns
+  `youtube-dl` — so `apt-get install` failed, and `set -eu` aborted the script having
+  installed **none** of the six packages. It is now `pip3 install --user pykickstart`,
+  which keeps it out of the system interpreter's `site-packages`.
+- **The install script no longer reports success without the tools it installs.** Its
+  closing block printed `MISSING` next to any absent tool and then exited 0, so
+  "installed nothing" and "installed everything" were indistinguishable to the caller.
+  It now exits 1, and names the `~/.local/bin`-not-on-`PATH` case explicitly, since
+  that is the one benign reason a fresh install reports a missing `ksvalidator`.
+- **Removed an unused `BIN=` from `integration/tests/01-service-lifecycle.sh`**
+  (shellcheck `SC2034`). The test asks systemd what it actually did rather than
+  inspecting the binary, so the variable had no reader.
+
+### Verified — integration lab
+
+- The kickstart is validated for the first time: `ksvalidator -v RHEL9` passes.
+  Negative-tested on copies — a typo'd directive reports `Unknown command`, and a
+  `%packages` section with no `%end` is reported against the exact line; both exit 1.
+- `integration/scripts/validate.sh` now passes with **no `SKIP` lines**: shell syntax,
+  YAML, `Lab.psd1` paths, layer separation, shellcheck, yamllint, ansible-lint,
+  `ansible-playbook --syntax-check`, ksvalidator.
+- **Two kickstart defects found by reading, that `ksvalidator` cannot see** — and fixed.
+  The file had **no `network` line**: with `cdrom` as the install source Anaconda never
+  brings an interface up, so the installed host's connectivity depended on
+  NetworkManager's auto-default behaviour, and if that did not fire the VM would install
+  perfectly and be unreachable. It also set the hostname with `hostnamectl` in `%post`,
+  which is chrooted with no dbus — there is no `hostnamed` to answer, and `|| true`
+  swallowed the failure. Both are now one line,
+  `network --bootproto=dhcp --device=link --activate --onboot=yes --hostname=fm-rocky9-01`.
+  Recorded as `docs/INTEGRATION-INVENTORY.md` § 4.10–4.11. `ksvalidator` passed the file
+  before and after, which is the point.
+
 ### Added — C7, the operator dashboard
 
 - **A single embedded page at `GET /`** (`L2-DASH-001`, `L2-DASH-002`), served from the

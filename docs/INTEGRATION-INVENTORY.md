@@ -7,12 +7,14 @@ deliberate — that is the point of the table.
 Companion documents: `docs/INTEGRATION-ENVIRONMENT.md` (why this environment
 exists at all and how it is phased) and `integration/README.md` (how to run it).
 
-**Status: Phase 1, written but never executed.** Syntax is validated; behaviour
-is not. See § 7.
+**Status: Phase 1, written but never executed.** As of 2026-08-08 the control
+node is installed and every static check passes — shell, YAML, Ansible, and the
+kickstart's *syntax*. No VM has been built. Syntax is validated; behaviour is
+not. See § 7 for the line between the two.
 
 ---
 
-## 1. Host prerequisites (Windows)
+## 1. Host prerequisites (Windows, and the WSL2 control node)
 
 | # | Item | Value | Why | Applied by | Verify |
 |---|---|---|---|---|---|
@@ -25,6 +27,9 @@ is not. See § 7.
 | | | | **Do not trust the byte counts in `CHECKSUM`.** For 9.8 it lists 1,480,048,640 bytes for *both* `boot.iso` and `minimal.iso` despite their hashes differing, and the real minimal ISO is 2.57 GB. The size lines are comments; only the SHA256 is checked, and only the SHA256 should be. | | |
 | 1.7 | ISO authenticity | GPG signature over `CHECKSUM` | SHA256 alone proves only that the bytes match what the CHECKSUM file says — anyone able to serve you both can make them agree. This is a different question and needs a different check. | `integration/scripts/verify-iso-signature.sh` | run it; it reports OK or fails |
 | 1.8 | Signing key pin | `provision/hyperv/rocky-gpg-fingerprint.txt` | Until the fingerprint is confirmed against a source outside the download channel, 1.7 is trust-on-first-use rather than verification. The script says so rather than implying more, and refuses to invent a fingerprint — a wrong pin looks like verification and is not. | **Manual, once** | file present and matching |
+| 1.9 | Control-node toolchain | `ansible` 2.10.8, `ansible-lint` 5.4.0, `shellcheck` 0.8.0, `yamllint` 1.26.3, `rsync`, `openssh-client` | Installed from the Ubuntu 22.04 archive rather than pip. A pip install into the system interpreter is how a WSL distro ends up with two Ansibles and a PATH that decides between them; the apt versions are older but they are one thing, managed by one tool. | `prereqs/install-control-node.sh` | the script's closing block prints a version for each and **exits 1** if any is missing |
+| 1.10 | `pykickstart` | 3.77, from **PyPI**, `pip3 install --user` | The one deliberate exception to 1.9, and not by choice: Ubuntu does not package it. It is a Fedora/RHEL tool — `apt-cache search kickstart` on 22.04 returns `youtube-dl`. `--user` keeps it in `~/.local`, out of the system interpreter's `site-packages`, so a later apt upgrade has nothing to argue with. Provides `ksvalidator` (§ 7). | `prereqs/install-control-node.sh` | `ksvalidator -v RHEL9 <file>` |
+| 1.11 | `~/.local/bin` on `PATH` | via Ubuntu's stock `~/.profile` | `--user` installs land there. `~/.profile` adds the directory **only if it already exists at login**, so the shell that first creates it does not see it — the tool is installed and `command -v` still fails. Opening a new shell is the whole fix; no dotfile edit is needed or wanted. | Ubuntu default | `command -v ksvalidator` in a **new login shell** |
 
 ## 2. Lab configuration data
 
@@ -76,6 +81,9 @@ must exist before SSH works at all.
 | 4.7 | Partitioning | plain, no LVM | LVM is what production would use; here it adds a layer between the test and the filesystem it asserts about. | `lsblk` |
 | 4.8 | Packages | `@^minimal-environment`, `openssh-server`, `python3` | `python3` here rather than bootstrapped later, to avoid the chicken-and-egg where the first playbook cannot run because its interpreter is missing. | `rpm -q python3` |
 | 4.9 | Graphical target | `skipx` | Headless service host. The GUI stack is a large attack surface and hundreds of megabytes whose updates slow every rebuild. | `systemctl get-default` |
+| 4.10 | Networking | `network --bootproto=dhcp --device=link --activate --onboot=yes` | Explicit, and not optional. With `cdrom` as the install source Anaconda never needs an interface up, so with no `network` line the installed host's connectivity rests entirely on NetworkManager's auto-default behaviour at first boot. When that does not fire the VM installs perfectly and is unreachable — "the build worked but SSH times out". `--device=link` takes the first interface with a carrier, avoiding a name that varies between `eth0` and `ens*` on Hyper-V. `--onboot=yes` is the part that actually matters. | `nmcli device status`, then `ssh labadmin@<ip>` |
+| 4.11 | Hostname | `--hostname=fm-rocky9-01` on the `network` line | Anaconda writes `/etc/hostname` directly. This **replaced** a `hostnamectl set-hostname … \|\| true` in `%post`, which could not have worked: `%post` is chrooted with no dbus, so there is no `hostnamed` to answer, and the `\|\| true` swallowed the failure — the host would have come up `localhost.localdomain` with nothing in any log to say why. | `hostnamectl status` |
+| | | | Neither 4.10 nor 4.11 was detectable by `ksvalidator`, which passed the file in both its broken and fixed forms. They are the worked example of why § 7 separates kickstart *syntax* from kickstart *semantics*. | |
 
 ## 5. Guest configuration (Ansible, layer 2)
 
@@ -149,10 +157,13 @@ and `integration/scripts/Test-Syntax.ps1` (PowerShell parse + `Lab.psd1` import)
 | `Lab.psd1` imports and has every required key | `Import-PowerShellDataFile` |
 | Layer 2 never mentions the hypervisor | `assert-layer-separation.sh`, negative-tested |
 | Lab paths are on D: | grep in `validate.sh` |
+| **Kickstart syntax** | `ksvalidator -v RHEL9` — passes. Negative-tested twice on copies: a typo'd directive (`selinuxx`) gives `Unknown command: selinuxx`, and a `%packages` section with no `%end` is reported against the exact line. Both exit 1, so a green result here means something. |
+| Shell lint | `shellcheck -s sh` over every `*.sh` |
+| YAML lint | `yamllint -d relaxed configure/` |
+| Ansible | `ansible-lint site.yml` and `ansible-playbook --syntax-check site.yml` |
 
 | **Not checked** | Why |
 |---|---|
-| **The kickstart** | `ksvalidator` (pykickstart) is not installed. A syntax error here leaves Anaconda at an interactive prompt on a VM with no console attached, which presents as "the install hung". **This is the highest-risk unvalidated file in the lab.** |
-| `ansible-lint`, `--syntax-check` | Ansible is not installed yet — it must wait for the WSL disk move (§ 1.4). |
-| `shellcheck`, `yamllint` | Same. |
-| **Whether any of it works** | Hyper-V was installed but not accessible to the account when this was written. Nothing here has created a VM. Treat the first run as part of writing it. |
+| **Kickstart *semantics*** | `ksvalidator` checks grammar, not sense. It passed this file when it had no `network` line and a `%post` hostname call that could not work (§ 4.10–4.11) — a combination that installs cleanly and yields an unreachable host. Both are fixed, but only by reading, not by any tool. A clean `ksvalidator` run is necessary and nowhere near sufficient. |
+| **Whether any of it works** | Nothing here has created a VM. Hyper-V access, the D: paths and the verified ISO are all confirmed present, but no install has been attempted. Treat the first run as part of writing it. |
+| ISO authenticity | § 1.7/1.8 — `verify-iso-signature.sh` has not been run and the fingerprint is not yet pinned. |

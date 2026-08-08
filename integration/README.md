@@ -47,6 +47,14 @@ Set-VMHost -VirtualHardDiskPath 'D:\filemover-lab\vhd' -VirtualMachinePath 'D:\f
 > `ext4.vhdx`, and that file lives on C: until it is moved. See the note at the top of
 > the script.
 
+It installs Ansible and the linters from apt, and `pykickstart` from PyPI into
+`~/.local` — Ubuntu has no package for it. If it finishes by reporting
+`ksvalidator MISSING`, that is the expected one-time outcome: `~/.local/bin` is
+added to `PATH` by `~/.profile` only when it already exists at login, so the shell
+that created it cannot see it. **Open a new shell and re-run.** The script exits
+non-zero rather than passing, deliberately — a bootstrap that reports success
+without the validators is worse than one that fails.
+
 **Media**:
 
 ```powershell

@@ -20,6 +20,12 @@
 # install into the system interpreter is how a WSL distro ends up with two
 # Ansibles and a PATH that decides between them; the apt package is older but
 # it is one thing, managed by one tool.
+#
+# pykickstart is the one exception, and not by choice: Ubuntu does not package
+# it. It is a Fedora/RHEL tool, and `apt-cache search kickstart` on 22.04 comes
+# back with youtube-dl. It is installed from PyPI into ~/.local instead --
+# --user, so it stays out of the system interpreter's site-packages and cannot
+# be what a later apt upgrade argues with.
 set -eu
 
 echo "== file-mover integration control node =="
@@ -55,9 +61,17 @@ sudo apt-get install -y --no-install-recommends \
     ansible-lint \
     shellcheck \
     yamllint \
-    pykickstart \
     rsync \
-    openssh-client
+    openssh-client \
+    python3-pip
+
+# --- pykickstart (PyPI) ---------------------------------------------------
+# Provides ksvalidator, which is the only thing that checks the kickstart file
+# before Anaconda does -- and Anaconda's way of reporting a syntax error is to
+# stop at an interactive prompt on a VM with no console attached, which
+# presents as "the install hung".
+echo "installing pykickstart from PyPI (no distribution package exists)"
+pip3 install --user --upgrade pykickstart
 
 # --- collections ----------------------------------------------------------
 # ansible.posix    firewalld, synchronize
@@ -68,12 +82,34 @@ sudo apt-get install -y --no-install-recommends \
 echo "installing required Ansible collections"
 ansible-galaxy collection install ansible.posix community.general
 
+# --- verify ---------------------------------------------------------------
+# This loop used to print MISSING and then exit 0, which made "installed
+# nothing" and "installed everything" look the same from the caller's side.
+# The whole point of this script is to make the validators exist, so not
+# having them is a failure, and it exits accordingly.
 echo ""
 echo "installed:"
+missing=0
 for t in ansible ansible-playbook ansible-lint shellcheck yamllint ksvalidator; do
     printf '  %-18s ' "$t"
-    command -v "$t" >/dev/null 2>&1 && "$t" --version 2>&1 | head -1 || echo "MISSING"
+    if command -v "$t" >/dev/null 2>&1; then
+        "$t" --version 2>&1 | head -1
+    else
+        echo "MISSING"
+        missing=$((missing + 1))
+    fi
 done
+
+if [ "$missing" -ne 0 ]; then
+    echo "" >&2
+    echo "FAILED: $missing tool(s) missing -- the control node is not usable." >&2
+    if [ -x "$HOME/.local/bin/ksvalidator" ]; then
+        echo "" >&2
+        echo "ksvalidator is installed at ~/.local/bin but is not on PATH." >&2
+        echo "Open a new shell, or: export PATH=\"\$HOME/.local/bin:\$PATH\"" >&2
+    fi
+    exit 1
+fi
 
 echo ""
 echo "next: copy the lab SSH key into WSL and chmod 600 it, then fill in"

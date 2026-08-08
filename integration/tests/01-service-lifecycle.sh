@@ -13,8 +13,9 @@
 # Usage:  sh 01-service-lifecycle.sh
 set -eu
 
+# No path to the binary here on purpose: every assertion below asks systemd what
+# it actually did, rather than inspecting the thing systemd was asked to run.
 UNIT=file-mover.service
-BIN=/usr/bin/file-mover
 CONF=/etc/file-mover/file-mover.ini
 PORT=8080
 

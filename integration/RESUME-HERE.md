@@ -1,8 +1,9 @@
 # Resume here
 
-Written 2026-08-08, immediately before a Windows sign-out to activate
-Hyper-V Administrators membership. This file exists so the next session — mine
-or a different one — can pick up without reconstructing anything from memory.
+Written 2026-08-08 before a Windows sign-out to activate Hyper-V Administrators
+membership; updated the same day, after the sign-out, once the control node was
+installed. This file exists so the next session — mine or a different one — can
+pick up without reconstructing anything from memory.
 
 Delete it once the lab has run once.
 
@@ -19,55 +20,53 @@ Delete it once the lab has run once.
 
 - WSL2 moved to `D:\WSL\Ubuntu`; podman machine to `D:\WSL\podman-machine-default`.
   C: went from 2.8 GB free to 142.4 GB.
-- `DESKTOP-QREB78E\Joey` added to `Hyper-V Administrators`. **Not yet effective** —
-  the token in the current session predates it, which is why the sign-out is needed.
+- `DESKTOP-QREB78E\Joey` added to `Hyper-V Administrators`. **Effective** after the
+  sign-out: `Get-VMHost` answers, and `VirtualHardDiskPath` / `VirtualMachinePath`
+  read back as `D:\filemover-lab\vhd` and `…\vm`, so the earlier `Set-VMHost` did take.
 - `D:\filemover-lab\{iso,vhd,vm}` exist. `keys\` does **not** — my earlier chat
   message omitted it from the `New-Item` list. `New-KickstartIso.ps1` creates it, so
   this is not a blocker, but it is why the directory is missing.
 - `Rocky-9.8-x86_64-minimal.iso` downloaded to `D:\filemover-lab\iso` and SHA256
   verified against the published `CHECKSUM` (`d338032c…`). 9.8 is the current 9.x.
 - `Lab.psd1` pins that exact file name.
+- **Control node installed** — ansible 2.10.8, ansible-lint 5.4.0, shellcheck 0.8.0,
+  yamllint 1.26.3, pykickstart 3.77.
+- **`validate.sh` passes with nothing skipped**, including `ksvalidator -v RHEL9` on
+  the kickstart. That check was negative-tested on copies (a typo'd directive and an
+  unterminated `%packages`) and fails on both, so the pass means something.
 
 ## Not done, and why
 
 | Item | Blocked on |
 |---|---|
-| Ansible + lint tooling in WSL | `sudo` prompts; cannot install unattended |
-| **Kickstart validation** | needs `pykickstart`, which needs the above. **Highest-risk unvalidated file in the lab** — a syntax error leaves Anaconda at an interactive prompt on a VM with no console, presenting as "the install hung" |
-| `ansible-lint`, `--syntax-check`, `shellcheck`, `yamllint` | same |
 | GPG fingerprint pin | needs a human to confirm it against `rockylinux.org` |
-| Creating any VM | Hyper-V access, i.e. the sign-out |
-| `Set-VMHost` path redirect | ran, but cannot be confirmed until Hyper-V is readable |
+| `verify-iso-signature.sh` | not yet run |
+| Creating any VM | nothing — this is the next real step |
+| **Kickstart *semantics*** | reviewed by hand, two defects fixed (§ 4.10–4.11); still unproven until an install runs |
 
-## After signing back in — in this order
+## Gotchas already paid for — do not rediscover these
 
-**1. Confirm Hyper-V is reachable and the paths took:**
+- **`pykickstart` is not an Ubuntu package.** Not under that name, not as
+  `python3-pykickstart`; `apt-cache search kickstart` returns `youtube-dl`. It comes
+  from PyPI via `pip3 install --user`. An earlier version of the install script had
+  it in the apt list, and `set -eu` meant the whole install aborted there having
+  installed nothing.
+- **`~/.local/bin` is not on `PATH` in the shell that creates it.** Ubuntu's
+  `~/.profile` adds it only if it exists at login, so `ksvalidator` installs fine and
+  `command -v` still fails. Open a new shell. This is not a dotfile bug.
+- **The install script exits 1 if any tool is missing.** It used to print `MISSING`
+  and exit 0, which made "installed nothing" and "installed everything" look identical.
 
-```powershell
-Get-VMHost | Select-Object VirtualHardDiskPath, VirtualMachinePath
-```
+## Next — in this order
 
-Both should be under `D:\filemover-lab`. If they are not, re-run:
-
-```powershell
-Set-VMHost -VirtualHardDiskPath 'D:\filemover-lab\vhd' -VirtualMachinePath 'D:\filemover-lab\vm'
-```
-
-**2. Install the control node** (will ask for your password):
-
-```sh
-sh integration/prereqs/install-control-node.sh
-```
-
-**3. Validate what has never been validated.** Do this BEFORE building a VM — the
-kickstart is the file whose failure is most expensive to diagnose:
+**1. Validate the ISO's authenticity and pin the key.** SHA256 (done) proves the
+bytes match the CHECKSUM file; it does not prove who wrote the CHECKSUM file:
 
 ```sh
-sh integration/scripts/validate.sh          # now with ksvalidator, ansible-lint, shellcheck
 sh integration/scripts/verify-iso-signature.sh
 ```
 
-**4. Only then**, build the VM:
+**2. Then** build the VM:
 
 ```powershell
 cd integration\provision\hyperv
@@ -76,7 +75,7 @@ cd integration\provision\hyperv
 .\Get-TestLab.ps1        # once the install finishes, ~10-15 min
 ```
 
-**5. Configure and test:**
+**3. Configure and test:**
 
 ```sh
 cd integration/configure
@@ -90,7 +89,13 @@ sh ../tests/run-all.sh
 Not pessimism — none of it has executed, and these are the specific places I would
 look first:
 
-1. **The kickstart.** Never validated. Watch the install in
+1. **The kickstart — semantics, not syntax.** `ksvalidator` passes it, which rules
+   out typos and unterminated sections and nothing else. Two defects it passed
+   happily have since been fixed by reading (§ 4.10–4.11 of the inventory): the file
+   had no `network` line, and set the hostname with `hostnamectl` in a dbus-less
+   `%post` chroot. Both are now the single `network … --onboot=yes --hostname=…`
+   line. If the VM still comes up unreachable, `--device=link` picking the wrong
+   interface is the next suspect. Watch the install in
    `vmconnect.exe localhost fm-rocky9-01` rather than assuming it is progressing.
 2. **Secure Boot.** `MicrosoftUEFICertificateAuthority` is the right template for
    Rocky's shim, but if the VM says "no bootable device" that is the first suspect,
