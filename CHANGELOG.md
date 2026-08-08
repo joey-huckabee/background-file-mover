@@ -14,6 +14,75 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Added — C5, the REST control plane
+
+- **A bounded pool of connection handlers (ADR-0013).** One accept thread, N
+  handler threads, and `503` when every handler is busy. Serial-accept — the
+  inherited design — makes one slow client a total outage of the control plane,
+  and needs no attacker to trigger: a suspended laptop or a dead reverse proxy
+  will do. A single-threaded event loop was rejected for a subtler reason worth
+  keeping: route handlers call `JobManager`, which reaches SQLite, and a durable
+  write blocks for `busy_timeout`. In an event loop that freezes *every*
+  connection, because they share the thread now parked inside `sqlite3_step`.
+- **The listening socket** (`L2-CTL-001`), defaulting to loopback — which at
+  v1.0.0 is the entire access control, since there is no authentication and
+  ADR-0003 forbids in-process TLS. `port()` reports the port actually bound,
+  read back with `getsockname`, which is what lets every test bind to port 0
+  without a fixed port and without racing another run.
+- **Per-syscall deadlines on every connection** (`L2-SEC-009`), configurable
+  through `ServerOptions`. Per *syscall*, not per request: a client that keeps
+  sending is never cut off for being slow overall, only for going silent. A
+  zero timeout is refused, because to `setsockopt` it means "block forever" —
+  the configuration the requirement exists to forbid, arriving silently as a
+  default-constructed `int`.
+- **`IoResult`** distinguishes `TimedOut` from `PeerClosed` from `Error`.
+  Collapsing them is what makes a stalled connection indistinguishable from a
+  client that hung up, and `L2-SEC-009` wants the suspicion recorded.
+- **A route table of pure functions** (`L2-CTL-005`, `L2-CTL-014`): `/healthz`
+  and the four lifecycle commands, with `404` for unknown routes, `405` **with
+  `Allow`**, and a JSON error body throughout. `status_for` is a total function
+  over `CommandResult`, which is why C4 made it a typed enum. The test file
+  opens no sockets — that is `L2-CTL-014` being useful rather than merely
+  satisfied, since the error matrix is the part that rots unnoticed.
+- **The connection driver and the hostile battery.** Garbage → 400, oversized
+  head → 431, gigabyte declaration → 413, chunked → 400, trailing bytes → 400,
+  and a silent client timed out. The battery fires *first*, then the same
+  instance answers `/healthz` — the assertion that separates "rejected the
+  input" from "survived rejecting it", since every other case opens its own
+  connection and would pass against a server that had wedged itself.
+- **`POST /api/jobs`** and manager-side id allocation from the durable sequence
+  (`L2-JOB-015`). Answers `202`, not `200`: the job is queued and the move has
+  not happened. Allocation lives in the manager because an id is durable state;
+  a REST layer minting its own would put identifier policy in the wrong layer.
+- **Two gates**, both negative-tested: `no-timed-condwait` bans `wait_for` and
+  `wait_until` in `src/` and `include/`, and `manager-lock` requires every
+  acquisition of the manager mutex to go through `ManagerLock` so the
+  store-under-mutex assertion cannot be silently bypassed.
+
+### Fixed — C5
+
+- **`getaddrinfo` segfaults on the GCC 4.8.5 fidelity image.** Reproduced with
+  a thirty-line program containing no project code: it crashes *inside* the
+  call, before returning, even with `AI_NUMERICHOST` set — glibc's name-service
+  switch initialises and dlopens regardless of whether resolution was asked
+  for. Replaced with `inet_pton`, which is a parser rather than a resolver: it
+  reads no configuration, opens nothing, and cannot resolve a name even by
+  accident. A stronger guarantee than the flag, enforced by what the function
+  is.
+- **The store was touched under the manager mutex in two places.** `cancel()`
+  held it across `store.load()` *and* `store.update_state()`, and `shutdown()`
+  across `store.close()`. Both were introduced by the commit that wrote the
+  invariant down as a comment, and both were found by the assertion that
+  replaced the comment.
+- **`pause`, `resume` and `cancel` answered 404 on a stopped manager** rather
+  than 503. The job may well exist in the durable record; what is missing is
+  the manager, and "no such job" sends an operator to look for the wrong
+  problem during startup.
+- **The fd-relative gate had a latent false positive.** Its pattern matched
+  `::open(` anywhere, including the tail of a qualified member name, so
+  `ListenSocket::open` was flagged. It had never fired before by luck: the only
+  other such member is `JobStore::open`, and `store.cpp` is on the allowlist.
+
 ### Added — C4, the job manager
 
 - **The job manager and worker pool** — the project's first threads.

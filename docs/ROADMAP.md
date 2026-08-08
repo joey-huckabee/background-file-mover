@@ -9,8 +9,49 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-06 · **Branch:** `c5-rest-control-plane` · **C4 is merged. Next
-milestone: C5 — the REST control plane.**
+**Date:** 2026-08-07 · **Branch:** `c6-daemon-entry-point` · **C5 is delivered and on
+`main`. Next milestone: C6 — the daemon entry point.**
+
+```
+In v1.0.0 scope:  115 of 214 requirements verified (53.7%)
+Tests:            8,821 assertions / 252 cases
+Line coverage:    87.8% overall (floor 85%)
+Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
+                  coverage, clang-tidy, ten source gates -- all green
+```
+
+### Start here for C6
+
+**The service still cannot start.** C5 delivered a server a test can start and stop
+in-process; there is no `main`, no signal handling, no singleton lock. That is C6, and
+`docs/ROADMAP.md`'s C6 entry below already lists the requirements written for it.
+
+Three things from C5 that C6 will meet immediately:
+
+1. **Do not copy the inherited 200 ms `nanosleep` wait loop** — already recorded below,
+   and now doubly true: `make no-timed-condwait` forbids the other reflex
+   (`wait_until` on a condition variable) because it breaks ThreadSanitizer. Block on
+   `sigsuspend` or a self-pipe. `ConnectionServer::shutdown` already demonstrates the
+   self-pipe pattern against `poll`.
+2. **`SIGPIPE` must be ignored process-wide** (`L2-CTL-018`). C5 works around its absence
+   with `MSG_NOSIGNAL` on every send; that is belt and braces, not a substitute — any
+   future write that forgets the flag kills the service.
+3. **Startup order is load-bearing.** `JobManager::start` opens its store *before*
+   spawning workers, because SQLite's lazy initialization is not thread-safe against
+   several threads calling `sqlite3_open` as their first SQLite call. Measured, and
+   commented at the call site. A `main` that reorders startup can reintroduce it.
+
+### How C5 was delivered, and one deviation worth knowing
+
+C5 landed as six commits fast-forwarded onto `main` rather than as one `--no-ff` merge
+at the boundary. The *Merge cadence* section below asks for the latter, and it did not
+happen: each step was verified on every tier and pushed, so `main` was never broken, but
+the history shows the steps rather than a single milestone commit. Recorded because the
+next reader looking for a C5 merge commit will not find one.
+
+---
+
+### The C5 milestone (delivered)
 
 > **The SonarCloud gate failure after the C4 merge is diagnosed and fixed.**
 >
