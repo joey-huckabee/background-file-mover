@@ -61,6 +61,8 @@ Applied by `integration/provision/hyperv/New-TestLab.ps1`.
 | 3.5 | Auto start / stop | `Nothing` / `ShutDown` | A half-installed VM that silently reboots into a fresh install loop after a host reboot is hard to diagnose. | `Get-VM fm-rocky9-01 \| fl Automatic*` |
 | 3.6 | Checkpoints | Disabled | An automatic production checkpoint during install creates a differencing disk nobody asked for. Revert-between-tests comes later, deliberately. | `(Get-VM fm-rocky9-01).CheckpointType` |
 | 3.7 | Existing VM | refuse, unless `-Force` | A test result that depends on what a previous run left on disk is not a test result. | run it twice |
+| 3.8 | Kickstart ISO writer | IMAPI2FS via a C# helper (`FileMover.IsoWriter`, `Add-Type`) | `IFileSystemImageResult.ImageStream` is an `IStream`, but PowerShell's COM adapter does not carry interface type information, so casting it in PowerShell fails with *"Cannot convert the System.\_\_ComObject value … to type IStream"*. In C# the same object is an ordinary RCW and `as IStream` succeeds. No `/unsafe` is needed: the byte count `IStream.Read` wants as an `IntPtr` comes from `AllocHGlobal`. Deliberately **not** genisoimage/xorriso/oscdimg/ADK — one 57 KB image does not justify a toolchain on a host with no room on C:. | `New-KickstartIso.ps1` | mount the ISO; it holds one `ks.cfg`, label `OEMDRV` |
+| 3.9 | Running layer 1 from the WSL share | `Set-ExecutionPolicy -Scope Process Bypass` | The repo lives in WSL, so the scripts are launched over `\\wsl.localhost\…`. `CurrentUser` policy is `Unrestricted`, which still **prompts** for scripts from a network path — a per-script `[D] Do not run` prompt that defaults to no. `Unblock-File` does not help: the zone comes from the path being a UNC share, not from a `Zone.Identifier` stream. Process scope keeps the relaxation inside that one window. | **Manual, per shell** | the script runs without a Security warning |
 
 ## 4. Guest install (kickstart)
 
@@ -162,6 +164,7 @@ and `integration/scripts/Test-Syntax.ps1` (PowerShell parse + `Lab.psd1` import)
 | YAML lint | `yamllint -d relaxed configure/` |
 | Ansible | `ansible-lint site.yml` and `ansible-playbook --syntax-check site.yml` |
 | **ISO authenticity** | `verify-iso-signature.sh` — `SIGNATURE OK`, fingerprint matches the § 1.8 pin. Negative-tested both ways: a tampered `CHECKSUM` gives `BAD signature`, and a wrong pin gives `FINGERPRINT MISMATCH`, both exit 1. |
+| **The kickstart ISO is correct** | Built, mounted, and inspected: label `OEMDRV`, one file `ks.cfg` (5,454 bytes). The **rendered** file — the exact bytes Anaconda reads, with the SSH key substituted — passes `ksvalidator -v RHEL9`, contains no `@KEY@`, and is **0 CR bytes / 105 LF**, i.e. genuinely LF-only with no BOM. |
 
 | **Not checked** | Why |
 |---|---|

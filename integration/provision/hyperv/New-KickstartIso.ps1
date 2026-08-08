@@ -91,34 +91,48 @@ try {
     $fsi.Root.AddTree($staging, $false)
 
     $result = $fsi.CreateResultImage()
-    $stream = $result.ImageStream
 
-    # Copy the COM IStream to disk. There is no managed wrapper for this, so it
-    # goes through the shell's IStream marshaller.
-    $adapter = New-Object -ComObject ADODB.Stream
-    $adapter.Type = 1          # binary
-    $adapter.Open()
-    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($adapter) | Out-Null
-
-    $bufferSize = 1MB
-    $fileStream = [System.IO.File]::Create($isoPath)
-    try {
-        $comStream = [System.Runtime.InteropServices.ComTypes.IStream] $stream
-        $buffer = New-Object byte[] $bufferSize
-        $bytesReadPtr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(8)
-        try {
-            while ($true) {
-                $comStream.Read($buffer, $bufferSize, $bytesReadPtr)
-                $read = [System.Runtime.InteropServices.Marshal]::ReadInt32($bytesReadPtr)
-                if ($read -le 0) { break }
-                $fileStream.Write($buffer, 0, $read)
+    # Write the image to disk from C#, not from PowerShell.
+    #
+    # IFileSystemImageResult.ImageStream is an IStream. PowerShell wraps COM
+    # objects in an adapter that does not carry the interface's type
+    # information, so `[...ComTypes.IStream] $stream` fails with "Cannot convert
+    # the System.__ComObject value ... to type IStream" -- the cast has nothing
+    # to work from. Inside C# the same object is an ordinary RCW and `as
+    # IStream` succeeds, which is why every working IMAPI2FS recipe goes through
+    # Add-Type. No /unsafe here: the byte count IStream.Read wants as an IntPtr
+    # is served just as well by AllocHGlobal as by a pointer to a local.
+    if (-not ('FileMover.IsoWriter' -as [type])) {
+        Add-Type -TypeDefinition @'
+namespace FileMover {
+    public static class IsoWriter {
+        public static void Write(string path, object imageStream, int blockSize, int totalBlocks) {
+            var stream = imageStream as System.Runtime.InteropServices.ComTypes.IStream;
+            if (stream == null) {
+                throw new System.ArgumentException("the object supplied is not an IStream");
             }
-        } finally {
-            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($bytesReadPtr)
+            System.IntPtr read = System.Runtime.InteropServices.Marshal.AllocHGlobal(4);
+            try {
+                byte[] buffer = new byte[blockSize];
+                using (var file = System.IO.File.Create(path)) {
+                    while (totalBlocks-- > 0) {
+                        stream.Read(buffer, blockSize, read);
+                        int count = System.Runtime.InteropServices.Marshal.ReadInt32(read);
+                        if (count <= 0) { break; }
+                        file.Write(buffer, 0, count);
+                    }
+                    file.Flush();
+                }
+            } finally {
+                System.Runtime.InteropServices.Marshal.FreeHGlobal(read);
+            }
         }
-    } finally {
-        $fileStream.Dispose()
     }
+}
+'@
+    }
+
+    [FileMover.IsoWriter]::Write($isoPath, $result.ImageStream, $result.BlockSize, $result.TotalBlocks)
 
     $size = (Get-Item $isoPath).Length
     if ($size -lt 1KB) { throw "produced ISO is $size bytes; something went wrong" }

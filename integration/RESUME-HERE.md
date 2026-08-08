@@ -60,6 +60,15 @@ Delete it once the lab has run once.
   `command -v` still fails. Open a new shell. This is not a dotfile bug.
 - **The install script exits 1 if any tool is missing.** It used to print `MISSING`
   and exit 0, which made "installed nothing" and "installed everything" look identical.
+- **PowerShell cannot cast a COM object to `IStream`.** Its COM adapter carries no
+  interface type information, so `[...ComTypes.IStream] $stream` throws *"Cannot
+  convert the System.\_\_ComObject value …"*. The IMAPI2FS image write therefore goes
+  through a small `Add-Type` C# helper, where the same object is a plain RCW. This is
+  why every working IMAPI2FS recipe on the internet uses `Add-Type`.
+- **Layer 1 prompts before running, off the WSL share.** `Unrestricted` still asks for
+  scripts on a UNC path, and `Unblock-File` will not silence it — the zone comes from
+  the path, not a `Zone.Identifier` stream. `Set-ExecutionPolicy -Scope Process Bypass`
+  in the window you are working in.
 - **Never use a fixed `/tmp/<name>` for scratch output in these scripts.** Run one of
   them under `sudo` once and the file is left root-owned; every later run as your own
   user fails its redirect, `set -e` calls that a failed check, and the diagnostics get
@@ -69,11 +78,18 @@ Delete it once the lab has run once.
 
 ## Next — in this order
 
-**1.** Build the VM:
+Layer 1 runs from a **Windows** PowerShell window, over the WSL share, because the
+Hyper-V cmdlets exist only on the Windows side:
 
 ```powershell
-cd integration\provision\hyperv
-.\New-KickstartIso.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # see inventory 3.9
+cd '\\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover\integration\provision\hyperv'
+```
+
+**1.** Build the VM (`New-KickstartIso.ps1` is already done — the ISO exists and was
+verified by mounting it):
+
+```powershell
 .\New-TestLab.ps1
 .\Get-TestLab.ps1        # once the install finishes, ~10-15 min
 ```

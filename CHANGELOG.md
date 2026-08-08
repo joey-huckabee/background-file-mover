@@ -30,6 +30,30 @@ tag, not a branch.
   (shellcheck `SC2034`). The test asks systemd what it actually did rather than
   inspecting the binary, so the variable had no reader.
 
+### Fixed — `New-KickstartIso.ps1` could never have produced an ISO
+
+- **The IMAPI2FS image was written through a cast PowerShell cannot perform.**
+  `IFileSystemImageResult.ImageStream` is an `IStream`, but PowerShell wraps COM objects
+  in an adapter that carries no interface type information, so
+  `[System.Runtime.InteropServices.ComTypes.IStream] $stream` failed with *"Cannot
+  convert the `System.__ComObject` value … to type `IStream`"* — the cast had nothing to
+  work from. The write now goes through a small `Add-Type` C# helper
+  (`FileMover.IsoWriter`), where the same object is an ordinary RCW and `as IStream`
+  succeeds. No `/unsafe`: the byte count `IStream.Read` wants as an `IntPtr` comes from
+  `AllocHGlobal`.
+- Removed dead code that looked deliberate: an `ADODB.Stream` was created, configured
+  and immediately released without ever being used.
+- **The ISO is now built and verified**, not merely produced. Mounted and inspected:
+  volume label `OEMDRV`, one file `ks.cfg` of 5,454 bytes. The rendered file — the exact
+  bytes Anaconda will read, SSH key substituted — passes `ksvalidator -v RHEL9`,
+  contains no `@KEY@`, and measures **0 CR bytes against 105 LF** with no BOM, which is
+  what the script's line-ending handling claims and had never been checked.
+- Documented in `docs/INTEGRATION-INVENTORY.md` § 3.8, along with § 3.9: layer 1 is
+  launched over `\\wsl.localhost\…`, and an `Unrestricted` policy still prompts for
+  scripts on a UNC path. `Unblock-File` does not help — the zone comes from the path,
+  not a `Zone.Identifier` stream — so the documented fix is
+  `Set-ExecutionPolicy -Scope Process Bypass`.
+
 ### Fixed — scratch files at fixed `/tmp` paths
 
 - **`verify-iso-signature.sh` could report a false negative, illustrated with evidence
