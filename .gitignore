@@ -237,8 +237,11 @@ compile_commands.events.json
 integration/configure/inventory.ini
 integration/configure/*.retry
 
-# Never. The lab SSH key lives on D:\filemover-lab\keys and stays there.
+# Never. The lab SSH key and the generated console password live on
+# D:\filemover-lab\keys and stay there. They are outside this tree entirely, so
+# these patterns are a backstop against someone copying one in "just to look".
 *.pem
 id_ed25519
 id_rsa
 fm-lab-ed25519*
+console-password.txt

@@ -46,6 +46,8 @@ Write-Host ("Uptime  : {0}" -f $vm.Uptime)
 Write-Host ("Memory  : {0} MB" -f ($vm.MemoryAssigned / 1MB))
 
 $addresses = @()
+$method = ''
+
 foreach ($nic in (Get-VMNetworkAdapter -VM $vm)) {
     foreach ($ip in $nic.IPAddresses) {
         # IPv4 only. The lab addresses hosts by v4 because that is what the
@@ -53,22 +55,77 @@ foreach ($nic in (Get-VMNetworkAdapter -VM $vm)) {
         # v6 here would just be noise to copy past.
         if ($ip -match '^\d+\.\d+\.\d+\.\d+$' -and $ip -ne '127.0.0.1') {
             $addresses += $ip
+            $method = 'integration services'
+        }
+    }
+}
+
+# --- fallback: find the guest by its MAC in the host's ARP cache -----------
+#
+# Integration services report an address only if the guest runs the KVP daemon,
+# which comes from hyperv-daemons -- NOT part of @^minimal-environment, and the
+# lab does not install it. On the first real build this branch was the whole
+# story: the VM was up, networked and answering SSH for fifteen minutes while
+# this script would have kept saying "no address yet, the install is probably
+# still running". A status check that is confidently wrong is worse than one
+# that admits it does not know.
+#
+# The ARP cache is authoritative in a different way: the guest is on the LAN, so
+# the host learns its MAC-to-IP mapping by talking to it. The MAC is Hyper-V's
+# own, which keeps this in layer 1 where it belongs.
+if ($addresses.Count -eq 0 -and $vm.State -eq 'Running') {
+    $mac = (Get-VMNetworkAdapter -VM $vm).MacAddress | Select-Object -First 1
+    if ($mac -and $mac -ne '000000000000') {
+        $dashed = $mac -replace '(..)(..)(..)(..)(..)(..)', '$1-$2-$3-$4-$5-$6'
+        Write-Host ("MAC     : {0}" -f $dashed)
+
+        $hit = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+               Where-Object { $_.LinkLayerAddress -eq $dashed -and
+                              $_.State -in @('Reachable', 'Stale', 'Delay', 'Probe', 'Permanent') }
+
+        if ($null -eq $hit) {
+            # Nothing has spoken to the guest yet, so the host has no entry.
+            # Sweep the subnet the lab switch is on to provoke one. Cheap, and
+            # confined to the interface the VM is actually attached to.
+            $hostIf = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                      Where-Object { $_.InterfaceAlias -like "*$($lab.SwitchName)*" } |
+                      Select-Object -First 1
+            if ($hostIf -and $hostIf.PrefixLength -eq 24) {
+                $prefix = ($hostIf.IPAddress -replace '\.\d+$', '')
+                Write-Host "no ARP entry yet; sweeping $prefix.0/24 to provoke one"
+                # cmd's `start /b` rather than 254 Start-Process calls: this is
+                # the form that was actually used to find the guest the first
+                # time, it completes in about ten seconds, and it does not spawn
+                # 254 PowerShell-tracked processes at once.
+                cmd /c "for /L %i in (1,1,254) do @start /b ping -n 1 -w 200 $prefix.%i >nul" | Out-Null
+                Start-Sleep -Seconds 10
+                $hit = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                       Where-Object { $_.LinkLayerAddress -eq $dashed }
+            } elseif ($hostIf) {
+                Write-Host ("host is {0}/{1}; only /24 is swept automatically" -f $hostIf.IPAddress, $hostIf.PrefixLength)
+            }
+        }
+
+        if ($hit) {
+            $addresses += ($hit | Select-Object -ExpandProperty IPAddress -Unique)
+            $method = 'ARP (integration services reported nothing)'
         }
     }
 }
 
 if ($addresses.Count -eq 0) {
     Write-Host ""
-    Write-Host "No IPv4 address reported yet."
+    Write-Host "No IPv4 address found, by integration services or by ARP."
     if ($vm.State -eq 'Running') {
         Write-Host "If the install is still running this is expected -- it takes 10-15 minutes."
         Write-Host "Watch it with: vmconnect.exe localhost $($lab.VmName)"
+        Write-Host "If it has finished, the guest may not have got a DHCP lease."
     }
     return
 }
 
 $primary = $addresses[0]
-Write-Host ("Address : {0}" -f ($addresses -join ', '))
+Write-Host ("Address : {0}  (via {1})" -f ($addresses -join ', '), $method)
 Write-Host ""
 Write-Host "Next:"
 Write-Host "  1. cd integration/configure && cp inventory.ini.example inventory.ini"

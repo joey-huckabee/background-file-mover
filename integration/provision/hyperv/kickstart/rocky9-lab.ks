@@ -80,11 +80,28 @@ selinux --enforcing
 # will have to make on a real deployment.
 firewall --enabled --service=ssh
 
-# Root login disabled entirely; the lab admin account is the only way in, and
-# it authenticates by key. A password-less root account on a LAN-visible VM is
-# not acceptable even in a lab.
+# Root login disabled entirely. A password-less root account on a LAN-visible VM
+# is not acceptable even in a lab.
 rootpw --lock
-user --name=labadmin --groups=wheel --lock
+
+# labadmin has a password for the CONSOLE only, and a key for the network.
+#
+# The first build of this lab locked labadmin's password too, on the reasoning
+# that key-only is stricter. It is, and it also meant that if sshd had failed to
+# start there would have been no way into the machine at all -- the exact
+# "a VM with no console" problem this file's other comments keep warning about,
+# applied to ourselves. A lab that cannot be rescued has to be rebuilt to be
+# diagnosed, and a 15-minute rebuild destroys the evidence you wanted.
+#
+# @CONSOLEPW@ is replaced by New-KickstartIso.ps1 with a generated password,
+# which it writes to the lab key directory next to the SSH private key. It is
+# NOT in this repository and is not the same on two machines.
+#
+# --plaintext because the password is substituted at ISO-build time on Windows,
+# which has no crypt(3) to pre-hash it with. The ISO carrying it lives in the
+# same directory as the SSH private key, so it is inside a boundary the lab
+# already treats as secret.
+user --name=labadmin --groups=wheel --password=@CONSOLEPW@ --plaintext
 sshkey --username=labadmin "@KEY@"
 
 # Passwordless sudo for the lab account. Ansible needs to escalate without an
@@ -94,6 +111,29 @@ sshkey --username=labadmin "@KEY@"
 %post --erroronfail
 echo 'labadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/90-labadmin
 chmod 0440 /etc/sudoers.d/90-labadmin
+
+# Keep SSH key-only now that labadmin has a password.
+#
+# The password above exists for the console and nothing else. Left alone, sshd
+# would happily accept it over the network, which would quietly undo the
+# key-only decision -- the account would go from "unreachable without the key"
+# to "guessable from the LAN" without a single line saying so.
+#
+# This is in the kickstart rather than in Ansible, despite the rule at the top
+# of this file, because it has to be true at FIRST BOOT. Applying it in the
+# playbook leaves a window between install and configuration during which the
+# VM is on the LAN accepting passwords, and the length of that window depends on
+# when someone gets round to running Ansible.
+#
+# RHEL 9's sshd_config begins with Include /etc/ssh/sshd_config.d/*.conf, and
+# first-obtained-value-wins means a drop-in read early overrides the main file.
+mkdir -p /etc/ssh/sshd_config.d
+cat > /etc/ssh/sshd_config.d/99-lab-keyonly.conf <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+EOF
+chmod 0600 /etc/ssh/sshd_config.d/99-lab-keyonly.conf
 %end
 
 # --- services --------------------------------------------------------------

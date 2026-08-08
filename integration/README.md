@@ -82,12 +82,21 @@ reproducible.
 
 ## Running it
 
+Layer 1 runs from a **Windows** PowerShell window — the Hyper-V cmdlets exist only
+there — and the repo is reached over the WSL share:
+
 ```powershell
-cd integration\provision\hyperv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+cd '\\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover\integration\provision\hyperv'
 .\New-KickstartIso.ps1        # builds the OEMDRV ISO Anaconda auto-detects
 .\New-TestLab.ps1             # creates the switch (if absent) and the VM, starts install
 .\Get-TestLab.ps1             # state, IP address, and what to do next
 ```
+
+The `Set-ExecutionPolicy` line is needed because an `Unrestricted` policy still
+*prompts* for scripts on a UNC path. `Unblock-File` will not silence it — the zone
+comes from the path being a share, not from a `Zone.Identifier` stream. Process scope
+keeps the relaxation inside that one window.
 
 ```sh
 cd integration/configure
@@ -96,12 +105,55 @@ ansible-playbook -i inventory.ini site.yml
 sh ../tests/run-all.sh
 ```
 
-Teardown is `.\Remove-TestLab.ps1`, which is idempotent and removes the disk as well as
-the VM. A lab that leaves 40 GB behind on every run is a lab nobody runs twice.
+## Getting in
+
+| | |
+|---|---|
+| User | `labadmin` (never root — `rootpw --lock`) |
+| Over SSH | the key at `D:\filemover-lab\keys\fm-lab-ed25519`. **Key only** — sshd has `PasswordAuthentication no` |
+| At the console | the generated password in `D:\filemover-lab\keys\console-password.txt` |
+| Escalation | passwordless `sudo` |
+
+Copy the key into WSL and `chmod 600` it before use. ssh refuses a key read from
+`/mnt/d`, because DrvFs reports every file as `0777` and the error message does not
+say that.
+
+The console password exists so that a VM whose sshd did not start can still be
+diagnosed rather than rebuilt — rebuilding to diagnose destroys the evidence. It is
+generated per machine, lives beside the private key, and is never in git.
+
+## Recreating it
+
+```powershell
+.\Remove-TestLab.ps1          # stops the VM, deletes it, its VHDX and its VM directory
+.\New-KickstartIso.ps1        # only needed if the kickstart or the key changed
+.\New-TestLab.ps1
+.\Get-TestLab.ps1
+```
+
+`Remove-TestLab.ps1` is idempotent and deletes the disk as well as the VM — a lab that
+leaves 40 GB behind on every run is a lab nobody runs twice. It leaves the virtual
+switch alone unless you pass `-RemoveSwitch`, because tearing down an external switch
+drops the host's own networking for several seconds.
+
+Three things that bite on a rebuild:
+
+1. **The new VM has a new SSH host key.** If DHCP hands it the same address, ssh
+   refuses to connect with `REMOTE HOST IDENTIFICATION HAS CHANGED`. Clear the old
+   entry first: `ssh-keygen -R <ip>`.
+2. **The address will probably change.** `inventory.ini` is gitignored and holds the
+   old one; update it from `Get-TestLab.ps1`.
+3. **`New-KickstartIso.ps1` cannot replace an ISO that is still attached to a VM.**
+   Hyper-V holds the file open. The script detects this and names the VM and the
+   command to detach it, rather than reporting a bare "used by another process".
+
+The SSH key and the console password are **reused, not regenerated**, if they already
+exist. Replacing either would lock you out of any VM still running from an earlier
+build.
 
 ## Status
 
-**Phase 1 only, and nothing here has been executed yet.** Written against a machine
-where Hyper-V was installed but not yet accessible to the account. Syntax is validated
-(PowerShell AST parse, `sh -n`, YAML load); behaviour is not. Treat the first run as
-part of writing it.
+**Phase 1. Built and verified once, on 2026-08-08.** A Rocky 9.8 guest installs
+unattended, boots, takes a DHCP lease, and accepts SSH key authentication as
+`labadmin` with SELinux `Enforcing` and passwordless sudo. What has **not** run yet is
+layer 2: the Ansible playbook and `tests/run-all.sh`.

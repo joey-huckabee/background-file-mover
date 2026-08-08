@@ -30,6 +30,43 @@ tag, not a branch.
   (shellcheck `SC2034`). The test asks systemd what it actually did rather than
   inspecting the binary, so the variable had no reader.
 
+### Added — the lab is rebuildable
+
+First real build succeeded: a Rocky 9.8 guest installed unattended, booted, took a DHCP
+lease, and accepted SSH key auth as `labadmin` with SELinux **`Enforcing`**, passwordless
+sudo, firewalld running, and `multi-user.target`. Both kickstart defects fixed beforehand
+proved real — the hostname came up `fm-rocky9-01` and the interface came up at all.
+
+Three things the first build exposed, all fixed so a rebuild does not rediscover them:
+
+- **The lab could not be rescued.** `labadmin` was key-only *and* password-locked, and
+  root was locked, so a guest whose sshd failed to start would have been unreachable
+  entirely — the "VM with no console" problem this lab keeps warning about, applied to
+  itself, where the only remedy is a 15-minute rebuild that destroys the evidence.
+  `New-KickstartIso.ps1` now generates a 24-character console password from a CSPRNG,
+  stores it beside the SSH private key with an owner-only ACL, and substitutes it into
+  the kickstart. To keep that from silently becoming a *network* password,
+  the kickstart now writes `/etc/ssh/sshd_config.d/99-lab-keyonly.conf` with
+  `PasswordAuthentication no` — in the kickstart rather than Ansible, because it has to
+  hold at first boot rather than whenever someone runs the playbook.
+- **`Get-TestLab.ps1` would have reported "no address" forever.** It read the IP from
+  Hyper-V integration services, which need the KVP daemon from `hyperv-daemons` — not in
+  `@^minimal-environment`. A 25-minute watcher polled 50 times and got nothing while the
+  VM was up and answering SSH for fifteen of those minutes; the script would have kept
+  saying the install was probably still running. It now falls back to matching the VM's
+  MAC in the host neighbour cache, sweeping the lab switch's /24 if the cache is cold,
+  and reports which method found the address.
+- **`New-KickstartIso.ps1` failed with a bare IOException** when an ISO was still
+  attached to a VM. It now names the VM holding it and prints the command to detach.
+
+Also: substitution is now fail-closed — the script refuses to build if `@KEY@` or
+`@CONSOLEPW@` survives, since a VM whose password is the literal `@CONSOLEPW@` would
+look fine until someone needed it. `integration/README.md` gains *Getting in* and
+*Recreating it* sections, the latter covering the three rebuild traps (stale SSH host
+key, changed address, ISO held open). Recorded a firewalld divergence: the running zone
+is `ssh cockpit dhcpv6-client`, because `firewall --enabled --service=ssh` adds to the
+default `public` zone rather than replacing it.
+
 ### Fixed — `New-KickstartIso.ps1` could never have produced an ISO
 
 - **The IMAPI2FS image was written through a cast PowerShell cannot perform.**

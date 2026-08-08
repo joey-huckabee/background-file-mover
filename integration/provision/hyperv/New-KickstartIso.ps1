@@ -59,6 +59,52 @@ if ([string]::IsNullOrWhiteSpace($publicKey)) {
     throw "public key $pubPath is empty"
 }
 
+# --- the console password -------------------------------------------------
+# For the console only; sshd is configured key-only by the kickstart. It exists
+# so a VM whose sshd did not start can still be diagnosed instead of rebuilt --
+# rebuilding to diagnose destroys the evidence you wanted to look at.
+#
+# Generated here, stored beside the private key, never in git. Reused if it
+# already exists, for the same reason the SSH key is: replacing it would lock
+# you out of a VM built from the previous ISO.
+$pwPath = Join-Path $lab.KeyDir 'console-password.txt'
+
+if (-not (Test-Path $pwPath)) {
+    # No l/1/I/0/O: this gets typed at a VM console, from a screenshot, by
+    # someone who is already annoyed. Alphanumeric only, so it cannot collide
+    # with kickstart quoting.
+    $alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    $bytes = New-Object byte[] 24
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+
+    # Rejection-free modulo bias is not worth chasing for a lab console
+    # password, but the source is a CSPRNG rather than Get-Random, which is
+    # seeded predictably enough to matter if this pattern is ever copied.
+    $chars = foreach ($b in $bytes) { $alphabet[$b % $alphabet.Length] }
+    $consolePassword = -join $chars
+
+    Write-Host "generating console password at $pwPath"
+    Set-Content -Path $pwPath -Value $consolePassword -Encoding ASCII -NoNewline
+
+    # Owner-only. The directory already holds the SSH private key, but a file
+    # created here inherits whatever the directory allows.
+    $acl = Get-Acl -Path $pwPath
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.Access | ForEach-Object { $acl.RemoveAccessRule($_) | Out-Null }
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+        [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
+        'FullControl', 'Allow')))
+    Set-Acl -Path $pwPath -AclObject $acl
+} else {
+    Write-Host "reusing existing console password at $pwPath"
+    $consolePassword = (Get-Content -Path $pwPath -Raw).Trim()
+}
+
+if ([string]::IsNullOrWhiteSpace($consolePassword)) {
+    throw "console password file $pwPath is empty"
+}
+
 # --- render the kickstart -------------------------------------------------
 $ksSource = Join-Path $PSScriptRoot 'kickstart\rocky9-lab.ks'
 if (-not (Test-Path $ksSource)) { throw "kickstart not found: $ksSource" }
@@ -67,7 +113,18 @@ $ksText = Get-Content -Path $ksSource -Raw
 if ($ksText -notmatch '@KEY@') {
     throw "kickstart has no @KEY@ placeholder; the VM would be built with no way in"
 }
+if ($ksText -notmatch '@CONSOLEPW@') {
+    throw "kickstart has no @CONSOLEPW@ placeholder; the VM would be built with no console access"
+}
 $ksText = $ksText.Replace('@KEY@', $publicKey)
+$ksText = $ksText.Replace('@CONSOLEPW@', $consolePassword)
+
+# Belt and braces: an unsubstituted placeholder reaching the ISO produces a VM
+# whose password is the literal string "@CONSOLEPW@", which would look like it
+# worked right up until someone needed it.
+if ($ksText -match '@(KEY|CONSOLEPW)@') {
+    throw "a placeholder survived substitution; refusing to build the ISO"
+}
 
 $staging = Join-Path $env:TEMP ("fm-ks-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
@@ -81,7 +138,27 @@ try {
 
     # --- burn the image ---------------------------------------------------
     $isoPath = Join-Path $lab.IsoDir $lab.KickstartIso
-    if (Test-Path $isoPath) { Remove-Item -Path $isoPath -Force }
+    if (Test-Path $isoPath) {
+        try {
+            Remove-Item -Path $isoPath -Force -ErrorAction Stop
+        } catch [System.IO.IOException] {
+            # Almost always a VM still has it in a DVD drive. Hyper-V holds the
+            # file open for as long as it is attached, and the raw IOException
+            # says only "used by another process", which sends you looking for
+            # an Explorer window.
+            $holders = @(Get-VM -ErrorAction SilentlyContinue |
+                         Where-Object { (Get-VMDvdDrive -VM $_ -ErrorAction SilentlyContinue).Path -contains $isoPath })
+            $msg = "cannot replace $isoPath because it is in use."
+            if ($holders.Count -gt 0) {
+                $names = ($holders | ForEach-Object { $_.Name }) -join ', '
+                $msg += "`n  It is attached to a DVD drive on: $names"
+                $msg += "`n  Detach it first, or remove the VM:"
+                $msg += "`n    Get-VMDvdDrive -VMName $($holders[0].Name) | Where-Object Path -eq '$isoPath' | Set-VMDvdDrive -Path `$null"
+                $msg += "`n    .\Remove-TestLab.ps1"
+            }
+            throw $msg
+        }
+    }
 
     $fsi = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
     # Joliet + ISO9660. UDF is not used: Anaconda's OEMDRV scan reads the
@@ -138,6 +215,7 @@ namespace FileMover {
     if ($size -lt 1KB) { throw "produced ISO is $size bytes; something went wrong" }
     Write-Host ("wrote {0} ({1:N0} bytes, volume label OEMDRV)" -f $isoPath, $size)
     Write-Host "the private key the playbook will use is $keyPath"
+    Write-Host "the console password (console only; sshd is key-only) is in $pwPath"
 } finally {
     Remove-Item -Path $staging -Recurse -Force -ErrorAction SilentlyContinue
 }
