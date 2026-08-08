@@ -14,6 +14,62 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Added — C6, the daemon
+
+- **A hardened systemd unit** (`deploy/systemd/file-mover.service`, `L2-SEC-014`),
+  `Type=notify` rather than `Type=simple`. The difference is not cosmetic: with
+  `Type=simple` systemd considers the service started the moment `exec` returns,
+  which is before the port is open, so every unit ordered `After=` this one starts
+  against a service that refuses connections. `ExecStartPre` runs `--check`
+  (`L2-CTL-019`) so a bad configuration fails the unit before a socket or a
+  database exists. `TimeoutStopSec=120` because shutdown *drains* — a move past its
+  commit point must finish, and killing it leaves the record and the filesystem
+  disagreeing.
+- **sd_notify readiness and watchdog** (`L2-CTL-011`, `L2-CTL-012`, `L3-CPP-054`),
+  hand-rolled rather than linked against libsystemd, for the reason ADR-0004 gives
+  generally: the protocol is one `AF_UNIX` datagram. `READY=1` is sent **after** the
+  listener is accepting, `STOPPING=1` before teardown, and `WATCHDOG=1` at half the
+  interval systemd asked for. A leading `@` in `$NOTIFY_SOCKET` means the abstract
+  namespace, which on the wire is a leading NUL — copying the `@` verbatim addresses
+  a path that does not exist, and since a failed notification is deliberately not
+  fatal, the symptom would be a unit killed at its start timeout rather than an
+  error. That conversion has its own test, negative-tested by injecting the `@`.
+- **`notify_service_manager` is a no-op when `$NOTIFY_SOCKET` is unset, and a failed
+  send is not an error** (`L3-CPP-054`). Without that the service starts under
+  systemd and refuses to start anywhere else — in a test, at an operator's shell, in
+  a container.
+- **`scripts/smoke-readiness.py`** drives the real binary end to end: `READY=1`,
+  a live `/healthz`, watchdog pings, `STOPPING=1`, clean exit on `SIGTERM`. Its
+  ordering case occupies the port first so the daemon's `bind` is *guaranteed* to
+  fail, making "no `READY=1` when the listener never opened" deterministic.
+  Connecting the instant `READY` arrives looks like the same check and is not — the
+  daemon wins that race every time, confirmed by injecting a premature `READY` and
+  watching it pass.
+- **`scripts/assert-unit-valid.sh`** (negative-tested by `unit-gate-selftest.sh`)
+  checks the unit with `systemd-analyze` and then runs the daemon with the unit's
+  *own* `ExecStartPre` arguments against the config that actually ships. The unit
+  and the reference config are the two deliverables nothing compiles and no test
+  imports, so a mistake in either survived every other gate here.
+
+### Fixed — C6
+
+- **The shipped reference config was still the Python-era schema.** The C++ parser
+  rejected nearly every line of `config/file-mover.ini`, so the unit's `ExecStartPre`
+  validation could not have succeeded on any real install — the daemon would have
+  refused to start with a wall of "unknown section" errors. Found by
+  `assert-unit-valid.sh` on its first run. Rewritten to the accepted schema;
+  `docs/CONFIG-REFERENCE.md` (which documents the retired Python implementation)
+  now says so rather than pointing at it as its reference copy.
+
+### Changed — C6
+
+- **`make format-check` is documented as advisory and failing.** It reports most of
+  the tree as violating and always has — the sources use column alignment
+  clang-format rewrites, and the CI workflow deliberately does not gate on it. The
+  wall of output reads exactly like a real failure and was briefly mistaken for a
+  clang-format version gap, so the Makefile now records what it is and warns
+  against reformatting tested code to quiet it.
+
 ### Added — C5, the REST control plane
 
 - **A bounded pool of connection handlers (ADR-0013).** One accept thread, N

@@ -108,8 +108,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
 | L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
-| L2-CTL-011 | L3-CPP-054 | _(TBD)_ | Draft |
-| L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]` | Implemented |
+| L2-CTL-011 | L3-CPP-054 | `cpp/tests/test_service.cpp::[READY=1 reaches a listening notify socket]`<br>`cpp/tests/test_service.cpp::[a '@' path is sent to the abstract namespace]`<br>`cpp/tests/test_service.cpp::[a send failure is not an error either]`<br>`cpp/tests/test_service.cpp::[an empty state is the one thing refused]`<br>`cpp/tests/test_service.cpp::[notification is a no-op when no service manager asked for it]` | Implemented |
+| L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]`<br>`cpp/tests/test_service.cpp::[the watchdog interval is read, validated and halved]` | Implemented |
 | L2-CTL-017 | _(none)_ | `cpp/tests/test_service.cpp::[a stop signal wakes sigsuspend and the daemon shuts down]` | Implemented |
 | L2-CTL-018 | _(none)_ | `cpp/tests/test_service.cpp::[SIGPIPE is ignored process-wide]` | Implemented |
 | L2-CTL-019 | _(none)_ | `cpp/tests/test_service.cpp::[check_config refuses what it can before anything is created]` | Implemented |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 8 | 0 | 10 | 0 |
+| CTL | 0 | 20 | 4 | 9 | 0 | 11 | 0 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -361,22 +361,22 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **47** | **49** | **67** | **53** |
+| CPP | 0 | 0 | 54 | 0 | 50 | 0 | 54 |
+| **Total** | **41** | **199** | **80** | **48** | **50** | **68** | **54** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 96 of 283 (33.9%).
+**Tested by at least one test marker**: 98 of 283 (34.6%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 121 of 283 (42.8%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 123 of 283 (43.5%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 94 of 214 (43.9%).
+**In v1.0.0 scope — tested**: 96 of 214 (44.9%).
 
-**In v1.0.0 scope — verified**: 119 of 214 (55.6%).
+**In v1.0.0 scope — verified**: 121 of 214 (56.5%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

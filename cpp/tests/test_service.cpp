@@ -29,10 +29,13 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <cstddef>
 #include <cstring>
+#include <sstream>
 #include <string>
 
 using filemover::check_config;
@@ -91,6 +94,136 @@ bool can_connect(std::uint16_t port) {
 }
 
 }  // namespace
+
+// --- service-manager readiness (L2-CTL-011/012, L3-CPP-054) ---------------
+
+TEST_CASE("notification is a no-op when no service manager asked for it",
+          "[service][L3-CPP-054]") {
+    (void)::unsetenv("NOTIFY_SOCKET");
+    std::string error;
+    // Success, not failure. Without this the service starts under systemd and
+    // refuses to start anywhere else -- a test, a shell, a container.
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+    CHECK(error.empty() == true);
+}
+
+TEST_CASE("a send failure is not an error either", "[service][L3-CPP-054]") {
+    (void)::setenv("NOTIFY_SOCKET", "/nonexistent-dir-xyz/notify.sock", 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+    (void)::unsetenv("NOTIFY_SOCKET");
+}
+
+TEST_CASE("an empty state is the one thing refused", "[service][L2-CTL-011]") {
+    std::string error;
+    CHECK(filemover::notify_service_manager("", error) == false);
+    CHECK(error.empty() == false);
+}
+
+TEST_CASE("READY=1 reaches a listening notify socket",
+          "[service][L2-CTL-011]") {
+    // A real AF_UNIX datagram socket, so the wire format is exercised rather
+    // than assumed.
+    char dir[] = "/tmp/fm-notify-XXXXXX";
+    REQUIRE(::mkdtemp(dir) != 0);
+    const std::string path = std::string(dir) + "/notify.sock";
+
+    const int listener = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    REQUIRE(listener >= 0);
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    std::memcpy(addr.sun_path, path.c_str(), path.size());
+    REQUIRE(::bind(listener, reinterpret_cast<struct sockaddr*>(&addr),
+                   sizeof(addr)) == 0);
+
+    (void)::setenv("NOTIFY_SOCKET", path.c_str(), 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+
+    char buf[64];
+    std::memset(buf, 0, sizeof(buf));
+    const ssize_t n = ::recv(listener, buf, sizeof(buf) - 1, MSG_DONTWAIT);
+    CHECK(n > 0);
+    CHECK(std::string(buf) == std::string("READY=1"));
+
+    (void)::unsetenv("NOTIFY_SOCKET");
+    ::close(listener);
+    ::unlink(path.c_str());
+    ::rmdir(dir);
+}
+
+TEST_CASE("a '@' path is sent to the abstract namespace",
+          "[service][L2-CTL-011]") {
+    // The one part of the protocol that fails SILENTLY when it is wrong.
+    // Copying the '@' verbatim addresses a filesystem path that does not
+    // exist; sendto fails, the failure is deliberately not fatal, and the
+    // service never reports ready. That presents to an operator as a slow
+    // start and a timeout kill, not as a bad notification. So it is tested by
+    // binding a real abstract socket and reading the datagram back.
+    std::ostringstream name;
+    name << "@fm-notify-test-" << ::getpid();
+    const std::string abstract_name = name.str();
+
+    const int listener = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    REQUIRE(listener >= 0);
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    // Leading NUL, and a length that stops at the name -- an abstract address
+    // is exactly as long as it is declared to be, with no terminator.
+    std::memcpy(addr.sun_path, abstract_name.c_str(), abstract_name.size());
+    addr.sun_path[0] = '\0';
+    const socklen_t addr_len = static_cast<socklen_t>(
+        offsetof(struct sockaddr_un, sun_path) + abstract_name.size());
+    REQUIRE(::bind(listener, reinterpret_cast<struct sockaddr*>(&addr),
+                   addr_len) == 0);
+
+    (void)::setenv("NOTIFY_SOCKET", abstract_name.c_str(), 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("STOPPING=1", error) == true);
+
+    char buf[64];
+    std::memset(buf, 0, sizeof(buf));
+    const ssize_t n = ::recv(listener, buf, sizeof(buf) - 1, MSG_DONTWAIT);
+    CHECK(n > 0);
+    CHECK(std::string(buf) == std::string("STOPPING=1"));
+
+    (void)::unsetenv("NOTIFY_SOCKET");
+    ::close(listener);
+}
+
+TEST_CASE("the watchdog interval is read, validated and halved",
+          "[service][L2-CTL-012]") {
+    (void)::unsetenv("WATCHDOG_USEC");
+    (void)::unsetenv("WATCHDOG_PID");
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    // Half the interval, as systemd's own guidance says: pinging exactly at
+    // the deadline races it.
+    (void)::setenv("WATCHDOG_USEC", "30000000", 1);  // 30 s
+    CHECK(filemover::watchdog_interval_ms() == 15000u);
+
+    // Garbage is not a schedule.
+    (void)::setenv("WATCHDOG_USEC", "not-a-number", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+    (void)::setenv("WATCHDOG_USEC", "-5", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    // WATCHDOG_PID naming another process means the interval belongs to a
+    // parent. Pinging on its behalf would report the wrong process healthy.
+    (void)::setenv("WATCHDOG_USEC", "30000000", 1);
+    (void)::setenv("WATCHDOG_PID", "1", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    std::ostringstream mine;
+    mine << ::getpid();
+    (void)::setenv("WATCHDOG_PID", mine.str().c_str(), 1);
+    CHECK(filemover::watchdog_interval_ms() == 15000u);
+
+    (void)::unsetenv("WATCHDOG_USEC");
+    (void)::unsetenv("WATCHDOG_PID");
+}
 
 TEST_CASE("check_config refuses what it can before anything is created",
           "[service][L2-CTL-019]") {

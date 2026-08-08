@@ -396,6 +396,12 @@ verify-ci:
 print-test-bin:
 	@echo $(TEST_BIN)
 
+# Same, for the daemon. Used by scripts/assert-unit-valid.sh so the deployment
+# gate does not hard-code a toolchain-specific build path.
+.PHONY: print-daemon-bin
+print-daemon-bin:
+	@echo $(DAEMON_BIN)
+
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
@@ -736,8 +742,22 @@ tidy-ci:
 	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null && \
 	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
 
+# ADVISORY, not a gate, and it does not currently pass -- see the NOTE in
+# .github/workflows/cpp-ci.yml. The sources use column alignment clang-format
+# rewrites, so this reports most of the tree as violating and always has. That
+# is a deliberate open decision (bulk-reformat tested code, or drop the tool),
+# not a regression to chase.
+#
+# Recorded here because the wall of output reads exactly like a real failure:
+# it was mistaken for a clang-format version gap once, and the "fix" attempted
+# was a version guard asserting the tree is formatted by CI's binary -- which
+# it is not, by choice. Do not reformat to make this quiet without agreeing to
+# the reformat first.
+FORMAT ?= clang-format
+
+.PHONY: format-check
 format-check:
-	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
+	$(FORMAT) --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
 	    $(FUZZ_SRC) include/filemover/*.hpp
 
 # Generated header dependencies (see DEPFLAGS above). Leading '-' because none

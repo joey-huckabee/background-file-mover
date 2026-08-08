@@ -68,6 +68,29 @@ class Service {
     Impl* impl_;
 };
 
+// --- service-manager readiness (L2-CTL-011, L2-CTL-012, L3-CPP-054) -------
+
+// Sends one sd_notify datagram, e.g. "READY=1" or "STOPPING=1".
+//
+// Hand-rolled rather than linked against libsystemd, for the reason ADR-0004
+// gives generally and ADR-0012 gives for HTTP: the protocol is one AF_UNIX
+// datagram, and a library dependency on the deployment target buys nothing
+// here. The socket path arrives in $NOTIFY_SOCKET, with a leading '@' meaning
+// the abstract namespace -- which on the wire is a leading NUL byte, not an '@'.
+//
+// L3-CPP-054: a NO-OP when $NOTIFY_SOCKET is unset, and a failure to send is
+// NOT an error. Without that the service starts under a service manager and
+// refuses to start anywhere else -- in a test, at an operator's shell, in a
+// container. Returns false only when the caller genuinely got something wrong,
+// which today means an empty state string.
+bool notify_service_manager(const std::string& state, std::string& error);
+
+// The watchdog interval systemd asked for, in milliseconds, or 0 when it did
+// not ask. Read from $WATCHDOG_USEC, and honoured only when $WATCHDOG_PID is
+// unset or matches this process -- otherwise the value belongs to a parent and
+// pinging on its behalf would tell systemd the wrong process is healthy.
+unsigned watchdog_interval_ms();
+
 // --- signals (L2-CTL-017, L2-CTL-018) -------------------------------------
 
 // Installs handlers for SIGINT and SIGTERM and ignores SIGPIPE process-wide.

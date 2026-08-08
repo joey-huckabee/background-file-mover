@@ -7,7 +7,17 @@
 #include <signal.h>
 #include <string.h>
 
+#include <stddef.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+#include <atomic>
 #include <csignal>
+#include <cstdlib>
+#include <ctime>
+#include <thread>
 #include <cstring>
 #include <string>
 
@@ -85,6 +95,91 @@ void wait_for_stop_signal() {
     }
 }
 
+// --- service-manager readiness --------------------------------------------
+
+bool notify_service_manager(const std::string& state, std::string& error) {
+    if (state.empty()) {
+        error = "service: notification state is empty";
+        return false;
+    }
+    error.clear();
+
+    const char* socket_path = ::getenv("NOTIFY_SOCKET");
+    if (socket_path == 0 || socket_path[0] == '\0') {
+        // Not running under a service manager. L3-CPP-054: this is success.
+        return true;
+    }
+
+    const int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) {
+        return true;  // never fatal
+    }
+
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+
+    const std::size_t len = std::strlen(socket_path);
+    if (len == 0 || len >= sizeof(addr.sun_path)) {
+        (void)::close(fd);
+        return true;
+    }
+    std::memcpy(addr.sun_path, socket_path, len);
+
+    // A leading '@' means the abstract namespace, which on the wire is a
+    // leading NUL. Copying the '@' verbatim addresses a filesystem path that
+    // does not exist, so the send fails silently and readiness is never
+    // reported -- systemd then kills the unit at its start timeout, which
+    // presents as "the service is slow" rather than "the notification is wrong".
+    socklen_t addr_len =
+        static_cast<socklen_t>(offsetof(struct sockaddr_un, sun_path) + len);
+    if (addr.sun_path[0] == '@') {
+        addr.sun_path[0] = '\0';
+    } else {
+        addr_len = static_cast<socklen_t>(
+            offsetof(struct sockaddr_un, sun_path) + len + 1);
+    }
+
+    (void)::sendto(fd, state.data(), state.size(), MSG_NOSIGNAL,
+                   reinterpret_cast<struct sockaddr*>(&addr), addr_len);
+    (void)::close(fd);
+    return true;
+}
+
+unsigned watchdog_interval_ms() {
+    const char* usec = ::getenv("WATCHDOG_USEC");
+    if (usec == 0 || usec[0] == '\0') {
+        return 0;
+    }
+    // WATCHDOG_PID, when present, names the process the interval was meant
+    // for. Pinging on behalf of a parent would report the wrong process
+    // healthy, which is worse than not pinging at all.
+    const char* pid = ::getenv("WATCHDOG_PID");
+    if (pid != 0 && pid[0] != '\0') {
+        errno = 0;
+        char* end = 0;
+        const long owner = std::strtol(pid, &end, 10);
+        if (errno != 0 || end == pid || *end != '\0' ||
+            owner != static_cast<long>(::getpid())) {
+            return 0;
+        }
+    }
+
+    errno = 0;
+    char* end = 0;
+    const long value = std::strtol(usec, &end, 10);
+    if (errno != 0 || end == usec || *end != '\0' || value <= 0) {
+        return 0;
+    }
+    // Ping at half the interval, which is what systemd's own documentation
+    // recommends: a ping exactly at the deadline races the deadline.
+    const long half_ms = (value / 1000) / 2;
+    if (half_ms <= 0) {
+        return 1;
+    }
+    return static_cast<unsigned>(half_ms);
+}
+
 bool check_config(const Config& config, std::string& error) {
     if (config.storage_database_path.empty()) {
         error = "storage.database_path is required";
@@ -119,13 +214,24 @@ bool check_config(const Config& config, std::string& error) {
 
 // --- startup and teardown (L2-CTL-020) ------------------------------------
 
-struct Service::Impl {
+struct Service::Impl {  // NOLINT
     JobManager* manager;
     ConnectionServer server;
     HttpServiceOptions http;
     bool running;
 
-    Impl() : manager(0), running(false) {}
+    // L2-CTL-012. A thread that sleeps and pings, holding no mutex -- the
+    // shape docs/C5-PLAN.md prescribes for a periodic tick, and the reason a
+    // timed condition wait is not used here (it breaks ThreadSanitizer, and
+    // make no-timed-condwait forbids it).
+    std::thread watchdog;
+    std::atomic<bool> watchdog_stop;
+
+    Impl() : manager(0), running(false), watchdog_stop(false) {}
+
+    // A member, because Impl is a private nested type and nothing outside the
+    // class can name it -- the same reason JobManager::Impl owns run_worker.
+    void run_watchdog(unsigned interval_ms);
 };
 
 namespace {
@@ -140,6 +246,14 @@ struct Dispatch {
 
 Dispatch g_dispatch = {0, 0};
 
+// L2-CTL-012. Sleeps in short slices rather than one long one, so shutdown
+// does not wait out a whole watchdog interval before this thread notices --
+// systemd's default is often 30 seconds, and joining on that would make every
+// stop look hung.
+//
+// nanosleep and an atomic flag, holding no mutex. Not a timed condition wait:
+// that breaks ThreadSanitizer for whatever mutex it is given, and
+// make no-timed-condwait forbids it.
 void serve(int fd, void* /*user*/) {
     if (g_dispatch.manager != 0 && g_dispatch.options != 0) {
         serve_connection(fd, *g_dispatch.options, *g_dispatch.manager);
@@ -147,6 +261,26 @@ void serve(int fd, void* /*user*/) {
 }
 
 }  // namespace
+
+// Defined here rather than in the anonymous namespace above: a member function
+// may only be defined in the namespace enclosing its class, and an anonymous
+// namespace is a different one.
+void Service::Impl::run_watchdog(unsigned interval_ms) {
+    const unsigned kSliceMs = 100;
+    unsigned waited = 0;
+    while (!watchdog_stop) {
+        struct timespec slice;
+        slice.tv_sec = 0;
+        slice.tv_nsec = static_cast<long>(kSliceMs) * 1000L * 1000L;
+        (void)::nanosleep(&slice, 0);
+        waited += kSliceMs;
+        if (waited >= interval_ms) {
+            waited = 0;
+            std::string ignored;
+            (void)notify_service_manager("WATCHDOG=1", ignored);
+        }
+    }
+}
 
 Service::Service() : impl_(new Impl()) {}
 
@@ -196,6 +330,21 @@ bool Service::start(const Config& config, std::string& error) {
     }
 
     impl_->running = true;
+
+    // 3. Readiness, LAST -- after the socket is accepting. Telling systemd
+    //    READY=1 before the port is open makes every dependent unit start
+    //    against a service that cannot yet answer, which is the whole problem
+    //    Type=notify exists to solve.
+    std::string ignored;
+    (void)notify_service_manager("READY=1", ignored);
+
+    const unsigned interval = watchdog_interval_ms();
+    if (interval > 0) {
+        impl_->watchdog_stop = false;
+        impl_->watchdog =
+            std::thread(&Service::Impl::run_watchdog, impl_, interval);
+    }
+
     error.clear();
     return true;
 }
@@ -205,6 +354,16 @@ void Service::stop() {
         return;
     }
     impl_->running = false;
+
+    // STOPPING=1 first, so systemd knows this is a deliberate shutdown before
+    // the port closes. Otherwise a slow drain looks like a service that died.
+    std::string ignored;
+    (void)notify_service_manager("STOPPING=1", ignored);
+
+    impl_->watchdog_stop = true;
+    if (impl_->watchdog.joinable()) {
+        impl_->watchdog.join();
+    }
 
     // Reverse order. The listener stops accepting first, so no new work
     // arrives while the pool drains -- stopping the manager first would leave

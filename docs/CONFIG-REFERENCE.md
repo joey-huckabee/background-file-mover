@@ -14,8 +14,17 @@
 > `docs/L2-REQ.md`, `docs/L3-REQ.md`, and `docs/TRACE-MATRIX.md`.
 
 Configuration is a single INI file (default `/etc/file-mover/file-mover.ini`), loaded
-once at startup with the standard-library `configparser` (L2-CFG-001). The fully
-commented reference copy lives at `config/file-mover.ini`.
+once at startup with the standard-library `configparser` (L2-CFG-001).
+
+> **`config/file-mover.ini` no longer matches this document.** It was rewritten
+> to the C++ schema in C6, because it ships as the reference config and the C++
+> parser rejected nearly every line of the Python one — meaning the systemd
+> unit's `ExecStartPre` validation could not have succeeded on any real install.
+> `scripts/assert-unit-valid.sh` now runs the real binary against that file on
+> every CI run, so it cannot drift again unnoticed.
+>
+> The keys below are the **v1.1 parity target**, not the accepted set. For what
+> the C++ daemon accepts today, read `config/file-mover.ini` itself.
 
 The loader (Milestone 2) is strict: it **rejects unknown sections and options**
 (L2-CFG-002), rejects missing required values (L2-CFG-003), validates numeric ranges and
