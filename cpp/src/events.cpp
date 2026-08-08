@@ -190,10 +190,15 @@ bool EventPublisher::unsubscribe(EventCallback callback, void* user_data) {
     // it in its snapshot. Wait that out, so the caller can destroy whatever
     // user_data points at. Skipped when this thread is itself publishing --
     // that in-flight count includes us, and waiting would never return.
+    //
+    // The PREDICATE overload, not `while (cond) wait(lock)`. The two are
+    // identical by definition -- wait(lock, pred) is specified as the loop --
+    // but the bare form is a bug the loop happens to be hiding: drop the
+    // `while` for an `if` and it compiles, passes, and wakes spuriously into a
+    // use-after-free. SonarCloud's cpp:S5404 refuses the bare form outright,
+    // and this is the second time that rule has caught it here.
     if (g_publish_depth == 0) {
-        while (impl_->in_flight > 0) {
-            impl_->drained.wait(lock);
-        }
+        impl_->drained.wait(lock, [this]() { return impl_->in_flight == 0; });
     }
 
     return removed;  // L3-EVT-005

@@ -43,15 +43,58 @@ cd "$(dirname "$0")/.."
 # does not trip it.
 banned='\.(wait_for|wait_until)[[:space:]]*\(|::(wait_for|wait_until)[[:space:]]*\('
 
+# The SECOND rule this script enforces: wait() must be given a predicate.
+#
+# `wait(lock)` is correct only inside a loop that re-tests the condition, and
+# the loop is the part that gets dropped -- an `if` where a `while` was meant
+# compiles, passes, and then wakes spuriously into whatever the condition was
+# protecting against. The predicate overload IS that loop, by definition, and
+# cannot be written wrong.
+#
+# Added after SonarCloud's cpp:S5404 caught the bare form a second time, in
+# EventPublisher::unsubscribe -- where a spurious wakeup would have returned
+# while a publisher still held the subscriber in its snapshot, which is exactly
+# the use-after-free that wait exists to prevent. Twice is a pattern, and this
+# project's answer to a pattern is a gate rather than a resolution to remember.
+#
+# Detecting this with one regex does not work, and the first attempt was a
+# false positive worth recording: `\.wait[[:space:]]*\([^,)]*\)` matched
+# `work_ready.wait(lock.raw(), pred)` because `[^,)]*` stops at the `)` closing
+# `raw()`, before ever reaching the comma. A gate with false positives gets
+# disabled, so this looks at the text AFTER `.wait(` on the line instead and
+# asks whether a comma appears at all.
+bare_wait_check() {
+    awk '
+        /\.wait[ \t]*\(|::wait[ \t]*\(/ {
+            line = $0
+            at = match(line, /\.wait[ \t]*\(|::wait[ \t]*\(/)
+            rest = substr(line, at + RLENGTH)
+            if (index(rest, ",") == 0) {
+                printf "%d:%s\n", NR, $0
+            }
+        }
+    '
+}
+
 status=0
 for f in $(find src include -name '*.cpp' -o -name '*.hpp' 2>/dev/null | sort); do
     # Comments stripped first: this rule is worth explaining next to the code it
     # governs, and a gate that fires on its own rationale trains people to
     # delete the rationale.
-    hits=$(sed 's://.*::' "$f" | grep -nE "$banned" || true)
+    stripped=$(sed 's://.*::' "$f")
+
+    hits=$(printf '%s\n' "$stripped" | grep -nE "$banned" || true)
     if [ -n "$hits" ]; then
         echo "assert-no-timed-condwait: $f uses a timed condition wait" >&2
         echo "$hits" | sed "s|^|  $f:|" >&2
+        status=1
+    fi
+
+    hits=$(printf '%s\n' "$stripped" | bare_wait_check || true)
+    if [ -n "$hits" ]; then
+        echo "assert-no-timed-condwait: $f waits without a predicate" >&2
+        echo "$hits" | sed "s|^|  $f:|" >&2
+        echo "  use wait(lock, predicate) -- see cpp:S5404" >&2
         status=1
     fi
 done

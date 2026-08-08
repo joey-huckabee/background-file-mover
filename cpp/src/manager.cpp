@@ -476,11 +476,15 @@ void JobManager::Impl::run_worker() {
         // first time a spurious wakeup happens, which is exactly the kind of
         // failure that never reproduces on demand.
         //
-        // This is the only lambda in the codebase. Function pointers are used
-        // everywhere else -- the phase hook, the clock -- because those cross
-        // an API boundary and a plain function pointer is what a C++11 header
-        // can express without dragging <functional> into it. Here the callable
-        // never leaves the function.
+        // One of only two lambdas in the codebase; the other is the same
+        // construct in EventPublisher::unsubscribe. Function pointers are used
+        // everywhere else -- the phase hook, the clock, event subscribers --
+        // because those cross an API boundary and a plain function pointer is
+        // what a C++11 header can express without dragging <functional> into
+        // it. In both lambda cases the callable never leaves the function.
+        //
+        // make no-timed-condwait now REQUIRES the predicate form, after
+        // SonarCloud caught a bare wait() for the second time.
         impl->work_ready.wait(lock.raw(), [impl]() {
             return !impl->runnable.empty() || impl->stopping;
         });
