@@ -23,6 +23,7 @@
 #include <string>
 
 #include "filemover/config.hpp"
+#include "filemover/events.hpp"
 #include "filemover/fsops.hpp"
 #include "filemover/mover.hpp"
 
@@ -133,6 +134,16 @@ class JobManager {
     // Forwarded to every worker's engine, so a test can hold a worker at a
     // chosen phase and make an interleaving happen rather than hope for it.
     void set_phase_hook(MoveEngine::PhaseHook hook, void* user_data);
+
+    // L2-EVT-001..005. Install before start(). The manager does not own the
+    // publisher and it must outlive the manager, because service-lifecycle
+    // events go on the same stream.
+    //
+    // Null -- the default -- means nothing is emitted, which every C4 test
+    // relies on. That is L2-EVT-003 as a build-time fact rather than a
+    // promise: no state transition here can depend on a subscriber, because
+    // the manager is fully functional with no publisher installed at all.
+    void set_event_publisher(EventPublisher* publisher);
 
   private:
     JobManager(const JobManager&);

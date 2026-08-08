@@ -166,6 +166,25 @@ bool open_regular(const DirHandle& dir,
                   int& fd_out,
                   std::string& error);
 
+// Opens (creating if absent) a named file in `dir`, for use as a lock file.
+//
+// Separate from open_regular rather than a flag on it, because a lock file is
+// the one file the service opens that it EXPECTS may not exist: there is no
+// prior observation to re-verify against on first boot, so the L2-SEC-002
+// identity check open_regular exists to enforce has nothing to compare.
+//
+// O_CLOEXEC is load-bearing, not hygiene. L2-XFR-002's transfer strategy forks
+// and execs; a lock descriptor inherited by that child keeps the lock alive
+// after this process dies, and the next start would then refuse forever with
+// nothing holding it that an operator could find. O_NOFOLLOW refuses a
+// symlinked lock file (L2-SEC-003). Mode 0600 -- nothing else needs to read it.
+//
+// On success the caller owns `fd_out` and must close it.
+bool open_lock_file(const DirHandle& dir,
+                    const std::string& name,
+                    int& fd_out,
+                    std::string& error);
+
 // L2-SEC-005: refuses unless the object is a regular file owned by
 // `trusted_uid`, and its parent is not world-writable without the sticky bit.
 bool check_source_trust(const DirHandle& parent,

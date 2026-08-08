@@ -1,0 +1,100 @@
+[Unit]
+Description=Background File Mover
+Documentation=file:///usr/share/doc/file-mover/USER-GUIDE.md
+# The recordings live on an NFS mount, but the STATE DATABASE must not
+# (L2-JOB-008 -- SQLite's locking is unreliable over NFS). This orders the unit
+# after the network and any remote mounts so the source and destination trees
+# are present; the database belongs on local storage regardless.
+After=network-online.target remote-fs.target
+Wants=network-online.target
+
+[Service]
+# Type=notify, not simple: the service sends READY=1 only after the socket is
+# accepting, so a dependent unit ordered After= this one starts against a
+# service that can actually answer. With Type=simple, systemd considers it
+# started the moment exec returns, which is before the port is open.
+Type=notify
+NotifyAccess=main
+
+# L2-CTL-019. Validation runs as its own step and creates nothing, so a bad
+# configuration fails the unit here rather than being discovered after a socket
+# and a database have been opened.
+#
+# The path and file name follow L1-SYS-002 (one executable) and
+# docs/CONFIG-REFERENCE.md. The build tree names the daemon `filemover`; it
+# INSTALLS as /usr/bin/file-mover, which is the name the documentation and the
+# CLI reference use. When the CLI subcommands land, these become
+# `file-mover service run --config ...` -- the flags below are what the binary
+# accepts today, not a placeholder.
+ExecStartPre=/usr/bin/file-mover --config /etc/file-mover/file-mover.ini --check
+ExecStart=/usr/bin/file-mover --config /etc/file-mover/file-mover.ini
+
+# SIGTERM is the stop signal the daemon handles (L2-CTL-017). The timeout is
+# generous because shutdown DRAINS rather than aborts: a move past its commit
+# point must finish, and killing it would leave the record and the filesystem
+# disagreeing.
+KillSignal=SIGTERM
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5
+
+# L2-CTL-012. The daemon pings at half this interval; systemd restarts it if a
+# ping is missed.
+WatchdogSec=30
+
+# The event stream goes to the standard streams and journald captures it
+# (L2-CLI-006, twelve-factor XI). The service manages no log files, so there is
+# no logrotate fragment and nothing to run out of disk quietly.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=file-mover
+
+User=file-mover
+Group=file-mover
+
+# Hardening. Everything here is a claim the service must actually satisfy, not
+# a template: the daemon opens no shell (L2-SEC-008), loads no modules, and
+# ADR-0010 builds SQLite with SQLITE_OMIT_LOAD_EXTENSION so a database file
+# cannot make it dlopen anything.
+#
+# The daemon needs no capabilities at all: it binds a port above 1024, opens
+# files as its own user, and never changes identity. An empty bounding set is
+# therefore the accurate value, not merely a strict one -- anything else grants
+# a privilege nothing here asks for.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# 0077: files this service creates are readable only by its own account. The
+# state database and any staged copy inherit it, so a recording does not become
+# world-readable because the host's default umask happened to be 0022.
+UMask=0077
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+# AF_UNIX for the notify socket, AF_INET/AF_INET6 for the control plane.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# ProtectSystem=strict makes everything read-only except these. The state
+# directory holds the SQLite database and, beside it, the singleton lock file
+# (L2-CTL-008) -- which is left in place between runs on purpose. It is not a
+# pidfile and never needs clearing: the kernel drops the lock when the holder
+# dies, so a leftover file holds nothing. Deleting it while the service runs
+# does not stop a second instance, it permits one.
+#
+# The managed trees are configured and must be listed here too when they are
+# not under /var/lib.
+StateDirectory=file-mover
+ReadWritePaths=/var/lib/file-mover
+
+[Install]
+WantedBy=multi-user.target

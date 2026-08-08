@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -229,7 +230,8 @@ struct JobManager::Impl {
           hook(0),
           hook_user(0),
           running(false),
-          stopping(false) {}
+          stopping(false),
+          events(0) {}
 
     std::int64_t now() { return clock(clock_user); }
 
@@ -244,6 +246,40 @@ struct JobManager::Impl {
     JobStore& store_for_command(const char* what) {
         assert_no_manager_lock(what);
         return store;
+    }
+
+    // The event stream, or null when nobody installed one (L2-EVT-001..005).
+    // Not owned: the Service owns the publisher, because service-lifecycle
+    // events go on the same stream and outlive the manager.
+    //
+    // Atomic because emit() reads it with the manager mutex deliberately NOT
+    // held, so an ordinary pointer written by set_event_publisher would be a
+    // data race by construction -- benign on every real platform, and still a
+    // TSan report and still undefined. The contract is "install before start",
+    // which makes the race impossible in practice; the atomic makes it
+    // impossible in principle, for one word of overhead on a path that already
+    // publishes to arbitrary subscribers.
+    std::atomic<EventPublisher*> events;
+
+    // Publishes one event, and refuses to do it under the manager mutex.
+    //
+    // Same reasoning as store_for_command, and the same assertion: a subscriber
+    // is arbitrary code of unknown duration, and running it while holding the
+    // mutex every worker needs to pick up its next job would let a slow log
+    // sink stall the pool. L2-EVT-003 also depends on this ordering -- the
+    // durable write has already happened by the time anything is published, so
+    // no subscriber is load-bearing for state.
+    void emit(EventType type,
+              EventSeverity severity,
+              const std::string& job_id,
+              const std::string& detail) {
+        assert_no_manager_lock("emit");
+        EventPublisher* const publisher = events.load();
+        if (publisher == 0) {
+            return;
+        }
+        publisher->publish(Event(type, severity, now_epoch_ms(), job_id,
+                                 std::string(), detail));
     }
 
     // Members rather than free functions in an anonymous namespace: Impl is a
@@ -283,6 +319,10 @@ void JobManager::set_phase_hook(MoveEngine::PhaseHook hook, void* user_data) {
     const ManagerLock guard(impl_->mutex);
     impl_->hook = hook;
     impl_->hook_user = user_data;
+}
+
+void JobManager::set_event_publisher(EventPublisher* publisher) {
+    impl_->events.store(publisher);
 }
 
 bool JobManager::is_running() const {
@@ -474,6 +514,8 @@ void JobManager::Impl::run_worker() {
             // this mutex is the one every other worker needs to pick up its
             // next job. Recording a failure must not stall the pool.
             lock.unlock();
+            impl->emit(EventType::JobStarted, EventSeverity::Info, job_id,
+                       std::string());
             outcome = engine.execute(job_id, request, strategy, error);
 
             if (outcome == MoveOutcome::AbortedBeforeCommit) {
@@ -495,6 +537,44 @@ void JobManager::Impl::run_worker() {
                 // scheduled, so it sat in the durable record forever looking
                 // like pending work.
                 impl->fail_permanently(store, job_id, error);
+            }
+
+            // Published after the durable write, never before, and still
+            // outside the manager mutex (L2-EVT-003). An event is a report of
+            // something that has already happened; delete these lines and the
+            // job ends in exactly the same state.
+            //
+            // A switch over the outcome rather than an if/else chain ending in
+            // "everything else failed": adding a sixth MoveOutcome would then
+            // be reported as a plain failure by default, and the compiler would
+            // not say a word. Here it is a -Werror=switch build failure.
+            if (reschedule) {
+                impl->emit(EventType::JobRetryScheduled, EventSeverity::Warning,
+                           job_id, error);
+            } else {
+                switch (outcome) {
+                    case MoveOutcome::Completed:
+                        impl->emit(EventType::JobCompleted, EventSeverity::Info,
+                                   job_id, std::string());
+                        break;
+                    case MoveOutcome::HaltedAfterCommit:
+                        // L2-JOB-014: the move happened, the record does not
+                        // agree, and only an operator can reconcile it.
+                        impl->emit(EventType::JobHaltedAfterCommit,
+                                   EventSeverity::Error, job_id, error);
+                        break;
+                    case MoveOutcome::FailedExternal:
+                        // L2-SEC-011: something outside this service took the
+                        // file. Not our failure, and not diagnosable as one.
+                        impl->emit(EventType::JobFailedExternal,
+                                   EventSeverity::Error, job_id, error);
+                        break;
+                    case MoveOutcome::Rejected:
+                    case MoveOutcome::AbortedBeforeCommit:
+                        impl->emit(EventType::JobFailed, EventSeverity::Error,
+                                   job_id, error);
+                        break;
+                }
             }
 
             lock.lock();
@@ -671,21 +751,26 @@ CommandResult JobManager::submit(const std::string& job_id,
         recorded = impl_->store_for_command("submit").record_intent(job, error);
     }
 
-    const ManagerLock lock(impl_->mutex);
-    impl_->pending.erase(job_id);
-    if (!recorded) {
-        return CommandResult::StoreError;
+    {
+        const ManagerLock lock(impl_->mutex);
+        impl_->pending.erase(job_id);
+        if (!recorded) {
+            return CommandResult::StoreError;
+        }
+        // Published only now, so the job becomes runnable strictly after its
+        // intent is durable -- which is the whole of L2-JOB-013.
+        impl_->requests[job_id] = request;
+        impl_->runnable.push_back(job_id);
+        impl_->work_ready.notify_one();
     }
-    // Published only now, so the job becomes runnable strictly after its intent
-    // is durable -- which is the whole of L2-JOB-013.
-    impl_->requests[job_id] = request;
-    impl_->runnable.push_back(job_id);
-    impl_->work_ready.notify_one();
+    impl_->emit(EventType::JobSubmitted, EventSeverity::Info, job_id,
+                std::string());
     return CommandResult::Ok;
 }
 
 CommandResult JobManager::pause(const std::string& job_id,
                                 std::string& error) {
+    {
     const ManagerLock lock(impl_->mutex);
     // A command against a stopped manager is NotRunning, not UnknownJob. The
     // job may well exist in the durable record; what is missing is the manager.
@@ -711,11 +796,16 @@ CommandResult JobManager::pause(const std::string& job_id,
     impl_->take_runnable(job_id);
     impl_->waiting.erase(job_id);
     impl_->paused.insert(job_id);
+    }
+    // Outside the lock, and after the state change -- see Impl::emit.
+    impl_->emit(EventType::JobPaused, EventSeverity::Info, job_id,
+                std::string());
     return CommandResult::Ok;
 }
 
 CommandResult JobManager::resume(const std::string& job_id,
                                  std::string& error) {
+    {
     const ManagerLock lock(impl_->mutex);
     if (!impl_->running) {  // see pause() for why this is not UnknownJob
         error = "manager: not running";
@@ -731,6 +821,9 @@ CommandResult JobManager::resume(const std::string& job_id,
     }
     impl_->runnable.push_back(job_id);
     impl_->work_ready.notify_one();
+    }
+    impl_->emit(EventType::JobResumed, EventSeverity::Info, job_id,
+                std::string());
     return CommandResult::Ok;
 }
 
@@ -793,6 +886,11 @@ CommandResult JobManager::cancel(const std::string& job_id,
         impl_->runnable.push_back(job_id);
         impl_->work_ready.notify_one();
     }
+
+    if (outcome == CommandResult::Ok) {
+        impl_->emit(EventType::JobCancelled, EventSeverity::Info, job_id,
+                    std::string());
+    }
     return outcome;
 }
 
@@ -822,6 +920,17 @@ CommandResult JobManager::retry(const std::string& job_id,
     // Every store call from here to the publish runs outside the manager mutex,
     // guarded only by store_mutex -- same reasoning as submit(). Probing for a
     // free id is several loads, each of which can block on busy_timeout.
+    //
+    // Scoped rather than function-lifetime so the event at the end is emitted
+    // with store_mutex RELEASED. A subscriber is arbitrary code; holding this
+    // across it would put every concurrent command behind a slow log sink. The
+    // manager mutex has an assertion for that mistake, and this one does not,
+    // which is exactly why the scope has to be written deliberately.
+    //
+    // `candidate` is declared out here because it is what the event and the
+    // out-parameter both need, and both happen after the scope closes.
+    std::string candidate;
+    {
     const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
 
     Job job(std::string(), std::string(), std::string(), 0);
@@ -842,7 +951,6 @@ CommandResult JobManager::retry(const std::string& job_id,
     // record that this move failed, and why, is exactly what an operator needs
     // to still be there after the retry. retry_of links the two.
     const std::string root = strip_retry_suffix(job_id);
-    std::string candidate;
     for (int n = 1;; ++n) {
         std::ostringstream os;
         os << root << "-retry-" << n;
@@ -875,14 +983,23 @@ CommandResult JobManager::retry(const std::string& job_id,
               move.dest_dir + "/" + move.dest_name, now_ms);
     const bool recorded = impl_->store_for_command("retry").record_intent(fresh, job_id, error);
 
-    const ManagerLock lock(impl_->mutex);
-    impl_->pending.erase(candidate);
-    if (!recorded) {
-        return CommandResult::StoreError;
+    {
+        const ManagerLock lock(impl_->mutex);
+        impl_->pending.erase(candidate);
+        if (!recorded) {
+            return CommandResult::StoreError;
+        }
+        impl_->requests[candidate] = move;
+        impl_->runnable.push_back(candidate);
+        impl_->work_ready.notify_one();
     }
-    impl_->requests[candidate] = move;
-    impl_->runnable.push_back(candidate);
-    impl_->work_ready.notify_one();
+    }  // store_mutex released here, before anything is published
+
+    // Carries the NEW id, with the old one in the detail: an operator reading
+    // the stream needs to be able to follow the chain of attempts, and the new
+    // id alone does not say what it is a retry of.
+    impl_->emit(EventType::JobRetrySubmitted, EventSeverity::Info, candidate,
+                "retry_of=" + job_id);
 
     new_job_id = candidate;
     return CommandResult::Ok;

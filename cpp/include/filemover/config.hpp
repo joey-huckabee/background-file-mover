@@ -35,6 +35,8 @@
 #include <cstdint>
 #include <string>
 
+#include "filemover/events.hpp"
+
 namespace filemover {
 
 struct Config {
@@ -47,6 +49,12 @@ struct Config {
     std::uint32_t retry_backoff_initial_ms;
     std::uint32_t retry_backoff_max_ms;
 
+    // [logging] level. Held as the parsed enum rather than the raw string, so a
+    // typo is rejected by --check (L2-CTL-019) instead of being discovered as
+    // the log line that never appeared.
+    EventSeverity logging_level;
+    bool logging_enabled;
+
     // L3-CPP-039: documented defaults for every optional parameter.
     Config()
         : http_bind("127.0.0.1"),
@@ -56,7 +64,9 @@ struct Config {
           storage_database_path(),
           retry_max_attempts(3),
           retry_backoff_initial_ms(1000),
-          retry_backoff_max_ms(60000) {}
+          retry_backoff_max_ms(60000),
+          logging_level(EventSeverity::Info),
+          logging_enabled(true) {}
 };
 
 // Parse and validate configuration text.

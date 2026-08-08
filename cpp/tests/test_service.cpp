@@ -29,10 +29,13 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <cstddef>
 #include <cstring>
+#include <sstream>
 #include <string>
 
 using filemover::check_config;
@@ -65,6 +68,12 @@ class TempRoot {
         c.storage_database_path = db();
         c.http_bind = "127.0.0.1";
         c.http_port = 0;  // let the kernel choose, so tests do not collide
+        // Logging OFF, so the suite's own output stays readable. The sink is
+        // still SUBSCRIBED -- start() installs it regardless, which is what
+        // the restart cases exercise -- and its formatting and stream split
+        // are covered properly in test_event_log.cpp. Left on, every service
+        // test interleaves log lines with Catch2's report.
+        c.logging_enabled = false;
         return c;
     }
 
@@ -91,6 +100,136 @@ bool can_connect(std::uint16_t port) {
 }
 
 }  // namespace
+
+// --- service-manager readiness (L2-CTL-011/012, L3-CPP-054) ---------------
+
+TEST_CASE("notification is a no-op when no service manager asked for it",
+          "[service][L3-CPP-054]") {
+    (void)::unsetenv("NOTIFY_SOCKET");
+    std::string error;
+    // Success, not failure. Without this the service starts under systemd and
+    // refuses to start anywhere else -- a test, a shell, a container.
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+    CHECK(error.empty() == true);
+}
+
+TEST_CASE("a send failure is not an error either", "[service][L3-CPP-054]") {
+    (void)::setenv("NOTIFY_SOCKET", "/nonexistent-dir-xyz/notify.sock", 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+    (void)::unsetenv("NOTIFY_SOCKET");
+}
+
+TEST_CASE("an empty state is the one thing refused", "[service][L2-CTL-011]") {
+    std::string error;
+    CHECK(filemover::notify_service_manager("", error) == false);
+    CHECK(error.empty() == false);
+}
+
+TEST_CASE("READY=1 reaches a listening notify socket",
+          "[service][L2-CTL-011]") {
+    // A real AF_UNIX datagram socket, so the wire format is exercised rather
+    // than assumed.
+    char dir[] = "/tmp/fm-notify-XXXXXX";
+    REQUIRE(::mkdtemp(dir) != 0);
+    const std::string path = std::string(dir) + "/notify.sock";
+
+    const int listener = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    REQUIRE(listener >= 0);
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    std::memcpy(addr.sun_path, path.c_str(), path.size());
+    REQUIRE(::bind(listener, reinterpret_cast<struct sockaddr*>(&addr),
+                   sizeof(addr)) == 0);
+
+    (void)::setenv("NOTIFY_SOCKET", path.c_str(), 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("READY=1", error) == true);
+
+    char buf[64];
+    std::memset(buf, 0, sizeof(buf));
+    const ssize_t n = ::recv(listener, buf, sizeof(buf) - 1, MSG_DONTWAIT);
+    CHECK(n > 0);
+    CHECK(std::string(buf) == std::string("READY=1"));
+
+    (void)::unsetenv("NOTIFY_SOCKET");
+    ::close(listener);
+    ::unlink(path.c_str());
+    ::rmdir(dir);
+}
+
+TEST_CASE("a '@' path is sent to the abstract namespace",
+          "[service][L2-CTL-011]") {
+    // The one part of the protocol that fails SILENTLY when it is wrong.
+    // Copying the '@' verbatim addresses a filesystem path that does not
+    // exist; sendto fails, the failure is deliberately not fatal, and the
+    // service never reports ready. That presents to an operator as a slow
+    // start and a timeout kill, not as a bad notification. So it is tested by
+    // binding a real abstract socket and reading the datagram back.
+    std::ostringstream name;
+    name << "@fm-notify-test-" << ::getpid();
+    const std::string abstract_name = name.str();
+
+    const int listener = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    REQUIRE(listener >= 0);
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    // Leading NUL, and a length that stops at the name -- an abstract address
+    // is exactly as long as it is declared to be, with no terminator.
+    std::memcpy(addr.sun_path, abstract_name.c_str(), abstract_name.size());
+    addr.sun_path[0] = '\0';
+    const socklen_t addr_len = static_cast<socklen_t>(
+        offsetof(struct sockaddr_un, sun_path) + abstract_name.size());
+    REQUIRE(::bind(listener, reinterpret_cast<struct sockaddr*>(&addr),
+                   addr_len) == 0);
+
+    (void)::setenv("NOTIFY_SOCKET", abstract_name.c_str(), 1);
+    std::string error;
+    CHECK(filemover::notify_service_manager("STOPPING=1", error) == true);
+
+    char buf[64];
+    std::memset(buf, 0, sizeof(buf));
+    const ssize_t n = ::recv(listener, buf, sizeof(buf) - 1, MSG_DONTWAIT);
+    CHECK(n > 0);
+    CHECK(std::string(buf) == std::string("STOPPING=1"));
+
+    (void)::unsetenv("NOTIFY_SOCKET");
+    ::close(listener);
+}
+
+TEST_CASE("the watchdog interval is read, validated and halved",
+          "[service][L2-CTL-012]") {
+    (void)::unsetenv("WATCHDOG_USEC");
+    (void)::unsetenv("WATCHDOG_PID");
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    // Half the interval, as systemd's own guidance says: pinging exactly at
+    // the deadline races it.
+    (void)::setenv("WATCHDOG_USEC", "30000000", 1);  // 30 s
+    CHECK(filemover::watchdog_interval_ms() == 15000u);
+
+    // Garbage is not a schedule.
+    (void)::setenv("WATCHDOG_USEC", "not-a-number", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+    (void)::setenv("WATCHDOG_USEC", "-5", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    // WATCHDOG_PID naming another process means the interval belongs to a
+    // parent. Pinging on its behalf would report the wrong process healthy.
+    (void)::setenv("WATCHDOG_USEC", "30000000", 1);
+    (void)::setenv("WATCHDOG_PID", "1", 1);
+    CHECK(filemover::watchdog_interval_ms() == 0u);
+
+    std::ostringstream mine;
+    mine << ::getpid();
+    (void)::setenv("WATCHDOG_PID", mine.str().c_str(), 1);
+    CHECK(filemover::watchdog_interval_ms() == 15000u);
+
+    (void)::unsetenv("WATCHDOG_USEC");
+    (void)::unsetenv("WATCHDOG_PID");
+}
 
 TEST_CASE("check_config refuses what it can before anything is created",
           "[service][L2-CTL-019]") {
@@ -167,6 +306,93 @@ TEST_CASE("a service that fails to start leaves nothing running",
     Service second;
     CHECK(second.start(root.config(), error) == true);
     second.stop();
+}
+
+TEST_CASE("a second service on the same database is refused",
+          "[service][L2-CTL-008]") {
+    // The lock is only worth having if start() actually takes it. Verified
+    // here rather than only in test_singleton.cpp, because "the class works"
+    // and "the service uses the class" are different claims and only the
+    // second one keeps two daemons off one database.
+    TempRoot root;
+    Service first;
+    std::string error;
+    REQUIRE(first.start(root.config(), error) == true);
+
+    Service second;
+    std::string second_error;
+    CHECK(second.start(root.config(), second_error) == false);
+    CHECK(second.is_running() == false);
+    CHECK(second_error.find("already running") != std::string::npos);
+
+    // ...and the refusal is temporary, not a poisoned database. Once the first
+    // stops, the next start succeeds -- a lock that outlived its holder would
+    // turn a restart into an outage.
+    first.stop();
+    Service third;
+    CHECK(third.start(root.config(), error) == true);
+    third.stop();
+}
+
+TEST_CASE("the lock is taken before the store is opened",
+          "[service][L2-CTL-008]") {
+    // Ordering matters, not just exclusion. A second instance that opened the
+    // store first would run crash recovery over rows the running instance
+    // owns, and would have done that damage before discovering it was not
+    // alone. Proven by pointing the second service at a database whose
+    // DIRECTORY does not exist: if the lock is taken first, the failure is the
+    // lock's (it cannot open its own directory either) and the store is never
+    // reached.
+    TempRoot root;
+    Service first;
+    std::string error;
+    REQUIRE(first.start(root.config(), error) == true);
+
+    Service second;
+    std::string second_error;
+    CHECK(second.start(root.config(), second_error) == false);
+    // The message comes from the lock, not from SQLite. A store error here
+    // would mean the store was opened first.
+    CHECK(second_error.find("already running") != std::string::npos);
+    CHECK(second_error.find("SQL") == std::string::npos);
+    CHECK(second_error.find("database is locked") == std::string::npos);
+
+    first.stop();
+}
+
+TEST_CASE("the service can be started again after it stops",
+          "[service][L2-EVT-001][L2-CTL-020]") {
+    // Start / stop / start on ONE Service object. The log sink is subscribed
+    // by start(), and subscribe() refuses a duplicate (L3-EVT-004) -- so a
+    // stop() that failed to unsubscribe would make this second start fail
+    // with "subscriber is already registered", which reads like nothing to do
+    // with restarting. Found by writing this test.
+    TempRoot root;
+    Service service;
+    std::string error;
+
+    REQUIRE(service.start(root.config(), error) == true);
+    service.stop();
+
+    REQUIRE(service.start(root.config(), error) == true);
+    CHECK(service.is_running() == true);
+    service.stop();
+}
+
+TEST_CASE("a failed start leaves nothing subscribed",
+          "[service][L2-EVT-001]") {
+    // Same hazard on the failure path: a subscription left behind by a start
+    // that failed would make the next start fail for an unrelated reason.
+    TempRoot root;
+    Config bad = root.config();
+    bad.http_bind = "203.0.113.1";  // parses, belongs to no interface here
+
+    Service service;
+    std::string error;
+    REQUIRE(service.start(bad, error) == false);
+
+    CHECK(service.start(root.config(), error) == true);
+    service.stop();
 }
 
 TEST_CASE("a stop signal wakes sigsuspend and the daemon shuts down",

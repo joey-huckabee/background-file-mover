@@ -9,24 +9,53 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-07 · **Branch:** `c6-daemon-entry-point` · **C5 is delivered and on
-`main`. Next milestone: C6 — the daemon entry point.**
+**Date:** 2026-08-08 · **Branch:** `main` · **C6 is delivered and merged. Next
+milestone: C7 — the operator dashboard.**
 
 ```
-In v1.0.0 scope:  115 of 214 requirements verified (53.7%)
-Tests:            8,821 assertions / 252 cases
-Line coverage:    87.8% overall (floor 85%)
+In v1.0.0 scope:  134 of 214 requirements verified (62.6%)
+Tests:            9,245 assertions / 314 cases
+Line coverage:    86.8% overall (floor 85%)
 Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
-                  coverage, clang-tidy, ten source gates -- all green
+                  coverage, cppcheck, clang-tidy, fuzz, nine source gates, the
+                  unit gate and the readiness smoke test -- all green
 ```
 
-### Start here for C6
+### Start here for C7
 
-**The service still cannot start.** C5 delivered a server a test can start and stop
-in-process; there is no `main`, no signal handling, no singleton lock. That is C6, and
-`docs/ROADMAP.md`'s C6 entry below already lists the requirements written for it.
+**The service runs.** `main`, signal handling, ordered startup and teardown, the
+hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton lock
+(`L2-CTL-008`), and the event stream (`L2-EVT-001..005`) with the log sink that
+satisfies the service half of `L2-CLI-006`. `scripts/smoke-readiness.py` drives the
+real binary end to end.
 
-Three things from C5 that C6 will meet immediately:
+C7 is the operator dashboard. Its entry below is short and its one load-bearing
+requirement is `L2-DASH-003`; read that before writing any DOM code.
+
+**The event stream is what the dashboard should read.** It already carries every job
+transition with a job identifier, and `format_event` is a pure function — so the
+dashboard's line rendering can reuse the same sanitisation rather than inventing a
+second one. `L2-DASH-003` (`textContent`, never `innerHTML`) and the control-character
+escaping in `event_log.cpp` are the same defence against the same input: a filename an
+attacker chose.
+
+**One open item from C6, which is judgement rather than code:** `--check` and
+`systemctl start/stop` have never been exercised on a real RHEL 9 or SLES host. Every
+tier here runs in containers or WSL, which is not the same as a dedicated service
+account under SELinux. This is C8's territory but the risk exists now.
+
+Two things worth carrying forward:
+
+1. **`service.cpp` is at 67.0% line coverage**, the lowest of any source file. The
+   uncovered part is mostly the watchdog thread and the `Service::start` failure paths.
+   The smoke test exercises them in a real process, which the coverage tier does not
+   see — so the number is pessimistic, but not by all of that.
+2. **`scripts/assert-unit-valid.sh` found the reference config was still Python-era**
+   on its first run, and the event stream then found `Service::start` could not run
+   twice. Both were live defects in shipped artifacts that every existing gate passed
+   over. Deployment artifacts and restart paths need tests of their own.
+
+Three things from C5 that C6 met immediately:
 
 1. **Do not copy the inherited 200 ms `nanosleep` wait loop** — already recorded below,
    and now doubly true: `make no-timed-condwait` forbids the other reflex
@@ -400,15 +429,33 @@ they sit on is already delivered.
 
 `main`, signals, and the startup sequence. The service becomes runnable here.
 
-- **Advances:** `L2-CTL-017..020`, `L2-EVT-001..005`
+- **Advances:** `L2-CTL-017..020`, `L2-CTL-008`, `L2-CTL-011`, `L2-CTL-012`,
+  `L2-EVT-001..005`, and `L2-SEC-014` (below).
+- **The hardened unit landed here, not in C8.** `Type=notify` needs the readiness
+  notification, and the notification needs somewhere to send it; a unit written two
+  milestones later would have been a unit nobody had ever run.
+  `deploy/systemd/file-mover.service` carries every directive `L2-SEC-014` names —
+  including the empty `CapabilityBoundingSet=` and `UMask=0077` — and
+  `scripts/assert-unit-valid.sh` checks it against the real binary on every CI run.
+  **`L2-SEC-014` is not yet fully met:** it requires `ReadWritePaths=` limited to
+  "managed trees *and* the state directory", and only the state directory is listed,
+  because the C++ config has no source or destination roots to name yet. That half
+  stays in C8, with the deployment work.
 - **Requirements already written for this, from the final triage:** handler assigns only
   to a `volatile sig_atomic_t` (`L2-CTL-017`); `SIGPIPE` ignored process-wide
   (`L2-CTL-018`); `--check` config validation for systemd `ExecStartPre` (`L2-CTL-019`);
   ordered startup with reverse-order teardown (`L2-CTL-020`).
 - **Do not copy the inherited 200 ms `nanosleep` wait loop.** Block on `sigsuspend` or a
   self-pipe; a daemon should not wake five times a second forever to poll a flag.
+- **The event stream is observation, never control.** `L2-EVT-003` is enforced
+  structurally rather than by review: the manager emits only after the durable write,
+  `emit()` asserts it is not holding the manager mutex, and the whole job lifecycle
+  runs with no publisher installed. A run in which every subscriber throws produces a
+  byte-identical durable record, and there is a test for that.
 - **Done when:** `systemctl start/stop` is clean, `--check` fails the unit on a bad
-  config before anything is created, and shutdown drains rather than aborts.
+  config before anything is created, shutdown drains rather than aborts, a second
+  instance on one database is refused rather than tolerated, and the service's log
+  stream reaches `journalctl` split by severity.
 
 ### C7 — Operator dashboard
 
@@ -422,11 +469,14 @@ they sit on is already delivered.
 
 ### C8 — Packaging, hardening, deployment
 
-- **Advances:** `L2-SEC-014`, `L2-ENV-001..003`
-- **The hardened unit is already specified** and is stronger than the inherited one:
-  `ProtectSystem=strict`, `ReadWritePaths=` limited to managed trees, `NoNewPrivileges`,
-  `PrivateTmp`, `ProtectHome`, a trimmed `CapabilityBoundingSet=`, a dedicated service
-  account, and `UMask=0077`.
+- **Advances:** `L2-ENV-001..003`
+- **The hardened unit was WRITTEN IN C6**, not here — see that entry. It is stronger
+  than the inherited one (`ProtectSystem=strict`, `ReadWritePaths=` limited to the
+  state directory, `NoNewPrivileges`, `PrivateTmp`, `ProtectHome`, an empty
+  `CapabilityBoundingSet=`, a dedicated service account, `UMask=0077`) and is gated
+  by `scripts/assert-unit-valid.sh`. What is left here is `ReadWritePaths=` for the
+  managed source and destination trees, which cannot be written until those are
+  configurable — the C++ config has no path roots yet.
 - **Done when:** the service installs and runs unprivileged on RHEL 9 (SELinux) and
   SLES 12 SP5 (AppArmor), and the environment diagnostic gates the deployment.
 
@@ -918,7 +968,7 @@ privileged interference is impossible.
 | 8 | **Worker pool and REST server** | `L2-MGR-001..003`, `L2-CTL-001..016` | 1, 7 |
 | 9 | **Crash and fault injection suite** | `L1-SEC-002` | 1–8 |
 | 10 | **MAC policy + enforcing-mode CI** — SELinux module (RHEL), AppArmor profile (SLES) | `L1-SEC-005`, `L2-SEC-013` | 8 |
-| 11 | **Hardened systemd unit** | `L2-SEC-014` | 8 |
+| 11 | **Hardened systemd unit** — written in **C6**, gated by `assert-unit-valid.sh`; only `ReadWritePaths=` for the managed trees remains | `L2-SEC-014` | 8 |
 | 12 | **ePO exclusion documentation + startup coverage check** | `L2-SEC-016` | 8 |
 | 13 | **NFS qualification on a real export** | `L2-NFS-006`, `L2-NFS-008` | 8 |
 

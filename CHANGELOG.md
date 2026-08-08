@@ -14,6 +14,152 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Added — C6, the daemon
+
+- **The operational event stream** (`L2-EVT-001..005`, `L3-EVT-001..005`). Typed
+  immutable `Event` records on an `EventPublisher` with function-pointer
+  subscribers, matching the clock and the phase hook rather than dragging
+  `std::function` through a C++11 header.
+- **Observation, never control** (`L2-EVT-003`). Publication is the last step of an
+  operation and never a step it depends on. The manager emits after the durable
+  write and outside its mutex — `emit()` asserts that, the same way
+  `store_for_command()` does — and the whole job lifecycle works with **no publisher
+  installed at all**, which every C4 test already relied on and two new tests now
+  assert deliberately. A run in which every subscriber throws produces a byte-identical
+  durable record.
+- **Subscriber isolation** (`L2-EVT-002`, `L3-EVT-003`). Each callback runs in its own
+  `try`/`catch`, including `catch (...)` — a subscriber in another translation unit
+  can throw anything, and an escaping throw on a worker thread would call
+  `std::terminate` and take the daemon with it. A subscriber that throws is **not**
+  auto-unsubscribed: dropping it would silently disable logging for the rest of the
+  process, and "the logs stopped" reads like a hang.
+- **Snapshot, and no lock across callbacks** (`L3-EVT-001`, `L3-EVT-002`). Holding the
+  subscriber lock across arbitrary subscriber code would serialise every emitting
+  thread and deadlock outright on a subscriber that publishes from its own callback.
+  There is a test for exactly that; with the lock reinstated it *hangs*, which was
+  verified rather than assumed.
+- **`unsubscribe` blocks until in-flight publishes are done with the subscriber.**
+  The snapshot `L3-EVT-001` requires is otherwise a use-after-free waiting to happen:
+  the list no longer names you, but a publishing thread still holds the copy it took.
+  Callers may destroy their `user_data` as soon as `unsubscribe` returns. Called from
+  inside a callback it does not wait — the publication it would wait for is the one
+  calling it.
+- **A log sink** (`L2-CLI-006`) — the one subscriber the service always installs.
+  `DEBUG`/`INFO` to stdout, `WARNING`/`ERROR` to stderr, no log file ever opened,
+  named, rotated or deleted (twelve-factor XI). `format_event` is a pure function, so
+  the formatting decisions are asserted directly instead of by capturing a descriptor;
+  only the stream *split* needs redirection, because which stream a line went to is not
+  visible in the line.
+- **Control characters in identifiers are escaped** before they reach a log line. Paths
+  are attacker-influenced by definition — whoever can create a file chooses its name —
+  and a newline in a job id would end the line and start one the attacker composed,
+  including a forged `ERROR`. Same reasoning as `L2-DASH-003` for the dashboard.
+- **`[logging] level`** in the configuration (`DEBUG`/`INFO`/`WARNING`/`ERROR`/`OFF`),
+  parsed into the enum at load time so a typo is one of the issues `--check` lists
+  rather than a log line that never appears. `OFF` disables the sink rather than naming
+  a level above `ERROR`, because a level invites a comparison against it.
+- **`JobHaltedAfterCommit` and `JobFailedExternal` are distinct event types.**
+  `L2-JOB-014`'s halted-after-commit means the move happened and the record disagrees;
+  `L2-SEC-011`'s failed-external means something outside the service took the file. An
+  operator's next action differs, and collapsing them into "failed" deletes the only
+  signal that says which. The mapping is a `switch`, so a sixth `MoveOutcome` is a
+  `-Werror=switch` build failure rather than a silent default of "failed".
+
+- **The singleton lock** (`L2-CTL-008`, `L3-CTL-004`). Two daemons on one state
+  database is not a degraded mode, it is corruption: both run crash recovery over
+  the same rows, both claim the same `QUEUED` jobs, and both move the same file —
+  with the second finding the source gone and recording a failure for work that
+  actually succeeded. SQLite serialises the *writes*; it has nothing to say about
+  two processes that each believe they own the queue.
+- **A lock, deliberately not a pidfile.** A pidfile has to answer "is pid 4212 still
+  alive, and is it still us?" and cannot, because pids are reused; every repair for
+  that (check `/proc`, compare start time, unlink if stale) is racy and defeated by a
+  reboot. The kernel releases an advisory lock when the holder dies however it dies,
+  including `SIGKILL`, so there is no stale state to reason about and no recovery
+  path to get wrong. Tested by having a child acquire and `_exit` without releasing.
+- **`flock`, deliberately not `fcntl(F_SETLK)`.** POSIX record locks are owned by the
+  `(process, file)` pair, so a second lock taken by the same process silently replaces
+  the first — precisely the case the lock exists to catch, made invisible. `flock` is
+  owned by the open file description, so a second open in one process conflicts
+  correctly. Confirmed by swapping in `fcntl` and watching the in-process test fail.
+- **Taken before the store is opened, released after it closes.** A second instance
+  that reached the store first would run recovery over rows the running instance owns
+  and would have done the damage before discovering it was not alone. `Impl` declares
+  the lock first so reverse member destruction releases it last, matching `stop()`.
+- **The lock file is never unlinked.** Between another process's open and its `flock`
+  there is a window where unlinking would delete the object it is about to lock,
+  leaving two instances holding exclusive locks on two different inodes with the same
+  name. A leftover file is not a held lock — tested, because the alternative reading
+  would let the service start exactly once per machine.
+- **`fsops::open_lock_file`** — an `openat`-based primitive so `singleton.cpp` needs no
+  `<fcntl.h>` and stays inside `L2-SEC-001` without an allowlist entry. `O_CLOEXEC` is
+  load-bearing rather than hygiene: `L2-XFR-002` forks and execs, and a lock descriptor
+  inherited by that child would keep the lock alive after this process died, so the
+  next start would refuse forever with nothing an operator could find holding it.
+
+- **A hardened systemd unit** (`deploy/systemd/file-mover.service`, `L2-SEC-014`),
+  `Type=notify` rather than `Type=simple`. The difference is not cosmetic: with
+  `Type=simple` systemd considers the service started the moment `exec` returns,
+  which is before the port is open, so every unit ordered `After=` this one starts
+  against a service that refuses connections. `ExecStartPre` runs `--check`
+  (`L2-CTL-019`) so a bad configuration fails the unit before a socket or a
+  database exists. `TimeoutStopSec=120` because shutdown *drains* — a move past its
+  commit point must finish, and killing it leaves the record and the filesystem
+  disagreeing.
+- **sd_notify readiness and watchdog** (`L2-CTL-011`, `L2-CTL-012`, `L3-CPP-054`),
+  hand-rolled rather than linked against libsystemd, for the reason ADR-0004 gives
+  generally: the protocol is one `AF_UNIX` datagram. `READY=1` is sent **after** the
+  listener is accepting, `STOPPING=1` before teardown, and `WATCHDOG=1` at half the
+  interval systemd asked for. A leading `@` in `$NOTIFY_SOCKET` means the abstract
+  namespace, which on the wire is a leading NUL — copying the `@` verbatim addresses
+  a path that does not exist, and since a failed notification is deliberately not
+  fatal, the symptom would be a unit killed at its start timeout rather than an
+  error. That conversion has its own test, negative-tested by injecting the `@`.
+- **`notify_service_manager` is a no-op when `$NOTIFY_SOCKET` is unset, and a failed
+  send is not an error** (`L3-CPP-054`). Without that the service starts under
+  systemd and refuses to start anywhere else — in a test, at an operator's shell, in
+  a container.
+- **`scripts/smoke-readiness.py`** drives the real binary end to end: `READY=1`,
+  a live `/healthz`, watchdog pings, `STOPPING=1`, clean exit on `SIGTERM`. Its
+  ordering case occupies the port first so the daemon's `bind` is *guaranteed* to
+  fail, making "no `READY=1` when the listener never opened" deterministic.
+  Connecting the instant `READY` arrives looks like the same check and is not — the
+  daemon wins that race every time, confirmed by injecting a premature `READY` and
+  watching it pass.
+- **`scripts/assert-unit-valid.sh`** (negative-tested by `unit-gate-selftest.sh`)
+  checks the unit with `systemd-analyze` and then runs the daemon with the unit's
+  *own* `ExecStartPre` arguments against the config that actually ships. The unit
+  and the reference config are the two deliverables nothing compiles and no test
+  imports, so a mistake in either survived every other gate here.
+
+### Fixed — C6
+
+- **`Service::start` after `stop()` would have failed on its own log sink.** `start`
+  subscribes the sink and `subscribe` refuses a duplicate (`L3-EVT-004`), so a `stop`
+  that did not unsubscribe made the next `start` fail with "subscriber is already
+  registered" — an error with no visible connection to restarting. Found by writing
+  the restart test; the failure paths in `start` had the same hole.
+- **The shipped reference config was still the Python-era schema.** The C++ parser
+  rejected nearly every line of `config/file-mover.ini`, so the unit's `ExecStartPre`
+  validation could not have succeeded on any real install — the daemon would have
+  refused to start with a wall of "unknown section" errors. Found by
+  `assert-unit-valid.sh` on its first run. Rewritten to the accepted schema;
+  `docs/CONFIG-REFERENCE.md` (which documents the retired Python implementation)
+  now says so rather than pointing at it as its reference copy.
+
+### Changed — C6
+
+- **`L3-CTL-004` rewritten for C++.** It required "`ProcessLock` shall use
+  `fcntl.flock`" — a Python class and a Python module, left from the retired
+  implementation. It now names `SingletonLock` and `flock(2)`, states why record locks
+  are forbidden, and adds the no-unlink-on-release clause.
+- **`make format-check` is documented as advisory and failing.** It reports most of
+  the tree as violating and always has — the sources use column alignment
+  clang-format rewrites, and the CI workflow deliberately does not gate on it. The
+  wall of output reads exactly like a real failure and was briefly mistaken for a
+  clang-format version gap, so the Makefile now records what it is and warns
+  against reformatting tested code to quiet it.
+
 ### Added — C5, the REST control plane
 
 - **A bounded pool of connection handlers (ADR-0013).** One accept thread, N

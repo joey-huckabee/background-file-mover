@@ -410,6 +410,26 @@ bool open_regular(const DirHandle& dir,
     return true;
 }
 
+bool open_lock_file(const DirHandle& dir,
+                    const std::string& name,
+                    int& fd_out,
+                    std::string& error) {
+    if (!dir.is_open()) {
+        error = "cannot open lock file '" + name + "': directory is not open";
+        return false;
+    }
+
+    const int fd = ::openat(dir.fd(), name.c_str(),
+                            O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (fd < 0) {
+        error = errno_message("cannot open lock file '" + name + "'", errno);
+        return false;
+    }
+
+    fd_out = fd;
+    return true;
+}
+
 bool check_source_trust(const DirHandle& parent,
                         int file_fd,
                         uid_t trusted_uid,

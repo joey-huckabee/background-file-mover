@@ -12,6 +12,15 @@
 >
 > For what this branch actually specifies, read `docs/L1-REQ.md`,
 > `docs/L2-REQ.md`, `docs/L3-REQ.md`, and `docs/TRACE-MATRIX.md`.
+>
+> **The service half is now implemented in C++ (C6)** and follows the stream
+> contract below exactly: `DEBUG`/`INFO` to stdout, `WARNING` and above to
+> stderr, no log file ever opened, named, rotated or deleted. Verbosity is
+> `[logging] level` in the INI (`DEBUG | INFO | WARNING | ERROR | OFF`). What is
+> **not** implemented is everything CLI-side — the `-v`/`-vv`/`--log-level`
+> flags and the `service run` subcommand described below belong to the CLI
+> milestone. See `cpp/include/filemover/event_log.hpp` and
+> `cpp/include/filemover/events.hpp`.
 
 The single reference for how the Background File Mover uses **stdout**, **stderr**, and
 logging — for **operators** (how to consume and route logs) and for **developers** (how to

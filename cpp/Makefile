@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp src/singleton.cpp src/events.cpp src/event_log.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -153,7 +153,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp tests/test_connection_server.cpp tests/test_router.cpp tests/test_http_service.cpp tests/test_service.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp tests/test_connection_server.cpp tests/test_router.cpp tests/test_http_service.cpp tests/test_service.cpp tests/test_singleton.cpp tests/test_events.cpp tests/test_event_log.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -396,6 +396,12 @@ verify-ci:
 print-test-bin:
 	@echo $(TEST_BIN)
 
+# Same, for the daemon. Used by scripts/assert-unit-valid.sh so the deployment
+# gate does not hard-code a toolchain-specific build path.
+.PHONY: print-daemon-bin
+print-daemon-bin:
+	@echo $(DAEMON_BIN)
+
 .PHONY: check-ci
 check-ci:
 	@echo "Running the CI tiers in $(CI_IMAGE) via $(CI_ENGINE)..."
@@ -569,7 +575,15 @@ FUZZ_TARGETS  := json http
 # subtractive design -- and still the right trade: the alternative is a
 # hand-written include list that stops covering a new parser silently, and a
 # link error is a far better failure than a fuzz target quietly testing less.
-FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp
+#
+# events.cpp and event_log.cpp were excluded when they were written and had to
+# come back: config.cpp calls parse_severity to validate [logging] level, and
+# the config parser IS in the fuzz build. That is the third time, and the
+# mechanism did exactly what the paragraph above says it should -- a link
+# error, not a fuzz target silently covering less. They bring the publisher's
+# mutex and condition_variable with them, which is why the fuzz link passes
+# -lpthread.
+FUZZ_EXCLUDE  := src/store.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp src/singleton.cpp
 FUZZ_LIB_SRC  := $(filter-out $(FUZZ_EXCLUDE),$(LIB_SRC))
 # Derived, so adding a target to the list above cannot leave format-check
 # silently covering fewer files than the build does.
@@ -585,7 +599,8 @@ fuzz:
 	@for t in $(FUZZ_TARGETS); do \
 	  echo "building fuzz target: $$t"; \
 	  $(FUZZ_CXX) $(CPPFLAGS) $(FUZZ_FLAGS) \
-	    fuzz/fuzz_$$t.cpp $(FUZZ_LIB_SRC) -o $(FUZZ_DIR)/fuzz_$$t || exit 1; \
+	    fuzz/fuzz_$$t.cpp $(FUZZ_LIB_SRC) -o $(FUZZ_DIR)/fuzz_$$t \
+	    -lpthread || exit 1; \
 	done
 
 # libFuzzer WRITES newly-interesting inputs into the FIRST corpus directory
@@ -736,8 +751,22 @@ tidy-ci:
 	  bear -- make -j$(CI_JOBS) all CXX=$(CI_CXX) CC=$(CI_CC) >/dev/null && \
 	  make tidy TIDY=$(CI_TIDY) CXX=$(CI_CXX) CC=$(CI_CC)'
 
+# ADVISORY, not a gate, and it does not currently pass -- see the NOTE in
+# .github/workflows/cpp-ci.yml. The sources use column alignment clang-format
+# rewrites, so this reports most of the tree as violating and always has. That
+# is a deliberate open decision (bulk-reformat tested code, or drop the tool),
+# not a regression to chase.
+#
+# Recorded here because the wall of output reads exactly like a real failure:
+# it was mistaken for a clang-format version gap once, and the "fix" attempted
+# was a version guard asserting the tree is formatted by CI's binary -- which
+# it is not, by choice. Do not reformat to make this quiet without agreeing to
+# the reformat first.
+FORMAT ?= clang-format
+
+.PHONY: format-check
 format-check:
-	clang-format --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
+	$(FORMAT) --dry-run --Werror $(LIB_SRC) $(TEST_SRC) \
 	    $(FUZZ_SRC) include/filemover/*.hpp
 
 # Generated header dependencies (see DEPFLAGS above). Leading '-' because none

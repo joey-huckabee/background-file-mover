@@ -260,6 +260,44 @@ jobs:
       - name: Hooks are executable in the index
         run: sh scripts/assert-hook-mode.sh
 
+  # The systemd unit and the reference config are the two deliverables nothing
+  # compiles and no test imports, so a mistake in either survives every other
+  # gate here and is found by an operator at deploy time. This gate checks the
+  # unit with systemd-analyze and then runs the daemon with the unit's OWN
+  # ExecStartPre arguments against the config that actually ships.
+  #
+  # It earns its place: on the commit that added it, it found that the shipped
+  # reference config was still the Python-era schema and the C++ parser
+  # rejected nearly every line — meaning ExecStartPre could not have succeeded
+  # on any real install.
+  #
+  # Negative-tested by scripts/unit-gate-selftest.sh (run by hand; it edits the
+  # unit and config in place).
+  deploy-artifacts:
+    name: systemd unit and reference config
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build the daemon
+        run: make -C cpp daemon
+      - name: Verify unit and reference config
+        run: |
+          # print-daemon-bin is relative to cpp/, which is where the Makefile
+          # lives; this step runs from the repository root.
+          sh scripts/assert-unit-valid.sh \
+            deploy/systemd/file-mover.service \
+            "cpp/$(make -C cpp --no-print-directory print-daemon-bin)"
+      # Drives the real binary: READY=1 only after the port accepts, watchdog
+      # pings at the interval systemd asked for, STOPPING=1 and a clean exit on
+      # SIGTERM. The ordering case occupies the port first so the bind is
+      # guaranteed to fail -- connecting the moment READY arrives looks like
+      # the same check and is not, because the daemon wins that race every
+      # time. Both were confirmed by injecting a premature READY.
+      - name: Readiness protocol end to end
+        run: |
+          python3 scripts/smoke-readiness.py \
+            "cpp/$(make -C cpp --no-print-directory print-daemon-bin)"
+
   # L3-CPP-052: the untrusted-input parsers must classify characters with
   # explicit ranges, never <cctype> or the strtoul family.
   #

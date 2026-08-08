@@ -79,7 +79,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CLI-003 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-004 | L3-CLI-004 | _(TBD)_ | Draft |
 | L2-CLI-005 | _(none)_ | _(TBD)_ | Draft |
-| L2-CLI-006 | _(none)_ | _(TBD)_ | Draft |
+| L2-CLI-006 | _(none)_ | `cpp/tests/test_event_log.cpp::[INFO goes to stdout and WARNING and above go to stderr]`<br>`cpp/tests/test_event_log.cpp::[OFF disables logging rather than naming a level]`<br>`cpp/tests/test_event_log.cpp::[a disabled sink writes nothing at all]`<br>`cpp/tests/test_event_log.cpp::[a formatted event leads with an ISO-8601 UTC timestamp]`<br>`cpp/tests/test_event_log.cpp::[a null options pointer is survivable]`<br>`cpp/tests/test_event_log.cpp::[a pre-epoch timestamp does not produce a negative field]`<br>`cpp/tests/test_event_log.cpp::[absent fields are omitted rather than printed empty]`<br>`cpp/tests/test_event_log.cpp::[an unrecognised level is refused]`<br>`cpp/tests/test_event_log.cpp::[control characters in a value cannot forge a log line]`<br>`cpp/tests/test_event_log.cpp::[events below the configured level are dropped]`<br>`cpp/tests/test_event_log.cpp::[the configured level is parsed, case-insensitively]`<br>`cpp/tests/test_event_log.cpp::[the millisecond field is zero-padded]` | Implemented |
 | L2-CLI-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-008 | _(none)_ | _(TBD)_ | Draft |
 | L2-CLI-009 | _(none)_ | _(TBD)_ | Draft |
@@ -106,14 +106,14 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | `cpp/tests/test_job.cpp::[terminal states accept no further transitions]`<br>`cpp/tests/test_job.cpp::[transition rejects every illegal pair and leaves the job unmodified]`<br>`cpp/tests/test_job.cpp::[transition to Failed requires a non-empty error message]`<br>`cpp/tests/test_job.cpp::[transition to non-Failed states rejects an error message]` | Implemented |
 | L2-CTL-004 | _(none)_ | `cpp/tests/test_http_service.cpp::[a body shorter than declared is answered, not left hanging]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]` | Implemented |
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
+| L2-CTL-008 | L3-CTL-004 | `cpp/tests/test_service.cpp::[a second service on the same database is refused]`<br>`cpp/tests/test_service.cpp::[the lock is taken before the store is opened]`<br>`cpp/tests/test_singleton.cpp::[a different database is a different lock]`<br>`cpp/tests/test_singleton.cpp::[a lock file left behind is not a held lock]`<br>`cpp/tests/test_singleton.cpp::[a missing directory is reported, not crashed on]`<br>`cpp/tests/test_singleton.cpp::[a path that names no file is refused]`<br>`cpp/tests/test_singleton.cpp::[a second PROCESS is refused too]`<br>`cpp/tests/test_singleton.cpp::[a second instance is refused while the first holds the lock]`<br>`cpp/tests/test_singleton.cpp::[acquiring twice through one object is refused]`<br>`cpp/tests/test_singleton.cpp::[release is safe without an acquire]`<br>`cpp/tests/test_singleton.cpp::[the kernel releases the lock when the holder dies]`<br>`cpp/tests/test_singleton.cpp::[the lock file is named after the database, beside it]`<br>`cpp/tests/test_singleton.cpp::[the lock is available again after a clean release]` | Implemented |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
-| L2-CTL-011 | L3-CPP-054 | _(TBD)_ | Draft |
-| L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]` | Implemented |
+| L2-CTL-011 | L3-CPP-054 | `cpp/tests/test_service.cpp::[READY=1 reaches a listening notify socket]`<br>`cpp/tests/test_service.cpp::[a '@' path is sent to the abstract namespace]`<br>`cpp/tests/test_service.cpp::[a send failure is not an error either]`<br>`cpp/tests/test_service.cpp::[an empty state is the one thing refused]`<br>`cpp/tests/test_service.cpp::[notification is a no-op when no service manager asked for it]` | Implemented |
+| L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]`<br>`cpp/tests/test_service.cpp::[the watchdog interval is read, validated and halved]` | Implemented |
 | L2-CTL-017 | _(none)_ | `cpp/tests/test_service.cpp::[a stop signal wakes sigsuspend and the daemon shuts down]` | Implemented |
 | L2-CTL-018 | _(none)_ | `cpp/tests/test_service.cpp::[SIGPIPE is ignored process-wide]` | Implemented |
 | L2-CTL-019 | _(none)_ | `cpp/tests/test_service.cpp::[check_config refuses what it can before anything is created]` | Implemented |
-| L2-CTL-020 | _(none)_ | `cpp/tests/test_service.cpp::[a service that fails to start leaves nothing running]`<br>`cpp/tests/test_service.cpp::[stop is idempotent and safe without a start]`<br>`cpp/tests/test_service.cpp::[the service starts, serves, and stops in reverse order]` | Implemented |
+| L2-CTL-020 | _(none)_ | `cpp/tests/test_service.cpp::[a service that fails to start leaves nothing running]`<br>`cpp/tests/test_service.cpp::[stop is idempotent and safe without a start]`<br>`cpp/tests/test_service.cpp::[the service can be started again after it stops]`<br>`cpp/tests/test_service.cpp::[the service starts, serves, and stops in reverse order]` | Implemented |
 | L2-DEL-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-DEL-003 | _(none)_ | _(TBD)_ | Draft |
@@ -132,11 +132,11 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-DST-005 | L3-INT-004 | _(TBD)_ | Draft |
 | L2-ENV-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-ENV-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-EVT-001 | L3-EVT-004, L3-EVT-005 | _(TBD)_ | Draft |
-| L2-EVT-002 | L3-EVT-003 | _(TBD)_ | Draft |
-| L2-EVT-003 | _(none)_ | _(TBD)_ | Draft |
-| L2-EVT-004 | L3-EVT-001, L3-EVT-002 | _(TBD)_ | Draft |
-| L2-EVT-005 | _(none)_ | _(TBD)_ | Draft |
+| L2-EVT-001 | L3-EVT-004, L3-EVT-005 | `cpp/tests/test_events.cpp::[a duplicate subscriber registration is refused]`<br>`cpp/tests/test_events.cpp::[a null callback is refused]`<br>`cpp/tests/test_events.cpp::[a subscriber may unsubscribe itself from its own callback]`<br>`cpp/tests/test_events.cpp::[an event carries its type, severity, time and identifiers]`<br>`cpp/tests/test_events.cpp::[an event has no mutators]`<br>`cpp/tests/test_events.cpp::[an unsubscribed subscriber stops receiving]`<br>`cpp/tests/test_events.cpp::[every event type and severity has a distinct name]`<br>`cpp/tests/test_events.cpp::[severity is ordered]`<br>`cpp/tests/test_events.cpp::[the same callback with different user data is two subscribers]`<br>`cpp/tests/test_events.cpp::[unsubscribe reports whether anything was removed]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands emit their events]`<br>`cpp/tests/test_service.cpp::[a failed start leaves nothing subscribed]`<br>`cpp/tests/test_service.cpp::[the service can be started again after it stops]` | Implemented |
+| L2-EVT-002 | L3-EVT-003 | `cpp/tests/test_events.cpp::[a subscriber that throws does not stop the others]`<br>`cpp/tests/test_events.cpp::[a subscriber throwing a non-std type is also contained]`<br>`cpp/tests/test_events.cpp::[a throwing subscriber keeps receiving later events]` | Implemented |
+| L2-EVT-003 | _(none)_ | `cpp/tests/test_manager.cpp::[job state is authoritative even when every subscriber throws]`<br>`cpp/tests/test_manager.cpp::[the manager works identically with no publisher installed]` | Implemented |
+| L2-EVT-004 | L3-EVT-001, L3-EVT-002 | `cpp/tests/test_events.cpp::[a subscriber may publish from its own callback]`<br>`cpp/tests/test_events.cpp::[a subscriber may unsubscribe itself from its own callback]`<br>`cpp/tests/test_events.cpp::[a subscriber removed before a publish does not receive it]`<br>`cpp/tests/test_events.cpp::[concurrent publishers all deliver]`<br>`cpp/tests/test_events.cpp::[concurrent subscribe and unsubscribe leave a consistent list]`<br>`cpp/tests/test_events.cpp::[unsubscribe waits for an in-flight publish to finish with it]` | Implemented |
+| L2-EVT-005 | _(none)_ | `cpp/tests/test_events.cpp::[an event carries its type, severity, time and identifiers]`<br>`cpp/tests/test_events.cpp::[transfer events are distinguished from service events]`<br>`cpp/tests/test_manager.cpp::[every transfer event the manager emits carries a job identifier]`<br>`cpp/tests/test_manager.cpp::[lifecycle commands emit their events]` | Implemented |
 | L2-FS-001 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-002 | _(none)_ | _(TBD)_ | Draft |
 | L2-FS-003 | _(none)_ | _(TBD)_ | Draft |
@@ -332,8 +332,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | OBS | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
 | DPR | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
 | CFG | 0 | 11 | 0 | 0 | 0 | 1 | 0 |
-| EVT | 0 | 5 | 5 | 0 | 0 | 0 | 0 |
-| CLI | 0 | 11 | 5 | 0 | 0 | 0 | 0 |
+| EVT | 0 | 5 | 5 | 5 | 5 | 5 | 5 |
+| CLI | 0 | 11 | 5 | 1 | 0 | 1 | 0 |
 | ARC | 0 | 8 | 0 | 0 | 0 | 4 | 0 |
 | FS | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | POSIX | 0 | 12 | 0 | 0 | 0 | 0 | 0 |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 8 | 0 | 10 | 0 |
+| CTL | 0 | 20 | 4 | 10 | 1 | 12 | 1 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -361,22 +361,22 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| CPP | 0 | 0 | 54 | 0 | 49 | 0 | 53 |
-| **Total** | **41** | **199** | **80** | **47** | **49** | **67** | **53** |
+| CPP | 0 | 0 | 54 | 0 | 50 | 0 | 54 |
+| **Total** | **41** | **199** | **80** | **55** | **56** | **75** | **60** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 96 of 283 (33.9%).
+**Tested by at least one test marker**: 111 of 283 (39.2%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 121 of 283 (42.8%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 136 of 283 (48.1%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 94 of 214 (43.9%).
+**In v1.0.0 scope — tested**: 109 of 214 (50.9%).
 
-**In v1.0.0 scope — verified**: 119 of 214 (55.6%).
+**In v1.0.0 scope — verified**: 134 of 214 (62.6%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 
