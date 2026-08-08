@@ -9,8 +9,8 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-07 · **Branch:** `c6-daemon-entry-point` · **C6 is in progress: the
-daemon runs, and `systemd` can start, watch and stop it.**
+**Date:** 2026-08-08 · **Branch:** `main` · **C6 is delivered and merged. Next
+milestone: C7 — the operator dashboard.**
 
 ```
 In v1.0.0 scope:  134 of 214 requirements verified (62.6%)
@@ -21,20 +21,28 @@ Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
                   unit gate and the readiness smoke test -- all green
 ```
 
-### Start here
+### Start here for C7
 
-**The service starts.** `main`, signal handling, ordered startup and teardown, the
-hardened `Type=notify` unit, and the sd_notify readiness/watchdog protocol are all in.
-`scripts/smoke-readiness.py` drives the real binary end to end.
+**The service runs.** `main`, signal handling, ordered startup and teardown, the
+hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton lock
+(`L2-CTL-008`), and the event stream (`L2-EVT-001..005`) with the log sink that
+satisfies the service half of `L2-CLI-006`. `scripts/smoke-readiness.py` drives the
+real binary end to end.
 
-**C6 is feature-complete.** The singleton lock (`L2-CTL-008`) is in — `flock` on a lock
-file beside the state database, taken before the store opens and released after it
-closes — and so is the event stream (`L2-EVT-001..005`, `L3-EVT-001..005`) with the log
-sink that satisfies the service half of `L2-CLI-006`.
+C7 is the operator dashboard. Its entry below is short and its one load-bearing
+requirement is `L2-DASH-003`; read that before writing any DOM code.
 
-What remains before C7 is judgement, not code: C6's **`--check` / `systemctl` acceptance
-on a real RHEL 9 or SLES box**. Everything here has been verified in containers and in
-WSL, which is not the same as a service account under SELinux.
+**The event stream is what the dashboard should read.** It already carries every job
+transition with a job identifier, and `format_event` is a pure function — so the
+dashboard's line rendering can reuse the same sanitisation rather than inventing a
+second one. `L2-DASH-003` (`textContent`, never `innerHTML`) and the control-character
+escaping in `event_log.cpp` are the same defence against the same input: a filename an
+attacker chose.
+
+**One open item from C6, which is judgement rather than code:** `--check` and
+`systemctl start/stop` have never been exercised on a real RHEL 9 or SLES host. Every
+tier here runs in containers or WSL, which is not the same as a dedicated service
+account under SELinux. This is C8's territory but the risk exists now.
 
 Two things worth carrying forward:
 
@@ -43,8 +51,9 @@ Two things worth carrying forward:
    The smoke test exercises them in a real process, which the coverage tier does not
    see — so the number is pessimistic, but not by all of that.
 2. **`scripts/assert-unit-valid.sh` found the reference config was still Python-era**
-   on its first run. Deployment artifacts have no compiler and no test importing them;
-   they need gates of their own or they rot silently.
+   on its first run, and the event stream then found `Service::start` could not run
+   twice. Both were live defects in shipped artifacts that every existing gate passed
+   over. Deployment artifacts and restart paths need tests of their own.
 
 Three things from C5 that C6 met immediately:
 
