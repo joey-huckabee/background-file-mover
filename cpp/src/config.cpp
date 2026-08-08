@@ -3,6 +3,8 @@
 
 #include "filemover/config.hpp"
 
+#include "filemover/event_log.hpp"
+
 #include <sys/vfs.h>
 
 #include <cerrno>
@@ -174,7 +176,7 @@ bool load_config_from_string(const std::string& text,
                 continue;
             }
             if (name != "http" && name != "jobs" && name != "storage" &&
-                name != "retry") {
+                name != "retry" && name != "logging") {
                 issues.add(at(origin, line_no,  // L3-CPP-036
                               "unknown section [" + name + "]"));
                 // Still recorded as the current section, so its keys produce
@@ -288,6 +290,20 @@ bool load_config_from_string(const std::string& text,
                               "1..3600000"));
             } else {
                 cfg.retry_backoff_max_ms = static_cast<std::uint32_t>(n);
+            }
+        } else if (section == "logging" && key == "level") {
+            // Parsed here rather than stored as text, so an unrecognised level
+            // is one of the issues --check lists (L2-CTL-019) instead of a
+            // surprise at the first log line.
+            EventSeverity level = EventSeverity::Info;
+            bool enabled = true;
+            if (!parse_severity(value, level, enabled)) {
+                issues.add(at(origin, line_no,
+                              "logging.level must be one of DEBUG, INFO, "
+                              "WARNING, ERROR, OFF"));
+            } else {
+                cfg.logging_level = level;
+                cfg.logging_enabled = enabled;
             }
         } else {
             std::string message = "unknown key \"";

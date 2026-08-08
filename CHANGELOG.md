@@ -16,6 +16,55 @@ tag, not a branch.
 
 ### Added — C6, the daemon
 
+- **The operational event stream** (`L2-EVT-001..005`, `L3-EVT-001..005`). Typed
+  immutable `Event` records on an `EventPublisher` with function-pointer
+  subscribers, matching the clock and the phase hook rather than dragging
+  `std::function` through a C++11 header.
+- **Observation, never control** (`L2-EVT-003`). Publication is the last step of an
+  operation and never a step it depends on. The manager emits after the durable
+  write and outside its mutex — `emit()` asserts that, the same way
+  `store_for_command()` does — and the whole job lifecycle works with **no publisher
+  installed at all**, which every C4 test already relied on and two new tests now
+  assert deliberately. A run in which every subscriber throws produces a byte-identical
+  durable record.
+- **Subscriber isolation** (`L2-EVT-002`, `L3-EVT-003`). Each callback runs in its own
+  `try`/`catch`, including `catch (...)` — a subscriber in another translation unit
+  can throw anything, and an escaping throw on a worker thread would call
+  `std::terminate` and take the daemon with it. A subscriber that throws is **not**
+  auto-unsubscribed: dropping it would silently disable logging for the rest of the
+  process, and "the logs stopped" reads like a hang.
+- **Snapshot, and no lock across callbacks** (`L3-EVT-001`, `L3-EVT-002`). Holding the
+  subscriber lock across arbitrary subscriber code would serialise every emitting
+  thread and deadlock outright on a subscriber that publishes from its own callback.
+  There is a test for exactly that; with the lock reinstated it *hangs*, which was
+  verified rather than assumed.
+- **`unsubscribe` blocks until in-flight publishes are done with the subscriber.**
+  The snapshot `L3-EVT-001` requires is otherwise a use-after-free waiting to happen:
+  the list no longer names you, but a publishing thread still holds the copy it took.
+  Callers may destroy their `user_data` as soon as `unsubscribe` returns. Called from
+  inside a callback it does not wait — the publication it would wait for is the one
+  calling it.
+- **A log sink** (`L2-CLI-006`) — the one subscriber the service always installs.
+  `DEBUG`/`INFO` to stdout, `WARNING`/`ERROR` to stderr, no log file ever opened,
+  named, rotated or deleted (twelve-factor XI). `format_event` is a pure function, so
+  the formatting decisions are asserted directly instead of by capturing a descriptor;
+  only the stream *split* needs redirection, because which stream a line went to is not
+  visible in the line.
+- **Control characters in identifiers are escaped** before they reach a log line. Paths
+  are attacker-influenced by definition — whoever can create a file chooses its name —
+  and a newline in a job id would end the line and start one the attacker composed,
+  including a forged `ERROR`. Same reasoning as `L2-DASH-003` for the dashboard.
+- **`[logging] level`** in the configuration (`DEBUG`/`INFO`/`WARNING`/`ERROR`/`OFF`),
+  parsed into the enum at load time so a typo is one of the issues `--check` lists
+  rather than a log line that never appears. `OFF` disables the sink rather than naming
+  a level above `ERROR`, because a level invites a comparison against it.
+- **`JobHaltedAfterCommit` and `JobFailedExternal` are distinct event types.**
+  `L2-JOB-014`'s halted-after-commit means the move happened and the record disagrees;
+  `L2-SEC-011`'s failed-external means something outside the service took the file. An
+  operator's next action differs, and collapsing them into "failed" deletes the only
+  signal that says which. The mapping is a `switch`, so a sixth `MoveOutcome` is a
+  `-Werror=switch` build failure rather than a silent default of "failed".
+
 - **The singleton lock** (`L2-CTL-008`, `L3-CTL-004`). Two daemons on one state
   database is not a degraded mode, it is corruption: both run crash recovery over
   the same rows, both claim the same `QUEUED` jobs, and both move the same file —
@@ -85,6 +134,11 @@ tag, not a branch.
 
 ### Fixed — C6
 
+- **`Service::start` after `stop()` would have failed on its own log sink.** `start`
+  subscribes the sink and `subscribe` refuses a duplicate (`L3-EVT-004`), so a `stop`
+  that did not unsubscribe made the next `start` fail with "subscriber is already
+  registered" — an error with no visible connection to restarting. Found by writing
+  the restart test; the failure paths in `start` had the same hole.
 - **The shipped reference config was still the Python-era schema.** The C++ parser
   rejected nearly every line of `config/file-mover.ini`, so the unit's `ExecStartPre`
   validation could not have succeeded on any real install — the daemon would have

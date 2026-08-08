@@ -26,7 +26,9 @@
 #include <mutex>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 using filemover::CommandResult;
 using filemover::Config;
@@ -892,4 +894,176 @@ TEST_CASE("retrying a retry does not nest the identifier",
     // one step at a time rather than collapsed onto the original.
     CHECK(fx.retry_of(second).retry_of == first);
     CHECK(fx.retry_of(first).retry_of == std::string("flaky"));
+}
+
+// --- the event stream (L2-EVT-003, L2-EVT-005) ----------------------------
+
+namespace {
+
+// Records every event, and can be told to throw on each one.
+struct EventSpy {
+    std::mutex mutex;
+    std::vector<filemover::Event> seen;
+    bool throw_always;
+
+    EventSpy() : throw_always(false) {}
+
+    static void callback(const filemover::Event& event, void* user) {
+        EventSpy* self = static_cast<EventSpy*>(user);
+        {
+            const std::lock_guard<std::mutex> guard(self->mutex);
+            self->seen.push_back(event);
+        }
+        if (self->throw_always) {
+            throw std::runtime_error("subscriber is broken");
+        }
+    }
+
+    std::vector<filemover::Event> snapshot() {
+        const std::lock_guard<std::mutex> guard(mutex);
+        return seen;
+    }
+
+    bool saw(filemover::EventType type) {
+        const std::vector<filemover::Event> events = snapshot();
+        for (std::size_t i = 0; i < events.size(); ++i) {
+            if (events[i].type() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
+}  // namespace
+
+TEST_CASE("every transfer event the manager emits carries a job identifier",
+          "[manager][L2-EVT-005]") {
+    Fixture fx;
+    filemover::EventPublisher publisher;
+    EventSpy spy;
+    std::string error;
+    REQUIRE(publisher.subscribe(EventSpy::callback, &spy, error) == true);
+
+    JobManager manager(fx.db(), fx.config(1));
+    manager.set_event_publisher(&publisher);
+    REQUIRE(manager.start(error) == true);
+
+    fx.write_source("alpha");
+    REQUIRE(manager.submit("alpha", fx.request("alpha"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+
+    // A job with no source file: Rejected, so the failure events are covered.
+    REQUIRE(manager.submit("missing", fx.request("missing"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    const std::vector<filemover::Event> events = spy.snapshot();
+    REQUIRE(events.empty() == false);
+
+    // L2-EVT-005 checked against the REAL emissions rather than a table of
+    // what they ought to be, so an event added later with no job id is caught
+    // without anyone remembering to extend a list here.
+    for (std::size_t i = 0; i < events.size(); ++i) {
+        if (filemover::is_transfer_event(events[i].type())) {
+            INFO("event type: " << filemover::to_string(events[i].type()));
+            CHECK(events[i].has_job_id() == true);
+        }
+    }
+
+    CHECK(spy.saw(filemover::EventType::JobSubmitted) == true);
+    CHECK(spy.saw(filemover::EventType::JobStarted) == true);
+    CHECK(spy.saw(filemover::EventType::JobCompleted) == true);
+    CHECK(spy.saw(filemover::EventType::JobFailed) == true);
+}
+
+TEST_CASE("job state is authoritative even when every subscriber throws",
+          "[manager][L2-EVT-003]") {
+    // L2-EVT-003 as a test: the durable record must be identical whether the
+    // subscribers work, throw, or are absent. If any transition were applied
+    // by a subscriber, this run would differ from the two below.
+    Fixture fx;
+    filemover::EventPublisher publisher;
+    EventSpy spy;
+    spy.throw_always = true;
+    std::string error;
+    REQUIRE(publisher.subscribe(EventSpy::callback, &spy, error) == true);
+
+    JobManager manager(fx.db(), fx.config(1));
+    manager.set_event_publisher(&publisher);
+    REQUIRE(manager.start(error) == true);
+
+    fx.write_source("alpha");
+    REQUIRE(manager.submit("alpha", fx.request("alpha"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    // The move happened and was recorded, though every subscriber threw on
+    // every event.
+    CHECK(fx.state_of("alpha") == JobState::Done);
+    CHECK(fx.kind_in(fx.dst(), "alpha.done") == EntryKind::Regular);
+    CHECK(spy.saw(filemover::EventType::JobCompleted) == true);
+}
+
+TEST_CASE("the manager works identically with no publisher installed",
+          "[manager][L2-EVT-003]") {
+    // The other half of L2-EVT-003. Every C4 test already runs this way, but
+    // the property is worth asserting deliberately: the event stream is an
+    // addition, and nothing in the job lifecycle depends on one existing.
+    Fixture fx;
+    JobManager manager(fx.db(), fx.config(1));
+    std::string error;
+    REQUIRE(manager.start(error) == true);
+
+    fx.write_source("alpha");
+    REQUIRE(manager.submit("alpha", fx.request("alpha"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    CHECK(fx.state_of("alpha") == JobState::Done);
+}
+
+TEST_CASE("lifecycle commands emit their events",
+          "[manager][L2-EVT-001][L2-EVT-005]") {
+    Fixture fx;
+    fx.write_source("blocker");
+    fx.write_source("held");
+
+    filemover::EventPublisher publisher;
+    EventSpy spy;
+    std::string error;
+    REQUIRE(publisher.subscribe(EventSpy::callback, &spy, error) == true);
+
+    // The latch pattern, for the same reason the L2-LIF-004 test uses it: one
+    // worker, held mid-move, so "held" is certainly still queued when it is
+    // paused. Written first without it, and the job finished before pause
+    // could run -- the failure showed up only under ASan's timing, which is
+    // the definition of a test that passes for the wrong reason.
+    JobManager manager(fx.db(), fx.config(1));
+    Latch latch;
+    latch.at = MovePhase::Commit;
+    manager.set_phase_hook(Latch::hook, &latch);
+    manager.set_event_publisher(&publisher);
+    REQUIRE(manager.start(error) == true);
+
+    REQUIRE(manager.submit("blocker", fx.request("blocker"), error) ==
+            CommandResult::Ok);
+    latch.wait_arrival();
+
+    REQUIRE(manager.submit("held", fx.request("held"), error) ==
+            CommandResult::Ok);
+    REQUIRE(manager.pause("held", error) == CommandResult::Ok);
+    REQUIRE(manager.resume("held", error) == CommandResult::Ok);
+
+    latch.release();
+    manager.set_phase_hook(0, 0);
+    REQUIRE(manager.wait_idle(30000) == true);
+    manager.shutdown();
+
+    CHECK(spy.saw(filemover::EventType::JobPaused) == true);
+    CHECK(spy.saw(filemover::EventType::JobResumed) == true);
 }

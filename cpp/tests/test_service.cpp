@@ -68,6 +68,12 @@ class TempRoot {
         c.storage_database_path = db();
         c.http_bind = "127.0.0.1";
         c.http_port = 0;  // let the kernel choose, so tests do not collide
+        // Logging OFF, so the suite's own output stays readable. The sink is
+        // still SUBSCRIBED -- start() installs it regardless, which is what
+        // the restart cases exercise -- and its formatting and stream split
+        // are covered properly in test_event_log.cpp. Left on, every service
+        // test interleaves log lines with Catch2's report.
+        c.logging_enabled = false;
         return c;
     }
 
@@ -352,6 +358,41 @@ TEST_CASE("the lock is taken before the store is opened",
     CHECK(second_error.find("database is locked") == std::string::npos);
 
     first.stop();
+}
+
+TEST_CASE("the service can be started again after it stops",
+          "[service][L2-EVT-001][L2-CTL-020]") {
+    // Start / stop / start on ONE Service object. The log sink is subscribed
+    // by start(), and subscribe() refuses a duplicate (L3-EVT-004) -- so a
+    // stop() that failed to unsubscribe would make this second start fail
+    // with "subscriber is already registered", which reads like nothing to do
+    // with restarting. Found by writing this test.
+    TempRoot root;
+    Service service;
+    std::string error;
+
+    REQUIRE(service.start(root.config(), error) == true);
+    service.stop();
+
+    REQUIRE(service.start(root.config(), error) == true);
+    CHECK(service.is_running() == true);
+    service.stop();
+}
+
+TEST_CASE("a failed start leaves nothing subscribed",
+          "[service][L2-EVT-001]") {
+    // Same hazard on the failure path: a subscription left behind by a start
+    // that failed would make the next start fail for an unrelated reason.
+    TempRoot root;
+    Config bad = root.config();
+    bad.http_bind = "203.0.113.1";  // parses, belongs to no interface here
+
+    Service service;
+    std::string error;
+    REQUIRE(service.start(bad, error) == false);
+
+    CHECK(service.start(root.config(), error) == true);
+    service.stop();
 }
 
 TEST_CASE("a stop signal wakes sigsuspend and the daemon shuts down",

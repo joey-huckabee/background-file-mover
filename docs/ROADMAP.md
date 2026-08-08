@@ -13,12 +13,12 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 daemon runs, and `systemd` can start, watch and stop it.**
 
 ```
-In v1.0.0 scope:  123 of 214 requirements verified (57.5%)
-Tests:            8,941 assertions / 277 cases
-Line coverage:    86.4% overall (floor 85%)
+In v1.0.0 scope:  134 of 214 requirements verified (62.6%)
+Tests:            9,245 assertions / 314 cases
+Line coverage:    86.8% overall (floor 85%)
 Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
-                  coverage, clang-tidy, nine source gates, the unit gate and
-                  the readiness smoke test -- all green
+                  coverage, cppcheck, clang-tidy, fuzz, nine source gates, the
+                  unit gate and the readiness smoke test -- all green
 ```
 
 ### Start here
@@ -27,14 +27,18 @@ Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
 hardened `Type=notify` unit, and the sd_notify readiness/watchdog protocol are all in.
 `scripts/smoke-readiness.py` drives the real binary end to end.
 
-The **singleton lock** (`L2-CTL-008`) is in: `flock` on a lock file beside the state
-database, taken before the store opens and released after it closes. What C6 has NOT
-delivered yet is the **event stream** (`L2-EVT-001..005`, all still Draft). That is the
-remaining C6 work before C7.
+**C6 is feature-complete.** The singleton lock (`L2-CTL-008`) is in — `flock` on a lock
+file beside the state database, taken before the store opens and released after it
+closes — and so is the event stream (`L2-EVT-001..005`, `L3-EVT-001..005`) with the log
+sink that satisfies the service half of `L2-CLI-006`.
+
+What remains before C7 is judgement, not code: C6's **`--check` / `systemctl` acceptance
+on a real RHEL 9 or SLES box**. Everything here has been verified in containers and in
+WSL, which is not the same as a service account under SELinux.
 
 Two things worth carrying forward:
 
-1. **`service.cpp` is at 62.6% line coverage**, the lowest of any source file. The
+1. **`service.cpp` is at 67.0% line coverage**, the lowest of any source file. The
    uncovered part is mostly the watchdog thread and the `Service::start` failure paths.
    The smoke test exercises them in a real process, which the coverage tier does not
    see — so the number is pessimistic, but not by all of that.
@@ -434,9 +438,15 @@ they sit on is already delivered.
   ordered startup with reverse-order teardown (`L2-CTL-020`).
 - **Do not copy the inherited 200 ms `nanosleep` wait loop.** Block on `sigsuspend` or a
   self-pipe; a daemon should not wake five times a second forever to poll a flag.
+- **The event stream is observation, never control.** `L2-EVT-003` is enforced
+  structurally rather than by review: the manager emits only after the durable write,
+  `emit()` asserts it is not holding the manager mutex, and the whole job lifecycle
+  runs with no publisher installed. A run in which every subscriber throws produces a
+  byte-identical durable record, and there is a test for that.
 - **Done when:** `systemctl start/stop` is clean, `--check` fails the unit on a bad
-  config before anything is created, shutdown drains rather than aborts, and a second
-  instance on one database is refused rather than tolerated.
+  config before anything is created, shutdown drains rather than aborts, a second
+  instance on one database is refused rather than tolerated, and the service's log
+  stream reaches `journalctl` split by severity.
 
 ### C7 — Operator dashboard
 

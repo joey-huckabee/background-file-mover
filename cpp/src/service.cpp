@@ -3,6 +3,7 @@
 
 #include "filemover/service.hpp"
 
+#include "filemover/event_log.hpp"
 #include "filemover/singleton.hpp"
 
 #include <errno.h>
@@ -19,6 +20,7 @@
 #include <csignal>
 #include <cstdlib>
 #include <ctime>
+#include <sstream>
 #include <thread>
 #include <cstring>
 #include <string>
@@ -217,11 +219,20 @@ bool check_config(const Config& config, std::string& error) {
 // --- startup and teardown (L2-CTL-020) ------------------------------------
 
 struct Service::Impl {  // NOLINT
-    // L2-CTL-008, declared FIRST on purpose. Members are destroyed in reverse
-    // declaration order, so first-declared is last-destroyed -- which makes the
-    // destructor release the lock after the server and the manager are gone,
-    // matching the order stop() takes explicitly. stop() is the path that
-    // normally runs; this is the backstop for the one that does not.
+    // The event stream and the one subscriber the service always installs
+    // (L2-EVT-001..005, L2-CLI-006). Declared before the manager so it
+    // outlives it -- the manager holds a pointer to this publisher, and a
+    // publisher destroyed first would leave that pointer dangling during
+    // teardown.
+    EventPublisher events;
+    EventLogOptions log_options;
+
+    // L2-CTL-008, declared BEFORE the server and the manager on purpose.
+    // Members are destroyed in reverse declaration order, so this is destroyed
+    // after both -- the destructor releases the lock once the server and the
+    // manager are gone, matching the order stop() takes explicitly. stop() is
+    // the path that normally runs; this is the backstop for the one that does
+    // not.
     SingletonLock lock;
 
     JobManager* manager;
@@ -319,12 +330,35 @@ bool Service::start(const Config& config, std::string& error) {
         return false;
     }
 
-    // 2. The manager, which opens the store before spawning workers. Nothing
+    // 2. The log sink, before anything that could produce an event. Subscribed
+    //    here rather than in main() so the stream is wired for every caller of
+    //    Service, including the tests -- a log sink installed only by the
+    //    daemon entry point is a log sink nothing exercises.
+    impl_->log_options.minimum = config.logging_level;
+    impl_->log_options.enabled = config.logging_enabled;
+    std::string subscribe_error;
+    if (!impl_->events.subscribe(log_event, &impl_->log_options,
+                                 subscribe_error)) {
+        // Only possible on a double-start, which the running check above
+        // already refused. Reported rather than ignored so a future path that
+        // reaches it does not silently run with no logging at all.
+        error = subscribe_error;
+        impl_->lock.release();
+        return false;
+    }
+
+    // 3. The manager, which opens the store before spawning workers. Nothing
     //    accepts connections yet, so a failure here costs only this call.
     impl_->manager = new JobManager(config.storage_database_path, config);
+    impl_->manager->set_event_publisher(&impl_->events);
     if (!impl_->manager->start(error)) {
         delete impl_->manager;
         impl_->manager = 0;
+        // Unsubscribed on every failure path, not just for tidiness: this
+        // Service can be started again, and subscribe() refuses a duplicate
+        // (L3-EVT-004), so a subscription left behind by a failed start would
+        // make the NEXT start fail with an unrelated-looking error.
+        (void)impl_->events.unsubscribe(log_event, &impl_->log_options);
         impl_->lock.release();
         return false;
     }
@@ -333,7 +367,7 @@ bool Service::start(const Config& config, std::string& error) {
     g_dispatch.manager = impl_->manager;
     g_dispatch.options = &impl_->http;
 
-    // 3. The socket, LAST. A request answered during startup by a half-built
+    // 4. The socket, LAST. A request answered during startup by a half-built
     //    service is worse than a connection refused.
     ServerOptions server_options;
     server_options.handlers = config.jobs_workers;
@@ -344,13 +378,14 @@ bool Service::start(const Config& config, std::string& error) {
         impl_->manager = 0;
         g_dispatch.manager = 0;
         g_dispatch.options = 0;
+        (void)impl_->events.unsubscribe(log_event, &impl_->log_options);
         impl_->lock.release();
         return false;
     }
 
     impl_->running = true;
 
-    // 4. Readiness, LAST -- after the socket is accepting. Telling systemd
+    // 5. Readiness, LAST -- after the socket is accepting. Telling systemd
     //    READY=1 before the port is open makes every dependent unit start
     //    against a service that cannot yet answer, which is the whole problem
     //    Type=notify exists to solve.
@@ -364,6 +399,16 @@ bool Service::start(const Config& config, std::string& error) {
             std::thread(&Service::Impl::run_watchdog, impl_, interval);
     }
 
+    {
+        std::ostringstream detail;
+        detail << "port=" << impl_->server.port()
+               << " workers=" << config.jobs_workers;
+        impl_->events.publish(Event(EventType::ServiceStarted,
+                                    EventSeverity::Info, now_epoch_ms(),
+                                    std::string(), std::string(),
+                                    detail.str()));
+    }
+
     error.clear();
     return true;
 }
@@ -373,6 +418,12 @@ void Service::stop() {
         return;
     }
     impl_->running = false;
+
+    // Published while the sink is still subscribed, and before the drain --
+    // "stopping" is only useful if it arrives before the thing it describes.
+    impl_->events.publish(Event(EventType::ServiceStopping, EventSeverity::Info,
+                                now_epoch_ms(), std::string(), std::string(),
+                                std::string()));
 
     // STOPPING=1 first, so systemd knows this is a deliberate shutdown before
     // the port closes. Otherwise a slow drain looks like a service that died.
@@ -396,6 +447,12 @@ void Service::stop() {
         delete impl_->manager;
         impl_->manager = 0;
     }
+
+    // The sink comes off after the manager is gone, so a last event emitted
+    // during the drain is still logged. unsubscribe blocks until any in-flight
+    // publish has finished, which is what makes log_options safe to reuse on
+    // the next start.
+    (void)impl_->events.unsubscribe(log_event, &impl_->log_options);
 
     // The lock LAST, completing the reverse order (L2-CTL-020). Releasing it
     // earlier would let a second instance open the store while this one is
