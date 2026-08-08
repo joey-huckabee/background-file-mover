@@ -342,6 +342,13 @@ jobs:
       # so this finds nothing today and exists to be there when it arrives.
       - name: Strong hashing only
         run: make -C cpp strong-hash
+      # L2-DASH-002 and L2-DASH-003. The dashboard is the one place an attack
+      # lands in somebody else's process: a filename is attacker-chosen, and
+      # the operator's browser holds the only session with authority over this
+      # service. The page inserts every dynamic value as a text node, and this
+      # refuses any HTML-parsing sink or external resource in the source.
+      - name: Dashboard has no HTML sinks or remote resources
+        run: make -C cpp dashboard-safe
 
   # Static analysis over project sources. Vendored headers are excluded:
   # they are pinned upstream artifacts, not project code (ADR-0004).

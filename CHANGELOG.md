@@ -14,6 +14,40 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Added — C7, the operator dashboard
+
+- **A single embedded page at `GET /`** (`L2-DASH-001`, `L2-DASH-002`), served from the
+  binary rather than from disk. The service ships as one executable (`L1-SYS-002`), and
+  reading the page from a path at request time would add a filesystem dependency to the
+  control plane and a directory an operator could be persuaded to repoint. Styles and
+  script are inline; nothing is fetched from the network, which matters because this
+  runs on an isolated network — a CDN reference renders blank where it is deployed and
+  hands a third party script execution in the operator's browser where it is not.
+- **`GET /api/status`** — counts by state from the **durable record**, plus the live
+  queue depth and in-flight count. The in-memory queues know what this process has been
+  asked to do since it started; the store knows what the system has done, including
+  before the last restart, and an operator asking what happened to a job means the
+  second. Both are reported so they can be compared: a deep runnable queue with an idle
+  pool is a real symptom.
+- **The row cap is the router's decision, not the client's.** No `?limit=` is honoured —
+  the response is assembled in memory before it is written, so a client-chosen size is a
+  client-chosen allocation on an unauthenticated endpoint. The cap and a `truncated`
+  flag are reported in the payload, because a dashboard showing 50 of 4,000 jobs without
+  saying so lies about the backlog and the operator acts on the lie.
+- **`L2-DASH-003` enforced in three places.** Every dynamic value enters the DOM through
+  `textContent` or `createTextNode`; there is deliberately **no escaping helper** in the
+  page, because an escaper can be forgotten at one call site, applied twice, or applied
+  in the wrong context. Removing the parse beats neutralising the input.
+  `make dashboard-safe` refuses `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
+  `document.write`, `eval`, `new Function` and `srcdoc` in the source — including the
+  harmless-looking `innerHTML = ""`, since allowing it would require the gate to tell
+  safe assignments from unsafe ones. `tests/test_dashboard.cpp` asserts the same
+  properties against the string the binary actually serves, so a page assembled some
+  other way in future is still covered.
+- **A status query is refused when the manager is not running** (503, not an empty
+  success). A dashboard rendering "0 jobs" for a service that is down is worse than one
+  saying it cannot reach the service: the first is a confident wrong answer.
+
 ### Added — C6, the daemon
 
 - **The operational event stream** (`L2-EVT-001..005`, `L3-EVT-001..005`). Typed

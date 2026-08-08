@@ -3,12 +3,19 @@
 
 #include "filemover/router.hpp"
 
+#include "filemover/dashboard.hpp"
+
 #include <vector>
 
 #include "filemover/api_codec.hpp"
 
 namespace filemover {
 namespace {
+
+// How many jobs GET /api/status returns at most. Fixed here rather than taken
+// from the request: the response is assembled in memory before it is written,
+// so a client-chosen size is a client-chosen allocation.
+const std::size_t kStatusJobLimit = 50;
 
 http::Response make(int status, const std::string& body) {
     http::Response r;
@@ -109,6 +116,40 @@ http::Response route_request(const http::Request& request,
             return method_not_allowed("GET, HEAD");
         }
         return make(200, "{\"status\":\"ok\"}");
+    }
+
+    // GET / -- the operator dashboard (L2-DASH-001, L2-DASH-002).
+    //
+    // Served from the binary, not from disk. The service ships as one
+    // executable (L1-SYS-002), and reading the page from a path at request time
+    // would add a filesystem dependency to the control plane and a directory an
+    // operator could be persuaded to point somewhere else.
+    if (seg.empty()) {
+        if (request.method != "GET" && request.method != "HEAD") {
+            return method_not_allowed("GET, HEAD");
+        }
+        http::Response page = make(200, dashboard_html());
+        page.content_type = dashboard_content_type();
+        return page;
+    }
+
+    // GET /api/status -- what the dashboard polls (L2-DASH-001).
+    if (seg.size() == 2 && seg[0] == "api" && seg[1] == "status") {
+        if (request.method != "GET" && request.method != "HEAD") {
+            return method_not_allowed("GET, HEAD");
+        }
+
+        JobManager::StatusSnapshot snapshot;
+        std::string error;
+        // The cap is the router's decision, not the client's. Honouring a
+        // ?limit= would let an unauthenticated caller choose the size of a
+        // response that is built in memory before it is written.
+        const CommandResult result =
+            manager.status(kStatusJobLimit, snapshot, error);
+        if (result != CommandResult::Ok) {
+            return error_response(status_for(result), error);
+        }
+        return make(200, encode_status(snapshot, kStatusJobLimit));
     }
 
     // POST /api/jobs -- create a job under a freshly allocated id.

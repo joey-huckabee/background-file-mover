@@ -72,7 +72,7 @@ endif
 TOOLCHAIN ?= $(shell $(CXX) -dumpmachine 2>/dev/null)-$(shell $(CXX) -dumpversion 2>/dev/null)-$(TIER)
 BUILD_DIR ?= build/$(TOOLCHAIN)
 
-LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp src/singleton.cpp src/events.cpp src/event_log.cpp
+LIB_SRC  := src/job.cpp src/json.cpp src/api_codec.cpp src/config.cpp src/rename_template.cpp src/http_parser.cpp src/store.cpp src/fsops.cpp src/mover.cpp src/manager.cpp src/server.cpp src/router.cpp src/http_service.cpp src/service.cpp src/singleton.cpp src/events.cpp src/event_log.cpp src/dashboard.cpp
 LIB_OBJ  := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(LIB_SRC))
 
 # --- Vendored SQLite (ADR-0010, ADR-0004) --------------------------------
@@ -153,7 +153,7 @@ CCACHE ?= $(shell command -v ccache 2>/dev/null)
 # parse_uint (L3-CPP-038).
 PARSER_SRC := src/http_parser.cpp src/json.cpp
 
-TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp tests/test_connection_server.cpp tests/test_router.cpp tests/test_http_service.cpp tests/test_service.cpp tests/test_singleton.cpp tests/test_events.cpp tests/test_event_log.cpp
+TEST_SRC := tests/test_main.cpp tests/test_job.cpp tests/test_json.cpp tests/test_api_codec.cpp tests/test_config.cpp tests/test_rename_template.cpp tests/test_http_parser.cpp tests/test_sqlite_vendor.cpp tests/test_store.cpp tests/test_fsops.cpp tests/test_mover.cpp tests/test_manager.cpp tests/test_server.cpp tests/test_connection_server.cpp tests/test_router.cpp tests/test_http_service.cpp tests/test_service.cpp tests/test_singleton.cpp tests/test_events.cpp tests/test_event_log.cpp tests/test_dashboard.cpp
 TEST_OBJ := $(patsubst tests/%.cpp,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
 TEST_BIN := $(BUILD_DIR)/filemover_tests
@@ -711,6 +711,21 @@ manager-lock:
 .PHONY: strong-hash
 strong-hash:
 	@sh scripts/assert-strong-hash.sh
+
+# L2-DASH-002 and L2-DASH-003. The only requirement here whose attack lands in
+# somebody else's process: a filename is attacker-chosen, and the operator's
+# browser holds the one session with authority over this service. The stated
+# verification is "Test (T), Inspection (I)" -- this is the inspection half made
+# mechanical, and tests/test_dashboard.cpp is the test half, asserted against
+# the string the binary actually serves. Two checks of one rule on purpose: a
+# gate can be deleted in a commit, and the test cannot be satisfied by a page
+# that is not the one shipped.
+#
+# Negative-tested by scripts/dashboard-gate-selftest.sh (run by hand; it edits
+# src/dashboard.cpp and src/router.cpp in place).
+.PHONY: dashboard-safe
+dashboard-safe:
+	@sh scripts/assert-dashboard-safe.sh
 
 # The minimum clang-tidy major version this gate is meaningful at. CI runs
 # CI_TIDY (clang-tidy-20); a developer running an older one gets a PASS that

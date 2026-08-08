@@ -9,40 +9,35 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-08 · **Branch:** `main` · **C6 is delivered and merged. Next
-milestone: C7 — the operator dashboard.**
+**Date:** 2026-08-08 · **Branch:** `c7-dashboard` · **C7 is delivered: the service is
+observable from a browser. Next: C8 — packaging, hardening, deployment.**
 
 ```
-In v1.0.0 scope:  134 of 214 requirements verified (62.6%)
-Tests:            9,245 assertions / 314 cases
-Line coverage:    86.8% overall (floor 85%)
+In v1.0.0 scope:  136 of 214 requirements verified (63.6%)
+Tests:            9,296 assertions / 325 cases
+Line coverage:    86.7% overall (floor 85%)
 Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
-                  coverage, cppcheck, clang-tidy, fuzz, nine source gates, the
+                  coverage, cppcheck, clang-tidy, fuzz, ten source gates, the
                   unit gate and the readiness smoke test -- all green
 ```
 
-### Start here for C7
+### Start here for C8
 
-**The service runs.** `main`, signal handling, ordered startup and teardown, the
-hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton lock
-(`L2-CTL-008`), and the event stream (`L2-EVT-001..005`) with the log sink that
-satisfies the service half of `L2-CLI-006`. `scripts/smoke-readiness.py` drives the
-real binary end to end.
+**The service runs and can be watched.** `main`, signals, ordered startup and teardown,
+the hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton lock,
+the event stream with its log sink, and now an operator dashboard at `GET /` polling
+`GET /api/status`.
 
-C7 is the operator dashboard. Its entry below is short and its one load-bearing
-requirement is `L2-DASH-003`; read that before writing any DOM code.
+**THE BIGGEST OPEN RISK IS THAT NONE OF THIS HAS RUN ON A REAL TARGET HOST.** Every
+tier runs in a container or in WSL. `--check`, `systemctl start/stop`, the service
+account, `ProtectSystem=strict`, SELinux labelling, and every NFS behaviour the
+`L2-NFS-*` requirements describe are all unexercised on RHEL 9 or SLES 12 SP5. The unit
+file is verified by `systemd-analyze` and by running the daemon with its own
+`ExecStartPre` arguments — which is not the same as `systemctl start`.
 
-**The event stream is what the dashboard should read.** It already carries every job
-transition with a job identifier, and `format_event` is a pure function — so the
-dashboard's line rendering can reuse the same sanitisation rather than inventing a
-second one. `L2-DASH-003` (`textContent`, never `innerHTML`) and the control-character
-escaping in `event_log.cpp` are the same defence against the same input: a filename an
-attacker chose.
-
-**One open item from C6, which is judgement rather than code:** `--check` and
-`systemctl start/stop` have never been exercised on a real RHEL 9 or SLES host. Every
-tier here runs in containers or WSL, which is not the same as a dedicated service
-account under SELinux. This is C8's territory but the risk exists now.
+This is the work to do before, or alongside, the rest of C8: stand up a real VM,
+automate it, and run the suite there. See `docs/INTEGRATION-ENVIRONMENT.md` for the
+proposal and the reasoning behind choosing a local hypervisor over cloud.
 
 Two things worth carrying forward:
 
@@ -466,6 +461,15 @@ they sit on is already delivered.
   holds the one session with authority over this service.
 - **Done when:** single self-contained page, no external resources, and a test feeds a
   filename containing markup and proves it renders as text.
+- **DELIVERED.** `GET /` serves the page from the binary; `GET /api/status` reports
+  durable counts plus the live queue depth, capped at 50 rows with the cap and a
+  `truncated` flag in the payload. `make dashboard-safe` refuses every HTML-parsing
+  sink and every external resource in the source, and `tests/test_dashboard.cpp`
+  asserts the same against the string the binary actually serves.
+- **The markup test uses `<img src=x onerror=...>`, not `<script>`.** A script tag
+  cannot be a filename — `</script>` contains a slash, the one byte a POSIX filename
+  cannot hold. The first version of that test used one, and would have been a test
+  passing against an input no attacker can create.
 
 ### C8 — Packaging, hardening, deployment
 
@@ -477,6 +481,16 @@ they sit on is already delivered.
   by `scripts/assert-unit-valid.sh`. What is left here is `ReadWritePaths=` for the
   managed source and destination trees, which cannot be written until those are
   configurable — the C++ config has no path roots yet.
+- **START WITH THE TEST ENVIRONMENT, not with packaging.** Nothing in this project has
+  ever run on a target host: every tier is a container or WSL. `systemctl start`, the
+  service account, `ProtectSystem=strict`, SELinux labelling and every `L2-NFS-*`
+  behaviour are all unexercised, and each of them fails in a way that costs a day to
+  diagnose when it first appears at a deployment. `docs/INTEGRATION-ENVIRONMENT.md`
+  proposes automating a Rocky 9 VM on Hyper-V, phased, with the provisioning layer
+  kept separate from the configure-and-test layer so a cloud target stays possible.
+- **Phase 1 of that plan retires the largest single risk and needs no NFS:** install,
+  `systemctl start`, confirm readiness as *systemd* sees it, `systemctl stop`, and a
+  bad config failing the unit at `ExecStartPre`.
 - **Done when:** the service installs and runs unprivileged on RHEL 9 (SELinux) and
   SLES 12 SP5 (AppArmor), and the environment diagnostic gates the deployment.
 

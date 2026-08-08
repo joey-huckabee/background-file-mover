@@ -20,7 +20,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "filemover/config.hpp"
 #include "filemover/events.hpp"
@@ -113,6 +115,32 @@ class JobManager {
     CommandResult retry(const std::string& job_id,
                         std::string& new_job_id,
                         std::string& error);
+
+    // What the dashboard polls (L2-DASH-001, L2-JOB-006).
+    //
+    // Read from the DURABLE record, not from the dispatch maps. The in-memory
+    // queues know what this process has been asked to do since it started; the
+    // store knows what the system has done, including before the last restart,
+    // and an operator asking "what happened to job-12" means the second one.
+    // The live counters are reported alongside it so the two can be compared --
+    // a large runnable queue with an idle worker pool is a real symptom.
+    struct StatusSnapshot {
+        bool running;
+        std::size_t runnable;  // in-memory dispatch queue
+        std::size_t active;    // workers mid-move right now
+        std::map<JobState, std::uint64_t> counts;  // durable, every state present
+        std::vector<Job> jobs;                     // capped, newest first
+
+        StatusSnapshot() : running(false), runnable(0), active(0) {}
+    };
+
+    // `limit` caps the job list. A dashboard polling every few seconds must not
+    // be able to ask for the whole table: the response is built in memory and
+    // written to a socket, and an unbounded list makes the control plane's
+    // memory a function of how long the service has been running.
+    CommandResult status(std::size_t limit,
+                         StatusSnapshot& out,
+                         std::string& error);
 
     // Moves retry-scheduled jobs whose time has come onto the runnable queue.
     // Called by the caller's loop rather than by an internal timer thread, so

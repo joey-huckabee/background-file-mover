@@ -110,7 +110,10 @@ TEST_CASE("an unknown route is 404 with a JSON body", "[router][L2-CTL-005]") {
     ManagerFixture fx;
     // "/api/jobs" is deliberately absent: it is a real route now (POST creates
     // a job), and a GET against it answers 405 rather than 404.
-    const char* targets[] = {"/", "/nope", "/api",
+    //
+    // "/" left this list in C7 for the same reason -- it serves the dashboard.
+    // "/api/status" likewise. Both have their own cases below.
+    const char* targets[] = {"/nope", "/api", "/api/statuses",
                              "/api/jobs/id", "/api/jobs/id/frobnicate",
                              "/api/jobs/id/pause/extra"};
     for (std::size_t i = 0; i < 6; ++i) {
@@ -276,4 +279,106 @@ TEST_CASE("the error body is JSON for every refusal",
         // L2-CTL-005 requires a JSON error body, not merely a status code.
         CHECK(cases[i].body.find('{') != std::string::npos);
     }
+}
+
+// --- the dashboard routes (C7) --------------------------------------------
+
+TEST_CASE("GET / serves the dashboard as HTML", "[router][L2-DASH-001]") {
+    ManagerFixture fx;  // deliberately not started
+    const Response r = route_request(make_request("GET", "/"), fx.manager());
+    CHECK(r.status == 200);
+    CHECK(r.content_type.find("text/html") != std::string::npos);
+    CHECK(r.body.compare(0, 15, "<!DOCTYPE html>") == 0);
+
+    // Served whether or not the manager is running. The page's own job is to
+    // report that the service is down, and a dashboard that 503s when the
+    // thing it monitors is unhealthy vanishes during the incident it exists
+    // for.
+    CHECK(r.body.empty() == false);
+}
+
+TEST_CASE("the dashboard route refuses methods that are not reads",
+          "[router][L2-DASH-001][L2-CTL-005]") {
+    ManagerFixture fx;
+    const Response r = route_request(make_request("POST", "/"), fx.manager());
+    CHECK(r.status == 405);
+    CHECK(r.allow == std::string("GET, HEAD"));
+}
+
+TEST_CASE("GET /api/status reports counts and live queue depth",
+          "[router][L2-DASH-001]") {
+    ManagerFixture fx;
+    fx.start();
+    const Response r = route_request(make_request("GET", "/api/status"),
+                                     fx.manager());
+    CHECK(r.status == 200);
+    CHECK(r.content_type == std::string("application/json"));
+    CHECK(r.body.find("\"running\":true") != std::string::npos);
+    CHECK(r.body.find("\"runnable\":") != std::string::npos);
+    CHECK(r.body.find("\"active\":") != std::string::npos);
+    CHECK(r.body.find("\"jobs\":[") != std::string::npos);
+
+    // Every state present, so the page need not special-case absence
+    // (L2-JOB-006), and keyed by the same token to_string(JobState) emits --
+    // two spellings is how a counter reads zero forever and nobody notices.
+    CHECK(r.body.find("\"QUEUED\":") != std::string::npos);
+    CHECK(r.body.find("\"DONE\":") != std::string::npos);
+    CHECK(r.body.find("\"FAILED\":") != std::string::npos);
+
+    // The cap is reported, not merely applied.
+    CHECK(r.body.find("\"limit\":") != std::string::npos);
+    CHECK(r.body.find("\"truncated\":false") != std::string::npos);
+}
+
+TEST_CASE("status against a stopped manager is 503, not an empty success",
+          "[router][L2-DASH-001]") {
+    // A dashboard rendering "0 jobs" for a service that is not running is
+    // worse than one saying it cannot reach the service: the first is a
+    // confident wrong answer.
+    ManagerFixture fx;  // not started
+    const Response r = route_request(make_request("GET", "/api/status"),
+                                     fx.manager());
+    CHECK(r.status == 503);
+    CHECK(r.content_type == std::string("application/json"));
+}
+
+TEST_CASE("a path containing markup survives the API as text",
+          "[router][L2-DASH-003]") {
+    // THE case L2-DASH-003 exists for. A filename is attacker-chosen -- whoever
+    // can create a file names it -- and it must arrive at the browser as DATA:
+    // escaped where JSON requires it, never turned into markup on the way.
+    //
+    // The payload is an img tag rather than a script tag, because a script tag
+    // cannot be a filename: "</script>" contains a slash, and a slash is the
+    // one byte a POSIX filename cannot hold. `<img src=x onerror=...>` needs
+    // none, which makes it the shape this actually has to survive. Getting
+    // that wrong would have produced a test passing against an input no
+    // attacker can create.
+    //
+    // The page then inserts it with createTextNode, asserted separately in
+    // test_dashboard.cpp. This half proves the value reaches the page intact
+    // rather than being mangled, dropped, or re-encoded en route.
+    ManagerFixture fx;
+    fx.start();
+
+    Request submit = make_request("POST", "/api/jobs");
+    submit.body =
+        "{\"source\":\"/tmp/<img src=x onerror=alert(1)>.mp4\","
+        "\"dest\":\"/tmp/out.mp4\"}";
+    const Response created = route_request(submit, fx.manager());
+    REQUIRE(created.status == 202);
+
+    const Response status = route_request(make_request("GET", "/api/status"),
+                                          fx.manager());
+    REQUIRE(status.status == 200);
+
+    // Present, and still the same characters. The API does NOT HTML-escape:
+    // escaping for HTML inside a JSON payload is how a value ends up
+    // double-escaped in one consumer and raw in another, and it would not
+    // help anyway -- the defence is the text node, not the encoding.
+    CHECK(status.body.find("<img src=x onerror=alert(1)>") !=
+          std::string::npos);
+    // ...and the payload is still well-formed JSON: nothing in the name has
+    // broken out of the string.
+    CHECK(status.body.find("\"source\":\"/tmp/<img") != std::string::npos);
 }

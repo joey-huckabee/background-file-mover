@@ -247,7 +247,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CTL-001 | L3-CTL-003 | `cpp/tests/test_connection_server.cpp::[a connection is accepted and served]`<br>`cpp/tests/test_connection_server.cpp::[shutdown is idempotent and safe without a start]`<br>`cpp/tests/test_connection_server.cpp::[shutdown lets an in-flight handler finish and joins every thread]`<br>`cpp/tests/test_connection_server.cpp::[starting an already-running server is refused]`<br>`cpp/tests/test_connection_server.cpp::[the port is released for rebinding after shutdown]`<br>`cpp/tests/test_connection_server.cpp::[the server refuses to start without handlers or a callback]`<br>`cpp/tests/test_server.cpp::[IPv6 loopback binds too]`<br>`cpp/tests/test_server.cpp::[SO_REUSEADDR is set so a restart does not wait out TIME_WAIT]`<br>`cpp/tests/test_server.cpp::[a malformed or unusable bind address is refused with detail]`<br>`cpp/tests/test_server.cpp::[a non-positive backlog is refused]`<br>`cpp/tests/test_server.cpp::[a second bind to the same port is refused]`<br>`cpp/tests/test_server.cpp::[a socket binds to loopback and reports the port it got]`<br>`cpp/tests/test_server.cpp::[an accepted connection reaches the listening socket]`<br>`cpp/tests/test_server.cpp::[close is idempotent and leaves the object reusable]`<br>`cpp/tests/test_server.cpp::[opening an already-open socket is refused rather than leaking]`<br>`cpp/tests/test_server.cpp::[the bind address is parsed, never resolved]`<br>`cpp/tests/test_server.cpp::[the descriptor is close-on-exec]` | Partially Implemented |
 | L2-CTL-002 | L3-CPP-046, L3-CTL-001 | `cpp/tests/test_http_parser.cpp::[control characters and whitespace in the target are rejected]`<br>`cpp/tests/test_http_parser.cpp::[lines not terminated by CRLF inside a complete head are Bad]`<br>`cpp/tests/test_http_parser.cpp::[malformed request lines are rejected]`<br>`cpp/tests/test_http_parser.cpp::[parses a well-formed request head]` | Partially Implemented |
 | L2-CTL-003 | L3-CPP-048, L3-CPP-050 | `cpp/tests/test_http_parser.cpp::[Content-Length policy is strict]`<br>`cpp/tests/test_http_parser.cpp::[a complete but oversized head is TooLarge]`<br>`cpp/tests/test_http_parser.cpp::[an absent Content-Length means zero]`<br>`cpp/tests/test_http_parser.cpp::[any Transfer-Encoding is refused]`<br>`cpp/tests/test_http_parser.cpp::[the body size is bounded]`<br>`cpp/tests/test_http_parser.cpp::[the head size is bounded]` | Implemented |
-| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]`<br>`cpp/tests/test_http_service.cpp::[a well-formed request with an exact body is routed]`<br>`cpp/tests/test_http_service.cpp::[an oversized declaration is refused without reading the body]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]`<br>`cpp/tests/test_router.cpp::[GET /api/jobs is 405 with Allow, not 404]`<br>`cpp/tests/test_router.cpp::[POST /api/jobs creates a job and answers 202 with its id]`<br>`cpp/tests/test_router.cpp::[POST /api/jobs rejects malformed and non-absolute paths]`<br>`cpp/tests/test_router.cpp::[a command against a stopped manager is 503, not a crash]`<br>`cpp/tests/test_router.cpp::[a known route with the wrong method is 405 and says Allow]`<br>`cpp/tests/test_router.cpp::[a query string does not change the route]`<br>`cpp/tests/test_router.cpp::[an unknown route is 404 with a JSON body]`<br>`cpp/tests/test_router.cpp::[creating a job against a stopped manager is 503]`<br>`cpp/tests/test_router.cpp::[every CommandResult maps to a status]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]`<br>`cpp/tests/test_router.cpp::[redundant slashes route the same way]`<br>`cpp/tests/test_router.cpp::[the error body is JSON for every refusal]` | Partially Implemented |
+| L2-CTL-005 | L3-CPP-026, L3-CTL-002 | `cpp/tests/test_api_codec.cpp::[decode rejects embedded NUL in string members]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects structural violations and leaves out unmodified]`<br>`cpp/tests/test_api_codec.cpp::[decode rejects trailing content after the JSON value]`<br>`cpp/tests/test_http_service.cpp::[a well-formed request with an exact body is routed]`<br>`cpp/tests/test_http_service.cpp::[an oversized declaration is refused without reading the body]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]`<br>`cpp/tests/test_router.cpp::[GET /api/jobs is 405 with Allow, not 404]`<br>`cpp/tests/test_router.cpp::[POST /api/jobs creates a job and answers 202 with its id]`<br>`cpp/tests/test_router.cpp::[POST /api/jobs rejects malformed and non-absolute paths]`<br>`cpp/tests/test_router.cpp::[a command against a stopped manager is 503, not a crash]`<br>`cpp/tests/test_router.cpp::[a known route with the wrong method is 405 and says Allow]`<br>`cpp/tests/test_router.cpp::[a query string does not change the route]`<br>`cpp/tests/test_router.cpp::[an unknown route is 404 with a JSON body]`<br>`cpp/tests/test_router.cpp::[creating a job against a stopped manager is 503]`<br>`cpp/tests/test_router.cpp::[every CommandResult maps to a status]`<br>`cpp/tests/test_router.cpp::[lifecycle commands on an unknown job are 404]`<br>`cpp/tests/test_router.cpp::[redundant slashes route the same way]`<br>`cpp/tests/test_router.cpp::[the dashboard route refuses methods that are not reads]`<br>`cpp/tests/test_router.cpp::[the error body is JSON for every refusal]` | Partially Implemented |
 | L2-CTL-007 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-013 | L3-CPP-025, L3-CPP-029, L3-CPP-051 | `cpp/tests/test_api_codec.cpp::[decode accepts exactly {source, dest} with non-empty strings]`<br>`cpp/tests/test_api_codec.cpp::[encode_job clamps byte counters that exceed int64]`<br>`cpp/tests/test_api_codec.cpp::[encode_job emits every member and round-trips exactly]`<br>`cpp/tests/test_http_parser.cpp::[405 responses carry an Allow header]`<br>`cpp/tests/test_http_parser.cpp::[every status the serializer knows has a reason phrase]`<br>`cpp/tests/test_http_parser.cpp::[responses serialize with correct framing]` | Implemented |
 | L2-CTL-014 | _(none)_ | _(TBD)_ | Draft |
@@ -259,7 +259,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | L1 ID | L2 Children | Test Artifacts | Status |
 |-------|-------------|----------------|--------|
-| L1-OBS-001 | L2-DASH-001, L2-DASH-002, L2-DASH-003 | _(none)_ | Partially Implemented |
+| L1-OBS-001 | L2-DASH-001, L2-DASH-002, L2-DASH-003 | _(none)_ | Implemented |
 | L1-OBS-002 | L2-CTL-010, L2-JOB-006 | _(none)_ | Partially Implemented |
 | L1-OBS-003 | L2-CORE-004 | _(none)_ | Implemented |
 
@@ -269,9 +269,9 @@ Status is computed by the rollup rule below. This matrix is the single source of
 |-------|-------------|----------------|--------|
 | L2-CORE-004 | L3-CPP-012, L3-CPP-045 | `cpp/tests/test_rename_template.cpp::[expansion never crashes on arbitrary input]`<br>`cpp/tests/test_rename_template.cpp::[timestamps render as UTC from the supplied millis]` | Implemented |
 | L2-CTL-010 | _(none)_ | _(TBD)_ | Draft |
-| L2-DASH-001 | _(none)_ | _(TBD)_ | Implemented (D) |
-| L2-DASH-002 | _(none)_ | _(TBD)_ | Draft |
-| L2-DASH-003 | _(none)_ | _(TBD)_ | Draft |
+| L2-DASH-001 | _(none)_ | `cpp/tests/test_dashboard.cpp::[the page is a complete standalone document]`<br>`cpp/tests/test_dashboard.cpp::[the page polls on a fixed interval]`<br>`cpp/tests/test_router.cpp::[GET / serves the dashboard as HTML]`<br>`cpp/tests/test_router.cpp::[GET /api/status reports counts and live queue depth]`<br>`cpp/tests/test_router.cpp::[status against a stopped manager is 503, not an empty success]`<br>`cpp/tests/test_router.cpp::[the dashboard route refuses methods that are not reads]` | Implemented |
+| L2-DASH-002 | _(none)_ | `cpp/tests/test_dashboard.cpp::[the page is a complete standalone document]`<br>`cpp/tests/test_dashboard.cpp::[the page is served as UTF-8 HTML]`<br>`cpp/tests/test_dashboard.cpp::[the served page fetches nothing from the network]` | Implemented |
+| L2-DASH-003 | _(none)_ | `cpp/tests/test_dashboard.cpp::[the served page inserts values as text nodes]`<br>`cpp/tests/test_dashboard.cpp::[the served page never writes to an HTML-parsing sink]`<br>`cpp/tests/test_router.cpp::[a path containing markup survives the API as text]` | Implemented |
 | L2-JOB-006 | _(none)_ | `cpp/tests/test_store.cpp::[jobs can be listed by state and counted]` | Implemented |
 
 ### L1-SEC: Filesystem security discipline (L1/L2)
@@ -358,25 +358,25 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | REN | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
 | MGR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
 | XFR | 0 | 3 | 0 | 2 | 0 | 2 | 0 |
-| DASH | 0 | 3 | 0 | 0 | 0 | 1 | 0 |
+| DASH | 0 | 3 | 0 | 3 | 0 | 3 | 0 |
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 50 | 0 | 54 |
-| **Total** | **41** | **199** | **80** | **55** | **56** | **75** | **60** |
+| **Total** | **41** | **199** | **80** | **58** | **56** | **77** | **60** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 111 of 283 (39.2%).
+**Tested by at least one test marker**: 114 of 283 (40.3%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 136 of 283 (48.1%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 138 of 283 (48.8%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 109 of 214 (50.9%).
+**In v1.0.0 scope — tested**: 112 of 214 (52.3%).
 
-**In v1.0.0 scope — verified**: 134 of 214 (62.6%).
+**In v1.0.0 scope — verified**: 136 of 214 (63.6%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

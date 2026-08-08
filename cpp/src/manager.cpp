@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -149,6 +150,15 @@ std::int64_t backoff_for(unsigned attempts,
         delay = max_ms;
     }
     return delay;
+}
+
+// Newest first, by last update. Ties broken by id so the order is total and
+// the dashboard does not reshuffle equal rows between polls.
+bool newer_first(const Job& a, const Job& b) {
+    if (a.updated_at_ms != b.updated_at_ms) {
+        return a.updated_at_ms > b.updated_at_ms;
+    }
+    return a.id < b.id;
 }
 
 }  // namespace
@@ -328,6 +338,67 @@ void JobManager::set_event_publisher(EventPublisher* publisher) {
 bool JobManager::is_running() const {
     const ManagerLock guard(impl_->mutex);
     return impl_->running;
+}
+
+CommandResult JobManager::status(std::size_t limit,
+                                 StatusSnapshot& out,
+                                 std::string& error) {
+    {
+        const ManagerLock lock(impl_->mutex);
+        if (!impl_->running) {
+            // Consistent with every other command: a stopped manager is
+            // NotRunning (503), not an empty success. A dashboard that renders
+            // "0 jobs" for a service that is not running is worse than one that
+            // says it cannot reach it.
+            error = "manager: not running";
+            return CommandResult::NotRunning;
+        }
+        out.running = true;
+        out.runnable = impl_->runnable.size();
+        out.active = impl_->active.size();
+    }
+
+    // The store, with the manager mutex released -- store_for_command asserts
+    // it. A dashboard polls on a timer, so this runs regularly and must never
+    // be the thing that stalls the worker pool.
+    const std::lock_guard<std::mutex> store_guard(impl_->store_mutex);
+
+    if (!impl_->store_for_command("status").counts_by_state(out.counts, error)) {
+        return CommandResult::StoreError;
+    }
+
+    // Newest first, capped. Gathered per state and merged rather than with a
+    // single query, because list_by_state is what the store offers (L2-JOB-006)
+    // and adding a second query shape for the dashboard would put a second
+    // definition of "a job" in the schema layer.
+    out.jobs.clear();
+    const JobState states[] = {JobState::Queued, JobState::Renaming,
+                               JobState::Transferring, JobState::Failed,
+                               JobState::Done};
+    for (std::size_t i = 0; i < sizeof(states) / sizeof(states[0]); ++i) {
+        std::vector<Job> batch;
+        if (!impl_->store_for_command("status").list_by_state(states[i], batch,
+                                                              error)) {
+            return CommandResult::StoreError;
+        }
+        out.jobs.insert(out.jobs.end(), batch.begin(), batch.end());
+    }
+
+    // Sorted by last update, newest first, THEN truncated. Truncating per
+    // state would silently drop whichever state happened to be listed last,
+    // and the operator would see a dashboard that omits exactly the failures
+    // they came to look at.
+    std::sort(out.jobs.begin(), out.jobs.end(), newer_first);
+    // erase, not resize: Job has no default constructor -- deliberately, since
+    // L3-CPP-005 requires every Job to be born Queued at a known time -- and
+    // resize instantiates the grow path even where only shrinking is possible.
+    if (limit > 0 && out.jobs.size() > limit) {
+        out.jobs.erase(out.jobs.begin() + static_cast<std::ptrdiff_t>(limit),
+                       out.jobs.end());
+    }
+
+    error.clear();
+    return CommandResult::Ok;
 }
 
 std::size_t JobManager::runnable_count() const {

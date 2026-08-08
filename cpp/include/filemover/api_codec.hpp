@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "filemover/job.hpp"
+#include "filemover/manager.hpp"
 
 namespace filemover {
 
@@ -51,6 +52,15 @@ bool decode_submit_request(const std::string& body,
 //             parses back to the original values.
 std::string encode_job(const Job& job);
 std::string encode_job_list(const std::vector<Job>& jobs);
+// What GET /api/status returns (L2-DASH-001).
+//
+// The limit is reported in the payload as well as applied, and "truncated"
+// says whether it bit. A dashboard showing 50 rows out of 4,000 jobs without
+// saying so lies about the size of the backlog, and the operator then acts on
+// the lie rather than on the backlog.
+std::string encode_status(const JobManager::StatusSnapshot& snapshot,
+                          std::size_t limit);
+
 std::string encode_error(const std::string& message);
 
 }  // namespace filemover

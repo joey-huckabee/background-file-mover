@@ -73,17 +73,21 @@ void append_string_member(std::string& out,
     if (trailing_comma) out += ',';
 }
 
+void append_int(std::string& out, std::int64_t value) {
+    char buf[32];
+    (void)std::snprintf(buf, sizeof(buf), "%lld",
+                        static_cast<long long>(value));
+    out += buf;
+}
+
 void append_int_member(std::string& out,
                        const char* name,
                        std::int64_t value,
                        bool trailing_comma) {
-    char buf[32];
-    (void)std::snprintf(buf, sizeof(buf), "%lld",
-                        static_cast<long long>(value));
     out += '"';
     out += name;
     out += "\":";
-    out += buf;
+    append_int(out, value);
     if (trailing_comma) out += ',';
 }
 
@@ -167,6 +171,58 @@ std::string encode_job_list(const std::vector<Job>& jobs) {
     for (std::size_t i = 0; i < jobs.size(); ++i) {
         if (i != 0) out += ',';
         out += encode_job(jobs[i]);
+    }
+    out += "]}";
+    return out;
+}
+
+std::string encode_status(const JobManager::StatusSnapshot& snapshot,
+                          std::size_t limit) {
+    std::string out;
+    out.reserve(1024);
+    out += '{';
+    out += "\"running\":";
+    out += snapshot.running ? "true" : "false";
+    out += ',';
+    append_int_member(out, "runnable",
+                      to_int64_clamped(
+                          static_cast<std::uint64_t>(snapshot.runnable)),
+                      true);
+    append_int_member(out, "active",
+                      to_int64_clamped(
+                          static_cast<std::uint64_t>(snapshot.active)),
+                      true);
+
+    // Keyed by the SAME uppercase token to_string(JobState) produces, which is
+    // what the page indexes its counters by. Two spellings of a state -- one
+    // for the API and one for the display -- is how a counter reads zero
+    // forever and nobody notices.
+    out += "\"counts\":{";
+    bool first = true;
+    for (std::map<JobState, std::uint64_t>::const_iterator it =
+             snapshot.counts.begin();
+         it != snapshot.counts.end(); ++it) {
+        if (!first) out += ',';
+        first = false;
+        out += '"';
+        out += json::escape(to_string(it->first));
+        out += "\":";
+        append_int(out, to_int64_clamped(it->second));
+    }
+    out += "},";
+
+    // The cap is reported rather than left implicit. A dashboard showing 50
+    // rows of 4,000 jobs without saying so lies about the size of the backlog.
+    append_int_member(out, "limit",
+                      to_int64_clamped(static_cast<std::uint64_t>(limit)),
+                      true);
+    out += "\"truncated\":";
+    out += (limit > 0 && snapshot.jobs.size() >= limit) ? "true" : "false";
+
+    out += ",\"jobs\":[";
+    for (std::size_t i = 0; i < snapshot.jobs.size(); ++i) {
+        if (i != 0) out += ',';
+        out += encode_job(snapshot.jobs[i]);
     }
     out += "]}";
     return out;
