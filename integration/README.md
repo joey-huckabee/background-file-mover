@@ -47,10 +47,30 @@ Set-VMHost -VirtualHardDiskPath 'D:\filemover-lab\vhd' -VirtualMachinePath 'D:\f
 > `ext4.vhdx`, and that file lives on C: until it is moved. See the note at the top of
 > the script.
 
-**Media**: download the Rocky 9 **minimal** ISO to `D:\filemover-lab\iso\`. The exact
-file name goes in `provision/hyperv/Lab.psd1`. It is deliberately not downloaded
-automatically — it is 2.5 GB, mirror URLs rot, and a script that silently fetches an
-unverified OS image is not something this project should own.
+**Media**:
+
+```powershell
+cd integration\provision\hyperv
+.\Get-RockyIso.ps1            # latest 9.x minimal, SHA256-verified
+```
+
+then, once, on the Linux side:
+
+```sh
+sh integration/scripts/verify-iso-signature.sh
+```
+
+The two checks answer different questions. `Get-RockyIso.ps1` verifies the ISO's SHA256
+against the `CHECKSUM` published beside it, which proves the bytes match what that file
+describes — it does **not** prove the file came from Rocky, since anyone able to serve
+you both can make them agree. `verify-iso-signature.sh` checks the GPG signature over
+`CHECKSUM`, and tells you to pin the key fingerprint after confirming it against
+`rockylinux.org` once. Until it is pinned, that step is trust-on-first-use and the
+script says so rather than implying more.
+
+The exact ISO name is pinned in `provision/hyperv/Lab.psd1` — never the
+`Rocky-9-latest-` alias, whose meaning changes underneath a lab that is supposed to be
+reproducible.
 
 ## Running it
 

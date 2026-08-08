@@ -16,11 +16,16 @@
     VmDir        = 'D:\filemover-lab\vm'
     KeyDir       = 'D:\filemover-lab\keys'
 
-    # The Rocky 9 minimal ISO, downloaded by hand into IsoDir. Named rather
-    # than globbed: a glob that matches two ISOs picks one silently, and the
-    # difference between 9.4 and 9.5 is exactly the kind of thing that makes a
-    # test result unreproducible.
-    InstallIso   = 'Rocky-9.5-x86_64-minimal.iso'
+    # The Rocky 9 minimal ISO, fetched and verified by Get-RockyIso.ps1.
+    #
+    # An EXACT name, never a glob and never the 'Rocky-9-latest-' alias. A glob
+    # that matches two ISOs picks one silently, and 'latest' is a name whose
+    # meaning changes underneath a pinned lab -- the difference between 9.8 and
+    # 9.9 is exactly the kind of thing that makes a result unreproducible six
+    # months later when nobody remembers which one it ran on.
+    #
+    # Bump deliberately, by re-running Get-RockyIso.ps1 and editing this line.
+    InstallIso   = 'Rocky-9.8-x86_64-minimal.iso'
 
     # Built by New-KickstartIso.ps1. The volume label MUST be OEMDRV: that is
     # the label Anaconda scans for at boot and auto-loads ks.cfg from, which is
