@@ -16,6 +16,38 @@ tag, not a branch.
 
 ### Added — C6, the daemon
 
+- **The singleton lock** (`L2-CTL-008`, `L3-CTL-004`). Two daemons on one state
+  database is not a degraded mode, it is corruption: both run crash recovery over
+  the same rows, both claim the same `QUEUED` jobs, and both move the same file —
+  with the second finding the source gone and recording a failure for work that
+  actually succeeded. SQLite serialises the *writes*; it has nothing to say about
+  two processes that each believe they own the queue.
+- **A lock, deliberately not a pidfile.** A pidfile has to answer "is pid 4212 still
+  alive, and is it still us?" and cannot, because pids are reused; every repair for
+  that (check `/proc`, compare start time, unlink if stale) is racy and defeated by a
+  reboot. The kernel releases an advisory lock when the holder dies however it dies,
+  including `SIGKILL`, so there is no stale state to reason about and no recovery
+  path to get wrong. Tested by having a child acquire and `_exit` without releasing.
+- **`flock`, deliberately not `fcntl(F_SETLK)`.** POSIX record locks are owned by the
+  `(process, file)` pair, so a second lock taken by the same process silently replaces
+  the first — precisely the case the lock exists to catch, made invisible. `flock` is
+  owned by the open file description, so a second open in one process conflicts
+  correctly. Confirmed by swapping in `fcntl` and watching the in-process test fail.
+- **Taken before the store is opened, released after it closes.** A second instance
+  that reached the store first would run recovery over rows the running instance owns
+  and would have done the damage before discovering it was not alone. `Impl` declares
+  the lock first so reverse member destruction releases it last, matching `stop()`.
+- **The lock file is never unlinked.** Between another process's open and its `flock`
+  there is a window where unlinking would delete the object it is about to lock,
+  leaving two instances holding exclusive locks on two different inodes with the same
+  name. A leftover file is not a held lock — tested, because the alternative reading
+  would let the service start exactly once per machine.
+- **`fsops::open_lock_file`** — an `openat`-based primitive so `singleton.cpp` needs no
+  `<fcntl.h>` and stays inside `L2-SEC-001` without an allowlist entry. `O_CLOEXEC` is
+  load-bearing rather than hygiene: `L2-XFR-002` forks and execs, and a lock descriptor
+  inherited by that child would keep the lock alive after this process died, so the
+  next start would refuse forever with nothing an operator could find holding it.
+
 - **A hardened systemd unit** (`deploy/systemd/file-mover.service`, `L2-SEC-014`),
   `Type=notify` rather than `Type=simple`. The difference is not cosmetic: with
   `Type=simple` systemd considers the service started the moment `exec` returns,
@@ -63,6 +95,10 @@ tag, not a branch.
 
 ### Changed — C6
 
+- **`L3-CTL-004` rewritten for C++.** It required "`ProcessLock` shall use
+  `fcntl.flock`" — a Python class and a Python module, left from the retired
+  implementation. It now names `SingletonLock` and `flock(2)`, states why record locks
+  are forbidden, and adds the no-unlink-on-release clause.
 - **`make format-check` is documented as advisory and failing.** It reports most of
   the tree as violating and always has — the sources use column alignment
   clang-format rewrites, and the CI workflow deliberately does not gate on it. The

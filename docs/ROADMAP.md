@@ -13,8 +13,8 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 daemon runs, and `systemd` can start, watch and stop it.**
 
 ```
-In v1.0.0 scope:  121 of 214 requirements verified (56.5%)
-Tests:            8,879 assertions / 264 cases
+In v1.0.0 scope:  123 of 214 requirements verified (57.5%)
+Tests:            8,941 assertions / 277 cases
 Line coverage:    86.4% overall (floor 85%)
 Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
                   coverage, clang-tidy, nine source gates, the unit gate and
@@ -27,9 +27,10 @@ Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
 hardened `Type=notify` unit, and the sd_notify readiness/watchdog protocol are all in.
 `scripts/smoke-readiness.py` drives the real binary end to end.
 
-What C6 has NOT delivered yet: the **singleton lock** (`L2-CTL-008` — two daemons on one
-database is still possible, and nothing stops it) and the **event stream**
-(`L2-EVT-001..005`, all still Draft). Those are the remaining C6 work before C7.
+The **singleton lock** (`L2-CTL-008`) is in: `flock` on a lock file beside the state
+database, taken before the store opens and released after it closes. What C6 has NOT
+delivered yet is the **event stream** (`L2-EVT-001..005`, all still Draft). That is the
+remaining C6 work before C7.
 
 Two things worth carrying forward:
 
@@ -415,8 +416,8 @@ they sit on is already delivered.
 
 `main`, signals, and the startup sequence. The service becomes runnable here.
 
-- **Advances:** `L2-CTL-017..020`, `L2-CTL-011`, `L2-CTL-012`, `L2-EVT-001..005`,
-  and `L2-SEC-014` (below).
+- **Advances:** `L2-CTL-017..020`, `L2-CTL-008`, `L2-CTL-011`, `L2-CTL-012`,
+  `L2-EVT-001..005`, and `L2-SEC-014` (below).
 - **The hardened unit landed here, not in C8.** `Type=notify` needs the readiness
   notification, and the notification needs somewhere to send it; a unit written two
   milestones later would have been a unit nobody had ever run.
@@ -434,7 +435,8 @@ they sit on is already delivered.
 - **Do not copy the inherited 200 ms `nanosleep` wait loop.** Block on `sigsuspend` or a
   self-pipe; a daemon should not wake five times a second forever to poll a flag.
 - **Done when:** `systemctl start/stop` is clean, `--check` fails the unit on a bad
-  config before anything is created, and shutdown drains rather than aborts.
+  config before anything is created, shutdown drains rather than aborts, and a second
+  instance on one database is refused rather than tolerated.
 
 ### C7 — Operator dashboard
 

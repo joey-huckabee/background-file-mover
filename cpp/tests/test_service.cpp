@@ -302,6 +302,58 @@ TEST_CASE("a service that fails to start leaves nothing running",
     second.stop();
 }
 
+TEST_CASE("a second service on the same database is refused",
+          "[service][L2-CTL-008]") {
+    // The lock is only worth having if start() actually takes it. Verified
+    // here rather than only in test_singleton.cpp, because "the class works"
+    // and "the service uses the class" are different claims and only the
+    // second one keeps two daemons off one database.
+    TempRoot root;
+    Service first;
+    std::string error;
+    REQUIRE(first.start(root.config(), error) == true);
+
+    Service second;
+    std::string second_error;
+    CHECK(second.start(root.config(), second_error) == false);
+    CHECK(second.is_running() == false);
+    CHECK(second_error.find("already running") != std::string::npos);
+
+    // ...and the refusal is temporary, not a poisoned database. Once the first
+    // stops, the next start succeeds -- a lock that outlived its holder would
+    // turn a restart into an outage.
+    first.stop();
+    Service third;
+    CHECK(third.start(root.config(), error) == true);
+    third.stop();
+}
+
+TEST_CASE("the lock is taken before the store is opened",
+          "[service][L2-CTL-008]") {
+    // Ordering matters, not just exclusion. A second instance that opened the
+    // store first would run crash recovery over rows the running instance
+    // owns, and would have done that damage before discovering it was not
+    // alone. Proven by pointing the second service at a database whose
+    // DIRECTORY does not exist: if the lock is taken first, the failure is the
+    // lock's (it cannot open its own directory either) and the store is never
+    // reached.
+    TempRoot root;
+    Service first;
+    std::string error;
+    REQUIRE(first.start(root.config(), error) == true);
+
+    Service second;
+    std::string second_error;
+    CHECK(second.start(root.config(), second_error) == false);
+    // The message comes from the lock, not from SQLite. A store error here
+    // would mean the store was opened first.
+    CHECK(second_error.find("already running") != std::string::npos);
+    CHECK(second_error.find("SQL") == std::string::npos);
+    CHECK(second_error.find("database is locked") == std::string::npos);
+
+    first.stop();
+}
+
 TEST_CASE("a stop signal wakes sigsuspend and the daemon shuts down",
           "[service][L2-CTL-017]") {
     TempRoot root;

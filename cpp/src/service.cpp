@@ -3,6 +3,8 @@
 
 #include "filemover/service.hpp"
 
+#include "filemover/singleton.hpp"
+
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
@@ -215,6 +217,13 @@ bool check_config(const Config& config, std::string& error) {
 // --- startup and teardown (L2-CTL-020) ------------------------------------
 
 struct Service::Impl {  // NOLINT
+    // L2-CTL-008, declared FIRST on purpose. Members are destroyed in reverse
+    // declaration order, so first-declared is last-destroyed -- which makes the
+    // destructor release the lock after the server and the manager are gone,
+    // matching the order stop() takes explicitly. stop() is the path that
+    // normally runs; this is the backstop for the one that does not.
+    SingletonLock lock;
+
     JobManager* manager;
     ConnectionServer server;
     HttpServiceOptions http;
@@ -302,12 +311,21 @@ bool Service::start(const Config& config, std::string& error) {
         return false;
     }
 
-    // 1. The manager, which opens the store before spawning workers. Nothing
+    // 1. The singleton lock, FIRST -- before the store is opened, not after
+    //    (L2-CTL-008). A second instance that reached the store first would run
+    //    crash recovery over rows the running instance owns, and would have
+    //    done that damage by the time it discovered it was not alone.
+    if (!impl_->lock.acquire(config.storage_database_path, error)) {
+        return false;
+    }
+
+    // 2. The manager, which opens the store before spawning workers. Nothing
     //    accepts connections yet, so a failure here costs only this call.
     impl_->manager = new JobManager(config.storage_database_path, config);
     if (!impl_->manager->start(error)) {
         delete impl_->manager;
         impl_->manager = 0;
+        impl_->lock.release();
         return false;
     }
 
@@ -315,7 +333,7 @@ bool Service::start(const Config& config, std::string& error) {
     g_dispatch.manager = impl_->manager;
     g_dispatch.options = &impl_->http;
 
-    // 2. The socket, LAST. A request answered during startup by a half-built
+    // 3. The socket, LAST. A request answered during startup by a half-built
     //    service is worse than a connection refused.
     ServerOptions server_options;
     server_options.handlers = config.jobs_workers;
@@ -326,12 +344,13 @@ bool Service::start(const Config& config, std::string& error) {
         impl_->manager = 0;
         g_dispatch.manager = 0;
         g_dispatch.options = 0;
+        impl_->lock.release();
         return false;
     }
 
     impl_->running = true;
 
-    // 3. Readiness, LAST -- after the socket is accepting. Telling systemd
+    // 4. Readiness, LAST -- after the socket is accepting. Telling systemd
     //    READY=1 before the port is open makes every dependent unit start
     //    against a service that cannot yet answer, which is the whole problem
     //    Type=notify exists to solve.
@@ -377,6 +396,12 @@ void Service::stop() {
         delete impl_->manager;
         impl_->manager = 0;
     }
+
+    // The lock LAST, completing the reverse order (L2-CTL-020). Releasing it
+    // earlier would let a second instance open the store while this one is
+    // still draining -- which is the exact overlap the lock exists to prevent,
+    // arrived at through the shutdown path instead of the startup one.
+    impl_->lock.release();
 }
 
 }  // namespace filemover

@@ -258,7 +258,7 @@ def main():
             proc.kill()
             proc.wait()
         notify.close()
-        for path in (notify_path, cfg_path, db_path):
+        for path in (notify_path, cfg_path, db_path, db_path + ".lock"):
             try:
                 os.unlink(path)
             except OSError:
@@ -269,9 +269,154 @@ def main():
             pass
 
     check_ordering(daemon)
+    check_singleton(daemon)
 
     print("smoke-readiness: PASS")
     return 0
+
+
+def check_singleton(daemon):
+    """A second daemon on one database must refuse to start (L2-CTL-008).
+
+    Tested against the real binary because this is what an operator meets: a
+    unit restarted while the old process is still draining, or a hand-run
+    daemon against a live service. The C++ tests cover Service::start; this
+    covers the process, including that it exits non-zero so systemd sees a
+    failure rather than a second instance it thinks is fine.
+    """
+    tmp = tempfile.mkdtemp(prefix="fm-single-")
+    db_path = os.path.join(tmp, "state.db")
+    cfg_path = os.path.join(tmp, "file-mover.ini")
+    first_port = free_port()
+    second_port = free_port()
+
+    def write_cfg(path, port):
+        with open(path, "w") as fh:
+            fh.write(
+                "[http]\nbind = 127.0.0.1\nport = %d\n\n"
+                "[storage]\ndatabase_path = %s\n" % (port, db_path)
+            )
+
+    write_cfg(cfg_path, first_port)
+    second_cfg = os.path.join(tmp, "second.ini")
+    # A DIFFERENT port, so a refusal cannot be blamed on the address already
+    # being in use. The only thing the two share is the database.
+    write_cfg(second_cfg, second_port)
+
+    env = dict(os.environ)
+    env.pop("NOTIFY_SOCKET", None)
+
+    first = subprocess.Popen(
+        [daemon, "--config", cfg_path],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    try:
+        # Wait until it is genuinely up, or the second one would be refused
+        # for the wrong reason.
+        deadline = time.time() + TIMEOUT
+        up = False
+        while time.time() < deadline:
+            try:
+                socket.create_connection(("127.0.0.1", first_port),
+                                         timeout=0.5).close()
+                up = True
+                break
+            except OSError:
+                if first.poll() is not None:
+                    break
+                time.sleep(0.05)
+        if not up:
+            fail("first daemon never came up (exit=%s)" % first.poll())
+
+        # The expected outcome is a prompt non-zero exit. Timing out is the
+        # headline failure, not an error in the harness: a second daemon that
+        # keeps running is exactly the corruption this prevents, and it must
+        # be reported as that rather than as a traceback.
+        try:
+            second = subprocess.run(
+                [daemon, "--config", second_cfg],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            fail(
+                "a second daemon started against a live database and kept "
+                "running -- two instances are now sharing one state database"
+            )
+        if second.returncode == 0:
+            fail("a second daemon started against a live database")
+        output = second.stdout.decode("utf-8", "replace")
+        if "already running" not in output:
+            fail(
+                "second daemon failed, but not with the singleton message: %r"
+                % output[:400]
+            )
+        print("smoke-readiness: ok: a second daemon is refused (%s)"
+              % output.strip().splitlines()[-1][:90])
+    finally:
+        if first.poll() is None:
+            first.terminate()
+            try:
+                first.wait(timeout=TIMEOUT)
+            except subprocess.TimeoutExpired:
+                first.kill()
+                first.wait()
+
+    # The lock must not outlive its holder: after the first exits, a fresh
+    # start succeeds. Otherwise every restart would be an outage.
+    third = subprocess.run(
+        [daemon, "--config", cfg_path, "--check"],
+        env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        timeout=TIMEOUT,
+    )
+    if third.returncode != 0:
+        fail("--check failed after the holder exited: %r"
+             % third.stdout.decode("utf-8", "replace")[:400])
+
+    third = subprocess.Popen(
+        [daemon, "--config", cfg_path],
+        env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    try:
+        deadline = time.time() + TIMEOUT
+        restarted = False
+        while time.time() < deadline:
+            try:
+                socket.create_connection(("127.0.0.1", first_port),
+                                         timeout=0.5).close()
+                restarted = True
+                break
+            except OSError:
+                if third.poll() is not None:
+                    break
+                time.sleep(0.05)
+        if not restarted:
+            fail(
+                "could not restart after the lock holder exited (exit=%s) -- "
+                "the lock outlived its process" % third.poll()
+            )
+        print("smoke-readiness: ok: the lock does not outlive its holder")
+    finally:
+        if third.poll() is None:
+            third.terminate()
+            try:
+                third.wait(timeout=TIMEOUT)
+            except subprocess.TimeoutExpired:
+                third.kill()
+                third.wait()
+        for path in (cfg_path, second_cfg, db_path, db_path + ".lock"):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        try:
+            os.rmdir(tmp)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":

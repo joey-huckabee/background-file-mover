@@ -85,8 +85,14 @@ MemoryDenyWriteExecute=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 # ProtectSystem=strict makes everything read-only except these. The state
-# directory holds the SQLite database; the managed trees are configured and
-# must be listed here too when they are not under /var/lib.
+# directory holds the SQLite database and, beside it, the singleton lock file
+# (L2-CTL-008) -- which is left in place between runs on purpose. It is not a
+# pidfile and never needs clearing: the kernel drops the lock when the holder
+# dies, so a leftover file holds nothing. Deleting it while the service runs
+# does not stop a second instance, it permits one.
+#
+# The managed trees are configured and must be listed here too when they are
+# not under /var/lib.
 StateDirectory=file-mover
 ReadWritePaths=/var/lib/file-mover
 

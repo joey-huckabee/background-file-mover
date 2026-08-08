@@ -106,7 +106,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L2-CORE-003 | L3-CPP-006, L3-CPP-007, L3-CPP-008 | `cpp/tests/test_job.cpp::[terminal states accept no further transitions]`<br>`cpp/tests/test_job.cpp::[transition rejects every illegal pair and leaves the job unmodified]`<br>`cpp/tests/test_job.cpp::[transition to Failed requires a non-empty error message]`<br>`cpp/tests/test_job.cpp::[transition to non-Failed states rejects an error message]` | Implemented |
 | L2-CTL-004 | _(none)_ | `cpp/tests/test_http_service.cpp::[a body shorter than declared is answered, not left hanging]`<br>`cpp/tests/test_http_service.cpp::[the hostile battery, then the same instance still works]` | Implemented |
 | L2-CTL-006 | _(none)_ | _(TBD)_ | Implemented (I) |
-| L2-CTL-008 | L3-CTL-004 | _(TBD)_ | Draft |
+| L2-CTL-008 | L3-CTL-004 | `cpp/tests/test_service.cpp::[a second service on the same database is refused]`<br>`cpp/tests/test_service.cpp::[the lock is taken before the store is opened]`<br>`cpp/tests/test_singleton.cpp::[a different database is a different lock]`<br>`cpp/tests/test_singleton.cpp::[a lock file left behind is not a held lock]`<br>`cpp/tests/test_singleton.cpp::[a missing directory is reported, not crashed on]`<br>`cpp/tests/test_singleton.cpp::[a path that names no file is refused]`<br>`cpp/tests/test_singleton.cpp::[a second PROCESS is refused too]`<br>`cpp/tests/test_singleton.cpp::[a second instance is refused while the first holds the lock]`<br>`cpp/tests/test_singleton.cpp::[acquiring twice through one object is refused]`<br>`cpp/tests/test_singleton.cpp::[release is safe without an acquire]`<br>`cpp/tests/test_singleton.cpp::[the kernel releases the lock when the holder dies]`<br>`cpp/tests/test_singleton.cpp::[the lock file is named after the database, beside it]`<br>`cpp/tests/test_singleton.cpp::[the lock is available again after a clean release]` | Implemented |
 | L2-CTL-009 | _(none)_ | _(TBD)_ | Draft |
 | L2-CTL-011 | L3-CPP-054 | `cpp/tests/test_service.cpp::[READY=1 reaches a listening notify socket]`<br>`cpp/tests/test_service.cpp::[a '@' path is sent to the abstract namespace]`<br>`cpp/tests/test_service.cpp::[a send failure is not an error either]`<br>`cpp/tests/test_service.cpp::[an empty state is the one thing refused]`<br>`cpp/tests/test_service.cpp::[notification is a no-op when no service manager asked for it]` | Implemented |
 | L2-CTL-012 | _(none)_ | `cpp/tests/test_router.cpp::[health is answered without touching the manager]`<br>`cpp/tests/test_service.cpp::[the watchdog interval is read, validated and halved]` | Implemented |
@@ -347,7 +347,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | RTY | 0 | 6 | 0 | 4 | 0 | 4 | 0 |
 | DST | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
 | DEL | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| CTL | 0 | 20 | 4 | 9 | 0 | 11 | 0 |
+| CTL | 0 | 20 | 4 | 10 | 1 | 12 | 1 |
 | JOB | 0 | 15 | 3 | 12 | 0 | 13 | 0 |
 | SUB | 0 | 5 | 2 | 0 | 0 | 0 | 0 |
 | REC | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
@@ -362,21 +362,21 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 50 | 0 | 54 |
-| **Total** | **41** | **199** | **80** | **48** | **50** | **68** | **54** |
+| **Total** | **41** | **199** | **80** | **49** | **51** | **69** | **55** |
 
 The countable requirement set is every L2 and L3 requirement plus the 4 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 98 of 283 (34.6%).
+**Tested by at least one test marker**: 100 of 283 (35.3%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 123 of 283 (43.5%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 125 of 283 (44.2%).
 
 ### v1.0.0 scope-adjusted coverage
 
 5 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 69 L2/L3 requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
-**In v1.0.0 scope — tested**: 96 of 214 (44.9%).
+**In v1.0.0 scope — tested**: 98 of 214 (45.8%).
 
-**In v1.0.0 scope — verified**: 121 of 214 (56.5%).
+**In v1.0.0 scope — verified**: 123 of 214 (57.5%).
 
 Deferred L1s: L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006.
 

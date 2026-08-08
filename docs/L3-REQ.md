@@ -136,7 +136,17 @@ Every control response shall echo the request's `request_id`.
 
 **L3-CTL-004** · Parent: L2-CTL-008 · Verification: T
 
-The `ProcessLock` shall use `fcntl.flock` for the singleton lock.
+`SingletonLock` shall hold the singleton lock with `flock(2)` on a lock file beside the
+state database, and shall not use `fcntl(F_SETLK)` record locks. Record locks are owned
+by the `(process, file)` pair, so a second lock taken by the same process replaces the
+first rather than being refused — the case the lock exists to catch, made invisible.
+`flock` is owned by the open file description, so a second open in the same process is a
+different owner and conflicts correctly.
+
+The lock file shall not be unlinked on release: between another process's open and its
+`flock` there is a window in which unlinking would delete the object that process is
+about to lock, leaving two instances holding exclusive locks on two different inodes
+with the same name.
 
 ## JOB — Durable-state components
 
