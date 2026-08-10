@@ -14,6 +14,59 @@ against merged into `main` at the C0 boundary and was retired.
 **`main` no longer ships Python.** The implementation to deploy today is the `v0.4.2`
 tag, not a branch.
 
+### Added — layer 2 runs end to end on Rocky 9
+
+The playbook and the integration suite both went green against `fm-rocky9-01` for the
+first time: the daemon was synchronised, **built on the RHEL 9 toolchain** (g++ 11.5.0),
+passed its unit suite there, and was installed and started as a `Type=notify` service.
+`01-service-lifecycle.sh` passes all of its checks — systemd observed readiness,
+`/healthz` and the dashboard answer, the process runs as `file-mover` with
+`NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp`, `ProtectHome` and an empty
+`CapabilityBoundingSet`, `ExecStartPre` refuses a deliberately broken configuration, and
+a stop drains in 0s rather than being killed.
+
+**What that run does *not* yet establish is the SELinux question the lab exists for.**
+The host is `Enforcing` and `ausearch` reports no denials, but the daemon runs in
+`unconfined_service_t` with the binary labelled generic `bin_t`: there is no policy
+module and so no domain transition, and an unconfined process generates no denials
+whatever it does. The clean audit log is therefore not evidence of SELinux
+compatibility. A `filemover_t` domain with a `filemover_exec_t` transition is the next
+piece of real work, and until it exists the SELinux result should be read as *untested*
+rather than *passing*.
+
+### Fixed — the layer 2 checks, every one of which failed on a healthy host
+
+Four defects, all of the same shape: the assertion was wrong, not the target. Each was
+reported in a way that accused something else.
+
+- **`base` asserted on `os_family`,** which comes from a mapping table inside Ansible and
+  so describes the *control node's* version as much as the host. Ansible 2.10 — what
+  Ubuntu 22.04 packages — predates Rocky and reports `Rocky`; 2.11+ maps it to `RedHat`.
+  A correct Rocky 9 guest was rejected by a message claiming it was not RHEL 9. Now keyed
+  on `distribution` against an explicit family list.
+- **The SELinux assertion could not read SELinux.** `ansible_facts['selinux']` is
+  populated through `python3-libselinux`, which is not in Rocky 9's minimal install.
+  Absent it the fact does not go missing or read `unknown` — it reads the literal string
+  `Missing selinux Python library` with no mode at all, so an `Enforcing` host failed the
+  check and the failure blamed the kickstart for having been tampered with. Now reads
+  `getenforce`, which ships in `libselinux-utils` and reports live kernel state rather
+  than a fact cached before the play began. `python3-libselinux` is installed anyway so
+  the fact stops being a trap for the next task written against it.
+- **`rsync` was missing on the target,** which `ansible.posix.synchronize` needs at both
+  ends. It surfaced as `rsync error: code 12` and `connection unexpectedly closed` —
+  which reads as a broken network or a rejected key — with the line that actually explains
+  it, `sudo: rsync: command not found`, quoted from the remote in the middle of the block.
+  Installed in `buildtools`, where the transport belongs, rather than in `base`.
+- **A passing unit suite failed the playbook.** `failed_when: fm_check.rc != 0` on the
+  `make` module: `rc` is only present in that module's result when the command *fails*, so
+  a green run evaluated the conditional against a missing key and died with
+  `'dict object' has no attribute 'rc'`. The module already fails the task on a non-zero
+  exit, so the condition was redundant as well as wrong, and has been removed.
+
+`python3-libselinux` and `rsync` are deliberately **not** added to the kickstart: its
+standing rule is that anything applicable over SSH after first boot belongs to layer 2,
+and both are. `python3` remains the sole exception, for the chicken-and-egg it resolves.
+
 ### Fixed — integration lab bootstrap
 
 - **`pykickstart` moved from apt to PyPI** in `integration/prereqs/install-control-node.sh`.

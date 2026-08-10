@@ -4,14 +4,35 @@
 # Every task here earns its place by turning a confusing downstream symptom
 # into a clear upstream one.
 
+# Keyed on `distribution`, deliberately, and NOT on `os_family`.
+#
+# os_family comes from a mapping table inside Ansible itself, so its value
+# describes the CONTROL NODE's version as much as the host being tested. Ansible
+# 2.10 -- what Ubuntu 22.04 packages, and what this lab's control node runs --
+# predates Rocky Linux and reports os_family 'Rocky'; 2.11 and later map it to
+# 'RedHat'. Asserting on it meant a correct Rocky 9 guest was rejected with a
+# message claiming it was not a RHEL 9 host, which is exactly the confusing
+# downstream symptom this block exists to prevent.
+#
+# The list stays explicit rather than becoming a substring match: the point of
+# the guard is to refuse a host that is not the deployment target, and
+# "contains 'Linux'" would refuse nothing.
 - name: Confirm this is a RHEL 9 family host
+  vars:
+    fm_rhel9_family:
+      - RedHat
+      - Rocky
+      - AlmaLinux
+      - CentOS
+      - OracleLinux
   ansible.builtin.assert:
     that:
-      - ansible_facts['os_family'] == 'RedHat'
+      - ansible_facts['distribution'] in fm_rhel9_family
       - ansible_facts['distribution_major_version'] == '9'
     fail_msg: >-
       This playbook targets RHEL 9 (Rocky 9). Found
-      {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+      {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+      (os_family={{ ansible_facts['os_family'] }}).
       Running it elsewhere would produce a green result that says nothing about
       the deployment target.
 
@@ -19,14 +40,31 @@
 # container. A lab that had quietly dropped to permissive would answer the
 # question it exists to answer, wrongly and confidently -- so it is asserted
 # rather than assumed, and asserted BEFORE anything is installed.
+# Read with `getenforce`, and NOT with ansible_facts['selinux'].
+#
+# That fact is populated through a Python binding, python3-libselinux, which
+# Rocky 9's minimal install does not include. Absent it the fact does not go
+# missing or report 'unknown' -- it reports status='Missing selinux Python
+# library' with no mode at all. So the assertion failed on a host whose SELinux
+# was enforcing correctly, and blamed the kickstart for it: precisely the
+# confusing downstream symptom this block exists to prevent, produced by the
+# block itself.
+#
+# getenforce ships in libselinux-utils, which minimal DOES install, and it reads
+# the live kernel state rather than a fact cached before this play began.
+- name: Read the live SELinux mode
+  ansible.builtin.command: getenforce
+  changed_when: false
+  check_mode: false
+  register: fm_getenforce
+
 - name: Confirm SELinux is enforcing
   ansible.builtin.assert:
     that:
-      - ansible_facts['selinux']['status'] == 'enabled'
-      - ansible_facts['selinux']['mode'] == 'enforcing'
+      - fm_getenforce.stdout | trim == 'Enforcing'
     fail_msg: >-
-      SELinux is not enforcing (status={{ ansible_facts['selinux']['status'] }},
-      mode={{ ansible_facts['selinux']['mode'] | default('unknown') }}).
+      SELinux is not enforcing (getenforce reported
+      '{{ fm_getenforce.stdout | trim }}').
       The kickstart sets enforcing; if this fails, something changed it after
       install and every SELinux result from this lab is worthless.
 
@@ -35,6 +73,12 @@
     name:
       # Used by the tests to drive the control plane and read the journal.
       - curl
+      # Populates ansible_facts['selinux']. Nothing above depends on it -- the
+      # enforcing check deliberately does not -- but without it that fact reads
+      # as the string 'Missing selinux Python library', which is a trap for the
+      # next person who writes a task against it. Installed so the facts this
+      # host reports about itself are true.
+      - python3-libselinux
       - policycoreutils            # semanage, restorecon
       - policycoreutils-python-utils
       - setools-console            # sesearch, for diagnosing a denial

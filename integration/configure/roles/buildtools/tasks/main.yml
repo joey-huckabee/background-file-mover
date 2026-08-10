@@ -44,6 +44,21 @@
     group: root
     mode: '0755'
 
+# ansible.posix.synchronize is a wrapper around rsync, and rsync has to exist on
+# BOTH ends. Rocky 9's minimal install does not carry it. The failure is worth
+# describing because it does not name the real problem: the module reports an
+# rsync protocol error, `code 12`, `connection unexpectedly closed` -- which
+# reads as a broken network or a rejected key -- and the one line that actually
+# explains it, `sudo: rsync: command not found`, is a remote-side message
+# quoted in the middle of that block.
+#
+# Installed here rather than in `base` because it is this role's transport, not
+# a property of the host. A layer-2 run of `base` alone has no use for it.
+- name: Ensure rsync is present for the source sync
+  ansible.builtin.dnf:
+    name: rsync
+    state: present
+
 # synchronize rather than git clone: the point is to test the working tree in
 # front of you, including changes that are not committed yet. A clone would
 # test whatever is on the remote, which is not what anyone means by "does my
@@ -94,9 +109,15 @@
   # Not a substitute for the integration tests -- it opens no sockets against
   # systemd and knows nothing about SELinux -- but a failure here means the
   # platform differs in a way worth knowing before anything else is diagnosed.
+  #
+  # No `failed_when` here, deliberately. It used to read `fm_check.rc != 0`,
+  # which never worked: the make module only puts `rc` in its result when the
+  # command FAILS, so on a passing suite the conditional evaluated against a
+  # missing key and the task failed with "'dict object' has no attribute 'rc'"
+  # -- a green test run reported as a broken playbook. The module already fails
+  # the task on a non-zero exit, so the check was redundant as well as wrong.
   community.general.make:
     chdir: "{{ fm_src_dir }}/cpp"
     target: check
   register: fm_check
   changed_when: true
-  failed_when: fm_check.rc != 0
