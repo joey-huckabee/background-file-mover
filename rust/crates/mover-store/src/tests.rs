@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -36,6 +36,35 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 #[test]
+fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
+    db.connection.execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    drop(db);
+    let s = Store::open(f.db()).unwrap();
+    let instance = s.instance_id().unwrap();
+    assert_eq!(instance.len(), 32);
+    assert!(s.delivery_candidates(100, 1).unwrap().is_empty());
+    s.begin_claim(&intent_for(&job, 0, 3)).unwrap();
+    s.finish_claim(&intent_for(&job, 0, 3)).unwrap();
+    s.begin_claim(&intent_for(&job, 1, u64::MAX)).unwrap();
+    s.finish_claim(&intent_for(&job, 1, u64::MAX)).unwrap();
+    assert_eq!(s.delivery_candidates(100, 1).unwrap(), vec![job.job_id]);
+    s.delivery_deferred(job.job_id, 100).unwrap();
+    assert!(s.delivery_candidates(104, 1).unwrap().is_empty());
+    assert_eq!(s.delivery_candidates(105, 1).unwrap(), vec![job.job_id]);
+    for time in [105, 110, 115] {
+        s.delivery_failed(job.job_id, time).unwrap();
+    }
+    assert!(s.delivery_candidates(1000, 1).unwrap().is_empty());
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.instance_id().unwrap(), instance);
+    assert!(s.delivery_candidates(1000, 1).unwrap().is_empty());
+}
+
+#[test]
 fn schema_three_migration_retains_claim_evidence() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
@@ -44,7 +73,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -157,7 +186,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();

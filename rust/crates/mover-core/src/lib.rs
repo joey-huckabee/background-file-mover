@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 mod claim;
 pub use claim::{ClaimIntent, ObjectIdentity};
 mod transfer;
+pub use transfer::ManifestRecord;
 pub use transfer::{Transfer, TransferPhase};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -247,6 +248,9 @@ impl Recording {
     pub fn policy(&self) -> &DeliveryPolicy {
         &self.policy
     }
+    pub fn is_committed(&self) -> bool {
+        self.committed
+    }
     pub fn submission(&self) -> &Submission {
         &self.submission
     }
@@ -256,6 +260,9 @@ impl Recording {
         self.files
             .iter()
             .try_fold(0_u64, |total, f| total.checked_add(f.actual_size?))
+    }
+    pub fn file_size(&self, index: usize) -> Option<u64> {
+        self.files.get(index)?.actual_size
     }
 
     pub fn file_phase(&self, index: usize) -> Option<FilePhase> {

@@ -7,8 +7,9 @@ Experiments are stopped. The first dependency-free [Rust core slice](rust/README
 has executable protocol tests and [SQLite acceptance](docs/RUST-INCREMENT-02.md).
 It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
 [local submission endpoint](docs/RUST-INCREMENT-04.md), plus a
-[verified single-file transfer command](docs/RUST-INCREMENT-05.md). Automatic
-delivery/multi-file manifests are next. Every build/test uses the zigbuild/SLES gate.
+[verified single-file transfer command](docs/RUST-INCREMENT-05.md) and
+[automatic local delivery/manifests](docs/RUST-INCREMENT-06.md). Operator tooling
+and NFS/worker qualification are next. Every build/test uses the zigbuild/SLES gate.
 Registration/authentication is deferred while tested increments develop. The C++
 implementation described below remains the reference, not the intended Rust architecture.
 

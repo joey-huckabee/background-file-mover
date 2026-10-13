@@ -15,8 +15,10 @@ fn matching(store: &Store, t: &Transfer, phase: TransferPhase) -> TransferResult
     }
     Ok(())
 }
-fn claimed(store: &Store, id: i64) -> TransferResult<OwnedFd> {
-    let (intent, done) = store.claim_intent(id, 0)?.ok_or("missing claim receipt")?;
+pub(super) fn claimed(store: &Store, id: i64, index: usize) -> TransferResult<OwnedFd> {
+    let (intent, done) = store
+        .claim_intent(id, index)?
+        .ok_or("missing claim receipt")?;
     if !done {
         return Err("claim incomplete".into());
     }
@@ -36,12 +38,17 @@ fn claimed(store: &Store, id: i64) -> TransferResult<OwnedFd> {
     }
     Ok(fd)
 }
-fn directories(t: &Transfer) -> TransferResult<(OwnedFd, OwnedFd, OwnedFd, OwnedFd, String)> {
+pub(super) fn directories(
+    t: &Transfer,
+) -> TransferResult<(OwnedFd, OwnedFd, OwnedFd, OwnedFd, String)> {
     let root = root(&t.destination_root)?;
     same_directory(&owned_directory(&root, false)?, &t.root)?;
     let area = fs::openat(&root, t.job_id.to_string(), DIRECTORY, Mode::empty())?;
     same_directory(&owned_directory(&area, true)?, &t.area)?;
-    let staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
+    let mut staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
+    if t.file_index > 0 {
+        staging = fs::openat(&staging, t.file_index.to_string(), DIRECTORY, Mode::empty())?;
+    }
     same_directory(&owned_directory(&staging, true)?, &t.staging_directory)?;
     if owned_directory(&staging, true)?.device != t.root.device {
         return Err("staging device changed".into());
@@ -62,28 +69,59 @@ fn allocate(staging: &OwnedFd, attempt: i64) -> TransferResult<ObjectIdentity> {
     Ok(source(&fd)?)
 }
 pub fn prepare_transfer(store: &Store, id: i64) -> TransferResult<Transfer> {
+    prepare_transfer_file(store, id, 0)
+}
+pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfer> {
     let job = store.get(id)?.ok_or("unknown job")?;
     if job.recording.handoff() != Handoff::Ready202
-        || job.recording.submission().files().len() != 1
+        || index >= job.recording.submission().files().len()
         || job.context.policy.group_by_generator
-        || store.transfer(id, 0)?.is_some()
+        || store.transfer(id, index)?.is_some()
     {
         return Err("first transfer requires one fully claimed ungrouped file".into());
     }
-    claimed(store, id)?;
+    claimed(store, id, index)?;
+    store.transfer_capacity(id, index)?;
     let root = root(&job.context.destination_path)?;
     namespace(&root)?;
-    fs::mkdirat(&root, id.to_string(), Mode::RWXU)?; // Never adopt an existing job directory.
+    let first = if index > 0 {
+        Some(
+            store
+                .transfer(id, 0)?
+                .ok_or("first file owns recording directory")?,
+        )
+    } else {
+        None
+    };
+    if first.is_none() {
+        fs::mkdirat(&root, id.to_string(), Mode::RWXU)?;
+    }
     let area = fs::openat(&root, id.to_string(), DIRECTORY, Mode::empty())?;
-    fs::mkdirat(&area, ".staging", Mode::RWXU)?;
-    let staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
-    let relative_name = job.recording.submission().files()[0]
+    if let Some(first) = &first {
+        same_directory(&owned_directory(&root, false)?, &first.root)?;
+        same_directory(&owned_directory(&area, true)?, &first.area)?;
+    }
+    if first.is_none() {
+        fs::mkdirat(&area, ".staging", Mode::RWXU)?;
+    }
+    let mut staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
+    if index > 0 {
+        fs::mkdirat(&staging, index.to_string(), Mode::RWXU)?;
+        let child = fs::openat(&staging, index.to_string(), DIRECTORY, Mode::empty())?;
+        fs::fsync(&staging)?;
+        staging = child;
+    }
+    let relative_name = job.recording.submission().files()[index]
         .relative_path()
         .to_owned();
     let mut current = rustix::io::dup(&area)?;
     let components: Vec<_> = relative_name.split('/').collect();
     for component in &components[..components.len() - 1] {
-        fs::mkdirat(&current, *component, Mode::RWXU)?;
+        match fs::mkdirat(&current, *component, Mode::RWXU) {
+            Ok(()) => (),
+            Err(Errno::EXIST) if index > 0 => (),
+            Err(e) => return Err(e.into()),
+        }
         let child = fs::openat(&current, *component, DIRECTORY, Mode::empty())?;
         fs::fsync(&child)?;
         fs::fsync(&current)?;
@@ -94,7 +132,7 @@ pub fn prepare_transfer(store: &Store, id: i64) -> TransferResult<Transfer> {
     fs::fsync(&root)?;
     let t = Transfer {
         job_id: id,
-        file_index: 0,
+        file_index: index,
         attempt: 1,
         destination_root: job.context.destination_path,
         relative_name,
@@ -114,7 +152,8 @@ pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer>
     if t.attempt >= 100 {
         return Err("attempt budget exhausted; operator review required".into());
     }
-    claimed(store, t.job_id)?;
+    claimed(store, t.job_id, t.file_index)?;
+    store.transfer_capacity(t.job_id, t.file_index)?;
     let (_, area, staging, _, _) = directories(t)?;
     // Partial/ambiguous old staging stays intact. No destructive retirement yet.
     let mut next = t.clone();
@@ -126,7 +165,7 @@ pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer>
 }
 pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::Intent)?;
-    let source_fd = claimed(store, t.job_id)?;
+    let source_fd = claimed(store, t.job_id, t.file_index)?;
     let expected = source(&source_fd)?;
     let mut input = File::from(source_fd);
     let (_, _, staging, _, _) = directories(t)?;
@@ -194,7 +233,7 @@ fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
 }
 pub fn verify_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::Copied)?;
-    claimed(store, t.job_id)?;
+    claimed(store, t.job_id, t.file_index)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
     if Some(digest(fd, &t.stage)?) != t.sha256 {
@@ -214,7 +253,7 @@ pub fn authorize_publication(store: &Store, t: &Transfer) -> TransferResult<Tran
 }
 pub fn publish_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::PublishIntent)?;
-    claimed(store, t.job_id)?;
+    claimed(store, t.job_id, t.file_index)?;
     let (_, _, staging, parent, name) = directories(t)?;
     let stage_name = format!("{}.part", t.attempt);
     let fd = match fs::openat(&parent, name.as_str(), FILE, Mode::empty()) {
@@ -266,14 +305,20 @@ pub fn publish_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
 }
 pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
     let job = store.get(id)?.ok_or("unknown job")?;
+    if job.recording.submission().files().len() != 1 {
+        return Err("use recording delivery for multi-file jobs".into());
+    }
     let source_lock = LocalClaimLock::acquire(&job.context.source_root_path)?;
     let destination_lock = LocalClaimLock::acquire(&job.context.destination_path)?;
     source_lock.validate()?;
     destination_lock.validate()?;
-    let mut t = match store.transfer(id, 0)? {
+    transfer_file(store, id, 0)
+}
+fn transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfer> {
+    let mut t = match store.transfer(id, index)? {
         Some(t) if t.phase == TransferPhase::Intent => restart_transfer(store, &t)?,
         Some(t) => t,
-        None => prepare_transfer(store, id)?,
+        None => prepare_transfer_file(store, id, index)?,
     };
     if t.phase == TransferPhase::Intent {
         t = copy_stage(store, &t)?;
@@ -288,7 +333,7 @@ pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
         t = publish_stage(store, &t)?;
     }
     if t.phase == TransferPhase::Published {
-        claimed(store, id)?;
+        claimed(store, id, index)?;
         let (_, _, _, parent, name) = directories(&t)?;
         let fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
         if source(&fd)? != t.stage {
@@ -296,4 +341,27 @@ pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
         }
     }
     Ok(t)
+}
+pub fn deliver_recording(store: &Store, id: i64) -> TransferResult<()> {
+    let job = store.get(id)?.ok_or("unknown job")?;
+    let guard = LocalClaimLock::acquire(&job.context.source_root_path)?;
+    deliver_recording_with_guard(store, id, &guard)
+}
+pub fn deliver_recording_with_guard(
+    store: &Store,
+    id: i64,
+    guard: &LocalClaimLock,
+) -> TransferResult<()> {
+    let job = store.get(id)?.ok_or("unknown job")?;
+    guard.validate_path(&job.context.source_root_path)?;
+    if job.recording.handoff() != Handoff::Ready202 {
+        return Err("all claims required before delivery".into());
+    }
+    let destination = LocalClaimLock::acquire(&job.context.destination_path)?;
+    destination.validate()?;
+    for index in 0..job.recording.submission().files().len() {
+        transfer_file(store, id, index)?;
+    }
+    super::manifest::commit_manifest(store, id)?;
+    Ok(())
 }

@@ -4,5 +4,7 @@
   "source_root": "/srv/file-mover/source",
   "destination_root": "/srv/file-mover/destination",
   "state_database": "/var/lib/file-mover/state.sqlite",
-  "missing_file_retry_window_seconds": 300
+  "missing_file_retry_window_seconds": 300,
+  "max_retained_jobs": 64,
+  "max_retained_bytes": 1099511627776
 }

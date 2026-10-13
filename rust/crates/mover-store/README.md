@@ -26,10 +26,10 @@ job. Changed input conflicts; a different key cannot take a reserved source.
 Local job IDs are monotonic SQLite IDs; qualify final filesystem namespace/instance
 ownership before using them for publication across service instances.
 
-The version-4 schema has an application ID, foreign keys and file-count/ledger
+The version-5 schema has an application ID, foreign keys and file-count/ledger
 checks. Unsupported/foreign schemas are rejected without replacement. Existing
 missing/inconsistent reservations or malformed claim identities block startup.
-An explicit transaction migrates versions 1–3, preserving accepted jobs/claims/reservations;
+An explicit transaction migrates versions 1–4, preserving accepted jobs/claims/reservations;
 read-only opens refuse an unmigrated version. There is no delete-and-restart upgrade.
 
 `note_missing` persists the first confirmed local absence deadline using the
@@ -40,7 +40,12 @@ Background retry scheduling and audited operator unblock remain future work.
 `save_transfer` records immutable owned-attempt mapping and ordered
 copy/verification/publication receipts. Only incomplete copies can allocate a
 new attempt. Changed receipts or skipped phases fail closed. Hydration restores
-Verified/Published file facts; no recording commitment/cleanup is authorized.
+Verified/Published file facts. `save_manifest` records exact bytes and ordered
+allocation/write/publication/commit receipts; hydration restores set commitment.
+Cleanup stays disabled. Delivery discovery is bounded and driven by durable facts,
+with persisted retries/review blocks and a stable local instance identifier.
+Admission counts retained jobs/source bytes and conservative destination-attempt
+reservations, including committed retained data; replay does not consume another slot.
 
 `begin_claim` records immutable root/parent/private-directory/file observations
 and exact operation names. `finish_claim` accepts a trusted worker's synchronized

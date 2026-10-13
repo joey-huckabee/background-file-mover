@@ -35,3 +35,13 @@ pub struct Transfer {
     pub sha256: Option<String>,
     pub phase: TransferPhase,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ManifestRecord {
+    pub job_id: i64,
+    pub bytes: String,
+    pub sha256: String,
+    /// Intent, allocated, written, publication intent, committed.
+    pub phase: i64,
+    pub object: Option<ObjectIdentity>,
+}

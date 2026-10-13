@@ -12,7 +12,8 @@ handoff, stable replay, pinned policy, publication/set commitment and cleanup
 authorization. Local claims check descriptor-relative traversal, ownership,
 identity, private custody and actual size, with process-exit reconciliation.
 Missing-file deadlines now persist, and the local API bounds requests/concurrency.
-NFS behavior, operator resume, backlog admission and full production mount/worker
+Retention budgets and durable background delivery/manifests are implemented.
+NFS behavior, operator resume/repair and full production mount/worker
 qualification remain subsequent work.
 Replay currently preserves file-list order; API normalization is still open.
 
@@ -22,8 +23,10 @@ commits intent before a no-clobber rename, synchronizes the effect, then commits
 its receipt. Only all-file receipts authorize HTTP 202. The service binds only
 loopback. A separate local `--transfer-one CONFIG JOB_ID` command copies/verifies
 and publishes one claimed file while retaining its source; stop the daemon first
-to release its exclusive claim lock. There is no automatic delivery, manifest or
-post-transfer cleanup yet. See [increment 05](../docs/RUST-INCREMENT-05.md),
+to release its exclusive claim lock. The service now delivers recordings in the
+background and commits exact completion manifests while retaining sources.
+There is no post-transfer cleanup yet. See [increment 06](../docs/RUST-INCREMENT-06.md),
+[increment 05](../docs/RUST-INCREMENT-05.md),
 [increment 04](../docs/RUST-INCREMENT-04.md) for the runnable contract/configuration
 and [increment 03](../docs/RUST-INCREMENT-03.md) for local filesystem limits.
 

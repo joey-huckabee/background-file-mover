@@ -334,6 +334,8 @@ fn unsafe_startup_configuration_is_rejected() {
         destination_root: "/dest".into(),
         state_database: "/state/db".into(),
         missing_file_retry_window_seconds: 300,
+        max_retained_jobs: 64,
+        max_retained_bytes: 1024 * 1024 * 1024 * 1024,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -407,4 +409,115 @@ fn actual_transfer_command_publishes_but_retains_claimed_source() {
         std::fs::read(f.root.join("source/current/sub/data")).unwrap(),
         b"new recording"
     );
+}
+
+fn provision_destination(f: &Fixture) {
+    for p in [
+        f.root.join("destination"),
+        f.root.join("destination/.file-mover"),
+    ] {
+        std::fs::create_dir(&p).unwrap();
+        std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+}
+fn wait_manifest(f: &Fixture, id: &str) -> Value {
+    let path = f.root.join("destination").join(id).join("COMMITTED.json");
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        if let Ok(bytes) = std::fs::read(&path) {
+            return serde_json::from_slice(&bytes).unwrap();
+        }
+        assert!(Instant::now() < deadline, "background commitment timeout");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+#[test]
+fn background_multi_file_delivery_commits_after_202_without_more_requests() {
+    let mut f = Fixture::new(300);
+    provision_destination(&f);
+    f.write("sub/alpha", b"abc");
+    f.write("sub/beta", b"other");
+    f.write("empty", b"");
+    let input = f.input(
+        "automatic",
+        json!([{"name":"sub/alpha"},{"name":"sub/beta"},{"name":"empty","size_bytes":0}]),
+    );
+    let (status, response) = f.post(&input);
+    assert_eq!(status, 202);
+    f.write("sub/alpha", b"producer reuse");
+    let manifest = wait_manifest(&f, response["job_id"].as_str().unwrap());
+    assert_eq!(manifest["files"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/sub/alpha")).unwrap(),
+        b"abc"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/sub/alpha")).unwrap(),
+        b"producer reuse"
+    );
+    assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    assert!(s.get(1).unwrap().unwrap().recording.is_committed());
+    for i in 0..3 {
+        assert!(
+            f.root
+                .join(format!("source/.file-mover/1-{i}/data"))
+                .exists()
+        );
+    }
+}
+#[test]
+fn restart_discovers_claimed_delivery_and_keeps_original_destination() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"persisted");
+    assert_eq!(f.post(&f.input("restart", json!([{"name":"data"}]))).0, 202);
+    f.stop();
+    provision_destination(&f);
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["destination_root"] = json!(f.root.join("replacement"));
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    f.start();
+    let manifest = wait_manifest(&f, "1");
+    assert_eq!(manifest["files"][0]["size_bytes"], 9);
+    assert!(!f.root.join("replacement/1").exists());
+    f.stop();
+    let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--transfer-one")
+        .arg(f.root.join("config.json"))
+        .arg("1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let state: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(state["committed"], true);
+}
+#[test]
+fn retention_limits_refuse_new_work_without_false_release_or_orphan() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["max_retained_jobs"] = json!(1);
+    config["max_retained_bytes"] = json!(3);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    f.start();
+    f.write("data", b"abcd");
+    let body = f.input("limited", json!([{"name":"data"}]));
+    let (status, response) = f.post(&body);
+    assert_eq!(status, 503);
+    assert_eq!(response["error"], "retention_capacity");
+    assert_eq!(response["source_paths_released"], false);
+    assert!(f.root.join("source/current/data").exists());
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    f.stop();
+    config["max_retained_bytes"] = json!(10);
+    std::fs::write(path, serde_json::to_vec(&config).unwrap()).unwrap();
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    f.write("other", b"x");
+    assert_eq!(f.post(&f.input("extra", json!([{"name":"other"}]))).0, 503);
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
 }

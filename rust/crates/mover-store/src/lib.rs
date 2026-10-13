@@ -4,7 +4,7 @@
 use mover_core::{
     ClaimIntent, DeliveryPolicy, FileSpec, ObjectIdentity, ProtocolError, Recording, Submission,
 };
-use mover_core::{Transfer, TransferPhase};
+use mover_core::{ManifestRecord, Transfer, TransferPhase};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use std::{
     fmt,
@@ -15,7 +15,7 @@ use std::{
 };
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 4;
+const SCHEMA_VERSION: i64 = 5;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -29,6 +29,7 @@ pub enum StoreError {
     SourceReserved,
     SourceRootChanged,
     WorkerStopped,
+    AdmissionFull,
 }
 
 impl fmt::Display for StoreError {
@@ -235,6 +236,65 @@ impl Store {
         let transfer = transfer.clone();
         self.call(move |db| db.save_transfer(&transfer))
     }
+    pub fn configure_limits(&self, jobs: u64, bytes: u64) -> Result<()> {
+        self.call(move |db| {
+            if jobs == 0 || bytes == 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            db.limits = Some((jobs, bytes));
+            Ok(())
+        })
+    }
+    pub fn claim_capacity(&self, extra: u64) -> Result<()> {
+        self.call(move |db| {
+            if let Some((_, bytes)) = db.limits {
+                check_retained_bytes(&db.connection, extra, bytes, false)?;
+            }
+            Ok(())
+        })
+    }
+    pub fn transfer_capacity(&self, id: i64, index: usize) -> Result<()> {
+        self.call(move |db| {
+            if let Some((_, bytes)) = db.limits {
+                let claim = load_claim(&db.connection, id, index)?
+                    .ok_or(StoreError::CorruptState)?
+                    .0;
+                check_retained_bytes(&db.connection, claim.source.size, bytes, true)?;
+            }
+            Ok(())
+        })
+    }
+    pub fn instance_id(&self) -> Result<String> {
+        self.call(|db| {
+            db.connection
+                .query_row(
+                    "SELECT value FROM metadata WHERE key='instance_id'",
+                    [],
+                    |r| r.get(0),
+                )
+                .map_err(Into::into)
+        })
+    }
+    pub fn manifest(&self, id: i64) -> Result<Option<ManifestRecord>> {
+        self.call(move |db| load_manifest(&db.connection, id))
+    }
+    pub fn save_manifest(&self, m: &ManifestRecord) -> Result<()> {
+        let m = m.clone();
+        self.call(move |db| db.save_manifest(&m))
+    }
+    pub fn delivery_candidates(&self, now: i64, limit: u32) -> Result<Vec<i64>> {
+        self.call(move|db| {
+            if now<0 || limit==0 || limit>64 {return Err(StoreError::InvalidContext);}
+            let mut s=db.connection.prepare("SELECT j.job_id FROM jobs j LEFT JOIN manifests m ON m.job_id=j.job_id LEFT JOIN delivery_failures d ON d.job_id=j.job_id WHERE j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) AND coalesce(m.phase,0)<4 AND coalesce(d.failures,0)<3 AND coalesce(d.retry_after,0)<=?1 ORDER BY j.job_id LIMIT ?2")?;
+            Ok(s.query_map(params![now,limit],|r|r.get(0))?.collect::<std::result::Result<Vec<_>,_>>()?)
+        })
+    }
+    pub fn delivery_failed(&self, id: i64, now: i64) -> Result<()> {
+        self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,1,?2,'delivery_requires_review') ON CONFLICT(job_id) DO UPDATE SET failures=min(3,failures+1),retry_after=excluded.retry_after",params![id,now.saturating_add(5)])?;Ok(())})
+    }
+    pub fn delivery_deferred(&self, id: i64, now: i64) -> Result<()> {
+        self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,0,?2,'destination_unavailable') ON CONFLICT(job_id) DO UPDATE SET retry_after=excluded.retry_after,code=excluded.code",params![id,now.saturating_add(5)])?;Ok(())})
+    }
 }
 impl Drop for Store {
     fn drop(&mut self) {
@@ -247,6 +307,7 @@ impl Drop for Store {
 
 struct Database {
     connection: Connection,
+    limits: Option<(u64, u64)>,
 }
 impl Database {
     fn open(path: &Path, read_only: bool) -> Result<Self> {
@@ -271,7 +332,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=3).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=4).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -306,11 +367,13 @@ impl Database {
             tx.execute_batch(include_str!("claims.sql"))?;
             tx.execute_batch(include_str!("missing.sql"))?;
             tx.execute_batch(include_str!("transfers.sql"))?;
+            tx.execute_batch(include_str!("coordination.sql"))?;
+            initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=3).contains(&version) && !read_only {
+        if (1..=4).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -318,7 +381,11 @@ impl Database {
             if version <= 2 {
                 tx.execute_batch(include_str!("missing.sql"))?;
             }
-            tx.execute_batch(include_str!("transfers.sql"))?;
+            if version <= 3 {
+                tx.execute_batch(include_str!("transfers.sql"))?;
+            }
+            tx.execute_batch(include_str!("coordination.sql"))?;
+            initialize_instance(&tx)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -347,7 +414,22 @@ impl Database {
         for id in ids {
             load(&connection, id)?;
         }
-        Ok(Self { connection })
+        let instance: String = connection.query_row(
+            "SELECT value FROM metadata WHERE key='instance_id'",
+            [],
+            |r| r.get(0),
+        )?;
+        if instance.len() != 32
+            || !instance
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err(StoreError::CorruptState);
+        }
+        Ok(Self {
+            connection,
+            limits: None,
+        })
     }
 
     fn begin_claim(&mut self, intent: &ClaimIntent) -> Result<()> {
@@ -361,6 +443,9 @@ impl Database {
                 return Err(StoreError::CorruptState);
             }
         } else {
+            if let Some((_, bytes)) = self.limits {
+                check_retained_bytes(&tx, intent.source.size, bytes, false)?;
+            }
             tx.execute("INSERT INTO claims(job_id,file_index,root_path,source_name,private_name,root_identity,parent_identity,area_identity,source_identity) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",
                 params![intent.job_id, intent.file_index as i64, intent.root_path, intent.source_name,
                     intent.private_name, intent.root.encode(), intent.parent.encode(), intent.area.encode(), intent.source.encode()])?;
@@ -429,6 +514,12 @@ impl Database {
             return Ok(saved);
         }
         context.validate()?;
+        if let Some((jobs, _)) = self.limits {
+            let count: i64 = tx.query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))?;
+            if count as u64 >= jobs {
+                return Err(StoreError::AdmissionFull);
+            }
+        }
         let mut recording = Recording::new(submission.clone(), context.policy.clone())?;
         let previous_root: Option<String> = tx
             .query_row(
@@ -493,6 +584,14 @@ impl Database {
         let job = load(&tx, t.job_id)?.ok_or(StoreError::InvalidContext)?;
         validate_transfer(&job, t)?;
         let prior = load_transfer(&tx, t.job_id, t.file_index)?;
+        if prior.as_ref().is_none_or(|p| p.attempt != t.attempt)
+            && let Some((_, bytes)) = self.limits
+        {
+            let claim = load_claim(&tx, t.job_id, t.file_index)?
+                .ok_or(StoreError::CorruptState)?
+                .0;
+            check_retained_bytes(&tx, claim.source.size, bytes, true)?;
+        }
         if let Some(p) = &prior {
             if p == t {
                 tx.commit()?;
@@ -526,6 +625,43 @@ impl Database {
             return Err(StoreError::InvalidContext);
         }
         tx.execute("INSERT INTO transfers VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12) ON CONFLICT(job_id,file_index,attempt) DO UPDATE SET stage_identity=excluded.stage_identity,sha256=excluded.sha256,phase=excluded.phase",params![t.job_id,t.file_index as i64,t.attempt,t.destination_root,t.relative_name,t.root.encode(),t.area.encode(),t.parent.encode(),t.staging_directory.encode(),t.stage.encode(),t.sha256,t.phase as i64])?;
+        tx.commit()?;
+        Ok(())
+    }
+    fn save_manifest(&mut self, m: &ManifestRecord) -> Result<()> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let job = load(&tx, m.job_id)?.ok_or(StoreError::InvalidContext)?;
+        if (0..job.recording.submission().files().len())
+            .any(|i| job.recording.file_phase(i) != Some(mover_core::FilePhase::Published))
+        {
+            return Err(StoreError::InvalidContext);
+        }
+        validate_manifest(m)?;
+        if let Some(p) = load_manifest(&tx, m.job_id)? {
+            if p == *m {
+                tx.commit()?;
+                return Ok(());
+            }
+            if m.bytes != p.bytes || m.sha256 != p.sha256 || m.phase != p.phase + 1 {
+                return Err(StoreError::CorruptState);
+            }
+            if p.phase > 0 {
+                let a = p.object.ok_or(StoreError::CorruptState)?;
+                let b = m.object.as_ref().ok_or(StoreError::CorruptState)?;
+                if a.device != b.device
+                    || a.inode != b.inode
+                    || a.uid != b.uid
+                    || (p.phase >= 2 && a != *b)
+                {
+                    return Err(StoreError::CorruptState);
+                }
+            }
+        } else if m.phase != 0 {
+            return Err(StoreError::InvalidContext);
+        }
+        tx.execute("INSERT INTO manifests VALUES(?1,?2,?3,?4,?5) ON CONFLICT(job_id) DO UPDATE SET phase=excluded.phase,object_identity=excluded.object_identity",params![m.job_id,m.bytes,m.sha256,m.phase,m.object.as_ref().map(ObjectIdentity::encode)])?;
         tx.commit()?;
         Ok(())
     }
@@ -592,17 +728,21 @@ fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
             }
         }
     }
+    if let Some(m) = load_manifest(connection, job_id)?
+        && m.phase == 4
+    {
+        result.recording.confirm_commit()?;
+    }
     Ok(Some(result))
 }
 
 fn validate_transfer(job: &Accepted, t: &Transfer) -> Result<()> {
     if t.job_id != job.job_id
-        || t.file_index != 0
-        || job.recording.submission().files().len() != 1
+        || t.file_index >= job.recording.submission().files().len()
         || job.recording.handoff() != mover_core::Handoff::Ready202
         || job.context.policy.group_by_generator
         || t.destination_root != job.context.destination_path
-        || t.relative_name != job.recording.submission().files()[0].relative_path()
+        || t.relative_name != job.recording.submission().files()[t.file_index].relative_path()
         || !(1..=100).contains(&t.attempt)
         || t.stage.links != 1
         || t.stage.device != t.root.device
@@ -610,7 +750,7 @@ fn validate_transfer(job: &Accepted, t: &Transfer) -> Result<()> {
         || t.parent.device != t.root.device
         || (t.phase == TransferPhase::Intent && (t.sha256.is_some() || t.stage.size != 0))
         || (t.phase != TransferPhase::Intent
-            && (Some(t.stage.size) != job.recording.actual_bytes_total()
+            && (Some(t.stage.size) != job.recording.file_size(t.file_index)
                 || t.sha256.as_ref().is_none_or(|s| {
                     s.len() != 64
                         || !s
@@ -712,3 +852,89 @@ fn load_claim(
 
 #[cfg(test)]
 mod tests;
+
+fn initialize_instance(c: &Connection) -> Result<()> {
+    use std::io::Read;
+    let mut bytes = [0; 16];
+    std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
+    let id: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+    c.execute("INSERT INTO metadata VALUES('instance_id',?1)", [id])?;
+    Ok(())
+}
+fn validate_manifest(m: &ManifestRecord) -> Result<()> {
+    if m.bytes.is_empty()
+        || m.bytes.len() > 131072
+        || m.sha256.len() != 64
+        || !m
+            .sha256
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        || !(0..=4).contains(&m.phase)
+        || (m.phase == 0) != m.object.is_none()
+        || m.object.as_ref().is_some_and(|o| {
+            o.links != 1
+                || (m.phase == 1 && o.size != 0)
+                || (m.phase >= 2 && o.size != m.bytes.len() as u64)
+        })
+    {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+fn load_manifest(c: &Connection, id: i64) -> Result<Option<ManifestRecord>> {
+    let row = c
+        .query_row(
+            "SELECT bytes,sha256,phase,object_identity FROM manifests WHERE job_id=?1",
+            [id],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                    r.get::<_, Option<String>>(3)?,
+                ))
+            },
+        )
+        .optional()?;
+    row.map(|(bytes, sha256, phase, object)| {
+        let object = object
+            .map(|s| ObjectIdentity::decode(&s).ok_or(StoreError::CorruptState))
+            .transpose()?;
+        let m = ManifestRecord {
+            job_id: id,
+            bytes,
+            sha256,
+            phase,
+            object,
+        };
+        validate_manifest(&m)?;
+        Ok(m)
+    })
+    .transpose()
+}
+fn check_retained_bytes(c: &Connection, extra: u64, limit: u64, destination: bool) -> Result<()> {
+    let mut total = u128::from(extra);
+    if destination {
+        let mut s=c.prepare("SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index")?;
+        for row in s.query_map([], |r| r.get::<_, String>(0))? {
+            total += u128::from(
+                ObjectIdentity::decode(&row?)
+                    .ok_or(StoreError::CorruptState)?
+                    .size,
+            );
+        }
+    } else {
+        let mut s = c.prepare("SELECT source_identity FROM claims")?;
+        for row in s.query_map([], |r| r.get::<_, String>(0))? {
+            total += u128::from(
+                ObjectIdentity::decode(&row?)
+                    .ok_or(StoreError::CorruptState)?
+                    .size,
+            );
+        }
+    }
+    if total > u128::from(limit) {
+        return Err(StoreError::AdmissionFull);
+    }
+    Ok(())
+}

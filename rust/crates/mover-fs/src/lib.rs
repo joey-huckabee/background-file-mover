@@ -44,11 +44,21 @@ const FILE: OFlags = OFlags::RDONLY
     .union(OFlags::CLOEXEC)
     .union(OFlags::NONBLOCK);
 
+mod manifest;
 mod transfer;
+pub use manifest::commit_manifest;
+pub use manifest::commit_manifest_with_checkpoints;
+pub fn destination_unavailable(path: &str) -> bool {
+    matches!(
+        root(path).and_then(|r| namespace(&r).map(|_| ())),
+        Err(ClaimError::Io(Errno::NOENT))
+    )
+}
 pub use transfer::{
     authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
     transfer_one, verify_stage,
 };
+pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
 
 fn observation(s: &Stat) -> ObjectIdentity {
     ObjectIdentity {
@@ -163,6 +173,12 @@ impl LocalClaimLock {
         same_directory(&owned_directory(&root, false)?, &self.root)?;
         same_directory(&owned_directory(&namespace(&root)?, true)?, &self.namespace)
     }
+    pub fn validate_path(&self, path: &str) -> Result<()> {
+        if self.path != path {
+            return Err(ClaimError::Blocked("source scope changed"));
+        }
+        self.validate()
+    }
 }
 
 /// Allocate an exclusive private directory, without moving any source data.
@@ -170,6 +186,9 @@ impl LocalClaimLock {
 /// directory. Allocation failure or a crash before begin_claim leaves an orphan
 /// that blocks reuse; this API never adopts or deletes an existing directory.
 pub fn prepare(job: &Accepted, index: usize) -> Result<ClaimIntent> {
+    prepare_checked(None, job, index)
+}
+fn prepare_checked(store: Option<&Store>, job: &Accepted, index: usize) -> Result<ClaimIntent> {
     let file = job
         .recording
         .submission()
@@ -204,6 +223,9 @@ pub fn prepare(job: &Accepted, index: usize) -> Result<ClaimIntent> {
     }
     if file.expected_size().is_some_and(|n| n != source.size) {
         return Err(ClaimError::ExpectedSizeMismatch);
+    }
+    if let Some(store) = store {
+        store.claim_capacity(source.size)?;
     }
     let private_name = format!("{}-{index}", job.job_id);
     fs::mkdirat(&namespace, private_name.as_str(), Mode::RWXU)?;
@@ -298,7 +320,7 @@ pub fn claim(store: &Store, job_id: i64, index: usize) -> Result<Accepted> {
         Some((_, true)) => return Ok(job), // Never inspect a producer's reused path.
         Some((intent, false)) => intent,
         None => {
-            let intent = prepare(&job, index)?;
+            let intent = prepare_checked(Some(store), &job, index)?;
             store.begin_claim(&intent)?;
             intent
         }

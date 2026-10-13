@@ -84,6 +84,41 @@ impl Fixture {
     fn claimed(&self) -> PathBuf {
         self.base.join("source/.file-mover/1-0/data")
     }
+    fn accept_multi(&self) {
+        let s = self.store();
+        let mut files = Vec::new();
+        for (name, bytes) in [
+            ("sub/alpha", b"abc".as_slice()),
+            ("sub/beta", b"other".as_slice()),
+            ("empty", b"".as_slice()),
+        ] {
+            std::fs::write(self.base.join("source/recording").join(name), bytes).unwrap();
+            files.push(FileSpec::new(name, None).unwrap());
+        }
+        let input = Submission::new(
+            "recorder",
+            "set",
+            self.base.join("source/recording").to_str().unwrap(),
+            files,
+        )
+        .unwrap();
+        let c = AcceptanceContext {
+            source_root_id: "source".into(),
+            source_root_path: self.base.join("source").to_str().unwrap().into(),
+            source_relative_directory: "recording".into(),
+            destination_path: self.destination.to_str().unwrap().into(),
+            policy: DeliveryPolicy {
+                destination_id: "dest".into(),
+                group_by_generator: false,
+                delete_source_after_commit: false,
+            },
+            missing_retry_seconds: 300,
+        };
+        s.accept(&input, &c).unwrap();
+        for i in 0..3 {
+            claim(&s, 1, i).unwrap();
+        }
+    }
     fn final_path(&self) -> PathBuf {
         self.destination.join("1/sub/data")
     }
@@ -391,4 +426,165 @@ fn child_transfer() {
         publish_stage(&s, &t).unwrap();
     }
     std::process::exit(0);
+}
+
+#[test]
+fn multi_file_delivery_commits_exact_manifest_and_retains_every_claim() {
+    let f = Fixture::new(false);
+    f.accept_multi();
+    let s = f.store();
+    mover_fs::deliver_recording(&s, 1).unwrap();
+    let bytes = std::fs::read(f.destination.join("1/COMMITTED.json")).unwrap();
+    let manifest: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(manifest["instance_id"], s.instance_id().unwrap());
+    assert_eq!(manifest["files"].as_array().unwrap().len(), 3);
+    for (index, (name, data)) in [
+        ("sub/alpha", b"abc".as_slice()),
+        ("sub/beta", b"other".as_slice()),
+        ("empty", b"".as_slice()),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(manifest["files"][index]["path"], name);
+        assert_eq!(manifest["files"][index]["size_bytes"], data.len());
+        assert_eq!(
+            std::fs::read(f.destination.join("1").join(name)).unwrap(),
+            data
+        );
+        assert_eq!(
+            std::fs::read(f.base.join(format!("source/.file-mover/1-{index}/data"))).unwrap(),
+            data
+        );
+    }
+    let record = s.manifest(1).unwrap().unwrap();
+    assert_eq!(record.bytes.as_bytes(), bytes);
+    assert_eq!(record.phase, 4);
+    let job = s.get(1).unwrap().unwrap();
+    assert!(job.recording.is_committed());
+    for i in 0..3 {
+        assert!(!job.recording.cleanup_authorized(i, true));
+    }
+    mover_fs::deliver_recording(&s, 1).unwrap();
+    assert_eq!(
+        std::fs::read(f.destination.join("1/COMMITTED.json")).unwrap(),
+        bytes
+    );
+}
+#[test]
+fn incomplete_set_and_foreign_manifest_never_commit() {
+    let f = Fixture::new(false);
+    f.accept_multi();
+    let s = f.store();
+    let t = authorize_publication(
+        &s,
+        &verify_stage(
+            &s,
+            &copy_stage(&s, &prepare_transfer(&s, 1).unwrap()).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    publish_stage(&s, &t).unwrap();
+    assert!(mover_fs::commit_manifest(&s, 1).is_err());
+    assert!(s.manifest(1).unwrap().is_none());
+    assert!(!f.destination.join("1/COMMITTED.json").exists());
+    let g = Fixture::new(false);
+    g.accept_claim(b"abc");
+    let s = g.store();
+    transfer_one(&s, 1).unwrap();
+    let path = g.destination.join("1/COMMITTED.json");
+    std::fs::write(&path, b"foreign manifest").unwrap();
+    let inode = std::fs::metadata(&path).unwrap().ino();
+    assert!(mover_fs::commit_manifest(&s, 1).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), b"foreign manifest");
+    assert_eq!(std::fs::metadata(path).unwrap().ino(), inode);
+    assert!(!s.get(1).unwrap().unwrap().recording.is_committed());
+}
+#[test]
+fn manifest_receipt_failure_after_publication_recovers_without_recopy() {
+    let f = Fixture::new(false);
+    f.accept_multi();
+    let s = f.store();
+    let db = rusqlite::Connection::open(f.db()).unwrap();
+    db.execute_batch("CREATE TRIGGER refuse_commit BEFORE UPDATE ON manifests WHEN NEW.phase=4 BEGIN SELECT RAISE(ABORT,'manifest receipt failure'); END;").unwrap();
+    assert!(mover_fs::deliver_recording(&s, 1).is_err());
+    assert_eq!(s.manifest(1).unwrap().unwrap().phase, 3);
+    assert!(!s.get(1).unwrap().unwrap().recording.is_committed());
+    let before = std::fs::read(f.destination.join("1/COMMITTED.json")).unwrap();
+    db.execute_batch("DROP TRIGGER refuse_commit").unwrap();
+    drop(db);
+    mover_fs::deliver_recording(&s, 1).unwrap();
+    assert!(s.get(1).unwrap().unwrap().recording.is_committed());
+    assert_eq!(
+        std::fs::read(f.destination.join("1/COMMITTED.json")).unwrap(),
+        before
+    );
+    for i in 0..3 {
+        assert_eq!(s.transfer(1, i).unwrap().unwrap().attempt, 1);
+    }
+}
+#[test]
+fn manifest_process_exit_boundaries_reconcile_owned_objects_only() {
+    for point in [
+        "intent",
+        "allocation_effect",
+        "allocated",
+        "write_effect",
+        "written",
+        "authorized",
+        "rename_effect",
+        "publication_sync",
+        "committed",
+    ] {
+        let f = Fixture::new(false);
+        f.accept_claim(b"abc");
+        {
+            let s = f.store();
+            transfer_one(&s, 1).unwrap();
+        }
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "child_manifest", "--test-threads=1"])
+            .env("FILE_MOVER_TRANSFER_DB", f.db())
+            .env("FILE_MOVER_MANIFEST_POINT", point)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{out:?}");
+        let s = f.store();
+        let before = s.manifest(1).unwrap().unwrap();
+        let phase = match point {
+            "intent" | "allocation_effect" => 0,
+            "allocated" | "write_effect" => 1,
+            "written" => 2,
+            "authorized" | "rename_effect" | "publication_sync" => 3,
+            _ => 4,
+        };
+        assert_eq!(before.phase, phase);
+        assert_eq!(
+            f.destination.join("1/COMMITTED.json").exists(),
+            matches!(point, "rename_effect" | "publication_sync" | "committed")
+        );
+        if point == "allocation_effect" {
+            assert!(mover_fs::commit_manifest(&s, 1).is_err());
+            assert!(!s.get(1).unwrap().unwrap().recording.is_committed());
+        } else {
+            let after = mover_fs::commit_manifest(&s, 1).unwrap();
+            assert_eq!(after.bytes, before.bytes);
+            assert!(s.get(1).unwrap().unwrap().recording.is_committed());
+        }
+        assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc");
+    }
+}
+#[test]
+#[ignore]
+fn child_manifest() {
+    let s = Store::open(std::env::var("FILE_MOVER_TRANSFER_DB").unwrap()).unwrap();
+    let point = std::env::var("FILE_MOVER_MANIFEST_POINT").unwrap();
+    mover_fs::commit_manifest_with_checkpoints(&s, 1, |p| {
+        if p == point {
+            std::process::exit(0)
+        }
+    })
+    .unwrap();
+    panic!("checkpoint not reached");
 }

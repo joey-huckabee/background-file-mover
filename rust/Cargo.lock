@@ -181,7 +181,10 @@ version = "0.1.0"
 dependencies = [
  "mover-core",
  "mover-store",
+ "rusqlite",
  "rustix",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 

@@ -10,10 +10,10 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add durable background delivery scheduling and multi-file transfers while
-  preserving claim/reconciliation capacity and bounded retained staging/byte budgets.
-- [ ] Add multi-file completion manifests and configurable gated cleanup after
-  failure evidence passes, then qualify effects on the controlled NFS fixture.
+- [ ] Add operator status/review/resume and explicit retention/orphan repair tooling,
+  improve retry classification/backoff, and qualify physical free-space margins.
+- [ ] Qualify supervised workers and source/destination effects on the controlled
+  NFS fixture, then implement configurable gated cleanup only after failure evidence passes.
 - [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,
   schema and fault cases before the dependent effect, not before all Rust code.
 - [ ] Extend acceptance persistence for API metadata, future schema migrations,

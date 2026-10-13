@@ -16,9 +16,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let config = read_config(&config_path)?;
         let store = mover_store::Store::open(&config.state_database)?;
         let result = mover_fs::transfer_one(&store, job)?;
+        let committed = store
+            .get(job)?
+            .ok_or("unknown job")?
+            .recording
+            .is_committed();
         println!(
             "{}",
-            serde_json::json!({"job_id":job.to_string(),"state":"Published","sha256":result.sha256,"size_bytes":result.stage.size,"source_retained":true,"committed":false})
+            serde_json::json!({"job_id":job.to_string(),"state":"Published","sha256":result.sha256,"size_bytes":result.stage.size,"source_retained":true,"committed":committed})
         );
         return Ok(());
     }

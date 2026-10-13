@@ -165,8 +165,11 @@ see [RUST-INCREMENT-04.md](RUST-INCREMENT-04.md) for configuration, bounds and
 missing-deadline evidence. The single-file local `--transfer-one` command now
 copies/hashes, independently verifies, publishes without clobber and recovers
 interrupted effects; see [RUST-INCREMENT-05.md](RUST-INCREMENT-05.md).
-Add automatic scheduling/multi-file manifests next, leaving registration
-deferred and deletion disabled. NFS and production namespace/mount
+Automatic local multi-file delivery and durable completion manifests are now
+implemented; see [RUST-INCREMENT-06.md](RUST-INCREMENT-06.md) for budgets,
+recovery and scope. Add operator repair/status and supervised-worker/NFS
+qualification next, leaving registration deferred and deletion disabled.
+Production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.
 The fifteen milestones retain useful release obligations.
 

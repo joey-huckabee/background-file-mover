@@ -1,4 +1,4 @@
-//! Bounded loopback-only generator handoff service. No transfer/delete yet.
+//! Bounded loopback handoff and durable local recording delivery. No deletion.
 mod http;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
@@ -31,6 +31,16 @@ pub struct Config {
     pub state_database: String,
     #[serde(default = "retry_default")]
     pub missing_file_retry_window_seconds: u32,
+    #[serde(default = "retained_jobs_default")]
+    pub max_retained_jobs: u64,
+    #[serde(default = "retained_bytes_default")]
+    pub max_retained_bytes: u64,
+}
+fn retained_jobs_default() -> u64 {
+    64
+}
+fn retained_bytes_default() -> u64 {
+    1024 * 1024 * 1024 * 1024
 }
 fn retry_default() -> u32 {
     300
@@ -49,6 +59,8 @@ fn absolute(path: &str) -> bool {
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
         if !self.bind.ip().is_loopback()
+            || self.max_retained_jobs == 0
+            || self.max_retained_bytes == 0
             || self.generator_id.trim().is_empty()
             || self.generator_id.len() > 128
             || ![
@@ -172,31 +184,96 @@ type Work = (Submission, AcceptanceContext, oneshot::Sender<Response>);
 struct Worker {
     sender: Option<mpsc::SyncSender<Work>>,
     thread: Option<std::thread::JoinHandle<()>>,
+    delivery: Option<std::thread::JoinHandle<()>>,
+    stop: Arc<AtomicBool>,
 }
 impl Worker {
     fn start(c: &Config) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
-        let guard = mover_fs::LocalClaimLock::acquire(&c.source_root)?;
-        let store = Store::open(&c.state_database)?;
+        let guard = Arc::new(mover_fs::LocalClaimLock::acquire(&c.source_root)?);
+        let store = Arc::new(Store::open(&c.state_database)?);
+        store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
+        let stop = Arc::new(AtomicBool::new(false));
+        let delivery_stop = stop.clone();
+        let delivery_store = store.clone();
+        let delivery_guard = guard.clone();
+        let delivery = std::thread::Builder::new()
+            .name("mover-local-delivery".into())
+            .spawn(move || {
+                while !delivery_stop.load(Ordering::Relaxed) {
+                    match delivery_store.delivery_candidates(now(), 1) {
+                        Ok(ids) => {
+                            for id in ids {
+                                if delivery_stop.load(Ordering::Relaxed) {
+                                    break;
+                                }
+                                let unavailable =
+                                    delivery_store.get(id).ok().flatten().is_some_and(|job| {
+                                        mover_fs::destination_unavailable(
+                                            &job.context.destination_path,
+                                        )
+                                    });
+                                if unavailable {
+                                    if let Err(error) = delivery_store.delivery_deferred(id, now())
+                                    {
+                                        eprintln!("Delivery deferral persistence failed: {error}");
+                                        delivery_stop.store(true, Ordering::Relaxed);
+                                    }
+                                    continue;
+                                }
+                                if let Err(error) = mover_fs::deliver_recording_with_guard(
+                                    &delivery_store,
+                                    id,
+                                    &delivery_guard,
+                                ) {
+                                    eprintln!("Delivery {id} requires reconciliation: {error}");
+                                    if let Err(error) = delivery_store.delivery_failed(id, now()) {
+                                        eprintln!("Delivery retry persistence failed: {error}");
+                                        delivery_stop.store(true, Ordering::Relaxed);
+                                    }
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("Delivery discovery failed: {error}");
+                            delivery_stop.store(true, Ordering::Relaxed);
+                        }
+                    }
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            })?;
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
-        let thread = std::thread::Builder::new()
+        let thread = match std::thread::Builder::new()
             .name("mover-local-claim".into())
             .spawn(move || {
                 while let Ok((submission, context, reply)) = receiver.recv() {
                     let result = process(&store, &guard, &submission, &context);
                     let _ = reply.send(result); // Lost response never rolls back a claim.
                 }
-            })?;
+            }) {
+            Ok(thread) => thread,
+            Err(error) => {
+                stop.store(true, Ordering::Relaxed);
+                let _ = delivery.join();
+                return Err(error.into());
+            }
+        };
         Ok(Self {
             sender: Some(sender),
             thread: Some(thread),
+            delivery: Some(delivery),
+            stop,
         })
     }
 }
 impl Drop for Worker {
     fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
         self.sender.take();
         if let Some(t) = self.thread.take() {
+            let _ = t.join();
+        }
+        if let Some(t) = self.delivery.take() {
             let _ = t.join();
         }
     }
@@ -216,6 +293,7 @@ fn process(
             ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
         )) => return error(409, "submission_conflict", false, None),
         Err(StoreError::SourceReserved) => return error(409, "source_reserved", false, None),
+        Err(StoreError::AdmissionFull) => return error(503, "retention_capacity", true, None),
         Err(StoreError::SourceRootChanged | StoreError::CorruptState) => {
             return error(409, "recording_blocked", false, None);
         }
@@ -239,6 +317,9 @@ fn process(
                 }
                 Err(mover_fs::ClaimError::ExpectedSizeMismatch) => {
                     return error(409, "source_size_mismatch", false, Some(job.job_id));
+                }
+                Err(mover_fs::ClaimError::Store(StoreError::AdmissionFull)) => {
+                    return error(503, "retention_capacity", true, Some(job.job_id));
                 }
                 Err(mover_fs::ClaimError::Store(_)) => {
                     return error(503, "storage_unavailable", true, Some(job.job_id));
