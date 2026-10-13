@@ -42,6 +42,9 @@ the same producer-facing milestones. See the additive Rust section of
 [L1-REQ.md](L1-REQ.md#additive-rust-generator-and-delivery-requirements).
 
 Generator file names may be relative subfolder paths; list files explicitly.
+Preserve those relative paths inside each destination recording container,
+including future S3 object-key prefixes. Only required folders are created;
+empty/unlisted source directories are not transferred.
 Producer sizes are optional assertions. The service measures and persists actual
 sizes during claim before copying; this adds no payload read. Recording metadata
 and per-file keys are optional in the generator body, with service-assigned IDs.

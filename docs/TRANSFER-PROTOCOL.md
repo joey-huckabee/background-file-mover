@@ -71,6 +71,16 @@ expected sizes are producer assertions. Capture actual logical sizes from opened
 files during claim, confirm stable identity/size after relocation and persist
 them in claim receipts. Unknown sizes remain unknown until observed, not zero.
 
+Generator destinations preserve the submitted relative file paths under a unique
+recording container. Create only required parent directories, privately and
+descriptor-relatively; validate their ownership, permissions and mount boundary.
+Persist mapping/directory intents and synchronize created directory entries and
+parents under the qualified endpoint contract. Reject file/directory prefix
+conflicts, reserved private/manifest names and destination-specific collisions.
+The manifest lists the preserved relative paths. Source directory hierarchy
+does not have to be recreated in the private claim namespace, whose files use
+stable IDs. Future S3 delivery uses the same hierarchy as object-key prefixes.
+
 Acceptance also durably reserves each source root/path against other active
 jobs. Reject a different submission overlapping an unreleased reservation.
 Release those reservations in the all-files Claimed transaction, allowing a new

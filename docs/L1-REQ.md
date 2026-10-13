@@ -550,6 +550,15 @@ allow safe custody, retaining files until delivery to the pinned target resumes.
 **Verification Method**: Test (T), Analysis (A)
 **v1.0.0 Status**: Deferred — Rust outage admission; unsafe capacity or claiming does not authorize 202.
 
+### L1-SYS-031
+
+The system shall preserve generator-submitted relative file paths within each
+destination recording container, creating only directories or object-key prefixes
+needed for explicitly listed files.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust generator hierarchy; reject prefix/reserved-name collisions without flattening paths.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate

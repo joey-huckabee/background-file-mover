@@ -79,9 +79,20 @@ For example, `video/video.bin` resolves beneath
 a recursive directory scan or relocation of its directory. Claiming preserves
 the file's original relative-path mapping while moving it into private custody.
 Parent/subfolder names must remain stable until the all-files release. The service
-does not remove empty producer directories. Destination layout is controlled
-by configured naming policy, not automatically by the supplied subfolder tree;
-collisions between resolved names are rejected before acceptance.
+does not remove empty producer directories. **Agreed generator destination layout:**
+preserve every submitted relative file path beneath a service-owned recording
+folder. For example, `video/camera.bin` becomes
+`recordings/<job-id>/video/camera.bin`. Only folders needed for listed files are
+created; empty/unlisted source folders are not discovered or copied. A future S3
+adapter preserves the same relative path in its object key beneath the configured
+prefix and unique recording prefix; these are key prefixes, not actual directories.
+
+Reject file/directory conflicts such as listing both `video` and `video/camera.bin`,
+reserved control/staging/manifest paths, and collisions under the qualified
+destination's filename semantics. Preserve paths rather than flattening them or
+silently renaming a collision. Configured naming chooses the recording's container;
+it does not change the generator's relative paths within that container. The
+advanced explicit-destination form retains its separately configured mapping.
 
 ### Optional expected size
 
