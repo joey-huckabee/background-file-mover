@@ -10,7 +10,7 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add audited operator review/resume and explicit retention/orphan repair tooling,
+- [ ] Add audited missing-file deadline reset and explicit retention/orphan repair tooling,
   improve retry classification/backoff, and qualify physical free-space margins.
 - [ ] Qualify supervised workers and source/destination effects on the controlled
   NFS fixture, then implement configurable gated cleanup only after failure evidence passes.
@@ -51,7 +51,7 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
 - [ ] Implement configurable postcommit source cleanup, including recorded job
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.
-- [ ] Add explicit operator review/resume tooling and timer-driven missing-file
+- [ ] Add explicit missing-file review/reset tooling and timer-driven missing-file
   retries, with audited deadline resets, clock-anomaly diagnostics and bounded backoff.
 - [ ] Define durable pending job/byte limits and source-space margins for handoff
   during destination outages; test partial claims, admission refusal and restart

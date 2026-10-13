@@ -13,9 +13,11 @@ use std::{
     thread,
     time::Duration,
 };
+mod operators;
+pub use operators::{ResumeAudit, ResumeReceipt, ResumeRequest};
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 5;
+const SCHEMA_VERSION: i64 = 6;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -30,6 +32,10 @@ pub enum StoreError {
     SourceRootChanged,
     WorkerStopped,
     AdmissionFull,
+    NotFound,
+    ReviewConflict,
+    ActionConflict,
+    AuditFull,
 }
 
 impl fmt::Display for StoreError {
@@ -119,6 +125,8 @@ pub struct JobStatus {
     pub missing: Vec<(usize, i64, bool)>,
     pub delivery: Option<(u32, i64, String)>,
     pub manifest_phase: Option<i64>,
+    pub review_epoch: u32,
+    pub latest_resume: Option<ResumeAudit>,
 }
 
 /// Dedicated connection owner. Queue capacity bounds admitted commands, not
@@ -210,8 +218,10 @@ impl Store {
             };
             let delivery = tx.query_row("SELECT failures,retry_after,code FROM delivery_failures WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?;
             let manifest_phase = load_manifest(&tx, job_id)?.map(|m| m.phase);
+            let review_epoch = operators::epoch(&tx,job_id)?;
+            let latest_resume = operators::latest(&tx,job_id)?;
             tx.commit()?;
-            Ok(Some(JobStatus { job, transfers, missing, delivery, manifest_phase }))
+            Ok(Some(JobStatus { job, transfers, missing, delivery, manifest_phase, review_epoch, latest_resume }))
         })
     }
     pub fn claim_intent(
@@ -359,7 +369,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=4).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=5).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -395,12 +405,13 @@ impl Database {
             tx.execute_batch(include_str!("missing.sql"))?;
             tx.execute_batch(include_str!("transfers.sql"))?;
             tx.execute_batch(include_str!("coordination.sql"))?;
+            tx.execute_batch(include_str!("operators.sql"))?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=4).contains(&version) && !read_only {
+        if (1..=5).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -411,8 +422,11 @@ impl Database {
             if version <= 3 {
                 tx.execute_batch(include_str!("transfers.sql"))?;
             }
-            tx.execute_batch(include_str!("coordination.sql"))?;
-            initialize_instance(&tx)?;
+            if version <= 4 {
+                tx.execute_batch(include_str!("coordination.sql"))?;
+                initialize_instance(&tx)?;
+            }
+            tx.execute_batch(include_str!("operators.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }

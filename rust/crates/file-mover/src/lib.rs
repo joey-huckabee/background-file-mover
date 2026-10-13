@@ -184,12 +184,24 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
     ))
 }
 type Work = (Submission, AcceptanceContext, oneshot::Sender<Response>);
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ResumeInput {
+    command_id: String,
+    expected_review_epoch: u32,
+    reason: String,
+}
+enum Observation {
+    Status(i64),
+    Resume(i64, ResumeInput),
+}
+type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
     sender: Option<mpsc::SyncSender<Work>>,
     thread: Option<std::thread::JoinHandle<()>>,
     delivery: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
-    observer: Option<mpsc::SyncSender<(i64, oneshot::Sender<Response>)>>,
+    observer: Option<mpsc::SyncSender<OperatorWork>>,
     observation: Option<std::thread::JoinHandle<()>>,
 }
 impl Worker {
@@ -198,13 +210,19 @@ impl Worker {
         let guard = Arc::new(mover_fs::LocalClaimLock::acquire(&c.source_root)?);
         let store = Arc::new(Store::open(&c.state_database)?);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
-        let (observer, observations) = mpsc::sync_channel::<(i64, oneshot::Sender<Response>)>(8);
+        let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
         let observation = std::thread::Builder::new()
             .name("mover-status".into())
             .spawn(move || {
-                while let Ok((id, reply)) = observations.recv() {
-                    let _ = reply.send(status_response(&observation_store, id));
+                while let Ok((work, reply)) = observations.recv() {
+                    let response = match work {
+                        Observation::Status(id) => status_response(&observation_store, id),
+                        Observation::Resume(id, input) => {
+                            resume_response(&observation_store, id, input)
+                        }
+                    };
+                    let _ = reply.send(response);
                 }
             })?;
         let stop = Arc::new(AtomicBool::new(false));
@@ -408,9 +426,37 @@ fn status_response(store: &Store, id: i64) -> Response {
         retryable: false,
         details: Some(
             serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
-            "condition":condition,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+            "condition":condition,"review_epoch":snapshot.review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+            "latest_resume":snapshot.latest_resume.map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
             "files":files,"missing":missing,"delivery_retry":snapshot.delivery.map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))}),
         ),
+    }
+}
+fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
+    let request = mover_store::ResumeRequest {
+        command_id: input.command_id,
+        review_epoch: input.expected_review_epoch,
+        actor: "trusted-loopback-operator".into(),
+        reason: input.reason,
+    };
+    match store.resume_delivery(id, &request, now()) {
+        Ok(receipt) => Response {
+            status: 200,
+            job_id: Some(id.to_string()),
+            state: None,
+            source_paths_released: true,
+            error: None,
+            retryable: false,
+            details: Some(
+                serde_json::json!({"action":"DeliveryResumeScheduled","command_id":request.command_id,"review_epoch":receipt.review_epoch,"replay":receipt.replay}),
+            ),
+        },
+        Err(StoreError::NotFound) => error(404, "not_found", false, None),
+        Err(StoreError::InvalidContext) => error(400, "invalid_resume", false, Some(id)),
+        Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, Some(id)),
+        Err(StoreError::ActionConflict) => error(409, "command_conflict", false, Some(id)),
+        Err(StoreError::AuditFull) => error(409, "operator_audit_capacity", false, Some(id)),
+        Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
 async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
@@ -436,7 +482,7 @@ async fn connection(
     mut stream: TcpStream,
     c: Arc<Config>,
     sender: mpsc::SyncSender<Work>,
-    observer: mpsc::SyncSender<(i64, oneshot::Sender<Response>)>,
+    observer: mpsc::SyncSender<OperatorWork>,
 ) {
     let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
         Err(_) => error(408, "request_timeout", true, None),
@@ -458,27 +504,52 @@ async fn connection(
                     details: None,
                 }
             } else if r.head.target.starts_with(b"/api/v2/jobs/") {
-                if r.head.method != "GET" {
-                    error(405, "method_not_allowed", false, None)
-                } else if !r.body.is_empty() {
-                    error(400, "unexpected_body", false, None)
+                let target = &r.head.target[13..];
+                let resume = target.ends_with(b"/resume");
+                let id_bytes = if resume {
+                    &target[..target.len() - 7]
                 } else {
-                    let id = std::str::from_utf8(&r.head.target[13..])
-                        .ok()
-                        .and_then(|s| {
-                            s.parse::<i64>()
-                                .ok()
-                                .filter(|id| *id > 0 && id.to_string() == s)
-                        });
+                    target
+                };
+                if r.head.method != if resume { "POST" } else { "GET" } {
+                    error(405, "method_not_allowed", false, None)
+                } else if !resume && !r.body.is_empty() {
+                    error(400, "unexpected_body", false, None)
+                } else if resume
+                    && r.head.headers.get("content-type").map(Vec::as_slice)
+                        != Some(b"application/json")
+                {
+                    error(415, "unsupported_media_type", false, None)
+                } else {
+                    let id = std::str::from_utf8(id_bytes).ok().and_then(|s| {
+                        s.parse::<i64>()
+                            .ok()
+                            .filter(|id| *id > 0 && id.to_string() == s)
+                    });
                     if let Some(id) = id {
-                        let (reply, result) = oneshot::channel();
-                        if observer.try_send((id, reply)).is_err() {
-                            error(503, "service_busy", true, None)
+                        let work = if resume {
+                            serde_json::from_slice::<ResumeInput>(&r.body)
+                                .map(|input| Observation::Resume(id, input))
                         } else {
-                            match timeout(Duration::from_secs(2), result).await {
-                                Ok(Ok(r)) => r,
-                                _ => error(503, "storage_unavailable", true, Some(id)),
+                            Ok(Observation::Status(id))
+                        };
+                        if let Ok(work) = work {
+                            let key_conflict = matches!(&work, Observation::Resume(_,input) if r.head.headers.get("idempotency-key").is_some_and(|key|key.as_slice()!=input.command_id.as_bytes()));
+                            if key_conflict {
+                                error(400, "idempotency_key_conflict", false, Some(id))
+                            } else {
+                                let (reply, result) = oneshot::channel();
+                                if observer.try_send((work, reply)).is_err() {
+                                    error(503, "service_busy", true, None)
+                                } else {
+                                    match timeout(Duration::from_secs(2), result).await {
+                                        Ok(Ok(r)) => r,
+                                        _ => error(503, "storage_unavailable", true, Some(id)),
+                                    }
+                                }
                             }
+                        } else {
+                            error(400, "invalid_resume", false, Some(id))
                         }
                     } else {
                         error(400, "invalid_job_id", false, None)

@@ -168,7 +168,9 @@ interrupted effects; see [RUST-INCREMENT-05.md](RUST-INCREMENT-05.md).
 Automatic local multi-file delivery and durable completion manifests are now
 implemented; see [RUST-INCREMENT-06.md](RUST-INCREMENT-06.md) for budgets,
 recovery and scope. Read-only operator job status is implemented in
-[RUST-INCREMENT-07.md](RUST-INCREMENT-07.md). Add audited operator resume/repair and supervised-worker/NFS
+[RUST-INCREMENT-07.md](RUST-INCREMENT-07.md). Audited delivery resume is implemented
+in [RUST-INCREMENT-08.md](RUST-INCREMENT-08.md). Add missing-file review/reset,
+retention/orphan repair and supervised-worker/NFS
 qualification next, leaving registration deferred and deletion disabled.
 Production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.

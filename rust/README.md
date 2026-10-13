@@ -13,7 +13,7 @@ authorization. Local claims check descriptor-relative traversal, ownership,
 identity, private custody and actual size, with process-exit reconciliation.
 Missing-file deadlines now persist, and the local API bounds requests/concurrency.
 Retention budgets and durable background delivery/manifests are implemented.
-NFS behavior, operator resume/repair and full production mount/worker
+NFS behavior, missing-file review/reset, retention/orphan repair and full production mount/worker
 qualification remain subsequent work.
 Replay currently preserves file-list order; API normalization is still open.
 
@@ -25,12 +25,13 @@ loopback. A separate local `--transfer-one CONFIG JOB_ID` command copies/verifie
 and publishes one claimed file while retaining its source; stop the daemon first
 to release its exclusive claim lock. The service now delivers recordings in the
 background and commits exact completion manifests while retaining sources.
-There is no post-transfer cleanup yet. See [increment 06](../docs/RUST-INCREMENT-06.md),
-and [increment 07](../docs/RUST-INCREMENT-07.md) for read-only
-`GET /api/v2/jobs/{job_id}` operator status,
-[increment 05](../docs/RUST-INCREMENT-05.md),
-[increment 04](../docs/RUST-INCREMENT-04.md) for the runnable contract/configuration
-and [increment 03](../docs/RUST-INCREMENT-03.md) for local filesystem limits.
+There is no post-transfer cleanup yet. See [increment 06](../docs/RUST-INCREMENT-06.md)
+for delivery/manifests, [increment 07](../docs/RUST-INCREMENT-07.md) for read-only
+`GET /api/v2/jobs/{job_id}` operator status, and
+[increment 08](../docs/RUST-INCREMENT-08.md) for audited delivery resume.
+Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
+[increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
+and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
 
 ## Checks
 

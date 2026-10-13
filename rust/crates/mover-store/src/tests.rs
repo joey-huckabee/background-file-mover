@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,164 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+fn ready_job(s: &Store) -> Accepted {
+    let j = s
+        .accept(&input("g", "operator", "data"), &context())
+        .unwrap();
+    for i in 0..2 {
+        let intent = intent_for(&j, i, if i == 0 { 3 } else { u64::MAX });
+        s.begin_claim(&intent).unwrap();
+        s.finish_claim(&intent).unwrap();
+    }
+    s.get(j.job_id).unwrap().unwrap()
+}
+fn review(s: &Store, id: i64) {
+    for time in [100, 105, 110] {
+        s.delivery_failed(id, time).unwrap();
+    }
+}
+fn resume_request(epoch: u32) -> ResumeRequest {
+    ResumeRequest {
+        command_id: format!("cmd-{epoch}"),
+        review_epoch: epoch,
+        actor: "test-operator".into(),
+        reason: "Inspected retained custody".into(),
+    }
+}
+#[test]
+fn schema_five_migration_preserves_claims_instance_and_review() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    let instance = s.instance_id().unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE operator_resumes; PRAGMA user_version=5;")
+        .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open_read_only(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let s = Store::open(f.db()).unwrap();
+    let status = s.status(j.job_id).unwrap().unwrap();
+    assert_eq!(s.instance_id().unwrap(), instance);
+    assert_eq!(status.review_epoch, 0);
+    assert_eq!(status.delivery.unwrap().0, 3);
+    assert_eq!(status.job.recording.handoff(), Handoff::Ready202);
+}
+#[test]
+fn operator_resume_is_audited_idempotent_and_rejects_stale_review_epochs() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    let request = resume_request(0);
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &request, 115),
+        Err(StoreError::ReviewConflict)
+    ));
+    review(&s, j.job_id);
+    assert_eq!(
+        s.resume_delivery(j.job_id, &request, 115).unwrap(),
+        ResumeReceipt {
+            review_epoch: 1,
+            replay: false
+        }
+    );
+    assert_eq!(s.delivery_candidates(115, 1).unwrap(), vec![j.job_id]);
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    review(&s, j.job_id);
+    assert!(s.resume_delivery(j.job_id, &request, 999).unwrap().replay);
+    assert!(s.delivery_candidates(999, 1).unwrap().is_empty());
+    let mut stale = request.clone();
+    stale.command_id = "new-but-stale".into();
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &stale, 999),
+        Err(StoreError::ReviewConflict)
+    ));
+    let mut conflict = request.clone();
+    conflict.reason = "different".into();
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &conflict, 999),
+        Err(StoreError::ActionConflict)
+    ));
+    let snapshot = s.status(j.job_id).unwrap().unwrap();
+    let audit = snapshot.latest_resume.unwrap();
+    assert_eq!(audit.recorded_at, 115);
+    assert_eq!(audit.prior_retry_after, 115);
+    assert_eq!(audit.reason, request.reason);
+    assert_eq!(audit.actor, request.actor);
+    assert_eq!(snapshot.review_epoch, 1);
+    assert_eq!(snapshot.delivery.unwrap().0, 3);
+    assert_eq!(
+        s.resume_delivery(j.job_id, &resume_request(1), 1000)
+            .unwrap()
+            .review_epoch,
+        2
+    );
+}
+#[test]
+fn operator_resume_rolls_back_audit_and_retry_reset_together() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("CREATE TRIGGER reject_reset BEFORE DELETE ON delivery_failures BEGIN SELECT RAISE(ABORT,'test rollback'); END;").unwrap();
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &resume_request(0), 115),
+        Err(StoreError::Sqlite(_))
+    ));
+    let snapshot = s.status(j.job_id).unwrap().unwrap();
+    assert_eq!(snapshot.review_epoch, 0);
+    assert!(snapshot.latest_resume.is_none());
+    assert_eq!(snapshot.delivery.unwrap().0, 3);
+    c.execute_batch("DROP TRIGGER reject_reset;").unwrap();
+    assert!(
+        !s.resume_delivery(j.job_id, &resume_request(0), 116)
+            .unwrap()
+            .replay
+    );
+}
+#[test]
+fn operator_resume_bounds_audit_retention_and_rejects_invalid_commands() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    assert!(matches!(
+        s.resume_delivery(999, &resume_request(0), 100),
+        Err(StoreError::NotFound)
+    ));
+    for bad in ["", " ", "line\nfeed"] {
+        let mut r = resume_request(0);
+        r.reason = bad.into();
+        assert!(matches!(
+            s.resume_delivery(j.job_id, &r, 100),
+            Err(StoreError::InvalidContext)
+        ));
+    }
+    for epoch in 0..64 {
+        review(&s, j.job_id);
+        s.resume_delivery(j.job_id, &resume_request(epoch), 120)
+            .unwrap();
+    }
+    review(&s, j.job_id);
+    let mut r = resume_request(64);
+    r.command_id = "overflow".into();
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &r, 120),
+        Err(StoreError::AuditFull)
+    ));
+    assert!(
+        s.resume_delivery(j.job_id, &resume_request(63), 121)
+            .unwrap()
+            .replay
+    );
+    assert_eq!(s.status(j.job_id).unwrap().unwrap().review_epoch, 64);
+}
 
 #[test]
 fn status_snapshot_preserves_deadlines_review_and_claims_across_restart() {
@@ -72,7 +230,7 @@ fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
-    db.connection.execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    db.connection.execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
     let s = Store::open(f.db()).unwrap();
     let instance = s.instance_id().unwrap();
@@ -105,7 +263,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -218,7 +376,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();

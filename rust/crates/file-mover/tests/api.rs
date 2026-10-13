@@ -423,6 +423,181 @@ fn provision_destination(f: &Fixture) {
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
     f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
 }
+fn resume_body(epoch: u32) -> Value {
+    json!({"command_id":format!("resume-{epoch}"),"expected_review_epoch":epoch,"reason":"Inspected protected staging and destination"})
+}
+fn resume_bytes(id: &str, body: &str) -> Vec<u8> {
+    format!("POST /api/v2/jobs/{id}/resume HTTP/1.1\r\nHost: h\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",body.len()).into_bytes()
+}
+fn resume(f: &Fixture, id: &str, body: &Value) -> (u16, Value) {
+    f.raw(&resume_bytes(id, &body.to_string()))
+}
+fn seed_review(f: &Fixture) {
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    for time in [100, 105, 110] {
+        s.delivery_failed(1, time).unwrap();
+    }
+}
+#[test]
+fn operator_resume_keeps_collision_safe_and_reconciles_same_verified_attempt() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"abc");
+    assert_eq!(f.post(&f.input("resume", json!([{"name":"data"}]))).0, 202);
+    f.stop();
+    provision_destination(&f);
+    f.write("data", b"producer reuse");
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let t = mover_fs::prepare_transfer(&s, 1).unwrap();
+        let t = mover_fs::copy_stage(&s, &t).unwrap();
+        let t = mover_fs::verify_stage(&s, &t).unwrap();
+        mover_fs::authorize_publication(&s, &t).unwrap();
+    }
+    let final_path = f.root.join("destination/1/data");
+    std::fs::write(&final_path, b"foreign recording").unwrap();
+    seed_review(&f);
+    f.start();
+    assert_eq!(status(&f, "1").1["details"]["review_epoch"], 0);
+    let (code, r) = resume(&f, "1", &resume_body(0));
+    assert_eq!(code, 200);
+    assert_eq!(r["details"]["replay"], false);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        if status(&f, "1").1["details"]["delivery_retry"]["failures"] == 1 {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert_eq!(std::fs::read(&final_path).unwrap(), b"foreign recording");
+    assert!(!f.root.join("destination/1/COMMITTED.json").exists());
+    f.stop();
+    seed_review(&f);
+    f.start();
+    // Replaying an earlier successful command does not unblock a newer review.
+    assert_eq!(
+        resume(&f, "1", &resume_body(0)).1["details"]["replay"],
+        true
+    );
+    assert_eq!(status(&f, "1").1["details"]["condition"], "ReviewRequired");
+    let mut stale = resume_body(0);
+    stale["command_id"] = json!("different-stale");
+    assert_eq!(resume(&f, "1", &stale).0, 409);
+    f.stop();
+    // Remove only this test's deliberately created foreign collision fixture.
+    std::fs::remove_file(&final_path).unwrap();
+    f.start();
+    assert_eq!(resume(&f, "1", &resume_body(1)).0, 200);
+    wait_manifest(&f, "1");
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    assert!(s.get(1).unwrap().unwrap().recording.is_committed());
+    assert_eq!(s.transfer(1, 0).unwrap().unwrap().attempt, 1);
+    assert_eq!(s.status(1).unwrap().unwrap().review_epoch, 2);
+    assert_eq!(std::fs::read(&final_path).unwrap(), b"abc");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reuse"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"abc"
+    );
+}
+#[test]
+fn operator_resume_lost_reply_survives_restart_and_invalid_requests_do_not_reset() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"abc");
+    assert_eq!(
+        f.post(&f.input("resume-lost", json!([{"name":"data"}]))).0,
+        202
+    );
+    assert_eq!(resume(&f, "1", &resume_body(0)).0, 409);
+    assert_eq!(resume(&f, "999", &resume_body(0)).0, 404);
+    let mut wrong_key = String::from_utf8(resume_bytes("1", &resume_body(0).to_string())).unwrap();
+    wrong_key = wrong_key.replace("Host: h\r\n", "Host: h\r\nIdempotency-Key: different\r\n");
+    assert_eq!(
+        f.raw(wrong_key.as_bytes()).1["error"],
+        "idempotency_key_conflict"
+    );
+    for body in [
+        "{}",
+        r#"{"command_id":"a","expected_review_epoch":0,"reason":"","extra":true}"#,
+        r#"{"command_id":"a","command_id":"b","expected_review_epoch":0,"reason":"fix"}"#,
+        r#"{"command_id":"a","expected_review_epoch":-1,"reason":"fix"}"#,
+    ] {
+        assert_eq!(f.raw(&resume_bytes("1", body)).0, 400);
+    }
+    f.stop();
+    seed_review(&f);
+    f.start();
+    let mut stream = TcpStream::connect(f.address).unwrap();
+    stream
+        .write_all(&resume_bytes("1", &resume_body(0).to_string()))
+        .unwrap();
+    drop(stream);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        if status(&f, "1").1["details"]["review_epoch"] == 1 {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    f.stop();
+    f.start();
+    let (code, r) = resume(&f, "1", &resume_body(0));
+    assert_eq!(code, 200);
+    assert_eq!(r["details"]["replay"], true);
+    let (_, s) = status(&f, "1");
+    assert_eq!(s["details"]["latest_resume"]["command_id"], "resume-0");
+    assert_eq!(
+        s["details"]["latest_resume"]["actor"],
+        "trusted-loopback-operator"
+    );
+    let mut conflict = resume_body(0);
+    conflict["reason"] = json!("changed reason");
+    assert_eq!(resume(&f, "1", &conflict).1["error"], "command_conflict");
+    f.stop();
+}
+#[test]
+fn operator_resume_rejects_unclaimed_and_committed_jobs() {
+    let mut f = Fixture::new(0);
+    let body = f.input("not-claimed", json!([{"name":"missing"}]));
+    assert_eq!(f.post(&body).0, 409);
+    let (_, before) = status(&f, "1");
+    assert_eq!(
+        resume(&f, "1", &resume_body(0)).1["error"],
+        "review_conflict"
+    );
+    assert_eq!(status(&f, "1").1, before);
+    assert_eq!(
+        f.raw(b"GET /api/v2/jobs/1/resume HTTP/1.1\r\nHost: h\r\n\r\n")
+            .0,
+        405
+    );
+    assert_eq!(
+        f.raw(b"POST /api/v2/jobs/1/resume HTTP/1.1\r\nHost: h\r\n\r\n")
+            .0,
+        415
+    );
+    provision_destination(&f);
+    f.write("data", b"abc");
+    assert_eq!(
+        f.post(&f.input("complete", json!([{"name":"data"}]))).0,
+        202
+    );
+    wait_manifest(&f, "2");
+    f.stop();
+    f.start();
+    assert_eq!(status(&f, "2").1["state"], "Committed");
+    assert_eq!(
+        resume(&f, "2", &resume_body(0)).1["error"],
+        "review_conflict"
+    );
+    assert_eq!(status(&f, "2").1["details"]["review_epoch"], 0);
+    assert!(f.root.join("source/.file-mover/2-0/data").exists());
+}
 #[test]
 fn operator_status_observes_partial_claims_outage_and_committed_restart() {
     let mut f = Fixture::new(300);

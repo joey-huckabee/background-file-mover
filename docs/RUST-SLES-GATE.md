@@ -50,8 +50,8 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 70 tests pass in both profiles inside the pinned runtime:
-ten core, twenty-five storage, ten claims, thirteen copied-transfer/manifest and twelve
+The workspace's 77 tests pass in both profiles inside the pinned runtime:
+ten core, twenty-nine storage, ten claims, thirteen copied-transfer/manifest and fifteen
 executable HTTP/background/CLI tests. All twenty emitted executables use the standard
 loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
 Linux packages and adds nine pinned SHA-256 packages, recorded in
@@ -59,7 +59,8 @@ Linux packages and adds nine pinned SHA-256 packages, recorded in
 The gate checks their checksums and sha2's std/force-soft feature set, alongside
 the qualified SQLite/rustix/Tokio/Serde/httparse configurations. See
 [the automatic delivery increment](RUST-INCREMENT-06.md) and
-[the operator status increment](RUST-INCREMENT-07.md) for tested effects and limits.
+[the operator status increment](RUST-INCREMENT-07.md) and
+[the audited delivery-resume increment](RUST-INCREMENT-08.md) for tested effects and limits.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd
@@ -68,5 +69,5 @@ qualification, no real SLES host requirement, and controlled NFS tests as slices
 introduce those effects. [RUST-SLES-EVIDENCE.json](RUST-SLES-EVIDENCE.json) records
 the current passing run, pinned inputs, dependencies, per-profile test counts and
 artifact hashes/audits. Windows and native WSL entry points passed for the core;
-the current expanded workspace passed via the Windows entry point. The
+the current expanded workspace passed via the native WSL entry point. The
 GitHub workflow is configured; its remote outcome is separate from local evidence.

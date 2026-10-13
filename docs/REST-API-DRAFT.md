@@ -9,7 +9,9 @@ defines the implemented subset and its limits. Automatic delivery/manifests are
 implemented in [increment 06](RUST-INCREMENT-06.md); the read-only individual
 `GET /api/v2/jobs/{job_id}` response is defined in
 [increment 07](RUST-INCREMENT-07.md). That implemented status shape takes
-precedence over examples below. Remaining routes/forms are proposals.
+precedence over examples below. [Increment 08](RUST-INCREMENT-08.md) defines the
+implemented audited delivery-only resume request/receipt; the broader controls
+below remain proposals. Remaining routes/forms are proposals.
 
 ## Existing interface and proposed changes
 
