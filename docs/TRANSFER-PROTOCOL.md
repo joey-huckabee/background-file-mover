@@ -116,6 +116,14 @@ clients or protection against privileged storage tampering.
 
 ## Ownership and filesystem prerequisites
 
+Destination outages do not gate producer handoff. With healthy local persistence,
+safe source claims and available configured retention capacity, return 202 after
+all claims and queue delivery until the pinned target recovers. Retain claimed
+sources; do not reroute or delete to relieve backlog. Admission uses bounded
+source-size inspection, durable pending job/byte reservations and source-space
+margins, including partial claims and restart reconciliation. Claiming releases
+paths, not occupied space. Refuse further handoffs when safe limits are exhausted.
+
 Use one active coordinator per local state database and disjoint source scopes
 across instances. A local lock is not cross-host fencing. Old and new services
 must not operate on the same source namespace during cutover.

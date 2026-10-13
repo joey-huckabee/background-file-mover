@@ -202,6 +202,26 @@ Return this only after acceptance and every required claim/receipt are durable.
 It permits immediate reuse of all submitted paths, without waiting for destination
 copying, verification or commitment. It does not release source disk capacity.
 
+**Agreed outage behavior:** destination unavailability alone does not prevent
+claiming or returning 202. If local state storage, source claiming and configured
+retention/admission limits permit handoff, claim every file, return 202 and queue
+delivery until the pinned destination recovers. The recorder has no further
+responsibility. Operators see destination unavailability separately from handoff.
+
+Retention limits cover pending jobs/bytes and source-filesystem free-space margins.
+Measure optional-size submissions in bounded source inspection before authorizing
+claims, reserve queue capacity durably, and account for partially claimed jobs.
+Claim relocation does not free payload space; limits protect capacity for future
+recordings rather than pretending a rename allocates another payload copy.
+Reconcile reservations after restart and release them only at their defined
+cleanup/archive boundary. External writers can consume space too, so checks
+are admission controls, not guarantees of future free space.
+
+If safe admission or claiming is unavailable, return a non-202 response and retain
+any already claimed data for reconciliation. Do not delete claims, reroute a job
+or issue false success to make room. Thresholds and retry timing remain startup
+configuration decisions to finalize before implementation.
+
 Do not hold an unbounded HTTP request during an NFS outage. Use a bounded handoff
 wait; if claiming cannot be confirmed in that time, return a non-202 transient
 response such as `503 handoff_pending`, with Retry-After. Timeout/disconnection

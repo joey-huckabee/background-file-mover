@@ -37,6 +37,9 @@ experiment, or begin a component-for-component port.
   from the additive requirements in [L1-REQ.md](L1-REQ.md).
 - [ ] Derive claim-size evidence and tests for omitted/expected/zero/mismatched
   sizes, explicit subfolder paths, symlink/mount escape and directory preservation.
+- [ ] Define durable pending job/byte limits and source-space margins for handoff
+  during destination outages; test partial claims, admission refusal and restart
+  reservation reconciliation without deleting retained source data.
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
   ownership evidence against partial claims, publication and stale worker effects.
 - [ ] Finalize the versioned completion manifest, filename encoding and metadata

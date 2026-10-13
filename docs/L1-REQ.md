@@ -541,6 +541,15 @@ safe relative paths without recursively submitting, relocating or deleting direc
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust component traversal within approved source scopes; no symlink or mount escape.
 
+### L1-SYS-030
+
+The system shall permit durable claiming and HTTP 202 handoff during destination
+outages when source, local persistence and configured retention/admission limits
+allow safe custody, retaining files until delivery to the pinned target resumes.
+
+**Verification Method**: Test (T), Analysis (A)
+**v1.0.0 Status**: Deferred — Rust outage admission; unsafe capacity or claiming does not authorize 202.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate

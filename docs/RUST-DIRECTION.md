@@ -102,6 +102,11 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Destination outages do not stop the agreed 202-after-claim producer handoff
+while safe source/local persistence and configured retention capacity remain.
+Queue delivery to the pinned destination, retain sources and expose the outage
+to operators. Finalize backlog limits, source-space margins and retry timing.
+
 Experiments are stopped at the user's request. E6/thiserror is **unrun** and must
 not automatically be next. No production Rust implementation has started. The
 earlier fifteen milestones retain useful obligations but need scope/sequence revision.
