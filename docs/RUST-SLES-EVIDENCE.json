@@ -18,8 +18,65 @@
       "ld-linux-x86-64.so.2"
     ]
   },
-  "run_id": "20261013T123436Z-c59d88ef",
-  "source_sha256": "9ffce4000de1b8a9f579a97cd6b1344e4aa162eb5c7022242fd038d9ad9a3587",
+  "run_id": "20261013T135730Z-b2390b04",
+  "source_sha256": "8d6d9ee3696521f09d38ffbfa90389e5d2f9cb0c7703c5445d796582ee2144bb",
+  "dependencies": [
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cc",
+      "version": "1.8.0",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.14",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "libsqlite3-sys",
+      "version": "0.38.2",
+      "license": "MIT"
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "rusqlite",
+      "version": "0.40.1",
+      "license": "MIT"
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "smallvec",
+      "version": "1.16.3",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0"
+    }
+  ],
   "audit_negative_controls": [
     "new-glibc",
     "private-glibc",
@@ -59,8 +116,37 @@
           }
         },
         {
-          "name": "debug-1-protocol-69c581cc870a90c2",
-          "sha256": "0ae8f04b57bdd56024ef06bbb259d55a2f7f126a550e01a92ba08336e3bcd959",
+          "name": "debug-1-mover_store-1ae508ed6268ee89",
+          "sha256": "e8cff5e64532ebba6a548b1aa0148e9f03fc2c2b43133e8aba90cce47d545e57",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "debug-2-protocol-69c581cc870a90c2",
+          "sha256": "c6d5214948fcc9a2c41eb5610153b562edcef269cc599ffe3be3c656393e76fb",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -86,7 +172,7 @@
           }
         }
       ],
-      "tests_passed": 10
+      "tests_passed": 26
     },
     "release": {
       "artifacts": [
@@ -118,7 +204,36 @@
           }
         },
         {
-          "name": "release-1-protocol-2716b18f41ea3254",
+          "name": "release-1-mover_store-6b213cae83c58515",
+          "sha256": "1aa91aecafe3b335ffdfe062c30042da0c2a071940e443333b45c91039f1cb6c",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "release-2-protocol-2716b18f41ea3254",
           "sha256": "5dc68ef9a049cd5bc280dc12b78340bf373ceed87c9f7b8b343b647ee1d3d64b",
           "test": true,
           "elf": {
@@ -145,7 +260,7 @@
           }
         }
       ],
-      "tests_passed": 10
+      "tests_passed": 26
     }
   }
 }

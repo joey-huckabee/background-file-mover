@@ -10,6 +10,8 @@ source during copying and reread destination staging for verification (3N logica
 data I/O). Develop short tested increments from the revised protocol in `rust/`.
 Registration/token work is deferred; its enrollment choice is a one-time setup key.
 See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`.
+SQLite acceptance/replay is in `mover-store`; see `docs/RUST-INCREMENT-02.md`.
+The next slice is real source claiming; acceptance alone never authorizes 202.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical

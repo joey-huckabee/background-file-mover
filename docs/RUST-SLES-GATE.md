@@ -19,7 +19,7 @@ gate. GitHub's Rust workflow runs it on each relevant push/pull request.
 
 The image contains Rust 1.93.0 initially; the harness explicitly installs/checks
 1.99.0 using a named toolchain cache. Never silently use the image's older Rust.
-Provision missing images/toolchain first; application Cargo builds stay offline
+Provision missing images/toolchain and locked crate sources first; application Cargo builds stay offline
 and locked. Adding dependencies requires their controlled source provisioning
 and qualification; this gate does not unpause E6 or approve arbitrary packages.
 
@@ -39,7 +39,7 @@ and qualification; this gate does not unpause E6 or approve arbitrary packages.
    run `ldd -r` with eager binding and execute all discovered Rust test harnesses
    as UID/GID 1000, capabilities dropped and network disabled.
 6. Fail if relocation/testing fails or no real tests run. Retain local ignored
-   reports/logs/binaries; remove created containers and retain only the toolchain cache.
+   reports/logs/binaries; remove created containers and retain toolchain/registry caches.
 
 Future non-test service binaries are audited here and must gain explicit SLES
 behavior/smoke invocations when introduced. Rustdoc tests or custom test harnesses
@@ -48,16 +48,18 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The first core's ten tests pass in both profiles inside the pinned runtime.
-All four test executables require at most GLIBC_2.18, use the standard loader,
-and import only libc, libdl, libpthread and the loader. No external Rust dependency
-or native application library has been added.
+The workspace's 26 tests pass in both profiles inside the pinned runtime:
+ten core tests and sixteen SQLite storage tests. All six test executables require
+at most GLIBC_2.18 and use the standard loader. SQLite adds only libm to the prior
+libc/libdl/libpthread/loader imports. The eleven external crate versions are the
+exact E1-qualified graph, with bundled SQLite 3.53.2 and its qualified flags.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd
 deployment or a not-yet-implemented production service. Keep equivalent-container
 qualification, no real SLES host requirement, and controlled NFS tests as slices
 introduce those effects. [RUST-SLES-EVIDENCE.json](RUST-SLES-EVIDENCE.json) records
-the passing native WSL run, pinned inputs, per-profile test counts and artifact
-hashes/audits. Windows and native WSL entry points both passed locally. The new
+the current passing run, pinned inputs, dependencies, per-profile test counts and
+artifact hashes/audits. Windows and native WSL entry points passed for the core;
+the current expanded workspace passed via the Windows entry point. The
 GitHub workflow is configured; its remote outcome is separate from local evidence.

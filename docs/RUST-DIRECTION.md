@@ -155,8 +155,10 @@ to operators. Finalize backlog limits, source-space margins and retry timing.
 Experiments are stopped at the user's request. E6/thiserror is **unrun** and must
 not automatically be next. The dependency-free first Rust core slice is now in
 `rust/crates/mover-core`; [RUST-INCREMENT-01.md](RUST-INCREMENT-01.md) records its
-ten passing WSL tests and limits. There is no Rust service or filesystem effect
-yet. Build short tested slices while remaining design decisions are refined.
+ten passing WSL tests and limits. `mover-store` now adds local SQLite acceptance/
+replay; [RUST-INCREMENT-02.md](RUST-INCREMENT-02.md) records its evidence. The
+workspace passes 26 tests per profile in pinned SLES userspace. There is no Rust
+service or recording-filesystem effect yet. Build the real claim slice next.
 The fifteen milestones retain useful release obligations.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,

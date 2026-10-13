@@ -1,7 +1,8 @@
 # Incremental Rust implementation
 
-The first member is `mover-core`, a dependency-free pure protocol library. Add
-`mover-store`, `mover-fs` and the executable as tested slices require them.
+Members are `mover-core`, a dependency-free pure protocol library, and
+`mover-store`, the E1-qualified SQLite acceptance repository. Add `mover-fs`
+and the executable as tested slices require them.
 Confirmation methods trust validated durable receipts from their eventual callers;
 the state model itself performs no HTTP, SQL, hashing or filesystem effects.
 
@@ -10,6 +11,11 @@ handoff, stable replay, pinned policy, publication/set commitment and cleanup
 authorization. Actual ownership/path containment, NFS behavior, missing-file
 deadlines, API resource limits and crash reconciliation remain subsequent work.
 Replay currently preserves file-list order; API normalization is still open.
+
+The [store](crates/mover-store/README.md) persists acceptance/replay and pinned
+policy on one dedicated database thread. Accepted work survives reopen; no real
+claims, HTTP handoff or source deletion are implemented yet. See
+[increment 02](../docs/RUST-INCREMENT-02.md) for storage evidence and remaining effects.
 
 ## Checks
 
@@ -38,10 +44,11 @@ as UID 1000 with eager binding, no capabilities and no network. Host-only
 `cargo test` is not a completed validation. Future service executables also need
 their own runtime smoke/behavior checks; add those as executable slices arrive.
 
-Cargo compilation is offline/locked. Missing pinned images and the cached
-toolchain require provisioning network access initially; retain them for offline
+Cargo compilation is offline/locked. Missing pinned images, toolchain and locked
+crate sources require provisioning network access; retain their caches for offline
 runs. Logs, binaries and a source snapshot remain in ignored `rust/validation/`.
 Created containers are removed; the named toolchain cache is retained. No validation
-directory/source archive is uploaded by CI. See [the platform gate](../docs/RUST-SLES-GATE.md)
+data/source archive is uploaded by CI. The registry source cache is also retained.
+See [the platform gate](../docs/RUST-SLES-GATE.md)
 and [increment evidence](../docs/RUST-INCREMENT-01.md). Package experiments remain
 paused. Containers share the runner kernel/CPU, not an actual old SLES kernel.

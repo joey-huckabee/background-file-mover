@@ -13,8 +13,10 @@ Review [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md) and
 [REST-API-DRAFT.md](REST-API-DRAFT.md) with the producer workflow before freezing
 each dependent effect; neither draft alone proves implemented Rust behavior.
 
-**Status:** E1–E5 passed; the first core guard slice is tested. E6 and the broader
-R0–R14 deliverables remain pending; no Rust service or filesystem effect exists yet.
+**Status:** E1–E5 passed; core guards and local SQLite acceptance/replay are tested
+in SLES via zigbuild. See [RUST-INCREMENT-02.md](RUST-INCREMENT-02.md). E6 and the
+broader R0–R14 deliverables remain pending; no Rust service or recording-filesystem
+effect exists yet.
 Rust, x86_64 only, GNU/glibc 2.22, and a
 ZigBuild-like build project are the user's chosen direction. Compatibility will
 be tested in a pinned container with SLES 12 SP5 userspace or the closest verified

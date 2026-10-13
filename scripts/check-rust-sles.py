@@ -92,14 +92,20 @@ def main() -> int:
                 run(["podman", "pull", CONFIG[role]], results / f"{role}-pull.log")
             run(["podman", "image", "inspect", CONFIG[role]], results / f"{role}-image.json")
         cache = "file-mover-rustup-1-99"
-        run(["podman", "volume", "create", cache])
+        registry = "file-mover-cargo-registry"
+        for volume in (cache, registry):
+            exists = subprocess.run(["podman", "volume", "inspect", volume], capture_output=True)
+            if exists.returncode:
+                run(["podman", "volume", "create", volume])
         print("Ensuring pinned Rust toolchain (cached between runs)...", flush=True)
         run(["podman", "run", "--rm", "--volume", f"{cache}:/toolchain",
              "--env", "RUSTUP_HOME=/toolchain", "--entrypoint", "rustup", CONFIG["builder"],
              "toolchain", "install", CONFIG["rust"], "--profile", "minimal", "--component",
              "rustfmt,clippy", "--target", "x86_64-unknown-linux-gnu", "--no-self-update"], results / "setup.log")
         builder = run(["podman", "create", "--network", "none", "--volume", f"{cache}:/toolchain",
+                       "--volume", f"{registry}:/usr/local/cargo/registry",
                        "--env", "RUSTUP_HOME=/toolchain", "--env", "RUSTFLAGS=-C target-cpu=x86-64",
+                       "--env", "LIBSQLITE3_FLAGS=-USQLITE_THREADSAFE -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 -USQLITE_DEFAULT_MEMSTATUS -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_ENABLE_API_ARMOR",
                        "--entrypoint", "/bin/sh", CONFIG["builder"], "-c", "exec sleep infinity"]).strip()
         containers.append(builder)
         run(["podman", "start", builder])
@@ -112,6 +118,16 @@ def main() -> int:
         run(["podman", "cp", str(archive), f"{builder}:/tmp/source.tar.gz"])
         run(["podman", "exec", builder, "/bin/sh", "-c",
              "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
+        # Provision locked sources separately; no application build runs online.
+        provisioner = run(["podman", "create", "--volume", f"{cache}:/toolchain",
+                           "--volume", f"{registry}:/usr/local/cargo/registry", "--env", "RUSTUP_HOME=/toolchain",
+                           "--entrypoint", "/bin/sh", CONFIG["builder"], "-c", "exec sleep infinity"]).strip()
+        containers.append(provisioner)
+        run(["podman", "start", provisioner])
+        run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
+        run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
+        print("Provisioning the locked E1 dependency graph...", flush=True)
+        run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
                      "rustc --version; cargo --version; cargo-zigbuild --version; zig version"], results / "toolchain.txt")
         if f"rustc {CONFIG['rust']} " not in tools or f"cargo-zigbuild {CONFIG['cargo_zigbuild']}" not in tools:
@@ -119,6 +135,13 @@ def main() -> int:
         if CONFIG["zig"] not in tools.splitlines():
             raise ValueError("unexpected Zig version")
         execute = ["podman", "exec", "--workdir", "/work", builder]
+        metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
+                                             "--filter-platform", "x86_64-unknown-linux-gnu"], results / "metadata.json"))
+        dependencies = [package for package in metadata["packages"] if package["source"]]
+        expected = json.loads((ROOT / "docs/E1-SQLITE-EVIDENCE.json").read_text())["dependencies"]
+        if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
+            raise ValueError("dependency graph differs from the E1-qualified graph")
+        report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
         run(execute + ["cargo", "clippy", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu", "--", "-D", "warnings"], results / "clippy.log")

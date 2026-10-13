@@ -55,6 +55,10 @@ impl FileSpec {
     pub fn relative_path(&self) -> &str {
         &self.path
     }
+
+    pub fn expected_size(&self) -> Option<u64> {
+        self.expected_size
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,6 +109,16 @@ impl Submission {
 
     pub fn files(&self) -> &[FileSpec] {
         &self.files
+    }
+
+    pub fn generator_id(&self) -> &str {
+        &self.generator_id
+    }
+    pub fn submission_id(&self) -> &str {
+        &self.submission_id
+    }
+    pub fn source_directory(&self) -> &str {
+        &self.source_directory
     }
 }
 

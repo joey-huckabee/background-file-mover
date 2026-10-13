@@ -10,9 +10,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add local SQLite acceptance/replay as the next small increment: persist
-  identity, requests, pinned destination/policy and reservations. Test reopen,
-  conflicting replay and failed commits using the E1-qualified configuration.
 - [ ] Add one real local-filesystem claim with durable intent/receipt, actual size
   discovery and crash reconciliation. Prove partial claims never authorize 202.
 - [ ] Add a minimal locally bound submission endpoint for JSON-to-claim handoff
@@ -23,6 +20,8 @@ before implementation.
   failure evidence passes, then qualify effects on the controlled NFS fixture.
 - [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,
   schema and fault cases before the dependent effect, not before all Rust code.
+- [ ] Extend acceptance persistence for API metadata, future schema migrations,
+  bounded async integration and crash/power-loss evidence as effects are introduced.
 - [ ] Decide which dashboard and integration scenarios to reuse from
   [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
   [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).
@@ -111,7 +110,7 @@ with deletion disabled; gated cleanup/production operation; measured optimizatio
 | R3 | Rust requirements evidence and CI | Separate Rust traceability, meaningful line/branch coverage, fault-injection and production-target gates |
 | R4 | Core types, configuration and policies | Pure transitions, idempotency, naming, root/path rules and validation tests |
 | R5 | API and serialization boundaries | Framework/strictness decisions, bounded input and hostile JSON/HTTP/IPC/manifest tests |
-| R6 | Local durable repository | Dedicated owner, durable job/file/operation evidence, migrations and real write-failure tests |
+| R6 | Durable repository extensions | Filesystem-operation evidence, tested migrations, async integration and additional crash/write-failure coverage |
 | R7 | Filesystem boundary and capabilities | Descriptor-relative safety, source claims, mount checks, exclusive staging and no-clobber strategies |
 | R8 | Transfer protocol and recovery | Cross-filesystem copy/verification/publication and crash reconciliation, initially without source deletion |
 | R9 | Scheduling and worker supervision | Bounded tasks/queues/processes, retry/control semantics, progress isolation and safe draining |
