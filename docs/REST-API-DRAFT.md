@@ -23,7 +23,7 @@ during cutover rather than silently accepting old requests with new semantics.
 
 | Proposed route | Purpose |
 |---|---|
-| `POST /api/v2/jobs` | Durably accept a recording set with an idempotency key |
+| `POST /api/v2/jobs` | Durably accept and claim all files before returning 202 |
 | `GET /api/v2/jobs/{id}` | Read milestones, claim release, progress and condition |
 | `GET /api/v2/jobs/{id}/files?limit=...&cursor=...` | Bounded file details |
 | `GET /api/v2/jobs?limit=...&cursor=...` | Bounded job summaries |
@@ -170,6 +170,12 @@ administratively disabled deletion or bypass verification.
 
 ## Acceptance response
 
+**Agreed producer workflow:** submit, wait for `202`, optionally log the receipt,
+then forget the transfer. The recorder leaves submitted files and folders untouched
+until that response. No status polling or later completion acknowledgement is required.
+Internally Accepted and Claimed remain separate durable facts, but the POST's
+successful handoff response confirms both.
+
 Example response for the generator submission:
 
 ```http
@@ -183,19 +189,25 @@ Content-Type: application/json
   "recording_id": "job-0042",
   "accepted": true,
   "claim": {
-    "status": "Pending",
+    "status": "Claimed",
     "files_total": 2,
-    "files_claimed": 0,
-    "source_paths_released": false
+    "files_claimed": 2,
+    "source_paths_released": true
   },
   "status_url": "/api/v2/jobs/job-0042"
 }
 ```
 
-Return this only after the acceptance transaction commits. It is a snapshot:
-claiming may advance before the client receives it. Acceptance does not promise
-successful source inspection or transfer. While release is false, the producer
-keeps all submitted paths untouched.
+Return this only after acceptance and every required claim/receipt are durable.
+It permits immediate reuse of all submitted paths, without waiting for destination
+copying, verification or commitment. It does not release source disk capacity.
+
+Do not hold an unbounded HTTP request during an NFS outage. Use a bounded handoff
+wait; if claiming cannot be confirmed in that time, return a non-202 transient
+response such as `503 handoff_pending`, with Retry-After. Timeout/disconnection
+does not cancel the accepted job. The recorder keeps paths untouched and retries
+the identical request/key with backoff. Waiting HTTP requests and duplicate
+requests are bounded independently of the durable claim operation.
 
 Generator jobs return `generator_id` in acceptance/status/file ownership records
 and include it in completion manifests. Explicit-form jobs may omit it until
@@ -206,7 +218,10 @@ request before selecting a new destination, so a configuration change cannot
 reroute a replayed job. Current caller authorization still applies.
 
 Repeat the same POST/key after any lost response. An equivalent normalized
-request returns `200 OK`, the same job ID and current acceptance/claim summary.
+request for an already claimed job returns `202` again with the same job ID and
+release receipt, even if destination processing has since advanced or failed.
+A still-unclaimed job uses the same bounded handoff wait and returns no 202
+until claims are confirmed. Replay never opens the producer's reused paths.
 A changed request returns `409 idempotency_conflict`. JSON member order does not
 change request identity. Array normalization and recording-ID uniqueness remain
 review items; the key is the authoritative submission identity in this draft.
@@ -217,7 +232,10 @@ A different key submitting a source path reserved by an unreleased job receives
 `409 source_reserved`; it cannot create a competing claim. After all-files
 release, a new key may submit the next recording at those same paths.
 
-## Poll for source release
+## Optional operator status
+
+These read routes support operators and dashboards. The recorder does not need
+to call them. The successful POST already carries the source-release receipt.
 
 ```http
 GET /api/v2/jobs/job-0042 HTTP/1.1
@@ -267,7 +285,7 @@ Before release, claim status is `Pending`, `Claiming` or `Partial`. Errors and
 `status: "Partial"`, `files_claimed: 1`, and `source_paths_released: false`.
 This draft provides no per-file release permission; file details are diagnostic.
 
-Poll with bounded intervals/backoff. A failed GET never permits reuse. Status
+Operator polling uses bounded intervals/backoff. A failed GET never permits reuse. Status
 responses carry `Cache-Control: no-store`; revisions help discard old snapshots.
 A bounded long-poll/event stream is a possible later addition.
 
@@ -312,6 +330,11 @@ oversized bodies 413; unknown jobs 404; conflicting submissions/invalid controls
 409; admission/unavailable storage 503; unexpected internal errors 500.
 An acceptance failure response cannot certify that SQL never committed; retry
 with the same key. Later source problems remain attached to the accepted job.
+
+For submission, only 202 certifies completed handoff. Transient failures/timeouts
+are retried with the same key; malformed or conflicting submissions require
+correction/operator intervention rather than an endless rapid retry loop.
+The exact recorder retry/backoff and permanent-error handling remain to be settled.
 
 Control acknowledgements persist desired execution and return 202 when effects
 remain asynchronous. Pause/cancel do not promise syscall cancellation or automatic

@@ -46,8 +46,10 @@ Producer sizes are optional assertions. The service measures and persists actual
 sizes during claim before copying; this adds no payload read. Recording metadata
 and per-file keys are optional in the generator body, with service-assigned IDs.
 
-- Separate durable `Accepted` from confirmed `Claimed`. Producer source-path reuse
-  is allowed only after claim confirmation. Require completed files, closed writers,
+- Separate internal durable `Accepted` from confirmed `Claimed`; submission returns
+  202 only after both. The recorder waits for 202, reuses paths, and need not poll
+  or monitor delivery. Claimed-job replay returns 202 for the same key/job.
+  Require completed files, closed writers,
   explicit handoff and idempotent submission; pathname changes do not stop writers.
 - Record intent before effects, claim into a private source-filesystem namespace,
   copy into exclusively owned destination staging, verify, publish without clobber,

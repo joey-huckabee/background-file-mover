@@ -469,11 +469,12 @@ without requiring the generator to supply a destination.
 
 ### L1-API-008
 
-The system shall expose a durable all-files source-path-release acknowledgement
-distinct from request acceptance and destination commitment.
+The system shall return HTTP 202 for recording-set submission only after durable
+acceptance and confirmed durable claiming of every listed file, permitting source
+path reuse without requiring producer polling.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: Deferred — Rust Accepted/Claimed distinction; derives the producer contract for L1-SYS-002.
+**v1.0.0 Status**: Deferred — Rust 202 handoff; Accepted/Claimed remain separate internal facts, independent of destination commitment.
 
 ### L1-API-009
 
@@ -481,7 +482,7 @@ The system shall resolve repeated equivalent submissions under the same authoriz
 generator-scoped idempotency key to the original job and its pinned destination.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: Deferred — Rust durable replay; conflicting requests shall not replace the original job.
+**v1.0.0 Status**: Deferred — Rust durable replay; claimed-job replays return 202 and conflicts do not replace the original job.
 
 ### L1-SYS-024
 

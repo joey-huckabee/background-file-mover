@@ -29,8 +29,9 @@ experiment, or begin a component-for-component port.
 
 ## Design decisions
 
-- [ ] Finalize the REST draft's durable Accepted versus all-files Claimed release,
-  producer handoff, idempotency scope/retention and control semantics; produce OpenAPI.
+- [ ] Finalize bounded POST handoff waits, retry/backoff and permanent-error handling
+  for the agreed 202-after-all-claims recorder workflow; settle idempotency retention
+  and control semantics, then produce OpenAPI.
 - [ ] Derive L2/L3 and Rust tests for generator identity/source-directory/file-name
   submission, configured destination routing, pinned route replay and caller binding
   from the additive requirements in [L1-REQ.md](L1-REQ.md).

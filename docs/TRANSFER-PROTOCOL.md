@@ -88,11 +88,16 @@ Rename preserves open descriptors and other hard links, so it does not establish
 immutability by itself. [Linux rename documentation](https://man7.org/linux/man-pages/man2/rename.2.html).
 
 `202 Accepted` is returned only after the job, full file list, policy and key have
-committed locally. Status includes separate acceptance, all-files claim and set
+committed locally **and every file is durably claimed**. The recorder waits for
+202, may then reuse paths and has no further polling responsibility. Status for
+operators includes separate acceptance, all-files claim and set
 commit facts, file counts and actionable conditions. A lost HTTP response or
 client timeout does not cancel work. Repeating the key with the same normalized
 request returns the same job; a different request conflicts. Keep durable key
 tombstones when archiving jobs; do not silently reuse keys after queue pruning.
+Replays of claimed jobs return 202 again. Bound HTTP handoff waits; an unfinished
+claim produces a transient non-202 response rather than false permission to reuse
+paths. Preserve accepted work when the client times out or disconnects.
 
 The producer waits for the all-files `Claimed` fact before reusing any submitted
 path. Partial claiming releases none under this initial API contract. Preparation
