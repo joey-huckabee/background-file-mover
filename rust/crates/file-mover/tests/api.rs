@@ -420,6 +420,96 @@ fn provision_destination(f: &Fixture) {
         std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
     }
 }
+fn status(f: &Fixture, id: &str) -> (u16, Value) {
+    f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
+}
+#[test]
+fn operator_status_observes_partial_claims_outage_and_committed_restart() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"abc");
+    let body = f.input("status", json!([{"name":"data"},{"name":"empty"}]));
+    assert_eq!(f.post(&body).0, 503);
+    let (code, pending) = status(&f, "1");
+    assert_eq!(code, 200);
+    assert_eq!(pending["state"], "Accepted");
+    assert_eq!(pending["source_paths_released"], false);
+    assert_eq!(pending["details"]["files"][0]["size_bytes"], 3);
+    assert_eq!(pending["details"]["files"][1]["phase"], "Pending");
+    assert_eq!(pending["details"]["missing"].as_array().unwrap().len(), 1);
+    f.write("empty", b"");
+    assert_eq!(f.post(&body).0, 202);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        let (_, s) = status(&f, "1");
+        if s["details"]["condition"] == "Retrying" {
+            assert_eq!(
+                s["details"]["delivery_retry"]["code"],
+                "destination_unavailable"
+            );
+            assert_eq!(s["source_paths_released"], true);
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    wait_manifest(&f, "1");
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        let (_, s) = status(&f, "1");
+        if s["state"] == "Committed" {
+            assert_eq!(s["details"]["manifest_phase"], 4);
+            assert_eq!(s["details"]["source_cleanup_enabled"], false);
+            assert_eq!(s["details"]["files"][1]["size_bytes"], 0);
+            assert_eq!(s["details"]["files"][0]["transfer_phase"], "Published");
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    f.stop();
+    f.start();
+    assert_eq!(status(&f, "1").1["state"], "Committed");
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+}
+#[test]
+fn operator_status_rejects_invalid_routes_and_reports_review_without_reset() {
+    let mut f = Fixture::new(0);
+    assert_eq!(status(&f, "999").0, 404);
+    for id in [
+        "0",
+        "-1",
+        "01",
+        "+1",
+        "1?x=1",
+        "1/files",
+        "9223372036854775808",
+    ] {
+        assert_eq!(status(&f, id).0, 400, "{id}");
+    }
+    assert_eq!(
+        f.raw(b"POST /api/v2/jobs/1 HTTP/1.1\r\nHost: h\r\n\r\n").0,
+        405
+    );
+    assert_eq!(
+        f.raw(b"GET /api/v2/jobs/1 HTTP/1.1\r\nHost: h\r\nContent-Length: 1\r\n\r\nx")
+            .0,
+        400
+    );
+    assert_eq!(
+        f.post(&f.input("missing", json!([{"name":"absent"}]))).0,
+        409
+    );
+    assert_eq!(status(&f, "1").1["details"]["condition"], "ReviewRequired");
+    f.stop();
+    f.start();
+    let (_, s) = status(&f, "1");
+    assert_eq!(s["details"]["condition"], "ReviewRequired");
+    assert_eq!(s["source_paths_released"], false);
+    assert_eq!(s["details"]["missing"][0]["blocked"], true);
+}
 fn wait_manifest(f: &Fixture, id: &str) -> Value {
     let path = f.root.join("destination").join(id).join("COMMITTED.json");
     let deadline = Instant::now() + Duration::from_secs(15);

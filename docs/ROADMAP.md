@@ -10,7 +10,7 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add operator status/review/resume and explicit retention/orphan repair tooling,
+- [ ] Add audited operator review/resume and explicit retention/orphan repair tooling,
   improve retry classification/backoff, and qualify physical free-space margins.
 - [ ] Qualify supervised workers and source/destination effects on the controlled
   NFS fixture, then implement configurable gated cleanup only after failure evidence passes.

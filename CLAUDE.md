@@ -15,7 +15,8 @@ Protected local source claiming is in `mover-fs`; see `docs/RUST-INCREMENT-03.md
 The local endpoint is in `file-mover`; see `docs/RUST-INCREMENT-04.md`.
 The single-file transfer command is documented in `docs/RUST-INCREMENT-05.md`.
 Automatic local delivery/manifests are documented in `docs/RUST-INCREMENT-06.md`.
-Next: operator tooling and supervised-worker/NFS qualification; keep deletion disabled.
+Read-only operator job status is documented in `docs/RUST-INCREMENT-07.md`.
+Next: audited resume/repair and supervised-worker/NFS qualification; keep deletion disabled.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical

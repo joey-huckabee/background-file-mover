@@ -5,7 +5,11 @@ recording sets and makes source-path release explicit. Review it alongside
 [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). It is a starting point for producer
 integration or a frozen schema. The minimal local generator form and health
 route are implemented in [increment 04](RUST-INCREMENT-04.md); that document
-defines the implemented subset and its limits. Remaining routes/forms are proposals.
+defines the implemented subset and its limits. Automatic delivery/manifests are
+implemented in [increment 06](RUST-INCREMENT-06.md); the read-only individual
+`GET /api/v2/jobs/{job_id}` response is defined in
+[increment 07](RUST-INCREMENT-07.md). That implemented status shape takes
+precedence over examples below. Remaining routes/forms are proposals.
 
 ## Existing interface and proposed changes
 

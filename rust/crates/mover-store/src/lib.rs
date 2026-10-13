@@ -112,6 +112,15 @@ pub struct Accepted {
     pub replay: bool,
 }
 
+/// One database-owner snapshot; no filesystem observations or state changes.
+pub struct JobStatus {
+    pub job: Accepted,
+    pub transfers: Vec<Option<Transfer>>,
+    pub missing: Vec<(usize, i64, bool)>,
+    pub delivery: Option<(u32, i64, String)>,
+    pub manifest_phase: Option<i64>,
+}
+
 /// Dedicated connection owner. Queue capacity bounds admitted commands, not
 /// external request allocation. Never call blocking methods on Tokio's executor.
 pub struct Store {
@@ -186,6 +195,24 @@ impl Store {
     }
     pub fn get(&self, job_id: i64) -> Result<Option<Accepted>> {
         self.call(move |db| load(&db.connection, job_id))
+    }
+    pub fn status(&self, job_id: i64) -> Result<Option<JobStatus>> {
+        self.call(move |db| {
+            let tx = db.connection.transaction()?;
+            let count: Option<i64> = tx.query_row("SELECT file_count FROM jobs WHERE job_id=?1", [job_id], |r| r.get(0)).optional()?;
+            let Some(count) = count else { return Ok(None); };
+            if !(1..=256).contains(&count) { return Err(StoreError::InvalidContext); }
+            let job = load(&tx, job_id)?.ok_or(StoreError::CorruptState)?;
+            let transfers = (0..count as usize).map(|i| load_transfer(&tx, job_id, i)).collect::<Result<Vec<_>>>()?;
+            let missing = {
+                let mut s = tx.prepare("SELECT file_index,deadline,blocked FROM missing WHERE job_id=?1 ORDER BY file_index")?;
+                s.query_map([job_id], |r| Ok((r.get::<_,u32>(0)? as usize, r.get(1)?, r.get(2)?)))?.collect::<std::result::Result<Vec<_>,_>>()?
+            };
+            let delivery = tx.query_row("SELECT failures,retry_after,code FROM delivery_failures WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?;
+            let manifest_phase = load_manifest(&tx, job_id)?.map(|m| m.phase);
+            tx.commit()?;
+            Ok(Some(JobStatus { job, transfers, missing, delivery, manifest_phase }))
+        })
     }
     pub fn claim_intent(
         &self,

@@ -26,6 +26,8 @@ and publishes one claimed file while retaining its source; stop the daemon first
 to release its exclusive claim lock. The service now delivers recordings in the
 background and commits exact completion manifests while retaining sources.
 There is no post-transfer cleanup yet. See [increment 06](../docs/RUST-INCREMENT-06.md),
+and [increment 07](../docs/RUST-INCREMENT-07.md) for read-only
+`GET /api/v2/jobs/{job_id}` operator status,
 [increment 05](../docs/RUST-INCREMENT-05.md),
 [increment 04](../docs/RUST-INCREMENT-04.md) for the runnable contract/configuration
 and [increment 03](../docs/RUST-INCREMENT-03.md) for local filesystem limits.

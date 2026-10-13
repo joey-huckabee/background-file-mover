@@ -36,6 +36,38 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 #[test]
+fn status_snapshot_preserves_deadlines_review_and_claims_across_restart() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    assert!(s.status(999).unwrap().is_none());
+    let job = s.accept(&input("g", "status", "data"), &context()).unwrap();
+    s.note_missing(job.job_id, 0, 100).unwrap();
+    let before = s.status(job.job_id).unwrap().unwrap();
+    assert_eq!(before.job.recording.handoff(), Handoff::Pending);
+    assert!(!before.missing[0].2);
+    let deadline = before.missing[0].1;
+    // Observation does not persist expiry or change admission/retry state.
+    assert_eq!(
+        s.status(job.job_id).unwrap().unwrap().missing,
+        before.missing
+    );
+    assert!(s.claim_blocked(job.job_id, deadline).unwrap());
+    for t in [100, 105, 110] {
+        s.delivery_failed(job.job_id, t).unwrap();
+    }
+    drop(s);
+    let s = Store::open_read_only(f.db()).unwrap();
+    let after = s.status(job.job_id).unwrap().unwrap();
+    assert_eq!(after.missing, vec![(0, deadline, true)]);
+    assert_eq!(
+        after.delivery,
+        Some((3, 115, "delivery_requires_review".into()))
+    );
+    assert!(after.transfers.iter().all(Option::is_none));
+    assert!(after.manifest_phase.is_none());
+}
+
+#[test]
 fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();

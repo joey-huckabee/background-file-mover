@@ -50,15 +50,16 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 67 tests pass in both profiles inside the pinned runtime:
-ten core, twenty-four storage, ten claims, thirteen copied-transfer/manifest and ten
+The workspace's 70 tests pass in both profiles inside the pinned runtime:
+ten core, twenty-five storage, ten claims, thirteen copied-transfer/manifest and twelve
 executable HTTP/background/CLI tests. All twenty emitted executables use the standard
 loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
 Linux packages and adds nine pinned SHA-256 packages, recorded in
 [rust-integrity-dependencies.json](../scripts/rust-integrity-dependencies.json).
 The gate checks their checksums and sha2's std/force-soft feature set, alongside
 the qualified SQLite/rustix/Tokio/Serde/httparse configurations. See
-[the automatic delivery increment](RUST-INCREMENT-06.md) for tested effects and limits.
+[the automatic delivery increment](RUST-INCREMENT-06.md) and
+[the operator status increment](RUST-INCREMENT-07.md) for tested effects and limits.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd

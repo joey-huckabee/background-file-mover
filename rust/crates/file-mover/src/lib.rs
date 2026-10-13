@@ -114,6 +114,8 @@ pub struct Response {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<&'static str>,
     pub retryable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<serde_json::Value>,
 }
 fn error(status: u16, code: &'static str, retryable: bool, job: Option<i64>) -> Response {
     Response {
@@ -123,6 +125,7 @@ fn error(status: u16, code: &'static str, retryable: bool, job: Option<i64>) -> 
         source_paths_released: false,
         error: Some(code),
         retryable,
+        details: None,
     }
 }
 fn now() -> i64 {
@@ -186,6 +189,8 @@ struct Worker {
     thread: Option<std::thread::JoinHandle<()>>,
     delivery: Option<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
+    observer: Option<mpsc::SyncSender<(i64, oneshot::Sender<Response>)>>,
+    observation: Option<std::thread::JoinHandle<()>>,
 }
 impl Worker {
     fn start(c: &Config) -> Result<Self, Box<dyn std::error::Error>> {
@@ -193,6 +198,15 @@ impl Worker {
         let guard = Arc::new(mover_fs::LocalClaimLock::acquire(&c.source_root)?);
         let store = Arc::new(Store::open(&c.state_database)?);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
+        let (observer, observations) = mpsc::sync_channel::<(i64, oneshot::Sender<Response>)>(8);
+        let observation_store = store.clone();
+        let observation = std::thread::Builder::new()
+            .name("mover-status".into())
+            .spawn(move || {
+                while let Ok((id, reply)) = observations.recv() {
+                    let _ = reply.send(status_response(&observation_store, id));
+                }
+            })?;
         let stop = Arc::new(AtomicBool::new(false));
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
@@ -263,6 +277,8 @@ impl Worker {
             thread: Some(thread),
             delivery: Some(delivery),
             stop,
+            observer: Some(observer),
+            observation: Some(observation),
         })
     }
 }
@@ -270,6 +286,10 @@ impl Drop for Worker {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Relaxed);
         self.sender.take();
+        self.observer.take();
+        if let Some(t) = self.observation.take() {
+            let _ = t.join();
+        }
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
@@ -338,6 +358,59 @@ fn process(
         source_paths_released: true,
         error: None,
         retryable: false,
+        details: None,
+    }
+}
+fn status_response(store: &Store, id: i64) -> Response {
+    let snapshot = match store.status(id) {
+        Ok(Some(s)) => s,
+        Ok(None) => return error(404, "not_found", false, None),
+        Err(_) => return error(503, "storage_unavailable", true, Some(id)),
+    };
+    let recording = &snapshot.job.recording;
+    let released = recording.handoff() == Handoff::Ready202;
+    let committed = recording.is_committed();
+    let files: Vec<_> = recording.submission().files().iter().enumerate().map(|(i, f)| {
+        let t = &snapshot.transfers[i];
+        serde_json::json!({"file_id":i.to_string(),"name":f.relative_path(),"size_bytes":recording.file_size(i),
+            "phase":format!("{:?}",recording.file_phase(i).expect("validated file index")),
+            "transfer_phase":t.as_ref().map(|t|format!("{:?}",t.phase)),
+            "attempt":t.as_ref().map(|t|t.attempt)})
+    }).collect();
+    let missing: Vec<_> = snapshot.missing.iter().map(|(i, deadline, blocked)| serde_json::json!({
+        "file_id":i.to_string(),"deadline":deadline,"blocked":blocked,"deadline_elapsed":now()>=*deadline
+    })).collect();
+    let condition = if committed {
+        "Committed"
+    } else if snapshot.missing.iter().any(|(_, d, b)| *b || now() >= *d)
+        || snapshot.delivery.as_ref().is_some_and(|(n, _, _)| *n >= 3)
+    {
+        "ReviewRequired"
+    } else if !released {
+        "AwaitingClaims"
+    } else if snapshot.delivery.is_some() {
+        "Retrying"
+    } else {
+        "Ready"
+    };
+    Response {
+        status: 200,
+        job_id: Some(id.to_string()),
+        state: Some(if committed {
+            "Committed"
+        } else if released {
+            "Claimed"
+        } else {
+            "Accepted"
+        }),
+        source_paths_released: released,
+        error: None,
+        retryable: false,
+        details: Some(
+            serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
+            "condition":condition,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+            "files":files,"missing":missing,"delivery_retry":snapshot.delivery.map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))}),
+        ),
     }
 }
 async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
@@ -359,7 +432,12 @@ async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
         bytes.extend_from_slice(&buffer[..n]);
     }
 }
-async fn connection(mut stream: TcpStream, c: Arc<Config>, sender: mpsc::SyncSender<Work>) {
+async fn connection(
+    mut stream: TcpStream,
+    c: Arc<Config>,
+    sender: mpsc::SyncSender<Work>,
+    observer: mpsc::SyncSender<(i64, oneshot::Sender<Response>)>,
+) {
     let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
         Err(_) => error(408, "request_timeout", true, None),
         Ok(Err(e)) => e,
@@ -377,6 +455,34 @@ async fn connection(mut stream: TcpStream, c: Arc<Config>, sender: mpsc::SyncSen
                     source_paths_released: false,
                     error: None,
                     retryable: false,
+                    details: None,
+                }
+            } else if r.head.target.starts_with(b"/api/v2/jobs/") {
+                if r.head.method != "GET" {
+                    error(405, "method_not_allowed", false, None)
+                } else if !r.body.is_empty() {
+                    error(400, "unexpected_body", false, None)
+                } else {
+                    let id = std::str::from_utf8(&r.head.target[13..])
+                        .ok()
+                        .and_then(|s| {
+                            s.parse::<i64>()
+                                .ok()
+                                .filter(|id| *id > 0 && id.to_string() == s)
+                        });
+                    if let Some(id) = id {
+                        let (reply, result) = oneshot::channel();
+                        if observer.try_send((id, reply)).is_err() {
+                            error(503, "service_busy", true, None)
+                        } else {
+                            match timeout(Duration::from_secs(2), result).await {
+                                Ok(Ok(r)) => r,
+                                _ => error(503, "storage_unavailable", true, Some(id)),
+                            }
+                        }
+                    } else {
+                        error(400, "invalid_job_id", false, None)
+                    }
                 }
             } else if r.head.target != b"/api/v2/jobs" {
                 error(404, "not_found", false, None)
@@ -446,9 +552,10 @@ pub async fn serve(
             };
             let c = c.clone();
             let sender = worker.sender.as_ref().unwrap().clone();
+            let observer = worker.observer.as_ref().unwrap().clone();
             tasks.spawn(async move {
                 let _permit = permit;
-                connection(stream, c, sender).await;
+                connection(stream, c, sender, observer).await;
             });
         }
     }
