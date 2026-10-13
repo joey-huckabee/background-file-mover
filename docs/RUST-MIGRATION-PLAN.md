@@ -28,8 +28,8 @@ plan; their sequence and same-filesystem-only scope require revision.
 ## Current baseline
 
 The reference implementation is `main` at `a6efb3d`. C6 is delivered; the earlier
-C++ roadmap next called for C7, the dashboard. The active roadmap begins with
-E1, the SQLite compatibility experiment. The generated trace matrix reports
+C++ roadmap next called for C7, the dashboard. The active roadmap now begins
+with requirements and transfer-protocol design. The generated trace matrix reports
 109 of 214 in-scope requirements with test markers and 134 of 214 verified
 including inspection, analysis, and demonstration. Those are C++ evidence,
 not Rust coverage or proof that deployment qualification is complete.
@@ -187,8 +187,7 @@ policy explicitly before making it a foundational dependency. [Rust copyright in
 
 ## Six dependency experiments beginning with SQLite
 
-The active experiment schedule and completion gates are in
-[ROADMAP.md](ROADMAP.md#six-dependency-build-experiments): E1 `rusqlite` with bundled
+The experiment design covered six package families: E1 `rusqlite` with bundled
 SQLite, E2 `rustix`, E3 `serde`/`serde_json`, E4 `httparse`, E5 `tokio`, and
 E6 `thiserror`. E1 passed with Rust 1.99.0 using the reference cargo-zigbuild
 builder. E2 also passed; its [result](E2-RUSTIX-RESULTS.md) records the isolated,
@@ -199,8 +198,9 @@ with no new shared libraries. E4 passed; its [result](E4-HTTP-RESULTS.md) record
 strict HTTP, bounded TCP, verified normal/SWAR variants and cumulative checks.
 E5 passed with Tokio; its [result](E5-TOKIO-RESULTS.md) records the minimal runtime,
 signals, blocking drain, async TCP and forced entropy fallbacks. E6 is pending.
-Continue them in order, then finish R0/R1 and
-proceed with R2–R14. The detailed [E1 report](E1-SQLITE-RESULTS.md)
+Experiments remain paused. Resume from the forward-looking
+[roadmap](ROADMAP.md#next-work), not by automatically starting E6.
+The detailed [E1 report](E1-SQLITE-RESULTS.md)
 limits its result to the pinned inputs and exercised APIs.
 
 Every proposed production dependency must pass a small, retained experiment
