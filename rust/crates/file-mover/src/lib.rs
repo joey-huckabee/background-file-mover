@@ -202,6 +202,7 @@ struct MissingResetInput {
 }
 enum Observation {
     Status(i64),
+    Retention(Option<i64>),
     Resume(i64, ResumeInput),
     ResetMissing(i64, MissingResetInput),
 }
@@ -228,6 +229,7 @@ impl Worker {
                 while let Ok((work, reply)) = observations.recv() {
                     let response = match work {
                         Observation::Status(id) => status_response(&observation_store, id),
+                        Observation::Retention(id) => retention_response(&observation_store, id),
                         Observation::Resume(id, input) => {
                             resume_response(&observation_store, id, input)
                         }
@@ -473,6 +475,41 @@ fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
         Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
+fn retention_response(store: &Store, id: Option<i64>) -> Response {
+    let r = match store.retention(id) {
+        Ok(Some(r)) => r,
+        Ok(None) => return error(404, "not_found", false, None),
+        Err(_) => return error(503, "storage_unavailable", true, id),
+    };
+    let limits=r.configured_limits.map(|(jobs,bytes)|serde_json::json!({"max_retained_jobs":jobs,"max_reserved_bytes":bytes.to_string()}));
+    let headroom = if id.is_none() {
+        r.configured_limits.map(|(jobs,bytes)|serde_json::json!({"new_job_slots":jobs.saturating_sub(r.jobs),"source_bytes":u128::from(bytes).saturating_sub(r.source_reserved_bytes).to_string(),"destination_bytes":u128::from(bytes).saturating_sub(r.destination_reserved_bytes).to_string(),"over_limit":r.jobs>jobs || r.source_reserved_bytes>u128::from(bytes) || r.destination_reserved_bytes>u128::from(bytes)}))
+    } else {
+        None
+    };
+    Response {
+        status: 200,
+        job_id: r.job_id.map(|id| id.to_string()),
+        state: None,
+        source_paths_released: false,
+        error: None,
+        retryable: false,
+        details: Some(
+            serde_json::json!({"scope":if id.is_some(){"Job"}else{"Global"},"retained_jobs":r.jobs,"committed_jobs":r.committed_jobs,"source_claims":r.source_claims,"confirmed_claims":r.confirmed_claims,"unmeasured_files":r.unmeasured_files,"source_reserved_bytes":r.source_reserved_bytes.to_string(),"destination_reserved_bytes":r.destination_reserved_bytes.to_string(),"destination_attempts_by_phase":{"Intent":r.destination_attempts_by_phase[0],"Copied":r.destination_attempts_by_phase[1],"Verified":r.destination_attempts_by_phase[2],"PublishIntent":r.destination_attempts_by_phase[3],"Published":r.destination_attempts_by_phase[4]},"configured_limits":limits,"global_headroom":headroom,"filesystem_inspected":false,"unreceipted_allocations_accounted":false,"automatic_reclamation_enabled":false}),
+        ),
+    }
+}
+async fn operator_reply(observer: &mpsc::SyncSender<OperatorWork>, work: Observation) -> Response {
+    let (reply, result) = oneshot::channel();
+    if observer.try_send((work, reply)).is_err() {
+        error(503, "service_busy", true, None)
+    } else {
+        match timeout(Duration::from_secs(2), result).await {
+            Ok(Ok(r)) => r,
+            _ => error(503, "storage_unavailable", true, None),
+        }
+    }
+}
 fn missing_reset_response(store: &Store, id: i64, input: MissingResetInput) -> Response {
     let Some(file_index) = input
         .file_id
@@ -554,15 +591,26 @@ async fn connection(
                     retryable: false,
                     details: None,
                 }
+            } else if r.head.target == b"/api/v2/retention" {
+                if r.head.method != "GET" {
+                    error(405, "method_not_allowed", false, None)
+                } else if !r.body.is_empty() {
+                    error(400, "unexpected_body", false, None)
+                } else {
+                    operator_reply(&observer, Observation::Retention(None)).await
+                }
             } else if r.head.target.starts_with(b"/api/v2/jobs/") {
                 let target = &r.head.target[13..];
                 let resume = target.ends_with(b"/resume");
                 let reset_missing = target.ends_with(b"/reset-missing");
+                let retention = target.ends_with(b"/retention");
                 let control = resume || reset_missing;
                 let id_bytes = if resume {
                     &target[..target.len() - 7]
                 } else if reset_missing {
                     &target[..target.len() - 14]
+                } else if retention {
+                    &target[..target.len() - 10]
                 } else {
                     target
                 };
@@ -588,6 +636,8 @@ async fn connection(
                         } else if reset_missing {
                             serde_json::from_slice::<MissingResetInput>(&r.body)
                                 .map(|input| Observation::ResetMissing(id, input))
+                        } else if retention {
+                            Ok(Observation::Retention(Some(id)))
                         } else {
                             Ok(Observation::Status(id))
                         };
@@ -595,7 +645,7 @@ async fn connection(
                             let command_id = match &work {
                                 Observation::Resume(_, input) => Some(&input.command_id),
                                 Observation::ResetMissing(_, input) => Some(&input.command_id),
-                                Observation::Status(_) => None,
+                                Observation::Status(_) | Observation::Retention(_) => None,
                             };
                             let key_conflict = command_id.is_some_and(|id| {
                                 r.head

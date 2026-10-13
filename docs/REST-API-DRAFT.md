@@ -12,7 +12,9 @@ implemented in [increment 06](RUST-INCREMENT-06.md); the read-only individual
 precedence over examples below. [Increment 08](RUST-INCREMENT-08.md) defines the
 implemented audited delivery-only resume request/receipt; the broader controls
 below remain proposals. [Increment 09](RUST-INCREMENT-09.md) defines the
-implemented exact-file `reset-missing` command. Remaining routes/forms are proposals.
+implemented exact-file `reset-missing` command.
+[Increment 10](RUST-INCREMENT-10.md) defines read-only global and per-job
+retention accounting. Remaining routes/forms are proposals.
 
 ## Existing interface and proposed changes
 

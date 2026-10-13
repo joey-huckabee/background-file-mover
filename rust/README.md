@@ -30,6 +30,9 @@ for delivery/manifests, [increment 07](../docs/RUST-INCREMENT-07.md) for read-on
 `GET /api/v2/jobs/{job_id}` operator status, and
 [increment 08](../docs/RUST-INCREMENT-08.md) for audited delivery resume, plus
 [increment 09](../docs/RUST-INCREMENT-09.md) for audited missing-file deadline reset.
+[Increment 10](../docs/RUST-INCREMENT-10.md) adds read-only global/per-job retention
+accounting; [the repair contract](../docs/RETENTION-REPAIR-DESIGN.md) defines
+prerequisites for later inspection and repair effects.
 Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.

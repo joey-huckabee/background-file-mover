@@ -423,6 +423,106 @@ fn provision_destination(f: &Fixture) {
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
     f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
 }
+fn retention(f: &Fixture, id: Option<&str>) -> (u16, Value) {
+    let path = id.map_or_else(
+        || "/api/v2/retention".to_owned(),
+        |id| format!("/api/v2/jobs/{id}/retention"),
+    );
+    f.raw(format!("GET {path} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
+}
+#[test]
+fn retention_api_reports_admission_headroom_and_committed_retained_sources() {
+    let mut f = Fixture::new(300);
+    let (code, r) = retention(&f, None);
+    assert_eq!(code, 200);
+    assert_eq!(r["details"]["retained_jobs"], 0);
+    assert_eq!(r["details"]["global_headroom"]["new_job_slots"], 64);
+    let body = f.input("accounting", json!([{"name":"data"},{"name":"late"}]));
+    f.write("data", b"abc");
+    assert_eq!(f.post(&body).0, 503);
+    let (_, r) = retention(&f, Some("1"));
+    assert_eq!(r["details"]["source_reserved_bytes"], "3");
+    assert_eq!(r["details"]["unmeasured_files"], 1);
+    assert_eq!(r["details"]["confirmed_claims"], 1);
+    assert!(r["details"]["global_headroom"].is_null());
+    f.write("late", b"xy");
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    wait_manifest(&f, "1");
+    f.stop();
+    f.start();
+    let (_, r) = retention(&f, None);
+    assert_eq!(r["details"]["source_reserved_bytes"], "5");
+    assert_eq!(r["details"]["destination_reserved_bytes"], "5");
+    assert_eq!(r["details"]["committed_jobs"], 1);
+    assert_eq!(
+        r["details"]["destination_attempts_by_phase"]["Published"],
+        2
+    );
+    assert_eq!(
+        r["details"]["global_headroom"]["source_bytes"],
+        (1099511627776_u64 - 5).to_string()
+    );
+    assert_eq!(r["details"]["filesystem_inspected"], false);
+    assert_eq!(r["details"]["automatic_reclamation_enabled"], false);
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+    assert_eq!(retention(&f, Some("999")).0, 404);
+    assert_eq!(retention(&f, Some("01")).0, 400);
+    assert_eq!(
+        f.raw(b"POST /api/v2/retention HTTP/1.1\r\nHost: h\r\n\r\n")
+            .0,
+        405
+    );
+    assert_eq!(
+        f.raw(b"GET /api/v2/retention HTTP/1.1\r\nHost: h\r\nContent-Length: 1\r\n\r\nx")
+            .0,
+        400
+    );
+    assert_eq!(
+        f.raw(b"POST /api/v2/jobs/1/retention HTTP/1.1\r\nHost: h\r\n\r\n")
+            .0,
+        405
+    );
+}
+#[test]
+fn retention_api_charges_interrupted_attempts_and_does_not_claim_to_find_orphans() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"abc");
+    assert_eq!(
+        f.post(&f.input("attempt-accounting", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let t = mover_fs::prepare_transfer(&s, 1).unwrap();
+        mover_fs::restart_transfer(&s, &t).unwrap();
+        // Allocation without a receipt cannot be attributed by database accounting.
+        std::fs::write(
+            f.root.join("destination/1/.staging/unreceipted.part"),
+            b"unknown bytes",
+        )
+        .unwrap();
+        for time in [100, 105, 110] {
+            s.delivery_failed(1, time).unwrap();
+        }
+    }
+    f.start();
+    let (_, r) = retention(&f, Some("1"));
+    assert_eq!(r["details"]["destination_reserved_bytes"], "6");
+    assert_eq!(r["details"]["destination_attempts_by_phase"]["Intent"], 2);
+    assert_eq!(r["details"]["unreceipted_allocations_accounted"], false);
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/.staging/unreceipted.part")).unwrap(),
+        b"unknown bytes"
+    );
+    assert_eq!(status(&f, "1").1["details"]["condition"], "ReviewRequired");
+    assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+}
 fn reset_body(epoch: u32, file: &str, seconds: u32) -> Value {
     json!({"command_id":format!("missing-{epoch}"),"expected_missing_review_epoch":epoch,"file_id":file,"retry_window_seconds":seconds,"reason":"Confirmed recorder has not reused the pending source paths"})
 }

@@ -35,6 +35,130 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
+#[test]
+fn retention_reports_pending_observations_without_truncating_large_totals() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let empty = s.retention(None).unwrap().unwrap();
+    assert_eq!(empty.jobs, 0);
+    assert_eq!(empty.source_reserved_bytes, 0);
+    assert!(s.retention(Some(999)).unwrap().is_none());
+    let j = ready_job(&s);
+    let pending = s
+        .accept(&input("h", "pending-retention", "other"), &context())
+        .unwrap();
+    s.begin_claim(&intent_for(&pending, 0, u64::MAX)).unwrap();
+    s.configure_limits(2, u64::MAX).unwrap();
+    let r = s.retention(None).unwrap().unwrap();
+    assert_eq!(r.jobs, 2);
+    assert_eq!(r.source_claims, 3);
+    assert_eq!(r.confirmed_claims, 2);
+    assert_eq!(r.unmeasured_files, 1);
+    assert_eq!(r.source_reserved_bytes, 2 * u128::from(u64::MAX) + 3);
+    assert_eq!(r.destination_reserved_bytes, 0);
+    assert_eq!(r.configured_limits, Some((2, u64::MAX)));
+    assert!(matches!(
+        s.claim_capacity(0),
+        Err(StoreError::AdmissionFull)
+    ));
+    let one = s.retention(Some(j.job_id)).unwrap().unwrap();
+    assert_eq!(one.jobs, 1);
+    assert_eq!(one.source_reserved_bytes, u128::from(u64::MAX) + 3);
+    drop(s);
+    let s = Store::open_read_only(f.db()).unwrap();
+    let r = s.retention(None).unwrap().unwrap();
+    assert_eq!(r.source_reserved_bytes, 2 * u128::from(u64::MAX) + 3);
+    assert!(r.configured_limits.is_none());
+}
+#[test]
+fn retention_counts_old_attempts_and_committed_sources_without_releasing_capacity() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let mut c = context();
+    c.policy.group_by_generator = false;
+    let input = Submission::new(
+        "g",
+        "attempts",
+        "/mnt/recordings/current",
+        vec![FileSpec::new("data", None).unwrap()],
+    )
+    .unwrap();
+    let j = s.accept(&input, &c).unwrap();
+    let intent = intent_for(&j, 0, 3);
+    s.begin_claim(&intent).unwrap();
+    s.finish_claim(&intent).unwrap();
+    let mut t = Transfer {
+        job_id: j.job_id,
+        file_index: 0,
+        attempt: 1,
+        destination_root: c.destination_path,
+        relative_name: "data".into(),
+        root: intent.root.clone(),
+        area: intent.area.clone(),
+        parent: intent.parent.clone(),
+        staging_directory: intent.area.clone(),
+        stage: ObjectIdentity {
+            size: 0,
+            ..intent.source.clone()
+        },
+        sha256: None,
+        phase: TransferPhase::Intent,
+    };
+    s.save_transfer(&t).unwrap();
+    t.attempt = 2;
+    t.stage.inode += 1;
+    s.save_transfer(&t).unwrap();
+    t.stage.size = 3;
+    t.sha256 = Some("a".repeat(64));
+    for phase in [
+        TransferPhase::Copied,
+        TransferPhase::Verified,
+        TransferPhase::PublishIntent,
+        TransferPhase::Published,
+    ] {
+        t.phase = phase;
+        s.save_transfer(&t).unwrap();
+    }
+    let mut m = ManifestRecord {
+        job_id: j.job_id,
+        bytes: "trusted worker receipt".into(),
+        sha256: "b".repeat(64),
+        phase: 0,
+        object: None,
+    };
+    s.save_manifest(&m).unwrap();
+    m.phase = 1;
+    m.object = Some(ObjectIdentity {
+        size: 0,
+        ..intent.source.clone()
+    });
+    s.save_manifest(&m).unwrap();
+    m.object.as_mut().unwrap().size = m.bytes.len() as u64;
+    for phase in 2..=4 {
+        m.phase = phase;
+        s.save_manifest(&m).unwrap();
+    }
+    s.configure_limits(1, 6).unwrap();
+    let r = s.retention(Some(j.job_id)).unwrap().unwrap();
+    assert_eq!(r.committed_jobs, 1);
+    assert_eq!(r.source_reserved_bytes, 3);
+    assert_eq!(r.destination_reserved_bytes, 6);
+    assert_eq!(r.destination_attempts_by_phase, [1, 0, 0, 0, 1]);
+    assert!(matches!(
+        s.transfer_capacity(j.job_id, 0),
+        Err(StoreError::AdmissionFull)
+    ));
+    drop(s);
+    let s = Store::open_read_only(f.db()).unwrap();
+    assert_eq!(
+        s.retention(None)
+            .unwrap()
+            .unwrap()
+            .destination_reserved_bytes,
+        6
+    );
+}
+
 fn reset_request(epoch: u32) -> MissingResetRequest {
     MissingResetRequest {
         command_id: format!("reset-{epoch}"),

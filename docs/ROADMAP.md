@@ -10,8 +10,10 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add explicit retention/orphan repair tooling,
-  improve retry classification/backoff, and qualify physical free-space margins.
+- [ ] Add offline custody/orphan inspection and durable allocation intents/fencing
+  before explicit retention/orphan repair effects; follow
+  [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md).
+- [ ] Improve retry classification/backoff and qualify physical free-space margins.
 - [ ] Qualify supervised workers and source/destination effects on the controlled
   NFS fixture, then implement configurable gated cleanup only after failure evidence passes.
 - [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,

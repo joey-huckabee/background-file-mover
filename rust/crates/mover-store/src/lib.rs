@@ -15,8 +15,10 @@ use std::{
 };
 mod missing_resets;
 mod operators;
+mod retention;
 pub use missing_resets::{MissingResetAudit, MissingResetReceipt, MissingResetRequest};
 pub use operators::{ResumeAudit, ResumeReceipt, ResumeRequest};
+pub use retention::RetentionSnapshot;
 
 const APPLICATION_ID: i64 = 0x42464d52;
 const SCHEMA_VERSION: i64 = 7;
@@ -964,26 +966,9 @@ fn load_manifest(c: &Connection, id: i64) -> Result<Option<ManifestRecord>> {
     .transpose()
 }
 fn check_retained_bytes(c: &Connection, extra: u64, limit: u64, destination: bool) -> Result<()> {
-    let mut total = u128::from(extra);
-    if destination {
-        let mut s=c.prepare("SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index")?;
-        for row in s.query_map([], |r| r.get::<_, String>(0))? {
-            total += u128::from(
-                ObjectIdentity::decode(&row?)
-                    .ok_or(StoreError::CorruptState)?
-                    .size,
-            );
-        }
-    } else {
-        let mut s = c.prepare("SELECT source_identity FROM claims")?;
-        for row in s.query_map([], |r| r.get::<_, String>(0))? {
-            total += u128::from(
-                ObjectIdentity::decode(&row?)
-                    .ok_or(StoreError::CorruptState)?
-                    .size,
-            );
-        }
-    }
+    let total = retention::reserved_bytes(c, destination, None)?
+        .checked_add(u128::from(extra))
+        .ok_or(StoreError::CorruptState)?;
     if total > u128::from(limit) {
         return Err(StoreError::AdmissionFull);
     }

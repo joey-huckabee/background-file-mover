@@ -47,6 +47,12 @@ missing review epoch and stable command ID. It preserves claims/reservations and
 the pinned policy; the recorder must retry its original submission for 202.
 See [increment 09](../../../docs/RUST-INCREMENT-09.md).
 
+`retention(None)` reports global conservative reservations; `retention(Some(id))`
+reports one job. One read transaction streams fixed-size counts, checked u128
+source/destination byte totals and attempt-phase counts using the same sums as
+admission. It performs no filesystem inspection or reclamation. See
+[increment 10](../../../docs/RUST-INCREMENT-10.md) for bounds and limitations.
+
 `save_transfer` records immutable owned-attempt mapping and ordered
 copy/verification/publication receipts. Only incomplete copies can allocate a
 new attempt. Changed receipts or skipped phases fail closed. Hydration restores
