@@ -41,6 +41,11 @@ use the filesystem protocol; S3 remains a separately qualified future adapter wi
 the same producer-facing milestones. See the additive Rust section of
 [L1-REQ.md](L1-REQ.md#additive-rust-generator-and-delivery-requirements).
 
+Generator file names may be relative subfolder paths; list files explicitly.
+Producer sizes are optional assertions. The service measures and persists actual
+sizes during claim before copying; this adds no payload read. Recording metadata
+and per-file keys are optional in the generator body, with service-assigned IDs.
+
 - Separate durable `Accepted` from confirmed `Claimed`. Producer source-path reuse
   is allowed only after claim confirmation. Require completed files, closed writers,
   explicit handoff and idempotent submission; pathname changes do not stop writers.

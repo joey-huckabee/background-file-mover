@@ -34,6 +34,8 @@ experiment, or begin a component-for-component port.
 - [ ] Derive L2/L3 and Rust tests for generator identity/source-directory/file-name
   submission, configured destination routing, pinned route replay and caller binding
   from the additive requirements in [L1-REQ.md](L1-REQ.md).
+- [ ] Derive claim-size evidence and tests for omitted/expected/zero/mismatched
+  sizes, explicit subfolder paths, symlink/mount escape and directory preservation.
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
   ownership evidence against partial claims, publication and stale worker effects.
 - [ ] Finalize the versioned completion manifest, filename encoding and metadata

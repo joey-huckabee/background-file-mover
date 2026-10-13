@@ -11,8 +11,10 @@ source custody, publication, recording-set commitment and cleanup. Its
 
 ## Normal filesystem path
 
-1. Record intent, source identity/declared size, integrity algorithm and operation
-   ownership. Claim the source under the producer's completed-file handoff contract.
+1. Record intent, optional expected size, integrity algorithm and operation
+   ownership. Observe source identity/actual size during claim, confirm them after
+   relocation and durably record the claimed size before copying. Compare any
+   supplied expected size. Claim under the producer's completed-file handoff contract.
    A rename does not prevent an existing writer from modifying the file.
 2. Create exclusively owned destination staging. Read the source once through a
    bounded reusable buffer, update the source hash and write the same byte stream

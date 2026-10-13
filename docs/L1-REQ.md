@@ -524,6 +524,22 @@ of the identity string supplied in the submission body.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust caller binding or explicitly trusted local deployment boundary.
 
+### L1-SYS-028
+
+The system shall determine and durably record each submitted file's actual logical
+size during claiming without requiring a producer-supplied size.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust claim evidence; optional expected sizes are validated assertions, including zero.
+
+### L1-SYS-029
+
+The system shall accept explicitly listed regular files in source subfolders using
+safe relative paths without recursively submitting, relocating or deleting directories.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust component traversal within approved source scopes; no symlink or mount escape.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate

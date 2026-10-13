@@ -50,23 +50,57 @@ Idempotency-Key: recording-0042
 
 {
   "generator_id": "recorder-host-a",
-  "recording_id": "scenario-17-run-42",
-  "producer_handoff": "completed_immutable",
   "source_path": "/mnt/recordings/current",
   "files": [
-    {"file_key": "video", "name": "video.bin", "size_bytes": 100000000000},
-    {"file_key": "telemetry", "name": "telemetry.bin", "size_bytes": 12000000}
+    {"name": "video/video.bin"},
+    {"name": "telemetry/telemetry.bin"}
   ]
 }
 ```
 
 `source_path` names a directory **as visible to the mover**, inside a source root
 approved for that generator. This is a metadata request, not an upload of file
-contents or access to an arbitrary path on another computer. Each `name` is one
-file-name component, not an absolute/nested path; reject separators, `.`/`..`,
-NUL, duplicates and invalid encoding. Resolve paths using the protocol's safe
+contents or access to an arbitrary path on another computer. Each `name` is a
+relative file path beneath that directory; subfolders are permitted. Reject
+absolute paths, backslashes, empty components, `.`/`..`, NUL, duplicate paths
+and invalid encoding. Use `/` between components. Resolve paths using the protocol's safe
 descriptor traversal, not string-prefix checks. Persist both the supplied form
 and the normalized root/relative-file mapping.
+
+Only `generator_id`, `source_path` and `files` are required in the generator
+body. `recording_id`, `producer_handoff` and file `file_key` remain optional
+metadata/assertions. If omitted, the service uses its job ID as recording identity
+and assigns stable file IDs. The completed/immutable producer contract still
+applies when its assertion field is omitted; startup generator registration
+establishes that contract. The idempotency header remains required for safe replay.
+
+For example, `video/video.bin` resolves beneath
+`/mnt/recordings/current/video/`. List each file explicitly: this does not request
+a recursive directory scan or relocation of its directory. Claiming preserves
+the file's original relative-path mapping while moving it into private custody.
+Parent/subfolder names must remain stable until the all-files release. The service
+does not remove empty producer directories. Destination layout is controlled
+by configured naming policy, not automatically by the supplied subfolder tree;
+collisions between resolved names are rejected before acceptance.
+
+### Optional expected size
+
+`size_bytes` is optional in both v2 forms. The service obtains the actual logical
+byte size from the opened regular file during claiming, confirms the same object
+and stable size after relocation, and durably records that size in the claim
+receipt before reporting release. It does not read the payload to measure size.
+Copying and verification must match this recorded claimed size.
+
+When supplied, `size_bytes` is a nonnegative integer expected-size assertion,
+including zero for an empty file, not authority to truncate/pad the transfer.
+A mismatch blocks claim confirmation for the job and reports
+`source_size_mismatch`, retaining any files already in custody. A changed size
+during claim/copy also blocks advancement. Closed writers and immutability
+remain required; measuring a size does not make a changing file safe.
+
+Before inspection, actual sizes and `copy_bytes_total` may be `null`; expose
+unknown sizes distinctly from zero. Declared expectations are separate from
+observed claim sizes. Once all claims are confirmed, the actual total is known.
 
 `generator_id` is a stable configured identity, not a credential. Bind it to the
 authenticated caller where authentication exists, or an explicitly trusted local
@@ -118,7 +152,7 @@ Idempotency-Key: host-a-recording-0042
 ```
 
 Root IDs identify administrator-approved locations; source paths are relative.
-`file_key` identifies an entry within the recording; the service also assigns
+When provided, `file_key` identifies an entry within the recording; the service also assigns
 internal file IDs. Destination names follow configured naming policy and are
 resolved/persisted at acceptance. The service owns a unique recording directory
 and never overwrites a collision. No `overwrite` option is available.
@@ -146,7 +180,7 @@ Content-Type: application/json
 {
   "job_id": "job-0042",
   "generator_id": "recorder-host-a",
-  "recording_id": "scenario-17-run-42",
+  "recording_id": "job-0042",
   "accepted": true,
   "claim": {
     "status": "Pending",
@@ -193,7 +227,7 @@ GET /api/v2/jobs/job-0042 HTTP/1.1
 {
   "job_id": "job-0042",
   "generator_id": "recorder-host-a",
-  "recording_id": "scenario-17-run-42",
+  "recording_id": "job-0042",
   "revision": 8,
   "accepted": true,
   "claim": {

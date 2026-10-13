@@ -50,6 +50,8 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | L1-SYS-025 | _(none)_ | _(none)_ | Draft |
 | L1-SYS-026 | _(none)_ | _(none)_ | Draft |
 | L1-SYS-027 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-028 | _(none)_ | _(none)_ | Draft |
+| L1-SYS-029 | _(none)_ | _(none)_ | Draft |
 
 **L2 -> L3 -> Verification Artifacts**
 
@@ -334,7 +336,7 @@ Status is computed by the rollup rule below. This matrix is the single source of
 
 | Category | L1 | L2 | L3 | L2 tested | L3 tested | L2 verified | L3 verified |
 |----------|----|----|-----|-----------|-----------|-------------|-------------|
-| SYS | 27 | 0 | 0 | 0 | 0 | 0 | 0 |
+| SYS | 29 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ROB | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
 | API | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
 | OBS | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -370,23 +372,23 @@ Status is computed by the rollup rule below. This matrix is the single source of
 | INT | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | PY | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CPP | 0 | 0 | 54 | 0 | 50 | 0 | 54 |
-| **Total** | **49** | **199** | **80** | **55** | **56** | **75** | **60** |
+| **Total** | **51** | **199** | **80** | **55** | **56** | **75** | **60** |
 
-The countable requirement set is every L2 and L3 requirement plus the 12 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
+The countable requirement set is every L2 and L3 requirement plus the 14 Test-verifiable L1 *leaf* requirement(s). Composite L1s are verified transitively through their L2/L3 children, counted individually above.
 
-**Tested by at least one test marker**: 111 of 291 (38.1%).
+**Tested by at least one test marker**: 111 of 293 (37.9%).
 
-**Verified (Test or declared Inspection/Analysis/Demonstration)**: 136 of 291 (46.7%).
+**Verified (Test or declared Inspection/Analysis/Demonstration)**: 136 of 293 (46.4%).
 
 ### v1.0.0 scope-adjusted coverage
 
-13 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 77 countable requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
+15 L1 requirement(s) are annotated **Deferred** for v1.0.0, which places 79 countable requirement(s) outside this release. They remain specified verbatim and are counted above; they are excluded here so the release figure is not diluted by work that was postponed on purpose.
 
 **In v1.0.0 scope — tested**: 109 of 214 (50.9%).
 
 **In v1.0.0 scope — verified**: 134 of 214 (62.6%).
 
-Deferred L1s: L1-API-007, L1-API-008, L1-API-009, L1-SEC-008, L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006, L1-SYS-024, L1-SYS-025, L1-SYS-026, L1-SYS-027.
+Deferred L1s: L1-API-007, L1-API-008, L1-API-009, L1-SEC-008, L1-SYS-002, L1-SYS-003, L1-SYS-004, L1-SYS-005, L1-SYS-006, L1-SYS-024, L1-SYS-025, L1-SYS-026, L1-SYS-027, L1-SYS-028, L1-SYS-029.
 
 ### Orphan check
 

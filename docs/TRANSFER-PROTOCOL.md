@@ -52,7 +52,7 @@ can authorize source cleanup; see the [REST destination design](REST-API-DRAFT.m
 ## Producer and consumer contracts
 
 The producer submits an explicit, nonempty, bounded file list with root IDs,
-relative paths, exact completed sizes, recording metadata and an idempotency key.
+relative paths, optional expected sizes/recording metadata and an idempotency key.
 An expected SHA-256 is optional. The service resolves destination names once,
 rejects duplicate source entries and duplicate/reserved destination names, and
 persists the resolved mapping and policy snapshot. Naming/config changes cannot
@@ -62,6 +62,14 @@ The generator request can instead supply its mover-visible directory and file
 names, without destination fields. The service resolves approved root IDs and
 destination from validated startup configuration. Bind the normalized request,
 idempotency scope and manifest to the generator identity for that form.
+
+Names may include explicit relative subfolder components. Traverse each component
+without following symlinks or leaving approved mounts; reject traversal into
+service-private claim/staging areas. Only listed regular files are claimed;
+directories are neither recursively discovered, moved nor deleted. Optional
+expected sizes are producer assertions. Capture actual logical sizes from opened
+files during claim, confirm stable identity/size after relocation and persist
+them in claim receipts. Unknown sizes remain unknown until observed, not zero.
 
 Acceptance also durably reserves each source root/path against other active
 jobs. Reject a different submission overlapping an unreleased reservation.
@@ -166,7 +174,7 @@ Persist at least these records:
 | Record | Required evidence |
 |---|---|
 | Job | Version, instance/job ID, idempotency key and normalized request, immutable file list/name mapping, root configuration identity, policy and desired execution |
-| File | File ID, producer path, declared size, optional expected digest, observed source identity and private claim path/receipt |
+| File | File ID, producer relative path, optional expected size/digest, observed source identity, actual claimed size and private claim path/receipt |
 | Operation | Unique operation/attempt ID, phase, assignment generation, exact source/target names, prerequisites and durable intent before dispatch |
 | Copy receipt | Complete byte count and streamed SHA-256, source/attempt identity, staging identity and successful synchronization evidence |
 | Verification receipt | Independent staging digest/size match, same staging object, applied permissions/metadata policy |
@@ -202,8 +210,9 @@ when evidence is insufficient, retain data and report `ReconcileRequired`.
 2. **Claim every file.** Open and validate the completed source, commit its
    observed identity and claim intent, then relocate into the exclusive private
    claim name on that source filesystem. Confirm the claimed object matches the
-   opened source and declared size. Synchronize claimed data and both affected
-   directories as required by the endpoint contract; persist its receipt.
+   opened source and its observed size; compare any optional expected size.
+   Synchronize claimed data and both affected directories as required by the
+   endpoint contract; persist its receipt including the confirmed actual size.
    With a link fallback, first durably establish the private link, then remove
    the original entry only under the handoff/exclusive-parent contract and
    identity checks; synchronize that removal. Claim is incomplete while both
@@ -216,7 +225,7 @@ when evidence is insufficient, retain data and report `ReconcileRequired`.
    Initially begin bulk copying only after all files are claimed.
 4. **Copy.** Commit a new attempt/staging intent, create exclusively, and stream
    from the claimed source through a bounded buffer while hashing the exact
-   bytes written. Handle partial writes. Require EOF, exact declared size and
+   bytes written. Handle partial writes. Require EOF, exact recorded claimed size and
    optional expected digest match; compare source identity/size/change indicators
    around copying. Apply the recorded safe metadata/permission policy to staging,
    synchronize it and its directory, then persist the complete-copy receipt.
