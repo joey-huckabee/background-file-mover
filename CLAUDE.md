@@ -5,8 +5,9 @@
 The user now wants a durable Rust transfer coordinator, not a C++-shaped port.
 Work on `feature/rust-transfer-coordinator`; read `docs/RUST-DIRECTION.md`,
 `CONVERSATION.md` and the roadmap handoff first. Experiments are stopped after
-E1–E5; do not automatically start E6. Resolve the integrity I/O cost and revise
-the broader claiming/cross-filesystem protocol before implementation. Historical
+E1–E5; do not automatically start E6. Follow `docs/INTEGRITY-DESIGN.md`: hash the
+source during copying and reread destination staging for verification (3N logical
+data I/O). Revise the broader claiming/cross-filesystem protocol before implementation. Historical
 C++ toolchain/scope/branch guidance below applies to the reference code, and
 does not override this direction. Keep production glibc 2.22 and container-only
 compatibility qualification. Future branch cleanup requires the branch review.

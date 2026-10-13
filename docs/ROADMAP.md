@@ -14,9 +14,9 @@ before implementation.
   recording-set completion manifests and supervised worker processes.
 - [ ] Define the accept/claim/integrity/publication/cleanup protocol and the
   evidence that permits each transition and destructive action.
-- [ ] Resolve the user's requirement to improve on the proposed 4N logical I/O
-  workflow. Compare alternatives, immutability assumptions, corruption detection,
-  recovery guarantees and measured logical/physical I/O before choosing a policy.
+- [ ] Specify and implement the agreed streaming source hash during copying,
+  followed by destination reread verification. Define durable digest timing and
+  interruption recovery using [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md).
 - [ ] Revise the detailed milestone schedule in
   [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md) around the agreed protocol.
 - [ ] Decide which dashboard and integration scenarios to reuse from
@@ -41,7 +41,8 @@ experiment, or begin a component-for-component port.
 - [ ] Specify supervised filesystem worker processes, private IPC, per-endpoint
   admission budgets, worker replacement limits and uncertain-assignment fencing.
   Define behavior when a hard-mounted NFS operation does not return.
-- [ ] Choose initial integrity policies, identifiers, schema, naming/collision
+- [ ] Define integrity-policy details around streamed hashing and destination
+  verification, identifiers, schema, naming/collision
   behavior, manifests and root-ID/relative-path API boundaries.
 - [ ] Decide authentication/authorization before non-loopback deployment; preserve
   application-level restrictions to approved roots and permitted operations.
@@ -77,7 +78,7 @@ with deletion disabled; gated cleanup/production operation; measured optimizatio
 
 | Milestone | Future deliverable | Completion gate |
 |---|---|---|
-| R0 | Requirements and protocol decisions | Accepted/Claimed semantics, integrity I/O strategy, evidence model and architecture agreed |
+| R0 | Requirements and protocol decisions | Accepted/Claimed semantics, streaming-hash evidence timing, recovery model and architecture agreed |
 | R1 | Platform and isolation qualification | User's builder, container contract, filesystem capabilities and blocked-worker policy qualified |
 | R2 | Workspace and offline build foundation | Four-crate boundaries, locked minimal features, reviewed licenses and reproducible disconnected build |
 | R3 | Rust requirements evidence and CI | Separate Rust traceability, meaningful line/branch coverage, fault-injection and production-target gates |

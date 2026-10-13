@@ -1,5 +1,10 @@
 # Conversation
 
+Current decision: compute the source hash during copying, then reread destination
+staging to verify its hash/size before publication and source cleanup. This is 3N
+logical data I/O on the normal filesystem path. The prehash recommendations below
+are superseded by this agreement; see [the integrity plan](docs/INTEGRITY-DESIGN.md).
+
 Take a look at https://github.com/joey-huckabee/background-file-mover
 
 We are currently rewriting this in rust. I do not want a one for one code rewrite I would like for you to architecture around best practices and tell me how you improve this using rust and what crates we will need for this

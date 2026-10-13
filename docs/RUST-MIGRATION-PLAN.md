@@ -19,8 +19,11 @@ REST contract, and unprivileged operation on SLES 12 SP5. Prove deployment
 compatibility before porting the components whose correctness matters most.
 
 The user has changed scope: claiming, cross-filesystem copying and content
-verification belong in the redesigned transfer protocol. The integrity I/O
-strategy is unresolved because the user rejects the proposed 4N workflow.
+verification belong in the redesigned transfer protocol. The agreed integrity
+plan hashes the source during copying and rereads destination staging to verify
+its digest/size: 3N logical data I/O on the normal path, without a source prehash
+pass. [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md) defines the evidence/recovery timing
+and distinguishes future S3 checksum verification from filesystem rereads.
 Partial-copy resumption and optimization follow a correct recovery baseline.
 The remaining detailed milestone lists retain useful obligations from the older
 plan; their sequence and same-filesystem-only scope require revision.

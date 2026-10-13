@@ -47,13 +47,14 @@ backend framework. A future object-storage protocol would have different semanti
   files, private namespaces, mount identity and qualified no-clobber capabilities.
   Do not require openat2 or newer-kernel-only facilities.
 
-**Explicit user constraint: improve on the proposed 4N logical I/O workflow.**
-The conversation recommends source prehash + copy + destination reread, and the
-user rejects that cost. Do not silently adopt that workflow or substitute
-hash-during-copy as an already agreed integrity protocol. Compare alternatives,
-producer/immutability assumptions, corruption detection, durable evidence and
-recovery. State the guarantee traded for each saved read, distinguish logical
-from physical I/O, measure, and record the decision before engine implementation.
+**Agreed integrity plan:** calculate the source hash during copying, then reread
+destination staging and compare its hash/size before publication and cleanup.
+The normal path is 3N logical data I/O: source read + destination write + destination
+reread. A 100 GB file copies 100 GB of payload and accounts for roughly 300 GB of
+logical I/O, not 300 GB necessarily crossing the network. There is no separate
+source prehash pass. Persist the completed digest after copying and retain the
+claimed source for interruption recovery. See [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md)
+for sequencing, source immutability, recovery and the future S3 checksum distinction.
 Two workers and 4 MiB buffers are benchmark suggestions, not production decisions.
 Resumable chunks and optimized copy paths follow a correct retained-source baseline.
 
@@ -87,7 +88,7 @@ earlier fifteen milestones retain useful obligations but need scope/sequence rev
 
 Next session: read this handoff, CONVERSATION.md, experiment results and the branch
 [review](BRANCH-REVIEW.md). Reconcile requirements and define accept/claim/integrity/publication/cleanup,
-especially the I/O constraint. Revise the roadmap around four increments:
+using the agreed streaming-hash/destination-reread plan. Revise the roadmap around four increments:
 
 1. Core protocol, durable evidence and local persistence.
 2. One recoverable cross-filesystem transfer with deletion disabled initially.
