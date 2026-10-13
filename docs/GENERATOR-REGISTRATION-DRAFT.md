@@ -8,6 +8,11 @@ local clients uses the same API and handoff semantics.
 
 ## Source access on remote deployments
 
+**Confirmed deployment:** the remote mover has access to the source NFS mount.
+It performs claiming directly against that shared filesystem; no REST payload
+upload or source-side transfer agent is required for this use case. Qualify the
+export/mount behavior and confirm path mapping before implementation.
+
 Remote REST carries metadata, not file contents. The mover must directly access
 the submitted source files, for example through the same NFS export used by the
 generator. If mount paths differ, define an administrator-approved mapping of
@@ -122,7 +127,7 @@ source-retention, manifest or 202 guarantees.
 
 ## Decisions before implementation
 
-Confirm shared-source visibility/path mapping; choose enrollment bootstrap and
+Confirm source path mapping; choose enrollment bootstrap and
 lost-response recovery; set token lifetime/rotation and secure recorder storage;
 define local/remote tokenless profiles and operator roles. Derive requirements,
 threat/failure tests and dependency qualification once those choices are settled.

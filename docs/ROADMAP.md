@@ -66,7 +66,7 @@ experiment, or begin a component-for-component port.
   behavior, manifests and root-ID/relative-path API boundaries.
 - [ ] Decide authentication/authorization before non-loopback deployment; preserve
   application-level restrictions to approved roots and permitted operations.
-- [ ] Finalize the registration/access draft: shared-source visibility/path mapping,
+- [ ] Finalize the registration/access draft: approved path mapping for shared NFS,
   scoped enrollment bootstrap, issuance recovery, token rotation, operator roles
   and independently restricted local/remote tokenless profiles.
 - [ ] Reconcile requirement IDs and scope annotations for the redesigned service.

@@ -47,6 +47,10 @@ The additive generator form identifies the recording generator and supplies a
 source directory plus explicit file names. It contains no destination. The
 service selects the destination from configuration loaded at startup.
 
+The remote mover is confirmed to have access to the generator's source NFS
+mount. It claims the files there before 202; submission transports metadata only.
+Mount paths may differ between hosts, so confirm approved path mapping separately.
+
 ```http
 POST /api/v2/jobs HTTP/1.1
 Content-Type: application/json
