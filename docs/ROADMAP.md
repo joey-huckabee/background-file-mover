@@ -30,6 +30,10 @@ before implementation.
 Experiments remain paused. Do not automatically start E6 or another package
 experiment, or begin a component-for-component port.
 
+Every incremental build/test must pass [the SLES gate](RUST-SLES-GATE.md) using
+cargo-zigbuild for glibc 2.22, ELF audits and exact target test execution. Host-only
+passes are insufficient; keep this gate as SQLite/effects/dependencies are added.
+
 ## Design decisions
 
 - [ ] Finalize bounded POST handoff waits and exact retry/backoff timing; implement

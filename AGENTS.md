@@ -9,7 +9,10 @@ E1–E5; do not automatically start E6. Follow `docs/INTEGRITY-DESIGN.md`: hash 
 source during copying and reread destination staging for verification (3N logical
 data I/O). Develop short tested increments from the revised protocol in `rust/`.
 Registration/token work is deferred; its enrollment choice is a one-time setup key.
-See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`. Historical
+See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`.
+Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
+cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
+SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical
 C++ toolchain/scope/branch guidance below applies to the reference code, and
 does not override this direction. Keep production glibc 2.22 and container-only
 compatibility qualification. Future branch cleanup requires the branch review.

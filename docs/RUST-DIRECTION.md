@@ -105,6 +105,11 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference
+cargo-zigbuild GNU/glibc 2.22 compilation, ELF audit and exact debug/release test
+execution in pinned SLES userspace. Run `python scripts/check-rust-sles.py`;
+host-only tests do not satisfy validation, even for early pure-core increments.
+
 The generator contacts a remote mover. Review
 [GENERATOR-REGISTRATION-DRAFT.md](GENERATOR-REGISTRATION-DRAFT.md) for proposed
 registered tokens, scoped REST enrollment and explicitly restricted tokenless

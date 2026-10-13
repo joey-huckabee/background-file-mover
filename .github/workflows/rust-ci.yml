@@ -1,0 +1,34 @@
+name: Rust SLES compatibility
+
+on:
+  push:
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/rust-platform.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+  pull_request:
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/rust-platform.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-sles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Pull pinned builder and runtime
+        run: |
+          command -v podman
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          config = json.loads(Path("scripts/rust-platform.json").read_text())
+          for role in ("builder", "runtime"):
+              subprocess.run(["podman", "pull", config[role]], check=True)
+          PY
+      - name: Zigbuild, ELF audit and SLES debug/release tests
+        run: python3 scripts/check-rust-sles.py

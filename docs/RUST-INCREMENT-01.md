@@ -30,6 +30,13 @@ Run [test-rust-wsl.sh](../scripts/test-rust-wsl.sh) or the native commands in
 
 ## Evidence limits
 
+The user subsequently required a SLES check on every build/test. The
+[mandatory gate](RUST-SLES-GATE.md) now zigbuilds this slice for glibc 2.22 and
+runs its ten tests in both debug and release on pinned SLES userspace. All four
+test executables require at most GLIBC_2.18; six audit negative controls pass.
+Formatting/Clippy pass. The original host-only run above is historical evidence,
+not the current validation policy.
+
 This is partial pure-decision evidence for L1-API-008/009 and
 L1-SYS-025/028/029/032, not completed production verification. The historical
 generated matrix does not discover Rust tests; integrate Rust L2/L3/test discovery

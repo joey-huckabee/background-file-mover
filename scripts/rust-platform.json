@@ -1,0 +1,10 @@
+{
+  "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "rust": "1.99.0",
+  "cargo_zigbuild": "0.23.4",
+  "zig": "0.16.0",
+  "target": "x86_64-unknown-linux-gnu.2.22",
+  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+  "allowed_libraries": ["libc.so.6", "libm.so.6", "libpthread.so.0", "librt.so.1", "libdl.so.2", "libgcc_s.so.1", "ld-linux-x86-64.so.2"]
+}
