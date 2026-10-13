@@ -105,6 +105,13 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+The generator contacts a remote mover. Review
+[GENERATOR-REGISTRATION-DRAFT.md](GENERATOR-REGISTRATION-DRAFT.md) for proposed
+registered tokens, scoped REST enrollment and explicitly restricted tokenless
+profiles, including optional local clients. Confirm that the remote mover can
+access the source files/shared export; metadata-only HTTP cannot claim host-local
+files on another machine. Enrollment bootstrap and tokenless trust remain open.
+
 Grouping recording containers by generator is startup-configurable via
 `group_by_generator`. False keeps the earlier flat-container layout; true adds
 the validated generator component above each recording. Snapshot layout at

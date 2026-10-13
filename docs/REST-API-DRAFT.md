@@ -39,6 +39,10 @@ acceptance under admission policy. A client cannot set a job to `Claimed`.
 
 ## Generator submission with a configured destination
 
+Remote generator access and optional local clients use the proposed
+[registration/access contract](GENERATOR-REGISTRATION-DRAFT.md). Its tokens bind
+registered identity; explicit tokenless profiles handle permitted legacy clients.
+
 The additive generator form identifies the recording generator and supplies a
 source directory plus explicit file names. It contains no destination. The
 service selects the destination from configuration loaded at startup.
@@ -67,8 +71,10 @@ and invalid encoding. Use `/` between components. Resolve paths using the protoc
 descriptor traversal, not string-prefix checks. Persist both the supplied form
 and the normalized root/relative-file mapping.
 
-Only `generator_id`, `submission_id`, `source_path` and `files` are required in the generator
-body. `recording_id`, `producer_handoff` and file `file_key` remain optional
+`submission_id`, `source_path` and `files` are required in the generator body.
+Supply `generator_id` unless a valid token or explicitly configured tokenless
+profile resolves it; any supplied identity must match the authorized identity.
+`recording_id`, `producer_handoff` and file `file_key` remain optional
 metadata/assertions. If omitted, the service uses its job ID as recording identity
 and assigns stable file IDs. The completed/immutable producer contract still
 applies when its assertion field is omitted; startup generator registration
@@ -149,7 +155,7 @@ hosts receive distinct configured identities; do not infer identity from filenam
 Keep the previously drafted explicit-root/destination form below as an advanced
 submission use case. The generator form is an additional alternative, not a
 requirement added to every existing request. Select the generator form by
-`generator_id`; it requires `source_path` and file `name` fields and rejects
+top-level `source_path`/`submission_id`; it requires file `name` fields and rejects
 client destination fields. The explicit form requires `destination_root_id`
 and each file's source root/path. Reject mixtures and unknown fields. Explicit
 destination selection is allowed only within configured caller permissions;
