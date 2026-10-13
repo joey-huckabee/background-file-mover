@@ -29,7 +29,8 @@ experiment, or begin a component-for-component port.
 
 ## Design decisions
 
-- [ ] Finalize bounded POST handoff waits, retry/backoff and permanent-error handling
+- [ ] Finalize bounded POST handoff waits and exact retry/backoff timing; implement
+  agreed temporary retry versus stop/log handling for correction/review errors
   for the agreed 202-after-all-claims recorder workflow; settle idempotency retention
   and control semantics, then produce OpenAPI.
 - [ ] Derive L2/L3 and Rust tests for generator identity/source-directory/file-name

@@ -391,7 +391,21 @@ with the same key. Later source problems remain attached to the accepted job.
 For submission, only 202 certifies completed handoff. Transient failures/timeouts
 are retried with the same key; malformed or conflicting submissions require
 correction/operator intervention rather than an endless rapid retry loop.
-The exact recorder retry/backoff and permanent-error handling remain to be settled.
+**Agreed recorder behavior:** retry network timeouts/disconnections and temporary
+service responses with the same submission ID and identical request, using bounded
+backoff and Retry-After when provided. Stop automatic retries and log errors that
+require correction or operator review, including invalid submissions, conflicting
+IDs and `recording_blocked`. Non-202 responses carry a stable error code and
+`retryable` indication; do not infer retryability from status class alone.
+Authentication/authorization errors also require correction rather than blind retries.
+
+A stop/log decision is not permission to reuse source paths. Without 202, the
+recorder must leave the submitted files/folders untouched and escalate the
+handoff problem. Already accepted jobs and partial claims remain durable; stopping
+client retries does not cancel them. Operator resolution may safely resume the
+same job, after which the recorder can retry the same ID to obtain its 202.
+Define exact backoff timing and restart-persistent pending/error records before
+implementation. A new submission ID must not be used to bypass a failed handoff.
 
 Control acknowledgements persist desired execution and return 202 when effects
 remain asynchronous. Pause/cancel do not promise syscall cancellation or automatic
@@ -412,8 +426,8 @@ such as `503 handoff_pending` if their bounded wait expires. After the missing
 file's window expires, persist `Blocked` with `source_missing_review_required`
 and require an explicit operator retry/reconciliation decision. POST returns
 `409 recording_blocked`, naming the original job for logging, rather than 202.
-The recorder's bounded/backoff error behavior remains a separate integration
-decision; repeating its JSON cannot silently reopen a blocked job.
+The recorder stops automatic retries and logs this review-required response;
+repeating its JSON cannot silently reopen a blocked job.
 
 Never omit the missing file, publish an incomplete set, discard already claimed
 sources, release source-path reservations or restore files onto reusable names

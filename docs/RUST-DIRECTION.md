@@ -109,7 +109,9 @@ Confirmed missing files retry for a configurable period, then block for operator
 review. Persist deadlines across replays/restarts; retain partial claims and
 reservations, never skip files, and withhold 202. The agreed default is five
 minutes (`missing_file_retry_window_seconds = 300`), configured at startup and
-recorded per job. Finalize recorder response/retry behavior next.
+recorded per job. The recorder retries temporary failures/timeouts with the same
+ID, but stops/logs correction or review-required errors. Without 202 it must
+keep source paths untouched; stopping client retries does not cancel accepted work.
 
 The recorder can retain and reuse a unique submission ID across retries. Use
 `submission_id` in generator JSON, scoped to generator identity; replay identical

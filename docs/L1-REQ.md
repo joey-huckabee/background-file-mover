@@ -577,6 +577,15 @@ claims and withholding HTTP 202 until every required claim is confirmed.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust missing-file recovery; default 300 seconds, configurable at startup and recorded per job; submission replay/service restart do not reset the window.
 
+### L1-API-010
+
+The system shall identify whether a non-202 submission response is temporarily
+retryable or requires correction/operator review using stable machine-readable
+error information.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust recorder retry contract; no non-202 response grants source-path release.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
