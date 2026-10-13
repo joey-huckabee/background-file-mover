@@ -1,0 +1,296 @@
+{
+  "review_date": "2026-10-13",
+  "repository": "https://github.com/joey-huckabee/background-file-mover",
+  "main_sha": "a6efb3d0964f4b5914f918a12876b4d0dc6d4717",
+  "feature_initial_commit": "6df30032c15515222d0c40b3a63686bc9f9f0aa2",
+  "pull_requests": [],
+  "branches": [
+    {
+      "name": "c6-daemon-entry-point",
+      "tip": "53fabf0e457dd8d31ea7364e1f8b3709f7941146",
+      "merge_base": "53fabf0e457dd8d31ea7364e1f8b3709f7941146",
+      "behind_main": 3,
+      "ahead_main": 0,
+      "merged_into_main": true,
+      "unique_commits": [],
+      "cherry_against_main": [],
+      "changed_paths_since_merge_base": [],
+      "diffstat": ""
+    },
+    {
+      "name": "c7-dashboard",
+      "tip": "af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+      "merge_base": "a6efb3d0964f4b5914f918a12876b4d0dc6d4717",
+      "behind_main": 0,
+      "ahead_main": 2,
+      "merged_into_main": false,
+      "unique_commits": [
+        {
+          "sha": "19588e24e6c67adfe57a88601497abf8149d6d12",
+          "author_date": "2026-08-08T10:09:39-05:00",
+          "subject": "C7: the operator dashboard (L2-DASH-001..003)",
+          "changed_paths": [
+            ".github/workflows/cpp-ci.yml",
+            "CHANGELOG.md",
+            "cpp/Makefile",
+            "cpp/include/filemover/api_codec.hpp",
+            "cpp/include/filemover/dashboard.hpp",
+            "cpp/include/filemover/manager.hpp",
+            "cpp/scripts/assert-dashboard-safe.sh",
+            "cpp/scripts/dashboard-gate-selftest.sh",
+            "cpp/src/api_codec.cpp",
+            "cpp/src/dashboard.cpp",
+            "cpp/src/manager.cpp",
+            "cpp/src/router.cpp",
+            "cpp/tests/test_dashboard.cpp",
+            "cpp/tests/test_router.cpp",
+            "docs/INTEGRATION-ENVIRONMENT.md",
+            "docs/ROADMAP.md",
+            "docs/TRACE-MATRIX.md"
+          ]
+        },
+        {
+          "sha": "af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+          "author_date": "2026-08-08T10:26:06-05:00",
+          "subject": "Construct the dashboard page on first use, not before main",
+          "changed_paths": [
+            "cpp/src/dashboard.cpp"
+          ]
+        }
+      ],
+      "cherry_against_main": [
+        "+ 19588e24e6c67adfe57a88601497abf8149d6d12",
+        "+ af7af20b51f54f98ce5f6270d1d779fecf0c28cb"
+      ],
+      "changed_paths_since_merge_base": [
+        "M\t.github/workflows/cpp-ci.yml",
+        "M\tCHANGELOG.md",
+        "M\tcpp/Makefile",
+        "M\tcpp/include/filemover/api_codec.hpp",
+        "A\tcpp/include/filemover/dashboard.hpp",
+        "M\tcpp/include/filemover/manager.hpp",
+        "A\tcpp/scripts/assert-dashboard-safe.sh",
+        "A\tcpp/scripts/dashboard-gate-selftest.sh",
+        "M\tcpp/src/api_codec.cpp",
+        "A\tcpp/src/dashboard.cpp",
+        "M\tcpp/src/manager.cpp",
+        "M\tcpp/src/router.cpp",
+        "A\tcpp/tests/test_dashboard.cpp",
+        "M\tcpp/tests/test_router.cpp",
+        "A\tdocs/INTEGRATION-ENVIRONMENT.md",
+        "M\tdocs/ROADMAP.md",
+        "M\tdocs/TRACE-MATRIX.md"
+      ],
+      "diffstat": ".github/workflows/cpp-ci.yml           |   7 ++\n CHANGELOG.md                           |  34 ++++++\n cpp/Makefile                           |  19 +++-\n cpp/include/filemover/api_codec.hpp    |  10 ++\n cpp/include/filemover/dashboard.hpp    |  47 ++++++++\n cpp/include/filemover/manager.hpp      |  28 +++++\n cpp/scripts/assert-dashboard-safe.sh   |  94 ++++++++++++++++\n cpp/scripts/dashboard-gate-selftest.sh |  79 +++++++++++++\n cpp/src/api_codec.cpp                  |  64 ++++++++++-\n cpp/src/dashboard.cpp                  | 195 +++++++++++++++++++++++++++++++++\n cpp/src/manager.cpp                    |  71 ++++++++++++\n cpp/src/router.cpp                     |  41 +++++++\n cpp/tests/test_dashboard.cpp           | 116 ++++++++++++++++++++\n cpp/tests/test_router.cpp              | 107 +++++++++++++++++-\n docs/INTEGRATION-ENVIRONMENT.md        | 166 ++++++++++++++++++++++++++++\n docs/ROADMAP.md                        |  64 ++++++-----\n docs/TRACE-MATRIX.md                   |  22 ++--\n 17 files changed, 1121 insertions(+), 43 deletions(-)"
+    },
+    {
+      "name": "integration-lab",
+      "tip": "3e9226b09e737522e8ea404108ee6cf0e5d64c91",
+      "merge_base": "a6efb3d0964f4b5914f918a12876b4d0dc6d4717",
+      "behind_main": 0,
+      "ahead_main": 9,
+      "merged_into_main": false,
+      "unique_commits": [
+        {
+          "sha": "19588e24e6c67adfe57a88601497abf8149d6d12",
+          "author_date": "2026-08-08T10:09:39-05:00",
+          "subject": "C7: the operator dashboard (L2-DASH-001..003)",
+          "changed_paths": [
+            ".github/workflows/cpp-ci.yml",
+            "CHANGELOG.md",
+            "cpp/Makefile",
+            "cpp/include/filemover/api_codec.hpp",
+            "cpp/include/filemover/dashboard.hpp",
+            "cpp/include/filemover/manager.hpp",
+            "cpp/scripts/assert-dashboard-safe.sh",
+            "cpp/scripts/dashboard-gate-selftest.sh",
+            "cpp/src/api_codec.cpp",
+            "cpp/src/dashboard.cpp",
+            "cpp/src/manager.cpp",
+            "cpp/src/router.cpp",
+            "cpp/tests/test_dashboard.cpp",
+            "cpp/tests/test_router.cpp",
+            "docs/INTEGRATION-ENVIRONMENT.md",
+            "docs/ROADMAP.md",
+            "docs/TRACE-MATRIX.md"
+          ]
+        },
+        {
+          "sha": "af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+          "author_date": "2026-08-08T10:26:06-05:00",
+          "subject": "Construct the dashboard page on first use, not before main",
+          "changed_paths": [
+            "cpp/src/dashboard.cpp"
+          ]
+        },
+        {
+          "sha": "11b5832d43ca64fa4385fb88788ddf40a0398894",
+          "author_date": "2026-08-08T15:13:34-05:00",
+          "subject": "Integration lab, Phase 1: Hyper-V provisioning and Ansible configuration",
+          "changed_paths": [
+            ".gitignore",
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/README.md",
+            "integration/configure/ansible.cfg",
+            "integration/configure/inventory.ini.example",
+            "integration/configure/roles/base/tasks/main.yml",
+            "integration/configure/roles/buildtools/tasks/main.yml",
+            "integration/configure/roles/filemover/handlers/main.yml",
+            "integration/configure/roles/filemover/tasks/main.yml",
+            "integration/configure/roles/filemover/templates/file-mover.ini.j2",
+            "integration/configure/site.yml",
+            "integration/prereqs/install-control-node.sh",
+            "integration/provision/hyperv/Get-TestLab.ps1",
+            "integration/provision/hyperv/Lab.psd1",
+            "integration/provision/hyperv/New-KickstartIso.ps1",
+            "integration/provision/hyperv/New-TestLab.ps1",
+            "integration/provision/hyperv/Remove-TestLab.ps1",
+            "integration/provision/hyperv/kickstart/rocky9-lab.ks",
+            "integration/scripts/Test-Syntax.ps1",
+            "integration/scripts/assert-layer-separation.sh",
+            "integration/scripts/validate.sh",
+            "integration/tests/01-service-lifecycle.sh",
+            "integration/tests/run-all.sh"
+          ]
+        },
+        {
+          "sha": "0e8a46430237def32e31f251cb388bacd0a62b35",
+          "author_date": "2026-08-08T15:29:21-05:00",
+          "subject": "Fetch and verify the Rocky 9 ISO, and add a resume note",
+          "changed_paths": [
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/README.md",
+            "integration/RESUME-HERE.md",
+            "integration/provision/hyperv/Get-RockyIso.ps1",
+            "integration/provision/hyperv/Lab.psd1",
+            "integration/scripts/verify-iso-signature.sh"
+          ]
+        },
+        {
+          "sha": "c86a0d91e392b10aaa847611386e2028bac1ecbe",
+          "author_date": "2026-08-08T17:38:37-05:00",
+          "subject": "integration: install the control node, and fix what that exposed",
+          "changed_paths": [
+            "CHANGELOG.md",
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/README.md",
+            "integration/RESUME-HERE.md",
+            "integration/prereqs/install-control-node.sh",
+            "integration/provision/hyperv/kickstart/rocky9-lab.ks",
+            "integration/tests/01-service-lifecycle.sh"
+          ]
+        },
+        {
+          "sha": "1f11db829e56f6241c8045ebed8802901843777e",
+          "author_date": "2026-08-08T17:48:03-05:00",
+          "subject": "integration: verify the ISO signature, and fix a check that lied about it",
+          "changed_paths": [
+            "CHANGELOG.md",
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/RESUME-HERE.md",
+            "integration/provision/hyperv/rocky-gpg-fingerprint.txt",
+            "integration/scripts/validate.sh",
+            "integration/scripts/verify-iso-signature.sh",
+            "integration/tests/01-service-lifecycle.sh"
+          ]
+        },
+        {
+          "sha": "f2824e133559d681b6ed8c0c5bc7c76f84a42e45",
+          "author_date": "2026-08-08T17:58:49-05:00",
+          "subject": "integration: make New-KickstartIso.ps1 actually build an ISO",
+          "changed_paths": [
+            "CHANGELOG.md",
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/RESUME-HERE.md",
+            "integration/provision/hyperv/New-KickstartIso.ps1"
+          ]
+        },
+        {
+          "sha": "dcb359f6191e6661289e676f75dbda3099af4720",
+          "author_date": "2026-08-08T18:44:44-05:00",
+          "subject": "integration: make the lab rebuildable, and fix what the first build exposed",
+          "changed_paths": [
+            ".gitignore",
+            "CHANGELOG.md",
+            "docs/INTEGRATION-INVENTORY.md",
+            "integration/README.md",
+            "integration/provision/hyperv/Get-TestLab.ps1",
+            "integration/provision/hyperv/New-KickstartIso.ps1",
+            "integration/provision/hyperv/kickstart/rocky9-lab.ks"
+          ]
+        },
+        {
+          "sha": "3e9226b09e737522e8ea404108ee6cf0e5d64c91",
+          "author_date": "2026-08-09T23:15:12-05:00",
+          "subject": "integration: run layer 2 end to end, and fix four checks that failed on a healthy host",
+          "changed_paths": [
+            "CHANGELOG.md",
+            "integration/RESUME-HERE.md",
+            "integration/configure/ansible.cfg",
+            "integration/configure/roles/base/tasks/main.yml",
+            "integration/configure/roles/buildtools/tasks/main.yml"
+          ]
+        }
+      ],
+      "cherry_against_main": [
+        "+ 19588e24e6c67adfe57a88601497abf8149d6d12",
+        "+ af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+        "+ 11b5832d43ca64fa4385fb88788ddf40a0398894",
+        "+ 0e8a46430237def32e31f251cb388bacd0a62b35",
+        "+ c86a0d91e392b10aaa847611386e2028bac1ecbe",
+        "+ 1f11db829e56f6241c8045ebed8802901843777e",
+        "+ f2824e133559d681b6ed8c0c5bc7c76f84a42e45",
+        "+ dcb359f6191e6661289e676f75dbda3099af4720",
+        "+ 3e9226b09e737522e8ea404108ee6cf0e5d64c91"
+      ],
+      "changed_paths_since_merge_base": [
+        "M\t.github/workflows/cpp-ci.yml",
+        "M\t.gitignore",
+        "M\tCHANGELOG.md",
+        "M\tcpp/Makefile",
+        "M\tcpp/include/filemover/api_codec.hpp",
+        "A\tcpp/include/filemover/dashboard.hpp",
+        "M\tcpp/include/filemover/manager.hpp",
+        "A\tcpp/scripts/assert-dashboard-safe.sh",
+        "A\tcpp/scripts/dashboard-gate-selftest.sh",
+        "M\tcpp/src/api_codec.cpp",
+        "A\tcpp/src/dashboard.cpp",
+        "M\tcpp/src/manager.cpp",
+        "M\tcpp/src/router.cpp",
+        "A\tcpp/tests/test_dashboard.cpp",
+        "M\tcpp/tests/test_router.cpp",
+        "A\tdocs/INTEGRATION-ENVIRONMENT.md",
+        "A\tdocs/INTEGRATION-INVENTORY.md",
+        "M\tdocs/ROADMAP.md",
+        "M\tdocs/TRACE-MATRIX.md",
+        "A\tintegration/README.md",
+        "A\tintegration/RESUME-HERE.md",
+        "A\tintegration/configure/ansible.cfg",
+        "A\tintegration/configure/inventory.ini.example",
+        "A\tintegration/configure/roles/base/tasks/main.yml",
+        "A\tintegration/configure/roles/buildtools/tasks/main.yml",
+        "A\tintegration/configure/roles/filemover/handlers/main.yml",
+        "A\tintegration/configure/roles/filemover/tasks/main.yml",
+        "A\tintegration/configure/roles/filemover/templates/file-mover.ini.j2",
+        "A\tintegration/configure/site.yml",
+        "A\tintegration/prereqs/install-control-node.sh",
+        "A\tintegration/provision/hyperv/Get-RockyIso.ps1",
+        "A\tintegration/provision/hyperv/Get-TestLab.ps1",
+        "A\tintegration/provision/hyperv/Lab.psd1",
+        "A\tintegration/provision/hyperv/New-KickstartIso.ps1",
+        "A\tintegration/provision/hyperv/New-TestLab.ps1",
+        "A\tintegration/provision/hyperv/Remove-TestLab.ps1",
+        "A\tintegration/provision/hyperv/kickstart/rocky9-lab.ks",
+        "A\tintegration/provision/hyperv/rocky-gpg-fingerprint.txt",
+        "A\tintegration/scripts/Test-Syntax.ps1",
+        "A\tintegration/scripts/assert-layer-separation.sh",
+        "A\tintegration/scripts/validate.sh",
+        "A\tintegration/scripts/verify-iso-signature.sh",
+        "A\tintegration/tests/01-service-lifecycle.sh",
+        "A\tintegration/tests/run-all.sh"
+      ],
+      "diffstat": ".github/workflows/cpp-ci.yml                       |   7 +\n .gitignore                                         |  15 ++\n CHANGELOG.md                                       | 204 +++++++++++++++++++\n cpp/Makefile                                       |  19 +-\n cpp/include/filemover/api_codec.hpp                |  10 +\n cpp/include/filemover/dashboard.hpp                |  47 +++++\n cpp/include/filemover/manager.hpp                  |  28 +++\n cpp/scripts/assert-dashboard-safe.sh               |  94 +++++++++\n cpp/scripts/dashboard-gate-selftest.sh             |  79 ++++++++\n cpp/src/api_codec.cpp                              |  64 +++++-\n cpp/src/dashboard.cpp                              | 195 ++++++++++++++++++\n cpp/src/manager.cpp                                |  71 +++++++\n cpp/src/router.cpp                                 |  41 ++++\n cpp/tests/test_dashboard.cpp                       | 116 +++++++++++\n cpp/tests/test_router.cpp                          | 107 +++++++++-\n docs/INTEGRATION-ENVIRONMENT.md                    | 166 ++++++++++++++++\n docs/INTEGRATION-INVENTORY.md                      | 181 +++++++++++++++++\n docs/ROADMAP.md                                    |  64 +++---\n docs/TRACE-MATRIX.md                               |  22 +-\n integration/README.md                              | 159 +++++++++++++++\n integration/RESUME-HERE.md                         | 167 ++++++++++++++++\n integration/configure/ansible.cfg                  |  15 ++\n integration/configure/inventory.ini.example        |  26 +++\n integration/configure/roles/base/tasks/main.yml    | 115 +++++++++++\n .../configure/roles/buildtools/tasks/main.yml      | 123 ++++++++++++\n .../configure/roles/filemover/handlers/main.yml    |   9 +\n .../configure/roles/filemover/tasks/main.yml       | 108 ++++++++++\n .../roles/filemover/templates/file-mover.ini.j2    |  31 +++\n integration/configure/site.yml                     |  44 ++++\n integration/prereqs/install-control-node.sh        | 116 +++++++++++\n integration/provision/hyperv/Get-RockyIso.ps1      | 157 +++++++++++++++\n integration/provision/hyperv/Get-TestLab.ps1       | 142 +++++++++++++\n integration/provision/hyperv/Lab.psd1              |  76 +++++++\n integration/provision/hyperv/New-KickstartIso.ps1  | 221 +++++++++++++++++++++\n integration/provision/hyperv/New-TestLab.ps1       | 184 +++++++++++++++++\n integration/provision/hyperv/Remove-TestLab.ps1    |  80 ++++++++\n .../provision/hyperv/kickstart/rocky9-lab.ks       | 145 ++++++++++++++\n .../provision/hyperv/rocky-gpg-fingerprint.txt     |   1 +\n integration/scripts/Test-Syntax.ps1                |  79 ++++++++\n integration/scripts/assert-layer-separation.sh     |  69 +++++++\n integration/scripts/validate.sh                    | 125 ++++++++++++\n integration/scripts/verify-iso-signature.sh        | 129 ++++++++++++\n integration/tests/01-service-lifecycle.sh          | 203 +++++++++++++++++++\n integration/tests/run-all.sh                       |  56 ++++++\n 44 files changed, 4067 insertions(+), 43 deletions(-)"
+    }
+  ],
+  "dashboard_contained_in_integration": true
+}

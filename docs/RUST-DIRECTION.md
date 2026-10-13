@@ -82,7 +82,7 @@ not automatically be next. No production Rust implementation has started. The
 earlier fifteen milestones retain useful obligations but need scope/sequence revision.
 
 Next session: read this handoff, CONVERSATION.md, experiment results and the branch
-review. Reconcile requirements and define accept/claim/integrity/publication/cleanup,
+[review](BRANCH-REVIEW.md). Reconcile requirements and define accept/claim/integrity/publication/cleanup,
 especially the I/O constraint. Revise the roadmap around four increments:
 
 1. Core protocol, durable evidence and local persistence.
