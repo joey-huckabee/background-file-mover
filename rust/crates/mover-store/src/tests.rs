@@ -5,7 +5,126 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
 };
 
+#[test]
+fn schema_one_migrates_without_losing_accepted_jobs() {
+    let fixture = Fixture::new();
+    {
+        let mut db = Database::open(&fixture.db(), false).unwrap();
+        db.accept(&input("a", "old", "data"), &context()).unwrap();
+        db.connection
+            .execute_batch("DROP TABLE claims; PRAGMA user_version=1;")
+            .unwrap();
+    }
+    assert!(matches!(
+        Store::open_read_only(fixture.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let store = Store::open(fixture.db()).unwrap();
+    let replay = store
+        .accept(&input("a", "old", "data"), &context())
+        .unwrap();
+    assert!(replay.replay);
+    assert_eq!(replay.recording.handoff(), Handoff::Pending);
+    assert!(store.claim_intent(replay.job_id, 0).unwrap().is_none());
+    assert!(
+        store
+            .accept(&input("b", "new", "data"), &context())
+            .is_err()
+    );
+}
+
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+fn intent_for(job: &Accepted, index: usize, size: u64) -> ClaimIntent {
+    let identity = ObjectIdentity {
+        device: 1,
+        inode: 2,
+        uid: 1000,
+        size,
+        modified_seconds: 1,
+        modified_nanos: 0,
+        links: 1,
+    };
+    ClaimIntent {
+        job_id: job.job_id,
+        file_index: index,
+        root_path: job.context.source_root_path.clone(),
+        source_name: job
+            .context
+            .source_name(&job.recording.submission().files()[index]),
+        private_name: format!("{}-{index}", job.job_id),
+        root: identity.clone(),
+        parent: identity.clone(),
+        area: identity.clone(),
+        source: identity,
+    }
+}
+
+#[test]
+fn failed_last_receipt_rolls_back_claim_fact_and_reservation_release() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let job = db.accept(&input("a", "one", "data"), &context()).unwrap();
+    let first = intent_for(&job, 0, 7);
+    let last = intent_for(&job, 1, u64::MAX);
+    db.begin_claim(&first).unwrap();
+    db.finish_claim(&first).unwrap();
+    db.begin_claim(&last).unwrap();
+    db.connection.execute_batch("CREATE TRIGGER refuse_release BEFORE DELETE ON reservations BEGIN SELECT RAISE(ABORT,'injected release failure'); END;").unwrap();
+    assert!(db.finish_claim(&last).is_err());
+    assert!(
+        !load_claim(&db.connection, job.job_id, 1)
+            .unwrap()
+            .unwrap()
+            .1
+    );
+    assert_eq!(
+        load(&db.connection, job.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .handoff(),
+        Handoff::Pending
+    );
+    assert_eq!(
+        db.connection
+            .query_row("SELECT count(*) FROM reservations", [], |r| r
+                .get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    db.connection
+        .execute_batch("DROP TRIGGER refuse_release")
+        .unwrap();
+    assert_eq!(
+        db.finish_claim(&last).unwrap().recording.handoff(),
+        Handoff::Ready202
+    );
+    drop(db);
+    assert_eq!(
+        Store::open(f.db())
+            .unwrap()
+            .get(job.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .handoff(),
+        Handoff::Ready202
+    );
+}
+
+#[test]
+fn damaged_claim_identity_blocks_startup() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let job = db.accept(&input("a", "one", "data"), &context()).unwrap();
+    db.begin_claim(&intent_for(&job, 0, 7)).unwrap();
+    db.connection
+        .execute("UPDATE claims SET source_identity='foreign'", [])
+        .unwrap();
+    drop(db);
+    assert!(matches!(Store::open(f.db()), Err(StoreError::CorruptState)));
+}
 struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {

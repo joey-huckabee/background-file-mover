@@ -1,7 +1,9 @@
 //! Local SQLite acceptance/replay. One bounded-command owner thread holds SQL.
-//! Calls block; dispatch them outside an async executor. No claims or 202 yet.
+//! Calls block; dispatch them outside an async executor. Filesystem I/O is separate.
 
-use mover_core::{DeliveryPolicy, FileSpec, ProtocolError, Recording, Submission};
+use mover_core::{
+    ClaimIntent, DeliveryPolicy, FileSpec, ObjectIdentity, ProtocolError, Recording, Submission,
+};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use std::{
     fmt,
@@ -12,7 +14,7 @@ use std::{
 };
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -183,6 +185,23 @@ impl Store {
     pub fn get(&self, job_id: i64) -> Result<Option<Accepted>> {
         self.call(move |db| load(&db.connection, job_id))
     }
+    pub fn claim_intent(
+        &self,
+        job_id: i64,
+        file_index: usize,
+    ) -> Result<Option<(ClaimIntent, bool)>> {
+        self.call(move |db| load_claim(&db.connection, job_id, file_index))
+    }
+    pub fn begin_claim(&self, intent: &ClaimIntent) -> Result<()> {
+        let intent = intent.clone();
+        self.call(move |db| db.begin_claim(&intent))
+    }
+    /// Only a worker that validated custody and synchronized the completed
+    /// effect may call this. SQLite cannot establish filesystem durability.
+    pub fn finish_claim(&self, intent: &ClaimIntent) -> Result<Accepted> {
+        let intent = intent.clone();
+        self.call(move |db| db.finish_claim(&intent))
+    }
     pub fn job_count(&self) -> Result<u64> {
         self.call(|db| {
             let count: i64 = db
@@ -227,7 +246,9 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if version != SCHEMA_VERSION || application != APPLICATION_ID {
+        } else if (version != SCHEMA_VERSION && !(version == 1 && !read_only))
+            || application != APPLICATION_ID
+        {
             return Err(StoreError::UnsupportedSchema);
         }
         connection.pragma_update(None, "journal_mode", "WAL")?;
@@ -257,7 +278,14 @@ impl Database {
         if fresh {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             tx.execute_batch(include_str!("schema.sql"))?;
+            tx.execute_batch(include_str!("claims.sql"))?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
+            tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+            tx.commit()?;
+        }
+        if version == 1 && !read_only {
+            let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            tx.execute_batch(include_str!("claims.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -271,7 +299,7 @@ impl Database {
             )?
             .sync_all()?;
         }
-        let damaged: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs j WHERE j.file_count != (SELECT count(*) FROM files f WHERE f.job_id=j.job_id) OR j.file_count != (SELECT count(*) FROM reservations r WHERE r.job_id=j.job_id)) OR EXISTS(SELECT 1 FROM reservations r JOIN jobs j ON j.job_id=r.job_id JOIN files f ON f.job_id=r.job_id AND f.file_index=r.file_index WHERE r.source_root_id != j.source_root_id OR r.source_relative_path != CASE WHEN j.source_relative_directory='' THEN f.relative_path ELSE j.source_relative_directory || '/' || f.relative_path END)", [], |r| r.get(0))?;
+        let damaged: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs j WHERE j.file_count != (SELECT count(*) FROM files f WHERE f.job_id=j.job_id) OR (SELECT count(*) FROM reservations r WHERE r.job_id=j.job_id) != CASE WHEN j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) THEN 0 ELSE j.file_count END) OR EXISTS(SELECT 1 FROM reservations r JOIN jobs j ON j.job_id=r.job_id JOIN files f ON f.job_id=r.job_id AND f.file_index=r.file_index WHERE r.source_root_id != j.source_root_id OR r.source_relative_path != CASE WHEN j.source_relative_directory='' THEN f.relative_path ELSE j.source_relative_directory || '/' || f.relative_path END)", [], |r| r.get(0))?;
         let foreign_key_errors: i64 =
             connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
                 r.get(0)
@@ -279,7 +307,51 @@ impl Database {
         if damaged || foreign_key_errors != 0 {
             return Err(StoreError::CorruptState);
         }
+        let ids: Vec<i64> = connection
+            .prepare("SELECT job_id FROM jobs")?
+            .query_map([], |r| r.get(0))?
+            .collect::<std::result::Result<_, _>>()?;
+        for id in ids {
+            load(&connection, id)?;
+        }
         Ok(Self { connection })
+    }
+
+    fn begin_claim(&mut self, intent: &ClaimIntent) -> Result<()> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let job = load(&tx, intent.job_id)?.ok_or(StoreError::InvalidContext)?;
+        validate_claim(&job, intent)?;
+        if let Some((prior, _)) = load_claim(&tx, intent.job_id, intent.file_index)? {
+            if prior != *intent {
+                return Err(StoreError::CorruptState);
+            }
+        } else {
+            tx.execute("INSERT INTO claims(job_id,file_index,root_path,source_name,private_name,root_identity,parent_identity,area_identity,source_identity) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+                params![intent.job_id, intent.file_index as i64, intent.root_path, intent.source_name,
+                    intent.private_name, intent.root.encode(), intent.parent.encode(), intent.area.encode(), intent.source.encode()])?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+    fn finish_claim(&mut self, intent: &ClaimIntent) -> Result<Accepted> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let (prior, _) =
+            load_claim(&tx, intent.job_id, intent.file_index)?.ok_or(StoreError::InvalidContext)?;
+        if prior != *intent {
+            return Err(StoreError::CorruptState);
+        }
+        tx.execute(
+            "UPDATE claims SET done=1 WHERE job_id=?1 AND file_index=?2",
+            params![intent.job_id, intent.file_index as i64],
+        )?;
+        tx.execute("DELETE FROM reservations WHERE job_id=?1 AND (SELECT count(*) FROM claims WHERE job_id=?1 AND done=1)=(SELECT file_count FROM jobs WHERE job_id=?1)", [intent.job_id])?;
+        let result = load(&tx, intent.job_id)?.ok_or(StoreError::CorruptState)?;
+        tx.commit()?;
+        Ok(result)
     }
 
     fn accept(&mut self, submission: &Submission, context: &AcceptanceContext) -> Result<Accepted> {
@@ -396,12 +468,74 @@ fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
     let input = Submission::new(generator, submission, source, files)?;
     let mut recording = Recording::new(input, context.policy.clone())?;
     recording.confirm_acceptance();
-    Ok(Some(Accepted {
+    let mut result = Accepted {
         job_id,
         recording,
         context,
         replay: false,
-    }))
+    };
+    for index in 0..result.recording.submission().files().len() {
+        if let Some((intent, done)) = load_claim(connection, job_id, index)? {
+            validate_claim(&result, &intent)?;
+            if done {
+                result.recording.confirm_claim(index, intent.source.size)?;
+            }
+        }
+    }
+    Ok(Some(result))
+}
+
+fn validate_claim(job: &Accepted, intent: &ClaimIntent) -> Result<()> {
+    let file = job
+        .recording
+        .submission()
+        .files()
+        .get(intent.file_index)
+        .ok_or(StoreError::CorruptState)?;
+    if intent.job_id != job.job_id
+        || intent.root_path != job.context.source_root_path
+        || intent.source_name != job.context.source_name(file)
+        || intent.private_name != format!("{}-{}", job.job_id, intent.file_index)
+        || intent.source.links != 1
+        || intent.source.device != intent.root.device
+        || intent.parent.device != intent.root.device
+        || intent.area.device != intent.root.device
+        || file
+            .expected_size()
+            .is_some_and(|size| size != intent.source.size)
+    {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+
+fn load_claim(
+    connection: &Connection,
+    job_id: i64,
+    file_index: usize,
+) -> Result<Option<(ClaimIntent, bool)>> {
+    let row = connection.query_row("SELECT root_path,source_name,private_name,root_identity,parent_identity,area_identity,source_identity,done FROM claims WHERE job_id=?1 AND file_index=?2",
+        params![job_id, i64::try_from(file_index).map_err(|_| StoreError::InvalidContext)?], |r| Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,String>(5)?,r.get::<_,String>(6)?,r.get::<_,bool>(7)?))).optional()?;
+    row.map(
+        |(root_path, source_name, private_name, root, parent, area, source, done)| {
+            let decode = |s: &str| ObjectIdentity::decode(s).ok_or(StoreError::CorruptState);
+            Ok((
+                ClaimIntent {
+                    job_id,
+                    file_index,
+                    root_path,
+                    source_name,
+                    private_name,
+                    root: decode(&root)?,
+                    parent: decode(&parent)?,
+                    area: decode(&area)?,
+                    source: decode(&source)?,
+                },
+                done,
+            ))
+        },
+    )
+    .transpose()
 }
 
 #[cfg(test)]

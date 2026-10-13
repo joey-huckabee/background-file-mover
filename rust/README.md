@@ -1,21 +1,25 @@
 # Incremental Rust implementation
 
-Members are `mover-core`, a dependency-free pure protocol library, and
-`mover-store`, the E1-qualified SQLite acceptance repository. Add `mover-fs`
-and the executable as tested slices require them.
+Members are `mover-core`, a dependency-free pure protocol library,
+`mover-store`, the E1-qualified SQLite repository, and `mover-fs`, the
+E2-qualified rustix local claim worker. Add the executable in the API slice.
 Confirmation methods trust validated durable receipts from their eventual callers;
 the state model itself performs no HTTP, SQL, hashing or filesystem effects.
 
 Current rules cover relative paths/prefix collisions, optional sizes, all-file
 handoff, stable replay, pinned policy, publication/set commitment and cleanup
-authorization. Actual ownership/path containment, NFS behavior, missing-file
-deadlines, API resource limits and crash reconciliation remain subsequent work.
+authorization. Local claims check descriptor-relative traversal, ownership,
+identity, private custody and actual size, with process-exit reconciliation.
+NFS behavior, persistent missing-file deadlines, API resource limits and full
+production mount/worker qualification remain subsequent work.
 Replay currently preserves file-list order; API normalization is still open.
 
 The [store](crates/mover-store/README.md) persists acceptance/replay and pinned
-policy on one dedicated database thread. Accepted work survives reopen; no real
-claims, HTTP handoff or source deletion are implemented yet. See
-[increment 02](../docs/RUST-INCREMENT-02.md) for storage evidence and remaining effects.
+policy on one dedicated database thread. The [claim worker](crates/mover-fs/src/lib.rs)
+commits intent before a no-clobber rename, synchronizes the effect, then commits
+its receipt. Only all-file receipts authorize Ready202; no HTTP endpoint or
+post-transfer source deletion exists yet. See [increment 03](../docs/RUST-INCREMENT-03.md)
+for evidence, supported local setup and remaining effects.
 
 ## Checks
 

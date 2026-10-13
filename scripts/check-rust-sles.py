@@ -126,7 +126,7 @@ def main() -> int:
         run(["podman", "start", provisioner])
         run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
         run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
-        print("Provisioning the locked E1 dependency graph...", flush=True)
+        print("Provisioning the locked E1/E2 dependency graph...", flush=True)
         run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
                      "rustc --version; cargo --version; cargo-zigbuild --version; zig version"], results / "toolchain.txt")
@@ -138,9 +138,19 @@ def main() -> int:
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
                                              "--filter-platform", "x86_64-unknown-linux-gnu"], results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
-        expected = json.loads((ROOT / "docs/E1-SQLITE-EVIDENCE.json").read_text())["dependencies"]
+        expected = json.loads((ROOT / "docs/E2-RUSTIX-EVIDENCE.json").read_text())["dependencies"]
         if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
-            raise ValueError("dependency graph differs from the E1-qualified graph")
+            raise ValueError("dependency graph differs from the E2-qualified cumulative graph")
+        qualified_features = {
+            "rusqlite": ["bundled", "modern_sqlite"],
+            "rustix": ["alloc", "fs", "process", "std"],
+            "linux-raw-sys": ["auxvec", "elf", "errno", "general", "ioctl", "no_std", "prctl"],
+        }
+        nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+        for package in dependencies:
+            if package["name"] in qualified_features:
+                if sorted(nodes[package["id"]]["features"]) != qualified_features[package["name"]]:
+                    raise ValueError(f"unqualified features for {package['name']}")
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
         run(execute + ["cargo", "clippy", "--offline", "--locked", "--workspace", "--all-targets",

@@ -5,6 +5,9 @@
 
 use std::collections::BTreeSet;
 
+mod claim;
+pub use claim::{ClaimIntent, ObjectIdentity};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProtocolError {
     EmptyIdentity,
@@ -241,6 +244,9 @@ impl Recording {
 
     pub fn policy(&self) -> &DeliveryPolicy {
         &self.policy
+    }
+    pub fn submission(&self) -> &Submission {
+        &self.submission
     }
 
     /// None means unknown or unrepresentable, never a wrapped byte count.

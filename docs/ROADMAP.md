@@ -10,8 +10,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add one real local-filesystem claim with durable intent/receipt, actual size
-  discovery and crash reconciliation. Prove partial claims never authorize 202.
 - [ ] Add a minimal locally bound submission endpoint for JSON-to-claim handoff
   and same-ID retry, without registration/authentication in this test increment.
 - [ ] Add one copied-file transfer using streamed hash/destination reread,
@@ -22,6 +20,10 @@ before implementation.
   schema and fault cases before the dependent effect, not before all Rust code.
 - [ ] Extend acceptance persistence for API metadata, future schema migrations,
   bounded async integration and crash/power-loss evidence as effects are introduced.
+- [ ] Extend the local claim slice for production: persisted namespace-allocation
+  intent/orphan reconciliation, stable instance/root/mount authorization, filesystem
+  capability qualification and link/unlink fallback where NOREPLACE is unavailable.
+  Add process supervision/fencing before remote claims; do not enable NFS yet.
 - [ ] Decide which dashboard and integration scenarios to reuse from
   [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
   [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).

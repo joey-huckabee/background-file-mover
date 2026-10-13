@@ -48,11 +48,13 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 26 tests pass in both profiles inside the pinned runtime:
-ten core tests and sixteen SQLite storage tests. All six test executables require
-at most GLIBC_2.18 and use the standard loader. SQLite adds only libm to the prior
-libc/libdl/libpthread/loader imports. The eleven external crate versions are the
-exact E1-qualified graph, with bundled SQLite 3.53.2 and its qualified flags.
+The workspace's 38 tests pass in both profiles inside the pinned runtime:
+ten core tests, nineteen SQLite storage tests and nine filesystem claim tests.
+All ten emitted test executables require at most GLIBC_2.18 and use the standard
+loader. The external dependency graph reuses E2's fifteen cumulative Linux
+packages and E1's bundled SQLite 3.53.2 configuration. Qualified feature sets are
+checked explicitly, including rustix's std/fs/process raw-syscall backend.
+See [the claim increment](RUST-INCREMENT-03.md) for the local effect/recovery boundary.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd

@@ -18,78 +18,40 @@
       "ld-linux-x86-64.so.2"
     ]
   },
-  "run_id": "20261013T135730Z-b2390b04",
-  "source_sha256": "8d6d9ee3696521f09d38ffbfa90389e5d2f9cb0c7703c5445d796582ee2144bb",
-  "dependencies": [
-    {
-      "name": "bitflags",
-      "version": "2.13.2",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "cc",
-      "version": "1.8.0",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "fallible-iterator",
-      "version": "0.3.0",
-      "license": "MIT/Apache-2.0"
-    },
-    {
-      "name": "fallible-streaming-iterator",
-      "version": "0.1.9",
-      "license": "MIT/Apache-2.0"
-    },
-    {
-      "name": "find-msvc-tools",
-      "version": "0.1.14",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "libsqlite3-sys",
-      "version": "0.38.2",
-      "license": "MIT"
-    },
-    {
-      "name": "pkg-config",
-      "version": "0.3.34",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "rusqlite",
-      "version": "0.40.1",
-      "license": "MIT"
-    },
-    {
-      "name": "shlex",
-      "version": "2.0.1",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "smallvec",
-      "version": "1.16.3",
-      "license": "MIT OR Apache-2.0"
-    },
-    {
-      "name": "vcpkg",
-      "version": "0.2.15",
-      "license": "MIT/Apache-2.0"
-    }
-  ],
-  "audit_negative_controls": [
-    "new-glibc",
-    "private-glibc",
-    "wrong-loader",
-    "unexpected-library",
-    "runpath",
-    "wrong-architecture"
-  ],
   "profiles": {
     "debug": {
       "artifacts": [
         {
-          "name": "debug-0-mover_core-bdc9ec3705a39bcc",
+          "name": "debug-0-claim-c23d2e20097f6509",
+          "sha256": "27c5c7aa7fe0e900132320e21dace314f2197182c8b069fb391802369ab35062",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "debug-1-mover_core-bdc9ec3705a39bcc",
           "sha256": "c611d6b6dde200038474aad319cbc37e32db1b2df45a48c8fef5757997975a0a",
           "test": true,
           "elf": {
@@ -116,8 +78,35 @@
           }
         },
         {
-          "name": "debug-1-mover_store-1ae508ed6268ee89",
-          "sha256": "e8cff5e64532ebba6a548b1aa0148e9f03fc2c2b43133e8aba90cce47d545e57",
+          "name": "debug-2-mover_fs-2b69425a6edd443b",
+          "sha256": "163bfe852f8f476c6476f287b42ff71c4668df269d956a0b5746e3fb9410d6e3",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "debug-3-mover_store-52fc9e31f7fc5465",
+          "sha256": "6b05b3221dee25906d32f7869f9522ef5e89ce18a2a6c00f158f1394f6b96928",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -145,8 +134,8 @@
           }
         },
         {
-          "name": "debug-2-protocol-69c581cc870a90c2",
-          "sha256": "c6d5214948fcc9a2c41eb5610153b562edcef269cc599ffe3be3c656393e76fb",
+          "name": "debug-4-protocol-69c581cc870a90c2",
+          "sha256": "b0de9ee9c80b1af78f4b99ef330737815f4ab38bc804e76b4cd5db2f159cd84a",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -172,12 +161,41 @@
           }
         }
       ],
-      "tests_passed": 26
+      "tests_passed": 38
     },
     "release": {
       "artifacts": [
         {
-          "name": "release-0-mover_core-2b23f1aa286bb95f",
+          "name": "release-0-claim-4307e6f14b31c229",
+          "sha256": "5fb6afbb4bb246bf8ec16631b29048754a6ae8abff7645822ad700bc6897f46f",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "release-1-mover_core-2b23f1aa286bb95f",
           "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
           "test": true,
           "elf": {
@@ -204,8 +222,35 @@
           }
         },
         {
-          "name": "release-1-mover_store-6b213cae83c58515",
-          "sha256": "1aa91aecafe3b335ffdfe062c30042da0c2a071940e443333b45c91039f1cb6c",
+          "name": "release-2-mover_fs-e9ab93ac7024efaa",
+          "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "release-3-mover_store-07ff9c894a9c2599",
+          "sha256": "54177a4a160e84abcc5fe40bcf3fa14eaa9175ccd77f67e7c7a5fe82bd76324f",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -233,8 +278,8 @@
           }
         },
         {
-          "name": "release-2-protocol-2716b18f41ea3254",
-          "sha256": "5dc68ef9a049cd5bc280dc12b78340bf373ceed87c9f7b8b343b647ee1d3d64b",
+          "name": "release-4-protocol-2716b18f41ea3254",
+          "sha256": "4a8680ca2201d8d65e3fa7ab75662a373524843070c38b16b576b2ba0bb3ddbf",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -260,7 +305,94 @@
           }
         }
       ],
-      "tests_passed": 26
+      "tests_passed": 38
     }
-  }
+  },
+  "run_id": "20261013T150151Z-27653919",
+  "source_sha256": "4b8ca9e7f0b46f5636e208ede15369c413e3d257c679256bfa259ec8a4e4924e",
+  "dependencies": [
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cc",
+      "version": "1.8.0",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.14",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.190",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "libsqlite3-sys",
+      "version": "0.38.2",
+      "license": "MIT"
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "rusqlite",
+      "version": "0.40.1",
+      "license": "MIT"
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.5",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "smallvec",
+      "version": "1.16.3",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0"
+    }
+  ],
+  "audit_negative_controls": [
+    "new-glibc",
+    "private-glibc",
+    "wrong-loader",
+    "unexpected-library",
+    "runpath",
+    "wrong-architecture"
+  ]
 }
