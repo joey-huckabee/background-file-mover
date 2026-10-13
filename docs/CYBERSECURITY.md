@@ -1,5 +1,12 @@
 # Cybersecurity Architecture
 
+**Rust direction:** the same-filesystem-only scope and disposable-before-one-rename
+invariants below describe the historical C++ design. For the proposed Rust
+claim/copy/verify/manifest/cleanup model, use
+[TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). Claimed sources are retained data;
+set visibility does not create an atomic transaction across SQL and filesystems.
+Reconcile security requirements explicitly before implementation.
+
 How Background File Mover moves data safely on a filesystem it shares with
 privileged agents it does not control.
 

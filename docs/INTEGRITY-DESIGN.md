@@ -5,6 +5,10 @@ then rereads destination staging to verify it before publication. Use incrementa
 SHA-256 as the initial design; the implementation crate/version still requires
 qualification. There is no separate source prehash pass in the normal workflow.
 
+The proposed [transfer protocol](TRANSFER-PROTOCOL.md) applies this agreement to
+source custody, publication, recording-set commitment and cleanup. Its
+[REST draft](REST-API-DRAFT.md) separates acceptance from source-path release.
+
 ## Normal filesystem path
 
 1. Record intent, source identity/declared size, integrity algorithm and operation

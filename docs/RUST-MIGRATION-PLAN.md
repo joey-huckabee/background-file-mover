@@ -6,6 +6,9 @@ and implementation schedule below. Experiments are stopped after E1–E5; E6 is
 unrun. Next work is protocol/requirements design, not another experiment or a
 component-for-component port. Reconcile the fifteen milestones with claiming,
 cross-filesystem transfer, manifests and process isolation before implementation.
+Review [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md) and
+[REST-API-DRAFT.md](REST-API-DRAFT.md) with the producer workflow before freezing
+the revised sequence; neither draft represents implemented Rust behavior.
 
 **Status:** E1–E5 passed, including Tokio runtime/signals; E6 and R0–R14 are pending.
 Rust, x86_64 only, GNU/glibc 2.22, and a

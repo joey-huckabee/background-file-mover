@@ -26,7 +26,12 @@ Four proposed crates have meaningful boundaries: `mover-core` for pure decisions
 API/coordination/operations. Use narrow fault-injection interfaces, not a generic
 backend framework. A future object-storage protocol would have different semantics.
 
-## Protocol decisions to settle
+## Proposed protocol for review
+
+[TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md) defines claim custody, copied-file
+evidence, manifest commitment, cleanup authorization and crash reconciliation.
+[REST-API-DRAFT.md](REST-API-DRAFT.md) proposes the producer submission/status
+contract. Review the API and producer/consumer handoff before freezing the design.
 
 - Separate durable `Accepted` from confirmed `Claimed`. Producer source-path reuse
   is allowed only after claim confirmation. Require completed files, closed writers,
@@ -86,9 +91,11 @@ Experiments are stopped at the user's request. E6/thiserror is **unrun** and mus
 not automatically be next. No production Rust implementation has started. The
 earlier fifteen milestones retain useful obligations but need scope/sequence revision.
 
-Next session: read this handoff, CONVERSATION.md, experiment results and the branch
-[review](BRANCH-REVIEW.md). Reconcile requirements and define accept/claim/integrity/publication/cleanup,
-using the agreed streaming-hash/destination-reread plan. Revise the roadmap around four increments:
+Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
+experiment results and the branch [review](BRANCH-REVIEW.md). Work through the
+producer-facing Accepted/Claimed contract, reconcile requirements and refine
+the proposed protocol using the agreed streaming-hash/destination-reread plan.
+Revise the roadmap around four increments:
 
 1. Core protocol, durable evidence and local persistence.
 2. One recoverable cross-filesystem transfer with deletion disabled initially.

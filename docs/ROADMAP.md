@@ -12,11 +12,12 @@ before implementation.
 
 - [ ] Reconcile the requirements with claiming, cross-filesystem transfers,
   recording-set completion manifests and supervised worker processes.
-- [ ] Define the accept/claim/integrity/publication/cleanup protocol and the
-  evidence that permits each transition and destructive action.
-- [ ] Specify and implement the agreed streaming source hash during copying,
-  followed by destination reread verification. Define durable digest timing and
-  interruption recovery using [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md).
+- [ ] Review the proposed [transfer protocol](TRANSFER-PROTOCOL.md) and
+  [REST contract](REST-API-DRAFT.md) with the producer/consumer workflow; settle
+  acknowledgement, handoff, naming and retention contracts before Rust code.
+- [ ] Derive schema, transition definitions and the fault matrix from the protocol.
+  Implement streamed source hashing and destination reread verification using
+  [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md).
 - [ ] Revise the detailed milestone schedule in
   [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md) around the agreed protocol.
 - [ ] Decide which dashboard and integration scenarios to reuse from
@@ -28,13 +29,12 @@ experiment, or begin a component-for-component port.
 
 ## Design decisions
 
-- [ ] Define durable Accepted versus confirmed Claimed acknowledgements, producer
-  handoff/closed-writer requirements, source-path reuse and idempotent submissions.
-- [ ] Specify applied, not-applied and uncertain effects, including partial
-  multi-file claims and publication recovery. Require operation ownership and
-  content evidence before advancing recovery or permitting source cleanup.
-- [ ] Define the completion manifest and the downstream consumer contract.
-  Decide when all sources can be released and how cleanup failures are retried.
+- [ ] Finalize the REST draft's durable Accepted versus all-files Claimed release,
+  producer handoff, idempotency scope/retention and control semantics; produce OpenAPI.
+- [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
+  ownership evidence against partial claims, publication and stale worker effects.
+- [ ] Finalize the versioned completion manifest, filename encoding and metadata
+  policy; establish downstream consumption/retention and source-cleanup contracts.
 - [ ] Design one scheduler state owner, a dedicated local SQLite owner and bounded
   command/result channels. Prioritize claims/reconciliation and coalesce progress
   without starving durable acknowledgements.
