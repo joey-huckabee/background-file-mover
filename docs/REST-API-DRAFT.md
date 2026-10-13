@@ -399,7 +399,31 @@ restoration. Retry retains job ID, resolved names, claimed sources and ownership
 allocating new internal operation attempts only when safe. This changes the old
 new-job retry behavior, which could reopen a newer recording at a reused path.
 
-## Producer integration review
+## Missing file retry and operator review
+
+**Agreed missing-file behavior:** when a listed file is confirmed absent from
+its expected source location, check again with bounded backoff for a configurable
+period. Start/persist that file's retry deadline at its first confirmed absence.
+Repeating the submission or restarting the service does not reset the deadline.
+The overall job remains unacknowledged while any required file is unclaimed.
+
+During the window, POST handoff attempts return a transient non-202 response
+such as `503 handoff_pending` if their bounded wait expires. After the missing
+file's window expires, persist `Blocked` with `source_missing_review_required`
+and require an explicit operator retry/reconciliation decision. POST returns
+`409 recording_blocked`, naming the original job for logging, rather than 202.
+The recorder's bounded/backoff error behavior remains a separate integration
+decision; repeating its JSON cannot silently reopen a blocked job.
+
+Never omit the missing file, publish an incomplete set, discard already claimed
+sources, release source-path reservations or restore files onto reusable names
+to settle the error. An operator can inspect the exact missing entry and resume
+the original job when safe; any reset of its retry window is explicit and audited.
+Loss of mount access or uncertain NFS results is an endpoint/reconciliation
+condition, not evidence that a file is absent. Do not certify absence from a
+cached observation alone. The startup retry duration/default still needs selection.
+
+## Remaining producer integration review
 
 - Can the recorder enforce closed writers, synchronized completed files and
   unchanged entries/parents until all-files release?

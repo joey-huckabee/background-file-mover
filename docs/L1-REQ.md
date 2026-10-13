@@ -568,6 +568,15 @@ currently loaded startup configuration authorize source deletion.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust configurable cleanup; disabled deletion retains/accountably protects claims, and cleanup failures do not restart delivery.
 
+### L1-SYS-033
+
+The system shall retry confirmed missing submitted files for a configurable,
+durably bounded period and then require operator review while retaining existing
+claims and withholding HTTP 202 until every required claim is confirmed.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust missing-file recovery; submission replay/service restart do not reset the window.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate

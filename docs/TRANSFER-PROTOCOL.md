@@ -331,6 +331,13 @@ objects or restores claims over a producer's newer recording.
 
 ## Recovery decisions
 
+Confirmed missing source files are rechecked with bounded backoff during a
+configurable retry window. Persist each first-absence deadline across submission
+replays and service restart. Expiry blocks the job for explicit operator review;
+retain existing claims/reservations and withhold 202. Never skip a required file
+or automatically undo partial claims. Unavailable mounts and uncertain remote
+effects require endpoint reconciliation, not a fabricated missing-file result.
+
 Start by recovering local ownership, checking mounts/capabilities and fencing
 workers, then reconcile unfinished intents before admitting conflicting work.
 Evidence combines private namespace custody, durable operation records, object
