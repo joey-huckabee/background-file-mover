@@ -322,6 +322,26 @@ A bounded long-poll/event stream is a possible later addition.
 
 ## Completion and errors
 
+**Agreed cleanup policy:** production operation automatically deletes claimed
+source files after the entire recording is verified and its completion manifest
+is durably committed, when startup configuration enables deletion. Configure
+`delete_source_after_commit = true` or `false` under `[delivery]`; generators
+cannot override this setting. First implementation/test profiles explicitly use
+false until the cleanup failure gates pass. Production move profiles use true.
+
+Record the selected policy with each accepted job. Deletion also requires the
+currently loaded service setting to permit it: restarting with false inhibits
+new cleanup authorizations for existing jobs as well. It does not restore files
+already deleted. Jobs accepted in retention mode remain retained if a later
+restart enables deletion; changing their recorded policy requires an explicit,
+audited operator action, whose interface remains future work.
+
+With deletion disabled, keep claimed sources in private custody and report
+committed delivery with retained sources; never restore them automatically to
+the producer's reused paths. Retained data remains part of source-space accounting.
+With deletion enabled, cleanup failure is retried independently of delivery,
+without recopying the committed recording or touching original producer paths.
+
 `recording_committed: true` means manifest/file receipts have been reconciled
 and recorded. Consumers may see a valid manifest earlier if filesystem
 publication succeeds but SQL result persistence fails. Claim release is unaffected.
@@ -397,6 +417,7 @@ not configuration accepted by the current C++ binary:
 ```ini
 [delivery]
 default_destination = archive
+delete_source_after_commit = true
 
 [destination:archive]
 kind = filesystem
@@ -417,6 +438,7 @@ To route newly accepted jobs to S3, the future configuration could instead use:
 ```ini
 [delivery]
 default_destination = object-archive
+delete_source_after_commit = true
 
 [destination:object-archive]
 kind = s3

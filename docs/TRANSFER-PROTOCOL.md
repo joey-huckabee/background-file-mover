@@ -292,6 +292,16 @@ only after every source deletion is confirmed durable under the endpoint contrac
 
 ## Manifest and public state
 
+Automatic cleanup is configurable using startup `delete_source_after_commit`.
+Production move profiles enable it; initial development/test profiles disable it.
+Persist each accepted job's policy. Authorize deletion only when both the job's
+recorded policy and the currently loaded service setting enable it, in addition
+to verified set commitment and exact custody evidence. Startup disabling inhibits
+new authorizations, not effects already applied; enabling later does not convert
+retention-mode jobs into destructive moves without an audited policy change.
+Retained sources remain protected/accounted for and are never automatically
+restored onto reusable producer names.
+
 The manifest is versioned, strictly parsed and bounded. It binds the instance,
 job/recording identity, submitted generator identity where provided, immutable
 request identity and each required file's ID,

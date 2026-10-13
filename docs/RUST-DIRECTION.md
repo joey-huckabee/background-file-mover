@@ -105,6 +105,12 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+The user confirmed automatic source deletion after verified whole-recording
+commitment, configurable at startup. Production move profiles enable
+`delete_source_after_commit`; initial development profiles disable it. Require
+both recorded job policy and current service authorization for deletion. Retain
+sources/accounting when disabled; do not reopen or restore producer paths.
+
 Destination outages do not stop the agreed 202-after-claim producer handoff
 while safe source/local persistence and configured retention capacity remain.
 Queue delivery to the pinned destination, retain sources and expose the outage

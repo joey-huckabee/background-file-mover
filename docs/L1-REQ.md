@@ -559,6 +559,15 @@ needed for explicitly listed files.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust generator hierarchy; reject prefix/reserved-name collisions without flattening paths.
 
+### L1-SYS-032
+
+The system shall automatically delete claimed source files after verified durable
+recording-set commitment only when the job's recorded cleanup policy and the
+currently loaded startup configuration authorize source deletion.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust configurable cleanup; disabled deletion retains/accountably protects claims, and cleanup failures do not restart delivery.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
