@@ -332,7 +332,8 @@ objects or restores claims over a producer's newer recording.
 ## Recovery decisions
 
 Confirmed missing source files are rechecked with bounded backoff during a
-configurable retry window. Persist each first-absence deadline across submission
+configurable retry window, defaulting to 300 seconds. Persist the job's selected
+duration and each first-absence deadline across submission
 replays and service restart. Expiry blocks the job for explicit operator review;
 retain existing claims/reservations and withhold 202. Never skip a required file
 or automatically undo partial claims. Unavailable mounts and uncertain remote

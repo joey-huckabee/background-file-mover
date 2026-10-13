@@ -42,7 +42,7 @@ experiment, or begin a component-for-component port.
 - [ ] Implement configurable postcommit source cleanup, including recorded job
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.
-- [ ] Select the missing-file retry default and implement persistent retry windows,
+- [ ] Implement the configurable five-minute default and persistent retry windows,
   operator review/resume, retained partial claims and non-202 blocked responses.
 - [ ] Define durable pending job/byte limits and source-space margins for handoff
   during destination outages; test partial claims, admission refusal and restart

@@ -575,7 +575,7 @@ durably bounded period and then require operator review while retaining existing
 claims and withholding HTTP 202 until every required claim is confirmed.
 
 **Verification Method**: Test (T), Inspection (I)
-**v1.0.0 Status**: Deferred — Rust missing-file recovery; submission replay/service restart do not reset the window.
+**v1.0.0 Status**: Deferred — Rust missing-file recovery; default 300 seconds, configurable at startup and recorded per job; submission replay/service restart do not reset the window.
 
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the

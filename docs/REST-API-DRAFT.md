@@ -421,7 +421,11 @@ to settle the error. An operator can inspect the exact missing entry and resume
 the original job when safe; any reset of its retry window is explicit and audited.
 Loss of mount access or uncertain NFS results is an endpoint/reconciliation
 condition, not evidence that a file is absent. Do not certify absence from a
-cached observation alone. The startup retry duration/default still needs selection.
+cached observation alone. The agreed startup default is
+`missing_file_retry_window_seconds = 300` under `[delivery]`. Snapshot that
+duration with each accepted job; later configuration changes apply to new jobs,
+not existing deadlines. This five-minute window is independent of the shorter
+bounded HTTP handoff wait and begins at confirmed absence, not request receipt.
 
 ## Remaining producer integration review
 
@@ -448,6 +452,7 @@ not configuration accepted by the current C++ binary:
 [delivery]
 default_destination = archive
 delete_source_after_commit = true
+missing_file_retry_window_seconds = 300
 
 [destination:archive]
 kind = filesystem
@@ -469,6 +474,7 @@ To route newly accepted jobs to S3, the future configuration could instead use:
 [delivery]
 default_destination = object-archive
 delete_source_after_commit = true
+missing_file_retry_window_seconds = 300
 
 [destination:object-archive]
 kind = s3

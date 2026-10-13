@@ -107,7 +107,9 @@ checks, confinement gaps and fail-closed harness requirements.
 
 Confirmed missing files retry for a configurable period, then block for operator
 review. Persist deadlines across replays/restarts; retain partial claims and
-reservations, never skip files, and withhold 202. Choose the default duration next.
+reservations, never skip files, and withhold 202. The agreed default is five
+minutes (`missing_file_retry_window_seconds = 300`), configured at startup and
+recorded per job. Finalize recorder response/retry behavior next.
 
 The recorder can retain and reuse a unique submission ID across retries. Use
 `submission_id` in generator JSON, scoped to generator identity; replay identical
