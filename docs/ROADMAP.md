@@ -20,8 +20,8 @@ before implementation.
 - [ ] Revise the detailed milestone schedule in
   [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md) around the agreed protocol.
 - [ ] Decide which dashboard and integration scenarios to reuse from
-  [BRANCH-REVIEW.md](BRANCH-REVIEW.md), then archive the unmerged dashboard/lab
-  tips before retiring their branches. Recheck tips immediately before deletion.
+  [BRANCH-REVIEW.md](BRANCH-REVIEW.md), then archive the unmerged integration-lab
+  tip before retiring its branch. Recheck the tip immediately before deletion.
 
 Experiments remain paused. Do not automatically start E6 or another package
 experiment, or begin a component-for-component port.
@@ -129,6 +129,7 @@ features. Do not treat candidate names as compatibility approval.
   and transfer progress; avoid restart loops and unbounded worker replacements.
 - [ ] Bound status-query memory and UI requests at their actual allocation/admission
   boundaries. Keep offline assets and DOM text insertion safe for hostile filenames.
+  Apply [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) during API/UI design.
 - [ ] Add structured phase diagnostics and bounded-cardinality metrics for backlog,
   blocked workers, throughput, sync/commit latency and pending cleanup.
 - [ ] Rewrite architecture, configuration, CLI, logging, deployment, user,

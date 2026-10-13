@@ -7,14 +7,15 @@ Reviewed 2026-10-13 after pushing the experiments/direction as `6df3003` on
 ancestry, all unique commit subjects/dates, changed paths and diff statistics.
 GitHub's all-state PR lookup returned no PRs for this repository at review time.
 No branches, tags, lab VMs or deployment resources were removed during the initial
-review. C6 was subsequently retired at the user's explicit request; see below.
+review. C6 and C7 were subsequently retired at the user's explicit requests;
+see the cleanup records below. C7 source is retained by an archive tag.
 
 ## Inventory and cleanup recommendation
 
 | Branch | Tip | Ahead / behind main | Relationship | Recommendation |
 |---|---|---|---|---|
 | c6-daemon-entry-point | 53fabf0 | 0 / 3 | Entire tip is an ancestor of main | Deleted after revalidation; main retains the work |
-| c7-dashboard | af7af20 | 2 / 0 | Unmerged; fully contained in integration-lab | Preserve reference/requirements, archive before deleting |
+| c7-dashboard | af7af20 | 2 / 0 | Unmerged; also contained in integration-lab | Deleted; retained as archive/c7-dashboard |
 | integration-lab | 3e9226b | 9 / 0 | Contains both dashboard commits and seven additional lab commits | Preserve lab/test findings, archive before deleting |
 | feature/rust-transfer-coordinator | Active feature | New work | Experiments and redesign handoff | Keep as the active branch |
 
@@ -73,6 +74,15 @@ starts a new poll every two seconds without an in-flight guard or request timeou
 slow requests can overlap. Rust status queries and UI polling should be bounded
 at their actual admission/allocation boundaries. Historical green CI is recorded
 in branch notes and was not independently reverified in this review.
+
+**Cleanup completed, 2026-10-13:** the user authorized C7 retirement after
+capturing important design information. [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md)
+records behaviors, security requirements, acceptance scenarios and fixes for the
+Rust implementation. No C++ code needs copying into the Rust tree. Created and
+pushed the annotated `archive/c7-dashboard` tag, verified its peeled remote SHA
+matches the full reviewed tip, then deleted the branch with an exact-tip lease
+and pruned its remote-tracking reference. No local C7 branch existed. The archive
+retains its complete source history independently of integration-lab.
 
 ## Integration lab: provisioning, service checks and unfinished confinement
 

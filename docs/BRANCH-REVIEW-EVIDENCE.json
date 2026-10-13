@@ -305,6 +305,20 @@
       "tracking_ref_pruned": true,
       "local_branch_existed": false,
       "exact_tip_lease": true
+    },
+    {
+      "date": "2026-10-13",
+      "branch": "c7-dashboard",
+      "verified_tip": "af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+      "archive_tag": "archive/c7-dashboard",
+      "remote_archive_peeled_sha": "af7af20b51f54f98ce5f6270d1d779fecf0c28cb",
+      "also_preserved_by": "integration-lab",
+      "design_notes": "docs/DASHBOARD-DESIGN-NOTES.md",
+      "code_copied_into_rust_tree": false,
+      "remote_deleted": true,
+      "tracking_ref_pruned": true,
+      "local_branch_existed": false,
+      "exact_tip_lease": true
     }
   ]
 }

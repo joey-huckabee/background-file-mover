@@ -66,6 +66,8 @@ clap, uuid, sd-notify and rust-ini. These and proposed development tools are
 candidates, not qualified dependencies. Review features, graphs and licenses.
 Axum would replace the application-maintained HTTP surface; preserve E4 framing
 evidence and strict JSON/API tests when framework extractors are introduced.
+Use [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) for the offline/security
+requirements and status-query/polling findings when designing the operator UI.
 
 Retain x86_64 GNU/glibc 2.22, baseline CPU settings, no musl, modern controlled
 builds and pinned SLES-equivalent container validation. The user's builder remains
