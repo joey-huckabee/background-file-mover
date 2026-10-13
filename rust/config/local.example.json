@@ -1,0 +1,8 @@
+{
+  "bind": "127.0.0.1:8080",
+  "generator_id": "recorder-host-a",
+  "source_root": "/srv/file-mover/source",
+  "destination_root": "/srv/file-mover/destination",
+  "state_database": "/var/lib/file-mover/state.sqlite",
+  "missing_file_retry_window_seconds": 300
+}

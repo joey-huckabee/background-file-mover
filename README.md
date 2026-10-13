@@ -5,8 +5,9 @@ direction are on `feature/rust-transfer-coordinator`. Read
 [the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).
 Experiments are stopped. The first dependency-free [Rust core slice](rust/README.md)
 has executable protocol tests and [SQLite acceptance](docs/RUST-INCREMENT-02.md).
-It now has [protected local claims](docs/RUST-INCREMENT-03.md); the local submission
-endpoint is next. Every build/test uses the zigbuild/SLES runtime gate.
+It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
+[local submission endpoint](docs/RUST-INCREMENT-04.md). A copied-file transfer is
+next. Every build/test uses the zigbuild/SLES runtime gate.
 Registration/authentication is deferred while tested increments develop. The C++
 implementation described below remains the reference, not the intended Rust architecture.
 

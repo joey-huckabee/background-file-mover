@@ -15,6 +15,8 @@ pub enum ClaimError {
     Io(Errno),
     Store(mover_store::StoreError),
     Blocked(&'static str),
+    MissingSource,
+    ExpectedSizeMismatch,
 }
 impl std::fmt::Display for ClaimError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -130,6 +132,33 @@ fn namespace(root: &OwnedFd) -> Result<OwnedFd> {
     Ok(dir)
 }
 
+/// Local service singleton and custody guard. Holding this directory lock is
+/// not a remote-worker fence; this increment still rejects NFS.
+pub struct LocalClaimLock {
+    path: String,
+    root: ObjectIdentity,
+    namespace: ObjectIdentity,
+    _held: OwnedFd,
+}
+impl LocalClaimLock {
+    pub fn acquire(path: &str) -> Result<Self> {
+        let root = root(path)?;
+        let namespace = namespace(&root)?;
+        fs::flock(&namespace, fs::FlockOperation::NonBlockingLockExclusive)?;
+        Ok(Self {
+            path: path.into(),
+            root: owned_directory(&root, false)?,
+            namespace: owned_directory(&namespace, true)?,
+            _held: namespace,
+        })
+    }
+    pub fn validate(&self) -> Result<()> {
+        let root = root(&self.path)?;
+        same_directory(&owned_directory(&root, false)?, &self.root)?;
+        same_directory(&owned_directory(&namespace(&root)?, true)?, &self.namespace)
+    }
+}
+
 /// Allocate an exclusive private directory, without moving any source data.
 /// Administrator must first provision root/.file-mover as a service-owned 0700
 /// directory. Allocation failure or a crash before begin_claim leaves an orphan
@@ -151,15 +180,25 @@ pub fn prepare(job: &Accepted, index: usize) -> Result<ClaimIntent> {
         )
     };
     let root = root(&job.context.source_root_path)?;
-    let (parent, name) = parent(&root, &source_name)?;
-    let file_fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
-    let source = source(&file_fd)?;
-    if source.device != fs::fstat(&root)?.st_dev
-        || file.expected_size().is_some_and(|n| n != source.size)
-    {
-        return Err(ClaimError::Blocked("device or expected size mismatch"));
-    }
     let namespace = namespace(&root)?;
+    let (parent, name) = parent(&root, &source_name).map_err(|error| match error {
+        ClaimError::Io(Errno::NOENT) => ClaimError::MissingSource,
+        other => other,
+    })?;
+    let file_fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty()).map_err(|error| {
+        if error == Errno::NOENT {
+            ClaimError::MissingSource
+        } else {
+            error.into()
+        }
+    })?;
+    let source = source(&file_fd)?;
+    if source.device != fs::fstat(&root)?.st_dev {
+        return Err(ClaimError::Blocked("cross-device source"));
+    }
+    if file.expected_size().is_some_and(|n| n != source.size) {
+        return Err(ClaimError::ExpectedSizeMismatch);
+    }
     let private_name = format!("{}-{index}", job.job_id);
     fs::mkdirat(&namespace, private_name.as_str(), Mode::RWXU)?;
     let area = fs::openat(&namespace, private_name.as_str(), DIRECTORY, Mode::empty())?;

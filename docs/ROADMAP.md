@@ -10,8 +10,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add a minimal locally bound submission endpoint for JSON-to-claim handoff
-  and same-ID retry, without registration/authentication in this test increment.
 - [ ] Add one copied-file transfer using streamed hash/destination reread,
   no-clobber publication and crash recovery, with deletion disabled.
 - [ ] Add multi-file completion manifests and configurable gated cleanup after
@@ -53,8 +51,8 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
 - [ ] Implement configurable postcommit source cleanup, including recorded job
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.
-- [ ] Implement the configurable five-minute default and persistent retry windows,
-  operator review/resume, retained partial claims and non-202 blocked responses.
+- [ ] Add explicit operator review/resume tooling and timer-driven missing-file
+  retries, with audited deadline resets, clock-anomaly diagnostics and bounded backoff.
 - [ ] Define durable pending job/byte limits and source-space margins for handoff
   during destination outages; test partial claims, admission refusal and restart
   reservation reconciliation without deleting retained source data.

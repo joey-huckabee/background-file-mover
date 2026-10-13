@@ -159,8 +159,10 @@ ten passing WSL tests and limits. `mover-store` now adds local SQLite acceptance
 replay; [RUST-INCREMENT-02.md](RUST-INCREMENT-02.md) records its evidence.
 `mover-fs` adds protected local source claims and interrupted-effect reconciliation;
 [RUST-INCREMENT-03.md](RUST-INCREMENT-03.md) records the setup and limits. Only
-all-file durable receipts yield Ready202 and release reservations. There is no
-Rust HTTP service yet. Build the minimal local submission endpoint next, leaving
+all-file durable receipts yield Ready202 and release reservations. The local
+`file-mover` executable now implements JSON submission/202-after-claim and health;
+see [RUST-INCREMENT-04.md](RUST-INCREMENT-04.md) for configuration, bounds and
+missing-deadline evidence. Build one copied-file transfer next, leaving
 registration deferred and deletion disabled. NFS and production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.
 The fifteen milestones retain useful release obligations.

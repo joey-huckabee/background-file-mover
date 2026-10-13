@@ -1,8 +1,9 @@
 # Incremental Rust implementation
 
 Members are `mover-core`, a dependency-free pure protocol library,
-`mover-store`, the E1-qualified SQLite repository, and `mover-fs`, the
-E2-qualified rustix local claim worker. Add the executable in the API slice.
+`mover-store`, the E1-qualified SQLite repository, `mover-fs`, the
+E2-qualified rustix local claim worker, and `file-mover`, the E5-qualified local
+Tokio/Serde/httparse submission executable.
 Confirmation methods trust validated durable receipts from their eventual callers;
 the state model itself performs no HTTP, SQL, hashing or filesystem effects.
 
@@ -10,16 +11,18 @@ Current rules cover relative paths/prefix collisions, optional sizes, all-file
 handoff, stable replay, pinned policy, publication/set commitment and cleanup
 authorization. Local claims check descriptor-relative traversal, ownership,
 identity, private custody and actual size, with process-exit reconciliation.
-NFS behavior, persistent missing-file deadlines, API resource limits and full
-production mount/worker qualification remain subsequent work.
+Missing-file deadlines now persist, and the local API bounds requests/concurrency.
+NFS behavior, operator resume, backlog admission and full production mount/worker
+qualification remain subsequent work.
 Replay currently preserves file-list order; API normalization is still open.
 
 The [store](crates/mover-store/README.md) persists acceptance/replay and pinned
 policy on one dedicated database thread. The [claim worker](crates/mover-fs/src/lib.rs)
 commits intent before a no-clobber rename, synchronizes the effect, then commits
-its receipt. Only all-file receipts authorize Ready202; no HTTP endpoint or
-post-transfer source deletion exists yet. See [increment 03](../docs/RUST-INCREMENT-03.md)
-for evidence, supported local setup and remaining effects.
+its receipt. Only all-file receipts authorize HTTP 202. The service binds only
+loopback; no destination transfer or post-transfer cleanup exists yet. See
+[increment 04](../docs/RUST-INCREMENT-04.md) for the runnable contract/configuration
+and [increment 03](../docs/RUST-INCREMENT-03.md) for local filesystem limits.
 
 ## Checks
 

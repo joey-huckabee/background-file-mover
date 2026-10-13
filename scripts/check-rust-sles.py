@@ -126,7 +126,7 @@ def main() -> int:
         run(["podman", "start", provisioner])
         run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
         run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
-        print("Provisioning the locked E1/E2 dependency graph...", flush=True)
+        print("Provisioning the locked E1–E5 dependency graph...", flush=True)
         run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
                      "rustc --version; cargo --version; cargo-zigbuild --version; zig version"], results / "toolchain.txt")
@@ -138,13 +138,18 @@ def main() -> int:
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
                                              "--filter-platform", "x86_64-unknown-linux-gnu"], results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
-        expected = json.loads((ROOT / "docs/E2-RUSTIX-EVIDENCE.json").read_text())["dependencies"]
+        evidence = json.loads((ROOT / "docs/E5-TOKIO-EVIDENCE.json").read_text())
+        expected = evidence["dependencies"]
         if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
-            raise ValueError("dependency graph differs from the E2-qualified cumulative graph")
+            raise ValueError("dependency graph differs from the E5-qualified cumulative graph")
         qualified_features = {
             "rusqlite": ["bundled", "modern_sqlite"],
             "rustix": ["alloc", "fs", "process", "std"],
             "linux-raw-sys": ["auxvec", "elf", "errno", "general", "ioctl", "no_std", "prctl"],
+            "tokio": sorted(evidence["tokio_selected_features"]),
+            "serde": ["derive", "serde_derive", "std"],
+            "serde_json": ["std"],
+            "httparse": ["std"],
         }
         nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
         for package in dependencies:
@@ -182,7 +187,8 @@ def main() -> int:
                 raise ValueError("no target test executables discovered")
             profile_report = {"artifacts": [], "tests_passed": 0}
             report["profiles"][profile] = profile_report
-            for index, (path, is_test) in enumerate(sorted(artifacts.items())):
+            runtime_service = None
+            for index, (path, is_test) in enumerate(sorted(artifacts.items(), key=lambda item: (item[1], item[0]))):
                 if not path.startswith("/work/target/x86_64-unknown-linux-gnu/"):
                     raise ValueError(f"unexpected artifact location: {path}")
                 name = f"{profile}-{index}-{Path(path).name}"
@@ -200,6 +206,9 @@ def main() -> int:
                 if received != digest:
                     raise ValueError("runtime artifact hash mismatch")
                 runtime_exec = ["podman", "exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", runtime]
+                if is_test and runtime_service:
+                    runtime_exec.insert(-1, "--env")
+                    runtime_exec.insert(-1, f"FILE_MOVER_TEST_EXECUTABLE={runtime_service}")
                 ldd = run(runtime_exec + ["ldd", "-r", remote], results / f"{name}.ldd")
                 if "not found" in ldd or "undefined symbol" in ldd:
                     raise ValueError("runtime relocation/library failure")
@@ -211,6 +220,11 @@ def main() -> int:
                     if not counts or any(int(failed) for _, failed in counts):
                         raise ValueError("missing successful test result")
                     profile_report["tests_passed"] += sum(int(passed) for passed, _ in counts)
+                else:
+                    smoke = run(runtime_exec + [remote, "--check-platform"], results / f"{name}.smoke")
+                    if "file-mover 0.1.0 local-claim prototype" not in smoke:
+                        raise ValueError("service runtime smoke failed")
+                    runtime_service = remote
             if profile_report["tests_passed"] == 0:
                 raise ValueError("no actual tests ran")
         report["status"] = "PASSED"

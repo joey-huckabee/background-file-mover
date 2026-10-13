@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,48 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn missing_deadline_survives_restart_replay_and_clock_rollback() {
+    let f = Fixture::new();
+    let store = Store::open(f.db()).unwrap();
+    let job = store
+        .accept(&input("g", "missing", "data"), &context())
+        .unwrap();
+    assert!(!store.note_missing(job.job_id, 0, 100).unwrap());
+    assert!(!store.note_missing(job.job_id, 0, 150).unwrap());
+    drop(store);
+    let store = Store::open(f.db()).unwrap();
+    store
+        .accept(&input("g", "missing", "data"), &context())
+        .unwrap();
+    assert!(!store.claim_blocked(job.job_id, 399).unwrap());
+    assert!(store.claim_blocked(job.job_id, 400).unwrap());
+    assert!(store.claim_blocked(job.job_id, 100).unwrap());
+    assert!(store.note_missing(job.job_id, 0, 500).unwrap());
+}
+
+#[test]
+fn schema_two_migration_preserves_partial_claims() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
+    let intent = intent_for(&job, 0, 7);
+    db.begin_claim(&intent).unwrap();
+    db.finish_claim(&intent).unwrap();
+    db.connection
+        .execute_batch("DROP TABLE missing; PRAGMA user_version=2;")
+        .unwrap();
+    drop(db);
+    let store = Store::open(f.db()).unwrap();
+    let job = store.get(job.job_id).unwrap().unwrap();
+    assert_eq!(
+        job.recording.file_phase(0),
+        Some(mover_core::FilePhase::Claimed)
+    );
+    assert_eq!(job.recording.handoff(), Handoff::Pending);
+    assert!(!store.note_missing(job.job_id, 1, 100).unwrap());
+}
 
 fn intent_for(job: &Accepted, index: usize, size: u64) -> ClaimIntent {
     let identity = ObjectIdentity {

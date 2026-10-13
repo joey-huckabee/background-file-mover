@@ -1,0 +1,378 @@
+//! Bounded loopback-only generator handoff service. No transfer/delete yet.
+mod http;
+use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
+use mover_store::{AcceptanceContext, Store, StoreError};
+use serde::{Deserialize, Serialize};
+use std::{
+    net::SocketAddr,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+    sync::{Semaphore, oneshot},
+    task::JoinSet,
+    time::timeout,
+};
+
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    pub bind: SocketAddr,
+    pub generator_id: String,
+    pub source_root: String,
+    pub destination_root: String,
+    pub state_database: String,
+    #[serde(default = "retry_default")]
+    pub missing_file_retry_window_seconds: u32,
+}
+fn retry_default() -> u32 {
+    300
+}
+fn absolute(path: &str) -> bool {
+    path.starts_with('/')
+        && path != "/"
+        && path[1..].split('/').all(|p| {
+            !p.is_empty()
+                && p != "."
+                && p != ".."
+                && !p.chars().any(char::is_control)
+                && !p.contains('\\')
+        })
+}
+impl Config {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if !self.bind.ip().is_loopback()
+            || self.generator_id.trim().is_empty()
+            || self.generator_id.len() > 128
+            || ![
+                &self.source_root,
+                &self.destination_root,
+                &self.state_database,
+            ]
+            .iter()
+            .all(|p| absolute(p))
+        {
+            return Err(
+                "loopback binding, bounded generator and canonical absolute paths required",
+            );
+        }
+        let s = Path::new(&self.source_root);
+        let d = Path::new(&self.destination_root);
+        let db = Path::new(&self.state_database);
+        if s.starts_with(d) || d.starts_with(s) || db.starts_with(s) || db.starts_with(d) {
+            return Err("source/destination roots and local state must be separate");
+        }
+        Ok(())
+    }
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Input {
+    generator_id: String,
+    submission_id: String,
+    source_path: String,
+    files: Vec<InputFile>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InputFile {
+    name: String,
+    #[serde(default, deserialize_with = "optional_size")]
+    size_bytes: Option<u64>,
+}
+fn optional_size<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u64>, D::Error> {
+    u64::deserialize(d).map(Some)
+}
+#[derive(Debug, Serialize)]
+pub struct Response {
+    #[serde(skip)]
+    pub status: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<&'static str>,
+    pub source_paths_released: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<&'static str>,
+    pub retryable: bool,
+}
+fn error(status: u16, code: &'static str, retryable: bool, job: Option<i64>) -> Response {
+    Response {
+        status,
+        job_id: job.map(|j| j.to_string()),
+        state: None,
+        source_paths_released: false,
+        error: Some(code),
+        retryable,
+    }
+}
+fn now() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+        .min(i64::MAX as u64) as i64
+}
+fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Response> {
+    let input: Input =
+        serde_json::from_slice(body).map_err(|_| error(400, "invalid_json", false, None))?;
+    if input.generator_id != c.generator_id {
+        return Err(error(403, "unknown_generator", false, None));
+    }
+    if input.submission_id.len() > 128
+        || input.generator_id.len() > 128
+        || input.files.len() > 256
+        || !absolute(&input.source_path)
+    {
+        return Err(error(400, "invalid_submission", false, None));
+    }
+    let relative = Path::new(&input.source_path)
+        .strip_prefix(&c.source_root)
+        .map_err(|_| error(403, "source_outside_scope", false, None))?
+        .to_str()
+        .ok_or_else(|| error(400, "invalid_submission", false, None))?
+        .to_owned();
+    let files = input
+        .files
+        .into_iter()
+        .map(|f| FileSpec::new(f.name, f.size_bytes))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| error(400, "invalid_file_paths", false, None))?;
+    let submission = Submission::new(
+        input.generator_id,
+        input.submission_id,
+        input.source_path,
+        files,
+    )
+    .map_err(|_| error(400, "invalid_submission", false, None))?;
+    Ok((
+        submission,
+        AcceptanceContext {
+            source_root_id: "local-source".into(),
+            source_root_path: c.source_root.clone(),
+            source_relative_directory: relative,
+            destination_path: c.destination_root.clone(),
+            missing_retry_seconds: c.missing_file_retry_window_seconds,
+            policy: DeliveryPolicy {
+                destination_id: "configured-local".into(),
+                group_by_generator: false,
+                delete_source_after_commit: false,
+            },
+        },
+    ))
+}
+type Work = (Submission, AcceptanceContext, oneshot::Sender<Response>);
+struct Worker {
+    sender: Option<mpsc::SyncSender<Work>>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+impl Worker {
+    fn start(c: &Config) -> Result<Self, Box<dyn std::error::Error>> {
+        c.validate()?;
+        let guard = mover_fs::LocalClaimLock::acquire(&c.source_root)?;
+        let store = Store::open(&c.state_database)?;
+        let (sender, receiver) = mpsc::sync_channel::<Work>(1);
+        let thread = std::thread::Builder::new()
+            .name("mover-local-claim".into())
+            .spawn(move || {
+                while let Ok((submission, context, reply)) = receiver.recv() {
+                    let result = process(&store, &guard, &submission, &context);
+                    let _ = reply.send(result); // Lost response never rolls back a claim.
+                }
+            })?;
+        Ok(Self {
+            sender: Some(sender),
+            thread: Some(thread),
+        })
+    }
+}
+impl Drop for Worker {
+    fn drop(&mut self) {
+        self.sender.take();
+        if let Some(t) = self.thread.take() {
+            let _ = t.join();
+        }
+    }
+}
+fn process(
+    store: &Store,
+    guard: &mover_fs::LocalClaimLock,
+    s: &Submission,
+    c: &AcceptanceContext,
+) -> Response {
+    if guard.validate().is_err() {
+        return error(409, "recording_blocked", false, None);
+    }
+    let mut job = match store.accept(s, c) {
+        Ok(j) => j,
+        Err(StoreError::Protocol(
+            ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
+        )) => return error(409, "submission_conflict", false, None),
+        Err(StoreError::SourceReserved) => return error(409, "source_reserved", false, None),
+        Err(StoreError::SourceRootChanged | StoreError::CorruptState) => {
+            return error(409, "recording_blocked", false, None);
+        }
+        Err(_) => return error(503, "storage_unavailable", true, None),
+    };
+    if job.recording.handoff() != Handoff::Ready202 {
+        match store.claim_blocked(job.job_id, now()) {
+            Ok(false) => (),
+            Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
+            Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
+        }
+        for i in 0..s.files().len() {
+            match mover_fs::claim(store, job.job_id, i) {
+                Ok(updated) => job = updated,
+                Err(mover_fs::ClaimError::MissingSource) => {
+                    return match store.note_missing(job.job_id, i, now()) {
+                        Ok(false) => error(503, "handoff_pending", true, Some(job.job_id)),
+                        Ok(true) => error(409, "recording_blocked", false, Some(job.job_id)),
+                        Err(_) => error(503, "storage_unavailable", true, Some(job.job_id)),
+                    };
+                }
+                Err(mover_fs::ClaimError::ExpectedSizeMismatch) => {
+                    return error(409, "source_size_mismatch", false, Some(job.job_id));
+                }
+                Err(mover_fs::ClaimError::Store(_)) => {
+                    return error(503, "storage_unavailable", true, Some(job.job_id));
+                }
+                Err(_) => return error(409, "recording_blocked", false, Some(job.job_id)),
+            }
+        }
+    }
+    if job.recording.handoff() != Handoff::Ready202 {
+        return error(503, "handoff_pending", true, Some(job.job_id));
+    }
+    Response {
+        status: 202,
+        job_id: Some(job.job_id.to_string()),
+        state: Some("Claimed"),
+        source_paths_released: true,
+        error: None,
+        retryable: false,
+    }
+}
+async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
+    let mut bytes = Vec::new();
+    let mut buffer = [0; 4096];
+    loop {
+        match http::frame(&bytes) {
+            http::Frame::Complete(r) => return Ok(r),
+            http::Frame::Reject(s) => return Err(error(s, "invalid_http", false, None)),
+            http::Frame::NeedMore => (),
+        }
+        let n = stream
+            .read(&mut buffer)
+            .await
+            .map_err(|_| error(400, "invalid_http", false, None))?;
+        if n == 0 {
+            return Err(error(400, "incomplete_request", false, None));
+        }
+        bytes.extend_from_slice(&buffer[..n]);
+    }
+}
+async fn connection(mut stream: TcpStream, c: Arc<Config>, sender: mpsc::SyncSender<Work>) {
+    let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
+        Err(_) => error(408, "request_timeout", true, None),
+        Ok(Err(e)) => e,
+        Ok(Ok(r)) => {
+            if r.head.headers.get("host").is_none_or(|h| h.is_empty())
+                || r.head.headers.contains_key("expect")
+                || r.head.headers.contains_key("authorization")
+            {
+                error(400, "unsupported_headers", false, None)
+            } else if r.head.method == "GET" && r.head.target == b"/healthz" && r.body.is_empty() {
+                Response {
+                    status: 200,
+                    job_id: None,
+                    state: Some("Running"),
+                    source_paths_released: false,
+                    error: None,
+                    retryable: false,
+                }
+            } else if r.head.target != b"/api/v2/jobs" {
+                error(404, "not_found", false, None)
+            } else if r.head.method != "POST" {
+                error(405, "method_not_allowed", false, None)
+            } else if r.head.headers.get("content-type").map(Vec::as_slice)
+                != Some(b"application/json")
+            {
+                error(415, "unsupported_media_type", false, None)
+            } else {
+                match decode(&r.body, &c) {
+                    Err(e) => e,
+                    Ok((submission, context)) => {
+                        if r.head.headers.get("idempotency-key").is_some_and(|key| {
+                            key.as_slice() != submission.submission_id().as_bytes()
+                        }) {
+                            error(400, "idempotency_key_conflict", false, None)
+                        } else {
+                            let (reply, result) = oneshot::channel();
+                            if sender.try_send((submission, context, reply)).is_err() {
+                                error(503, "service_busy", true, None)
+                            } else {
+                                match timeout(Duration::from_secs(10), result).await {
+                                    Ok(Ok(r)) => r,
+                                    _ => error(503, "handoff_pending", true, None),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    let body = serde_json::to_vec(&response).expect("fixed response serialization");
+    let head = format!(
+        "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        response.status,
+        body.len()
+    );
+    let _ = timeout(Duration::from_secs(2), async {
+        stream.write_all(head.as_bytes()).await?;
+        stream.write_all(&body).await?;
+        stream.shutdown().await
+    })
+    .await;
+}
+/// Caller may bind port zero for tests. Reject non-loopback listeners/configs.
+pub async fn serve(
+    listener: TcpListener,
+    c: Config,
+    stop: Arc<AtomicBool>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !listener.local_addr()?.ip().is_loopback() {
+        return Err("loopback listener required".into());
+    }
+    let worker = Worker::start(&c)?;
+    let c = Arc::new(c);
+    let permits = Arc::new(Semaphore::new(8));
+    let mut tasks = JoinSet::new();
+    while !stop.load(Ordering::Relaxed) {
+        while tasks.try_join_next().is_some() {}
+        if let Ok(accepted) = timeout(Duration::from_millis(100), listener.accept()).await {
+            let (stream, _) = accepted?;
+            let Ok(permit) = permits.clone().try_acquire_owned() else {
+                drop(stream);
+                continue;
+            };
+            let c = c.clone();
+            let sender = worker.sender.as_ref().unwrap().clone();
+            tasks.spawn(async move {
+                let _permit = permit;
+                connection(stream, c, sender).await;
+            });
+        }
+    }
+    tasks.abort_all();
+    while tasks.join_next().await.is_some() {}
+    drop(worker); // Local effects may finish; shutdown does not cancel syscalls.
+    Ok(())
+}

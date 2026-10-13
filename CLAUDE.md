@@ -12,7 +12,8 @@ Registration/token work is deferred; its enrollment choice is a one-time setup k
 See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`.
 SQLite acceptance/replay is in `mover-store`; see `docs/RUST-INCREMENT-02.md`.
 Protected local source claiming is in `mover-fs`; see `docs/RUST-INCREMENT-03.md`.
-The next slice is the local submission endpoint; acceptance alone never authorizes 202.
+The local endpoint is in `file-mover`; see `docs/RUST-INCREMENT-04.md`.
+The next slice is one copied-file transfer with deletion disabled.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical

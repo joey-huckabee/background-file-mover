@@ -3,7 +3,9 @@
 This proposal extends the existing job-oriented REST interface to completed
 recording sets and makes source-path release explicit. Review it alongside
 [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). It is a starting point for producer
-integration, not an implemented API or a frozen schema.
+integration or a frozen schema. The minimal local generator form and health
+route are implemented in [increment 04](RUST-INCREMENT-04.md); that document
+defines the implemented subset and its limits. Remaining routes/forms are proposals.
 
 ## Existing interface and proposed changes
 
@@ -166,7 +168,8 @@ destination selection is allowed only within configured caller permissions;
 the generator workflow always uses its configured route.
 
 The historical C++ `/api/jobs` `{source, dest}` contract is unchanged by this
-design-only addition. Both v2 forms remain proposals, not implemented compatibility.
+addition. Only the minimal local generator subset is currently implemented;
+the advanced form and optional metadata remain proposals.
 
 ## Explicit destination submission
 

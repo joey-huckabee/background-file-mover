@@ -14,7 +14,7 @@ use std::{
 };
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -210,6 +210,22 @@ impl Store {
             u64::try_from(count).map_err(|_| StoreError::CorruptState)
         })
     }
+    /// Persist first confirmed absence. Replays never extend its deadline.
+    pub fn note_missing(&self, job_id: i64, index: usize, now: i64) -> Result<bool> {
+        self.call(move |db| {
+            if now < 0 { return Err(StoreError::InvalidContext); }
+            let tx = db.connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let job = load(&tx, job_id)?.ok_or(StoreError::InvalidContext)?;
+            if job.recording.file_phase(index) != Some(mover_core::FilePhase::Pending) { return Err(StoreError::InvalidContext); }
+            let deadline = now.checked_add(i64::from(job.context.missing_retry_seconds)).ok_or(StoreError::InvalidContext)?;
+            tx.execute("INSERT INTO missing(job_id,file_index,deadline) VALUES(?1,?2,?3) ON CONFLICT(job_id,file_index) DO NOTHING",params![job_id,index as i64,deadline])?;
+            tx.commit()?;
+            db.claim_blocked(job_id, now)
+        })
+    }
+    pub fn claim_blocked(&self, job_id: i64, now: i64) -> Result<bool> {
+        self.call(move |db| db.claim_blocked(job_id, now))
+    }
 }
 impl Drop for Store {
     fn drop(&mut self) {
@@ -246,7 +262,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !(version == 1 && !read_only))
+        } else if (version != SCHEMA_VERSION && !((version == 1 || version == 2) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -279,13 +295,17 @@ impl Database {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             tx.execute_batch(include_str!("schema.sql"))?;
             tx.execute_batch(include_str!("claims.sql"))?;
+            tx.execute_batch(include_str!("missing.sql"))?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if version == 1 && !read_only {
+        if (version == 1 || version == 2) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            tx.execute_batch(include_str!("claims.sql"))?;
+            if version == 1 {
+                tx.execute_batch(include_str!("claims.sql"))?;
+            }
+            tx.execute_batch(include_str!("missing.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -335,6 +355,25 @@ impl Database {
         tx.commit()?;
         Ok(())
     }
+    fn claim_blocked(&mut self, job_id: i64, now: i64) -> Result<bool> {
+        if now < 0 {
+            return Err(StoreError::InvalidContext);
+        }
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        tx.execute(
+            "UPDATE missing SET blocked=1 WHERE job_id=?1 AND deadline<=?2",
+            params![job_id, now],
+        )?;
+        let blocked = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM missing WHERE job_id=?1 AND blocked=1)",
+            [job_id],
+            |r| r.get(0),
+        )?;
+        tx.commit()?;
+        Ok(blocked)
+    }
     fn finish_claim(&mut self, intent: &ClaimIntent) -> Result<Accepted> {
         let tx = self
             .connection
@@ -346,6 +385,10 @@ impl Database {
         }
         tx.execute(
             "UPDATE claims SET done=1 WHERE job_id=?1 AND file_index=?2",
+            params![intent.job_id, intent.file_index as i64],
+        )?;
+        tx.execute(
+            "DELETE FROM missing WHERE job_id=?1 AND file_index=?2",
             params![intent.job_id, intent.file_index as i64],
         )?;
         tx.execute("DELETE FROM reservations WHERE job_id=?1 AND (SELECT count(*) FROM claims WHERE job_id=?1 AND done=1)=(SELECT file_count FROM jobs WHERE job_id=?1)", [intent.job_id])?;

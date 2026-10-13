@@ -41,20 +41,23 @@ and qualification; this gate does not unpause E6 or approve arbitrary packages.
 6. Fail if relocation/testing fails or no real tests run. Retain local ignored
    reports/logs/binaries; remove created containers and retain toolchain/registry caches.
 
-Future non-test service binaries are audited here and must gain explicit SLES
-behavior/smoke invocations when introduced. Rustdoc tests or custom test harnesses
+The non-test service binary is audited and smoke-tested before test execution.
+The gate supplies its exact relocated path to subprocess HTTP tests, which start
+the service, submit/replay recordings and exercise shutdown inside SLES userspace.
+Future executables must gain explicit behavior checks. Rustdoc tests or custom test harnesses
 also need explicit target execution support when introduced; do not validate
 them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 38 tests pass in both profiles inside the pinned runtime:
-ten core tests, nineteen SQLite storage tests and nine filesystem claim tests.
-All ten emitted test executables require at most GLIBC_2.18 and use the standard
-loader. The external dependency graph reuses E2's fifteen cumulative Linux
-packages and E1's bundled SQLite 3.53.2 configuration. Qualified feature sets are
-checked explicitly, including rustix's std/fs/process raw-syscall backend.
-See [the claim increment](RUST-INCREMENT-03.md) for the local effect/recovery boundary.
+The workspace's 47 tests pass in both profiles inside the pinned runtime:
+ten core tests, twenty-one SQLite storage tests, ten filesystem claim tests and
+six executable HTTP tests. All eighteen emitted executables use the standard
+loader and require at most GLIBC_2.18. The external dependency graph reuses E5's
+thirty-three cumulative Linux packages and E1's bundled SQLite configuration.
+Qualified feature sets are checked explicitly for SQLite, rustix/raw-syscall
+support, Tokio, Serde/JSON and httparse. See [the local API increment](RUST-INCREMENT-04.md)
+for the implemented endpoint and effect/recovery boundary.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd

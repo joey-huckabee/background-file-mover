@@ -133,6 +133,23 @@ fn expected_size_mismatch_does_not_move_or_allocate() {
 }
 
 #[test]
+fn local_claim_lock_excludes_second_owner_and_detects_namespace_change() {
+    let f = Fixture::new();
+    let lock = mover_fs::LocalClaimLock::acquire(f.0.to_str().unwrap()).unwrap();
+    assert!(mover_fs::LocalClaimLock::acquire(f.0.to_str().unwrap()).is_err());
+    lock.validate().unwrap();
+    std::fs::rename(f.0.join(".file-mover"), f.0.join("held")).unwrap();
+    std::fs::create_dir(f.0.join(".file-mover")).unwrap();
+    std::fs::set_permissions(
+        f.0.join(".file-mover"),
+        std::fs::Permissions::from_mode(0o700),
+    )
+    .unwrap();
+    assert!(lock.validate().is_err());
+    drop(lock);
+}
+
+#[test]
 fn missing_second_file_retains_first_claim_and_all_reservations() {
     let f = Fixture::new();
     let s = f.store();
