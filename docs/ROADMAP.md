@@ -31,6 +31,9 @@ experiment, or begin a component-for-component port.
 
 - [ ] Finalize the REST draft's durable Accepted versus all-files Claimed release,
   producer handoff, idempotency scope/retention and control semantics; produce OpenAPI.
+- [ ] Derive L2/L3 and Rust tests for generator identity/source-directory/file-name
+  submission, configured destination routing, pinned route replay and caller binding
+  from the additive requirements in [L1-REQ.md](L1-REQ.md).
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
   ownership evidence against partial claims, publication and stale worker effects.
 - [ ] Finalize the versioned completion manifest, filename encoding and metadata
@@ -153,7 +156,8 @@ changes the integrity or source-retention guarantees.
 - Claim-directory cleanup and explicit handling of unexpected leftover files.
 - Manual retry/reconciliation tools, offline database inspection and durable audit timelines.
 - Advanced priorities and storage-endpoint scheduling budgets.
-- Object-storage publication as a separate protocol; multi-host takeover only with
-  explicit distributed ownership/fencing.
+- Qualify S3 delivery behind the generator contract: dependencies/target compatibility,
+  multipart ownership, checksum evidence, conditional publication and cleanup receipts.
+  Multi-host takeover requires explicit distributed ownership/fencing.
 - Directory/filename-filter submission, alternative spool transport and additional
   platform support only with explicit contracts and qualification.

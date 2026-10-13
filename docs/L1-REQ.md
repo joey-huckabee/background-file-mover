@@ -11,6 +11,10 @@ Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 
 ## v1.0.0 scope
 
+Additive Rust requirements for generator submissions and configured delivery
+appear at the end of this file. They are specified, unimplemented and outside
+the historical v1.0.0 C++ coverage scope; existing SHALL statements are retained.
+
 v1.0.0 is the C++11 / REST implementation. It is **deliberately narrower** than the
 Python implementation shipped through v0.4.2: the claim-and-verify transfer semantics
 are deferred to v1.1 so that the REST control plane, the transfer engine, and the
@@ -443,3 +447,84 @@ See section 0 of `docs/CYBERSECURITY.md`: it removes the staging directory and
 the recursive walk entirely, and avoids depending on an atomic no-clobber
 directory move that does not exist over NFS. Cross-filesystem support is a v1.1
 item with its own design and fault-injection suite.
+
+---
+
+## Additive Rust generator and delivery requirements
+
+These additions describe the Rust contract in
+[REST-API-DRAFT.md](REST-API-DRAFT.md). **Rust Status: Specified, not implemented.**
+The v1.0.0 Deferred annotation excludes them from historical C++ scope; it does
+not schedule them for the old v1.1 release. L2/L3 derivation and Rust verification
+remain future work. Earlier requirement IDs and C++ evidence are preserved.
+
+### L1-API-007
+
+The system shall provide an additive recording-set submission form containing
+generator identity, a mover-visible source directory and explicit file names,
+without requiring the generator to supply a destination.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust generator submission; preserve existing request forms.
+
+### L1-API-008
+
+The system shall expose a durable all-files source-path-release acknowledgement
+distinct from request acceptance and destination commitment.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust Accepted/Claimed distinction; derives the producer contract for L1-SYS-002.
+
+### L1-API-009
+
+The system shall resolve repeated equivalent submissions under the same authorized
+generator-scoped idempotency key to the original job and its pinned destination.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust durable replay; conflicting requests shall not replace the original job.
+
+### L1-SYS-024
+
+The system shall select each generator submission's destination from validated
+startup configuration using a default route or administrator-defined generator route.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust destination routing; no generator destination selection is required.
+
+### L1-SYS-025
+
+The system shall preserve an accepted job's resolved nonsecret destination identity,
+file mapping and delivery policies across retries, restarts and configuration changes.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust routing snapshot; unavailable original destinations block rather than reroute.
+
+### L1-SYS-026
+
+The system shall expose the same acceptance, source-claim and recording-commit
+milestones for each enabled destination backend, supported by that backend's
+qualified integrity, publication and recovery evidence.
+
+**Verification Method**: Test (T), Analysis (A)
+**v1.0.0 Status**: Deferred — Rust delivery contract; mounted filesystems first, S3 as a separate future adapter.
+
+### L1-SYS-027
+
+The system shall reject startup configuration selecting a destination backend
+that the deployed binary does not implement and qualify for the production target.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust backend capability gate; no silent fallback, including unqualified S3 delivery.
+
+### L1-SEC-008
+
+The system shall authorize a generator identity and its source scope independently
+of the identity string supplied in the submission body.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust caller binding or explicitly trusted local deployment boundary.
+
+Delivery acceptance examples and proposed startup INI keys are design artifacts,
+not behavior of the current C++ service. Filesystem deletion still requires the
+[transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
+validated object/manifest receipts and retention assumptions.

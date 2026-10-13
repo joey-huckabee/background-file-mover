@@ -37,7 +37,59 @@ during cutover rather than silently accepting old requests with new semantics.
 There is no separate client `claim` call. Claiming starts automatically after
 acceptance under admission policy. A client cannot set a job to `Claimed`.
 
-## Submit a recording
+## Generator submission with a configured destination
+
+The additive generator form identifies the recording generator and supplies a
+source directory plus explicit file names. It contains no destination. The
+service selects the destination from configuration loaded at startup.
+
+```http
+POST /api/v2/jobs HTTP/1.1
+Content-Type: application/json
+Idempotency-Key: recording-0042
+
+{
+  "generator_id": "recorder-host-a",
+  "recording_id": "scenario-17-run-42",
+  "producer_handoff": "completed_immutable",
+  "source_path": "/mnt/recordings/current",
+  "files": [
+    {"file_key": "video", "name": "video.bin", "size_bytes": 100000000000},
+    {"file_key": "telemetry", "name": "telemetry.bin", "size_bytes": 12000000}
+  ]
+}
+```
+
+`source_path` names a directory **as visible to the mover**, inside a source root
+approved for that generator. This is a metadata request, not an upload of file
+contents or access to an arbitrary path on another computer. Each `name` is one
+file-name component, not an absolute/nested path; reject separators, `.`/`..`,
+NUL, duplicates and invalid encoding. Resolve paths using the protocol's safe
+descriptor traversal, not string-prefix checks. Persist both the supplied form
+and the normalized root/relative-file mapping.
+
+`generator_id` is a stable configured identity, not a credential. Bind it to the
+authenticated caller where authentication exists, or an explicitly trusted local
+deployment. An untrusted caller cannot gain another generator's source access by
+putting its ID in JSON. Reject unknown/unauthorized generators and source roots
+outside their scope before acceptance. Multiple generator instances on different
+hosts receive distinct configured identities; do not infer identity from filenames.
+
+### Additive request forms
+
+Keep the previously drafted explicit-root/destination form below as an advanced
+submission use case. The generator form is an additional alternative, not a
+requirement added to every existing request. Select the generator form by
+`generator_id`; it requires `source_path` and file `name` fields and rejects
+client destination fields. The explicit form requires `destination_root_id`
+and each file's source root/path. Reject mixtures and unknown fields. Explicit
+destination selection is allowed only within configured caller permissions;
+the generator workflow always uses its configured route.
+
+The historical C++ `/api/jobs` `{source, dest}` contract is unchanged by this
+design-only addition. Both v2 forms remain proposals, not implemented compatibility.
+
+## Explicit destination submission
 
 ```http
 POST /api/v2/jobs HTTP/1.1
@@ -76,13 +128,15 @@ are closed, there are no writable aliases, and entries/parents remain unchanged
 until all-files claim confirmation. A JSON field cannot prove that condition;
 the recorder must enforce it in its lifecycle.
 
-SHA-256 during copying plus destination reread is mandatory initially. An optional
+For filesystem delivery, SHA-256 during copying plus destination reread is mandatory initially. An optional
 producer expected digest can be added during schema review; this request does
 not require prehashing. Source-cleanup policy is service-controlled and returned
 in status. Initial implementation keeps sources; a submission cannot enable
 administratively disabled deletion or bypass verification.
 
 ## Acceptance response
+
+Example response for the generator submission:
 
 ```http
 HTTP/1.1 202 Accepted
@@ -91,6 +145,7 @@ Content-Type: application/json
 
 {
   "job_id": "job-0042",
+  "generator_id": "recorder-host-a",
   "recording_id": "scenario-17-run-42",
   "accepted": true,
   "claim": {
@@ -107,6 +162,14 @@ Return this only after the acceptance transaction commits. It is a snapshot:
 claiming may advance before the client receives it. Acceptance does not promise
 successful source inspection or transfer. While release is false, the producer
 keeps all submitted paths untouched.
+
+Generator jobs return `generator_id` in acceptance/status/file ownership records
+and include it in completion manifests. Explicit-form jobs may omit it until
+an authenticated submission identity is supplied. Generator idempotency keys
+are scoped to the authorized generator; define the explicit form's caller scope
+before freezing authentication. Resolve replay against the original durable
+request before selecting a new destination, so a configuration change cannot
+reroute a replayed job. Current caller authorization still applies.
 
 Repeat the same POST/key after any lost response. An equivalent normalized
 request returns `200 OK`, the same job ID and current acceptance/claim summary.
@@ -129,6 +192,7 @@ GET /api/v2/jobs/job-0042 HTTP/1.1
 ```json
 {
   "job_id": "job-0042",
+  "generator_id": "recorder-host-a",
   "recording_id": "scenario-17-run-42",
   "revision": 8,
   "accepted": true,
@@ -179,6 +243,11 @@ A bounded long-poll/event stream is a possible later addition.
 and recorded. Consumers may see a valid manifest earlier if filesystem
 publication succeeds but SQL result persistence fails. Claim release is unaffected.
 
+The same public commitment/cleanup milestones apply to future qualified S3
+delivery. REST clients do not need to know whether publication used POSIX files
+or objects. Backend-specific verification and receipts must support those facts;
+they cannot be inferred from a successful HTTP upload alone.
+
 With deletion enabled, cleanup progresses through `Pending`, `Running` and
 `Complete`. Cleanup failures keep a committed recording with pending cleanup;
 they do not recopy it. `Disabled` means claimed sources remain retained.
@@ -221,8 +290,8 @@ new-job retry behavior, which could reopen a newer recording at a reused path.
 - Can the recorder enforce closed writers, synchronized completed files and
   unchanged entries/parents until all-files release?
 - Is all-files release sufficient, or does preparation need individual release?
-- Can producers use configured root IDs/explicit file lists and consumers honor
-  committed-manifest visibility and destination retention through cleanup?
+- Can generators provide mover-visible source directories and explicit names,
+  and can consumers honor manifest visibility and retention through cleanup?
 - Should `recording_id` be unique within a producer scope independently of keys?
   Define authentication/producer scope before remote use.
 - Set filename encoding, naming/metadata policy, body/file/page bounds, key
@@ -231,3 +300,67 @@ new-job retry behavior, which could reopen a newer recording at a reused path.
 Resolve these before generating OpenAPI or writing Rust. Preserve loopback by
 default, external TLS and strict hostile-input tests while revising the REST
 requirements for this contract.
+
+## Startup destination configuration
+
+Illustrative INI schema for a mounted file share; this is a design example,
+not configuration accepted by the current C++ binary:
+
+```ini
+[delivery]
+default_destination = archive
+
+[destination:archive]
+kind = filesystem
+path = /mnt/archive/recordings
+
+[generator:recorder-host-a]
+source_root = /mnt/recordings
+```
+
+Every configured generator uses the default destination unless an administrator
+sets an explicit per-generator `destination` override. The generator submits
+the same request either way. Validate all references/source permissions at
+startup. Unavailable storage is a readiness/health condition, not automatically
+invalid syntax or permission to use an underlying local directory.
+
+To route newly accepted jobs to S3, the future configuration could instead use:
+
+```ini
+[delivery]
+default_destination = object-archive
+
+[destination:object-archive]
+kind = s3
+bucket = recording-archive
+region = us-east-1
+prefix = recordings/
+credential_profile = file-mover
+
+[generator:recorder-host-a]
+source_root = /mnt/recordings
+```
+
+Credentials are obtained by the service using an administrator-controlled
+provider/reference, never submitted by generators or included in job responses.
+Pin the nonsecret destination identity, backend kind, path or bucket/region/
+endpoint/prefix, naming and integrity/cleanup policy at acceptance. Restarting
+with a changed route affects new jobs only. Pending jobs keep their original
+destination; if that destination can no longer be accessed, block rather than
+reroute. Credential rotation may preserve access to the same pinned target.
+
+Mounted shares use the POSIX claim/copy/verify/publish protocol after qualification
+of their actual mount semantics. An S3 adapter needs multipart-upload ownership,
+provider-validated checksum evidence, conditional object/manifest publication,
+uncertain-completion recovery and version-bound receipts where available.
+Amazon S3 supports `If-None-Match: *` on PutObject and CompleteMultipartUpload;
+it checks the current object version and does not establish eternal immutability.
+[AWS conditional write documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
+Retention/access policy must protect delivered objects through source cleanup.
+Qualify S3-compatible providers separately and preserve the
+[checksum distinctions](INTEGRITY-DESIGN.md#future-s3-adapter).
+
+S3 is an additional destination design use case. Its adapter, SDK/TLS dependencies
+and GNU/glibc 2.22 compatibility remain unqualified. A binary without a qualified
+enabled adapter must reject `kind = s3` at startup; it must not silently fall back
+to a file destination. No S3 package experiment is started by this contract update.

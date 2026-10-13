@@ -32,9 +32,22 @@ applied. Recovery inspects durable intent and ownership/content evidence.
 The baseline supports regular files and one destination filesystem per recording
 set. Source files may span configured roots, each with its own same-filesystem
 claim area. No recursive directory submissions, multi-destination commit,
-external transfer commands, object storage, chunk resumption or same-filesystem
+external transfer commands, chunk resumption or same-filesystem
 rename fast path is included. Even colocated endpoints initially use the same
 copy/verification protocol. Source deletion is disabled in the first implementation.
+
+The additive generator API supplies generator identity and a source directory/
+file names; startup configuration chooses its destination. Normalize that form
+to the same approved source-root/file records and pin the nonsecret resolved
+destination/policy at acceptance. Existing explicit-root submissions remain a
+separate permitted form. Generator identity is not authentication, and route
+changes never move an already accepted job to a new destination.
+
+An S3 destination is a future separately qualified delivery protocol behind the
+same acceptance/claim/commit facts. The ordered filesystem effects below apply
+to mounted filesystem destinations, not object APIs. S3 must define checksum,
+conditional publication, multipart recovery and retention evidence before it
+can authorize source cleanup; see the [REST destination design](REST-API-DRAFT.md#startup-destination-configuration).
 
 ## Producer and consumer contracts
 
@@ -44,6 +57,11 @@ An expected SHA-256 is optional. The service resolves destination names once,
 rejects duplicate source entries and duplicate/reserved destination names, and
 persists the resolved mapping and policy snapshot. Naming/config changes cannot
 change an accepted job during retry.
+
+The generator request can instead supply its mover-visible directory and file
+names, without destination fields. The service resolves approved root IDs and
+destination from validated startup configuration. Bind the normalized request,
+idempotency scope and manifest to the generator identity for that form.
 
 Acceptance also durably reserves each source root/path against other active
 jobs. Reject a different submission overlapping an unreleased reservation.
@@ -243,7 +261,8 @@ only after every source deletion is confirmed durable under the endpoint contrac
 ## Manifest and public state
 
 The manifest is versioned, strictly parsed and bounded. It binds the instance,
-job/recording identity, immutable request identity and each required file's ID,
+job/recording identity, submitted generator identity where provided, immutable
+request identity and each required file's ID,
 resolved relative final name, byte count, integrity algorithm and SHA-256.
 Store its exact serialized bytes before publication; do not regenerate timestamps
 or formatting differently on retry. Its owning receipt binds the actual manifest

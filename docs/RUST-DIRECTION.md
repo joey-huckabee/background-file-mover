@@ -33,6 +33,14 @@ evidence, manifest commitment, cleanup authorization and crash reconciliation.
 [REST-API-DRAFT.md](REST-API-DRAFT.md) proposes the producer submission/status
 contract. Review the API and producer/consumer handoff before freezing the design.
 
+The additive generator form identifies the generator and supplies a mover-visible
+source directory/file names without selecting a destination. Startup configuration
+routes the job to a default or per-generator destination, pinned at acceptance.
+Retain the earlier explicit-root form for permitted advanced use. Mounted shares
+use the filesystem protocol; S3 remains a separately qualified future adapter with
+the same producer-facing milestones. See the additive Rust section of
+[L1-REQ.md](L1-REQ.md#additive-rust-generator-and-delivery-requirements).
+
 - Separate durable `Accepted` from confirmed `Claimed`. Producer source-path reuse
   is allowed only after claim confirmation. Require completed files, closed writers,
   explicit handoff and idempotent submission; pathname changes do not stop writers.

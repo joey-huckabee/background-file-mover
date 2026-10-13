@@ -511,7 +511,7 @@ def build_matrix() -> str:
             lines.append("")
             lines.append(
                 f"{len(deferred_l1s)} L1 requirement(s) are annotated **Deferred** for "
-                f"v1.0.0, which places {len(out_of_scope)} L2/L3 requirement(s) outside "
+                f"v1.0.0, which places {len(out_of_scope)} countable requirement(s) outside "
                 f"this release. They remain specified verbatim and are counted above; they "
                 f"are excluded here so the release figure is not diluted by work that was "
                 f"postponed on purpose."
