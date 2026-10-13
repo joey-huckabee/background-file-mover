@@ -319,6 +319,30 @@
       "tracking_ref_pruned": true,
       "local_branch_existed": false,
       "exact_tip_lease": true
+    },
+    {
+      "date": "2026-10-13",
+      "branch": "integration-lab",
+      "verified_tip": "3e9226b09e737522e8ea404108ee6cf0e5d64c91",
+      "archive_tag": "archive/integration-lab",
+      "remote_archive_peeled_sha": "3e9226b09e737522e8ea404108ee6cf0e5d64c91",
+      "retained_unmerged_commit_count": 9,
+      "contains_dashboard_history": true,
+      "design_notes": "docs/INTEGRATION-DESIGN-NOTES.md",
+      "code_copied_into_rust_tree": false,
+      "remote_deleted": true,
+      "tracking_ref_pruned": true,
+      "local_branch_existed": false,
+      "exact_tip_lease": true,
+      "pull_requests": [],
+      "lab_resources_modified": false
+    }
+  ],
+  "additional_source_findings": [
+    {
+      "branch": "integration-lab",
+      "path": "integration/tests/run-all.sh",
+      "finding": "Ansible output is piped to sed inside an if; the last pipeline command status can hide an Ansible failure. Correct failure propagation before reuse."
     }
   ]
 }

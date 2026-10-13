@@ -20,8 +20,8 @@ before implementation.
 - [ ] Revise the detailed milestone schedule in
   [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md) around the agreed protocol.
 - [ ] Decide which dashboard and integration scenarios to reuse from
-  [BRANCH-REVIEW.md](BRANCH-REVIEW.md), then archive the unmerged integration-lab
-  tip before retiring its branch. Recheck the tip immediately before deletion.
+  [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
+  [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).
 
 Experiments remain paused. Do not automatically start E6 or another package
 experiment, or begin a component-for-component port.
@@ -124,6 +124,8 @@ features. Do not treat candidate names as compatibility approval.
 - [ ] Test service accounts, path permissions, configuration/start failures,
   lifecycle reuse, active-work shutdown and systemd sandboxing. Prove dedicated
   SELinux/AppArmor confinement rather than inferring it from an empty denial log.
+  Apply the integration design notes and verify harness failure propagation before
+  relying on these checks as CI gates.
 - [ ] Set managed write paths, document endpoint/security-tool exclusions and
   detect disappeared NFS mounts. Distinguish liveness, readiness, storage health
   and transfer progress; avoid restart loops and unbounded worker replacements.

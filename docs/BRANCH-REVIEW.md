@@ -1,4 +1,4 @@
-# Outstanding branch review
+# Branch review and source retention
 
 Reviewed 2026-10-13 after pushing the experiments/direction as `6df3003` on
 `feature/rust-transfer-coordinator`. Remote references were refreshed first.
@@ -7,8 +7,8 @@ Reviewed 2026-10-13 after pushing the experiments/direction as `6df3003` on
 ancestry, all unique commit subjects/dates, changed paths and diff statistics.
 GitHub's all-state PR lookup returned no PRs for this repository at review time.
 No branches, tags, lab VMs or deployment resources were removed during the initial
-review. C6 and C7 were subsequently retired at the user's explicit requests;
-see the cleanup records below. C7 source is retained by an archive tag.
+review. C6, C7 and integration-lab were subsequently retired at the user's explicit
+requests; see the cleanup records below. Unmerged source is retained by archive tags.
 
 ## Inventory and cleanup recommendation
 
@@ -16,7 +16,7 @@ see the cleanup records below. C7 source is retained by an archive tag.
 |---|---|---|---|---|
 | c6-daemon-entry-point | 53fabf0 | 0 / 3 | Entire tip is an ancestor of main | Deleted after revalidation; main retains the work |
 | c7-dashboard | af7af20 | 2 / 0 | Unmerged; also contained in integration-lab | Deleted; retained as archive/c7-dashboard |
-| integration-lab | 3e9226b | 9 / 0 | Contains both dashboard commits and seven additional lab commits | Preserve lab/test findings, archive before deleting |
+| integration-lab | 3e9226b | 9 / 0 | Contains both dashboard commits and seven additional lab commits | Deleted; retained as archive/integration-lab |
 | feature/rust-transfer-coordinator | Active feature | New work | Experiments and redesign handoff | Keep as the active branch |
 
 Counts are commit ancestry relative to refreshed origin/main, not claims about
@@ -141,19 +141,27 @@ reference work, not a newly required actual-SLES-host test. Preserve deployment
 failure scenarios while replacing C++ build/install assumptions. Credentials,
 ISOs, VM disks and local inventories must remain outside Git.
 
-## Safe retirement sequence
+**Cleanup completed, 2026-10-13:** captured the reusable checks, provisioning
+lessons and unfinished qualification in
+[INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md). Further source review
+found that run-all.sh checks an Ansible-to-sed pipeline's final status, which can
+hide an Ansible failure; the notes require reliable failure propagation before reuse.
+No lab scripts or C++ deployment code are copied into the Rust implementation.
+Created and pushed `archive/integration-lab`, verified its peeled remote SHA equals
+the reviewed full tip, then deleted the branch with an exact-tip lease and pruned
+the tracking reference. No local integration-lab branch existed, and its current
+all-state PR lookup was empty. The archive retains all nine unmerged commits,
+including C7. No VM, disk, network or deployment resource was touched.
 
-1. Keep the current feature branch. Preserve this review and the redesign handoff.
-2. C6 can be retired once its reviewed tip is reconfirmed as merged into main.
-3. Before deleting unmerged references, create and push clearly named archive
-   tags at the full reviewed tips, or create a verified durable Git bundle. A SHA
-   written in Markdown alone is not a retention guarantee after references vanish.
-4. Integration-lab contains the entire dashboard history; its archive preserves
-   both. Separate dashboard tagging still makes its milestone easy to locate.
-5. Re-fetch and compare tips immediately before deletion, so newer work cannot
-   disappear under a stale review. Retire references only after source retention
-   and any PR state are reconfirmed. Branch deletion does not tear down lab resources.
+## Source retention and future cleanup
 
-No merge or branch deletion is needed to start the new architecture. The next
-round begins with [RUST-DIRECTION.md](RUST-DIRECTION.md), and uses this inventory
-to decide which requirements/tests to reuse before eventual cleanup.
+The three reviewed old branch references are retired. Main retains C6;
+`archive/c7-dashboard` and `archive/integration-lab` retain the unmerged source.
+Keep the current feature branch and both archive tags. The integration archive
+also contains the dashboard history, while its separate tag locates that milestone.
+
+For future cleanup, refresh and compare exact tips immediately before deletion,
+reconfirm PR state and verify durable source references. A SHA in Markdown alone
+is not retention after references vanish. Branch deletion does not tear down labs.
+The next round begins with [RUST-DIRECTION.md](RUST-DIRECTION.md) and the dashboard/
+integration notes to decide which requirements and scenarios to reuse.

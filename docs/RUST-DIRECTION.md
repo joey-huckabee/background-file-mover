@@ -76,6 +76,8 @@ suggestion does not override the user's explicit container-only preference.
 Preserve the [NFS fixture note](NFS-TEST-FIXTURE.md). Old kernel/CPU and storage
 durability coverage remain limited. Disconnected builds need toolchain/targets,
 native prerequisites and notices as well as vendored Cargo sources.
+Use [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md) for deployment
+checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
