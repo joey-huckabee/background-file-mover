@@ -105,6 +105,10 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+The recorder can retain and reuse a unique submission ID across retries. Use
+`submission_id` in generator JSON, scoped to generator identity; replay identical
+details and return the original job/202 after claiming. New recordings get new IDs.
+
 The user confirmed automatic source deletion after verified whole-recording
 commitment, configurable at startup. Production move profiles enable
 `delete_source_after_commit`; initial development profiles disable it. Require

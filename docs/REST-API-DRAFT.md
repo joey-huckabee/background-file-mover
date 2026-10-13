@@ -46,10 +46,10 @@ service selects the destination from configuration loaded at startup.
 ```http
 POST /api/v2/jobs HTTP/1.1
 Content-Type: application/json
-Idempotency-Key: recording-0042
 
 {
   "generator_id": "recorder-host-a",
+  "submission_id": "recording-0042",
   "source_path": "/mnt/recordings/current",
   "files": [
     {"name": "video/video.bin"},
@@ -67,12 +67,18 @@ and invalid encoding. Use `/` between components. Resolve paths using the protoc
 descriptor traversal, not string-prefix checks. Persist both the supplied form
 and the normalized root/relative-file mapping.
 
-Only `generator_id`, `source_path` and `files` are required in the generator
+Only `generator_id`, `submission_id`, `source_path` and `files` are required in the generator
 body. `recording_id`, `producer_handoff` and file `file_key` remain optional
 metadata/assertions. If omitted, the service uses its job ID as recording identity
 and assigns stable file IDs. The completed/immutable producer contract still
 applies when its assertion field is omitted; startup generator registration
-establishes that contract. The idempotency header remains required for safe replay.
+establishes that contract. The recorder generates one unique `submission_id`
+per recording and retains it, including across restarts, until it receives 202.
+Retries reuse that ID and the identical submission details; new recordings use
+new IDs even when their paths/names are reused. The body field is the generator
+form's idempotency key, so no separate header is required. The advanced explicit
+form retains its Idempotency-Key header. If both representations are supplied,
+they must agree; reject conflicting values rather than choosing one silently.
 
 For example, `video/video.bin` resolves beneath
 `/mnt/recordings/current/video/`. List each file explicitly: this does not request
