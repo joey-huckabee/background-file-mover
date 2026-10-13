@@ -4,11 +4,13 @@ This is the proposed Rust design baseline for moving a closed recording set betw
 approved filesystem roots. It keeps source data until the entire destination
 set is verified and committed. The normal copy hashes the source as it is read
 and independently rereads destination staging, following
-[INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md). No Rust implementation or storage
-qualification is implied by this specification.
+[INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md). The first pure Rust guard slice is
+tested; no filesystem implementation or storage qualification is implied by this
+specification. See [RUST-INCREMENT-01.md](RUST-INCREMENT-01.md).
 
 Review producer acknowledgements using [REST-API-DRAFT.md](REST-API-DRAFT.md)
-before freezing these contracts or starting implementation.
+before implementing each dependent API/effect contract. Independent core tests
+and persistence increments can proceed while remaining details are refined.
 
 ## Guarantees and boundaries
 

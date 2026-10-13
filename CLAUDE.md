@@ -7,7 +7,9 @@ Work on `feature/rust-transfer-coordinator`; read `docs/RUST-DIRECTION.md`,
 `CONVERSATION.md` and the roadmap handoff first. Experiments are stopped after
 E1–E5; do not automatically start E6. Follow `docs/INTEGRITY-DESIGN.md`: hash the
 source during copying and reread destination staging for verification (3N logical
-data I/O). Revise the broader claiming/cross-filesystem protocol before implementation. Historical
+data I/O). Develop short tested increments from the revised protocol in `rust/`.
+Registration/token work is deferred; its enrollment choice is a one-time setup key.
+See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`. Historical
 C++ toolchain/scope/branch guidance below applies to the reference code, and
 does not override this direction. Keep production glibc 2.22 and container-only
 compatibility qualification. Future branch cleanup requires the branch review.

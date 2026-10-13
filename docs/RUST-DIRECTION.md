@@ -111,7 +111,9 @@ registered tokens, scoped REST enrollment and explicitly restricted tokenless
 profiles, including optional local clients. The user confirmed the remote mover
 has access to the source NFS mount; claim directly on that shared filesystem.
 Confirm mount-path mapping and qualify custody/durability on the export.
-Enrollment bootstrap and tokenless trust remain open.
+Enrollment uses the selected one-time setup key. Registration/token work is
+explicitly deferred so core/storage/transfer testing can proceed incrementally.
+Tokenless trust and detailed issuance recovery remain later design work.
 
 Grouping recording containers by generator is startup-configurable via
 `group_by_generator`. False keeps the earlier flat-container layout; true adds
@@ -146,8 +148,11 @@ Queue delivery to the pinned destination, retain sources and expose the outage
 to operators. Finalize backlog limits, source-space margins and retry timing.
 
 Experiments are stopped at the user's request. E6/thiserror is **unrun** and must
-not automatically be next. No production Rust implementation has started. The
-earlier fifteen milestones retain useful obligations but need scope/sequence revision.
+not automatically be next. The dependency-free first Rust core slice is now in
+`rust/crates/mover-core`; [RUST-INCREMENT-01.md](RUST-INCREMENT-01.md) records its
+ten passing WSL tests and limits. There is no Rust service or filesystem effect
+yet. Build short tested slices while remaining design decisions are refined.
+The fifteen milestones retain useful release obligations.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
 experiment results and the branch [review](BRANCH-REVIEW.md). Work through the

@@ -10,16 +10,19 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Reconcile the requirements with claiming, cross-filesystem transfers,
-  recording-set completion manifests and supervised worker processes.
-- [ ] Review the proposed [transfer protocol](TRANSFER-PROTOCOL.md) and
-  [REST contract](REST-API-DRAFT.md) with the producer/consumer workflow; settle
-  acknowledgement, handoff, naming and retention contracts before Rust code.
-- [ ] Derive schema, transition definitions and the fault matrix from the protocol.
-  Implement streamed source hashing and destination reread verification using
-  [INTEGRITY-DESIGN.md](INTEGRITY-DESIGN.md).
-- [ ] Revise the detailed milestone schedule in
-  [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md) around the agreed protocol.
+- [ ] Add local SQLite acceptance/replay as the next small increment: persist
+  identity, requests, pinned destination/policy and reservations. Test reopen,
+  conflicting replay and failed commits using the E1-qualified configuration.
+- [ ] Add one real local-filesystem claim with durable intent/receipt, actual size
+  discovery and crash reconciliation. Prove partial claims never authorize 202.
+- [ ] Add a minimal locally bound submission endpoint for JSON-to-claim handoff
+  and same-ID retry, without registration/authentication in this test increment.
+- [ ] Add one copied-file transfer using streamed hash/destination reread,
+  no-clobber publication and crash recovery, with deletion disabled.
+- [ ] Add multi-file completion manifests and configurable gated cleanup after
+  failure evidence passes, then qualify effects on the controlled NFS fixture.
+- [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,
+  schema and fault cases before the dependent effect, not before all Rust code.
 - [ ] Decide which dashboard and integration scenarios to reuse from
   [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
   [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).
@@ -64,11 +67,6 @@ experiment, or begin a component-for-component port.
 - [ ] Define integrity-policy details around streamed hashing and destination
   verification, identifiers, schema, naming/collision
   behavior, manifests and root-ID/relative-path API boundaries.
-- [ ] Decide authentication/authorization before non-loopback deployment; preserve
-  application-level restrictions to approved roots and permitted operations.
-- [ ] Finalize the registration/access draft: approved path mapping for shared NFS,
-  scoped enrollment bootstrap, issuance recovery, token rotation, operator roles
-  and independently restricted local/remote tokenless profiles.
 - [ ] Reconcile requirement IDs and scope annotations for the redesigned service.
   Explicitly implement, revise or withdraw requirements rather than silently
   treating historical tests or deferred annotations as Rust evidence.
@@ -83,7 +81,7 @@ platform behavior and use targeted unsupported-syscall tests.
 
 - [ ] Qualify the user's build project, including target selection, native SQLite
   compiler forwarding and artifact provenance.
-- [ ] Establish the production workspace, locked dependency/features policy,
+- [ ] Expand the workspace as effect crates are needed, with locked dependency/features policy,
   licensing/notices and reproducible offline builds. Package toolchain, targets
   and native prerequisites as well as vendored Cargo sources.
 - [ ] Require production ELF/interpreter/library audits and execution of the same
@@ -94,7 +92,9 @@ platform behavior and use targeted unsupported-syscall tests.
 
 ## Implementation milestones
 
-Finalize the scope and order during protocol design. Each milestone must deliver
+Use short tested increments above to develop portions of these release milestones.
+Do not wait for every milestone's design before starting independent core work.
+Each milestone must deliver
 its required behavior and appropriate failure-boundary evidence before release.
 The intended increments are core protocol/persistence; a recoverable transfer
 with deletion disabled; gated cleanup/production operation; measured optimization.
@@ -165,6 +165,12 @@ features. Do not treat candidate names as compatibility approval.
   Prevent old and new daemons from manipulating the same source namespace.
 
 ## Optional backlog requiring a scope decision
+
+Registration/token authentication is explicitly deferred. Before remote production
+exposure, implement the selected one-time generator setup key, issuance recovery,
+rotation/operator roles and restricted tokenless profiles from the access draft.
+Preserve approved source/path mapping and deployment trust boundaries. This work
+does not gate core/storage/local test increments.
 
 Prioritize these after a correct recoverable transfer baseline; none implicitly
 changes the integrity or source-retention guarantees.

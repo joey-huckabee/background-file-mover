@@ -3,14 +3,18 @@
 **Direction update, 2026-10-13:** [RUST-DIRECTION.md](RUST-DIRECTION.md) and the
 user's [CONVERSATION.md](../CONVERSATION.md) supersede the earlier release scope
 and implementation schedule below. Experiments are stopped after E1–E5; E6 is
-unrun. Next work is protocol/requirements design, not another experiment or a
-component-for-component port. Reconcile the fifteen milestones with claiming,
-cross-filesystem transfer, manifests and process isolation before implementation.
+unrun. The user now prioritizes short tested Rust increments while design is
+refined; registration/token work is deferred. The first dependency-free core
+slice is in `rust/`; [RUST-INCREMENT-01.md](RUST-INCREMENT-01.md) records its tests.
+Use [ROADMAP.md](ROADMAP.md#next-work) for the next SQLite/claim/API/copy slices.
+The fifteen milestones below remain broader release obligations, not a rule
+that every design decision must finish before independent Rust work starts.
 Review [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md) and
 [REST-API-DRAFT.md](REST-API-DRAFT.md) with the producer workflow before freezing
-the revised sequence; neither draft represents implemented Rust behavior.
+each dependent effect; neither draft alone proves implemented Rust behavior.
 
-**Status:** E1–E5 passed, including Tokio runtime/signals; E6 and R0–R14 are pending.
+**Status:** E1–E5 passed; the first core guard slice is tested. E6 and the broader
+R0–R14 deliverables remain pending; no Rust service or filesystem effect exists yet.
 Rust, x86_64 only, GNU/glibc 2.22, and a
 ZigBuild-like build project are the user's chosen direction. Compatibility will
 be tested in a pinned container with SLES 12 SP5 userspace or the closest verified

@@ -6,6 +6,12 @@ identity, token issuance and configurable tokenless submission to the
 for review; remote submission is the confirmed deployment use case. Supporting
 local clients uses the same API and handoff semantics.
 
+**Deferred:** the user selected a one-time setup key scoped to the generator,
+then put registration/token/authentication work on the back burner. Preserve
+this design; it does not gate independent core/storage/local test increments.
+Implement and qualify it before exposing the new service to remote untrusted
+clients. Issuance-response recovery remains a later detail.
+
 ## Source access on remote deployments
 
 **Confirmed deployment:** the remote mover has access to the source NFS mount.
@@ -127,7 +133,7 @@ source-retention, manifest or 202 guarantees.
 
 ## Decisions before implementation
 
-Confirm source path mapping; choose enrollment bootstrap and
+Confirm source path mapping; specify the selected one-time setup key and
 lost-response recovery; set token lifetime/rotation and secure recorder storage;
 define local/remote tokenless profiles and operator roles. Derive requirements,
 threat/failure tests and dependency qualification once those choices are settled.

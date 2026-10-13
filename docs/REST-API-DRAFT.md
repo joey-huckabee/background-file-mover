@@ -490,7 +490,10 @@ bounded HTTP handoff wait and begins at confirmed absence, not request receipt.
 - Set filename encoding, naming/metadata policy, body/file/page bounds, key
   retention and detailed control semantics before freezing the schema.
 
-Resolve these before generating OpenAPI or writing Rust. Preserve loopback by
+Resolve relevant decisions before the dependent API/effect implementation;
+independent pure-core and storage tests can proceed now. Registration/token work
+is explicitly deferred, with a one-time setup key selected for later enrollment.
+Preserve loopback by
 default, external TLS and strict hostile-input tests while revising the REST
 requirements for this contract.
 
