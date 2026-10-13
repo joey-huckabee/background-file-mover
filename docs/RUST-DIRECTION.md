@@ -105,6 +105,11 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Grouping recording containers by generator is startup-configurable via
+`group_by_generator`. False keeps the earlier flat-container layout; true adds
+the validated generator component above each recording. Snapshot layout at
+acceptance and preserve submitted subfolders under either setting.
+
 Destination consumers can and must wait for a valid `COMMITTED.json`, published
 only after every required file is verified and published. The user confirmed this
 set-visibility contract; finalize the versioned manifest schema before code.

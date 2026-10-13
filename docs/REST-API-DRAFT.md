@@ -100,6 +100,24 @@ silently renaming a collision. Configured naming chooses the recording's contain
 it does not change the generator's relative paths within that container. The
 advanced explicit-destination form retains its separately configured mapping.
 
+**Agreed configurable grouping:** startup `[delivery]` setting
+`group_by_generator` chooses the container layout for generator submissions:
+
+| Setting | Relative destination path |
+|---|---|
+| `false` | `<job-id>/<submitted-relative-path>` |
+| `true` | `<generator-component>/<job-id>/<submitted-relative-path>` |
+
+Paths are relative to the configured filesystem root or S3 prefix. False is the
+compatibility default for the earlier flat recording-container layout; operators
+may enable grouping. Neither setting flattens the submitted subfolders or makes
+the generator choose a destination. Build generator components from validated
+configured identities, never unchecked JSON path fragments, and reject component
+collisions under destination semantics. Snapshot the chosen grouping and resolved
+paths at acceptance; toggling it affects new jobs only, not pending-job retries.
+The manifest remains inside each recording container. This option does not alter
+the advanced explicit-destination form's separately configured mapping.
+
 ### Optional expected size
 
 `size_bytes` is optional in both v2 forms. The service obtains the actual logical
@@ -474,6 +492,7 @@ not configuration accepted by the current C++ binary:
 ```ini
 [delivery]
 default_destination = archive
+group_by_generator = false
 delete_source_after_commit = true
 missing_file_retry_window_seconds = 300
 
@@ -496,6 +515,7 @@ To route newly accepted jobs to S3, the future configuration could instead use:
 ```ini
 [delivery]
 default_destination = object-archive
+group_by_generator = false
 delete_source_after_commit = true
 missing_file_retry_window_seconds = 300
 

@@ -81,6 +81,12 @@ The manifest lists the preserved relative paths. Source directory hierarchy
 does not have to be recreated in the private claim namespace, whose files use
 stable IDs. Future S3 delivery uses the same hierarchy as object-key prefixes.
 
+Startup `group_by_generator` optionally adds a validated generator component
+above the unique recording container. False preserves the prior flat-container
+layout; true groups generator recordings. In either case preserve submitted
+relative paths below the container, place its manifest there, and persist the
+resolved mapping/policy at acceptance. Configuration changes affect new jobs only.
+
 Acceptance also durably reserves each source root/path against other active
 jobs. Reject a different submission overlapping an unreleased reservation.
 Release those reservations in the all-files Claimed transaction, allowing a new

@@ -40,6 +40,8 @@ experiment, or begin a component-for-component port.
   sizes, explicit subfolder paths, symlink/mount escape and directory preservation.
 - [ ] Implement preserved recording hierarchies with safe destination-parent
   creation/synchronization, manifest paths and prefix/reserved-name collision tests.
+- [ ] Implement optional generator grouping and pinned layout replay; validate
+  generator path components and filesystem/S3-prefix collision behavior.
 - [ ] Implement configurable postcommit source cleanup, including recorded job
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.

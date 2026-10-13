@@ -595,6 +595,15 @@ relative paths, actual sizes and integrity evidence for consumer validation.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust confirmed consumer contract; consumers wait for a valid COMMITTED.json before using a set.
 
+### L1-SYS-035
+
+The system shall support startup-configurable grouping of generator recordings
+by validated generator identity while preserving each recording's submitted
+relative file paths and accepted destination mapping.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust optional generator grouping for filesystem paths and future S3 prefixes; default false preserves the flat-container layout.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
