@@ -50,8 +50,9 @@ experiment, or begin a component-for-component port.
   reservation reconciliation without deleting retained source data.
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
   ownership evidence against partial claims, publication and stale worker effects.
-- [ ] Finalize the versioned completion manifest, filename encoding and metadata
-  policy; establish downstream consumption/retention and source-cleanup contracts.
+- [ ] Finalize the versioned completion manifest schema and validation under the
+  confirmed consumer wait-for-COMMITTED.json contract; settle filename encoding,
+  metadata policy and downstream retention through source cleanup.
 - [ ] Design one scheduler state owner, a dedicated local SQLite owner and bounded
   command/result channels. Prioritize claims/reconciliation and coalesce progress
   without starving durable acknowledgements.

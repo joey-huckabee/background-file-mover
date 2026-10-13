@@ -328,6 +328,15 @@ A bounded long-poll/event stream is a possible later addition.
 
 ## Completion and errors
 
+**Agreed consumer contract:** destination consumers wait for a valid supported
+`COMMITTED.json` before using the recording. Publish that immutable marker only
+after every listed file is verified and published. It lists the exact required
+relative paths, actual sizes and integrity evidence, bound to generator/job/
+recording identity. Consumers ignore uncommitted folders and temporary entries;
+marker presence alone is insufficient if its contents are invalid. The future S3
+adapter uses a completion object with the same consumer meaning, subject to its
+separate publication/verification qualification.
+
 **Agreed cleanup policy:** production operation automatically deletes claimed
 source files after the entire recording is verified and its completion manifest
 is durably committed, when startup configuration enables deletion. Configure

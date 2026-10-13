@@ -586,6 +586,15 @@ error information.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust recorder retry contract; no non-202 response grants source-path release.
 
+### L1-SYS-034
+
+The system shall publish an immutable recording completion manifest only after
+every required file is verified and published, identifying the exact required
+relative paths, actual sizes and integrity evidence for consumer validation.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust confirmed consumer contract; consumers wait for a valid COMMITTED.json before using a set.
+
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
 not behavior of the current C++ service. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate

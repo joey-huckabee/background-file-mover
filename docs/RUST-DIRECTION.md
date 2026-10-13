@@ -105,6 +105,10 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Destination consumers can and must wait for a valid `COMMITTED.json`, published
+only after every required file is verified and published. The user confirmed this
+set-visibility contract; finalize the versioned manifest schema before code.
+
 Confirmed missing files retry for a configurable period, then block for operator
 review. Persist deadlines across replays/restarts; retain partial claims and
 reservations, never skip files, and withhold 202. The agreed default is five

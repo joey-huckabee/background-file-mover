@@ -117,7 +117,8 @@ until cleanup. A retried submission must not reopen reused producer paths to
 reconstruct an already accepted/claimed recording.
 
 Consumers open only sets containing a valid, supported `COMMITTED.json`, check
-the exact listed files and treat their names/content as immutable. They ignore
+the exact listed files and treat their names/content as immutable. This consumer
+contract is confirmed by the user. They ignore
 uncommitted directories, staging and manifests with temporary names. Destination
 retention must keep the committed set intact through mover cleanup; consumers
 and retention agents cannot rename/remove its files during that interval.
