@@ -423,6 +423,144 @@ fn provision_destination(f: &Fixture) {
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
     f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
 }
+fn reset_body(epoch: u32, file: &str, seconds: u32) -> Value {
+    json!({"command_id":format!("missing-{epoch}"),"expected_missing_review_epoch":epoch,"file_id":file,"retry_window_seconds":seconds,"reason":"Confirmed recorder has not reused the pending source paths"})
+}
+fn reset_bytes(body: &str) -> Vec<u8> {
+    format!("POST /api/v2/jobs/1/reset-missing HTTP/1.1\r\nHost: h\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",body.len()).into_bytes()
+}
+fn reset(f: &Fixture, body: &Value) -> (u16, Value) {
+    f.raw(&reset_bytes(&body.to_string()))
+}
+#[test]
+fn missing_reset_lost_response_survives_restart_and_partial_claims_complete() {
+    let mut f = Fixture::new(0);
+    f.write("data", b"abc");
+    let submission = f.input("missing-reset", json!([{"name":"data"},{"name":"late"}]));
+    assert_eq!(f.post(&submission).0, 409);
+    assert_eq!(status(&f, "1").1["details"]["files"][0]["phase"], "Claimed");
+    let body = reset_body(0, "1", 300);
+    let mut stream = TcpStream::connect(f.address).unwrap();
+    stream.write_all(&reset_bytes(&body.to_string())).unwrap();
+    drop(stream);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        if status(&f, "1").1["details"]["missing_review_epoch"] == 1 {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let (_, s) = status(&f, "1");
+    let new_deadline = s["details"]["missing"][0]["deadline"].clone();
+    assert_eq!(s["source_paths_released"], false);
+    assert_eq!(s["details"]["latest_missing_reset"]["file_id"], "1");
+    f.stop();
+    f.start();
+    let (code, r) = reset(&f, &body);
+    assert_eq!(code, 200);
+    assert_eq!(r["details"]["replay"], true);
+    assert_eq!(r["source_paths_released"], false);
+    assert_eq!(r["details"]["new_deadline"], new_deadline);
+    assert_eq!(f.post(&submission).0, 503);
+    assert_eq!(
+        status(&f, "1").1["details"]["missing"][0]["deadline"],
+        new_deadline
+    );
+    assert!(!f.root.join("source/current/data").exists());
+    f.write("late", b"later");
+    assert_eq!(f.post(&submission).0, 202);
+    f.write("data", b"producer reuse");
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    assert_eq!(
+        s.get(1).unwrap().unwrap().recording.handoff(),
+        mover_core::Handoff::Ready202
+    );
+    assert_eq!(s.status(1).unwrap().unwrap().missing_review_epoch, 1);
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"abc"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-1/data")).unwrap(),
+        b"later"
+    );
+}
+#[test]
+fn missing_reset_expiry_requires_new_epoch_and_rejects_bad_requests() {
+    let mut f = Fixture::new(0);
+    let submission = f.input("expiry", json!([{"name":"absent"}]));
+    assert_eq!(f.post(&submission).0, 409);
+    for file in ["01", "-1", "+0", "4294967296"] {
+        assert_eq!(reset(&f, &reset_body(0, file, 10)).0, 400);
+    }
+    for seconds in [0, 86401] {
+        assert_eq!(reset(&f, &reset_body(0, "0", seconds)).0, 400);
+    }
+    for body in [
+        "{}",
+        r#"{"command_id":"x","command_id":"y","file_id":"0","expected_missing_review_epoch":0,"retry_window_seconds":10,"reason":"fix"}"#,
+        r#"{"command_id":"x","file_id":"0","expected_missing_review_epoch":0,"retry_window_seconds":10,"reason":"fix","extra":true}"#,
+    ] {
+        assert_eq!(f.raw(&reset_bytes(body)).0, 400);
+    }
+    assert_eq!(
+        f.raw(b"GET /api/v2/jobs/1/reset-missing HTTP/1.1\r\nHost: h\r\n\r\n")
+            .0,
+        405
+    );
+    let body = reset_body(0, "0", 1);
+    let (code, r) = reset(&f, &body);
+    assert_eq!(code, 200);
+    let deadline = r["details"]["new_deadline"].clone();
+    let limit = Instant::now() + Duration::from_secs(4);
+    loop {
+        if status(&f, "1").1["details"]["condition"] == "ReviewRequired" {
+            break;
+        }
+        assert!(Instant::now() < limit);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    // Expiry visibility need not have persisted blocked yet; reset/replay handles both.
+    assert_eq!(reset(&f, &body).1["details"]["new_deadline"], deadline);
+    assert_eq!(f.post(&submission).0, 409);
+    let mut stale = body.clone();
+    stale["command_id"] = json!("stale-new-command");
+    assert_eq!(reset(&f, &stale).1["error"], "review_conflict");
+    let mut conflict = body.clone();
+    conflict["retry_window_seconds"] = json!(10);
+    assert_eq!(reset(&f, &conflict).1["error"], "command_conflict");
+    assert_eq!(reset(&f, &reset_body(1, "0", 300)).0, 200);
+    f.stop();
+    f.start();
+    assert_eq!(f.post(&submission).0, 503);
+    assert_eq!(status(&f, "1").1["details"]["missing_review_epoch"], 2);
+}
+#[test]
+fn missing_reset_rejects_unexpired_claimed_and_committed_files() {
+    let mut f = Fixture::new(300);
+    let submission = f.input("unexpired", json!([{"name":"data"}]));
+    assert_eq!(f.post(&submission).0, 503);
+    let (_, before) = status(&f, "1");
+    assert_eq!(
+        reset(&f, &reset_body(0, "0", 300)).1["error"],
+        "review_conflict"
+    );
+    assert_eq!(status(&f, "1").1, before);
+    f.write("data", b"abc");
+    assert_eq!(f.post(&submission).0, 202);
+    assert_eq!(reset(&f, &reset_body(0, "0", 300)).0, 409);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    wait_manifest(&f, "1");
+    f.stop();
+    f.start();
+    assert_eq!(reset(&f, &reset_body(0, "0", 300)).0, 409);
+    assert_eq!(status(&f, "1").1["details"]["missing_review_epoch"], 0);
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+}
 fn resume_body(epoch: u32) -> Value {
     json!({"command_id":format!("resume-{epoch}"),"expected_review_epoch":epoch,"reason":"Inspected protected staging and destination"})
 }

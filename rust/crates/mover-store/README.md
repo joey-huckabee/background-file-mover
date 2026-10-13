@@ -26,22 +26,26 @@ job. Changed input conflicts; a different key cannot take a reserved source.
 Local job IDs are monotonic SQLite IDs; qualify final filesystem namespace/instance
 ownership before using them for publication across service instances.
 
-The version-6 schema has an application ID, foreign keys and file-count/ledger
+The version-7 schema has an application ID, foreign keys and file-count/ledger
 checks. Unsupported/foreign schemas are rejected without replacement. Existing
 missing/inconsistent reservations or malformed claim identities block startup.
-An explicit transaction migrates versions 1–5, preserving accepted jobs/claims/reservations;
+An explicit transaction migrates versions 1–6, preserving accepted jobs/claims/reservations;
 read-only opens refuse an unmigrated version. There is no delete-and-restart upgrade.
 
 `note_missing` persists the first confirmed local absence deadline using the
 job's recorded retry duration. Replay does not extend it; `claim_blocked` persists
 expiry for operator review. Receipt commit removes that file's missing record.
-Background retry scheduling and audited operator unblock remain future work.
+Background retry scheduling remains future work.
 
 Fully claimed delivery jobs stopped at three failures can now be resumed through
 `resume_delivery`. A stable command ID and expected review epoch protect replay;
 an immutable operator audit and retry reset commit atomically. Claims/transfers
 and manifest receipts are preserved. Status includes the latest audit and epoch.
-See [increment 08](../../../docs/RUST-INCREMENT-08.md). Missing-file unblock remains deferred.
+See [increment 08](../../../docs/RUST-INCREMENT-08.md).
+`reset_missing` now performs an exact-file audited deadline reset using a separate
+missing review epoch and stable command ID. It preserves claims/reservations and
+the pinned policy; the recorder must retry its original submission for 202.
+See [increment 09](../../../docs/RUST-INCREMENT-09.md).
 
 `save_transfer` records immutable owned-attempt mapping and ordered
 copy/verification/publication receipts. Only incomplete copies can allocate a

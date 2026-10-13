@@ -17,7 +17,8 @@ The single-file transfer command is documented in `docs/RUST-INCREMENT-05.md`.
 Automatic local delivery/manifests are documented in `docs/RUST-INCREMENT-06.md`.
 Read-only operator job status is documented in `docs/RUST-INCREMENT-07.md`.
 Audited delivery resume is documented in `docs/RUST-INCREMENT-08.md`.
-Next: missing-file deadline reset, retention/orphan repair and supervised-worker/NFS qualification; keep deletion disabled.
+Audited missing-file deadline reset is documented in `docs/RUST-INCREMENT-09.md`.
+Next: retention/orphan repair and supervised-worker/NFS qualification; keep deletion disabled.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical

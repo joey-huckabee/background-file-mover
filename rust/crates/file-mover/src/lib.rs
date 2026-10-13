@@ -191,9 +191,19 @@ struct ResumeInput {
     expected_review_epoch: u32,
     reason: String,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MissingResetInput {
+    command_id: String,
+    expected_missing_review_epoch: u32,
+    file_id: String,
+    retry_window_seconds: u32,
+    reason: String,
+}
 enum Observation {
     Status(i64),
     Resume(i64, ResumeInput),
+    ResetMissing(i64, MissingResetInput),
 }
 type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
@@ -220,6 +230,9 @@ impl Worker {
                         Observation::Status(id) => status_response(&observation_store, id),
                         Observation::Resume(id, input) => {
                             resume_response(&observation_store, id, input)
+                        }
+                        Observation::ResetMissing(id, input) => {
+                            missing_reset_response(&observation_store, id, input)
                         }
                     };
                     let _ = reply.send(response);
@@ -426,7 +439,8 @@ fn status_response(store: &Store, id: i64) -> Response {
         retryable: false,
         details: Some(
             serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
-            "condition":condition,"review_epoch":snapshot.review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+            "condition":condition,"review_epoch":snapshot.review_epoch,"missing_review_epoch":snapshot.missing_review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+            "latest_missing_reset":snapshot.latest_missing_reset.map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
             "latest_resume":snapshot.latest_resume.map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
             "files":files,"missing":missing,"delivery_retry":snapshot.delivery.map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))}),
         ),
@@ -453,6 +467,43 @@ fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
         },
         Err(StoreError::NotFound) => error(404, "not_found", false, None),
         Err(StoreError::InvalidContext) => error(400, "invalid_resume", false, Some(id)),
+        Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, Some(id)),
+        Err(StoreError::ActionConflict) => error(409, "command_conflict", false, Some(id)),
+        Err(StoreError::AuditFull) => error(409, "operator_audit_capacity", false, Some(id)),
+        Err(_) => error(503, "storage_unavailable", true, Some(id)),
+    }
+}
+fn missing_reset_response(store: &Store, id: i64, input: MissingResetInput) -> Response {
+    let Some(file_index) = input
+        .file_id
+        .parse::<u32>()
+        .ok()
+        .filter(|i| i.to_string() == input.file_id)
+    else {
+        return error(400, "invalid_missing_reset", false, Some(id));
+    };
+    let request = mover_store::MissingResetRequest {
+        command_id: input.command_id,
+        review_epoch: input.expected_missing_review_epoch,
+        file_index,
+        retry_window_seconds: input.retry_window_seconds,
+        actor: "trusted-loopback-operator".into(),
+        reason: input.reason,
+    };
+    match store.reset_missing(id, &request, now()) {
+        Ok(receipt) => Response {
+            status: 200,
+            job_id: Some(id.to_string()),
+            state: None,
+            source_paths_released: false,
+            error: None,
+            retryable: false,
+            details: Some(
+                serde_json::json!({"action":"MissingDeadlineReset","command_id":request.command_id,"missing_review_epoch":receipt.review_epoch,"new_deadline":receipt.new_deadline,"replay":receipt.replay}),
+            ),
+        },
+        Err(StoreError::NotFound) => error(404, "not_found", false, None),
+        Err(StoreError::InvalidContext) => error(400, "invalid_missing_reset", false, Some(id)),
         Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, Some(id)),
         Err(StoreError::ActionConflict) => error(409, "command_conflict", false, Some(id)),
         Err(StoreError::AuditFull) => error(409, "operator_audit_capacity", false, Some(id)),
@@ -506,16 +557,20 @@ async fn connection(
             } else if r.head.target.starts_with(b"/api/v2/jobs/") {
                 let target = &r.head.target[13..];
                 let resume = target.ends_with(b"/resume");
+                let reset_missing = target.ends_with(b"/reset-missing");
+                let control = resume || reset_missing;
                 let id_bytes = if resume {
                     &target[..target.len() - 7]
+                } else if reset_missing {
+                    &target[..target.len() - 14]
                 } else {
                     target
                 };
-                if r.head.method != if resume { "POST" } else { "GET" } {
+                if r.head.method != if control { "POST" } else { "GET" } {
                     error(405, "method_not_allowed", false, None)
-                } else if !resume && !r.body.is_empty() {
+                } else if !control && !r.body.is_empty() {
                     error(400, "unexpected_body", false, None)
-                } else if resume
+                } else if control
                     && r.head.headers.get("content-type").map(Vec::as_slice)
                         != Some(b"application/json")
                 {
@@ -530,11 +585,24 @@ async fn connection(
                         let work = if resume {
                             serde_json::from_slice::<ResumeInput>(&r.body)
                                 .map(|input| Observation::Resume(id, input))
+                        } else if reset_missing {
+                            serde_json::from_slice::<MissingResetInput>(&r.body)
+                                .map(|input| Observation::ResetMissing(id, input))
                         } else {
                             Ok(Observation::Status(id))
                         };
                         if let Ok(work) = work {
-                            let key_conflict = matches!(&work, Observation::Resume(_,input) if r.head.headers.get("idempotency-key").is_some_and(|key|key.as_slice()!=input.command_id.as_bytes()));
+                            let command_id = match &work {
+                                Observation::Resume(_, input) => Some(&input.command_id),
+                                Observation::ResetMissing(_, input) => Some(&input.command_id),
+                                Observation::Status(_) => None,
+                            };
+                            let key_conflict = command_id.is_some_and(|id| {
+                                r.head
+                                    .headers
+                                    .get("idempotency-key")
+                                    .is_some_and(|key| key.as_slice() != id.as_bytes())
+                            });
                             if key_conflict {
                                 error(400, "idempotency_key_conflict", false, Some(id))
                             } else {
@@ -549,7 +617,16 @@ async fn connection(
                                 }
                             }
                         } else {
-                            error(400, "invalid_resume", false, Some(id))
+                            error(
+                                400,
+                                if reset_missing {
+                                    "invalid_missing_reset"
+                                } else {
+                                    "invalid_resume"
+                                },
+                                false,
+                                Some(id),
+                            )
                         }
                     } else {
                         error(400, "invalid_job_id", false, None)

@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,180 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+fn reset_request(epoch: u32) -> MissingResetRequest {
+    MissingResetRequest {
+        command_id: format!("reset-{epoch}"),
+        review_epoch: epoch,
+        file_index: 1,
+        retry_window_seconds: 10,
+        actor: "test-operator".into(),
+        reason: "Confirmed recorder still owns the missing entry".into(),
+    }
+}
+#[test]
+fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let complete = ready_job(&s);
+    review(&s, complete.job_id);
+    s.resume_delivery(complete.job_id, &resume_request(0), 120)
+        .unwrap();
+    let pending = s
+        .accept(&input("g", "pending", "other"), &context())
+        .unwrap();
+    s.note_missing(pending.job_id, 1, 100).unwrap();
+    let instance = s.instance_id().unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE missing_resets; PRAGMA user_version=6;")
+        .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open_read_only(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.instance_id().unwrap(), instance);
+    assert_eq!(s.status(complete.job_id).unwrap().unwrap().review_epoch, 1);
+    let p = s.status(pending.job_id).unwrap().unwrap();
+    assert_eq!(p.missing, vec![(1, 400, false)]);
+    assert_eq!(p.missing_review_epoch, 0);
+}
+#[test]
+fn missing_reset_preserves_claims_reservations_and_old_replays_do_not_extend_deadlines() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = s
+        .accept(&input("g", "pending", "data"), &context())
+        .unwrap();
+    let intent = intent_for(&j, 0, 3);
+    s.begin_claim(&intent).unwrap();
+    s.finish_claim(&intent).unwrap();
+    s.note_missing(j.job_id, 1, 100).unwrap();
+    let r = reset_request(0);
+    let receipt = s.reset_missing(j.job_id, &r, 400).unwrap();
+    assert_eq!(receipt.new_deadline, 410);
+    assert!(!receipt.replay);
+    assert_eq!(s.claim_intent(j.job_id, 0).unwrap(), Some((intent, true)));
+    let c = Connection::open(f.db()).unwrap();
+    assert_eq!(
+        c.query_row(
+            "SELECT count(*) FROM reservations WHERE job_id=?1",
+            [j.job_id],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        2
+    );
+    assert!(!s.claim_blocked(j.job_id, 409).unwrap());
+    assert!(s.claim_blocked(j.job_id, 410).unwrap());
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    let replay = s.reset_missing(j.job_id, &r, 500).unwrap();
+    assert!(replay.replay);
+    assert_eq!(replay.new_deadline, 410);
+    assert!(s.claim_blocked(j.job_id, 500).unwrap());
+    let mut stale = r.clone();
+    stale.command_id = "different-stale".into();
+    assert!(matches!(
+        s.reset_missing(j.job_id, &stale, 500),
+        Err(StoreError::ReviewConflict)
+    ));
+    let mut conflict = r.clone();
+    conflict.retry_window_seconds = 20;
+    assert!(matches!(
+        s.reset_missing(j.job_id, &conflict, 500),
+        Err(StoreError::ActionConflict)
+    ));
+    let a = s
+        .status(j.job_id)
+        .unwrap()
+        .unwrap()
+        .latest_missing_reset
+        .unwrap();
+    assert_eq!(a.prior_deadline, 400);
+    assert!(!a.prior_blocked);
+    assert_eq!(a.recorded_at, 400);
+    s.reset_missing(j.job_id, &reset_request(1), 500).unwrap();
+    assert!(!s.claim_blocked(j.job_id, 509).unwrap());
+    assert_eq!(s.status(j.job_id).unwrap().unwrap().missing_review_epoch, 2);
+}
+#[test]
+fn missing_reset_failure_rolls_back_audit_and_deadline_together() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = s
+        .accept(&input("g", "pending", "data"), &context())
+        .unwrap();
+    s.note_missing(j.job_id, 1, 100).unwrap();
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("CREATE TRIGGER reject_deadline BEFORE UPDATE ON missing BEGIN SELECT RAISE(ABORT,'test rollback'); END;").unwrap();
+    assert!(matches!(
+        s.reset_missing(j.job_id, &reset_request(0), 400),
+        Err(StoreError::Sqlite(_))
+    ));
+    let p = s.status(j.job_id).unwrap().unwrap();
+    assert_eq!(p.missing, vec![(1, 400, false)]);
+    assert_eq!(p.missing_review_epoch, 0);
+    assert!(p.latest_missing_reset.is_none());
+    c.execute_batch("DROP TRIGGER reject_deadline;").unwrap();
+    assert!(
+        !s.reset_missing(j.job_id, &reset_request(0), 400)
+            .unwrap()
+            .replay
+    );
+}
+#[test]
+fn missing_reset_checks_review_state_overflow_and_bounded_audit() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = s
+        .accept(&input("g", "pending", "data"), &context())
+        .unwrap();
+    assert!(matches!(
+        s.reset_missing(999, &reset_request(0), 100),
+        Err(StoreError::NotFound)
+    ));
+    assert!(matches!(
+        s.reset_missing(j.job_id, &reset_request(0), 100),
+        Err(StoreError::ReviewConflict)
+    ));
+    s.note_missing(j.job_id, 1, 100).unwrap();
+    assert!(matches!(
+        s.reset_missing(j.job_id, &reset_request(0), 399),
+        Err(StoreError::ReviewConflict)
+    ));
+    for seconds in [0, 86401] {
+        let mut r = reset_request(0);
+        r.retry_window_seconds = seconds;
+        assert!(matches!(
+            s.reset_missing(j.job_id, &r, 400),
+            Err(StoreError::InvalidContext)
+        ));
+    }
+    assert!(matches!(
+        s.reset_missing(j.job_id, &reset_request(0), i64::MAX),
+        Err(StoreError::InvalidContext)
+    ));
+    for epoch in 0..64 {
+        s.reset_missing(j.job_id, &reset_request(epoch), 400 + 10 * i64::from(epoch))
+            .unwrap();
+    }
+    assert!(matches!(
+        s.reset_missing(j.job_id, &reset_request(64), 1040),
+        Err(StoreError::AuditFull)
+    ));
+    assert!(
+        s.reset_missing(j.job_id, &reset_request(63), 2000)
+            .unwrap()
+            .replay
+    );
+    assert_eq!(
+        s.status(j.job_id).unwrap().unwrap().missing_review_epoch,
+        64
+    );
+}
 
 fn ready_job(s: &Store) -> Accepted {
     let j = s
@@ -68,8 +242,10 @@ fn schema_five_migration_preserves_claims_instance_and_review() {
     let instance = s.instance_id().unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE operator_resumes; PRAGMA user_version=5;")
-        .unwrap();
+    c.execute_batch(
+        "DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
+    )
+    .unwrap();
     drop(c);
     assert!(matches!(
         Store::open_read_only(f.db()),
@@ -230,7 +406,7 @@ fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
-    db.connection.execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    db.connection.execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
     let s = Store::open(f.db()).unwrap();
     let instance = s.instance_id().unwrap();
@@ -263,7 +439,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -376,7 +552,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();
