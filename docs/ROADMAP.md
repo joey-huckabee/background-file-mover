@@ -18,8 +18,8 @@ Next: reconcile requirements and the transfer/integrity protocol, including the
 user's requirement to improve on the proposed 4N logical I/O cost. E6 is unrun;
 do not start it automatically. The older fifteen milestones below need revision
 for claiming, cross-filesystem transfer, recording manifests and worker isolation.
-The [branch review](BRANCH-REVIEW.md) records merged C6 and unmerged dashboard/lab
-work before future cleanup; those branches have not been deleted.
+The [branch review](BRANCH-REVIEW.md) records C6 retirement after merge verification
+and preserves the unmerged dashboard/lab work before future cleanup.
 
 The active plan is six dependency compatibility experiments, E1–E6, followed by
 the fifteen migration milestones R0–R14. Capture the minimum baseline and build

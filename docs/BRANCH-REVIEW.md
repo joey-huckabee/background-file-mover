@@ -6,13 +6,14 @@ Reviewed 2026-10-13 after pushing the experiments/direction as `6df3003` on
 [BRANCH-REVIEW-EVIDENCE.json](BRANCH-REVIEW-EVIDENCE.json) preserves full tips,
 ancestry, all unique commit subjects/dates, changed paths and diff statistics.
 GitHub's all-state PR lookup returned no PRs for this repository at review time.
-No branches, tags, lab VMs or deployment resources were removed or modified.
+No branches, tags, lab VMs or deployment resources were removed during the initial
+review. C6 was subsequently retired at the user's explicit request; see below.
 
 ## Inventory and cleanup recommendation
 
 | Branch | Tip | Ahead / behind main | Relationship | Recommendation |
 |---|---|---|---|---|
-| c6-daemon-entry-point | 53fabf0 | 0 / 3 | Entire tip is an ancestor of main | Ready for branch-reference deletion; main retains the work |
+| c6-daemon-entry-point | 53fabf0 | 0 / 3 | Entire tip is an ancestor of main | Deleted after revalidation; main retains the work |
 | c7-dashboard | af7af20 | 2 / 0 | Unmerged; fully contained in integration-lab | Preserve reference/requirements, archive before deleting |
 | integration-lab | 3e9226b | 9 / 0 | Contains both dashboard commits and seven additional lab commits | Preserve lab/test findings, archive before deleting |
 | feature/rust-transfer-coordinator | Active feature | New work | Experiments and redesign handoff | Keep as the active branch |
@@ -29,6 +30,12 @@ C7), `39d07ad` (C6 merge), and `a6efb3d` (predicate wait/gate fix). There are
 no unique branch commits or merge-base changes to preserve separately. Refer
 to main's daemon lifecycle/event implementation and requirements during redesign.
 Deleting this branch reference would remove no unique development work.
+
+**Cleanup completed, 2026-10-13:** re-fetched origin, confirmed the tip still
+matched the reviewed full SHA and was an ancestor of origin/main with zero unique
+commits, then deleted the remote branch with an exact-tip lease. Pruned its local
+remote-tracking reference and verified the remote branch was absent. No local C6
+branch existed. Main and both unmerged branches remain intact.
 
 ## C7: operator dashboard and status API
 
