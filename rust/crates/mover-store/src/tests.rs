@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,99 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn schema_three_migration_retains_claim_evidence() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
+    let intent = intent_for(&job, 0, 7);
+    db.begin_claim(&intent).unwrap();
+    db.finish_claim(&intent).unwrap();
+    db.connection
+        .execute_batch("DROP TABLE transfers; PRAGMA user_version=3;")
+        .unwrap();
+    drop(db);
+    assert!(matches!(
+        Store::open_read_only(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.claim_intent(job.job_id, 0).unwrap().unwrap().0, intent);
+    assert!(s.transfer(job.job_id, 0).unwrap().is_none());
+}
+
+#[test]
+fn transfer_phase_skips_and_failed_commit_cannot_advance_publication() {
+    let f = Fixture::new();
+    let mut db = Database::open(&f.db(), false).unwrap();
+    let mut c = context();
+    c.policy.group_by_generator = false;
+    let input = Submission::new(
+        "g",
+        "one",
+        "/mnt/recordings/current",
+        vec![FileSpec::new("data", None).unwrap()],
+    )
+    .unwrap();
+    let job = db.accept(&input, &c).unwrap();
+    let intent = intent_for(&job, 0, 3);
+    db.begin_claim(&intent).unwrap();
+    db.finish_claim(&intent).unwrap();
+    let mut t = Transfer {
+        job_id: job.job_id,
+        file_index: 0,
+        attempt: 1,
+        destination_root: c.destination_path,
+        relative_name: "data".into(),
+        root: intent.root.clone(),
+        area: intent.area.clone(),
+        parent: intent.parent.clone(),
+        staging_directory: intent.area.clone(),
+        stage: mover_core::ObjectIdentity {
+            size: 0,
+            ..intent.source
+        },
+        sha256: None,
+        phase: TransferPhase::Intent,
+    };
+    db.save_transfer(&t).unwrap();
+    t.stage.size = 3;
+    t.sha256 = Some("a".repeat(64));
+    t.phase = TransferPhase::Verified;
+    assert!(db.save_transfer(&t).is_err());
+    t.phase = TransferPhase::Copied;
+    db.connection.execute_batch("CREATE TRIGGER refuse_transfer BEFORE UPDATE ON transfers BEGIN SELECT RAISE(ABORT,'receipt failure'); END;").unwrap();
+    assert!(db.save_transfer(&t).is_err());
+    assert_eq!(
+        load_transfer(&db.connection, job.job_id, 0)
+            .unwrap()
+            .unwrap()
+            .phase,
+        TransferPhase::Intent
+    );
+    db.connection
+        .execute_batch("DROP TRIGGER refuse_transfer")
+        .unwrap();
+    db.save_transfer(&t).unwrap();
+    t.phase = TransferPhase::Verified;
+    db.save_transfer(&t).unwrap();
+    t.phase = TransferPhase::PublishIntent;
+    db.save_transfer(&t).unwrap();
+    t.phase = TransferPhase::Published;
+    db.save_transfer(&t).unwrap();
+    drop(db);
+    assert_eq!(
+        Store::open(f.db())
+            .unwrap()
+            .get(job.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .file_phase(0),
+        Some(mover_core::FilePhase::Published)
+    );
+}
 
 #[test]
 fn missing_deadline_survives_restart_replay_and_clock_rollback() {
@@ -64,7 +157,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();

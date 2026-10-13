@@ -4,7 +4,7 @@ Every Rust build/test validation must target GNU/glibc 2.22 using cargo-zigbuild
 and execute the resulting tests in pinned SLES 12 SP5 userspace. A host-only
 compile/test pass is insufficient, including for the dependency-free core.
 
-Run `python scripts/check-rust-sles.py` from the repository root (Python 3.10+,
+Run `python scripts/check-rust-sles.py` from the repository root (Python 3.11+,
 Podman). On Linux use python3 if needed; the WSL shell helper invokes the same
 gate. GitHub's Rust workflow runs it on each relevant push/pull request.
 
@@ -50,14 +50,15 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 47 tests pass in both profiles inside the pinned runtime:
-ten core tests, twenty-one SQLite storage tests, ten filesystem claim tests and
-six executable HTTP tests. All eighteen emitted executables use the standard
-loader and require at most GLIBC_2.18. The external dependency graph reuses E5's
-thirty-three cumulative Linux packages and E1's bundled SQLite configuration.
-Qualified feature sets are checked explicitly for SQLite, rustix/raw-syscall
-support, Tokio, Serde/JSON and httparse. See [the local API increment](RUST-INCREMENT-04.md)
-for the implemented endpoint and effect/recovery boundary.
+The workspace's 59 tests pass in both profiles inside the pinned runtime:
+ten core, twenty-three storage, ten claims, nine copied-transfer and seven
+executable HTTP/CLI tests. All twenty emitted executables use the standard
+loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
+Linux packages and adds nine pinned SHA-256 packages, recorded in
+[rust-integrity-dependencies.json](../scripts/rust-integrity-dependencies.json).
+The gate checks their checksums and sha2's std/force-soft feature set, alongside
+the qualified SQLite/rustix/Tokio/Serde/httparse configurations. See
+[the transfer increment](RUST-INCREMENT-05.md) for tested effects and limits.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd

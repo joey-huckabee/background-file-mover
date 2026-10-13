@@ -23,7 +23,7 @@
       "artifacts": [
         {
           "name": "debug-0-file-mover",
-          "sha256": "e2cc33050b4685aa1ab431483f4febf6a9255bd2792d5c13586ea9413a7880e1",
+          "sha256": "2b0e35517e113ff0da2ce35ef9358e3f831c93e283f8b8eaaeee0247f7715be4",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -53,8 +53,8 @@
           }
         },
         {
-          "name": "debug-1-api-c0b8c23104c45285",
-          "sha256": "0a57b109cfda735e8a2bd8d1bf98cfd62f10efa60477e378ab3c695ffad6b4ec",
+          "name": "debug-1-api-5b8cf9cd2c1ef789",
+          "sha256": "52896d96019526ad9eff473014b18edc65d9756937b99f29d93d0bf824e53fd6",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -82,8 +82,8 @@
           }
         },
         {
-          "name": "debug-2-claim-c23d2e20097f6509",
-          "sha256": "a4e5026ab5e45ec2a945cfae99b26c2ba5a24c3b7333a9674b73986e28b7cde1",
+          "name": "debug-2-claim-505eff1fe5cf6c79",
+          "sha256": "7469775fad103940f69e497808c8f0d2eb76c236741a1d8518a6d6632cf590ea",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -111,8 +111,8 @@
           }
         },
         {
-          "name": "debug-3-file_mover-6cbe3a26fe14bce4",
-          "sha256": "4528987f89928201e094020a1f085897cf19ec57e70e9487a45d2059aee90c0d",
+          "name": "debug-3-file_mover-cfeabde86b219c07",
+          "sha256": "255cd30b8df9aa3319cd1b785bf2f9614c9da5d0a874abba9253f8fdb8126518",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -138,8 +138,8 @@
           }
         },
         {
-          "name": "debug-4-file_mover-e9077f0c54ca2620",
-          "sha256": "f52cfbabe3c630a3c6027a070013302442482a9c5bc8e028cd73909600bed4d3",
+          "name": "debug-4-file_mover-ec7c770bfe3292e0",
+          "sha256": "fd263d204b8fe953c068eee46a2dca55e15244f88a7c6917885690b04085a3ee",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -192,8 +192,8 @@
           }
         },
         {
-          "name": "debug-6-mover_fs-2b69425a6edd443b",
-          "sha256": "163bfe852f8f476c6476f287b42ff71c4668df269d956a0b5746e3fb9410d6e3",
+          "name": "debug-6-mover_fs-c9ef893b535568f4",
+          "sha256": "2e19f4ef8ff77c96d8047bc9d3bd8a86b472add3f416f1e1e9bb041060767d06",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -220,7 +220,7 @@
         },
         {
           "name": "debug-7-mover_store-52fc9e31f7fc5465",
-          "sha256": "0679f36dfcf023d87c5ec6237c9b80ea3aa1fbb9f927d1f36b4e8239f46428e6",
+          "sha256": "6e63f7d14689479f84dadfd03766bb5abccc6cc2e2dc7558b51d051c4785ef07",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -249,7 +249,7 @@
         },
         {
           "name": "debug-8-protocol-69c581cc870a90c2",
-          "sha256": "b0de9ee9c80b1af78f4b99ef330737815f4ab38bc804e76b4cd5db2f159cd84a",
+          "sha256": "fd58e79e64565e4ef437627713f024d659560559aa6af96dbe8931acd70c7060",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -273,15 +273,45 @@
             ],
             "maximum_glibc": "GLIBC_2.18"
           }
+        },
+        {
+          "name": "debug-9-transfer-96594fa7a06822fa",
+          "sha256": "daa476af1ce11df89a58fd052731e1240ec2599178ac02f136f244df62a8dc3d",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.6",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
         }
       ],
-      "tests_passed": 47
+      "tests_passed": 59
     },
     "release": {
       "artifacts": [
         {
           "name": "release-0-file-mover",
-          "sha256": "0ed208cb813200bd0eb303e90afbc82178dc0003fa671c4eccd5366af3f2556c",
+          "sha256": "f79a5c0b762b8f1cbb4060479daab3f22f28afccf8d79d338cd23bb6f770a9b1",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -310,8 +340,8 @@
           }
         },
         {
-          "name": "release-1-api-924fbd20d95d80ef",
-          "sha256": "3f56549cb44ee647917753c22210f6fb233b531888829ce3c95968e44bed1565",
+          "name": "release-1-api-c72397b2b5920c60",
+          "sha256": "31575c729769a7455ab7dcf6f27029b952296f0254d1569ab6588af138bbc42e",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -339,8 +369,8 @@
           }
         },
         {
-          "name": "release-2-claim-4307e6f14b31c229",
-          "sha256": "11709400954bc2d5c858e489d9ed310c12c1d301c33ff232c934747b65625436",
+          "name": "release-2-claim-0c4a4d6ff42b026f",
+          "sha256": "a8719d9758a22eccde6334c6be19bde00fc305ab0a6c2b571c97e3c6f8ab8b45",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -368,7 +398,7 @@
           }
         },
         {
-          "name": "release-3-file_mover-7d8d07ac9b8eed3e",
+          "name": "release-3-file_mover-416336182a6d7d81",
           "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
           "test": true,
           "elf": {
@@ -395,8 +425,8 @@
           }
         },
         {
-          "name": "release-4-file_mover-b953a1c128062889",
-          "sha256": "1d468e7c6c797061054330a6efbe0805bc999ff1d7732f9c35121d2d7392095a",
+          "name": "release-4-file_mover-fe94a05b5aac2418",
+          "sha256": "ef7271b716630dd628e7fa25ecf2e9ee795409a8c8db76c8e924ecdd11f5401b",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -449,7 +479,7 @@
           }
         },
         {
-          "name": "release-6-mover_fs-e9ab93ac7024efaa",
+          "name": "release-6-mover_fs-7dda7ed1dd270f89",
           "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
           "test": true,
           "elf": {
@@ -477,7 +507,7 @@
         },
         {
           "name": "release-7-mover_store-07ff9c894a9c2599",
-          "sha256": "694f49776bafbf8c0534ef20bd90f28338287cb15dbcb1fba942c44a839335e7",
+          "sha256": "d8ee83210d9c4297df087db4d220ec01b3ba0384d0d7c0abcba8f26565272dad",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -530,17 +560,52 @@
             ],
             "maximum_glibc": "GLIBC_2.18"
           }
+        },
+        {
+          "name": "release-9-transfer-60bd72dff48ca361",
+          "sha256": "8a7abca7209d66ebb61fa76eee2e3005dceb49e39b51f4dbd48c53ac4a72b7f6",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.6",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
         }
       ],
-      "tests_passed": 47
+      "tests_passed": 59
     }
   },
-  "run_id": "20261013T155144Z-f55c4b2e",
-  "source_sha256": "7e3c6e6bbea73d04b0766b3d402bd8348ccda06a69377cb25846f8ae01d2b935",
+  "run_id": "20261013T171937Z-e7ac0188",
+  "source_sha256": "4d80e3329049b9e7379baa6e0a6b3affcb31d3d612e931ad106d2942f86eca15",
   "dependencies": [
     {
       "name": "bitflags",
       "version": "2.13.2",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
       "license": "MIT OR Apache-2.0"
     },
     {
@@ -551,6 +616,26 @@
     {
       "name": "cc",
       "version": "1.8.0",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.7",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
       "license": "MIT OR Apache-2.0"
     },
     {
@@ -572,6 +657,11 @@
       "name": "find-msvc-tools",
       "version": "0.1.14",
       "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "license": "MIT"
     },
     {
       "name": "httparse",
@@ -659,6 +749,11 @@
       "license": "MIT OR Apache-2.0"
     },
     {
+      "name": "sha2",
+      "version": "0.10.9",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
       "name": "shlex",
       "version": "2.0.1",
       "license": "MIT OR Apache-2.0"
@@ -689,6 +784,11 @@
       "license": "MIT"
     },
     {
+      "name": "typenum",
+      "version": "1.20.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
       "name": "unicode-ident",
       "version": "1.0.27",
       "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
@@ -696,6 +796,11 @@
     {
       "name": "vcpkg",
       "version": "0.2.15",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
       "license": "MIT/Apache-2.0"
     },
     {

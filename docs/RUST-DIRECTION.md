@@ -162,8 +162,11 @@ replay; [RUST-INCREMENT-02.md](RUST-INCREMENT-02.md) records its evidence.
 all-file durable receipts yield Ready202 and release reservations. The local
 `file-mover` executable now implements JSON submission/202-after-claim and health;
 see [RUST-INCREMENT-04.md](RUST-INCREMENT-04.md) for configuration, bounds and
-missing-deadline evidence. Build one copied-file transfer next, leaving
-registration deferred and deletion disabled. NFS and production namespace/mount
+missing-deadline evidence. The single-file local `--transfer-one` command now
+copies/hashes, independently verifies, publishes without clobber and recovers
+interrupted effects; see [RUST-INCREMENT-05.md](RUST-INCREMENT-05.md).
+Add automatic scheduling/multi-file manifests next, leaving registration
+deferred and deletion disabled. NFS and production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.
 The fifteen milestones retain useful release obligations.
 

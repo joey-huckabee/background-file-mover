@@ -4,6 +4,7 @@
 use mover_core::{
     ClaimIntent, DeliveryPolicy, FileSpec, ObjectIdentity, ProtocolError, Recording, Submission,
 };
+use mover_core::{Transfer, TransferPhase};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use std::{
     fmt,
@@ -14,7 +15,7 @@ use std::{
 };
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -226,6 +227,14 @@ impl Store {
     pub fn claim_blocked(&self, job_id: i64, now: i64) -> Result<bool> {
         self.call(move |db| db.claim_blocked(job_id, now))
     }
+    pub fn transfer(&self, job_id: i64, index: usize) -> Result<Option<Transfer>> {
+        self.call(move |db| load_transfer(&db.connection, job_id, index))
+    }
+    /// Trusted synchronous worker results; caller proves custody/synchronization.
+    pub fn save_transfer(&self, transfer: &Transfer) -> Result<()> {
+        let transfer = transfer.clone();
+        self.call(move |db| db.save_transfer(&transfer))
+    }
 }
 impl Drop for Store {
     fn drop(&mut self) {
@@ -262,7 +271,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((version == 1 || version == 2) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=3).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -296,16 +305,20 @@ impl Database {
             tx.execute_batch(include_str!("schema.sql"))?;
             tx.execute_batch(include_str!("claims.sql"))?;
             tx.execute_batch(include_str!("missing.sql"))?;
+            tx.execute_batch(include_str!("transfers.sql"))?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (version == 1 || version == 2) && !read_only {
+        if (1..=3).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
             }
-            tx.execute_batch(include_str!("missing.sql"))?;
+            if version <= 2 {
+                tx.execute_batch(include_str!("missing.sql"))?;
+            }
+            tx.execute_batch(include_str!("transfers.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -473,6 +486,49 @@ impl Database {
             replay: false,
         })
     }
+    fn save_transfer(&mut self, t: &Transfer) -> Result<()> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let job = load(&tx, t.job_id)?.ok_or(StoreError::InvalidContext)?;
+        validate_transfer(&job, t)?;
+        let prior = load_transfer(&tx, t.job_id, t.file_index)?;
+        if let Some(p) = &prior {
+            if p == t {
+                tx.commit()?;
+                return Ok(());
+            }
+            let mut unchanged = t.clone();
+            unchanged.phase = p.phase;
+            unchanged.stage = p.stage.clone();
+            unchanged.sha256 = p.sha256.clone();
+            unchanged.attempt = p.attempt;
+            if unchanged != *p {
+                return Err(StoreError::CorruptState);
+            }
+            if t.attempt == p.attempt {
+                if t.phase as i64 != p.phase as i64 + 1
+                    || (p.phase != TransferPhase::Intent
+                        && (t.stage != p.stage || t.sha256 != p.sha256))
+                    || t.stage.device != p.stage.device
+                    || t.stage.inode != p.stage.inode
+                    || t.stage.uid != p.stage.uid
+                {
+                    return Err(StoreError::CorruptState);
+                }
+            } else if p.phase != TransferPhase::Intent
+                || t.phase != TransferPhase::Intent
+                || t.attempt != p.attempt + 1
+            {
+                return Err(StoreError::CorruptState);
+            }
+        } else if t.phase != TransferPhase::Intent || t.attempt != 1 {
+            return Err(StoreError::InvalidContext);
+        }
+        tx.execute("INSERT INTO transfers VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12) ON CONFLICT(job_id,file_index,attempt) DO UPDATE SET stage_identity=excluded.stage_identity,sha256=excluded.sha256,phase=excluded.phase",params![t.job_id,t.file_index as i64,t.attempt,t.destination_root,t.relative_name,t.root.encode(),t.area.encode(),t.parent.encode(),t.staging_directory.encode(),t.stage.encode(),t.sha256,t.phase as i64])?;
+        tx.commit()?;
+        Ok(())
+    }
 }
 
 fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
@@ -525,7 +581,80 @@ fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
             }
         }
     }
+    for index in 0..result.recording.submission().files().len() {
+        if let Some(t) = load_transfer(connection, job_id, index)? {
+            validate_transfer(&result, &t)?;
+            if t.phase >= TransferPhase::Verified {
+                result.recording.confirm_verification(index)?;
+            }
+            if t.phase == TransferPhase::Published {
+                result.recording.confirm_publication(index)?;
+            }
+        }
+    }
     Ok(Some(result))
+}
+
+fn validate_transfer(job: &Accepted, t: &Transfer) -> Result<()> {
+    if t.job_id != job.job_id
+        || t.file_index != 0
+        || job.recording.submission().files().len() != 1
+        || job.recording.handoff() != mover_core::Handoff::Ready202
+        || job.context.policy.group_by_generator
+        || t.destination_root != job.context.destination_path
+        || t.relative_name != job.recording.submission().files()[0].relative_path()
+        || !(1..=100).contains(&t.attempt)
+        || t.stage.links != 1
+        || t.stage.device != t.root.device
+        || t.area.device != t.root.device
+        || t.parent.device != t.root.device
+        || (t.phase == TransferPhase::Intent && (t.sha256.is_some() || t.stage.size != 0))
+        || (t.phase != TransferPhase::Intent
+            && (Some(t.stage.size) != job.recording.actual_bytes_total()
+                || t.sha256.as_ref().is_none_or(|s| {
+                    s.len() != 64
+                        || !s
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                })))
+    {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+fn load_transfer(c: &Connection, job: i64, index: usize) -> Result<Option<Transfer>> {
+    let row=c.query_row("SELECT attempt,destination_root,relative_name,root_identity,area_identity,parent_identity,staging_directory_identity,stage_identity,sha256,phase FROM transfers WHERE job_id=?1 AND file_index=?2 ORDER BY attempt DESC LIMIT 1",params![job,index as i64],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,String>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,Option<String>>(8)?,r.get::<_,i64>(9)?))).optional()?;
+    row.map(
+        |(
+            attempt,
+            destination_root,
+            relative_name,
+            root,
+            area,
+            parent,
+            staging,
+            stage,
+            sha256,
+            phase,
+        )| {
+            let decode = |s: &str| ObjectIdentity::decode(s).ok_or(StoreError::CorruptState);
+            Ok(Transfer {
+                job_id: job,
+                file_index: index,
+                attempt,
+                destination_root,
+                relative_name,
+                root: decode(&root)?,
+                area: decode(&area)?,
+                parent: decode(&parent)?,
+                staging_directory: decode(&staging)?,
+                stage: decode(&stage)?,
+                sha256,
+                phase: TransferPhase::decode(phase).ok_or(StoreError::CorruptState)?,
+            })
+        },
+    )
+    .transpose()
 }
 
 fn validate_claim(job: &Accepted, intent: &ClaimIntent) -> Result<()> {

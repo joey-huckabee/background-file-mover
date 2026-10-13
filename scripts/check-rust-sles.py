@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import tarfile
+import tomllib
 import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -139,9 +140,14 @@ def main() -> int:
                                              "--filter-platform", "x86_64-unknown-linux-gnu"], results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
         evidence = json.loads((ROOT / "docs/E5-TOKIO-EVIDENCE.json").read_text())
-        expected = evidence["dependencies"]
+        integrity = json.loads((ROOT / "scripts/rust-integrity-dependencies.json").read_text())
+        expected = evidence["dependencies"] + integrity["dependencies"]
         if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
-            raise ValueError("dependency graph differs from the E5-qualified cumulative graph")
+            raise ValueError("dependency graph differs from the pinned E5 plus integrity graph")
+        locked = {(p["name"], p["version"]): p.get("checksum") for p in tomllib.loads((ROOT / "rust/Cargo.lock").read_text())["package"]}
+        for dependency in integrity["dependencies"]:
+            if locked[(dependency["name"], dependency["version"])] != dependency["checksum"]:
+                raise ValueError("integrity dependency checksum changed")
         qualified_features = {
             "rusqlite": ["bundled", "modern_sqlite"],
             "rustix": ["alloc", "fs", "process", "std"],
@@ -150,6 +156,7 @@ def main() -> int:
             "serde": ["derive", "serde_derive", "std"],
             "serde_json": ["std"],
             "httparse": ["std"],
+            "sha2": integrity["sha2_features"],
         }
         nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
         for package in dependencies:

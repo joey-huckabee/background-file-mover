@@ -7,6 +7,8 @@ use std::collections::BTreeSet;
 
 mod claim;
 pub use claim::{ClaimIntent, ObjectIdentity};
+mod transfer;
+pub use transfer::{Transfer, TransferPhase};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProtocolError {

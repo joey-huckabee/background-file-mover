@@ -364,3 +364,47 @@ fn lost_response_retry_finds_one_durable_job() {
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
     assert_eq!(store.job_count().unwrap(), 1);
 }
+
+#[test]
+fn actual_transfer_command_publishes_but_retains_claimed_source() {
+    let mut f = Fixture::new(300);
+    f.write("sub/data", b"abc");
+    let (status, response) = f.post(&f.input("copy", json!([{"name":"sub/data"}])));
+    assert_eq!(status, 202);
+    f.stop();
+    f.write("sub/data", b"new recording");
+    for p in [
+        f.root.join("destination"),
+        f.root.join("destination/.file-mover"),
+    ] {
+        std::fs::create_dir(&p).unwrap();
+        std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--transfer-one")
+        .arg(f.root.join("config.json"))
+        .arg(response["job_id"].as_str().unwrap())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["state"], "Published");
+    assert_eq!(result["source_retained"], true);
+    assert_eq!(result["committed"], false);
+    assert_eq!(
+        result["sha256"],
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/sub/data")).unwrap(),
+        b"abc"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"abc"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/sub/data")).unwrap(),
+        b"new recording"
+    );
+}

@@ -10,8 +10,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add one copied-file transfer using streamed hash/destination reread,
-  no-clobber publication and crash recovery, with deletion disabled.
+- [ ] Add durable background delivery scheduling and multi-file transfers while
+  preserving claim/reconciliation capacity and bounded retained staging/byte budgets.
 - [ ] Add multi-file completion manifests and configurable gated cleanup after
   failure evidence passes, then qualify effects on the controlled NFS fixture.
 - [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,

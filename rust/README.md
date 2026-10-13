@@ -20,7 +20,10 @@ The [store](crates/mover-store/README.md) persists acceptance/replay and pinned
 policy on one dedicated database thread. The [claim worker](crates/mover-fs/src/lib.rs)
 commits intent before a no-clobber rename, synchronizes the effect, then commits
 its receipt. Only all-file receipts authorize HTTP 202. The service binds only
-loopback; no destination transfer or post-transfer cleanup exists yet. See
+loopback. A separate local `--transfer-one CONFIG JOB_ID` command copies/verifies
+and publishes one claimed file while retaining its source; stop the daemon first
+to release its exclusive claim lock. There is no automatic delivery, manifest or
+post-transfer cleanup yet. See [increment 05](../docs/RUST-INCREMENT-05.md),
 [increment 04](../docs/RUST-INCREMENT-04.md) for the runnable contract/configuration
 and [increment 03](../docs/RUST-INCREMENT-03.md) for local filesystem limits.
 

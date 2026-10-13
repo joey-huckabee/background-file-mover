@@ -44,6 +44,12 @@ const FILE: OFlags = OFlags::RDONLY
     .union(OFlags::CLOEXEC)
     .union(OFlags::NONBLOCK);
 
+mod transfer;
+pub use transfer::{
+    authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
+    transfer_one, verify_stage,
+};
+
 fn observation(s: &Stat) -> ObjectIdentity {
     ObjectIdentity {
         device: s.st_dev,
@@ -101,7 +107,7 @@ fn parent(root: &OwnedFd, name: &str) -> Result<(OwnedFd, String)> {
     }
     Err(ClaimError::Blocked("empty source name"))
 }
-fn source(fd: &OwnedFd) -> Result<ObjectIdentity> {
+fn source(fd: &impl rustix::fd::AsFd) -> Result<ObjectIdentity> {
     let s = fs::fstat(fd)?;
     if FileType::from_raw_mode(s.st_mode) != FileType::RegularFile
         || s.st_size < 0

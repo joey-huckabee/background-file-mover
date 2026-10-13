@@ -2,8 +2,10 @@
 
 The agreed filesystem copy path computes the source digest during copying,
 then rereads destination staging to verify it before publication. Use incremental
-SHA-256 as the initial design; the implementation crate/version still requires
-qualification. There is no separate source prehash pass in the normal workflow.
+SHA-256. The first local copied-file slice uses pinned sha2 0.10.9 with the
+software backend, qualified by the mandatory gate; see
+[increment 05](RUST-INCREMENT-05.md) for the supported scope and evidence.
+There is no separate source prehash pass in the normal workflow.
 
 The proposed [transfer protocol](TRANSFER-PROTOCOL.md) applies this agreement to
 source custody, publication, recording-set commitment and cleanup. Its
