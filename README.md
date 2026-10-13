@@ -1,5 +1,11 @@
 # Background File Mover
 
+**Rust redesign work:** E1–E5 compatibility experiments and the next-session
+direction are on `feature/rust-transfer-coordinator`. Read
+[the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).
+Experiments are stopped; the next step is transfer-protocol design. The C++
+implementation described below remains the reference, not the intended Rust architecture.
+
 A durable background transfer coordinator for large simulation recordings, written in
 **C++11** with a **REST** control plane.
 

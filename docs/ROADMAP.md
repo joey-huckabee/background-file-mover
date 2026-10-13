@@ -9,8 +9,323 @@ and the trace matrix (`docs/TRACE-MATRIX.md`), not here.
 
 # WHERE WE LEFT OFF
 
-**Date:** 2026-08-08 · **Branch:** `main` · **C6 is delivered and merged. Next
-milestone: C7 — the operator dashboard.**
+**Date:** 2026-10-13 · **Branch:** `feature/rust-transfer-coordinator` ·
+**Direction: redesign as a durable Rust transfer coordinator.**
+
+The user stopped experiments after E1–E5 and supplied [CONVERSATION.md](../CONVERSATION.md)
+as the new direction. Read [RUST-DIRECTION.md](RUST-DIRECTION.md) before continuing.
+Next: reconcile requirements and the transfer/integrity protocol, including the
+user's requirement to improve on the proposed 4N logical I/O cost. E6 is unrun;
+do not start it automatically. The older fifteen milestones below need revision
+for claiming, cross-filesystem transfer, recording manifests and worker isolation.
+
+The active plan is six dependency compatibility experiments, E1–E6, followed by
+the fifteen migration milestones R0–R14. Capture the minimum baseline and build
+inputs needed for E1 first; that preparation contributes to R0. R1 consolidates
+the experiment evidence and remaining platform probes, so the experiments are
+not repeated as a second implementation effort.
+
+Use a modern build host and the user's build project, modeled on cargo-zigbuild.
+The production target is `x86_64-unknown-linux-gnu` with an explicit **glibc 2.22**
+baseline, conservative CPU settings, and existing SLES runtime libraries. No
+musl target or replacement host glibc is in scope. Run compatibility tests in a
+pinned container with SLES 12 SP5 userspace or the closest documented glibc 2.22
+equivalent. An actual SLES host is not a prerequisite for this plan.
+
+**Status:** E1–E5 passed with Rust 1.99.0 and GNU/glibc 2.22 targeting. E6 and
+all fifteen Rust milestones remain pending. Windows and Ubuntu WSL2 defaults
+were updated and verified at Rust/Cargo 1.99.0 during E1.
+The C++ implementation through C6 remains the reference and retains its CI during
+the migration. Its recorded coverage is historical C++ evidence, not Rust progress.
+
+Detailed tasks, safety contracts, and dependency experiment procedures are in
+[RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md). The unfinished dashboard,
+packaging, and qualification work remains to be planned. The new direction includes
+claiming, cross-filesystem transfer and integrity guarantees. The earlier
+same-filesystem first-release restriction is superseded; resumption and
+optimization follow a correct recoverable transfer baseline.
+
+## Verified platform facts and evidence still required
+
+| Claim | Independently checked evidence | Remaining proof |
+|---|---|---|
+| SLES 12 SP5 supplies glibc 2.22 | SUSE lists glibc 2.22 packages for SLES 12 SP5 x86_64 in its [package update record](https://www.suse.com/support/update/announcement/2026/suse-su-20260680-1/) | Inventory the selected runtime container's packages and loader |
+| Rust can target this GNU platform | Rust lists x86_64 GNU Linux with glibc 2.17+ and Linux 3.2+ in its [platform support table](https://doc.rust-lang.org/stable/rustc/platform-support.html); SUSE documents [Linux 4.12 for SP5](https://www.suse.com/releasenotes/x86_64/SUSE-SLES/12-SP5/index.html) | Execute the artifact in glibc 2.22 userspace and audit kernel requirements separately |
+| A modern build can select an older glibc target | [cargo-zigbuild documents a glibc-version suffix](https://github.com/rust-cross/cargo-zigbuild#specify-glibc-version) and caveats for invalid versions and linker overrides | Qualify the user's actual build-project revision, requested 2.22 target, and C compiler forwarding |
+
+These establish platform feasibility. E1 has now qualified one specific SQLite
+configuration; its [experiment report](E1-SQLITE-RESULTS.md) records
+the artifact, container, and toolchain evidence. The user authorized cargo-zigbuild
+as the reference builder for now; the user's separate build project is still
+unqualified. [E2](E2-RUSTIX-RESULTS.md) also passed, including the cumulative
+SQLite/rustix probe and controlled NFSv4.1. [E3](E3-JSON-RESULTS.md) passed
+the strict JSON corpus/API and cumulative tests with no new shared libraries.
+[E4](E4-HTTP-RESULTS.md) passed strict HTTP/framing, bounded TCP, normal/SWAR CPU
+variants and cumulative checks with no new shared libraries. Other package
+compatibility remains E6 work. [E5](E5-TOKIO-RESULTS.md) qualified Tokio in place
+of direct signal-hook: signals/reactor/worker drain and forced entropy fallbacks
+passed, adding six Linux crates but no shared libraries. The reusable
+[NFS fixture note](NFS-TEST-FIXTURE.md) retains setup and cleanup details.
+E1's temporary experiment was removed after archiving its evidence.
+
+## Container compatibility environment
+
+E1 found and executed the locally cached SLES 12 SP5 base image
+`registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35`.
+Its distribution/package inventory confirms SLES 12 SP5 and
+`glibc-2.22-114.34.1`; it supplies `/lib64/ld-linux-x86-64.so.2`. Reuse this
+digest for E2–E6. Its package set includes libgcc/libstdc++ 13.3, though E1's
+executables do not import either shared library. Preserve that distinction.
+
+If this image becomes unavailable, use a reproducible openSUSE Leap 42.3 rootfs
+as an approximation; its official [package archive](https://cdn.opensuse.org/update/leap/42.3/oss/src/)
+contains glibc 2.22. A changed runtime requires rerunning compatibility checks
+and recording all userspace differences. Equal glibc versions alone do not
+establish distribution equivalence.
+
+- Pin the runtime image by digest, or the rootfs/package inputs by hashes. Assert
+  x86_64, `getconf GNU_LIBC_VERSION` reporting 2.22, interpreter presence, package
+  inventory, and resolved runtime libraries before any package experiment runs.
+- Keep the modern builder separate from the runtime container. Copy in the exact
+  executable and test data; run unprivileged without a compiler, new SQLite package,
+  newer libc, or build-host library mounts that could mask an incompatible import.
+- Use the same pinned runtime for E1–E6 and the combined probe. Keep a compatible
+  systemd-enabled container variant for R11, a controlled NFS fixture for R7/R13,
+  and a RHEL 9 userspace container for the second supported platform.
+- Record the host kernel and CPU as distinct inputs. Containers share the host
+  kernel; a SLES userspace image cannot supply Linux 4.12. Audit consumed syscall
+  requirements and use targeted fault/seccomp tests to force unsupported-syscall
+  fallbacks. Record that these tests do not reproduce every old-kernel behavior.
+- Report AppArmor/SELinux enforcement, systemd sandboxing, CPU-baseline execution,
+  and NFS durability only to the extent the container runner actually exercises
+  them. Keep unexercised dimensions visible in the evidence; no actual-SLES-host
+  test milestone is required by this plan.
+
+SUSE documents container compatibility limits caused by the host kernel in its
+[Container Guide](https://documentation.suse.com/en-us/container/all/html/Container-guide/index.html).
+The completion claim is compatibility with the verified container userspace and
+tested kernel behaviors, with the remaining platform differences recorded.
+
+## Six dependency build experiments
+
+Every experiment pins the crate versions, features, Rust toolchain, builder
+revision, target, native compiler settings, and release profile. Build an isolated
+candidate and compare it with a `std`-only control, then build a cumulative probe
+with all previously accepted packages. Exercise the actual APIs planned for the
+service so dead-code elimination cannot conceal their imports or syscall needs.
+
+Before declaring any experiment passed:
+
+- Inspect the final ELF for x86_64 architecture, CPU requirements, `PT_INTERP`,
+  `DT_NEEDED`, required symbols/version namespaces, and RPATH/RUNPATH. Require
+  glibc symbol versions at or below 2.22, reject `GLIBC_PRIVATE`, and verify all
+  other imports against the target's existing allowed libraries.
+- Confirm that the requested target was accepted, and that native dependencies
+  used the target headers and compiler settings rather than the build host's.
+- Run that exact artifact in the pinned glibc 2.22 runtime container under the
+  intended account with its existing libraries. Exercise ordinary, failure,
+  concurrency, and restart paths. Add old-syscall fallback tests where relevant;
+  symbol inspection cannot establish old-kernel compatibility.
+- Review the full enabled dependency graph, licenses, native sources, and feature
+  changes. Preserve the source, lockfile, commands, artifact hash, ELF comparison,
+  container inventory/digest, host kernel, runtime results, and pass/fail decision.
+
+The loader check concerns the ELF interpreter/dynamic linker. No change to the
+machine's bootloader is part of this service migration. Experiments that have
+passed build inspection but lack runtime execution remain **pending container validation**.
+Repeat the gate when dependencies, features, compiler, or builder change.
+
+### E1 SQLite
+
+**Passed:** 2026-10-12 America/Chicago. See the
+[experiment source and report](E1-SQLITE-RESULTS.md) and
+[verified result](E1-SQLITE-EVIDENCE.json).
+
+- [x] Establish the pinned builder/runtime container inputs, verified glibc 2.22
+  package inventory, and `std` control.
+- [x] Build pinned `rusqlite` with default features disabled and bundled SQLite,
+  statically linking SQLite through the target C compiler configuration.
+- [x] Verify WAL, FULL synchronization, foreign keys, transaction commit/rollback,
+  reopen persistence, busy/contended connections, and native compile settings:
+  `THREADSAFE=1`, `OMIT_LOAD_EXTENSION`, `DQS=0`, `DEFAULT_MEMSTATUS=0`, and
+  `ENABLE_API_ARMOR`.
+- [x] Complete the shared ELF, dependency, and container runtime evidence gate. Confirm
+  there is no dependency on a target SQLite installation.
+
+**Done when:** the SQLite probe passes in the pinned glibc 2.22 container with the intended
+durability settings and no new loader/library or glibc-above-2.22 requirement.
+
+**Evidence:** Rust/Cargo 1.99.0, cargo-zigbuild 0.23.4, Zig 0.16.0,
+rusqlite 0.40.1, libsqlite3-sys 0.38.2, and bundled SQLite 3.53.2. Both the
+`std` control and SQLite probe require at most `GLIBC_2.18`. SQLite adds only
+`libm.so.6` to the control's libc/libdl/libpthread imports. ELF has the expected
+interpreter, no RPATH/RUNPATH, and no shared SQLite/libgcc/libstdc++ dependency.
+Loader relocation checks and three runtime phases passed as UID 1000 with no
+network/capabilities. Forty-two rows reopened correctly in a separate process.
+
+**Early finding:** rusqlite 0.40.1 failed to compile with the builder image's
+Rust 1.93.0 because it uses `cfg_select!`; the pinned 1.99.0 build passed.
+Bundled SQLite 3.53.2 differs from the C++ baseline's 3.53.4; any version change
+needs a fresh check before adoption. Eleven resolved external packages have
+MIT/Apache-compatible declared licenses.
+
+**Coverage:** SLES userspace running on Podman's WSL2 kernel
+`6.18.33.2-microsoft-standard-WSL2`. Linux 4.12, older CPU hardware, NFS,
+systemd/MAC, and crash/power-loss behavior were not exercised in E1.
+
+### E2 Unix filesystem operations
+
+**Passed:** 2026-10-12 America/Chicago. See the [result](E2-RUSTIX-RESULTS.md)
+and [verified evidence](E2-RUSTIX-EVIDENCE.json).
+
+- [x] Qualify `rustix` with only needed features, documenting its selected backend
+  and transitive dependencies. Avoid features that assume a newer Linux kernel.
+- [x] Exercise descriptor ownership, `openat`/`fstatat`, no-follow traversal,
+  identity checks, locking, fsync, no-replace rename, and link/unlink fallback.
+- [x] Test unsupported-operation handling in the runtime container and force both
+  move strategies, including a controlled NFS test tree and syscall failure cases.
+- [x] Complete the shared compatibility gate for the isolated and cumulative probes.
+
+**Done when:** consumed filesystem APIs and their fallbacks work in the runtime
+container/NFS fixture, with compatible imports and explicit failure behavior.
+
+**Evidence:** rustix 1.1.5 with default features disabled and std/fs/process,
+linux-raw-sys 0.12.1, and the linux_raw backend confirmed in compiler output.
+The control, isolated rustix, and SQLite/rustix executables require at most
+`GLIBC_2.18`. Rustix adds no shared library to the control; the cumulative probe
+retains only SQLite's libm addition. No glibc renameat2 wrapper, newer/private
+glibc requirement, alternate loader, or runtime search path is introduced.
+
+Twelve runtime phases passed: the control, four isolated modes, four cumulative
+modes, and three NFS modes. Local no-replace rename, collision retention,
+link/unlink recovery, symlinks, identity races, locks, RAII, and fsync passed.
+Real seccomp-injected ENOSYS/EOPNOTSUPP responses exercised fallback locally and
+on kernel NFSv4.1. NFS magic `0x6969` and mount settings were verified; state stayed
+on local storage. The internal fixture's containers, volume, and network were
+removed afterward.
+
+**Coverage:** SLES userspace on WSL2's modern kernel, with a controlled modern
+NFS peer. Linux 4.12, old CPU hardware, production NFS outages/durability, and
+the user's separate build project remain outside this result. Test-only mount
+retry and server grace settings are not a production mount recommendation.
+
+### E3 JSON serialization and decoding
+
+**Passed:** 2026-10-13 America/Chicago. See the [result](E3-JSON-RESULTS.md)
+and [verified evidence](E3-JSON-EVIDENCE.json). All 38 corpus files match the
+C++ parser on their actual contents; explicit malformed-byte cases cover
+misleading fixture names. JSON adds no shared libraries; max GLIBC import 2.18.
+
+- [x] Qualify `serde` and `serde_json` together with only the needed features;
+  audit procedural-macro dependencies separately from target code.
+- [x] Exercise typed requests/responses and the existing strictness profile:
+  duplicate/unknown fields, trailing input, int64 limits, rejected floats,
+  invalid strings/NUL, and bounded depth, strings, and members.
+- [x] Run the committed JSON corpus and negative cases in the runtime container, then repeat in
+  the cumulative probe with the accepted storage and Unix packages.
+- [x] Complete the shared compatibility gate and retain the API-policy results.
+
+**Done when:** the JSON package combination meets the service's decoding contract
+and introduces no unsupported runtime or platform requirement.
+
+### E4 HTTP request parsing
+
+**Passed:** 2026-10-13 America/Chicago. See the [result](E4-HTTP-RESULTS.md)
+and [verified evidence](E4-HTTP-EVIDENCE.json). All 37 HTTP corpus outcomes match
+C++; the adapter preserves raw target bytes. Normal dispatch and verified SWAR
+variants pass with max GLIBC import 2.18 and no new shared libraries. CPU feature
+masking/old hardware execution remains untested and explicitly recorded.
+
+- [x] Qualify `httparse` with the needed features and production CPU settings.
+- [x] Exercise partial input and the existing HTTP corpus, including malformed
+  lines/headers, duplicate lengths, transfer encoding, size caps, and extra bytes.
+  Test the policy adapter as well as the upstream parser.
+- [x] Exercise the candidate with bounded TCP handling in the cumulative probe,
+  including slow clients and continued successful requests after hostile input.
+- [x] Complete the shared compatibility gate, including CPU dispatch checks on
+  the runner and an explicit record of CPU-baseline coverage.
+
+**Done when:** request parsing and the framing policy pass the hostile battery
+in the runtime container without incompatible libraries or symbols; CPU
+requirements and any untested instruction-baseline behavior are recorded.
+
+### E5 Tokio runtime, signals and shutdown
+
+**Passed:** 2026-10-13 America/Chicago. See the [result](E5-TOKIO-RESULTS.md)
+and [verified evidence](E5-TOKIO-EVIDENCE.json). Fifteen runtime/signal cases and
+two forced entropy fallbacks passed. The maximum required glibc version remains
+2.18; the optional weak getrandom import works without an SLES libc export.
+
+- [x] Qualify `tokio` instead of direct `signal-hook`, with defaults disabled and
+  only `rt,signal,sync,time,net,io-util`. Start with a current-thread executor;
+  keep blocking work bounded and outside that executor. Audit the actual graph,
+  including Tokio's transitive `signal-hook-registry`, mio, libc and socket2.
+- [x] Exercise SIGTERM/SIGINT, signal masks, SIGPIPE policy, idle wakeups, repeated
+  startup/shutdown, and worker activity in a real subprocess.
+- [x] Verify signal handling performs no unsafe callback work and does not lose
+  shutdown notifications or wedge the accepted cumulative probe.
+- [x] Exercise timers, task/channel wakeups, bounded Tokio TCP, reactor progress
+  during blocking work, and graceful draining of started blocking jobs. Record
+  signal coalescing and process-global handler lifetime; dropping a Tokio signal
+  stream does not restore the original disposition. Do not assume task abort
+  cancels a started SQLite/filesystem operation.
+- [x] Complete the shared ELF and glibc 2.22 container compatibility gate.
+
+**Done when:** signal delivery and shutdown work reliably with the target's
+existing loader/libraries and without newer-platform assumptions.
+
+### E6 Typed errors
+
+- [ ] Qualify `thiserror` using representative I/O, SQLite, and commit-phase error
+  enums, error chaining, and formatting from the intended application design.
+- [ ] Audit its procedural-macro/build graph and distinguish build-host tools
+  from code linked into the target executable.
+- [ ] Test failures before/after the move commit boundary in the cumulative probe;
+  error formatting must not erase the fatal-versus-retryable classification.
+- [ ] Complete the shared compatibility gate for the isolated candidate and the
+  final probe containing all six package families.
+
+**Done when:** typed errors retain the required failure semantics, and the full
+combined probe passes glibc, loader, library, and container execution checks,
+with kernel and CPU assumptions reviewed and recorded.
+
+## Fifteen Rust migration milestones
+
+All entries below are pending. The full task lists and completion criteria live
+in [RUST-MIGRATION-PLAN.md](RUST-MIGRATION-PLAN.md#delivery-sequence).
+
+| Milestone | Deliverable | Completion gate |
+|---|---|---|
+| R0 | Baseline, scope, and architecture decisions | Reference fixtures, requirement inventory, and Rust/platform ADR |
+| R1 | Platform qualification | Accept E1–E6 evidence, verify builder/container inputs, settle NFS isolation |
+| R2 | Dependency and offline build foundation | Adopt qualified versions/features; locked, vendored build works offline |
+| R3 | Requirements and Rust CI | Separate Rust evidence, production-target checks, dependency gates |
+| R4 | Core types, config, and templates | Deterministic behavior and boundary tests match the retained contract |
+| R5 | JSON and HTTP parsing policies | Strict adapters, hostile corpora, and fuzz tests pass |
+| R6 | SQLite repository | Durable sequence, schema compatibility, actual write-failure tests |
+| R7 | Filesystem layer | Race resistance, no-clobber behavior, both strategies on local/NFS storage |
+| R8 | Move engine and recovery | Kill-at-phase tests and correct post-commit failure handling |
+| R9 | Scheduler, workers, and events | Bounded work, deliberate interleavings, safe shutdown, isolated subscribers |
+| R10 | REST commands and read API | Submission/control/status endpoints and hostile-client tests |
+| R11 | Daemon and systemd lifecycle | Signals, singleton lock, readiness/watchdog, compatible systemd container tests |
+| R12 | Dashboard and operator workflows | Self-contained UI, required controls, and filename/XSS regressions |
+| R13 | Packaging and target qualification | SLES-equivalent/RHEL containers, controlled NFS, documented enforcement coverage |
+| R14 | Cutover and retirement | Rust release evidence, rehearsed rollback, current docs, C++ archived |
+
+Sequence: minimum R0 preparation → E1 → E2 → E3 → E4 → E5 → E6 → finish R0/R1
+→ R2 → R3 → R4 → R5 → R6 → R7 → R8 → R9 → R10 → R11 → R12 → R13 → R14.
+Each completed experiment adopts only its qualified package configuration;
+failure in a later experiment does not erase the earlier evidence. Do not begin
+the full application port until the compatibility evidence is accepted.
+
+## C++ baseline and historical milestone record
+
+The C++ entries below retain the delivered design and outstanding obligations.
+Their old next-action instructions and C1–C9 schedule are superseded by E1–E6 and
+R0–R14 above. Carry required behavior and open qualification work into Rust.
+
+**Recorded date:** 2026-08-08 · **Branch:** `main` · **C6 delivered and merged.**
+The metrics below were recorded at C6 and have not been rerun for this roadmap edit.
 
 ```
 In v1.0.0 scope:  134 of 214 requirements verified (62.6%)
@@ -21,7 +336,7 @@ Tiers:            default, GCC 4.8.5, ASan/UBSan/LSan, TSan, Valgrind,
                   unit gate and the readiness smoke test -- all green
 ```
 
-### Start here for C7
+### C6 baseline for the Rust dashboard milestone
 
 **The service runs.** `main`, signal handling, ordered startup and teardown, the
 hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton lock
@@ -29,7 +344,7 @@ hardened `Type=notify` unit, sd_notify readiness and watchdog, the singleton loc
 satisfies the service half of `L2-CLI-006`. `scripts/smoke-readiness.py` drives the
 real binary end to end.
 
-C7 is the operator dashboard. Its entry below is short and its one load-bearing
+C7 was the planned operator dashboard. Its entry below is short and its one load-bearing
 requirement is `L2-DASH-003`; read that before writing any DOM code.
 
 **The event stream is what the dashboard should read.** It already carries every job
@@ -291,9 +606,9 @@ before starting anything.
 
 ---
 
-## v1.0.0 milestone plan (C1–C9)
+## Historical C++ milestone plan C1 through C9
 
-Nine milestones remain. The ordering is a dependency chain, not a preference: C3 cannot
+The original plan had nine milestones. Its ordering was a dependency chain: C3 cannot
 be written safely before C2 exists, and C2's guarantees are meaningless without C1's
 commit record. Deviating from the order means building the data-safety layer last, which
 is how the security requirements get retrofitted instead of designed in — the exact
@@ -518,7 +833,10 @@ Each milestone is developed on **its own branch off `main`** and merged back at 
 milestone boundary. **These merges are progress markers, not releases: no version bump,
 no tag, no changelog release heading.**
 
-Branch naming is `c<N>-<short-name>`: `c1-durable-store`, `c2-fs-layer`, and so on.
+Active branch naming is `e<N>-<short-name>` for dependency experiments and
+`r<N>-<short-name>` for Rust milestones, such as `e1-sqlite-glibc22` and
+`r6-durable-store`. The C++ branches used `c<N>-<short-name>`; the example below
+records that earlier convention. Keep the same reviewable milestone merge cadence.
 
 ```bash
 # from a clean, fully green milestone branch
