@@ -89,13 +89,28 @@ The qualification-only pause controls are permanent fixture capabilities, have a
 60-second pause budget and require a private local rendezvous directory. Production
 ignores them. Do not set them for ordinary service execution or deployment.
 
+[Increment 19](RUST-INCREMENT-19.md) adds source-read and destination-verification
+interruption. For those selected points only, the worker issues per-file Random
+and DontNeed advice before the rendezvous, then enters the payload read loop.
+Advice is not proof of cache eviction: a local `read-completed` observation is
+created after the loop and before post-read metadata checks. The fixture fails
+if that marker appears during the outage or the assigned reader is not observed
+in kernel-blocked state `D`, avoiding a cached payload read being
+mistaken for a pending read. These observations never authorize durable effects.
+Production issues neither advice nor markers. Cache advice adds no normal
+payload pass, dependency or production requirement.
+
+See [the scenario catalog](RUST-SCENARIOS.md) for the user-visible situations and
+documentation work fed by these qualification results.
+
 [Increment 17](RUST-INCREMENT-17.md) records the no-clobber rename refusal measured
 on the fixture and the owned link/unlink recovery implementation. Worker diagnostics
 are observations, never authorization to commit an effect or delete retained data.
 
-Allowing NFS in a test build is not production authorization. A normal-operation
-baseline does not establish cross-client fencing, stable export/mount ownership,
-coordinator death recovery, outage safety, server reboot or power-loss durability.
-Those remain separate short increments before production enablement. Containers
+Allowing NFS in a test build is not production authorization. The normal baseline
+and selected runtime cases provide one-client evidence for their measured
+operations. Cross-client fencing, stable export/mount ownership, longer outages,
+interrupted claim/file link intermediates, server reboot and power-loss durability
+remain separate qualification before production enablement. Containers
 use SLES/glibc userspace on the runner kernel; no actual SLES host testing is
 required by this plan.

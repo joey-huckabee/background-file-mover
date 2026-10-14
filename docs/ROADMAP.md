@@ -10,8 +10,12 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Expand NFS runtime qualification to source-read/verification interruption,
-  interrupted claim/file link intermediates, longer outages and export changes.
+- [ ] Expand NFS runtime qualification to interrupted claim/file link
+  intermediates, longer outages and export changes.
+- [ ] Develop the user guides and runbooks tracked by
+  [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
+  with each increment, including prior/new success, retry, review and recovery
+  situations, their actual evidence and remaining documentation obligations.
 - [ ] Establish stable root/export authorization and cross-client ownership/fencing
   before enabling production NFS; qualify server reboot/power-loss outcomes.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.

@@ -51,6 +51,14 @@ and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
 
 ## Checks
 
+Use [the scenario catalog](../docs/RUST-SCENARIOS.md) for producer, consumer and
+operator behavior, qualification boundaries and the user-documentation backlog.
+Update it with each increment, including new failure/recovery cases. The controlled
+NFS runner now also interrupts source payload reads and destination verification;
+read-specific controls advise only the selected file's cache and distinguish a
+pending payload read from a later metadata wait. See
+[increment 19](../docs/RUST-INCREMENT-19.md).
+
 The permanent opt-in `file-mover/nfs-qualification` feature admits NFS roots for
 controlled fixture testing. It shares the production transfer implementation,
 prints its build mode, and requires its own equivalent SLES gate. Production

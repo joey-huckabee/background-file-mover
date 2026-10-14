@@ -30,9 +30,14 @@ see `docs/NFS-QUALIFICATION.md` and `docs/RUST-INCREMENT-16.md`.
 Increment 17 diagnoses the NFS no-clobber rename refusal and adds owned link/unlink
 recovery; see `docs/RUST-INCREMENT-17.md`. Increment 18 adds deterministic
 qualification-only pause controls and selected real-worker NFS outage/death cases;
-see `docs/RUST-INCREMENT-18.md`. Next expand source-read/verification and longer
-outage qualification, stable root/export authorization and cross-client ownership.
+see `docs/RUST-INCREMENT-18.md`. Increment 19 qualifies source-read/verification
+interruption and introduces the maintained scenario catalog; see
+`docs/RUST-INCREMENT-19.md`. Next qualify interrupted claim/file link intermediates,
+longer outages, stable root/export authorization and cross-client ownership.
 Keep production NFS and deletion disabled.
+Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
+plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
+Backfill prior scenarios and do not describe pending qualification as supported.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned

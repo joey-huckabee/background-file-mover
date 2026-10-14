@@ -209,7 +209,18 @@ after coordinator death. Next expand source-read/verification and longer outage
 qualification, stable export authorization and cross-client ownership. Production
 NFS and source cleanup remain disabled.
 
+[Increment 19](RUST-INCREMENT-19.md) qualifies source-read and verification-read
+interruption in both profiles and adds [the scenario catalog](RUST-SCENARIOS.md),
+with retrospective user explanations and six documentation deliverables.
+Next qualify interrupted claim/file link intermediates, longer outages and stable
+root/export authorization/cross-client ownership. Production NFS and deletion
+remain disabled; update the catalog with each increment.
+
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
+and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
+IDs, evidence boundaries and user-guide backlog with every increment. It includes
+retrospective explanations for the already implemented local/API/recovery cases.
+Also read
 experiment results and the branch [review](BRANCH-REVIEW.md). Work through the
 producer-facing Accepted/Claimed contract, reconcile requirements and refine
 the proposed protocol using the agreed streaming-hash/destination-reread plan.

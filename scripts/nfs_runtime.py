@@ -17,8 +17,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
-            self.source = ("/tmp/nfs/" + self.label + "/source" if point == "claim_apply" else self.base + "/source")
-            self.destination = (self.base + "/destination" if point == "claim_apply" or production else "/tmp/nfs/" + self.label + "/destination")
+            source_nfs = point in {"claim_apply", "source_read"}
+            self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
+            self.destination = (self.base + "/destination" if source_nfs or production else "/tmp/nfs/" + self.label + "/destination")
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
             self.marker = self.base + "/service.pid"
             self.rendezvous = self.base + "/pause"
@@ -35,8 +36,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     f"dd if=/dev/zero of={self.source}/current/nested/data.bin bs=1048576 count=2 2>/dev/null; "
                     f"printf '0123456789abcdefg' >>{self.source}/current/nested/data.bin", "1000:1000")
             assert execute(f"stat -f -c %t {self.base}/state", "1000:1000").stdout.strip() != "6969"
-            assert (execute(f"stat -f -c %t {self.source}", "1000:1000").stdout.strip() == "6969") == (point == "claim_apply")
-            assert (execute(f"stat -f -c %t {self.destination}", "1000:1000").stdout.strip() == "6969") == (not production and point != "claim_apply")
+            assert (execute(f"stat -f -c %t {self.source}", "1000:1000").stdout.strip() == "6969") == source_nfs
+            assert (execute(f"stat -f -c %t {self.destination}", "1000:1000").stdout.strip() == "6969") == (not production and not source_nfs)
             self.identities = execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout
             self.config = {"bind": "127.0.0.1:19878", "generator_id": "fixture", "source_root": self.source,
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}
@@ -180,11 +181,16 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
 
     for profile in ("debug", "release"):
-        for point in ("production_controls_ignored", "claim_apply", "copy_chunk", "publish", "manifest_link"):
+        for point in ("production_controls_ignored", "claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "manifest_link"):
             case = None
             try:
                 case = Case(profile, "copy_chunk" if point == "production_controls_ignored" else point, point == "production_controls_ignored")
                 case.result["case"] = point
+                case.result["scenario_id"] = {
+                    "production_controls_ignored": "SC-035", "claim_apply": "SC-037",
+                    "source_read": "SC-041", "copy_chunk": "SC-038", "verify_read": "SC-042",
+                    "publish": "SC-039", "manifest_link": "SC-040",
+                }[point]
                 case.start(True)
                 if case.production:
                     assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
@@ -209,7 +215,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     assert status["state"] == "Accepted" and not status["source_paths_released"]
                 else:
                     assert status["state"] == "Claimed"
-                    expected_phase = {"copy_chunk": "Intent", "publish": "PublishIntent", "manifest_link": "Published"}[point]
+                    expected_phase = {"source_read": "Intent", "copy_chunk": "Intent", "verify_read": "Copied", "publish": "PublishIntent", "manifest_link": "Published"}[point]
                     assert status["details"]["files"][0]["transfer_phase"] == expected_phase
                 if point == "copy_chunk":
                     size = int(execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout)
@@ -226,6 +232,15 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                 time.sleep(3)
                 assert case.state(case.worker) not in {"", "Z"}
                 assert case.children() == [case.worker], "replacement before confirmed worker exit"
+                if point in {"source_read", "verify_read"}:
+                    # Advice can be ignored: fail if the payload loop finished
+                    # and only a later metadata operation is stuck on NFS.
+                    assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
+                    case.result["payload_read_incomplete_during_outage"] = True
+                    case.result["cache_advice"] = "per-file Random and DontNeed before the read rendezvous"
+                    case.result["outage_worker_state"] = case.state(case.worker)
+                    assert case.result["outage_worker_state"] == "D", "fixture did not observe a kernel-blocked payload reader"
+                    case.result["outage_worker_wait_channel"] = execute(f"cat /proc/{case.worker}/wchan", "1000:1000", check=False).stdout.strip()
                 started = time.monotonic()
                 assert case.request("GET", "/healthz")[0] == 200
                 case.result["outage_health_seconds"] = round(time.monotonic() - started, 3)
@@ -282,7 +297,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                 recovered = case.recover()
                 assert recovered["details"]["source_cleanup_enabled"] is False
                 attempt = recovered["details"]["files"][0]["attempt"]
-                if point == "copy_chunk":
+                if point in {"source_read", "copy_chunk"}:
                     assert attempt == 2
                     old = case.destination + "/1/.staging/1.part"
                     assert execute(f"test -f {old}", "1000:1000", check=False).returncode == 0

@@ -26,6 +26,11 @@ same worker code in an isolated fixture; production NFS remains disabled.
 the fixture's rename refusals and retain explicit interrupted-link recovery.
 [Runtime qualification](docs/RUST-INCREMENT-18.md) now exercises selected Rust
 worker outages, partial-copy recovery and custody after coordinator death.
+The maintained [Rust scenario catalog](docs/RUST-SCENARIOS.md) explains producer,
+consumer and operator situations addressed so far and tracks the remaining user
+guides. Update it as each increment adds or changes behavior.
+[Source-read and verification-read qualification](docs/RUST-INCREMENT-19.md)
+also passes in both profiles with observed blocked readers and validated recovery.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

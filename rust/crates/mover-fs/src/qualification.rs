@@ -1,6 +1,49 @@
 //! Deterministic fixture rendezvous, compiled out of production.
 use super::*;
 
+/// Evict this file's cache only for a selected read-interruption fixture.
+/// Advice is not proof of eviction; the runner also checks that the read loop
+/// has not completed during the outage. Production never issues this advice.
+pub fn before_read(fd: &std::fs::File, operation: &'static str) -> Result<bool> {
+    #[cfg(feature = "nfs-qualification")]
+    if std::env::var("FILE_MOVER_QUALIFICATION_PAUSE")
+        .ok()
+        .as_deref()
+        == Some(operation)
+    {
+        fs::fadvise(fd, 0, None, fs::Advice::Random)?;
+        fs::fadvise(fd, 0, None, fs::Advice::DontNeed)?;
+        pause(operation)?;
+        return Ok(true);
+    }
+    let _ = (fd, operation);
+    Ok(false)
+}
+
+/// Local fixture observation before any post-read metadata operation.
+pub fn after_read(selected: bool) -> Result<()> {
+    #[cfg(feature = "nfs-qualification")]
+    if selected {
+        let path = std::env::var("FILE_MOVER_QUALIFICATION_RENDEZVOUS")
+            .map_err(|_| ClaimError::Blocked("qualification rendezvous missing"))?;
+        let dir = root(&path)?;
+        owned_directory(&dir, true)?;
+        if fs::fstatfs(&dir)?.f_type == 0x6969 {
+            return Err(ClaimError::Blocked(
+                "qualification rendezvous must be local",
+            ));
+        }
+        let _fd = fs::openat(
+            &dir,
+            "read-completed",
+            OFlags::WRONLY | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::RUSR | Mode::WUSR,
+        )?;
+    }
+    let _ = selected;
+    Ok(())
+}
+
 #[cfg(not(feature = "nfs-qualification"))]
 pub fn pause(_: &'static str) -> Result<()> {
     Ok(())

@@ -252,6 +252,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
     let mut hash = Sha256::new();
     let mut total = 0_u64;
     let mut buffer = vec![0; 1024 * 1024];
+    let read_fixture = super::qualification::before_read(&input, "source_read")?;
     loop {
         let n = input.read(&mut buffer)?;
         if n == 0 {
@@ -267,6 +268,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
             super::qualification_pause("copy_chunk")?;
         }
     }
+    super::qualification::after_read(read_fixture)?;
     if total != expected.size || source(&input)? != expected {
         return Err("source changed during copy".into());
     }
@@ -283,6 +285,13 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
     Ok(next)
 }
 fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
+    digest_with_fixture(fd, expected, false)
+}
+fn digest_with_fixture(
+    fd: OwnedFd,
+    expected: &ObjectIdentity,
+    verification: bool,
+) -> TransferResult<String> {
     let mut file = File::from(fd);
     if source(&file)? != *expected {
         return Err("verification object changed".into());
@@ -290,6 +299,7 @@ fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
     let mut hash = Sha256::new();
     let mut count = 0_u64;
     let mut buffer = vec![0; 1024 * 1024];
+    let read_fixture = verification && super::qualification::before_read(&file, "verify_read")?;
     loop {
         let n = file.read(&mut buffer)?;
         if n == 0 {
@@ -298,6 +308,7 @@ fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
         count = count.checked_add(n as u64).ok_or("byte count overflow")?;
         hash.update(&buffer[..n]);
     }
+    super::qualification::after_read(read_fixture)?;
     if count != expected.size || source(&file)? != *expected {
         return Err("verification size/identity changed".into());
     }
@@ -326,7 +337,7 @@ pub fn verify_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Trans
     claimed_intent(intent)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
-    if Some(digest(fd, &t.stage)?) != t.sha256 {
+    if Some(digest_with_fixture(fd, &t.stage, true)?) != t.sha256 {
         return Err("destination digest mismatch".into());
     }
     let mut next = t.clone();
