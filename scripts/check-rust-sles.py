@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import argparse
 import json
 from pathlib import Path
 import re
@@ -79,10 +80,17 @@ def negative_controls(text: str) -> list[str]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--qualification", action="store_true", help="Audit/test the retained NFS qualification build")
+    options = parser.parse_args()
+    mode = "nfs-qualification" if options.qualification else "production"
+    features = ["--features", "file-mover/nfs-qualification"] if options.qualification else []
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    if options.qualification:
+        stamp += "-nfs-qualification"
     results = ROOT / "rust/validation" / stamp
     results.mkdir(parents=True)
-    report = {"status": "FAILED", "config": CONFIG, "profiles": {}, "run_id": stamp}
+    report = {"status": "FAILED", "config": CONFIG, "profiles": {}, "run_id": stamp, "build_mode": mode}
     containers = []
     print(f"SLES validation: {results}", flush=True)
     try:
@@ -137,7 +145,7 @@ def main() -> int:
             raise ValueError("unexpected Zig version")
         execute = ["podman", "exec", "--workdir", "/work", builder]
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
-                                             "--filter-platform", "x86_64-unknown-linux-gnu"], results / "metadata.json"))
+                                             "--filter-platform", "x86_64-unknown-linux-gnu"] + features, results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
         evidence = json.loads((ROOT / "docs/E5-TOKIO-EVIDENCE.json").read_text())
         integrity = json.loads((ROOT / "scripts/rust-integrity-dependencies.json").read_text())
@@ -159,6 +167,14 @@ def main() -> int:
             "sha2": integrity["sha2_features"],
         }
         nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+        report["workspace_features"] = {}
+        for package in metadata["packages"]:
+            if package["name"] in ("file-mover", "mover-fs"):
+                selected = sorted(nodes[package["id"]]["features"])
+                expected_features = ["default", "nfs-qualification"] if options.qualification else ["default"]
+                if selected != expected_features:
+                    raise ValueError(f"wrong build capability for {package['name']}: {selected}")
+                report["workspace_features"][package["name"]] = selected
         for package in dependencies:
             if package["name"] in qualified_features:
                 if sorted(nodes[package["id"]]["features"]) != qualified_features[package["name"]]:
@@ -166,7 +182,7 @@ def main() -> int:
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
         run(execute + ["cargo", "clippy", "--offline", "--locked", "--workspace", "--all-targets",
-                       "--target", "x86_64-unknown-linux-gnu", "--", "-D", "warnings"], results / "clippy.log")
+                       "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
         runtime = run(["podman", "create", "--network", "none", "--cap-drop", "all",
                        "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh",
                        CONFIG["runtime"], "-c", "exec sleep infinity"]).strip()
@@ -179,7 +195,7 @@ def main() -> int:
         for profile in ("debug", "release"):
             print(f"Zigbuilding and testing {profile} against SLES/glibc 2.22...", flush=True)
             args = execute + ["cargo", "zigbuild", "--offline", "--locked", "--workspace",
-                              "--all-targets", "--target", CONFIG["target"], "--message-format", "json"]
+                              "--all-targets", "--target", CONFIG["target"], "--message-format", "json"] + features
             if profile == "release":
                 args.append("--release")
             output = run(args, results / f"{profile}-build.log")
@@ -199,6 +215,8 @@ def main() -> int:
                 if not path.startswith("/work/target/x86_64-unknown-linux-gnu/"):
                     raise ValueError(f"unexpected artifact location: {path}")
                 name = f"{profile}-{index}-{Path(path).name}"
+                if options.qualification:
+                    name += "-nfs-qualification"
                 local = results / name
                 elf_text = run(execute + ["readelf", "-W", "-h", "-l", "-d", "--dyn-syms", path], results / f"{name}.elf")
                 elf_report = audit(elf_text)
@@ -231,6 +249,8 @@ def main() -> int:
                     smoke = run(runtime_exec + [remote, "--check-platform"], results / f"{name}.smoke")
                     if "file-mover 0.1.0 local-claim prototype" not in smoke:
                         raise ValueError("service runtime smoke failed")
+                    if f"build={mode}" not in smoke:
+                        raise ValueError("service build-mode label mismatch")
                     runtime_service = remote
             if profile_report["tests_passed"] == 0:
                 raise ValueError("no actual tests ran")

@@ -72,3 +72,8 @@ readiness and SQLite creation during the outage. Historical increment-14
 artifacts use the original mode without this flag. Neither mode enables NFS.
 The completed isolated-startup result is recorded in
 [RUST-NFS-STARTUP-EVIDENCE.json](RUST-NFS-STARTUP-EVIDENCE.json).
+
+The retained [qualification capability](NFS-QUALIFICATION.md) adds
+`--qualification-gate <passing-run>` to drive real REST transfers before outage
+checks. Baseline failure stops advancement and is recorded explicitly, including
+source-retention and commitment evidence. See [increment 16](RUST-INCREMENT-16.md).

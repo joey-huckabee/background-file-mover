@@ -186,8 +186,11 @@ sessions. Source replay scope checks also run in children.
 inherited lock lifetime and metadata interruption/recovery.
 [Increment 15](RUST-INCREMENT-15.md) isolates source singleton bootstrap, transfers
 the locked descriptor and qualifies startup shutdown before NFS restoration.
-Next qualify Rust worker effects and stable root/export ownership before enabling
-NFS. Preserve
+The user requested retaining the opt-in NFS qualification capability permanently;
+see [NFS-QUALIFICATION.md](NFS-QUALIFICATION.md) and
+[increment 16](RUST-INCREMENT-16.md). Diagnose the controlled baseline's handoff
+and publication refusals, then qualify outages and stable root/export ownership
+before enabling production NFS. Preserve
 [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
 prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount

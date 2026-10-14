@@ -10,6 +10,9 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
+- [ ] Diagnose and resolve NFS baseline handoff/publication refusals before
+  advancing to outage qualification. Add bounded operation/errno evidence where
+  necessary; preserve no-clobber, custody and uncertain-outcome rules.
 - [ ] Qualify Rust filesystem sessions under worker interruption/coordinator death
   and controlled NFS outages before enabling NFS. Include stable root/export
   authorization, cross-client ownership and uncertain outcomes.

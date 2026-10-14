@@ -2,9 +2,9 @@ name: Rust SLES compatibility
 
 on:
   push:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_baseline.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   pull_request:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_baseline.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,10 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [production, nfs-qualification]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -31,4 +35,4 @@ jobs:
               subprocess.run(["podman", "pull", config[role]], check=True)
           PY
       - name: Zigbuild, ELF audit and SLES debug/release tests
-        run: python3 scripts/check-rust-sles.py
+        run: python3 scripts/check-rust-sles.py ${{ matrix.mode == 'nfs-qualification' && '--qualification' || '' }}

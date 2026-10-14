@@ -26,11 +26,14 @@ def main():
     parser.add_argument("--connection", default="podman-machine-default-root")
     parser.add_argument("--isolated-startup", action="store_true",
                         help="Require startup termination and child exit before NFS restoration")
+    parser.add_argument("--qualification-gate", type=Path,
+                        help="Also run normal REST transfers with audited NFS qualification artifacts")
     args = parser.parse_args()
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
     assert evidence["status"] == "PASSED" and evidence["config"] == CONFIG
+    assert evidence.get("build_mode", "production") == "production", "boundary checks require production artifacts"
     # Never reuse artifacts after changes to Rust build inputs.
     with tarfile.open(gate / "source.tar.gz") as archive:
         archived_files = set()
@@ -47,6 +50,20 @@ def main():
                 current_files.update(p.relative_to(ROOT / "rust").as_posix()
                                      for p in candidates if p.is_file())
         assert current_files == archived_files, "Rust source inventory changed"
+    qualification = None
+    if args.qualification_gate:
+        qualification_gate = args.qualification_gate.resolve()
+        qualification = json.loads((qualification_gate / "report.json").read_text())
+        assert qualification["status"] == "PASSED" and qualification["config"] == CONFIG
+        assert qualification["build_mode"] == "nfs-qualification"
+        with tarfile.open(qualification_gate / "source.tar.gz") as archive:
+            entries = {m.name for m in archive.getmembers() if m.isfile()}
+            assert entries == current_files
+            for member in archive.getmembers():
+                if member.isfile():
+                    path = (ROOT / "rust" / member.name).resolve()
+                    assert path.is_relative_to(ROOT / "rust")
+                    assert path.read_bytes() == archive.extractfile(member).read(), member.name
     label = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     output = ROOT / "rust/validation" / ("nfs-" + label)
     output.mkdir()
@@ -151,6 +168,12 @@ def main():
             assert result.returncode != 0 and "filesystem not qualified" in result.stderr
             assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
             report["checks"][profile + "_startup_rejected"] = result.stderr.strip()
+        if qualification:
+            from nfs_baseline import run_baseline
+            report["qualification_gate"] = qualification_gate.name
+            report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
+            if not report["baseline"]["passed"]:
+                raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9</tmp/nfs/source/.file-mover; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")

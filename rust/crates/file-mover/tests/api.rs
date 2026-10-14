@@ -10,6 +10,24 @@ use std::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
+fn executable_identifies_its_compiled_filesystem_capability() {
+    let result = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--check-platform")
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    let mode = if mover_fs::nfs_qualification_enabled() {
+        "nfs-qualification"
+    } else {
+        "production"
+    };
+    assert!(
+        String::from_utf8(result.stdout)
+            .unwrap()
+            .contains(&format!("build={mode}"))
+    );
+}
+#[test]
 fn stopped_startup_exits_cleanly_without_source_or_database_access() {
     let mut f = Fixture::new(300);
     f.stop();

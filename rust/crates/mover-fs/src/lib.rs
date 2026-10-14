@@ -1,6 +1,6 @@
 //! First local-filesystem claim worker. Blocking calls must run off the executor.
 //! Requires one fenced worker, immutable handed-off files and protected parents.
-//! NFS, link fallback and deployment/mount qualification are deliberately blocked.
+//! Production rejects NFS. The retained opt-in NFS build is for qualification only.
 
 use mover_core::{ClaimIntent, FileSpec, ObjectIdentity};
 use mover_store::{Accepted, Store};
@@ -43,6 +43,11 @@ const FILE: OFlags = OFlags::RDONLY
     .union(OFlags::NOFOLLOW)
     .union(OFlags::CLOEXEC)
     .union(OFlags::NONBLOCK);
+
+/// Compile-time capability, not a runtime authorization or durability guarantee.
+pub const fn nfs_qualification_enabled() -> bool {
+    cfg!(feature = "nfs-qualification")
+}
 
 mod bootstrap;
 mod manifest;
@@ -101,7 +106,10 @@ fn root(path: &str) -> Result<OwnedFd> {
     owned_directory(&dir, false)?;
     // This first slice only qualifies local ext, tmpfs and container overlay.
     // A reachable NFS mount is not a qualified durable/cached recovery endpoint.
-    if ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(&dir)?.f_type) {
+    let filesystem = fs::fstatfs(&dir)?.f_type;
+    if ![0xef53, 0x01021994, 0x794c7630].contains(&filesystem)
+        && !(nfs_qualification_enabled() && filesystem == 0x6969)
+    {
         return Err(ClaimError::Blocked(
             "filesystem not qualified for local claim slice",
         ));

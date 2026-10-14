@@ -19,7 +19,9 @@ Background copy/verification now uses [supervised child workers](docs/RUST-INCRE
 allocation, manifest writing and custody checks.
 [Hard-mount boundary checks](docs/RUST-INCREMENT-14.md) exposed source bootstrap
 blocking during outages. [Startup isolation](docs/RUST-INCREMENT-15.md) now keeps
-signal handling responsive while custody is pending; NFS worker qualification is next.
+signal handling responsive while custody is pending.
+The [retained NFS qualification build](docs/NFS-QUALIFICATION.md) exercises the
+same worker code in an isolated fixture; production NFS remains disabled.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

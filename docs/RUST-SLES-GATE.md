@@ -50,9 +50,10 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 104 tests pass in both profiles inside the pinned runtime:
+The workspace's 105 tests pass in both profiles inside the pinned runtime,
+for both production and opt-in NFS qualification builds:
 ten core, thirty-five storage, ten claims, thirteen copied-transfer/manifest,
-thirty-four executable HTTP/background/CLI tests and two bootstrap IPC unit tests.
+thirty-five executable HTTP/background/CLI tests and two bootstrap IPC unit tests.
 All twenty emitted executables use the standard
 loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
 Linux packages and adds nine pinned SHA-256 packages, recorded in
@@ -70,6 +71,10 @@ bootstrap descriptor passing; this adds no packages or netlink/XDP behavior. See
 [claim/publication workers](RUST-INCREMENT-12.md) and
 [recording filesystem sessions](RUST-INCREMENT-13.md) and
 [source bootstrap isolation](RUST-INCREMENT-15.md) for tested effects and limits.
+The retained [NFS qualification build](NFS-QUALIFICATION.md) uses the same gate
+with `--qualification`; reports and artifact filenames distinguish modes.
+Passing this compatibility gate does not imply that the separate NFS baseline
+or outage qualification passed.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd

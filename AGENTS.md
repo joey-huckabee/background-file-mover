@@ -25,7 +25,9 @@ access in recording sessions and handoff scope checks in claim children.
 Increment 14 measures hard-mount startup blocking and OS lock/interruption behavior;
 see `docs/RUST-INCREMENT-14.md`. Increment 15 isolates source singleton bootstrap
 and qualifies startup shutdown; see `docs/RUST-INCREMENT-15.md`.
-Next qualify Rust worker effects and stable root/export
+Retain the opt-in NFS qualification feature and fixture capability permanently;
+see `docs/NFS-QUALIFICATION.md` and `docs/RUST-INCREMENT-16.md`.
+Next diagnose baseline handoff/publication refusals, then qualify Rust effects and stable root/export
 ownership before enabling NFS. Keep deletion disabled.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):

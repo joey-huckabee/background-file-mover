@@ -5,6 +5,10 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+default = []
+nfs-qualification = ["mover-fs/nfs-qualification"]
+
 [dependencies]
 mover-core = { path = "../mover-core" }
 mover-store = { path = "../mover-store" }

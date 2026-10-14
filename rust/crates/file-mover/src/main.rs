@@ -31,6 +31,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return file_mover::delivery_worker::worker();
     }
+    if path == "--check-platform" && args.next().is_none() {
+        let mode = if mover_fs::nfs_qualification_enabled() {
+            "nfs-qualification"
+        } else {
+            "production"
+        };
+        println!("file-mover 0.1.0 local-claim prototype build={mode}");
+        return Ok(());
+    }
+    if mover_fs::nfs_qualification_enabled() {
+        eprintln!("NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment");
+    }
     if path == "--transfer-one" {
         let config_path = args.next().ok_or("configuration path required")?;
         let job: i64 = args.next().ok_or("job ID required")?.parse()?;
@@ -49,10 +61,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "{}",
             serde_json::json!({"job_id":job.to_string(),"state":"Published","sha256":result.sha256,"size_bytes":result.stage.size,"source_retained":true,"committed":committed})
         );
-        return Ok(());
-    }
-    if path == "--check-platform" && args.next().is_none() {
-        println!("file-mover 0.1.0 local-claim prototype");
         return Ok(());
     }
     if args.next().is_some() {
