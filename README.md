@@ -22,6 +22,8 @@ blocking during outages. [Startup isolation](docs/RUST-INCREMENT-15.md) now keep
 signal handling responsive while custody is pending.
 The [retained NFS qualification build](docs/NFS-QUALIFICATION.md) exercises the
 same worker code in an isolated fixture; production NFS remains disabled.
+[Owned no-clobber fallback and diagnostics](docs/RUST-INCREMENT-17.md) resolve
+the fixture's rename refusals and retain explicit interrupted-link recovery.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

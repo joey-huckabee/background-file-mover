@@ -185,31 +185,22 @@ fn publish_manifest_in_directories(
     m: &ManifestRecord,
     checkpoint: &mut impl FnMut(&'static str),
 ) -> ManifestResult<ManifestRecord> {
-    let fd = match fs::openat(area, "COMMITTED.json", FILE, Mode::empty()) {
-        Ok(fd) => {
-            if !matches!(
-                fs::statat(staging, "COMMITTED.part", AtFlags::SYMLINK_NOFOLLOW),
-                Err(Errno::NOENT)
-            ) {
-                return Err("manifest collision or ambiguous effect".into());
-            }
-            fd
-        }
-        Err(Errno::NOENT) => {
-            let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
-            read_exact_manifest(&mut file, m)?;
-            fs::renameat_with(
-                staging,
-                "COMMITTED.part",
-                area,
-                "COMMITTED.json",
-                RenameFlags::NOREPLACE,
-            )?;
-            checkpoint("rename_effect");
-            fs::openat(area, "COMMITTED.json", FILE, Mode::empty())?
-        }
-        Err(e) => return Err(e.into()),
-    };
+    if matches!(
+        fs::statat(area, "COMMITTED.json", AtFlags::SYMLINK_NOFOLLOW),
+        Err(Errno::NOENT)
+    ) {
+        let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
+        read_exact_manifest(&mut file, m)?;
+    }
+    let fd = super::relocate::owned(
+        staging,
+        "COMMITTED.part",
+        area,
+        "COMMITTED.json",
+        m.object.as_ref().ok_or("missing manifest object")?,
+        checkpoint,
+    )?
+    .fd;
     let mut file = File::from(fd);
     read_exact_manifest(&mut file, m)?;
     file.sync_all()?;

@@ -13,10 +13,35 @@ use rustix::{
 #[derive(Debug)]
 pub enum ClaimError {
     Io(Errno),
+    Operation(&'static str, Errno),
     Store(mover_store::StoreError),
     Blocked(&'static str),
     MissingSource,
     ExpectedSizeMismatch,
+}
+pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
+    let message = if let Some(e) = error.downcast_ref::<ClaimError>() {
+        match e {
+            ClaimError::Io(errno) => format!("errno={}", errno.raw_os_error()),
+            ClaimError::Operation(operation, errno) => {
+                format!("{operation} errno={}", errno.raw_os_error())
+            }
+            ClaimError::Blocked(reason) => format!("blocked: {reason}"),
+            ClaimError::MissingSource => "missing_source".into(),
+            ClaimError::ExpectedSizeMismatch => "expected_size_mismatch".into(),
+            ClaimError::Store(_) => "store_error".into(),
+        }
+    } else if let Some(errno) = error.downcast_ref::<rustix::io::Errno>() {
+        format!("errno={}", errno.raw_os_error())
+    } else {
+        // Do not echo arbitrary error strings containing paths or payloads.
+        "blocked_or_uncertain".into()
+    };
+    message
+        .chars()
+        .filter(|c| c.is_ascii_graphic() || *c == ' ')
+        .take(240)
+        .collect()
 }
 impl std::fmt::Display for ClaimError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -51,6 +76,7 @@ pub const fn nfs_qualification_enabled() -> bool {
 
 mod bootstrap;
 mod manifest;
+mod relocate;
 mod transfer;
 pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock};
 pub use manifest::commit_manifest;
@@ -133,15 +159,19 @@ fn parent(root: &OwnedFd, name: &str) -> Result<(OwnedFd, String)> {
     Err(ClaimError::Blocked("empty source name"))
 }
 fn source(fd: &impl rustix::fd::AsFd) -> Result<ObjectIdentity> {
+    source_with_links(fd, 1)
+}
+// Only the owned relocation reconciler admits the exact two-link intermediate.
+fn source_with_links(fd: &impl rustix::fd::AsFd, links: u64) -> Result<ObjectIdentity> {
     let s = fs::fstat(fd)?;
     if FileType::from_raw_mode(s.st_mode) != FileType::RegularFile
         || s.st_size < 0
         || s.st_uid != rustix::process::geteuid().as_raw()
         || s.st_mode & 0o022 != 0
-        || s.st_nlink != 1
+        || s.st_nlink != links
     {
         return Err(ClaimError::Blocked(
-            "source must be owned regular file with one link",
+            "source must be owned regular file with expected link count",
         ));
     }
     Ok(observation(&s))
@@ -328,7 +358,7 @@ pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
 
 /// Apply or reconcile a COMMITTED intent. Caller must fence all other workers.
 /// Errors after an effect are uncertain: retain intent and reconcile; never undo.
-/// Unsupported NOREPLACE fails closed; no overwrite/copy/delete fallback.
+/// Unsupported NOREPLACE uses exclusive link/unlink with owned alias recovery.
 pub fn apply(store: &Store, intent: &ClaimIntent) -> Result<()> {
     if store.claim_intent(intent.job_id, intent.file_index)? != Some((intent.clone(), false)) {
         return Err(ClaimError::Blocked(
@@ -354,29 +384,7 @@ pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
         Mode::empty(),
     )?;
     same_directory(&owned_directory(&area, true)?, &intent.area)?;
-    let claimed = match fs::openat(&area, "data", FILE, Mode::empty()) {
-        Ok(fd) => fd,
-        Err(Errno::NOENT) => {
-            let original = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
-            if source(&original)? != intent.source {
-                return Err(ClaimError::Blocked("source changed since durable intent"));
-            }
-            fs::fsync(&original)?;
-            fs::renameat_with(
-                &parent,
-                name.as_str(),
-                &area,
-                "data",
-                RenameFlags::NOREPLACE,
-            )?;
-            let fd = fs::openat(&area, "data", FILE, Mode::empty())?;
-            if source(&fd)? != intent.source {
-                return Err(ClaimError::Blocked("claimed identity mismatch"));
-            }
-            fd
-        }
-        Err(e) => return Err(e.into()),
-    };
+    let claimed = relocate::owned(&parent, &name, &area, "data", &intent.source, &mut |_| {})?.fd;
     if source(&claimed)? != intent.source {
         return Err(ClaimError::Blocked("foreign/changed private claim"));
     }

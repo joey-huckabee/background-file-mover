@@ -197,6 +197,12 @@ Production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.
 The fifteen milestones retain useful release obligations.
 
+[Increment 17](RUST-INCREMENT-17.md) adds owned no-clobber link/unlink recovery
+and bounded worker diagnostics after measuring the fixture rename refusals.
+The normal-operation NFS baseline now passes in both profiles. Next qualify
+Rust runtime interruption, coordinator death and stable root/export ownership;
+production NFS and source cleanup remain disabled.
+
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
 experiment results and the branch [review](BRANCH-REVIEW.md). Work through the
 producer-facing Accepted/Claimed contract, reconcile requirements and refine

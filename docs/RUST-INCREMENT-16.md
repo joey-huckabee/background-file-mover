@@ -44,7 +44,7 @@ explicit recovery rules. Do not assume a generic link/unlink fallback is safe
 or attribute every refusal to NOREPLACE without evidence. The runner records
 failure and stops before outage testing; it never promotes blocked transfers to
 successful qualification. Final run `nfs-20261014T110057Z-4ae7639d` records this
-failed baseline in [RUST-NFS-BASELINE-EVIDENCE.json](RUST-NFS-BASELINE-EVIDENCE.json),
+failed baseline (superseded by [increment 17](RUST-INCREMENT-17.md)),
 with no cleanup errors. It additionally verified the first NFS destination staging
 file's hash after publication was blocked. Both production profiles rejected NFS
 before creating SQLite. Earlier baseline run `nfs-20261014T105226Z-71cdf499`

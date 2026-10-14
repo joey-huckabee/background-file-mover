@@ -51,6 +51,14 @@ and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
 
 ## Checks
 
+The permanent opt-in `file-mover/nfs-qualification` feature admits NFS roots for
+controlled fixture testing. It shares the production transfer implementation,
+prints its build mode, and requires its own equivalent SLES gate. Production
+continues to reject NFS. Preserve this capability for future regression work;
+see [the qualification guide](../docs/NFS-QUALIFICATION.md).
+[Increment 17](../docs/RUST-INCREMENT-17.md) adds the owned no-clobber link/unlink
+fallback and bounded worker diagnostics; uncertain outcomes require reconciliation.
+
 Every build/test validation must include the pinned SLES 12 SP5/glibc 2.22 gate.
 From the repository root on Windows or Linux with Python and Podman:
 

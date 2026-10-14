@@ -321,6 +321,57 @@ fn lost_custody_and_source_changes_block_transfer() {
 }
 
 #[test]
+fn publication_intent_reconciles_owned_aliases_and_retains_source() {
+    let f = Fixture::new(false);
+    f.accept_claim(b"abc");
+    let s = f.store();
+    let t = authorize_publication(
+        &s,
+        &verify_stage(
+            &s,
+            &copy_stage(&s, &prepare_transfer(&s, 1).unwrap()).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    std::fs::hard_link(f.stage(1), f.final_path()).unwrap();
+    let recovered = publish_stage(&s, &t).unwrap();
+    assert_eq!(recovered.phase, TransferPhase::Published);
+    assert!(!f.stage(1).exists());
+    assert_eq!(std::fs::read(f.final_path()).unwrap(), b"abc");
+    assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc");
+}
+
+#[test]
+fn manifest_intent_reconciles_owned_aliases_before_commit_receipt() {
+    let f = Fixture::new(false);
+    f.accept_claim(b"abc");
+    {
+        let s = f.store();
+        transfer_one(&s, 1).unwrap();
+    }
+    let out = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--ignored", "--exact", "child_manifest", "--test-threads=1"])
+        .env("FILE_MOVER_TRANSFER_DB", f.db())
+        .env("FILE_MOVER_MANIFEST_POINT", "authorized")
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{out:?}");
+    let s = f.store();
+    let before = s.manifest(1).unwrap().unwrap();
+    assert_eq!(before.phase, 3);
+    let stage = f.destination.join("1/.staging/COMMITTED.part");
+    let final_path = f.destination.join("1/COMMITTED.json");
+    std::fs::hard_link(&stage, &final_path).unwrap();
+    let after = mover_fs::commit_manifest(&s, 1).unwrap();
+    assert_eq!(after.phase, 4);
+    assert_eq!(after.bytes, before.bytes);
+    assert!(!stage.exists());
+    assert_eq!(std::fs::read(&final_path).unwrap(), after.bytes.as_bytes());
+    assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc");
+}
+
+#[test]
 fn allocation_gap_never_adopts_or_deletes_an_existing_directory() {
     let f = Fixture::new(false);
     f.accept_claim(b"abc");

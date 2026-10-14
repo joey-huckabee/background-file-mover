@@ -81,6 +81,10 @@ unmount before removing only its own resources. See [NFS-TEST-FIXTURE.md](NFS-TE
 
 ## Qualification boundary
 
+[Increment 17](RUST-INCREMENT-17.md) records the no-clobber rename refusal measured
+on the fixture and the owned link/unlink recovery implementation. Worker diagnostics
+are observations, never authorization to commit an effect or delete retained data.
+
 Allowing NFS in a test build is not production authorization. A normal-operation
 baseline does not establish cross-client fencing, stable export/mount ownership,
 coordinator death recovery, outage safety, server reboot or power-loss durability.

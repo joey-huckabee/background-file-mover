@@ -133,6 +133,25 @@ fn expected_size_mismatch_does_not_move_or_allocate() {
 }
 
 #[test]
+fn durable_claim_intent_reconciles_its_two_name_link_intermediate() {
+    let f = Fixture::new();
+    let s = f.store();
+    f.write("data", b"payload");
+    let job = s
+        .accept(&f.input("linked", &[("data", None)]), &f.context())
+        .unwrap();
+    let intent = prepare(&job, 0).unwrap();
+    s.begin_claim(&intent).unwrap();
+    let private = f.0.join(".file-mover/1-0/data");
+    std::fs::hard_link(f.0.join("recording/data"), &private).unwrap();
+    let result = claim(&s, 1, 0).unwrap();
+    assert_eq!(result.recording.handoff(), Handoff::Ready202);
+    assert!(!f.0.join("recording/data").exists());
+    assert_eq!(std::fs::read(&private).unwrap(), b"payload");
+    assert_eq!(s.claim_intent(1, 0).unwrap(), Some((intent, true)));
+}
+
+#[test]
 fn local_claim_lock_excludes_second_owner_and_detects_namespace_change() {
     let f = Fixture::new();
     let lock = mover_fs::LocalClaimLock::acquire(f.0.to_str().unwrap()).unwrap();

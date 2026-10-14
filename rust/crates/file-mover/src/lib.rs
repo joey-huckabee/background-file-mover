@@ -2,6 +2,7 @@
 pub mod bootstrap;
 pub mod claim_worker;
 pub mod delivery_worker;
+mod diagnostic;
 mod http;
 pub mod payload;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};

@@ -10,9 +10,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Diagnose and resolve NFS baseline handoff/publication refusals before
-  advancing to outage qualification. Add bounded operation/errno evidence where
-  necessary; preserve no-clobber, custody and uncertain-outcome rules.
 - [ ] Qualify Rust filesystem sessions under worker interruption/coordinator death
   and controlled NFS outages before enabling NFS. Include stable root/export
   authorization, cross-client ownership and uncertain outcomes.
@@ -29,7 +26,7 @@ before implementation.
   bounded async integration and crash/power-loss evidence as effects are introduced.
 - [ ] Extend the local claim slice for production: persisted namespace-allocation
   intent/orphan reconciliation, stable instance/root/mount authorization, filesystem
-  capability qualification and link/unlink fallback where NOREPLACE is unavailable.
+  capability qualification across the supported endpoint configurations.
   Qualify process supervision/fencing before remote claims; do not enable NFS yet.
 - [ ] Decide which dashboard and integration scenarios to reuse from
   [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and

@@ -359,45 +359,16 @@ pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Tran
     claimed_intent(intent)?;
     let (_, _, staging, parent, name) = directories(t)?;
     let stage_name = format!("{}.part", t.attempt);
-    let fd = match fs::openat(&parent, name.as_str(), FILE, Mode::empty()) {
-        Ok(final_fd) => {
-            if !matches!(
-                fs::statat(&staging, stage_name.as_str(), AtFlags::SYMLINK_NOFOLLOW),
-                Err(Errno::NOENT)
-            ) {
-                return Err("final collision or ambiguous two-name effect".into());
-            }
-            if source(&final_fd)? != t.stage {
-                return Err("foreign final collision".into());
-            }
-            // Uncertain publication recovery rereads the owned final; normal
-            // publication below adds no extra payload read to the 3N path.
-            let read_fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
-            if Some(digest(read_fd, &t.stage)?) != t.sha256 {
-                return Err("recovered final digest mismatch".into());
-            }
-            final_fd
+    let moved =
+        super::relocate::owned(&staging, &stage_name, &parent, &name, &t.stage, &mut |_| {})?;
+    if moved.recovered {
+        // Only uncertain recovery adds a payload reread; normal transfer is 3N.
+        let read_fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
+        if Some(digest(read_fd, &t.stage)?) != t.sha256 {
+            return Err("recovered final digest mismatch".into());
         }
-        Err(Errno::NOENT) => {
-            let stage = fs::openat(&staging, stage_name.as_str(), FILE, Mode::empty())?;
-            if source(&stage)? != t.stage {
-                return Err("verified staging changed".into());
-            }
-            fs::renameat_with(
-                &staging,
-                stage_name.as_str(),
-                &parent,
-                name.as_str(),
-                RenameFlags::NOREPLACE,
-            )?;
-            let fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
-            if source(&fd)? != t.stage {
-                return Err("published object mismatch".into());
-            }
-            fd
-        }
-        Err(e) => return Err(e.into()),
-    };
+    }
+    let fd = moved.fd;
     fs::fsync(&fd)?;
     fs::fsync(&staging)?;
     fs::fsync(&parent)?;

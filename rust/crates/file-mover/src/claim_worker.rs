@@ -95,6 +95,7 @@ struct Receipt {
     version: u32,
     claim: Option<ClaimWire>,
     error: Option<Failure>,
+    diagnostic: Option<String>,
 }
 fn request(
     assignment: &Assignment,
@@ -119,6 +120,12 @@ fn request(
         serde_json::from_slice(&bytes).map_err(|_| ClaimError::Blocked("invalid claim receipt"))?;
     if reply.version != 1 {
         return Err(ClaimError::Blocked("invalid claim receipt version"));
+    }
+    if let Some(detail) = &reply.diagnostic {
+        if reply.error.is_none() || reply.claim.is_some() || !super::diagnostic::valid(detail) {
+            return Err(ClaimError::Blocked("invalid failure diagnostic"));
+        }
+        eprintln!("Claim worker: {detail}");
     }
     match (reply.claim, reply.error) {
         (Some(c), None) => c.decode(),
@@ -241,38 +248,60 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         return Err("invalid claim protocol version".into());
     }
     let path = path.clone();
-    mover_fs::validate_payload_locks(&path, &path)?;
-    let result = match assignment {
-        Assignment::Observe {
-            job_id,
-            file_index,
-            root_path,
-            source_name,
-            expected_size,
-            ..
-        } => mover_fs::observe_claim(job_id, file_index, &root_path, &source_name, expected_size),
-        Assignment::Allocate { claim, .. } => {
-            claim.decode().and_then(|c| mover_fs::allocate_claim(&c))
-        }
-        Assignment::Apply { claim, .. } => claim.decode().and_then(|c| {
-            mover_fs::apply_claim_effect(&c)?;
-            Ok(c)
-        }),
-        Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
-            mover_fs::validate_claim_scope(&c)?;
-            Ok(c)
-        }),
+    let operation = match &assignment {
+        Assignment::Observe { .. } => "observe",
+        Assignment::Allocate { .. } => "allocate",
+        Assignment::Apply { .. } => "apply",
+        Assignment::Validate { .. } => "validate",
     };
-    mover_fs::validate_payload_locks(&path, &path)?;
+    let mut boundary = "custody_before";
+    let result: Result<ClaimIntent, ClaimError> = (|| {
+        mover_fs::validate_payload_locks(&path, &path)?;
+        boundary = operation;
+        let result = match assignment {
+            Assignment::Observe {
+                job_id,
+                file_index,
+                root_path,
+                source_name,
+                expected_size,
+                ..
+            } => {
+                mover_fs::observe_claim(job_id, file_index, &root_path, &source_name, expected_size)
+            }
+            Assignment::Allocate { claim, .. } => {
+                claim.decode().and_then(|c| mover_fs::allocate_claim(&c))
+            }
+            Assignment::Apply { claim, .. } => claim.decode().and_then(|c| {
+                mover_fs::apply_claim_effect(&c)?;
+                Ok(c)
+            }),
+            Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
+                mover_fs::validate_claim_scope(&c)?;
+                Ok(c)
+            }),
+        };
+        let c = result?;
+        boundary = "custody_after";
+        mover_fs::validate_payload_locks(&path, &path)?;
+        Ok(c)
+    })();
     let reply = match result {
         Ok(c) => Receipt {
             version: 1,
             claim: Some(ClaimWire::new(&c)),
             error: None,
+            diagnostic: None,
         },
         Err(e) => Receipt {
             version: 1,
             claim: None,
+            diagnostic: Some(
+                format!("{boundary}: {}", super::diagnostic::describe(&e))
+                    .chars()
+                    .take(240)
+                    .collect(),
+            ),
             error: Some(match e {
                 ClaimError::MissingSource => Failure::MissingSource,
                 ClaimError::ExpectedSizeMismatch => Failure::ExpectedSizeMismatch,

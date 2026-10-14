@@ -182,6 +182,12 @@ Qualify no-clobber rename on each actual filesystem. For regular files, a
 qualified exclusive hard-link followed by removal of the old name is a fallback,
 with each substep recorded/reconciled. Never use check-then-overwriting-rename.
 If neither strategy is qualified, retain the source and block that endpoint.
+The Rust prototype's owned fallback uses an existing durable intent and admits
+exactly two links only while reconciling the two recorded names. It syncs the
+new name before removing the old one, refuses extra aliases/foreign collisions,
+and resumes an interrupted removal only under protected-parent custody. See
+[increment 17](RUST-INCREMENT-17.md). This does not enable production NFS or
+establish cross-client fencing.
 `RENAME_NOREPLACE` requires filesystem support; ordinary rename replaces an
 existing destination. Hard links cannot cross mounted filesystems.
 [Linux rename documentation](https://man7.org/linux/man-pages/man2/rename.2.html),

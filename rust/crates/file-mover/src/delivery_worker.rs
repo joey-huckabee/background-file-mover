@@ -116,6 +116,7 @@ struct Reply {
     transfer: Option<Assignment>,
     manifest: Option<ManifestReceipt>,
     error: Option<String>,
+    diagnostic: Option<String>,
 }
 fn write_frame(stream: &mut UnixStream, bytes: &[u8], limit: usize) -> Result<()> {
     if bytes.len() > limit {
@@ -213,6 +214,16 @@ impl Session {
         let reply: Reply = serde_json::from_slice(&bytes)?;
         if reply.version != 1 || reply.sequence != self.sequence {
             return Err("delivery receipt sequence mismatch".into());
+        }
+        if let Some(detail) = &reply.diagnostic {
+            if reply.error.is_none()
+                || reply.transfer.is_some()
+                || reply.manifest.is_some()
+                || !super::diagnostic::valid(detail)
+            {
+                return Err("invalid failure diagnostic".into());
+            }
+            eprintln!("Delivery worker sequence {}: {detail}", self.sequence);
         }
         Ok(reply)
     }
@@ -469,6 +480,7 @@ pub fn worker() -> Result<()> {
             transfer: None,
             manifest: None,
             error: None,
+            diagnostic: None,
         };
         let result = (|| -> Result<()> {
             match request.command {
@@ -540,10 +552,11 @@ pub fn worker() -> Result<()> {
             }
             Ok(())
         })();
-        if result.is_err() {
+        if let Err(e) = result {
             reply.transfer = None;
             reply.manifest = None;
             reply.error = Some("blocked_or_uncertain".into());
+            reply.diagnostic = Some(super::diagnostic::describe(e.as_ref()));
         }
         let finish = reply.error.is_some();
         write_frame(&mut channel, &serde_json::to_vec(&reply)?, REPLY_LIMIT)?;
