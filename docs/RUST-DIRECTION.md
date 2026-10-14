@@ -181,9 +181,11 @@ in supervised children without giving those children database access.
 and file/completion-manifest publication children.
 [Increment 13](RUST-INCREMENT-13.md) isolates runtime destination opening/locks,
 staging allocation/restarts, manifest steps and custody checks in recording
-sessions. Source replay scope checks also run in children. Next qualify worker
-interruption, coordinator death, source-lock startup and stable root/export
-ownership with the controlled NFS fixture before enabling NFS. Preserve
+sessions. Source replay scope checks also run in children.
+[Increment 14](RUST-INCREMENT-14.md) measures hard-mount startup blocking,
+inherited lock lifetime and metadata interruption/recovery. Next isolate source
+singleton bootstrap and readiness/shutdown, then qualify Rust worker effects and
+stable root/export ownership before enabling NFS. Preserve
 [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
 prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount

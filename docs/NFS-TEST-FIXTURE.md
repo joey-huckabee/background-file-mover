@@ -51,3 +51,14 @@ This fixture uses WSL2 kernel `6.18.33.2-microsoft-standard-WSL2`, not the
 SLES kernel. It exercised collision retention and link/unlink recovery paths,
 including injected ENOSYS and EOPNOTSUPP. It does not establish compatibility
 with every server/export or qualify reboot, outage, and power-loss durability.
+
+## Hard-mount boundary qualification
+
+[Increment 14](RUST-INCREMENT-14.md) reuses this server with the unchanged audited
+Rust service and a hard NFSv4.1 mount. Its dedicated runner is
+`scripts/check-nfs-boundaries.py`; it does not rerun E2 or enable NFS. It measures
+startup rejection/blocking, inherited lock lifetime, signal observations and
+metadata recovery after restoring nfsd. See
+[RUST-NFS-EVIDENCE.json](RUST-NFS-EVIDENCE.json) for the cleanup-checked result.
+Rust claim/copy/publication effects on NFS and distributed fencing remain
+unqualified. Restore the server before attempting unmount or fixture removal.

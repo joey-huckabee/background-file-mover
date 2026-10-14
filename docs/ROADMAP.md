@@ -10,13 +10,15 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify filesystem sessions under worker interruption/coordinator death and
-  controlled NFS outages before enabling NFS. Include source singleton startup,
-  stable root/export ownership and uncertain outcomes; preserve the dedicated
-  local SQLite owner and bounded worker assignments.
+- [ ] Isolate source singleton bootstrap from coordinator startup; define
+  readiness and shutdown during an unavailable mounted source. Preserve inherited
+  custody locks, the dedicated local SQLite owner and bounded assignments.
+- [ ] Qualify Rust filesystem sessions under worker interruption/coordinator death
+  and controlled NFS outages before enabling NFS. Include stable root/export
+  authorization, cross-client ownership and uncertain outcomes.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
-- [ ] Qualify supervised workers and source/destination effects on the controlled
-  NFS fixture, then implement configurable gated cleanup only after failure evidence passes.
+- [ ] Implement configurable gated source cleanup only after worker/filesystem
+  failure qualification passes.
 - [ ] Deferred: offline custody/orphan inspection and explicit repair tooling.
   Use worker/NFS failure evidence to determine what operators need. Preserve
   [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for prerequisites;
