@@ -19,8 +19,10 @@ Read-only operator job status is documented in `docs/RUST-INCREMENT-07.md`.
 Audited delivery resume is documented in `docs/RUST-INCREMENT-08.md`.
 Audited missing-file deadline reset is documented in `docs/RUST-INCREMENT-09.md`.
 Read-only retention accounting is documented in `docs/RUST-INCREMENT-10.md`.
-Next: offline custody/orphan inspection and allocation intent/fencing before repair effects;
-follow `docs/RETENTION-REPAIR-DESIGN.md`. Keep deletion disabled and qualify supervised workers/NFS.
+Offline inspection/repair is deferred by the user. Prioritize supervised workers
+and controlled NFS testing. Increment 11 isolates background copy/verification;
+extend isolation to remaining effects before enabling NFS. Keep deletion disabled.
+Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical

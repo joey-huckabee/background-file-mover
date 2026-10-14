@@ -172,9 +172,14 @@ recovery and scope. Read-only operator job status is implemented in
 in [RUST-INCREMENT-08.md](RUST-INCREMENT-08.md). Audited missing-file deadline reset
 is implemented in [RUST-INCREMENT-09.md](RUST-INCREMENT-09.md). Read-only retention
 accounting is implemented in [RUST-INCREMENT-10.md](RUST-INCREMENT-10.md).
-Add offline custody/orphan inspection and allocation intent/fencing prerequisites
-from [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md), then repair effects and supervised-worker/NFS
-qualification next, leaving registration deferred and deletion disabled.
+The user approved deferring offline inspection and repair at the completed
+increment-10 boundary. Prioritize worker isolation and controlled NFS testing;
+use that evidence to decide which additional operator tools are necessary.
+[Increment 11](RUST-INCREMENT-11.md) isolates background copying and verification
+in supervised children without giving those children database access. Extend
+isolation to the remaining filesystem effects before enabling NFS. Preserve
+[RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
+prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount
 qualification remain future work; do not deploy the local claim prototype on NFS.
 The fifteen milestones retain useful release obligations.

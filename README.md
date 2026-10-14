@@ -13,8 +13,9 @@ It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
 [audited delivery resume](docs/RUST-INCREMENT-08.md) and
 [audited missing-file deadline reset](docs/RUST-INCREMENT-09.md).
 Read-only [retention accounting](docs/RUST-INCREMENT-10.md) is also implemented.
-Offline custody/orphan inspection and allocation intent/fencing precede repair;
-see [the repair design](docs/RETENTION-REPAIR-DESIGN.md). NFS/worker qualification remains future work.
+Background copy/verification now uses [supervised child workers](docs/RUST-INCREMENT-11.md).
+Offline inspection and repair are deferred; prioritize remaining worker isolation
+and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.
 Registration/authentication is deferred while tested increments develop. The C++
 implementation described below remains the reference, not the intended Rust architecture.

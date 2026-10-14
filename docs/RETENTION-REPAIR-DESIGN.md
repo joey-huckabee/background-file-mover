@@ -5,6 +5,11 @@ database accounting is implemented in [increment 10](RUST-INCREMENT-10.md).
 Source deletion, staging reclamation, orphan adoption and namespace repair remain
 disabled. Keep the existing files and receipts while developing those effects.
 
+The user deferred offline inspection and repair after increment 10. Prioritize
+supervised filesystem workers and controlled NFS qualification; use their failure
+evidence to establish which repair tools are needed. These boundaries still apply
+if repair development resumes.
+
 ## Evidence required before repair
 
 An inspection result must distinguish database intent/receipt evidence from

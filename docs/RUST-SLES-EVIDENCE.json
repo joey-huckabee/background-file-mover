@@ -23,7 +23,7 @@
       "artifacts": [
         {
           "name": "debug-0-file-mover",
-          "sha256": "473ca3dfbee861f245c17cd08414da9c4ac42d417c023ecb047f545991f3368c",
+          "sha256": "12f76ad19b1876e2100149276d04e12c1fee5341b26fd0b077582129a1e78c09",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -38,6 +38,7 @@
               "GLIBC_2.10",
               "GLIBC_2.12",
               "GLIBC_2.14",
+              "GLIBC_2.15",
               "GLIBC_2.16",
               "GLIBC_2.17",
               "GLIBC_2.18",
@@ -54,7 +55,7 @@
         },
         {
           "name": "debug-1-api-1d3d79cf3f824c76",
-          "sha256": "fe424a21008305b2f3b72fea4b496afab0918f383eb93cb2aa04240b2d4b6240",
+          "sha256": "17b8248c69e0f380258957b575edd4c5677694f1434a2f3e89e723070553dac2",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -83,7 +84,7 @@
         },
         {
           "name": "debug-2-claim-439649ac93547498",
-          "sha256": "cd1db9914e0f31879430cedb6a3d56d0c02fb3e8fbb7027333214278f91e1ff3",
+          "sha256": "b48a965ea7fdc312af4a5caf8365311caa059ce6df76a6a607f565a7903de3ff",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -139,7 +140,7 @@
         },
         {
           "name": "debug-4-file_mover-4a573b458c29aed6",
-          "sha256": "7bb7e59a9228517a07a97ce234895f91daa7659744a40a181db11e9949ab9ef0",
+          "sha256": "97f8ec81100d43a358579a87fa6f68e1210fb305b174017faf4efa6ea918c6e8",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -276,7 +277,7 @@
         },
         {
           "name": "debug-9-transfer-b332c7197e88943b",
-          "sha256": "6689f58ff11454a7cf7b74936891db86098fc5f319b1b8862bd69c1cd9c40fb5",
+          "sha256": "a13951f2aaa2fa80b5251497fe1eb42d90fb850afab0d1ee7054ae5fa9277b91",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -305,13 +306,13 @@
           }
         }
       ],
-      "tests_passed": 88
+      "tests_passed": 91
     },
     "release": {
       "artifacts": [
         {
           "name": "release-0-file-mover",
-          "sha256": "da5fcbaa3234dc5c64fe459dfffed697cf63eaa3ebe2a16334047e2c3fbfe3b8",
+          "sha256": "534df56f3f465f2eb8e3fe030406686bd4fa4eccaf953ee1a25de1f367c75a04",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -326,6 +327,7 @@
               "GLIBC_2.10",
               "GLIBC_2.12",
               "GLIBC_2.14",
+              "GLIBC_2.15",
               "GLIBC_2.16",
               "GLIBC_2.17",
               "GLIBC_2.18",
@@ -341,7 +343,7 @@
         },
         {
           "name": "release-1-api-ad45ef01692eb53d",
-          "sha256": "ff5a9b0de1f9cde0f092c1ffcb2b7e351c14f1d0b22e30d0943918a859c0766d",
+          "sha256": "193791fad35c3e8d8c441e7f4f5d74c235fa75c7c33adb0aa9eaf6df8e7b4c65",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -370,7 +372,7 @@
         },
         {
           "name": "release-2-claim-bd6525fdb6f3e613",
-          "sha256": "04a6723b2ce68b6b3cbb2cd355c03618362acfa61547426268ead4d0c746ca67",
+          "sha256": "d411c76d10c22548dd8592a69e9fcb90240a49e2a6c8bcfeb6a0a5616feb63c6",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -426,7 +428,7 @@
         },
         {
           "name": "release-4-file_mover-e450575ff662561b",
-          "sha256": "dd475c826f0e154949ace33db2696ffd5dcdc8750d3f3cdd2f4d33e6fdc8ee8e",
+          "sha256": "496947ddc80c99888975009c4599dbbfed9dbb88c8aa1f039206c53d1e07b886",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -563,7 +565,7 @@
         },
         {
           "name": "release-9-transfer-1ecec51371ae5fe9",
-          "sha256": "fc4fe74b7c60e5fcdb04de3bac7ab25989c851520ffc7039c7cab4a64aaca14f",
+          "sha256": "04c300242473002905edce49cdc06242460488d9101f01fec040a3381e21dc56",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -592,11 +594,11 @@
           }
         }
       ],
-      "tests_passed": 88
+      "tests_passed": 91
     }
   },
-  "run_id": "20261013T231719Z-814af77a",
-  "source_sha256": "d3e3f35d764286aaa74ef14d214edc278b4303488eef7cd68226c6210993f0aa",
+  "run_id": "20261014T000348Z-19b307e8",
+  "source_sha256": "730f74a06871def0236b8a1e90f2f87762a05936b33b8e1cc69fdc55b2f96325",
   "dependencies": [
     {
       "name": "bitflags",

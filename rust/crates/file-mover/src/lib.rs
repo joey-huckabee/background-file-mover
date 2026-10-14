@@ -1,5 +1,6 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
 mod http;
+pub mod payload;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
 use serde::{Deserialize, Serialize};
@@ -268,10 +269,19 @@ impl Worker {
                                     }
                                     continue;
                                 }
-                                if let Err(error) = mover_fs::deliver_recording_with_guard(
+                                if let Err(error) = mover_fs::deliver_recording_with_payload(
                                     &delivery_store,
                                     id,
                                     &delivery_guard,
+                                    |t, intent, destination| {
+                                        payload::run(
+                                            t,
+                                            intent,
+                                            &delivery_guard,
+                                            destination,
+                                            &delivery_stop,
+                                        )
+                                    },
                                 ) {
                                     eprintln!("Delivery {id} requires reconciliation: {error}");
                                     if let Err(error) = delivery_store.delivery_failed(id, now()) {

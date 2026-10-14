@@ -58,6 +58,7 @@ pub use transfer::{
     authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
     transfer_one, verify_stage,
 };
+pub use transfer::{copy_effect, deliver_recording_with_payload, verify_effect};
 pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
 
 fn observation(s: &Stat) -> ObjectIdentity {
@@ -156,7 +157,30 @@ pub struct LocalClaimLock {
     namespace: ObjectIdentity,
     _held: OwnedFd,
 }
+/// Check the two inherited custody directory descriptors before child effects.
+pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Result<()> {
+    for (path, held) in [
+        (source_path, rustix::io::dup(std::io::stdin())?),
+        (destination_path, rustix::io::dup(std::io::stdout())?),
+    ] {
+        let expected = namespace(&root(path)?)?;
+        same_directory(
+            &owned_directory(&held, true)?,
+            &owned_directory(&expected, true)?,
+        )?;
+        fs::flock(&held, fs::FlockOperation::NonBlockingLockExclusive)?;
+    }
+    Ok(())
+}
 impl LocalClaimLock {
+    /// Duplicate the same locked open description for a child process. The lock
+    /// survives coordinator death until the last parent/child copy is closed.
+    pub fn inherit(&self) -> std::io::Result<std::fs::File> {
+        use std::os::fd::AsFd;
+        Ok(std::fs::File::from(
+            self._held.as_fd().try_clone_to_owned()?,
+        ))
+    }
     pub fn acquire(path: &str) -> Result<Self> {
         let root = root(path)?;
         let namespace = namespace(&root)?;

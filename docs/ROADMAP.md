@@ -10,12 +10,17 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Add offline custody/orphan inspection and durable allocation intents/fencing
-  before explicit retention/orphan repair effects; follow
-  [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md).
+- [ ] Extend supervised payload children to claim, allocation, publication and
+  reconciliation effects, preserving one SQLite owner and bounded assignments.
+  Qualify worker exit, coordinator death, lock inheritance and uncertain outcomes
+  before enabling controlled NFS transfers.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
 - [ ] Qualify supervised workers and source/destination effects on the controlled
   NFS fixture, then implement configurable gated cleanup only after failure evidence passes.
+- [ ] Deferred: offline custody/orphan inspection and explicit repair tooling.
+  Use worker/NFS failure evidence to determine what operators need. Preserve
+  [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for prerequisites;
+  allocation ownership and fencing still precede any repair effects.
 - [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,
   schema and fault cases before the dependent effect, not before all Rust code.
 - [ ] Extend acceptance persistence for API metadata, future schema migrations,
@@ -46,8 +51,6 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
   from the additive requirements in [L1-REQ.md](L1-REQ.md).
 - [ ] Derive claim-size evidence and tests for omitted/expected/zero/mismatched
   sizes, explicit subfolder paths, symlink/mount escape and directory preservation.
-- [ ] Implement preserved recording hierarchies with safe destination-parent
-  creation/synchronization, manifest paths and prefix/reserved-name collision tests.
 - [ ] Implement optional generator grouping and pinned layout replay; validate
   generator path components and filesystem/S3-prefix collision behavior.
 - [ ] Implement configurable postcommit source cleanup, including recorded job
@@ -65,9 +68,9 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
 - [ ] Design one scheduler state owner, a dedicated local SQLite owner and bounded
   command/result channels. Prioritize claims/reconciliation and coalesce progress
   without starving durable acknowledgements.
-- [ ] Specify supervised filesystem worker processes, private IPC, per-endpoint
-  admission budgets, worker replacement limits and uncertain-assignment fencing.
-  Define behavior when a hard-mounted NFS operation does not return.
+- [ ] Extend payload supervision with durable assignments for remaining effects,
+  per-endpoint admission budgets, worker replacement limits and uncertain-assignment
+  fencing. Define behavior when a hard-mounted NFS operation does not return.
 - [ ] Define integrity-policy details around streamed hashing and destination
   verification, identifiers, schema, naming/collision
   behavior, manifests and root-ID/relative-path API boundaries.

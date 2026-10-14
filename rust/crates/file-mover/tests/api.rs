@@ -9,6 +9,147 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+fn payload_child(
+    source: &mover_fs::LocalClaimLock,
+    destination: &mover_fs::LocalClaimLock,
+) -> (Child, std::os::unix::net::UnixStream) {
+    let (channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+    channel
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--internal-payload-worker")
+        .stdin(Stdio::from(source.inherit().unwrap()))
+        .stdout(Stdio::from(destination.inherit().unwrap()))
+        .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+        .spawn()
+        .unwrap();
+    (child, channel)
+}
+fn payload_assignment(t: &mover_core::Transfer, c: &mover_core::ClaimIntent) -> Value {
+    json!({"version":1,"job_id":t.job_id,"file_index":t.file_index,"attempt":t.attempt,"phase":t.phase as i64,
+        "destination_root":t.destination_root,"relative_name":t.relative_name,
+        "transfer_objects":[t.root.encode(),t.area.encode(),t.parent.encode(),t.staging_directory.encode(),t.stage.encode()],
+        "sha256":t.sha256,"source_root":c.root_path,"source_name":c.source_name,"private_name":c.private_name,
+        "claim_objects":[c.root.encode(),c.parent.encode(),c.area.encode(),c.source.encode()]})
+}
+#[test]
+fn payload_children_copy_verify_without_database_access_or_publication() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"child payload");
+    assert_eq!(f.post(&f.input("payload", json!([{"name":"data"}]))).0, 202);
+    f.stop();
+    provision_destination(&f);
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let destination =
+        mover_fs::LocalClaimLock::acquire(f.root.join("destination").to_str().unwrap()).unwrap();
+    let mut transfer = mover_fs::prepare_transfer(&store, 1).unwrap();
+    let (claim, done) = store.claim_intent(1, 0).unwrap().unwrap();
+    assert!(done);
+    for phase in [
+        mover_core::TransferPhase::Copied,
+        mover_core::TransferPhase::Verified,
+    ] {
+        let before = transfer.clone();
+        let (mut child, mut channel) = payload_child(&source, &destination);
+        channel
+            .write_all(&serde_json::to_vec(&payload_assignment(&transfer, &claim)).unwrap())
+            .unwrap();
+        channel.shutdown(std::net::Shutdown::Write).unwrap();
+        assert!(child.wait().unwrap().success());
+        let mut bytes = Vec::new();
+        channel.read_to_end(&mut bytes).unwrap();
+        let receipt: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(receipt["phase"], phase as i64);
+        assert_eq!(receipt["job_id"], 1);
+        assert_eq!(receipt["attempt"], before.attempt);
+        assert_eq!(store.transfer(1, 0).unwrap(), Some(before));
+        transfer.phase = phase;
+        transfer.stage =
+            mover_core::ObjectIdentity::decode(receipt["stage"].as_str().unwrap()).unwrap();
+        transfer.sha256 = Some(receipt["sha256"].as_str().unwrap().to_owned());
+        store.save_transfer(&transfer).unwrap();
+        assert!(!f.root.join("destination/1/data").exists());
+        assert!(!f.root.join("destination/1/COMMITTED.json").exists());
+    }
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/.staging/1.part")).unwrap(),
+        b"child payload"
+    );
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+}
+#[test]
+fn live_payload_child_retains_both_locks_after_parent_descriptors_close() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    let source_path = f.root.join("source");
+    let destination_path = f.root.join("destination");
+    let source = mover_fs::LocalClaimLock::acquire(source_path.to_str().unwrap()).unwrap();
+    let destination =
+        mover_fs::LocalClaimLock::acquire(destination_path.to_str().unwrap()).unwrap();
+    let (mut child, channel) = payload_child(&source, &destination);
+    drop(source);
+    drop(destination);
+    assert!(mover_fs::LocalClaimLock::acquire(source_path.to_str().unwrap()).is_err());
+    assert!(mover_fs::LocalClaimLock::acquire(destination_path.to_str().unwrap()).is_err());
+    child.kill().unwrap();
+    assert!(!child.wait().unwrap().success());
+    drop(channel);
+    assert!(mover_fs::LocalClaimLock::acquire(source_path.to_str().unwrap()).is_ok());
+    assert!(mover_fs::LocalClaimLock::acquire(destination_path.to_str().unwrap()).is_ok());
+}
+#[test]
+fn malformed_payload_assignments_preserve_stage_and_source() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"protected");
+    assert_eq!(
+        f.post(&f.input("invalid-payload", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let destination =
+        mover_fs::LocalClaimLock::acquire(f.root.join("destination").to_str().unwrap()).unwrap();
+    let transfer = mover_fs::prepare_transfer(&store, 1).unwrap();
+    let claim = store.claim_intent(1, 0).unwrap().unwrap().0;
+    for body in [
+        b"{}".to_vec(),
+        vec![b'x'; 32769],
+        {
+            let mut input = payload_assignment(&transfer, &claim);
+            input["phase"] = json!(3);
+            serde_json::to_vec(&input).unwrap()
+        },
+        {
+            let mut input = payload_assignment(&transfer, &claim);
+            input["private_name"] = json!("../foreign");
+            serde_json::to_vec(&input).unwrap()
+        },
+    ] {
+        let (mut child, mut channel) = payload_child(&source, &destination);
+        channel.write_all(&body).unwrap();
+        channel.shutdown(std::net::Shutdown::Write).unwrap();
+        assert!(!child.wait().unwrap().success());
+        assert_eq!(store.transfer(1, 0).unwrap(), Some(transfer.clone()));
+        assert_eq!(
+            std::fs::metadata(f.root.join("destination/1/.staging/1.part"))
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+            b"protected"
+        );
+    }
+}
 struct Fixture {
     root: PathBuf,
     address: SocketAddr,

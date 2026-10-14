@@ -32,7 +32,11 @@ for delivery/manifests, [increment 07](../docs/RUST-INCREMENT-07.md) for read-on
 [increment 09](../docs/RUST-INCREMENT-09.md) for audited missing-file deadline reset.
 [Increment 10](../docs/RUST-INCREMENT-10.md) adds read-only global/per-job retention
 accounting; [the repair contract](../docs/RETENTION-REPAIR-DESIGN.md) defines
-prerequisites for later inspection and repair effects.
+prerequisites for later inspection and repair effects, now deferred by the user.
+[Increment 11](../docs/RUST-INCREMENT-11.md) runs background copying and verification
+in bounded child processes of the same executable. SQLite remains in the parent;
+claims/publication are still local threads. Further worker isolation and controlled
+NFS qualification come next, before enabling NFS or source deletion.
 Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.

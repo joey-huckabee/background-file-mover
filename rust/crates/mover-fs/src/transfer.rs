@@ -22,6 +22,9 @@ pub(super) fn claimed(store: &Store, id: i64, index: usize) -> TransferResult<Ow
     if !done {
         return Err("claim incomplete".into());
     }
+    claimed_intent(&intent)
+}
+fn claimed_intent(intent: &ClaimIntent) -> TransferResult<OwnedFd> {
     let root = root(&intent.root_path)?;
     same_directory(&owned_directory(&root, false)?, &intent.root)?;
     let namespace = namespace(&root)?;
@@ -165,7 +168,26 @@ pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer>
 }
 pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::Intent)?;
-    let source_fd = claimed(store, t.job_id, t.file_index)?;
+    let (intent, done) = store
+        .claim_intent(t.job_id, t.file_index)?
+        .ok_or("missing claim")?;
+    if !done {
+        return Err("claim incomplete".into());
+    }
+    let next = copy_effect(t, &intent)?;
+    store.save_transfer(&next)?;
+    Ok(next)
+}
+/// Filesystem-only payload operation. Caller must hold custody locks and match
+/// this assignment to a durable intent; this function never accesses SQLite.
+pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    if t.phase != TransferPhase::Intent
+        || t.job_id != intent.job_id
+        || t.file_index != intent.file_index
+    {
+        return Err("invalid copy assignment".into());
+    }
+    let source_fd = claimed_intent(intent)?;
     let expected = source(&source_fd)?;
     let mut input = File::from(source_fd);
     let (_, _, staging, _, _) = directories(t)?;
@@ -207,7 +229,6 @@ pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     if next.stage.size != total {
         return Err("staging size mismatch".into());
     }
-    store.save_transfer(&next)?;
     Ok(next)
 }
 fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
@@ -233,7 +254,25 @@ fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
 }
 pub fn verify_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::Copied)?;
-    claimed(store, t.job_id, t.file_index)?;
+    let (intent, done) = store
+        .claim_intent(t.job_id, t.file_index)?
+        .ok_or("missing claim")?;
+    if !done {
+        return Err("claim incomplete".into());
+    }
+    let next = verify_effect(t, &intent)?;
+    store.save_transfer(&next)?;
+    Ok(next)
+}
+/// Independent destination reread; no database access or publication.
+pub fn verify_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    if t.phase != TransferPhase::Copied
+        || t.job_id != intent.job_id
+        || t.file_index != intent.file_index
+    {
+        return Err("invalid verification assignment".into());
+    }
+    claimed_intent(intent)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
     if Some(digest(fd, &t.stage)?) != t.sha256 {
@@ -241,7 +280,6 @@ pub fn verify_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     }
     let mut next = t.clone();
     next.phase = TransferPhase::Verified;
-    store.save_transfer(&next)?;
     Ok(next)
 }
 pub fn authorize_publication(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
@@ -315,16 +353,28 @@ pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
     transfer_file(store, id, 0)
 }
 fn transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfer> {
+    transfer_file_with_payload(store, id, index, &mut |t, intent| match t.phase {
+        TransferPhase::Intent => copy_effect(t, intent),
+        TransferPhase::Copied => verify_effect(t, intent),
+        _ => Err("invalid payload phase".into()),
+    })
+}
+fn transfer_file_with_payload(
+    store: &Store,
+    id: i64,
+    index: usize,
+    payload: &mut impl FnMut(&Transfer, &ClaimIntent) -> TransferResult<Transfer>,
+) -> TransferResult<Transfer> {
     let mut t = match store.transfer(id, index)? {
         Some(t) if t.phase == TransferPhase::Intent => restart_transfer(store, &t)?,
         Some(t) => t,
         None => prepare_transfer_file(store, id, index)?,
     };
     if t.phase == TransferPhase::Intent {
-        t = copy_stage(store, &t)?;
+        t = run_payload(store, &t, payload)?;
     }
     if t.phase == TransferPhase::Copied {
-        t = verify_stage(store, &t)?;
+        t = run_payload(store, &t, payload)?;
     }
     if t.phase == TransferPhase::Verified {
         t = authorize_publication(store, &t)?;
@@ -342,6 +392,23 @@ fn transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfe
     }
     Ok(t)
 }
+fn run_payload(
+    store: &Store,
+    t: &Transfer,
+    payload: &mut impl FnMut(&Transfer, &ClaimIntent) -> TransferResult<Transfer>,
+) -> TransferResult<Transfer> {
+    matching(store, t, t.phase)?;
+    let (intent, done) = store
+        .claim_intent(t.job_id, t.file_index)?
+        .ok_or("missing claim")?;
+    if !done {
+        return Err("claim incomplete".into());
+    }
+    let next = payload(t, &intent)?;
+    // The SQLite owner validates the immutable context and adjacent transition.
+    store.save_transfer(&next)?;
+    Ok(next)
+}
 pub fn deliver_recording(store: &Store, id: i64) -> TransferResult<()> {
     let job = store.get(id)?.ok_or("unknown job")?;
     let guard = LocalClaimLock::acquire(&job.context.source_root_path)?;
@@ -352,6 +419,19 @@ pub fn deliver_recording_with_guard(
     id: i64,
     guard: &LocalClaimLock,
 ) -> TransferResult<()> {
+    deliver_recording_with_payload(store, id, guard, |t, intent, _| match t.phase {
+        TransferPhase::Intent => copy_effect(t, intent),
+        TransferPhase::Copied => verify_effect(t, intent),
+        _ => Err("invalid payload phase".into()),
+    })
+}
+/// Hold both namespace locks across each payload assignment and its receipt.
+pub fn deliver_recording_with_payload(
+    store: &Store,
+    id: i64,
+    guard: &LocalClaimLock,
+    mut payload: impl FnMut(&Transfer, &ClaimIntent, &LocalClaimLock) -> TransferResult<Transfer>,
+) -> TransferResult<()> {
     let job = store.get(id)?.ok_or("unknown job")?;
     guard.validate_path(&job.context.source_root_path)?;
     if job.recording.handoff() != Handoff::Ready202 {
@@ -360,7 +440,9 @@ pub fn deliver_recording_with_guard(
     let destination = LocalClaimLock::acquire(&job.context.destination_path)?;
     destination.validate()?;
     for index in 0..job.recording.submission().files().len() {
-        transfer_file(store, id, index)?;
+        transfer_file_with_payload(store, id, index, &mut |t, intent| {
+            payload(t, intent, &destination)
+        })?;
     }
     super::manifest::commit_manifest(store, id)?;
     Ok(())
