@@ -178,9 +178,12 @@ use that evidence to decide which additional operator tools are necessary.
 [Increment 11](RUST-INCREMENT-11.md) isolates background copying and verification
 in supervised children without giving those children database access.
 [Increment 12](RUST-INCREMENT-12.md) adds source observation/allocation/claiming
-and file/completion-manifest publication children. Isolate remaining destination
-allocation, manifest writing/initial verification and custody/reconciliation reads
-before enabling controlled NFS transfers. Preserve
+and file/completion-manifest publication children.
+[Increment 13](RUST-INCREMENT-13.md) isolates runtime destination opening/locks,
+staging allocation/restarts, manifest steps and custody checks in recording
+sessions. Source replay scope checks also run in children. Next qualify worker
+interruption, coordinator death, source-lock startup and stable root/export
+ownership with the controlled NFS fixture before enabling NFS. Preserve
 [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
 prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount

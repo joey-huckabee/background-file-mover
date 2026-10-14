@@ -77,6 +77,10 @@ enum Assignment {
         version: u32,
         claim: ClaimWire,
     },
+    Validate {
+        version: u32,
+        claim: ClaimWire,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -97,7 +101,6 @@ fn request(
     guard: &LocalClaimLock,
     stop: &AtomicBool,
 ) -> Result<ClaimIntent, ClaimError> {
-    guard.validate()?;
     let bytes = serde_json::to_vec(assignment)
         .map_err(|_| ClaimError::Blocked("claim assignment encoding"))?;
     if bytes.len() > LIMIT {
@@ -114,7 +117,6 @@ fn request(
     .map_err(|_| ClaimError::Blocked("claim worker outcome uncertain"))?;
     let reply: Receipt =
         serde_json::from_slice(&bytes).map_err(|_| ClaimError::Blocked("invalid claim receipt"))?;
-    guard.validate()?;
     if reply.version != 1 {
         return Err(ClaimError::Blocked("invalid claim receipt version"));
     }
@@ -135,7 +137,9 @@ pub(crate) fn claim(
     let job = store
         .get(job_id)?
         .ok_or(ClaimError::Blocked("unknown job"))?;
-    guard.validate_path(&job.context.source_root_path)?;
+    if !guard.matches_path(&job.context.source_root_path) {
+        return Err(ClaimError::Blocked("source scope changed"));
+    }
     let intent = match store.claim_intent(job_id, index)? {
         Some((_, true)) => return Ok(job), // Never reopen a producer's reused path.
         Some((intent, false)) => intent,
@@ -229,14 +233,15 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         Assignment::Observe {
             version, root_path, ..
         } => (*version, root_path),
-        Assignment::Allocate { version, claim } | Assignment::Apply { version, claim } => {
-            (*version, &claim.root_path)
-        }
+        Assignment::Allocate { version, claim }
+        | Assignment::Apply { version, claim }
+        | Assignment::Validate { version, claim } => (*version, &claim.root_path),
     };
     if version != 1 {
         return Err("invalid claim protocol version".into());
     }
-    mover_fs::validate_payload_locks(path, path)?;
+    let path = path.clone();
+    mover_fs::validate_payload_locks(&path, &path)?;
     let result = match assignment {
         Assignment::Observe {
             job_id,
@@ -253,7 +258,12 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
             mover_fs::apply_claim_effect(&c)?;
             Ok(c)
         }),
+        Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
+            mover_fs::validate_claim_scope(&c)?;
+            Ok(c)
+        }),
     };
+    mover_fs::validate_payload_locks(&path, &path)?;
     let reply = match result {
         Ok(c) => Receipt {
             version: 1,
@@ -275,5 +285,30 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         return Err("claim receipt too large".into());
     }
     channel.write_all(&bytes)?;
+    Ok(())
+}
+pub(crate) fn validate_handoff(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    id: i64,
+) -> Result<(), ClaimError> {
+    let (intent, done) = store
+        .claim_intent(id, 0)?
+        .ok_or(ClaimError::Blocked("missing handoff claim"))?;
+    if !done || !guard.matches_path(&intent.root_path) {
+        return Err(ClaimError::Blocked("incomplete handoff"));
+    }
+    let reply = request(
+        &Assignment::Validate {
+            version: 1,
+            claim: ClaimWire::new(&intent),
+        },
+        guard,
+        stop,
+    )?;
+    if reply != intent {
+        return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
+    }
     Ok(())
 }

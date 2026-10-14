@@ -85,17 +85,56 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
     }
     claimed(store, id, index)?;
     store.transfer_capacity(id, index)?;
-    let root = root(&job.context.destination_path)?;
-    namespace(&root)?;
     let first = if index > 0 {
-        Some(
-            store
-                .transfer(id, 0)?
-                .ok_or("first file owns recording directory")?,
-        )
+        store
+            .transfer(id, 0)?
+            .ok_or("first file owns recording directory")?
     } else {
-        None
+        Transfer {
+            job_id: id,
+            file_index: index,
+            attempt: 1,
+            destination_root: job.context.destination_path.clone(),
+            relative_name: String::new(),
+            root: job_claim(store, id, index)?.root.clone(),
+            area: job_claim(store, id, index)?.root.clone(),
+            parent: job_claim(store, id, index)?.root.clone(),
+            staging_directory: job_claim(store, id, index)?.root.clone(),
+            stage: job_claim(store, id, index)?.root,
+            sha256: None,
+            phase: TransferPhase::Intent,
+        }
     };
+    let mut template = first;
+    template.file_index = index;
+    template.relative_name = job.recording.submission().files()[index]
+        .relative_path()
+        .into();
+    let t = prepare_transfer_effect(&template, &job_claim(store, id, index)?)?;
+    store.save_transfer(&t)?;
+    Ok(t)
+}
+fn job_claim(store: &Store, id: i64, index: usize) -> TransferResult<ClaimIntent> {
+    let (c, done) = store.claim_intent(id, index)?.ok_or("missing claim")?;
+    if !done {
+        return Err("claim incomplete".into());
+    }
+    Ok(c)
+}
+pub fn prepare_transfer_effect(
+    template: &Transfer,
+    claim: &ClaimIntent,
+) -> TransferResult<Transfer> {
+    let id = template.job_id;
+    let index = template.file_index;
+    if id != claim.job_id || index != claim.file_index || id <= 0 || index >= 256 {
+        return Err("invalid staging assignment".into());
+    }
+    mover_core::FileSpec::new(&template.relative_name, None).map_err(|_| "invalid staging name")?;
+    claimed_intent(claim)?;
+    let root = root(&template.destination_root)?;
+    namespace(&root)?;
+    let first = (index > 0).then_some(template);
     if first.is_none() {
         fs::mkdirat(&root, id.to_string(), Mode::RWXU)?;
     }
@@ -114,9 +153,7 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
         fs::fsync(&staging)?;
         staging = child;
     }
-    let relative_name = job.recording.submission().files()[index]
-        .relative_path()
-        .to_owned();
+    let relative_name = template.relative_name.clone();
     let mut current = rustix::io::dup(&area)?;
     let components: Vec<_> = relative_name.split('/').collect();
     for component in &components[..components.len() - 1] {
@@ -137,7 +174,7 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
         job_id: id,
         file_index: index,
         attempt: 1,
-        destination_root: job.context.destination_path,
+        destination_root: template.destination_root.clone(),
         relative_name,
         root: owned_directory(&root, false)?,
         area: owned_directory(&area, true)?,
@@ -147,7 +184,6 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
         sha256: None,
         phase: TransferPhase::Intent,
     };
-    store.save_transfer(&t)?;
     Ok(t)
 }
 pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
@@ -157,13 +193,25 @@ pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer>
     }
     claimed(store, t.job_id, t.file_index)?;
     store.transfer_capacity(t.job_id, t.file_index)?;
+    let next = restart_transfer_effect(t, &job_claim(store, t.job_id, t.file_index)?)?;
+    store.save_transfer(&next)?;
+    Ok(next)
+}
+pub fn restart_transfer_effect(t: &Transfer, claim: &ClaimIntent) -> TransferResult<Transfer> {
+    if t.phase != TransferPhase::Intent
+        || t.attempt >= 100
+        || t.job_id != claim.job_id
+        || t.file_index != claim.file_index
+    {
+        return Err("invalid restart assignment".into());
+    }
+    claimed_intent(claim)?;
     let (_, area, staging, _, _) = directories(t)?;
     // Partial/ambiguous old staging stays intact. No destructive retirement yet.
     let mut next = t.clone();
     next.attempt += 1;
     next.stage = allocate(&staging, next.attempt)?;
     fs::fsync(&area)?;
-    store.save_transfer(&next)?;
     Ok(next)
 }
 pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
@@ -481,4 +529,20 @@ pub fn deliver_recording_with_workers(
         publication(t, m, &destination)
     })?;
     Ok(())
+}
+
+pub fn published_custody_effect(t: &Transfer, claim: &ClaimIntent) -> TransferResult<Transfer> {
+    if t.phase != TransferPhase::Published
+        || t.job_id != claim.job_id
+        || t.file_index != claim.file_index
+    {
+        return Err("invalid custody assignment".into());
+    }
+    claimed_intent(claim)?;
+    let (_, _, _, parent, name) = directories(t)?;
+    let fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
+    if source(&fd)? != t.stage {
+        return Err("published custody lost".into());
+    }
+    Ok(t.clone())
 }

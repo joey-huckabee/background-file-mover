@@ -36,9 +36,11 @@ prerequisites for later inspection and repair effects, now deferred by the user.
 [Increment 11](../docs/RUST-INCREMENT-11.md) runs background copying and verification
 in bounded child processes of the same executable. SQLite remains in the parent;
 [increment 12](../docs/RUST-INCREMENT-12.md) adds observation/allocation/claiming
-and file/manifest publication children. Isolate remaining destination allocation,
-manifest writing/initial verification and custody reads before controlled NFS
-qualification. Keep NFS and source deletion disabled.
+and file/manifest publication children. [Increment 13](../docs/RUST-INCREMENT-13.md)
+isolates runtime destination opening/locks, staging, manifest steps and custody
+checks in recording sessions. Source replay scope checks also use children.
+Next qualify interruptions, coordinator death, source-lock startup and root/export
+ownership with the controlled NFS fixture. Keep NFS and source deletion disabled.
 Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.

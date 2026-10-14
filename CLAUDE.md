@@ -20,9 +20,10 @@ Audited delivery resume is documented in `docs/RUST-INCREMENT-08.md`.
 Audited missing-file deadline reset is documented in `docs/RUST-INCREMENT-09.md`.
 Read-only retention accounting is documented in `docs/RUST-INCREMENT-10.md`.
 Offline inspection/repair is deferred by the user. Prioritize supervised workers
-and controlled NFS testing. Increment 12 adds claim and publication children;
-isolate remaining allocation/manifest writing/custody reads before enabling NFS.
-Keep deletion disabled. See `docs/RUST-INCREMENT-12.md`.
+and controlled NFS testing. Increment 13 isolates runtime delivery filesystem
+access in recording sessions and handoff scope checks in claim children.
+Qualify interruption/coordinator death, source-lock startup and stable root/export
+ownership before enabling NFS. Keep deletion disabled. See `docs/RUST-INCREMENT-13.md`.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned

@@ -1,5 +1,6 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
 pub mod claim_worker;
+pub mod delivery_worker;
 mod http;
 pub mod payload;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
@@ -256,13 +257,13 @@ impl Worker {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
-                                let unavailable =
-                                    delivery_store.get(id).ok().flatten().is_some_and(|job| {
-                                        mover_fs::destination_unavailable(
-                                            &job.context.destination_path,
-                                        )
-                                    });
-                                if unavailable {
+                                let result = delivery_worker::deliver(
+                                    &delivery_store,
+                                    id,
+                                    &delivery_guard,
+                                    &delivery_stop,
+                                );
+                                if matches!(result, Ok(false)) {
                                     if let Err(error) = delivery_store.delivery_deferred(id, now())
                                     {
                                         eprintln!("Delivery deferral persistence failed: {error}");
@@ -270,36 +271,7 @@ impl Worker {
                                     }
                                     continue;
                                 }
-                                if let Err(error) = mover_fs::deliver_recording_with_workers(
-                                    &delivery_store,
-                                    id,
-                                    &delivery_guard,
-                                    |t, intent, destination| {
-                                        payload::run(
-                                            t,
-                                            intent,
-                                            &delivery_guard,
-                                            destination,
-                                            &delivery_stop,
-                                        )
-                                    },
-                                    |t, m, destination| {
-                                        let (intent, done) = delivery_store
-                                            .claim_intent(t.job_id, 0)?
-                                            .ok_or("missing manifest claim")?;
-                                        if !done {
-                                            return Err("incomplete manifest claim".into());
-                                        }
-                                        payload::run_manifest(
-                                            t,
-                                            &intent,
-                                            m,
-                                            &delivery_guard,
-                                            destination,
-                                            &delivery_stop,
-                                        )
-                                    },
-                                ) {
+                                if let Err(error) = result {
                                     eprintln!("Delivery {id} requires reconciliation: {error}");
                                     if let Err(error) = delivery_store.delivery_failed(id, now()) {
                                         eprintln!("Delivery retry persistence failed: {error}");
@@ -366,7 +338,7 @@ fn process(
     s: &Submission,
     c: &AcceptanceContext,
 ) -> Response {
-    if guard.validate().is_err() {
+    if !guard.matches_path(&c.source_root_path) {
         return error(409, "recording_blocked", false, None);
     }
     let mut job = match store.accept(s, c) {
@@ -412,6 +384,9 @@ fn process(
     }
     if job.recording.handoff() != Handoff::Ready202 {
         return error(503, "handoff_pending", true, Some(job.job_id));
+    }
+    if claim_worker::validate_handoff(store, guard, stop, job.job_id).is_err() {
+        return error(409, "recording_blocked", false, Some(job.job_id));
     }
     Response {
         status: 202,

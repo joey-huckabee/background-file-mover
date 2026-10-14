@@ -132,68 +132,12 @@ fn commit_with_workers(
         return Err("recorded manifest differs from published set".into());
     }
     checkpoint("intent");
-    if m.phase == 0 {
-        let fd = fs::openat(
-            &staging,
-            "COMMITTED.part",
-            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::RUSR | Mode::WUSR,
-        )?;
-        fs::fsync(&fd)?;
-        fs::fsync(&staging)?;
-        checkpoint("allocation_effect");
-        m.object = Some(source(&fd)?);
-        m.phase = 1;
-        store.save_manifest(&m)?;
-        checkpoint("allocated");
-    }
-    if m.phase == 1 {
-        let held = fs::openat(&staging, "COMMITTED.part", FILE, Mode::empty())?;
-        let allocated = source(&held)?;
-        let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
-        if allocated.device != owned.device
-            || allocated.inode != owned.inode
-            || allocated.uid != owned.uid
-        {
-            return Err("manifest allocation custody lost".into());
+    for (phase, label) in [(0, "allocated"), (1, "written"), (2, "authorized")] {
+        if m.phase == phase {
+            m = manifest_step_in_directories(&area, &staging, &m, checkpoint)?;
+            store.save_manifest(&m)?;
+            checkpoint(label);
         }
-        fs::fchmod(&held, Mode::RUSR | Mode::WUSR)?;
-        let fd = fs::openat(
-            &staging,
-            "COMMITTED.part",
-            OFlags::RDWR | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::empty(),
-        )?;
-        let actual = source(&fd)?;
-        let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
-        if actual.device != owned.device
-            || actual.inode != owned.inode
-            || actual.uid != owned.uid
-            || source(&held)?.inode != actual.inode
-        {
-            return Err("manifest allocation custody lost".into());
-        }
-        // Only the recorded owned manifest staging object may be rewritten;
-        // exact manifest bytes are already durable, unlike an incomplete copy.
-        let mut file = File::from(fd);
-        file.set_len(0)?;
-        file.seek(SeekFrom::Start(0))?;
-        file.write_all(m.bytes.as_bytes())?;
-        fs::fchmod(&file, Mode::RUSR)?;
-        file.sync_all()?;
-        fs::fsync(&staging)?;
-        checkpoint("write_effect");
-        m.object = Some(source(&file)?);
-        m.phase = 2;
-        store.save_manifest(&m)?;
-        checkpoint("written");
-    }
-    if m.phase == 2 {
-        let mut file = File::from(fs::openat(&staging, "COMMITTED.part", FILE, Mode::empty())?);
-        read_exact_manifest(&mut file, &m)?;
-        m.phase = 3;
-        store.save_manifest(&m)?;
-        checkpoint("authorized");
     }
     if m.phase == 3 {
         m = if let Some(publication) = publication {
@@ -275,4 +219,133 @@ fn publish_manifest_in_directories(
     let mut next = m.clone();
     next.phase = 4;
     Ok(next)
+}
+
+pub fn manifest_step_effect(
+    t: &mover_core::Transfer,
+    m: &ManifestRecord,
+) -> ManifestResult<ManifestRecord> {
+    if t.phase != TransferPhase::Published
+        || t.file_index != 0
+        || t.job_id != m.job_id
+        || !(0..=4).contains(&m.phase)
+        || m.bytes.len() > 131072
+        || format!("{:x}", Sha256::digest(m.bytes.as_bytes())) != m.sha256
+    {
+        return Err("invalid manifest assignment".into());
+    }
+    let (_, area, staging, _, _) = super::transfer::directories(t)?;
+    manifest_step_in_directories(&area, &staging, m, &mut |_| {})
+}
+fn manifest_step_in_directories(
+    area: &OwnedFd,
+    staging: &OwnedFd,
+    previous: &ManifestRecord,
+    checkpoint: &mut impl FnMut(&'static str),
+) -> ManifestResult<ManifestRecord> {
+    let mut m = previous.clone();
+    if m.phase == 0 {
+        let fd = fs::openat(
+            staging,
+            "COMMITTED.part",
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::RUSR | Mode::WUSR,
+        )?;
+        fs::fsync(&fd)?;
+        fs::fsync(staging)?;
+        checkpoint("allocation_effect");
+        m.object = Some(source(&fd)?);
+        m.phase = 1;
+    }
+    if previous.phase == 1 {
+        let held = fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?;
+        let allocated = source(&held)?;
+        let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
+        if allocated.device != owned.device
+            || allocated.inode != owned.inode
+            || allocated.uid != owned.uid
+        {
+            return Err("manifest allocation custody lost".into());
+        }
+        fs::fchmod(&held, Mode::RUSR | Mode::WUSR)?;
+        let fd = fs::openat(
+            staging,
+            "COMMITTED.part",
+            OFlags::RDWR | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        )?;
+        let actual = source(&fd)?;
+        let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
+        if actual.device != owned.device
+            || actual.inode != owned.inode
+            || actual.uid != owned.uid
+            || source(&held)?.inode != actual.inode
+        {
+            return Err("manifest allocation custody lost".into());
+        }
+        // Only the recorded owned manifest staging object may be rewritten;
+        // exact manifest bytes are already durable, unlike an incomplete copy.
+        let mut file = File::from(fd);
+        file.set_len(0)?;
+        file.seek(SeekFrom::Start(0))?;
+        file.write_all(m.bytes.as_bytes())?;
+        fs::fchmod(&file, Mode::RUSR)?;
+        file.sync_all()?;
+        fs::fsync(staging)?;
+        checkpoint("write_effect");
+        m.object = Some(source(&file)?);
+        m.phase = 2;
+    }
+    if previous.phase == 2 {
+        let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
+        read_exact_manifest(&mut file, &m)?;
+        m.phase = 3;
+    }
+    if previous.phase == 3 {
+        return publish_manifest_in_directories(area, staging, previous, checkpoint);
+    }
+    if previous.phase == 4 {
+        let mut file = File::from(fs::openat(area, "COMMITTED.json", FILE, Mode::empty())?);
+        read_exact_manifest(&mut file, previous)?;
+    }
+    Ok(m)
+}
+
+/// Database-only construction of the exact version-1 completion intent.
+pub fn expected_manifest(store: &Store, id: i64) -> ManifestResult<ManifestRecord> {
+    let job = store.get(id)?.ok_or("unknown job")?;
+    let mut files = Vec::new();
+    for index in 0..job.recording.submission().files().len() {
+        let t = store
+            .transfer(id, index)?
+            .ok_or("missing published transfer")?;
+        if t.phase != TransferPhase::Published {
+            return Err("all files must be published".into());
+        }
+        files.push(Entry {
+            file_id: index.to_string(),
+            path: t.relative_name,
+            size_bytes: t.stage.size,
+            algorithm: "sha256".into(),
+            sha256: t.sha256.ok_or("missing digest")?,
+        });
+    }
+    let bytes = serde_json::to_string(&Manifest {
+        version: 1,
+        instance_id: store.instance_id()?,
+        job_id: id.to_string(),
+        generator_id: job.recording.submission().generator_id().into(),
+        submission_id: job.recording.submission().submission_id().into(),
+        files,
+    })?;
+    if bytes.len() > 131072 {
+        return Err("manifest limit exceeded".into());
+    }
+    Ok(ManifestRecord {
+        job_id: id,
+        sha256: format!("{:x}", Sha256::digest(bytes.as_bytes())),
+        bytes,
+        phase: 0,
+        object: None,
+    })
 }

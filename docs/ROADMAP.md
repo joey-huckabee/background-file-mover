@@ -10,11 +10,10 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Isolate remaining destination staging allocation/restart, manifest allocation/
-  writing/initial verification and custody/root checks/reconciliation reads,
-  preserving one SQLite owner and bounded assignments.
-  Qualify worker exit, coordinator death, lock inheritance and uncertain outcomes
-  before enabling controlled NFS transfers.
+- [ ] Qualify filesystem sessions under worker interruption/coordinator death and
+  controlled NFS outages before enabling NFS. Include source singleton startup,
+  stable root/export ownership and uncertain outcomes; preserve the dedicated
+  local SQLite owner and bounded worker assignments.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
 - [ ] Qualify supervised workers and source/destination effects on the controlled
   NFS fixture, then implement configurable gated cleanup only after failure evidence passes.

@@ -55,6 +55,7 @@ pub fn destination_unavailable(path: &str) -> bool {
     )
 }
 pub use manifest::publish_manifest_effect;
+pub use manifest::{expected_manifest, manifest_step_effect};
 pub use transfer::{
     authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
     transfer_one, verify_stage,
@@ -62,6 +63,7 @@ pub use transfer::{
 pub use transfer::{copy_effect, deliver_recording_with_payload, verify_effect};
 pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
 pub use transfer::{deliver_recording_with_workers, publish_effect};
+pub use transfer::{prepare_transfer_effect, published_custody_effect, restart_transfer_effect};
 
 fn observation(s: &Stat) -> ObjectIdentity {
     ObjectIdentity {
@@ -175,6 +177,9 @@ pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Resu
     Ok(())
 }
 impl LocalClaimLock {
+    pub fn matches_path(&self, path: &str) -> bool {
+        self.path == path
+    }
     /// Duplicate the same locked open description for a child process. The lock
     /// survives coordinator death until the last parent/child copy is closed.
     pub fn inherit(&self) -> std::io::Result<std::fs::File> {
@@ -378,6 +383,10 @@ pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
     fs::fsync(&parent)?;
     fs::fsync(&namespace)?;
     Ok(())
+}
+pub fn validate_claim_scope(intent: &ClaimIntent) -> Result<()> {
+    let root = root(&intent.root_path)?;
+    same_directory(&owned_directory(&root, false)?, &intent.root)
 }
 
 /// Synchronous local coordinator; no transaction spans filesystem operations.

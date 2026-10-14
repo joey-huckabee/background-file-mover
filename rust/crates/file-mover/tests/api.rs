@@ -9,6 +9,259 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+#[test]
+fn delivery_session_large_manifest_returns_metadata_only_receipts() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"large manifest");
+    assert_eq!(
+        f.post(&f.input("large-manifest", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let t = mover_fs::prepare_transfer(&store, 1).unwrap();
+    let t = mover_fs::copy_stage(&store, &t).unwrap();
+    let t = mover_fs::verify_stage(&store, &t).unwrap();
+    let t = mover_fs::authorize_publication(&store, &t).unwrap();
+    let t = mover_fs::publish_stage(&store, &t).unwrap();
+    let c = store.claim_intent(1, 0).unwrap().unwrap().0;
+    let mut m = mover_fs::expected_manifest(&store, 1).unwrap();
+    // Keep identical valid V1 metadata while exercising the full document bound.
+    let end = m.bytes.pop().unwrap();
+    assert_eq!(end, '}');
+    m.bytes.push_str(&" ".repeat(40000));
+    m.bytes.push('}');
+    assert!(m.bytes.len() > 32768 && m.bytes.len() < 131072);
+    assert!(serde_json::from_str::<Value>(&m.bytes).is_ok());
+    let hash_input = f.root.join("hash-input");
+    std::fs::write(&hash_input, m.bytes.as_bytes()).unwrap();
+    let digest = Command::new("sha256sum").arg(&hash_input).output().unwrap();
+    assert!(digest.status.success());
+    m.sha256 = String::from_utf8(digest.stdout)
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .into();
+    store.save_manifest(&m).unwrap();
+    let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
+    assert!(session_reply(&mut channel,1,json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")}))["error"].is_null());
+    for phase in 1..=4 {
+        let r = session_reply(
+            &mut channel,
+            phase + 1,
+            json!({"operation":"manifest","assignment":payload_assignment(&t,&c),"manifest":{"job_id":m.job_id,"bytes":m.bytes,"sha256":m.sha256,"phase":m.phase,"object":m.object.as_ref().map(mover_core::ObjectIdentity::encode)}}),
+        );
+        assert!(r["error"].is_null());
+        assert!(r["manifest"].get("bytes").is_none());
+        assert!(serde_json::to_vec(&r).unwrap().len() < 2048);
+        assert_eq!(r["manifest"]["phase"], phase);
+        assert_eq!(r["manifest"]["sha256"], m.sha256);
+        m.phase = phase as i64;
+        m.object = Some(
+            mover_core::ObjectIdentity::decode(r["manifest"]["object"].as_str().unwrap()).unwrap(),
+        );
+        store.save_manifest(&m).unwrap();
+    }
+    assert_eq!(
+        std::fs::read_to_string(f.root.join("destination/1/COMMITTED.json")).unwrap(),
+        m.bytes
+    );
+    channel.shutdown(std::net::Shutdown::Write).unwrap();
+    assert!(child.wait().unwrap().success());
+}
+fn session_reply(
+    channel: &mut std::os::unix::net::UnixStream,
+    sequence: u64,
+    command: Value,
+) -> Value {
+    let bytes =
+        serde_json::to_vec(&json!({"version":1,"sequence":sequence,"command":command})).unwrap();
+    channel
+        .write_all(&(bytes.len() as u32).to_be_bytes())
+        .unwrap();
+    channel.write_all(&bytes).unwrap();
+    let mut header = [0; 4];
+    channel.read_exact(&mut header).unwrap();
+    let size = u32::from_be_bytes(header) as usize;
+    assert!(size <= 32768);
+    let mut bytes = vec![0; size];
+    channel.read_exact(&mut bytes).unwrap();
+    serde_json::from_slice(&bytes).unwrap()
+}
+fn transfer_from_wire(t: &Value) -> mover_core::Transfer {
+    let object = |i: usize| {
+        mover_core::ObjectIdentity::decode(t["transfer_objects"][i].as_str().unwrap()).unwrap()
+    };
+    mover_core::Transfer {
+        job_id: t["job_id"].as_i64().unwrap(),
+        file_index: t["file_index"].as_u64().unwrap() as usize,
+        attempt: t["attempt"].as_i64().unwrap(),
+        destination_root: t["destination_root"].as_str().unwrap().into(),
+        relative_name: t["relative_name"].as_str().unwrap().into(),
+        root: object(0),
+        area: object(1),
+        parent: object(2),
+        staging_directory: object(3),
+        stage: object(4),
+        sha256: t["sha256"].as_str().map(str::to_owned),
+        phase: mover_core::TransferPhase::decode(t["phase"].as_i64().unwrap()).unwrap(),
+    }
+}
+#[test]
+fn delivery_session_allocates_restarts_and_commits_manifest_between_parent_receipts() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"abcdefgh");
+    assert_eq!(f.post(&f.input("session", json!([{"name":"data"}]))).0, 202);
+    f.stop();
+    provision_destination(&f);
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let c = store.claim_intent(1, 0).unwrap().unwrap().0;
+    let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
+    let opened = session_reply(
+        &mut channel,
+        1,
+        json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")}),
+    );
+    assert!(opened["error"].is_null());
+    assert!(
+        mover_fs::LocalClaimLock::acquire(f.root.join("destination").to_str().unwrap()).is_err()
+    );
+    let mut template = mover_core::Transfer {
+        job_id: 1,
+        file_index: 0,
+        attempt: 1,
+        destination_root: f.root.join("destination").to_str().unwrap().into(),
+        relative_name: "data".into(),
+        root: c.root.clone(),
+        area: c.root.clone(),
+        parent: c.root.clone(),
+        staging_directory: c.root.clone(),
+        stage: c.root.clone(),
+        sha256: None,
+        phase: mover_core::TransferPhase::Intent,
+    };
+    let r = session_reply(
+        &mut channel,
+        2,
+        json!({"operation":"prepare","assignment":payload_assignment(&template,&c)}),
+    );
+    assert!(r["error"].is_null());
+    template = transfer_from_wire(&r["transfer"]);
+    assert!(store.transfer(1, 0).unwrap().is_none());
+    store.save_transfer(&template).unwrap();
+    std::fs::write(f.root.join("destination/1/.staging/1.part"), b"partial").unwrap();
+    let r = session_reply(
+        &mut channel,
+        3,
+        json!({"operation":"restart","assignment":payload_assignment(&template,&c)}),
+    );
+    assert!(r["error"].is_null());
+    let t = transfer_from_wire(&r["transfer"]);
+    assert_eq!(t.attempt, 2);
+    assert_eq!(store.transfer(1, 0).unwrap(), Some(template));
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/.staging/1.part")).unwrap(),
+        b"partial"
+    );
+    store.save_transfer(&t).unwrap();
+    let mut t = t;
+    let mut seq = 4;
+    for expected in [
+        mover_core::TransferPhase::Copied,
+        mover_core::TransferPhase::Verified,
+        mover_core::TransferPhase::Published,
+    ] {
+        if expected == mover_core::TransferPhase::Published {
+            t = mover_fs::authorize_publication(&store, &t).unwrap();
+        }
+        let r = session_reply(
+            &mut channel,
+            seq,
+            json!({"operation":"payload","assignment":payload_assignment(&t,&c)}),
+        );
+        seq += 1;
+        assert!(r["error"].is_null());
+        let next = transfer_from_wire(&r["transfer"]);
+        assert_eq!(next.phase, expected);
+        assert_eq!(store.transfer(1, 0).unwrap(), Some(t));
+        store.save_transfer(&next).unwrap();
+        t = next;
+    }
+    let r = session_reply(
+        &mut channel,
+        seq,
+        json!({"operation":"custody","assignment":payload_assignment(&t,&c)}),
+    );
+    seq += 1;
+    assert_eq!(transfer_from_wire(&r["transfer"]), t);
+    let mut m = mover_fs::expected_manifest(&store, 1).unwrap();
+    store.save_manifest(&m).unwrap();
+    for expected in [1, 2, 3, 4, 4] {
+        let body = json!({"operation":"manifest","assignment":payload_assignment(&t,&c),"manifest":{"job_id":m.job_id,"bytes":m.bytes,"sha256":m.sha256,"phase":m.phase,"object":m.object.as_ref().map(mover_core::ObjectIdentity::encode)}});
+        let r = session_reply(&mut channel, seq, body);
+        seq += 1;
+        assert!(r["error"].is_null());
+        assert_eq!(store.manifest(1).unwrap(), Some(m.clone()));
+        assert_eq!(r["manifest"]["phase"], expected);
+        m.phase = expected;
+        m.object = Some(
+            mover_core::ObjectIdentity::decode(r["manifest"]["object"].as_str().unwrap()).unwrap(),
+        );
+        store.save_manifest(&m).unwrap();
+    }
+    assert!(store.get(1).unwrap().unwrap().recording.is_committed());
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+    channel.shutdown(std::net::Shutdown::Write).unwrap();
+    assert!(child.wait().unwrap().success());
+    assert!(
+        mover_fs::LocalClaimLock::acquire(f.root.join("destination").to_str().unwrap()).is_ok()
+    );
+}
+#[test]
+fn delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
+    let command = json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")});
+    assert!(session_reply(&mut channel, 1, command.clone())["error"].is_null());
+    drop(source);
+    for path in ["source", "destination"] {
+        assert!(mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_err());
+    }
+    let bytes = serde_json::to_vec(&json!({"version":1,"sequence":1,"command":command})).unwrap();
+    channel
+        .write_all(&(bytes.len() as u32).to_be_bytes())
+        .unwrap();
+    channel.write_all(&bytes).unwrap();
+    assert!(!child.wait().unwrap().success());
+    drop(channel);
+    for path in ["source", "destination"] {
+        assert!(mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_ok());
+    }
+    assert!(!f.root.join("destination/1").exists());
+}
+#[test]
+fn delivery_session_refuses_oversized_frame_before_any_allocation() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
+    channel.write_all(&393217_u32.to_be_bytes()).unwrap();
+    assert!(!child.wait().unwrap().success());
+    assert!(!f.root.join("destination/1").exists());
+}
 fn payload_child(
     source: &mover_fs::LocalClaimLock,
     destination: &mover_fs::LocalClaimLock,
