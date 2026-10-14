@@ -76,7 +76,9 @@ pub const fn nfs_qualification_enabled() -> bool {
 
 mod bootstrap;
 mod manifest;
+mod qualification;
 mod relocate;
+pub use qualification::pause as qualification_pause;
 mod transfer;
 pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock};
 pub use manifest::commit_manifest;
@@ -369,6 +371,7 @@ pub fn apply(store: &Store, intent: &ClaimIntent) -> Result<()> {
 }
 /// Caller must persist the exact unfinished intent before assigning this effect.
 pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
+    qualification_pause("claim_apply")?;
     if intent.private_name != format!("{}-{}", intent.job_id, intent.file_index) {
         return Err(ClaimError::Blocked("invalid operation name"));
     }

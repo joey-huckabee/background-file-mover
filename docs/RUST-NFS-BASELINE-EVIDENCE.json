@@ -1,10 +1,9 @@
 {
   "status": "PASSED",
-  "run_id": "nfs-20261014T122721Z-d9131152",
+  "run_id": "nfs-20261014T135218Z-8b830af8",
   "isolated_startup_required": true,
-  "gate": "20261014T120045Z-c23e0a5e",
-  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
-  "source_sha256": "8de73760a745c25704b0a201c63f9b0828c52ee5d9c65e5a0a8a81e876a2f408",
+  "gate": "20261014T131403Z-aba44f6e",
+  "source_sha256": "c435c607881b86bb698c7a08bb63c5d14c03e04707797753bfe48a27d6aa486b",
   "checks": {
     "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
     "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
@@ -21,10 +20,11 @@
     "restored": "Stable root/namespace identity; metadata recovered and source lock became available"
   },
   "cleanup_errors": [],
+  "runtime_requested": true,
   "limitations": [
     "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
     "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
-    "Lock and interrupted metadata probes use OS tools, not Rust claim/copy/publication on NFS.",
+    "Real Rust runtime cases cover selected pause points; source-read/verification interruption, long outages and export changes remain unqualified. Other lock/startup probes use OS tools.",
     "Service startup rejection is measured; production NFS and source deletion remain disabled."
   ],
   "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
@@ -156,18 +156,18 @@
     "zlib1g:amd64\t1:1.2.13.dfsg-1"
   ],
   "mounts": [
-    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/9fb31ae99aa2982f68d42fe4d8553f19760f9ddc866ba4f327b2c552b7788f0c/diff,workdir=/var/lib/containers/storage/overlay/9fb31ae99aa2982f68d42fe4d8553f19760f9ddc866ba4f327b2c552b7788f0c/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/8bee3522585a822e603b3a5eb0f40a1de51e9ae75dfb091a70573717677e3227/diff,workdir=/var/lib/containers/storage/overlay/8bee3522585a822e603b3a5eb0f40a1de51e9ae75dfb091a70573717677e3227/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
     "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
     "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
     "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
     "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
     "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
-    "none /run/secrets tmpfs rw,mode=755 0 0",
-    "none /etc/hostname tmpfs rw,mode=755 0 0",
     "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
     "none /etc/hosts tmpfs rw,mode=755 0 0",
     "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
     "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
     "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
     "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
     "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
@@ -187,21 +187,21 @@
   ],
   "kernel": "6.18.33.2-microsoft-standard-WSL2",
   "root_identity_before": [
-    "157:275783:1000:700",
-    "157:275784:1000:700"
+    "157:275793:1000:700",
+    "157:275794:1000:700"
   ],
   "artifacts": {
-    "debug": "9d23a2f065ee96d47eeaba51a2cc5933d08e759d0faae4f650889c66c180fb5d",
-    "release": "478c2d8ccd5cdc6575647d8b002c6df0d2ffb56d2681629dca6dd047af676fcc"
+    "debug": "1941150d8d1ffde552a13d9902f6fbf828de5163769f039d21cc7fd99409d543",
+    "release": "20a077efa859d033d20d01d8bfb836a7abdd4f5d528bb5ac6ad4df6efaa02b40"
   },
-  "qualification_gate": "20261014T120046Z-91b1f651-nfs-qualification",
+  "qualification_gate": "20261014T131404Z-59ecf22c-nfs-qualification",
   "baseline": {
     "passed": true,
     "cases": [
       {
         "profile": "debug",
         "direction": "source",
-        "binary_sha256": "f139842ff9773ffd260c405c53be517e8dd6ddec747cb5c436571446c9f89e58",
+        "binary_sha256": "cfd028a0aa4367e1621266c19ad5e92ea8d222b6ee0ac16f1cc2f055669a8c6d",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -269,7 +269,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "91aa4c3d2c2680cf4810bbe768b3b4ee",
+          "instance_id": "cd480100122626813dd020825f715362",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-source",
@@ -302,7 +302,7 @@
       {
         "profile": "debug",
         "direction": "destination",
-        "binary_sha256": "f139842ff9773ffd260c405c53be517e8dd6ddec747cb5c436571446c9f89e58",
+        "binary_sha256": "cfd028a0aa4367e1621266c19ad5e92ea8d222b6ee0ac16f1cc2f055669a8c6d",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -370,7 +370,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "ee7b66a257204b9e9a4a226f6ddd654c",
+          "instance_id": "2c5223e47d6ae0f57e3359ed73502007",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-destination",
@@ -403,7 +403,7 @@
       {
         "profile": "debug",
         "direction": "both",
-        "binary_sha256": "f139842ff9773ffd260c405c53be517e8dd6ddec747cb5c436571446c9f89e58",
+        "binary_sha256": "cfd028a0aa4367e1621266c19ad5e92ea8d222b6ee0ac16f1cc2f055669a8c6d",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -471,7 +471,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "972de6fdd660a42697496573f126ddd6",
+          "instance_id": "b54f53f69f3adfb8267cb60a85c9e9db",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-both",
@@ -504,7 +504,7 @@
       {
         "profile": "release",
         "direction": "source",
-        "binary_sha256": "b9e1788ce96adce1f3a9666fbbfc73f729d8440de3f8b4bbeee21622ff05aab4",
+        "binary_sha256": "8062bc7935f7bf9557d50db59656d816aff649d7c2526afb5154c182ef120b9c",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -572,7 +572,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "f62f92e7aba2f82cc43dd1c42781f86a",
+          "instance_id": "40705014f0da764bf33f692bb6561937",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-source",
@@ -605,7 +605,7 @@
       {
         "profile": "release",
         "direction": "destination",
-        "binary_sha256": "b9e1788ce96adce1f3a9666fbbfc73f729d8440de3f8b4bbeee21622ff05aab4",
+        "binary_sha256": "8062bc7935f7bf9557d50db59656d816aff649d7c2526afb5154c182ef120b9c",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -673,7 +673,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "332b309a5eecd98e395d3b867613f04f",
+          "instance_id": "6ff1964789e54480b1c9009f6a7f5f36",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-destination",
@@ -706,7 +706,7 @@
       {
         "profile": "release",
         "direction": "both",
-        "binary_sha256": "b9e1788ce96adce1f3a9666fbbfc73f729d8440de3f8b4bbeee21622ff05aab4",
+        "binary_sha256": "8062bc7935f7bf9557d50db59656d816aff649d7c2526afb5154c182ef120b9c",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -774,7 +774,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "e2934c5e46076be0597cc4d6d71c5bf3",
+          "instance_id": "eb9fdc217fb776628f6b485925c8b531",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-both",
@@ -807,7 +807,8 @@
     ]
   },
   "root_identity_after": [
-    "157:275783:1000:700",
-    "157:275784:1000:700"
-  ]
+    "157:275793:1000:700",
+    "157:275794:1000:700"
+  ],
+  "runtime_evidence_file": "RUST-NFS-RUNTIME-EVIDENCE.json"
 }

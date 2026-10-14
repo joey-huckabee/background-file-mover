@@ -203,6 +203,12 @@ The normal-operation NFS baseline now passes in both profiles. Next qualify
 Rust runtime interruption, coordinator death and stable root/export ownership;
 production NFS and source cleanup remain disabled.
 
+[Increment 18](RUST-INCREMENT-18.md) adds retained qualification-only pause controls
+and real Rust worker outage/interruption cases, including actual child custody
+after coordinator death. Next expand source-read/verification and longer outage
+qualification, stable export authorization and cross-client ownership. Production
+NFS and source cleanup remain disabled.
+
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
 experiment results and the branch [review](BRANCH-REVIEW.md). Work through the
 producer-facing Accepted/Claimed contract, reconcile requirements and refine

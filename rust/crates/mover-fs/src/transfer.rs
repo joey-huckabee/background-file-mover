@@ -263,6 +263,9 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
         }
         hash.update(&buffer[..n]);
         output.write_all(&buffer[..n])?;
+        if total == n as u64 {
+            super::qualification_pause("copy_chunk")?;
+        }
     }
     if total != expected.size || source(&input)? != expected {
         return Err("source changed during copy".into());
@@ -350,6 +353,7 @@ pub fn publish_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     Ok(next)
 }
 pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    super::qualification_pause("publish")?;
     if t.phase != TransferPhase::PublishIntent
         || t.job_id != intent.job_id
         || t.file_index != intent.file_index

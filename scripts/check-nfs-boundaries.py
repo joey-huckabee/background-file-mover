@@ -28,7 +28,10 @@ def main():
                         help="Require startup termination and child exit before NFS restoration")
     parser.add_argument("--qualification-gate", type=Path,
                         help="Also run normal REST transfers with audited NFS qualification artifacts")
+    parser.add_argument("--runtime", action="store_true",
+                        help="Also qualify real Rust worker interruption/outage and coordinator death")
     args = parser.parse_args()
+    assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
@@ -71,12 +74,15 @@ def main():
               "isolated_startup_required": args.isolated_startup,
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
+    report["runtime_requested"] = args.runtime
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
         "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
         "Lock and interrupted metadata probes use OS tools, not Rust claim/copy/publication on NFS.",
         "Service startup rejection is measured; production NFS and source deletion remain disabled.",
     ]
+    if args.runtime:
+        report["limitations"][2] = "Real Rust runtime cases cover selected pause points; source-read/verification interruption, long outages and export changes remain unqualified. Other lock/startup probes use OS tools."
     containers = []
     tasks = []
     network = volume = server = client = None
@@ -174,6 +180,15 @@ def main():
             report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
             if not report["baseline"]["passed"]:
                 raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
+            if args.runtime:
+                from nfs_runtime import run_runtime
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["runtime"] = {"passed": False, "cases": []}
+                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"])
+                report["runtime"]["passed"] = completed["passed"]
+                if not report["runtime"]["passed"]:
+                    raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9</tmp/nfs/source/.file-mover; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")

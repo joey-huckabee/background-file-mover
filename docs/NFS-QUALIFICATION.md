@@ -81,6 +81,14 @@ unmount before removing only its own resources. See [NFS-TEST-FIXTURE.md](NFS-TE
 
 ## Qualification boundary
 
+For deterministic real-worker interruption, add `--runtime` to the fixture
+command above. It requires both passing gate directories and first repeats the
+normal baseline. [Increment 18](RUST-INCREMENT-18.md) explains its claim, partial
+copy, coordinator-death and manifest-intermediate cases and evidence boundaries.
+The qualification-only pause controls are permanent fixture capabilities, have a
+60-second pause budget and require a private local rendezvous directory. Production
+ignores them. Do not set them for ordinary service execution or deployment.
+
 [Increment 17](RUST-INCREMENT-17.md) records the no-clobber rename refusal measured
 on the fixture and the owned link/unlink recovery implementation. Worker diagnostics
 are observations, never authorization to commit an effect or delete retained data.

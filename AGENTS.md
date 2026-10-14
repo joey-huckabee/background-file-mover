@@ -28,8 +28,11 @@ and qualifies startup shutdown; see `docs/RUST-INCREMENT-15.md`.
 Retain the opt-in NFS qualification feature and fixture capability permanently;
 see `docs/NFS-QUALIFICATION.md` and `docs/RUST-INCREMENT-16.md`.
 Increment 17 diagnoses the NFS no-clobber rename refusal and adds owned link/unlink
-recovery; see `docs/RUST-INCREMENT-17.md`. Next qualify Rust runtime interruption,
-coordinator death and stable root/export ownership before enabling NFS. Keep deletion disabled.
+recovery; see `docs/RUST-INCREMENT-17.md`. Increment 18 adds deterministic
+qualification-only pause controls and selected real-worker NFS outage/death cases;
+see `docs/RUST-INCREMENT-18.md`. Next expand source-read/verification and longer
+outage qualification, stable root/export authorization and cross-client ownership.
+Keep production NFS and deletion disabled.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned

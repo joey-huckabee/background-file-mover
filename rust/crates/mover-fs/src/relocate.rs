@@ -94,6 +94,9 @@ fn move_with(
     fs::fsync(&final_fd)?;
     fs::fsync(new)?;
     checkpoint("link_durable");
+    if new_name == "COMMITTED.json" {
+        super::qualification_pause("manifest_link")?;
+    }
     exact(
         &fs::openat(old, old_name, FILE, Mode::empty())?,
         expected,

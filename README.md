@@ -24,6 +24,8 @@ The [retained NFS qualification build](docs/NFS-QUALIFICATION.md) exercises the
 same worker code in an isolated fixture; production NFS remains disabled.
 [Owned no-clobber fallback and diagnostics](docs/RUST-INCREMENT-17.md) resolve
 the fixture's rename refusals and retain explicit interrupted-link recovery.
+[Runtime qualification](docs/RUST-INCREMENT-18.md) now exercises selected Rust
+worker outages, partial-copy recovery and custody after coordinator death.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.
