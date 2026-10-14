@@ -14,6 +14,7 @@ It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
 [audited missing-file deadline reset](docs/RUST-INCREMENT-09.md).
 Read-only [retention accounting](docs/RUST-INCREMENT-10.md) is also implemented.
 Background copy/verification now uses [supervised child workers](docs/RUST-INCREMENT-11.md).
+[Claim and publication operations](docs/RUST-INCREMENT-12.md) now use children too.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

@@ -13,18 +13,213 @@ fn payload_child(
     source: &mover_fs::LocalClaimLock,
     destination: &mover_fs::LocalClaimLock,
 ) -> (Child, std::os::unix::net::UnixStream) {
+    effect_child(source, destination, "--internal-payload-worker")
+}
+fn effect_child(
+    source: &mover_fs::LocalClaimLock,
+    destination: &mover_fs::LocalClaimLock,
+    mode: &str,
+) -> (Child, std::os::unix::net::UnixStream) {
     let (channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
     channel
         .set_read_timeout(Some(Duration::from_secs(5)))
         .unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
-        .arg("--internal-payload-worker")
+        .arg(mode)
         .stdin(Stdio::from(source.inherit().unwrap()))
         .stdout(Stdio::from(destination.inherit().unwrap()))
         .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
         .spawn()
         .unwrap();
     (child, channel)
+}
+fn child_reply(
+    source: &mover_fs::LocalClaimLock,
+    destination: &mover_fs::LocalClaimLock,
+    mode: &str,
+    body: &Value,
+) -> Value {
+    let (mut child, mut channel) = effect_child(source, destination, mode);
+    channel
+        .write_all(&serde_json::to_vec(body).unwrap())
+        .unwrap();
+    channel.shutdown(std::net::Shutdown::Write).unwrap();
+    assert!(child.wait().unwrap().success());
+    let mut bytes = Vec::new();
+    channel.read_to_end(&mut bytes).unwrap();
+    serde_json::from_slice(&bytes).unwrap()
+}
+fn claim_from_wire(c: &Value) -> mover_core::ClaimIntent {
+    let object =
+        |i: usize| mover_core::ObjectIdentity::decode(c["objects"][i].as_str().unwrap()).unwrap();
+    mover_core::ClaimIntent {
+        job_id: c["job_id"].as_i64().unwrap(),
+        file_index: c["file_index"].as_u64().unwrap() as usize,
+        root_path: c["root_path"].as_str().unwrap().into(),
+        source_name: c["source_name"].as_str().unwrap().into(),
+        private_name: c["private_name"].as_str().unwrap().into(),
+        root: object(0),
+        parent: object(1),
+        area: object(2),
+        source: object(3),
+    }
+}
+#[test]
+fn claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply() {
+    let mut f = Fixture::new(300);
+    let input = f.input("child-claim", json!([{"name":"data"}]));
+    assert_eq!(f.post(&input).0, 503);
+    f.stop();
+    f.write("data", b"claim data");
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let guard = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let observed = child_reply(
+        &guard,
+        &guard,
+        "--internal-claim-worker",
+        &json!({"operation":"observe","version":1,"job_id":1,"file_index":0,"root_path":f.root.join("source"),"source_name":"current/data","expected_size":null}),
+    );
+    assert!(observed["error"].is_null());
+    assert_eq!(
+        observed["claim"]["objects"][3]
+            .as_str()
+            .map(mover_core::ObjectIdentity::decode)
+            .unwrap()
+            .unwrap()
+            .size,
+        10
+    );
+    assert!(store.claim_intent(1, 0).unwrap().is_none());
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    store.claim_capacity(10).unwrap();
+    let allocated = child_reply(
+        &guard,
+        &guard,
+        "--internal-claim-worker",
+        &json!({"operation":"allocate","version":1,"claim":observed["claim"]}),
+    );
+    let intent = claim_from_wire(&allocated["claim"]);
+    assert!(store.claim_intent(1, 0).unwrap().is_none());
+    assert!(f.root.join("source/current/data").exists());
+    store.begin_claim(&intent).unwrap();
+    let body = json!({"operation":"apply","version":1,"claim":allocated["claim"]});
+    let first = child_reply(&guard, &guard, "--internal-claim-worker", &body);
+    assert_eq!(claim_from_wire(&first["claim"]), intent);
+    assert_eq!(
+        store.claim_intent(1, 0).unwrap(),
+        Some((intent.clone(), false))
+    );
+    assert!(!f.root.join("source/current/data").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"claim data"
+    );
+    // Discard the first result without an applied database receipt, then reconcile.
+    let replay = child_reply(&guard, &guard, "--internal-claim-worker", &body);
+    assert_eq!(claim_from_wire(&replay["claim"]), intent);
+    store.finish_claim(&intent).unwrap();
+    drop(guard);
+    drop(store);
+    f.write("data", b"producer reuse");
+    f.start();
+    assert_eq!(f.post(&input).0, 202);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reuse"
+    );
+}
+#[test]
+fn claim_child_reports_missing_and_refuses_changed_observation_before_allocation() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let guard = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let body = json!({"operation":"observe","version":1,"job_id":1,"file_index":0,"root_path":f.root.join("source"),"source_name":"current/data","expected_size":null});
+    let missing = child_reply(&guard, &guard, "--internal-claim-worker", &body);
+    assert_eq!(missing["error"], "missing_source");
+    f.write("data", b"old");
+    let observed = child_reply(&guard, &guard, "--internal-claim-worker", &body);
+    f.write("data", b"changed size");
+    let refused = child_reply(
+        &guard,
+        &guard,
+        "--internal-claim-worker",
+        &json!({"operation":"allocate","version":1,"claim":observed["claim"]}),
+    );
+    assert_eq!(refused["error"], "expected_size_mismatch");
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"changed size"
+    );
+}
+#[test]
+fn publication_child_reconciles_file_and_manifest_effects_without_database_receipts() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"publication");
+    assert_eq!(
+        f.post(&f.input("publish-child", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let destination =
+        mover_fs::LocalClaimLock::acquire(f.root.join("destination").to_str().unwrap()).unwrap();
+    let t = mover_fs::prepare_transfer(&store, 1).unwrap();
+    let t = mover_fs::copy_stage(&store, &t).unwrap();
+    let t = mover_fs::verify_stage(&store, &t).unwrap();
+    let mut t = mover_fs::authorize_publication(&store, &t).unwrap();
+    let claim = store.claim_intent(1, 0).unwrap().unwrap().0;
+    for _ in 0..2 {
+        let r = child_reply(
+            &source,
+            &destination,
+            "--internal-payload-worker",
+            &payload_assignment(&t, &claim),
+        );
+        assert_eq!(r["phase"], 4);
+        assert_eq!(r["stage"], t.stage.encode());
+        assert_eq!(store.transfer(1, 0).unwrap(), Some(t.clone()));
+        assert_eq!(
+            std::fs::read(f.root.join("destination/1/data")).unwrap(),
+            b"publication"
+        );
+        assert!(!f.root.join("destination/1/.staging/1.part").exists());
+    }
+    t.phase = mover_core::TransferPhase::Published;
+    store.save_transfer(&t).unwrap();
+    let interrupted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        mover_fs::commit_manifest_with_checkpoints(&store, 1, |point| {
+            if point == "authorized" {
+                panic!("before manifest publication");
+            }
+        })
+        .unwrap();
+    }));
+    assert!(interrupted.is_err());
+    let m = store.manifest(1).unwrap().unwrap();
+    assert_eq!(m.phase, 3);
+    let mut body = payload_assignment(&t, &claim);
+    body["manifest"] = json!({"job_id":m.job_id,"bytes":m.bytes,"sha256":m.sha256,"phase":m.phase,"object":m.object.as_ref().unwrap().encode()});
+    for _ in 0..2 {
+        let r = child_reply(&source, &destination, "--internal-payload-worker", &body);
+        assert_eq!(r["phase"], 4);
+        assert_eq!(r["sha256"], m.sha256);
+        assert_eq!(store.manifest(1).unwrap(), Some(m.clone()));
+        assert!(!store.get(1).unwrap().unwrap().recording.is_committed());
+        assert_eq!(
+            std::fs::read_to_string(f.root.join("destination/1/COMMITTED.json")).unwrap(),
+            m.bytes
+        );
+    }
+    let mut committed = m;
+    committed.phase = 4;
+    store.save_manifest(&committed).unwrap();
+    assert!(store.get(1).unwrap().unwrap().recording.is_committed());
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
 }
 fn payload_assignment(t: &mover_core::Transfer, c: &mover_core::ClaimIntent) -> Value {
     json!({"version":1,"job_id":t.job_id,"file_index":t.file_index,"attempt":t.attempt,"phase":t.phase as i64,
@@ -1069,7 +1264,13 @@ fn wait_manifest(f: &Fixture, id: &str) -> Value {
     let deadline = Instant::now() + Duration::from_secs(15);
     loop {
         if let Ok(bytes) = std::fs::read(&path) {
-            return serde_json::from_slice(&bytes).unwrap();
+            // Consumer visibility can precede the coordinator's applied receipt.
+            // Tests that stop/reopen the service must wait for both boundaries.
+            let manifest = serde_json::from_slice(&bytes).unwrap();
+            let (code, job) = status(f, id);
+            if code == 200 && job["state"] == "Committed" {
+                return manifest;
+            }
         }
         assert!(Instant::now() < deadline, "background commitment timeout");
         std::thread::sleep(Duration::from_millis(50));

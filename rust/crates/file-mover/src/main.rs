@@ -13,6 +13,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return file_mover::payload::worker();
     }
+    if path == "--internal-claim-worker" {
+        if args.next().is_some() {
+            return Err("internal worker takes no arguments".into());
+        }
+        return file_mover::claim_worker::worker();
+    }
     if path == "--transfer-one" {
         let config_path = args.next().ok_or("configuration path required")?;
         let job: i64 = args.next().ok_or("job ID required")?.parse()?;

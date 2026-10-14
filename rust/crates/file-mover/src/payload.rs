@@ -1,5 +1,5 @@
 //! One bounded payload child at a time. SQLite and publication stay in parent.
-use mover_core::{ClaimIntent, ObjectIdentity, Transfer, TransferPhase};
+use mover_core::{ClaimIntent, ManifestRecord, ObjectIdentity, Transfer, TransferPhase};
 use mover_fs::LocalClaimLock;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,6 +12,16 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const REQUEST_LIMIT: usize = 32768;
 const REPLY_LIMIT: u64 = 2048;
+const MANIFEST_LIMIT: usize = 393216;
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ManifestInput {
+    job_id: i64,
+    bytes: String,
+    sha256: String,
+    phase: i64,
+    object: String,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,6 +39,8 @@ struct Assignment {
     source_name: String,
     private_name: String,
     claim_objects: [String; 4],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    manifest: Option<ManifestInput>,
 }
 impl Assignment {
     fn new(t: &Transfer, c: &ClaimIntent) -> Self {
@@ -47,9 +59,10 @@ impl Assignment {
             source_name: c.source_name.clone(),
             private_name: c.private_name.clone(),
             claim_objects: [&c.root, &c.parent, &c.area, &c.source].map(ObjectIdentity::encode),
+            manifest: None,
         }
     }
-    fn decode(self) -> Result<(Transfer, ClaimIntent)> {
+    fn decode(self) -> Result<(Transfer, ClaimIntent, Option<ManifestRecord>)> {
         if self.version != 1
             || self.job_id <= 0
             || self.file_index >= 256
@@ -58,7 +71,12 @@ impl Assignment {
             return Err("invalid payload assignment".into());
         }
         let phase = TransferPhase::decode(self.phase).ok_or("invalid phase")?;
-        if !matches!(phase, TransferPhase::Intent | TransferPhase::Copied) {
+        if !(matches!(
+            phase,
+            TransferPhase::Intent | TransferPhase::Copied | TransferPhase::PublishIntent
+        ) && self.manifest.is_none()
+            || phase == TransferPhase::Published && self.manifest.is_some())
+        {
             return Err("payload operation not permitted".into());
         }
         mover_core::FileSpec::new(&self.relative_name, None)
@@ -76,6 +94,31 @@ impl Assignment {
             .iter()
             .map(|s| ObjectIdentity::decode(s).ok_or("invalid identity"))
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        if phase != TransferPhase::Intent
+            && (objects[4].size != claims[3].size
+                || self.sha256.as_ref().is_none_or(|s| {
+                    s.len() != 64
+                        || !s
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                }))
+        {
+            return Err("invalid copied-file evidence".into());
+        }
+        let manifest = self
+            .manifest
+            .map(|m| -> Result<ManifestRecord> {
+                Ok(ManifestRecord {
+                    job_id: m.job_id,
+                    bytes: m.bytes,
+                    sha256: m.sha256,
+                    phase: m.phase,
+                    object: Some(
+                        ObjectIdentity::decode(&m.object).ok_or("invalid manifest identity")?,
+                    ),
+                })
+            })
+            .transpose()?;
         Ok((
             Transfer {
                 job_id: self.job_id,
@@ -102,6 +145,7 @@ impl Assignment {
                 area: claims[2].clone(),
                 source: claims[3].clone(),
             },
+            manifest,
         ))
     }
 }
@@ -145,12 +189,104 @@ pub(crate) fn run(
     if bytes.len() > REQUEST_LIMIT {
         return Err("payload assignment too large".into());
     }
+    let bytes = exchange(
+        &bytes,
+        "--internal-payload-worker",
+        source,
+        destination,
+        stop,
+        REPLY_LIMIT,
+    )?;
+    let receipt: Receipt = serde_json::from_slice(&bytes)?;
+    let expected_phase = match t.phase {
+        TransferPhase::Intent => TransferPhase::Copied,
+        TransferPhase::Copied => TransferPhase::Verified,
+        TransferPhase::PublishIntent => TransferPhase::Published,
+        _ => return Err("invalid payload phase".into()),
+    };
+    validate_receipt(&receipt, t, expected_phase as i64)?;
+    let mut next = t.clone();
+    next.stage = ObjectIdentity::decode(&receipt.stage).ok_or("invalid stage receipt")?;
+    next.sha256 = receipt.sha256;
+    next.phase = expected_phase;
+    if t.phase != TransferPhase::Intent && (next.stage != t.stage || next.sha256 != t.sha256) {
+        return Err("worker changed copy evidence".into());
+    }
+    source.validate()?;
+    destination.validate()?;
+    Ok(next)
+}
+fn validate_receipt(receipt: &Receipt, t: &Transfer, phase: i64) -> Result<()> {
+    if receipt.version != 1
+        || receipt.job_id != t.job_id
+        || receipt.file_index != t.file_index
+        || receipt.attempt != t.attempt
+        || receipt.phase != phase
+    {
+        return Err("worker receipt does not match assignment".into());
+    }
+    Ok(())
+}
+pub(crate) fn run_manifest(
+    t: &Transfer,
+    c: &ClaimIntent,
+    m: &ManifestRecord,
+    source: &LocalClaimLock,
+    destination: &LocalClaimLock,
+    stop: &AtomicBool,
+) -> Result<ManifestRecord> {
+    source.validate_path(&c.root_path)?;
+    destination.validate_path(&t.destination_root)?;
+    let mut assignment = Assignment::new(t, c);
+    assignment.manifest = Some(ManifestInput {
+        job_id: m.job_id,
+        bytes: m.bytes.clone(),
+        sha256: m.sha256.clone(),
+        phase: m.phase,
+        object: m.object.as_ref().ok_or("missing manifest object")?.encode(),
+    });
+    let bytes = serde_json::to_vec(&assignment)?;
+    if bytes.len() > MANIFEST_LIMIT {
+        return Err("manifest assignment too large".into());
+    }
+    let reply = exchange(
+        &bytes,
+        "--internal-payload-worker",
+        source,
+        destination,
+        stop,
+        REPLY_LIMIT,
+    )?;
+    let receipt: Receipt = serde_json::from_slice(&reply)?;
+    validate_receipt(&receipt, t, 4)?;
+    if receipt.sha256.as_ref() != Some(&m.sha256)
+        || ObjectIdentity::decode(&receipt.stage) != m.object
+    {
+        return Err("manifest receipt changed evidence".into());
+    }
+    source.validate()?;
+    destination.validate()?;
+    let mut next = m.clone();
+    next.phase = 4;
+    Ok(next)
+}
+pub(crate) fn exchange(
+    bytes: &[u8],
+    mode: &str,
+    source: &LocalClaimLock,
+    destination: &LocalClaimLock,
+    stop: &AtomicBool,
+    reply_limit: u64,
+) -> Result<Vec<u8>> {
+    if stop.load(Ordering::Relaxed) {
+        return Err("worker dispatch stopped".into());
+    }
     let (mut channel, child_channel) = UnixStream::pair()?;
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     channel.set_read_timeout(Some(Duration::from_secs(3)))?;
     let mut child = Supervised(
         Command::new(std::env::current_exe()?)
-            .arg("--internal-payload-worker")
+            .arg(mode)
             // These are directory descriptors, not data streams. Inherit the same
             // flock descriptions so coordinator death cannot release custody early.
             .stdin(Stdio::from(source.inherit()?))
@@ -158,7 +294,7 @@ pub(crate) fn run(
             .stderr(Stdio::from(std::os::fd::OwnedFd::from(child_channel)))
             .spawn()?,
     );
-    channel.write_all(&bytes)?;
+    channel.write_all(bytes)?;
     channel.shutdown(std::net::Shutdown::Write)?;
     let mut terminating = false;
     let status = loop {
@@ -175,34 +311,11 @@ pub(crate) fn run(
         return Err("payload child exited without a usable receipt".into());
     }
     let mut bytes = Vec::new();
-    channel.take(REPLY_LIMIT + 1).read_to_end(&mut bytes)?;
-    if bytes.len() as u64 > REPLY_LIMIT {
+    channel.take(reply_limit + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > reply_limit {
         return Err("payload receipt too large".into());
     }
-    let receipt: Receipt = serde_json::from_slice(&bytes)?;
-    let expected_phase = match t.phase {
-        TransferPhase::Intent => TransferPhase::Copied,
-        TransferPhase::Copied => TransferPhase::Verified,
-        _ => return Err("invalid payload phase".into()),
-    };
-    if receipt.version != 1
-        || receipt.job_id != t.job_id
-        || receipt.file_index != t.file_index
-        || receipt.attempt != t.attempt
-        || receipt.phase != expected_phase as i64
-    {
-        return Err("payload receipt does not match assignment".into());
-    }
-    let mut next = t.clone();
-    next.stage = ObjectIdentity::decode(&receipt.stage).ok_or("invalid stage receipt")?;
-    next.sha256 = receipt.sha256;
-    next.phase = expected_phase;
-    if t.phase == TransferPhase::Copied && (next.stage != t.stage || next.sha256 != t.sha256) {
-        return Err("verification changed copy evidence".into());
-    }
-    source.validate()?;
-    destination.validate()?;
-    Ok(next)
+    Ok(bytes)
 }
 
 /// Internal mode: one filesystem assignment over a private socket, no SQLite.
@@ -212,27 +325,46 @@ pub fn worker() -> Result<()> {
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     let mut bytes = Vec::new();
     (&mut channel)
-        .take(REQUEST_LIMIT as u64 + 1)
+        .take(MANIFEST_LIMIT as u64 + 1)
         .read_to_end(&mut bytes)?;
-    if bytes.len() > REQUEST_LIMIT {
+    if bytes.len() > MANIFEST_LIMIT {
         return Err("payload assignment too large".into());
     }
-    let (t, c) = serde_json::from_slice::<Assignment>(&bytes)?.decode()?;
+    let assignment = serde_json::from_slice::<Assignment>(&bytes)?;
+    if assignment.manifest.is_none() && bytes.len() > REQUEST_LIMIT {
+        return Err("payload assignment too large".into());
+    }
+    let (t, c, manifest) = assignment.decode()?;
     mover_fs::validate_payload_locks(&c.root_path, &t.destination_root)?;
-    let next = match t.phase {
-        TransferPhase::Intent => mover_fs::copy_effect(&t, &c)?,
-        TransferPhase::Copied => mover_fs::verify_effect(&t, &c)?,
-        _ => return Err("invalid payload phase".into()),
+    let reply = if let Some(m) = manifest {
+        let next = mover_fs::publish_manifest_effect(&t, &m)?;
+        Receipt {
+            version: 1,
+            job_id: t.job_id,
+            file_index: t.file_index,
+            attempt: t.attempt,
+            phase: next.phase,
+            stage: next.object.ok_or("missing manifest object")?.encode(),
+            sha256: Some(next.sha256),
+        }
+    } else {
+        let next = match t.phase {
+            TransferPhase::Intent => mover_fs::copy_effect(&t, &c)?,
+            TransferPhase::Copied => mover_fs::verify_effect(&t, &c)?,
+            TransferPhase::PublishIntent => mover_fs::publish_effect(&t, &c)?,
+            _ => return Err("invalid payload phase".into()),
+        };
+        Receipt {
+            version: 1,
+            job_id: next.job_id,
+            file_index: next.file_index,
+            attempt: next.attempt,
+            phase: next.phase as i64,
+            stage: next.stage.encode(),
+            sha256: next.sha256,
+        }
     };
-    let reply = serde_json::to_vec(&Receipt {
-        version: 1,
-        job_id: next.job_id,
-        file_index: next.file_index,
-        attempt: next.attempt,
-        phase: next.phase as i64,
-        stage: next.stage.encode(),
-        sha256: next.sha256,
-    })?;
+    let reply = serde_json::to_vec(&reply)?;
     if reply.len() as u64 > REPLY_LIMIT {
         return Err("payload receipt too large".into());
     }

@@ -54,12 +54,14 @@ pub fn destination_unavailable(path: &str) -> bool {
         Err(ClaimError::Io(Errno::NOENT))
     )
 }
+pub use manifest::publish_manifest_effect;
 pub use transfer::{
     authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
     transfer_one, verify_stage,
 };
 pub use transfer::{copy_effect, deliver_recording_with_payload, verify_effect};
 pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
+pub use transfer::{deliver_recording_with_workers, publish_effect};
 
 fn observation(s: &Stat) -> ObjectIdentity {
     ObjectIdentity {
@@ -228,9 +230,32 @@ fn prepare_checked(store: Option<&Store>, job: &Accepted, index: usize) -> Resul
             file.relative_path()
         )
     };
-    let root = root(&job.context.source_root_path)?;
+    let observation = observe_claim(
+        job.job_id,
+        index,
+        &job.context.source_root_path,
+        &source_name,
+        file.expected_size(),
+    )?;
+    if let Some(store) = store {
+        store.claim_capacity(observation.source.size)?;
+    }
+    allocate_claim(&observation)
+}
+/// Observation only: area describes the namespace until allocation.
+pub fn observe_claim(
+    job_id: i64,
+    index: usize,
+    root_path: &str,
+    source_name: &str,
+    expected_size: Option<u64>,
+) -> Result<ClaimIntent> {
+    if job_id <= 0 || index >= 256 {
+        return Err(ClaimError::Blocked("invalid claim assignment"));
+    }
+    let root = root(root_path)?;
     let namespace = namespace(&root)?;
-    let (parent, name) = parent(&root, &source_name).map_err(|error| match error {
+    let (parent, name) = parent(&root, source_name).map_err(|error| match error {
         ClaimError::Io(Errno::NOENT) => ClaimError::MissingSource,
         other => other,
     })?;
@@ -245,29 +270,45 @@ fn prepare_checked(store: Option<&Store>, job: &Accepted, index: usize) -> Resul
     if source.device != fs::fstat(&root)?.st_dev {
         return Err(ClaimError::Blocked("cross-device source"));
     }
-    if file.expected_size().is_some_and(|n| n != source.size) {
+    if expected_size.is_some_and(|n| n != source.size) {
         return Err(ClaimError::ExpectedSizeMismatch);
     }
-    if let Some(store) = store {
-        store.claim_capacity(source.size)?;
+    Ok(ClaimIntent {
+        job_id,
+        file_index: index,
+        root_path: root_path.into(),
+        source_name: source_name.into(),
+        private_name: format!("{job_id}-{index}"),
+        root: owned_directory(&root, false)?,
+        parent: owned_directory(&parent, false)?,
+        area: owned_directory(&namespace, true)?,
+        source,
+    })
+}
+pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
+    let fresh = observe_claim(
+        observed.job_id,
+        observed.file_index,
+        &observed.root_path,
+        &observed.source_name,
+        Some(observed.source.size),
+    )?;
+    if fresh != *observed {
+        return Err(ClaimError::Blocked(
+            "claim observation changed before allocation",
+        ));
     }
-    let private_name = format!("{}-{index}", job.job_id);
+    let root = root(&observed.root_path)?;
+    let namespace = namespace(&root)?;
+    let private_name = &observed.private_name;
     fs::mkdirat(&namespace, private_name.as_str(), Mode::RWXU)?;
     let area = fs::openat(&namespace, private_name.as_str(), DIRECTORY, Mode::empty())?;
     fs::fsync(&area)?;
     fs::fsync(&namespace)?;
     fs::fsync(&root)?;
-    Ok(ClaimIntent {
-        job_id: job.job_id,
-        file_index: index,
-        root_path: job.context.source_root_path.clone(),
-        source_name,
-        private_name,
-        root: owned_directory(&root, false)?,
-        parent: owned_directory(&parent, false)?,
-        area: owned_directory(&area, true)?,
-        source,
-    })
+    let mut allocated = observed.clone();
+    allocated.area = owned_directory(&area, true)?;
+    Ok(allocated)
 }
 
 /// Apply or reconcile a COMMITTED intent. Caller must fence all other workers.
@@ -279,6 +320,10 @@ pub fn apply(store: &Store, intent: &ClaimIntent) -> Result<()> {
             "matching committed unfinished intent required",
         ));
     }
+    apply_claim_effect(intent)
+}
+/// Caller must persist the exact unfinished intent before assigning this effect.
+pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
     if intent.private_name != format!("{}-{}", intent.job_id, intent.file_index) {
         return Err(ClaimError::Blocked("invalid operation name"));
     }

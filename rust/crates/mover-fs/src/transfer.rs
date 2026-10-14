@@ -291,7 +291,24 @@ pub fn authorize_publication(store: &Store, t: &Transfer) -> TransferResult<Tran
 }
 pub fn publish_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     matching(store, t, TransferPhase::PublishIntent)?;
-    claimed(store, t.job_id, t.file_index)?;
+    let (intent, done) = store
+        .claim_intent(t.job_id, t.file_index)?
+        .ok_or("missing claim")?;
+    if !done {
+        return Err("claim incomplete".into());
+    }
+    let next = publish_effect(t, &intent)?;
+    store.save_transfer(&next)?;
+    Ok(next)
+}
+pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    if t.phase != TransferPhase::PublishIntent
+        || t.job_id != intent.job_id
+        || t.file_index != intent.file_index
+    {
+        return Err("invalid publication assignment".into());
+    }
+    claimed_intent(intent)?;
     let (_, _, staging, parent, name) = directories(t)?;
     let stage_name = format!("{}.part", t.attempt);
     let fd = match fs::openat(&parent, name.as_str(), FILE, Mode::empty()) {
@@ -338,7 +355,6 @@ pub fn publish_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
     fs::fsync(&parent)?;
     let mut next = t.clone();
     next.phase = TransferPhase::Published;
-    store.save_transfer(&next)?;
     Ok(next)
 }
 pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
@@ -356,6 +372,7 @@ fn transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfe
     transfer_file_with_payload(store, id, index, &mut |t, intent| match t.phase {
         TransferPhase::Intent => copy_effect(t, intent),
         TransferPhase::Copied => verify_effect(t, intent),
+        TransferPhase::PublishIntent => publish_effect(t, intent),
         _ => Err("invalid payload phase".into()),
     })
 }
@@ -380,7 +397,7 @@ fn transfer_file_with_payload(
         t = authorize_publication(store, &t)?;
     }
     if t.phase == TransferPhase::PublishIntent {
-        t = publish_stage(store, &t)?;
+        t = run_payload(store, &t, payload)?;
     }
     if t.phase == TransferPhase::Published {
         claimed(store, id, index)?;
@@ -422,6 +439,7 @@ pub fn deliver_recording_with_guard(
     deliver_recording_with_payload(store, id, guard, |t, intent, _| match t.phase {
         TransferPhase::Intent => copy_effect(t, intent),
         TransferPhase::Copied => verify_effect(t, intent),
+        TransferPhase::PublishIntent => publish_effect(t, intent),
         _ => Err("invalid payload phase".into()),
     })
 }
@@ -431,6 +449,21 @@ pub fn deliver_recording_with_payload(
     id: i64,
     guard: &LocalClaimLock,
     mut payload: impl FnMut(&Transfer, &ClaimIntent, &LocalClaimLock) -> TransferResult<Transfer>,
+) -> TransferResult<()> {
+    deliver_recording_with_workers(store, id, guard, &mut payload, |t, m, _| {
+        super::manifest::publish_manifest_effect(t, m)
+    })
+}
+pub fn deliver_recording_with_workers(
+    store: &Store,
+    id: i64,
+    guard: &LocalClaimLock,
+    mut payload: impl FnMut(&Transfer, &ClaimIntent, &LocalClaimLock) -> TransferResult<Transfer>,
+    mut publication: impl FnMut(
+        &Transfer,
+        &mover_core::ManifestRecord,
+        &LocalClaimLock,
+    ) -> TransferResult<mover_core::ManifestRecord>,
 ) -> TransferResult<()> {
     let job = store.get(id)?.ok_or("unknown job")?;
     guard.validate_path(&job.context.source_root_path)?;
@@ -444,6 +477,8 @@ pub fn deliver_recording_with_payload(
             payload(t, intent, &destination)
         })?;
     }
-    super::manifest::commit_manifest(store, id)?;
+    super::manifest::commit_manifest_with_publication(store, id, |t, m| {
+        publication(t, m, &destination)
+    })?;
     Ok(())
 }

@@ -92,6 +92,26 @@ pub fn commit_manifest_with_checkpoints(
     id: i64,
     mut checkpoint: impl FnMut(&'static str),
 ) -> ManifestResult<ManifestRecord> {
+    commit_with_workers(store, id, &mut checkpoint, None)
+}
+type Publisher<'a> =
+    &'a mut dyn FnMut(&mover_core::Transfer, &ManifestRecord) -> ManifestResult<ManifestRecord>;
+pub fn commit_manifest_with_publication(
+    store: &Store,
+    id: i64,
+    mut publication: impl FnMut(
+        &mover_core::Transfer,
+        &ManifestRecord,
+    ) -> ManifestResult<ManifestRecord>,
+) -> ManifestResult<ManifestRecord> {
+    commit_with_workers(store, id, &mut |_| {}, Some(&mut publication))
+}
+fn commit_with_workers(
+    store: &Store,
+    id: i64,
+    checkpoint: &mut impl FnMut(&'static str),
+    publication: Option<Publisher<'_>>,
+) -> ManifestResult<ManifestRecord> {
     let (bytes, area, staging) = expected(store, id)?;
     let sha256 = format!("{:x}", Sha256::digest(bytes.as_bytes()));
     let mut m = match store.manifest(id)? {
@@ -176,39 +196,21 @@ pub fn commit_manifest_with_checkpoints(
         checkpoint("authorized");
     }
     if m.phase == 3 {
-        let fd = match fs::openat(&area, "COMMITTED.json", FILE, Mode::empty()) {
-            Ok(fd) => {
-                if !matches!(
-                    fs::statat(&staging, "COMMITTED.part", AtFlags::SYMLINK_NOFOLLOW),
-                    Err(Errno::NOENT)
-                ) {
-                    return Err("manifest collision or ambiguous effect".into());
-                }
-                fd
+        m = if let Some(publication) = publication {
+            let anchor = store.transfer(id, 0)?.ok_or("missing manifest anchor")?;
+            let next = publication(&anchor, &m)?;
+            if next.job_id != m.job_id
+                || next.bytes != m.bytes
+                || next.sha256 != m.sha256
+                || next.object != m.object
+                || next.phase != 4
+            {
+                return Err("invalid manifest publication receipt".into());
             }
-            Err(Errno::NOENT) => {
-                let mut file =
-                    File::from(fs::openat(&staging, "COMMITTED.part", FILE, Mode::empty())?);
-                read_exact_manifest(&mut file, &m)?;
-                fs::renameat_with(
-                    &staging,
-                    "COMMITTED.part",
-                    &area,
-                    "COMMITTED.json",
-                    RenameFlags::NOREPLACE,
-                )?;
-                checkpoint("rename_effect");
-                fs::openat(&area, "COMMITTED.json", FILE, Mode::empty())?
-            }
-            Err(e) => return Err(e.into()),
+            next
+        } else {
+            publish_manifest_in_directories(&area, &staging, &m, checkpoint)?
         };
-        let mut file = File::from(fd);
-        read_exact_manifest(&mut file, &m)?;
-        file.sync_all()?;
-        fs::fsync(&staging)?;
-        fs::fsync(&area)?;
-        checkpoint("publication_sync");
-        m.phase = 4;
         store.save_manifest(&m)?;
         checkpoint("committed");
     } else if m.phase == 4 {
@@ -216,4 +218,61 @@ pub fn commit_manifest_with_checkpoints(
         read_exact_manifest(&mut file, &m)?;
     }
     Ok(m)
+}
+pub fn publish_manifest_effect(
+    t: &mover_core::Transfer,
+    m: &ManifestRecord,
+) -> ManifestResult<ManifestRecord> {
+    if t.phase != TransferPhase::Published
+        || t.file_index != 0
+        || t.job_id != m.job_id
+        || m.phase != 3
+        || m.bytes.len() > 131072
+        || format!("{:x}", Sha256::digest(m.bytes.as_bytes())) != m.sha256
+    {
+        return Err("invalid manifest publication assignment".into());
+    }
+    let (_, area, staging, _, _) = super::transfer::directories(t)?;
+    publish_manifest_in_directories(&area, &staging, m, &mut |_| {})
+}
+fn publish_manifest_in_directories(
+    area: &OwnedFd,
+    staging: &OwnedFd,
+    m: &ManifestRecord,
+    checkpoint: &mut impl FnMut(&'static str),
+) -> ManifestResult<ManifestRecord> {
+    let fd = match fs::openat(area, "COMMITTED.json", FILE, Mode::empty()) {
+        Ok(fd) => {
+            if !matches!(
+                fs::statat(staging, "COMMITTED.part", AtFlags::SYMLINK_NOFOLLOW),
+                Err(Errno::NOENT)
+            ) {
+                return Err("manifest collision or ambiguous effect".into());
+            }
+            fd
+        }
+        Err(Errno::NOENT) => {
+            let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
+            read_exact_manifest(&mut file, m)?;
+            fs::renameat_with(
+                staging,
+                "COMMITTED.part",
+                area,
+                "COMMITTED.json",
+                RenameFlags::NOREPLACE,
+            )?;
+            checkpoint("rename_effect");
+            fs::openat(area, "COMMITTED.json", FILE, Mode::empty())?
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let mut file = File::from(fd);
+    read_exact_manifest(&mut file, m)?;
+    file.sync_all()?;
+    fs::fsync(staging)?;
+    fs::fsync(area)?;
+    checkpoint("publication_sync");
+    let mut next = m.clone();
+    next.phase = 4;
+    Ok(next)
 }

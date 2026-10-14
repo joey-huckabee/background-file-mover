@@ -1,4 +1,5 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
+pub mod claim_worker;
 mod http;
 pub mod payload;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
@@ -269,7 +270,7 @@ impl Worker {
                                     }
                                     continue;
                                 }
-                                if let Err(error) = mover_fs::deliver_recording_with_payload(
+                                if let Err(error) = mover_fs::deliver_recording_with_workers(
                                     &delivery_store,
                                     id,
                                     &delivery_guard,
@@ -277,6 +278,22 @@ impl Worker {
                                         payload::run(
                                             t,
                                             intent,
+                                            &delivery_guard,
+                                            destination,
+                                            &delivery_stop,
+                                        )
+                                    },
+                                    |t, m, destination| {
+                                        let (intent, done) = delivery_store
+                                            .claim_intent(t.job_id, 0)?
+                                            .ok_or("missing manifest claim")?;
+                                        if !done {
+                                            return Err("incomplete manifest claim".into());
+                                        }
+                                        payload::run_manifest(
+                                            t,
+                                            &intent,
+                                            m,
                                             &delivery_guard,
                                             destination,
                                             &delivery_stop,
@@ -300,11 +317,12 @@ impl Worker {
                 }
             })?;
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
+        let claim_stop = stop.clone();
         let thread = match std::thread::Builder::new()
             .name("mover-local-claim".into())
             .spawn(move || {
                 while let Ok((submission, context, reply)) = receiver.recv() {
-                    let result = process(&store, &guard, &submission, &context);
+                    let result = process(&store, &guard, &claim_stop, &submission, &context);
                     let _ = reply.send(result); // Lost response never rolls back a claim.
                 }
             }) {
@@ -344,6 +362,7 @@ impl Drop for Worker {
 fn process(
     store: &Store,
     guard: &mover_fs::LocalClaimLock,
+    stop: &AtomicBool,
     s: &Submission,
     c: &AcceptanceContext,
 ) -> Response {
@@ -369,7 +388,7 @@ fn process(
             Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
         }
         for i in 0..s.files().len() {
-            match mover_fs::claim(store, job.job_id, i) {
+            match claim_worker::claim(store, guard, stop, job.job_id, i) {
                 Ok(updated) => job = updated,
                 Err(mover_fs::ClaimError::MissingSource) => {
                     return match store.note_missing(job.job_id, i, now()) {

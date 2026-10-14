@@ -10,8 +10,9 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Extend supervised payload children to claim, allocation, publication and
-  reconciliation effects, preserving one SQLite owner and bounded assignments.
+- [ ] Isolate remaining destination staging allocation/restart, manifest allocation/
+  writing/initial verification and custody/root checks/reconciliation reads,
+  preserving one SQLite owner and bounded assignments.
   Qualify worker exit, coordinator death, lock inheritance and uncertain outcomes
   before enabling controlled NFS transfers.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
@@ -28,7 +29,7 @@ before implementation.
 - [ ] Extend the local claim slice for production: persisted namespace-allocation
   intent/orphan reconciliation, stable instance/root/mount authorization, filesystem
   capability qualification and link/unlink fallback where NOREPLACE is unavailable.
-  Add process supervision/fencing before remote claims; do not enable NFS yet.
+  Qualify process supervision/fencing before remote claims; do not enable NFS yet.
 - [ ] Decide which dashboard and integration scenarios to reuse from
   [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
   [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).

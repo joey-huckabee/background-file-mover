@@ -176,8 +176,11 @@ The user approved deferring offline inspection and repair at the completed
 increment-10 boundary. Prioritize worker isolation and controlled NFS testing;
 use that evidence to decide which additional operator tools are necessary.
 [Increment 11](RUST-INCREMENT-11.md) isolates background copying and verification
-in supervised children without giving those children database access. Extend
-isolation to the remaining filesystem effects before enabling NFS. Preserve
+in supervised children without giving those children database access.
+[Increment 12](RUST-INCREMENT-12.md) adds source observation/allocation/claiming
+and file/completion-manifest publication children. Isolate remaining destination
+allocation, manifest writing/initial verification and custody/reconciliation reads
+before enabling controlled NFS transfers. Preserve
 [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
 prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount

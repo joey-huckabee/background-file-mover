@@ -35,8 +35,10 @@ accounting; [the repair contract](../docs/RETENTION-REPAIR-DESIGN.md) defines
 prerequisites for later inspection and repair effects, now deferred by the user.
 [Increment 11](../docs/RUST-INCREMENT-11.md) runs background copying and verification
 in bounded child processes of the same executable. SQLite remains in the parent;
-claims/publication are still local threads. Further worker isolation and controlled
-NFS qualification come next, before enabling NFS or source deletion.
+[increment 12](../docs/RUST-INCREMENT-12.md) adds observation/allocation/claiming
+and file/manifest publication children. Isolate remaining destination allocation,
+manifest writing/initial verification and custody reads before controlled NFS
+qualification. Keep NFS and source deletion disabled.
 Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
