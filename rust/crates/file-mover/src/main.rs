@@ -7,6 +7,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Some(path) = args.next() else {
         return Err("usage: file-mover CONFIG.json | --check-platform".into());
     };
+    if path == "--internal-bootstrap-worker" {
+        if args.next().is_some() {
+            return Err("internal worker takes no arguments".into());
+        }
+        return file_mover::bootstrap::worker();
+    }
     if path == "--internal-payload-worker" {
         if args.next().is_some() {
             return Err("internal worker takes no arguments".into());
@@ -73,7 +79,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             });
             let listener = tokio::net::TcpListener::bind(config.bind).await?;
-            println!("Listening on {}", listener.local_addr()?);
             file_mover::serve(listener, config, stop).await
         })
 }

@@ -8,7 +8,7 @@ license.workspace = true
 [dependencies]
 mover-core = { path = "../mover-core" }
 mover-store = { path = "../mover-store" }
-rustix = { version = "=1.1.5", default-features = false, features = ["std", "fs", "process"] }
+rustix = { version = "=1.1.5", default-features = false, features = ["std", "fs", "process", "net"] }
 sha2 = { version = "=0.10.9", default-features = false, features = ["std", "force-soft"] }
 serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
 serde_json = { version = "=1.0.154", default-features = false, features = ["std"] }

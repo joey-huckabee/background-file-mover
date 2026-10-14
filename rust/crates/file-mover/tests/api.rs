@@ -10,6 +10,132 @@ use std::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
+fn stopped_startup_exits_cleanly_without_source_or_database_access() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let source = f.root.join("absent-source");
+    let database = f.root.join("absent-state/jobs.sqlite");
+    let config: file_mover::Config = serde_json::from_value(json!({
+        "bind":"127.0.0.1:0","generator_id":"recorder","source_root":source,
+        "destination_root":f.root.join("destination"),"state_database":database
+    }))
+    .unwrap();
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            file_mover::serve(
+                listener,
+                config,
+                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            )
+            .await
+            .unwrap();
+        });
+    assert!(!source.exists());
+    assert!(!database.exists());
+}
+fn bootstrap_child(body: &Value) -> (Child, std::os::unix::net::UnixStream) {
+    let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+    let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--internal-bootstrap-worker")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+        .spawn()
+        .unwrap();
+    channel
+        .write_all(&serde_json::to_vec(body).unwrap())
+        .unwrap();
+    channel.shutdown(std::net::Shutdown::Write).unwrap();
+    (child, channel)
+}
+#[test]
+fn bootstrap_transfers_the_locked_description_without_reopening_source() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("source").to_str().unwrap().to_owned();
+    let (mut child, channel) = bootstrap_child(&json!({"version":1,"source_root":path}));
+    let mut receiver = mover_fs::BootstrapReceiver::default();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let lock = loop {
+        if let Some(lock) = receiver.poll(&channel, &path).unwrap() {
+            break lock;
+        }
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    assert!(child.wait().unwrap().success());
+    lock.validate().unwrap();
+    assert!(mover_fs::LocalClaimLock::acquire(&path).is_err());
+    let inherited = lock.inherit().unwrap();
+    drop(lock);
+    assert!(mover_fs::LocalClaimLock::acquire(&path).is_err());
+    drop(inherited);
+    assert!(mover_fs::LocalClaimLock::acquire(&path).is_ok());
+}
+#[test]
+fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("source").to_str().unwrap().to_owned();
+    for body in [
+        json!({"version":2,"source_root":path}),
+        json!({"version":1,"source_root":path,"unexpected":true}),
+        json!({"version":1,"source_root":"x".repeat(17000)}),
+    ] {
+        let (mut child, channel) = bootstrap_child(&body);
+        assert!(!child.wait().unwrap().success());
+        let mut receiver = mover_fs::BootstrapReceiver::default();
+        loop {
+            match receiver.poll(&channel, &path) {
+                Err(_) => break,
+                Ok(None) => {}
+                Ok(Some(_)) => panic!("invalid bootstrap received custody"),
+            }
+        }
+    }
+    let (mut child, channel) = bootstrap_child(&json!({"version":1,"source_root":path}));
+    assert!(child.wait().unwrap().success());
+    let mut receiver = mover_fs::BootstrapReceiver::default();
+    loop {
+        match receiver.poll(&channel, "/another/source") {
+            Err(_) => break,
+            Ok(None) => {}
+            Ok(Some(_)) => panic!("wrong scope received custody"),
+        }
+    }
+    drop(receiver);
+    drop(channel);
+    assert!(mover_fs::LocalClaimLock::acquire(&path).is_ok());
+}
+#[test]
+fn startup_contention_never_announces_readiness_or_opens_sqlite() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let _held = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let fresh = f.root.join("fresh-state");
+    std::fs::create_dir(&fresh).unwrap();
+    std::fs::set_permissions(&fresh, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let config_path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    config["state_database"] = json!(fresh.join("jobs.sqlite"));
+    std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg(config_path)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        !String::from_utf8(output.stdout)
+            .unwrap()
+            .contains("Ready on")
+    );
+    assert!(!fresh.join("jobs.sqlite").exists());
+}
+#[test]
 fn delivery_session_large_manifest_returns_metadata_only_receipts() {
     let mut f = Fixture::new(300);
     f.write("data", b"large manifest");

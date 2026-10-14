@@ -24,6 +24,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("gate", type=Path, help="Passing rust/validation run directory")
     parser.add_argument("--connection", default="podman-machine-default-root")
+    parser.add_argument("--isolated-startup", action="store_true",
+                        help="Require startup termination and child exit before NFS restoration")
     args = parser.parse_args()
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
@@ -48,7 +50,9 @@ def main():
     label = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     output = ROOT / "rust/validation" / ("nfs-" + label)
     output.mkdir()
-    report = {"status": "FAILED", "gate": gate.name, "runtime": CONFIG["runtime"],
+    report = {"status": "FAILED", "run_id": "nfs-" + label,
+              "isolated_startup_required": args.isolated_startup,
+              "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
@@ -74,7 +78,7 @@ def main():
 
     def spawn(script, name):
         log = (output / (name + ".log")).open("w", encoding="utf-8")
-        process = subprocess.Popen(engine + ["exec", "--user", "1000:1000", client,
+        process = subprocess.Popen(engine + ["exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", client,
                                    "/bin/sh", "-eu", "-c", script], stdout=log, stderr=log)
         tasks.append((process, log))
         return process
@@ -176,8 +180,22 @@ def main():
         time.sleep(3)
         assert startup.poll() is None, "startup unexpectedly returned during outage"
         assert interrupted.poll() is None, "assigned hard-mount operation unexpectedly returned"
+        if args.isolated_startup:
+            children = execute("pid=$(cat /tmp/local/startup.pid); for task in /proc/$pid/task/*/children; do cat $task; done", "1000:1000").stdout.split()
+            assert len(children) == 1, "startup must have exactly one bounded bootstrap child"
+            report["checks"]["bootstrap_children_before_signal"] = len(children)
+            # A TCP listener may exist, but no HTTP readiness is served yet.
+            health = spawn("exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19876; printf \"GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3; cat <&3'", "startup-health")
+            time.sleep(1)
+            assert health.poll() is None, "startup served an HTTP response before custody"
         execute("kill -TERM $(cat /tmp/local/startup.pid)", "1000:1000")
         time.sleep(1)
+        if args.isolated_startup:
+            assert startup.wait(timeout=5) == 0
+            assert execute("test ! -e /proc/" + children[0], "1000:1000", check=False).returncode == 0
+            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            health.wait(timeout=5)
+            report["checks"]["isolated_startup"] = "SIGTERM ended service and confirmed bootstrap child exit before server restoration; no SQLite or readiness"
         report["checks"]["startup_sigterm"] = {"exit_observed_before_restore": startup.poll() is not None}
         execute("kill -KILL $(cat /tmp/local/interrupted.pid)", "1000:1000")
         time.sleep(1)
@@ -185,15 +203,20 @@ def main():
         report["checks"]["outage"] = "Metadata and source startup remained pending at 3-second observations"
         restore()
         assert probe.wait(timeout=45) == 0
-        assert startup.wait(timeout=45) != 0
+        assert (startup.wait(timeout=45) == 0) == args.isolated_startup
         assert interrupted.wait(timeout=45) != 0
         assert execute("flock -xn /tmp/nfs/source/.file-mover true", "1000:1000", check=False).returncode == 0
         for _, log in tasks:
             log.flush()
         assert (output / "outage-stat.log").read_text() == before
         report["root_identity_after"] = (output / "outage-stat.log").read_text().splitlines()
-        assert "filesystem not qualified" in (output / "outage-startup.log").read_text()
-        report["checks"]["restored"] = "Stable root/namespace identity; pending startup resumed and rejected NFS"
+        startup_log = (output / "outage-startup.log").read_text()
+        assert "Ready on" not in startup_log
+        if args.isolated_startup:
+            assert "Source bootstrap termination requested" in startup_log
+        else:
+            assert "filesystem not qualified" in startup_log
+        report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
         report["status"] = "PASSED"
     except Exception as error:
         report["error"] = str(error)

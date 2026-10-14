@@ -183,9 +183,11 @@ and file/completion-manifest publication children.
 staging allocation/restarts, manifest steps and custody checks in recording
 sessions. Source replay scope checks also run in children.
 [Increment 14](RUST-INCREMENT-14.md) measures hard-mount startup blocking,
-inherited lock lifetime and metadata interruption/recovery. Next isolate source
-singleton bootstrap and readiness/shutdown, then qualify Rust worker effects and
-stable root/export ownership before enabling NFS. Preserve
+inherited lock lifetime and metadata interruption/recovery.
+[Increment 15](RUST-INCREMENT-15.md) isolates source singleton bootstrap, transfers
+the locked descriptor and qualifies startup shutdown before NFS restoration.
+Next qualify Rust worker effects and stable root/export ownership before enabling
+NFS. Preserve
 [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for future repair
 prerequisites, leaving registration deferred and deletion disabled.
 Production namespace/mount

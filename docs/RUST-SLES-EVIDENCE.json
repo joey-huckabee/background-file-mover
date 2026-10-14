@@ -23,7 +23,7 @@
       "artifacts": [
         {
           "name": "debug-0-file-mover",
-          "sha256": "221e38a1a10ec28864839b165f62406f347fed357d4a41e162dbd85d796afa18",
+          "sha256": "836dfc132c7f44576ca692fd3658614be8b7e67817adf014e6556ca4cc3406d2",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -54,8 +54,40 @@
           }
         },
         {
-          "name": "debug-1-api-1d3d79cf3f824c76",
-          "sha256": "6b8884a0800662506f265facc4131ff30ede57d260125aca8b98b619d11320dc",
+          "name": "debug-1-api-9e9a98b9f3a37552",
+          "sha256": "04999ae4f718dc9ccfcf023110c8deebbf0fdace4909b047606ef0a42c9eec4e",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "debug-2-claim-1bc6ce55d5e23cdb",
+          "sha256": "1c5aff6d7ea118ce42be8a7bd052ca09c98005ef15008019cc338243739d26a3",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -83,37 +115,8 @@
           }
         },
         {
-          "name": "debug-2-claim-439649ac93547498",
-          "sha256": "7c7e1751d043259388ec33d7083ca304411b48f2842fe553864c9bc00c816d2c",
-          "test": true,
-          "elf": {
-            "interpreter": "/lib64/ld-linux-x86-64.so.2",
-            "libraries": [
-              "ld-linux-x86-64.so.2",
-              "libc.so.6",
-              "libdl.so.2",
-              "libm.so.6",
-              "libpthread.so.0"
-            ],
-            "versions": [
-              "GLIBC_2.12",
-              "GLIBC_2.14",
-              "GLIBC_2.15",
-              "GLIBC_2.16",
-              "GLIBC_2.17",
-              "GLIBC_2.18",
-              "GLIBC_2.2.5",
-              "GLIBC_2.3",
-              "GLIBC_2.3.4",
-              "GLIBC_2.4",
-              "GLIBC_2.9"
-            ],
-            "maximum_glibc": "GLIBC_2.18"
-          }
-        },
-        {
-          "name": "debug-3-file_mover-0d2ff4ab9e35a9db",
-          "sha256": "d61d48465a41aa0fcb1ab14fa608a12ffc61cb362f94f5c5e1279cf2fd2ebf5b",
+          "name": "debug-3-file_mover-a5cd33e84acce562",
+          "sha256": "776a200960431879f2dbec6f672bdeb3e737c66af5f68cc3d5495f22c4788f37",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -139,8 +142,8 @@
           }
         },
         {
-          "name": "debug-4-file_mover-4a573b458c29aed6",
-          "sha256": "59849f2d8073b7b725676cffc9ae35c319288672757026630307d610b75e989f",
+          "name": "debug-4-file_mover-f5f392fe5e977e13",
+          "sha256": "84922c758842ac94875a9d2284f077efc5e9d07869aa26d4911782c50384ea0c",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -193,8 +196,8 @@
           }
         },
         {
-          "name": "debug-6-mover_fs-fd3766ef33b67cc6",
-          "sha256": "36fd9c9d6c5b0c6402f8f83edc8e4730ae6444243aa6d38ede2b95512521a59c",
+          "name": "debug-6-mover_fs-76067a61525f3edc",
+          "sha256": "140505c53dc241ee1f2f714d07b7c20864276c37e52763789d8cccafe616f545",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -276,8 +279,8 @@
           }
         },
         {
-          "name": "debug-9-transfer-b332c7197e88943b",
-          "sha256": "3229e31f57ecd0d22e9ca7ee25eb8d624929aebbad4a88c3276ccbcac86d6df9",
+          "name": "debug-9-transfer-e3e9e81001ebdece",
+          "sha256": "eb756973cc408d422e7d20af9c2ad23b20c03bb8bf4fa94747fe8d21c8113635",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -306,13 +309,13 @@
           }
         }
       ],
-      "tests_passed": 98
+      "tests_passed": 104
     },
     "release": {
       "artifacts": [
         {
           "name": "release-0-file-mover",
-          "sha256": "3744425b6f5a98ee519453155af2af0ab5bd92b97635b1ac4a0e439eabec623b",
+          "sha256": "667ab41b0e123af595c91ecdb54e858d1557b232e0fb337eab4a1639b826c673",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -342,8 +345,40 @@
           }
         },
         {
-          "name": "release-1-api-ad45ef01692eb53d",
-          "sha256": "2a2792f5ceecef56481819a89809a234c516b5960ee9095b9a5acce92842bcf5",
+          "name": "release-1-api-7dc921785a7e3692",
+          "sha256": "36e12e26c9783c9bf010930713dd2b5234bcc31bb8eca0a7e5ad78310526fad7",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "release-2-claim-1c36f3441aefbe77",
+          "sha256": "9543da8e8869669bc3aba84fd9a5a1432a2cac6e5b1161de0fc8b74c6fedc7e9",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -371,8 +406,8 @@
           }
         },
         {
-          "name": "release-2-claim-bd6525fdb6f3e613",
-          "sha256": "9344b1adaffc66fe9c3d260c1e167e04be9dd66c93e8e2708aa177b3b6792b94",
+          "name": "release-3-file_mover-74fdb244086073b3",
+          "sha256": "b43e9443d22c4b6cc054045c5101ca48262d41b88e2c541b06b6b7cf9d32cee2",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -380,7 +415,6 @@
               "ld-linux-x86-64.so.2",
               "libc.so.6",
               "libdl.so.2",
-              "libm.so.6",
               "libpthread.so.0"
             ],
             "versions": [
@@ -393,42 +427,14 @@
               "GLIBC_2.2.5",
               "GLIBC_2.3",
               "GLIBC_2.3.4",
-              "GLIBC_2.4",
               "GLIBC_2.9"
             ],
             "maximum_glibc": "GLIBC_2.18"
           }
         },
         {
-          "name": "release-3-file_mover-e2ff7f8c298f7ee7",
+          "name": "release-4-file_mover-79b07619b2c34dda",
           "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
-          "test": true,
-          "elf": {
-            "interpreter": "/lib64/ld-linux-x86-64.so.2",
-            "libraries": [
-              "ld-linux-x86-64.so.2",
-              "libc.so.6",
-              "libdl.so.2",
-              "libpthread.so.0"
-            ],
-            "versions": [
-              "GLIBC_2.12",
-              "GLIBC_2.14",
-              "GLIBC_2.15",
-              "GLIBC_2.16",
-              "GLIBC_2.17",
-              "GLIBC_2.18",
-              "GLIBC_2.2.5",
-              "GLIBC_2.3",
-              "GLIBC_2.3.4",
-              "GLIBC_2.9"
-            ],
-            "maximum_glibc": "GLIBC_2.18"
-          }
-        },
-        {
-          "name": "release-4-file_mover-e450575ff662561b",
-          "sha256": "2f9f849bea95c3dfdbd0f8c03cc10faad519c79f13b07923aaed1e5529d9a13e",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -481,8 +487,8 @@
           }
         },
         {
-          "name": "release-6-mover_fs-7162966187b261e2",
-          "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150",
+          "name": "release-6-mover_fs-2ec628a3aaf7a487",
+          "sha256": "d2c500f34b766cc61e92ef93602c8aa9cb65015501b9b34a32199abb8af8ff40",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -564,8 +570,8 @@
           }
         },
         {
-          "name": "release-9-transfer-1ecec51371ae5fe9",
-          "sha256": "909b9ff3b4bdab0cd6d99b2e62a67a172234637afb414c0a2638c3dd65ded8b4",
+          "name": "release-9-transfer-18a2518b74039b75",
+          "sha256": "4f3bd9fdcfab135f167cfc8f62cc1bd3ce78a14f4e49da39fe370036abd14fb1",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -594,11 +600,11 @@
           }
         }
       ],
-      "tests_passed": 98
+      "tests_passed": 104
     }
   },
-  "run_id": "20261014T021610Z-7cc8e5ee",
-  "source_sha256": "34a8f4dda43ba4caaf8cc8a2a0379743a14864743d02f3c062cc0906daf993ed",
+  "run_id": "20261014T030232Z-1f39b638",
+  "source_sha256": "6ebb7341ec623664aa37a9a035faea3156129798c2dc45831a9fdf10aafd1010",
   "dependencies": [
     {
       "name": "bitflags",

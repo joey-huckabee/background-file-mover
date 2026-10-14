@@ -44,8 +44,10 @@ const FILE: OFlags = OFlags::RDONLY
     .union(OFlags::CLOEXEC)
     .union(OFlags::NONBLOCK);
 
+mod bootstrap;
 mod manifest;
 mod transfer;
+pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock};
 pub use manifest::commit_manifest;
 pub use manifest::commit_manifest_with_checkpoints;
 pub fn destination_unavailable(path: &str) -> bool {

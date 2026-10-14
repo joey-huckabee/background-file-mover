@@ -14,7 +14,11 @@ implemented audited delivery-only resume request/receipt; the broader controls
 below remain proposals. [Increment 09](RUST-INCREMENT-09.md) defines the
 implemented exact-file `reset-missing` command.
 [Increment 10](RUST-INCREMENT-10.md) defines read-only global and per-job
-retention accounting. Remaining routes/forms are proposals.
+retention accounting. [Increment 15](RUST-INCREMENT-15.md) defines implemented
+startup readiness: HTTP handling and `/healthz` begin after source singleton
+custody and confirmed bootstrap child exit. A bound TCP port alone is not
+readiness; pending startup responds to shutdown signals but serves no HTTP
+response. NFS remains disabled. Remaining routes/forms are proposals.
 
 ## Existing interface and proposed changes
 

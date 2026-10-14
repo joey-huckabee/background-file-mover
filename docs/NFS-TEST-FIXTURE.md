@@ -62,3 +62,13 @@ metadata recovery after restoring nfsd. See
 [RUST-NFS-EVIDENCE.json](RUST-NFS-EVIDENCE.json) for the cleanup-checked result.
 Rust claim/copy/publication effects on NFS and distributed fencing remain
 unqualified. Restore the server before attempting unmount or fixture removal.
+
+[Increment 15](RUST-INCREMENT-15.md) adds the runner's `--isolated-startup`
+qualification mode for the new bootstrap child. After the full SLES gate passes,
+run `python scripts/check-nfs-boundaries.py rust/validation/<passing-gate-run>
+--isolated-startup`. This requires startup shutdown and confirmed bootstrap exit
+before server restoration on the fixture kernel; it also verifies absence of
+readiness and SQLite creation during the outage. Historical increment-14
+artifacts use the original mode without this flag. Neither mode enables NFS.
+The completed isolated-startup result is recorded in
+[RUST-NFS-STARTUP-EVIDENCE.json](RUST-NFS-STARTUP-EVIDENCE.json).

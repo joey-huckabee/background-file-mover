@@ -1,4 +1,5 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
+pub mod bootstrap;
 pub mod claim_worker;
 pub mod delivery_worker;
 mod http;
@@ -219,9 +220,13 @@ struct Worker {
     observation: Option<std::thread::JoinHandle<()>>,
 }
 impl Worker {
-    fn start(c: &Config) -> Result<Self, Box<dyn std::error::Error>> {
+    fn start(
+        c: &Config,
+        guard: mover_fs::LocalClaimLock,
+        stop: Arc<AtomicBool>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
-        let guard = Arc::new(mover_fs::LocalClaimLock::acquire(&c.source_root)?);
+        let guard = Arc::new(guard);
         let store = Arc::new(Store::open(&c.state_database)?);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
@@ -243,7 +248,6 @@ impl Worker {
                     let _ = reply.send(response);
                 }
             })?;
-        let stop = Arc::new(AtomicBool::new(false));
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
         let delivery_guard = guard.clone();
@@ -740,7 +744,35 @@ pub async fn serve(
     if !listener.local_addr()?.ip().is_loopback() {
         return Err("loopback listener required".into());
     }
-    let worker = Worker::start(&c)?;
+    c.validate()?;
+    let (ready, startup) = oneshot::channel();
+    let startup_config = c.clone();
+    let startup_stop = stop.clone();
+    let supervisor = std::thread::Builder::new()
+        .name("mover-source-bootstrap".into())
+        .spawn(move || {
+            let result =
+                bootstrap::acquire(&startup_config.source_root, &startup_stop).and_then(|guard| {
+                    if startup_stop.load(Ordering::Relaxed) {
+                        return Err("startup stopped".into());
+                    }
+                    Worker::start(&startup_config, guard, startup_stop.clone())
+                        .map_err(|e| e.to_string())
+                });
+            let _ = ready.send(result);
+        })?;
+    let result = startup.await;
+    supervisor
+        .join()
+        .map_err(|_| "source startup supervisor panicked")?;
+    if stop.load(Ordering::Relaxed) {
+        if let Ok(Ok(worker)) = result {
+            drop(worker);
+        }
+        return Ok(());
+    }
+    let worker = result.map_err(|_| "source startup supervisor disconnected")??;
+    println!("Ready on {}", listener.local_addr()?);
     let c = Arc::new(c);
     let permits = Arc::new(Semaphore::new(8));
     let mut tasks = JoinSet::new();

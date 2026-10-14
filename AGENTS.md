@@ -23,8 +23,9 @@ Offline inspection/repair is deferred by the user. Prioritize supervised workers
 and controlled NFS testing. Increment 13 isolates runtime delivery filesystem
 access in recording sessions and handoff scope checks in claim children.
 Increment 14 measures hard-mount startup blocking and OS lock/interruption behavior;
-see `docs/RUST-INCREMENT-14.md`. Next isolate source singleton bootstrap and
-readiness/shutdown, then qualify Rust worker effects and stable root/export
+see `docs/RUST-INCREMENT-14.md`. Increment 15 isolates source singleton bootstrap
+and qualifies startup shutdown; see `docs/RUST-INCREMENT-15.md`.
+Next qualify Rust worker effects and stable root/export
 ownership before enabling NFS. Keep deletion disabled.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):

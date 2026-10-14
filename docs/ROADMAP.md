@@ -10,9 +10,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Isolate source singleton bootstrap from coordinator startup; define
-  readiness and shutdown during an unavailable mounted source. Preserve inherited
-  custody locks, the dedicated local SQLite owner and bounded assignments.
 - [ ] Qualify Rust filesystem sessions under worker interruption/coordinator death
   and controlled NFS outages before enabling NFS. Include stable root/export
   authorization, cross-client ownership and uncertain outcomes.

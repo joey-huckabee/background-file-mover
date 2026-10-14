@@ -39,8 +39,12 @@ in bounded child processes of the same executable. SQLite remains in the parent;
 and file/manifest publication children. [Increment 13](../docs/RUST-INCREMENT-13.md)
 isolates runtime destination opening/locks, staging, manifest steps and custody
 checks in recording sessions. Source replay scope checks also use children.
-Next qualify interruptions, coordinator death, source-lock startup and root/export
-ownership with the controlled NFS fixture. Keep NFS and source deletion disabled.
+[Increment 15](../docs/RUST-INCREMENT-15.md) acquires the source singleton in a
+supervised bootstrap child and transfers its locked descriptor over private IPC.
+The coordinator remains responsive to shutdown signals while startup is pending;
+readiness follows receipt and confirmed child exit. Next qualify Rust runtime
+effects, coordinator death and root/export ownership with the controlled NFS
+fixture. Keep NFS and source deletion disabled.
 Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file CLI,
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.

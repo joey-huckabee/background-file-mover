@@ -17,8 +17,9 @@ Background copy/verification now uses [supervised child workers](docs/RUST-INCRE
 [Claim and publication operations](docs/RUST-INCREMENT-12.md) now use children too.
 [Recording sessions](docs/RUST-INCREMENT-13.md) isolate runtime destination opening,
 allocation, manifest writing and custody checks.
-[Hard-mount boundary checks](docs/RUST-INCREMENT-14.md) expose source bootstrap
-blocking during outages; startup isolation is next, followed by NFS worker qualification.
+[Hard-mount boundary checks](docs/RUST-INCREMENT-14.md) exposed source bootstrap
+blocking during outages. [Startup isolation](docs/RUST-INCREMENT-15.md) now keeps
+signal handling responsive while custody is pending; NFS worker qualification is next.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

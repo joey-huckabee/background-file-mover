@@ -150,8 +150,8 @@ def main() -> int:
                 raise ValueError("integrity dependency checksum changed")
         qualified_features = {
             "rusqlite": ["bundled", "modern_sqlite"],
-            "rustix": ["alloc", "fs", "process", "std"],
-            "linux-raw-sys": ["auxvec", "elf", "errno", "general", "ioctl", "no_std", "prctl"],
+            "rustix": ["alloc", "fs", "net", "process", "std"],
+            "linux-raw-sys": ["auxvec", "elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"],
             "tokio": sorted(evidence["tokio_selected_features"]),
             "serde": ["derive", "serde_derive", "std"],
             "serde_json": ["std"],

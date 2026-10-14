@@ -50,14 +50,17 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 98 tests pass in both profiles inside the pinned runtime:
-ten core, thirty-five storage, ten claims, thirteen copied-transfer/manifest and thirty
-executable HTTP/background/CLI tests. All twenty emitted executables use the standard
+The workspace's 104 tests pass in both profiles inside the pinned runtime:
+ten core, thirty-five storage, ten claims, thirteen copied-transfer/manifest,
+thirty-four executable HTTP/background/CLI tests and two bootstrap IPC unit tests.
+All twenty emitted executables use the standard
 loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
 Linux packages and adds nine pinned SHA-256 packages, recorded in
 [rust-integrity-dependencies.json](../scripts/rust-integrity-dependencies.json).
 The gate checks their checksums and sha2's std/force-soft feature set, alongside
-the qualified SQLite/rustix/Tokio/Serde/httparse configurations. See
+the qualified SQLite/rustix/Tokio/Serde/httparse configurations. Rustix's explicit
+net feature and associated raw socket-binding features are qualified for private
+bootstrap descriptor passing; this adds no packages or netlink/XDP behavior. See
 [the automatic delivery increment](RUST-INCREMENT-06.md) and
 [the operator status increment](RUST-INCREMENT-07.md) and
 [the audited delivery-resume increment](RUST-INCREMENT-08.md) and
@@ -65,7 +68,8 @@ the qualified SQLite/rustix/Tokio/Serde/httparse configurations. See
 [retention accounting](RUST-INCREMENT-10.md) and
 [supervised payload workers](RUST-INCREMENT-11.md) and
 [claim/publication workers](RUST-INCREMENT-12.md) and
-[recording filesystem sessions](RUST-INCREMENT-13.md) for tested effects and limits.
+[recording filesystem sessions](RUST-INCREMENT-13.md) and
+[source bootstrap isolation](RUST-INCREMENT-15.md) for tested effects and limits.
 
 This qualifies the current target test artifacts and exercised logic against
 SLES userspace. It does not prove old-kernel/CPU behavior, NFS durability, systemd
