@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 20](RUST-INCREMENT-20.md),
+[Increment 21](RUST-INCREMENT-21.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -239,8 +239,16 @@ cutover, old and new daemons must not manipulate the same source namespace.
 Increment 20 passes durable two-name NFS claim/file link interruption in both
 profiles, preserving aliases until confirmed worker exit and recovering the same
 inode/attempt. SC-049/050 record the user-visible results. In-flight link/unlink
-RPCs, other synchronization boundaries, longer outages and stable root/export
+RPCs, other synchronization boundaries, outages beyond selected qualification and stable root/export
 authorization/cross-client ownership remain future qualification. Production NFS
 and deletion remain disabled. Ubuntu's post-reboot user startup was unavailable;
 the unchanged mandatory gates passed through the healthy Podman WSL2 engine using
 the documented Windows `CONTAINER_CONNECTION` selection.
+
+Increment 21 adds three-minute hard-mounted claim/verification outages in both
+profiles, sequential submission backpressure checks and live recovery on attempt 1.
+SC-051/052 distinguish custody pending from delivery pending. An HTTP wait timeout
+does not cancel the queued submission; retryable `service_busy` can follow
+`handoff_pending`. Keep the full interruption evidence and focused long-outage
+report separate. Stable root/export authorization and cross-client fencing remain
+prerequisites to production NFS; source deletion remains disabled.

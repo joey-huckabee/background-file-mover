@@ -8,14 +8,14 @@ import time
 import traceback
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False):
-            self.label = "runtime-" + profile + "-" + point + ("-production" if production else "")
+        def __init__(self, profile, point, production=False, prolonged=False):
+            self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
@@ -155,19 +155,105 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             assert [line.split()[0] for line in execute(f"sha256sum {old} {new}", "1000:1000").stdout.splitlines()] == [expected, expected]
             return aliases
 
-        def recover(self):
-            self.start(False)
-            code, replay = self.request("POST", "/api/v2/jobs", self.body)
+        def recover(self, restart=True):
+            if restart:
+                self.start(False)
+            for _ in range(18 if not restart else 1):
+                code, replay = self.request("POST", "/api/v2/jobs", self.body)
+                if code == 202:
+                    break
+                assert not restart and code == 503 and replay["error"] in {"handoff_pending", "service_busy"}
+                assert replay["retryable"]
+                assert not replay["source_paths_released"]
+                time.sleep(1)
             assert code == 202 and replay["job_id"] == "1" and replay["source_paths_released"]
-            for _ in range(60):
+            for _ in range(180):
                 code, status = self.request("GET", "/api/v2/jobs/1")
                 assert code == 200
                 if status["state"] == "Committed":
                     self.result["recovered_status"] = status
                     return status
                 assert status["details"]["condition"] != "ReviewRequired", status
-                time.sleep(0.2)
+                time.sleep(1)
             raise RuntimeError("recording did not recover to Committed")
+
+        def prolonged_outage(self, status, posted):
+            # The rendezvous has already been released into real hard-mounted
+            # NFS operations. All observations below use local state or /proc.
+            started = time.monotonic()
+            coordinator = self.service_pid()
+            self.result["live_coordinator_pid"] = coordinator
+            samples = []
+            retry_thresholds = iter((0, 60, 120))
+            next_retry = next(retry_thresholds)
+            self.result["long_outage_samples"] = samples
+            while True:
+                elapsed = time.monotonic() - started
+                began = time.monotonic()
+                assert self.request("GET", "/healthz")[0] == 200
+                health_seconds = time.monotonic() - began
+                began = time.monotonic()
+                code, during = self.request("GET", "/api/v2/jobs/1")
+                status_seconds = time.monotonic() - began
+                assert code == 200 and health_seconds < 5 and status_seconds < 5
+                assert during["state"] == status["state"]
+                assert during["source_paths_released"] == status["source_paths_released"]
+                assert during["details"]["files"] == status["details"]["files"]
+                assert during["details"]["manifest_phase"] == status["details"]["manifest_phase"]
+                assert self.children() == [self.worker], "worker accumulated or was replaced during outage"
+                assert self.service.poll() is None and self.service_pid() == coordinator
+                worker_state = self.state(self.worker)
+                assert worker_state == "D", "long-outage worker did not remain kernel-blocked"
+                if self.point == "verify_read":
+                    assert execute(f"test ! -e {self.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
+                sample = {"elapsed_seconds": round(elapsed, 3), "health_seconds": round(health_seconds, 3),
+                          "status_seconds": round(status_seconds, 3), "worker_state": worker_state,
+                          "children": [self.worker], "status": during}
+                samples.append(sample)
+                # A timed-out HTTP waiter leaves its command in the single-slot
+                # submission queue. Later sequential retries may see service_busy.
+                # This is not a concurrent flood or memory-capacity measurement.
+                if next_retry is not None and elapsed >= next_retry:
+                    code, replay = self.request("POST", "/api/v2/jobs", self.body)
+                    sample["retry"] = [code, replay]
+                    if self.point in claim_points:
+                        assert code == 503 and replay["error"] in {"handoff_pending", "service_busy"}
+                        assert replay["retryable"] and not replay["source_paths_released"]
+                    else:
+                        assert code == 202 and replay["job_id"] == "1" and replay["source_paths_released"]
+                    assert self.children() == [self.worker]
+                    next_retry = next(retry_thresholds, None)
+                print(f"NFS long outage {self.label}: {elapsed:.0f}/180 seconds, health/status responsive, one blocked worker", flush=True)
+                if elapsed >= 180:
+                    break
+                time.sleep(min(15, 180 - elapsed))
+            self.result["outage_observation_seconds"] = round(time.monotonic() - started, 3)
+            assert self.result["outage_observation_seconds"] >= 180
+            assert sum("retry" in sample for sample in samples) == 3
+            if self.point in claim_points:
+                assert any(sample.get("retry", [None, {}])[1].get("error") == "service_busy" for sample in samples)
+                self.result["submission_backpressure_observed"] = True
+            if self.point in claim_points:
+                process, response_path = posted
+                assert process.wait(timeout=5) == 0
+                reply = self.parse(response_path.read_text())
+                assert reply[0] == 503 and not reply[1]["source_paths_released"]
+                self.result["initial_handoff_response_during_outage"] = reply
+            restore()
+            recovery_started = time.monotonic()
+            recovered = self.recover(restart=False)
+            assert self.service.poll() is None and self.service_pid() == coordinator
+            self.result["recovery_without_restart"] = True
+            self.result["recovery_after_restore_seconds"] = round(time.monotonic() - recovery_started, 3)
+            assert recovered["details"]["files"][0]["attempt"] == 1
+            assert recovered["details"]["source_cleanup_enabled"] is False
+            if self.point in claim_points:
+                execute(f"printf 'next recording' >{self.source}/current/nested/data.bin", "1000:1000")
+                code, replay = self.request("POST", "/api/v2/jobs", self.body)
+                assert code == 202 and replay["job_id"] == "1" and replay["source_paths_released"]
+            assert execute(f"cat {self.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
+            self.verify()
+            self.result["passed"] = True
 
         def verify(self):
             private = self.source + "/.file-mover/1-0/data"
@@ -197,17 +283,23 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
 
     for profile in ("debug", "release"):
-        for point in ("production_controls_ignored", "claim_apply", "claim_link", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"):
+        cases = [(point, False) for point in ("production_controls_ignored", "claim_apply", "claim_link", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")]
+        cases += [("claim_apply", True), ("verify_read", True)]
+        if long_only:
+            cases = [(point, prolonged) for point, prolonged in cases if prolonged]
+        for point, prolonged in cases:
             case = None
             try:
-                case = Case(profile, "copy_chunk" if point == "production_controls_ignored" else point, point == "production_controls_ignored")
-                case.result["case"] = point
+                case = Case(profile, "copy_chunk" if point == "production_controls_ignored" else point, point == "production_controls_ignored", prolonged)
+                case.result["case"] = point + ("_long" if prolonged else "")
                 case.result["scenario_id"] = {
                     "production_controls_ignored": "SC-035", "claim_apply": "SC-037",
                     "source_read": "SC-041", "copy_chunk": "SC-038", "verify_read": "SC-042",
                     "publish": "SC-039", "manifest_link": "SC-040",
                     "claim_link": "SC-049", "file_link": "SC-050",
                 }[point]
+                if prolonged:
+                    case.result["scenario_id"] = "SC-051" if point == "claim_apply" else "SC-052"
                 case.start(True)
                 if case.production:
                     assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
@@ -248,6 +340,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     case.result["owned_aliases_before_outage"] = case.owned_aliases()
                     assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
                     case.result["completion_manifest_absent_at_pause"] = True
+                if prolonged:
+                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    case.result["completion_manifest_absent_at_pause"] = True
                 run(["exec", server, "rpc.nfsd", "0"])
                 # Keep new link cases at the exact durable two-name boundary.
                 # Killing there during the outage tests two-name reconciliation,
@@ -274,6 +369,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                 assert during["state"] == status["state"] and during["details"]["files"] == status["details"]["files"]
                 assert case.children() == [case.worker]
                 case.result["outage_status"] = during
+                if prolonged:
+                    case.prolonged_outage(status, posted)
+                    continue
                 if point == "publish":
                     case.signal(case.worker, "STOP")
                     case.signal(case.service_pid(), "KILL")
@@ -369,5 +467,6 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                         results.append(case.result)
                         raise RuntimeError("runtime fixture cleanup uncertain") from error
                     results.append(case.result)
-                    print(f"NFS runtime {profile}/{point}: {'PASS' if case.result['passed'] else 'FAILED'}", flush=True)
+                    (output / (case.label + "-result.json")).write_text(json.dumps(case.result, indent=2) + "\n")
+                    print(f"NFS runtime {profile}/{case.result['case']}: {'PASS' if case.result['passed'] else 'FAILED'}", flush=True)
     return {"passed": all(r["passed"] for r in results), "cases": results}

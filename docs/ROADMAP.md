@@ -11,7 +11,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 before implementation.
 
 - [ ] Expand NFS runtime qualification to in-flight link/unlink RPCs, remaining
-  synchronization boundaries, longer outages and export changes.
+  synchronization boundaries, outages beyond the selected three-minute cases,
+  concurrent queue flooding and export changes.
 - [ ] Develop the user guides and runbooks tracked by
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery

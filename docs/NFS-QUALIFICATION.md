@@ -111,6 +111,25 @@ Recovery must preserve the recorded inode and remove only its old binding.
 This is a deterministic process crash at a real NFS link intermediate, not an
 in-flight unlink RPC test. The latter remains unqualified.
 
+[Increment 21](RUST-INCREMENT-21.md) adds three-minute outage cases to the same
+`--runtime` command for claim application and destination verification in both
+profiles. The worker is released immediately into real NFS operations; the pause
+budget is not extended. The runner samples health/status and kernel-blocked
+assignment identity throughout the outage, makes three sequential same-ID retries,
+then restores NFSD and requires live recovery on attempt 1 without restarting
+the service. A retry left waiting in the single-slot submission queue can cause
+later retries to return retryable 503 `service_busy`; `handoff_pending` is also
+valid before custody is complete. No 503 releases source paths.
+These checks do not simulate concurrent floods or server reboot.
+See the increment results before treating SC-051/052 as qualified.
+
+To rerun just those four runtime cases after an assertion change, append
+`--long-outages-only` to `--runtime`. Normal baseline and OS/startup checks still
+run; report `runtime_scope` identifies the restricted runtime scope. It is not
+a replacement for the full runtime suite after changes to service effects.
+Each runtime case also writes a result JSON after its cleanup, so an earlier
+failure can be inspected before the entire fixture completes.
+
 If Ubuntu's post-reboot user runtime prevents native rootless Podman startup,
 the same gate can use the healthy Podman WSL2 engine from Windows:
 
@@ -132,7 +151,8 @@ are observations, never authorization to commit an effect or delete retained dat
 
 Allowing NFS in a test build is not production authorization. The normal baseline
 and selected runtime cases provide one-client evidence for their measured
-operations. Cross-client fencing, stable export/mount ownership, longer outages,
+operations. Cross-client fencing, stable export/mount ownership, outages beyond
+the selected three-minute cases, concurrent flooding and queue-memory limits,
 in-flight link/unlink RPCs, other synchronization boundaries, server reboot and power-loss durability
 remain separate qualification before production enablement. Containers
 use SLES/glibc userspace on the runner kernel; no actual SLES host testing is

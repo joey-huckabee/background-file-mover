@@ -30,8 +30,11 @@ def main():
                         help="Also run normal REST transfers with audited NFS qualification artifacts")
     parser.add_argument("--runtime", action="store_true",
                         help="Also qualify real Rust worker interruption/outage and coordinator death")
+    parser.add_argument("--long-outages-only", action="store_true",
+                        help="With --runtime, run only the four three-minute runtime cases; retain baseline and OS checks")
     args = parser.parse_args()
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
+    assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
@@ -75,6 +78,7 @@ def main():
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["runtime_requested"] = args.runtime
+    report["runtime_scope"] = "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
         "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
@@ -82,7 +86,9 @@ def main():
         "Service startup rejection is measured; production NFS and source deletion remain disabled.",
     ]
     if args.runtime:
-        report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Long outages and export changes remain unqualified. Other lock/startup probes use OS tools."
+        report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points, including 180-second blocked claim and verification outages with live recovery. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Longer or indefinite outages, queue saturation and export changes remain unqualified. Other lock/startup probes use OS tools."
+        if args.long_outages_only:
+            report["limitations"][2] = "Runtime cases in this report cover only 180-second blocked claim and verification outages with live recovery. A small sequential same-ID retry workload observes single-slot submission backpressure, not concurrent flooding or memory bounds. Other interruption cases are not rerun here. Longer/indefinite outages, in-flight link/unlink RPCs and export changes remain unqualified. Other lock/startup probes use OS tools."
     containers = []
     tasks = []
     network = volume = server = client = None
@@ -185,7 +191,7 @@ def main():
                 artifact_hashes = dict(report["artifacts"])
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["runtime"] = {"passed": False, "cases": []}
-                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"])
+                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"], long_only=args.long_outages_only)
                 report["runtime"]["passed"] = completed["passed"]
                 if not report["runtime"]["passed"]:
                     raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")

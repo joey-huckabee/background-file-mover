@@ -33,8 +33,11 @@ qualification-only pause controls and selected real-worker NFS outage/death case
 see `docs/RUST-INCREMENT-18.md`. Increment 19 qualifies source-read/verification
 interruption and introduces the maintained scenario catalog; see
 `docs/RUST-INCREMENT-19.md`. Increment 20 qualifies durable two-name NFS claim/file
-link interruption; see `docs/RUST-INCREMENT-20.md`. Next qualify in-flight
-link/unlink RPCs, other sync boundaries, longer outages, stable root/export
+link interruption; see `docs/RUST-INCREMENT-20.md`. Increment 21 adds three-minute
+blocked claim/verification and live-recovery checks, including submission backpressure;
+see `docs/RUST-INCREMENT-21.md` and the separate long-outage evidence report.
+Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond
+those selected cases, stable root/export
 authorization and cross-client ownership. If Ubuntu user startup prevents rootless
 Podman, use the documented Windows/Podman WSL2 gate fallback in
 `docs/NFS-QUALIFICATION.md`; preserve all compatibility checks.
