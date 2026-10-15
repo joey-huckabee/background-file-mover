@@ -50,7 +50,12 @@ directory custody with a preprovisioned empty mode-0600 regular coordinator.lock
 version-2 bindings and bootstrap receipts, and actual worker descriptor checks;
 see docs/RUST-INCREMENT-25.md. Two-client tests distinguish cooperative exclusion
 from lost-lock/partition/reclaim fencing. Do not mix old/new lock protocols or
-auto-rebind existing observations. Next qualify fencing and explicit enrollment.
+auto-rebind existing observations. Increment 26 defines fenced enrollment in
+docs/FENCED-ENROLLMENT-DESIGN.md; it is not implemented. Next implement explicit
+unused-scope source/state pairing and matching restart, with interrupted setup
+and fresh-state refusal tests. Populated rebind/takeover requires an independently
+qualified fence. Preserve the original database; current empty-state enrollment
+does not establish persistent root/state ownership after lock release.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

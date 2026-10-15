@@ -217,7 +217,8 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 25](RUST-INCREMENT-25.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
+[Increment 26](RUST-INCREMENT-26.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -290,3 +291,12 @@ recovery through the original state. Cooperative exclusion does not authorize
 independent-state takeover or fence lost locks/partitions/reclaim. Preserve old
 state and require explicit fenced cutover/enrollment; production NFS/deletion stay
 disabled. Next qualify those remaining fences and authenticated export identity.
+
+Increment 26 specifies explicit first enrollment, persistent source/state pairing,
+interrupted enrollment and fenced recovery requirements. This is design only;
+current empty-state enrollment does not prevent a fresh database using the same
+coordinator label after lock release. Next implement unused-scope enrollment and
+matching restart, then qualify interrupted setup and fresh-state refusal. Preserve
+old state/data; no rebind command, automatic takeover or production NFS/deletion
+authorization is provided. Lost-lock/partition diagnostics and an independently
+qualified fence remain prerequisites to populated-state recovery.

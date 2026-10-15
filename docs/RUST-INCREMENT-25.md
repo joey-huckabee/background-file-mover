@@ -64,7 +64,7 @@ export and storage failure qualification.
 
 ## Validation
 
-Validation is in progress. Initial gates `20261015T112215Z-44725f6f` and
+Validation completed with the passing results below. Initial gates `20261015T112215Z-44725f6f` and
 `20261015T112215Z-a17c701d-nfs-qualification` passed 53/55 debug API tests.
 Two older marker-correction fixtures attempted exclusive lock provisioning twice.
 Setup now provisions the lock once and leaves marker corrections independent.

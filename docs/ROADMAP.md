@@ -17,8 +17,13 @@ before implementation.
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery
   situations, their actual evidence and remaining documentation obligations.
-- [ ] Define positively fenced source enrollment/rebind for legacy jobs and
-  legitimate changes to strict observed pins. Complete authenticated export/root
+- [ ] Implement explicit unused-scope enrollment and matching restart from
+  [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md): paired source/state
+  ownership, interrupted-operation refusal/reconciliation and fresh-state refusal.
+  Qualify every intent/effect/sync/activation boundary before enabling it.
+- [ ] Select and qualify an independently enforced fence before implementing
+  populated/legacy-state re-enrollment or legitimate changes to strict observed
+  pins. Preserve original job/route evidence. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
 - [ ] Qualify lost-lock handling, partition/reclaim and positively fenced takeover
   before production NFS. Extend cooperative exclusion beyond the shared-kernel

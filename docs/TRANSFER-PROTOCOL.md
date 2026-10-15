@@ -368,6 +368,11 @@ effects require endpoint reconciliation, not a fabricated missing-file result.
 
 Start by recovering local ownership, checking mounts/capabilities and fencing
 workers, then reconcile unfinished intents before admitting conflicting work.
+The [fenced enrollment contract](FENCED-ENROLLMENT-DESIGN.md) specifies future
+persistent source/state pairing, interrupted setup and re-enrollment prerequisites.
+These protections are not implemented by the current local SQLite enrollment;
+preserve original state and do not use a fresh database or new lock acquisition
+as authority for takeover.
 Evidence combines private namespace custody, durable operation records, object
 identity and content checks. A name, sidecar token, inode number, equal length or
 matching hash alone does not establish ownership. Inode reuse, remounts, changed

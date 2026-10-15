@@ -74,6 +74,12 @@ not eliminate races with an administrator replacing a mount during an operation.
 
 ## Coordinator exclusion and takeover
 
+[Fenced enrollment](FENCED-ENROLLMENT-DESIGN.md) specifies the next implementation
+contract, including persistent source/state pairing and interrupted setup. It is
+not implemented: schema-9 enrollment remains local to SQLite, and a fresh database
+with the same coordinator label can enroll after lock release. Preserve the
+original state; do not interpret this gap as permission for takeover.
+
 The initial production policy should use one statically assigned coordinator and
 disjoint source scopes. A second independent state database must not gain custody
 merely because job IDs restart at one. A marker naming the permitted coordinator
