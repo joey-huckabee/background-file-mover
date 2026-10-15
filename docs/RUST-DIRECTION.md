@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 24](RUST-INCREMENT-24.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
+[Increment 25](RUST-INCREMENT-25.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -281,3 +281,12 @@ foreign or changed bindings require explicit review. Schema 9 preserves legacy
 jobs but service startup refuses jobs without a saved destination policy.
 Next qualify cross-client exclusion/fencing and explicit legacy enrollment/rebind.
 Keep production NFS and deletion disabled.
+
+Increment 25 uses preprovisioned empty private regular lock files at both roots.
+Version-2 bindings/observations and bootstrap receipts refuse the old directory
+protocol; worker descriptors must match the named writable lock. Two-client
+qualification checks actual claim/delivery custody after coordinator death and
+recovery through the original state. Cooperative exclusion does not authorize
+independent-state takeover or fence lost locks/partitions/reclaim. Preserve old
+state and require explicit fenced cutover/enrollment; production NFS/deletion stay
+disabled. Next qualify those remaining fences and authenticated export identity.

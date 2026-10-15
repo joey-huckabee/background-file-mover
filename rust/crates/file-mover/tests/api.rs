@@ -9,16 +9,219 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+#[test]
+fn missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it() {
+    use std::os::unix::fs::symlink;
+    for case in [
+        "missing",
+        "permissions",
+        "symlink",
+        "hardlink",
+        "content",
+        "fifo",
+    ] {
+        let mut f = Fixture::new(300);
+        f.stop();
+        let source = f.root.join("source");
+        let lock = source.join(".file-mover/coordinator.lock");
+        match case {
+            "missing" => std::fs::remove_file(&lock).unwrap(),
+            "permissions" => {
+                std::fs::set_permissions(&lock, std::fs::Permissions::from_mode(0o644)).unwrap()
+            }
+            "symlink" => {
+                let backup = f.root.join("lock-backup");
+                std::fs::rename(&lock, &backup).unwrap();
+                symlink(backup, &lock).unwrap();
+            }
+            "hardlink" => std::fs::hard_link(&lock, f.root.join("lock-alias")).unwrap(),
+            "content" => std::fs::write(&lock, b"not a lease").unwrap(),
+            "fifo" => {
+                std::fs::remove_file(&lock).unwrap();
+                assert!(
+                    Command::new("mkfifo")
+                        .arg(&lock)
+                        .status()
+                        .unwrap()
+                        .success()
+                );
+                std::fs::set_permissions(&lock, std::fs::Permissions::from_mode(0o600)).unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let fresh = f.root.join("fresh-state");
+        std::fs::create_dir(&fresh).unwrap();
+        std::fs::set_permissions(&fresh, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let path = f.root.join("config.json");
+        let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        config["state_database"] = json!(fresh.join("jobs.sqlite"));
+        std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+        refused_start(&path);
+        assert!(!fresh.join("jobs.sqlite").exists());
+        if case == "missing" {
+            assert!(!lock.exists());
+        }
+    }
+}
+#[test]
+fn binding_version_one_cannot_start_the_regular_lock_protocol() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("config.json");
+    let original: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    for role in ["source_binding", "destination_binding"] {
+        let mut config = original.clone();
+        config[role]["version"] = json!(1);
+        std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+        assert!(refused_start(&path).contains("invalid"));
+    }
+}
+#[test]
+fn replaced_source_lock_cannot_rebind_and_original_custody_can_restart() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"retained recording");
+    let body = f.input("lock-restart", json!([{"name":"data"}]));
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+    let root = f.root.join("source");
+    let lock = root.join(".file-mover/coordinator.lock");
+    let original = f.root.join("original-lock");
+    std::fs::rename(&lock, &original).unwrap();
+    provision_lock(&root);
+    assert!(refused_start(&f.root.join("config.json")).contains("SourceRootChanged"));
+    assert_eq!(
+        std::fs::read(root.join(".file-mover/1-0/data")).unwrap(),
+        b"retained recording"
+    );
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::rename(original, lock).unwrap();
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+}
+#[test]
+fn live_source_lock_replacement_blocks_claim_without_releasing_paths() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"producer still owns this");
+    let source = f.root.join("source");
+    std::fs::rename(
+        source.join(".file-mover/coordinator.lock"),
+        f.root.join("held-lock"),
+    )
+    .unwrap();
+    provision_lock(&source);
+    let (code, reply) = f.post(&f.input("lock-changed", json!([{"name":"data"}])));
+    assert_eq!(code, 409);
+    assert_eq!(reply["source_paths_released"], false);
+    assert_eq!(
+        std::fs::read(source.join("current/data")).unwrap(),
+        b"producer still owns this"
+    );
+    assert!(!source.join(".file-mover/1-0").exists());
+    f.stop();
+}
+#[test]
+fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
+    use std::os::fd::AsFd;
+    let mut f = Fixture::new(300);
+    f.stop();
+    f.write("data", b"untouched");
+    for relative in [".file-mover", ".file-mover/coordinator.lock"] {
+        let descriptor = std::fs::File::open(f.root.join("source").join(relative)).unwrap();
+        let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+        let mut child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg("--internal-claim-worker")
+            .stdin(Stdio::from(
+                descriptor.as_fd().try_clone_to_owned().unwrap(),
+            ))
+            .stdout(Stdio::from(descriptor))
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+            .spawn()
+            .unwrap();
+        let assignment = json!({"assignment":{"operation":"observe","version":1,"job_id":1,"file_index":0,"root_path":f.root.join("source"),"source_name":"current/data","expected_size":null},"source_authorization":null});
+        channel
+            .write_all(&serde_json::to_vec(&assignment).unwrap())
+            .unwrap();
+        channel.shutdown(std::net::Shutdown::Write).unwrap();
+        let mut response = Vec::new();
+        channel.read_to_end(&mut response).unwrap();
+        assert!(child.wait().unwrap().success());
+        let response: Value = serde_json::from_slice(&response).unwrap();
+        assert!(response["error"].is_string());
+        assert!(response["claim"].is_null());
+        assert!(!f.root.join("source/.file-mover/1-0").exists());
+    }
+}
+#[test]
+fn delivery_worker_refuses_replaced_destination_lock_before_payload() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"retained");
+    assert_eq!(
+        f.post(&f.input("lock-session", json!([{"name":"data"}]))).0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    let guard = mover_fs::LocalClaimLock::acquire_bound(
+        f.root.join("source").to_str().unwrap(),
+        &binding(),
+    )
+    .unwrap();
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let t = prepare_transfer_bound(&store, 1).unwrap();
+    let claim = store.claim_intent(1, 0).unwrap().unwrap().0;
+    let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
+    let opened = session_authorized_reply(
+        &mut channel,
+        1,
+        json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination"),"destination_binding":destination_binding(),"destination_observation":store.destination_observation(1).unwrap()}),
+        guard.source_authorization(),
+    );
+    assert!(opened["error"].is_null());
+    let destination = f.root.join("destination");
+    std::fs::rename(
+        destination.join(".file-mover/coordinator.lock"),
+        f.root.join("held-destination-lock"),
+    )
+    .unwrap();
+    provision_lock(&destination);
+    let refused = session_authorized_reply(
+        &mut channel,
+        2,
+        json!({"operation":"payload","assignment":payload_assignment(&t,&claim)}),
+        guard.source_authorization(),
+    );
+    assert_eq!(refused["error"], "destination_binding_refused");
+    assert!(refused["transfer"].is_null());
+    drop(channel);
+    assert!(child.wait().unwrap().success());
+    assert_eq!(
+        std::fs::metadata(destination.join("1/.staging/1.part"))
+            .unwrap()
+            .len(),
+        0
+    );
+}
 fn binding() -> mover_fs::SourceBinding {
     serde_json::from_value(
-        json!({"version":1,"coordinator_id":"test-owner","root_id":"local-source",
+        json!({"version":2,"coordinator_id":"test-owner","root_id":"local-source",
         "endpoint_id":"test-local","marker_id":"test-marker","filesystem":"local","role":"source"}),
     )
     .unwrap()
 }
 fn destination_binding() -> mover_fs::DestinationBinding {
-    serde_json::from_value(json!({"version":1,"coordinator_id":"test-owner","root_id":"configured-local",
+    serde_json::from_value(json!({"version":2,"coordinator_id":"test-owner","root_id":"configured-local",
         "endpoint_id":"test-local-destination","marker_id":"test-destination-marker","filesystem":"local","role":"destination"})).unwrap()
+}
+fn provision_lock(root: &std::path::Path) {
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(root.join(".file-mover/coordinator.lock"))
+        .unwrap();
 }
 fn provision_destination_marker(root: &std::path::Path) {
     let marker = root.join(".file-mover/destination-binding.json");
@@ -164,6 +367,7 @@ fn replacement_root_with_original_marker_cannot_rebind_existing_state() {
     for path in [&source, &source.join(".file-mover")] {
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
     }
+    provision_lock(&source);
     let marker = ".file-mover/source-binding.json";
     std::fs::rename(original.join(marker), source.join(marker)).unwrap();
     assert!(refused_start(&f.root.join("config.json")).contains("SourceRootChanged"));
@@ -172,6 +376,7 @@ fn replacement_root_with_original_marker_cannot_rebind_existing_state() {
         b"original source"
     );
     std::fs::rename(source.join(marker), original.join(marker)).unwrap();
+    std::fs::remove_file(source.join(".file-mover/coordinator.lock")).unwrap();
     std::fs::remove_dir(source.join(".file-mover")).unwrap();
     std::fs::remove_dir(&source).unwrap();
     std::fs::rename(&original, &source).unwrap();
@@ -1102,6 +1307,7 @@ impl Fixture {
             .unwrap()
             .local_addr()
             .unwrap();
+        provision_lock(&root.join("source"));
         provision_binding(&root.join("source"));
         std::fs::write(root.join("config.json"),serde_json::to_vec(&json!({"bind":address.to_string(),"generator_id":"recorder","source_root":root.join("source"),"source_binding":binding(),"destination_binding":destination_binding(),"destination_root":root.join("destination"),"state_database":root.join("state/jobs.sqlite"),"missing_file_retry_window_seconds":window})).unwrap()).unwrap();
         let mut f = Self {
@@ -1442,6 +1648,7 @@ fn actual_transfer_command_publishes_but_retains_claimed_source() {
         std::fs::create_dir(&p).unwrap();
         std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
     }
+    provision_lock(&f.root.join("destination"));
     provision_destination_marker(&f.root.join("destination"));
     let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--transfer-one")
@@ -1480,6 +1687,7 @@ fn provision_destination(f: &Fixture) {
         std::fs::create_dir(&p).unwrap();
         std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
     }
+    provision_lock(&f.root.join("destination"));
     provision_destination_marker(&f.root.join("destination"));
 }
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
@@ -2130,7 +2338,7 @@ fn destination_binding_is_required_strict_and_coordinator_scoped() {
         ("role", json!("source")),
         ("filesystem", json!("automatic")),
         ("unknown", json!(true)),
-        ("version", json!(2)),
+        ("version", json!(1)),
         ("root_id", json!("../escape")),
         ("coordinator_id", json!("another-owner")),
     ] {

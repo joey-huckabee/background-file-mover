@@ -76,10 +76,12 @@ pub const fn nfs_qualification_enabled() -> bool {
 
 mod binding;
 mod bootstrap;
+mod custody;
 pub use binding::{
     DESTINATION_MARKER, DestinationAuthorization, DestinationBinding, DestinationRole,
     SOURCE_MARKER, SourceAuthorization, SourceBinding, SourceFilesystem, SourceRole,
 };
+pub use custody::COORDINATOR_LOCK;
 mod manifest;
 mod qualification;
 mod relocate;
@@ -201,28 +203,27 @@ fn namespace(root: &OwnedFd) -> Result<OwnedFd> {
     Ok(dir)
 }
 
-/// Local service singleton and custody guard. Holding this directory lock is
-/// not a remote-worker fence; this increment still rejects NFS.
+/// Cooperative singleton custody. The regular lock is not a storage fence.
+/// Production still rejects NFS; qualification uses the same inherited description.
 pub struct LocalClaimLock {
     path: String,
     root: ObjectIdentity,
     namespace: ObjectIdentity,
+    lock: ObjectIdentity,
     authorization: Option<SourceAuthorization>,
     destination_authorization: Option<DestinationAuthorization>,
     _held: OwnedFd,
 }
-/// Check the two inherited custody directory descriptors before child effects.
+/// Check inherited regular-file lock descriptions before child effects.
 pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Result<()> {
     for (path, held) in [
         (source_path, rustix::io::dup(std::io::stdin())?),
         (destination_path, rustix::io::dup(std::io::stdout())?),
     ] {
         let expected = namespace(&root(path)?)?;
-        same_directory(
-            &owned_directory(&held, true)?,
-            &owned_directory(&expected, true)?,
-        )?;
-        fs::flock(&held, fs::FlockOperation::NonBlockingLockExclusive)?;
+        custody::validate(&expected, &held)?;
+        custody::exclusive(&held)?;
+        custody::validate(&expected, &held)?;
     }
     Ok(())
 }
@@ -241,14 +242,17 @@ impl LocalClaimLock {
     pub fn acquire(path: &str) -> Result<Self> {
         let root = root(path)?;
         let namespace = namespace(&root)?;
-        fs::flock(&namespace, fs::FlockOperation::NonBlockingLockExclusive)?;
+        let held = custody::open(&namespace)?;
+        custody::exclusive(&held)?;
+        let lock = custody::validate(&namespace, &held)?;
         Ok(Self {
             path: path.into(),
             root: owned_directory(&root, false)?,
             namespace: owned_directory(&namespace, true)?,
+            lock,
             authorization: None,
             destination_authorization: None,
-            _held: namespace,
+            _held: held,
         })
     }
     pub fn validate(&self) -> Result<()> {
@@ -260,7 +264,13 @@ impl LocalClaimLock {
         }
         let root = root(&self.path)?;
         same_directory(&owned_directory(&root, false)?, &self.root)?;
-        same_directory(&owned_directory(&namespace(&root)?, true)?, &self.namespace)
+        let namespace = namespace(&root)?;
+        same_directory(&owned_directory(&namespace, true)?, &self.namespace)?;
+        if custody::validate(&namespace, &self._held)? != self.lock {
+            return Err(ClaimError::Blocked("coordinator lock observation changed"));
+        }
+        custody::exclusive(&self._held)?;
+        Ok(())
     }
     pub fn validate_path(&self, path: &str) -> Result<()> {
         if self.path != path {

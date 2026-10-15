@@ -1,5 +1,15 @@
 # Retained NFS qualification capability
 
+Increment 25 requires version-2 source/destination bindings and an exclusively
+preprovisioned empty service-owned mode-0600 `.file-mover/coordinator.lock` at
+each root. Do not reuse version-1 observed state or mix directory-lock and
+regular-lock binaries; see [cutover restrictions](RUST-INCREMENT-25.md).
+The ownership fixture now requires peer startup exclusion and tests actual
+claim/delivery worker lock custody after coordinator death. Empty-scope clean
+release and peer file-lock probes do not authorize independent-state takeover.
+Qualification results must distinguish cooperative exclusion from the still
+unimplemented partition/reclaim/takeover fence.
+
 The user explicitly requested keeping this capability. Preserve its Cargo
 feature, build identification, compatibility gates and fixture runner for future
 qualification/regression work. Do not remove it when production NFS support is
@@ -107,8 +117,12 @@ both builds to refuse the local stand-in without changing an existing database.
 See [increment 22](RUST-INCREMENT-22.md) and
 [the root/ownership design](ROOT-OWNERSHIP-DESIGN.md). Diagnostic completion is
 separate from protection: inspect `ownership.probe_status`, each startup
-exclusion/refusal field and `production_authorized`. PASSED is not production
-approval if those probes expose a gap. The two clients intentionally declare the
+exclusion/refusal field and `cooperative_exclusion_passed`. Increment 25's eight
+ownership cases cover two startup exclusions, four actual worker inheritance/
+original-state recovery cases and two missing-mount cases. `protection_complete`
+and `production_authorized` remain false because fencing is unqualified, even
+when cooperative exclusion passes. PASSED is not production approval.
+The two clients intentionally declare the
 same coordinator identity, so that probe still measures exclusion of a cloned
 identity, not marker mismatch between different IDs. The retained full interruption and
 long-outage reports remain separate evidence with different scopes.

@@ -32,7 +32,7 @@ pub struct SourceBinding {
 }
 impl SourceBinding {
     pub fn validate(&self) -> Result<()> {
-        if self.version != 1
+        if self.version != 2
             || [
                 &self.coordinator_id,
                 &self.root_id,
@@ -124,7 +124,7 @@ fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
     let r = owned_directory(&root, false)?;
     let n = owned_directory(&area, true)?;
     Ok(format!(
-        "1:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        "2:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         filesystem,
         fs::fstatvfs(&root)?.f_fsid,
         r.device,
@@ -133,7 +133,8 @@ fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
         n.device,
         n.inode,
         n.uid,
-        observation(&before).encode()
+        observation(&before).encode(),
+        super::custody::named_identity(&area)?.encode()
     ))
 }
 impl LocalClaimLock {

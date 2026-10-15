@@ -161,6 +161,10 @@ revalidate it. These checks do not authenticate a server/export or fence another
 client. See [root authorization and ownership design](ROOT-OWNERSHIP-DESIGN.md)
 and [increment 22 diagnostics](RUST-INCREMENT-22.md) before treating startup
 readiness or a local namespace lock as evidence of those remaining protections.
+[Regular-file custody](RUST-INCREMENT-25.md) now uses a preprovisioned immutable
+lock and version-2 bindings, preserving the actual locked description through
+bootstrap/worker inheritance. Cooperative exclusion does not imply fencing after
+lost locks, partition/reclaim or takeover; keep production NFS disabled.
 
 An illustrative layout is:
 

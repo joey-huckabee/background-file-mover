@@ -1,5 +1,10 @@
 # Background File Mover
 
+[Cooperative lock custody](docs/RUST-INCREMENT-25.md) now uses preprovisioned
+regular lock files and version-2 bindings, including actual worker inheritance.
+This is separate from the remaining takeover/partition fencing. Preserve old
+state for explicit enrollment; mixed lock-protocol versions are unsupported.
+
 [Destination binding](docs/RUST-INCREMENT-24.md) now pins policy at acceptance
 and validates destination custody before effects, preserving source handoff
 during outages. Provision both configured root markers; legacy jobs without a

@@ -210,7 +210,7 @@ def main():
                 report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
                 report["ownership"]["driver_sha256"] = {
                     name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py")}
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py")}
                 run_ownership(run, execute, spawn, output, client, peer, server,
                               gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"])
             if args.runtime:
@@ -224,21 +224,21 @@ def main():
                     raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
-        holder = spawn("exec 9</tmp/nfs/source/.file-mover; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")
+        holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")
         await_file("/tmp/local/child.pid")
         execute("kill -KILL $(cat /tmp/local/parent.pid)", "1000:1000")
         holder.wait(timeout=10)
-        collision = execute("flock -xn /tmp/nfs/source/.file-mover true", "1000:1000", check=False)
+        collision = execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False)
         assert collision.returncode != 0
         execute("touch /tmp/local/release-lock", "1000:1000")
         for _ in range(30):
-            if execute("flock -xn /tmp/nfs/source/.file-mover true", "1000:1000", check=False).returncode == 0:
+            if execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode == 0:
                 break
             time.sleep(0.2)
         else:
             raise RuntimeError("inherited source lock not released")
         report["checks"]["inherited_lock"] = "Parent death retained lock; child exit released it"
-        interrupted = spawn("exec 9</tmp/nfs/source/.file-mover; flock -xn 9; echo $$ >/tmp/local/interrupted.pid; while test ! -e /tmp/local/interrupt-go; do sleep 0.2; done; exec stat /tmp/nfs/source", "interrupted-worker")
+        interrupted = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/interrupted.pid; while test ! -e /tmp/local/interrupt-go; do sleep 0.2; done; exec stat /tmp/nfs/source", "interrupted-worker")
         await_file("/tmp/local/interrupted.pid")
         run(["exec", server, "rpc.nfsd", "0"])
         execute("touch /tmp/local/interrupt-go", "1000:1000")
@@ -276,7 +276,7 @@ def main():
         assert probe.wait(timeout=45) == 0
         assert (startup.wait(timeout=45) == 0) == args.isolated_startup
         assert interrupted.wait(timeout=45) != 0
-        assert execute("flock -xn /tmp/nfs/source/.file-mover true", "1000:1000", check=False).returncode == 0
+        assert execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode == 0
         for _, log in tasks:
             log.flush()
         assert (output / "outage-stat.log").read_text() == before

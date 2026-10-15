@@ -86,8 +86,12 @@ exclusion. Bind it to the protected namespace and expected operation owner; refu
 missing/replaced/extra-link/foreign lock files. The existing directory descriptor
 validation and bootstrap descriptor protocol would need deliberate changes; do
 not simply change a filename and assume inherited custody remains valid.
-The fixture's regular-file lock control is an OS observation, not this service
-implementation or a qualified production fence.
+[Increment 25](RUST-INCREMENT-25.md) implements this regular-file custody with
+binding version 2, a versioned bootstrap receipt and held/named lock checks in
+actual workers. Its debug/release two-client tests pass cooperative startup
+exclusion and actual claim/delivery child custody after coordinator death, with
+recovery through the original database. The separate regular-file control is an OS
+observation, and neither result constitutes a production takeover fence.
 
 Takeover must require positive evidence that every old writer and in-flight effect
 is excluded, plus recovery of uncertain operation intents. Process exit on a

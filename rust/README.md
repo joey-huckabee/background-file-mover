@@ -1,5 +1,13 @@
 # Incremental Rust implementation
 
+Increment 25 requires binding version 2 and an explicitly provisioned empty,
+service-owned mode-0600 `.file-mover/coordinator.lock` with one link at each root.
+Bootstrap transfers the regular-file lock description; every worker inherits and
+validates it. Never replace an active lock to unlock a root. Old markers/configs
+and observed state need an explicit fenced cutover/enrollment; no automatic
+migration or mixed-version operation is supported. This is cooperative exclusion,
+not a lost-lock or takeover fence. See [increment 25](../docs/RUST-INCREMENT-25.md).
+
 Members are `mover-core`, a dependency-free pure protocol library,
 `mover-store`, the E1-qualified SQLite repository, `mover-fs`, the
 E2-qualified rustix local claim worker, and `file-mover`, the E5-qualified local

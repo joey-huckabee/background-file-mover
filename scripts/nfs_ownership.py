@@ -18,21 +18,28 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
     def observe(target, script, check=True):
         return execute(script, "1000:1000", check=check, target=target)
 
-    def start(target, label, profile, source, port, state_label=None, production=False):
+    def start(target, label, profile, source, port, state_label=None, production=False,
+              binding_label=None, destination=None, pause=None):
         base = "/tmp/local/ownership-" + (state_label or label)
         observe(target, f"umask 077; mkdir -p {base}/state {base}/destination/.file-mover")
         assert observe(target, f"stat -f -c %t {base}/state").stdout.strip() != "6969"
+        binding_label = binding_label or "ownership-" + profile
         config = {"bind": f"127.0.0.1:{port}", "generator_id": "fixture", "source_root": source,
-                  "destination_root": base + "/destination", "state_database": base + "/state/jobs.sqlite"}
-        config["destination_binding"] = binding_for("ownership-"+profile+"-destination", False, "destination")
-        config["source_binding"] = binding_for("ownership-" + profile, True)
+                  "destination_root": destination or base + "/destination", "state_database": base + "/state/jobs.sqlite"}
+        config["destination_binding"] = binding_for(binding_label+"-destination", destination is not None, "destination")
+        config["source_binding"] = binding_for(binding_label, True)
         before_db = observe(target, "sha256sum " + config["state_database"], check=False)
         local = output / ("ownership-" + label + "-config.json")
         local.write_text(json.dumps(config))
         run(["cp", str(local), target + ":" + base + "/config.json"])
         binary = "/tmp/ownership-" + ("production-" if production else "qualification-") + profile
         marker = "/tmp/local/ownership-" + label + ".pid"
-        process = spawn(f"echo $$ >{marker}; exec {binary} {base}/config.json", "ownership-" + label, target=target)
+        environment = ""
+        if pause:
+            point, rendezvous = pause
+            observe(target, f"umask 077; mkdir -p {rendezvous}")
+            environment = f"env FILE_MOVER_QUALIFICATION_PAUSE={point} FILE_MOVER_QUALIFICATION_RENDEZVOUS={rendezvous} "
+        process = spawn(f"echo $$ >{marker}; exec {environment}{binary} {base}/config.json", "ownership-" + label, target=target)
         service = {"target": target, "process": process, "marker": marker, "label": label,
                    "database": config["state_database"], "port": port,
                    "config_sha256": hashlib.sha256(local.read_bytes()).hexdigest()}
@@ -112,6 +119,7 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             same = start(client, profile + "-same", profile, source, 19881)
             assert not same["ready"], "same-client singleton control failed"
             other = start(peer, profile + "-peer", profile, source, 19880)
+            assert not other["ready"], "cross-client cooperative exclusion failed"
             case = {"profile": profile, "scenario_id": "SC-053", "probe_completed": True,
                     "shared_root_observations": identities, "owner": snapshot(owner), "same_client": snapshot(same),
                     "other_client": snapshot(other), "cross_client_startup_excluded": not other["ready"],
@@ -119,6 +127,13 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             cases.append(case)
             stop(other)
             stop(owner)
+            # Only this empty-state scope is admitted after clean release. This
+            # is not permission to take over another database's recording work.
+            released = start(peer, profile + "-clean-release", profile, source, 19880,
+                             state_label=profile + "-peer")
+            assert released["ready"]
+            case["empty_scope_admitted_after_clean_release"] = snapshot(released)
+            stop(released)
 
             # Positive control: a regular file opened RDWR must have observable
             # remote lock exclusion. This is an OS probe, not a Rust fence.
@@ -143,6 +158,10 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             case["regular_file_remote_exclusion_control"] = True
             (output / ("ownership-" + profile + "-cross-client-result.json")).write_text(json.dumps(case, indent=2) + "\n")
             print(f"NFS ownership {profile}: same-client excluded; cross-client excluded={case['cross_client_startup_excluded']}; regular-file remote control passed", flush=True)
+
+        from nfs_custody import qualify_inherited_custody
+        qualify_inherited_custody(run, execute, spawn, output, client, peer,
+                                 start, stop, snapshot, cases)
 
         # With all peer services stopped, remove only its own mount. Root owns
         # this empty mount point, so it may chmod it without adding CAP_CHOWN.
@@ -175,7 +194,11 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             (output / ("ownership-" + profile + "-missing-mount-result.json")).write_text(json.dumps(case, indent=2) + "\n")
             print(f"NFS missing-mount {profile}: qualification rejected={case['missing_mount_startup_rejected']}; production rejected={case['production_local_startup_rejected']}", flush=True)
         report["probe_status"] = "PASSED"
-        report["protection_complete"] = all(c.get("cross_client_startup_excluded", c.get("missing_mount_startup_rejected", False)) for c in cases)
+        report["cooperative_exclusion_passed"] = all(
+            c.get("cross_client_startup_excluded", False) for c in cases
+            if c["scenario_id"] in {"SC-053", "SC-062"})
+        # Cooperative exclusion is not partition/reclaim or takeover fencing.
+        report["protection_complete"] = False
     finally:
         # No outages are introduced by these probes. Never abandon live services
         # before the owning runner attempts normal unmount and resource removal.

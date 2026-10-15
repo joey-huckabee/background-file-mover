@@ -24,6 +24,7 @@ struct Receipt {
     path: String,
     root: Option<String>,
     namespace: Option<String>,
+    lock: Option<String>,
     authorization: Option<SourceAuthorization>,
     error: Option<String>,
 }
@@ -54,10 +55,11 @@ mod tests {
         }
         .encode();
         let body = serde_json::to_vec(&Receipt {
-            version: 1,
+            version: 2,
             path: "/source".into(),
             root: Some(object.clone()),
-            namespace: Some(object),
+            namespace: Some(object.clone()),
+            lock: Some(object),
             authorization: None,
             error: None,
         })
@@ -92,6 +94,47 @@ mod tests {
             "extra bootstrap descriptor"
         );
     }
+    #[test]
+    fn legacy_or_inconsistent_lock_receipts_are_rejected() {
+        let object = ObjectIdentity {
+            device: 1,
+            inode: 2,
+            uid: 1000,
+            size: 0,
+            modified_seconds: 0,
+            modified_nanos: 0,
+            links: 1,
+        };
+        let mut invalid = object.clone();
+        invalid.links = 2;
+        for (version, lock, expected) in [
+            (1, Some(object.encode()), "bootstrap scope/version mismatch"),
+            (2, None, "missing bootstrap lock identity"),
+            (
+                2,
+                Some(invalid.encode()),
+                "inconsistent bootstrap lock custody",
+            ),
+        ] {
+            let (channel, mut writer) = UnixStream::pair().unwrap();
+            writer
+                .write_all(
+                    &serde_json::to_vec(&Receipt {
+                        version,
+                        path: "/source".into(),
+                        root: Some(object.encode()),
+                        namespace: Some(object.encode()),
+                        lock,
+                        authorization: None,
+                        error: None,
+                    })
+                    .unwrap(),
+                )
+                .unwrap();
+            writer.shutdown(std::net::Shutdown::Write).unwrap();
+            assert_eq!(rejected(BootstrapReceiver::default(), &channel), expected);
+        }
+    }
 }
 
 /// Called only in the bootstrap child. SCM_RIGHTS preserves the locked open
@@ -117,18 +160,20 @@ fn send_lock(
     };
     let receipt = match &acquired {
         Ok(lock) => Receipt {
-            version: 1,
+            version: 2,
             path: path.into(),
             root: Some(lock.root.encode()),
             namespace: Some(lock.namespace.encode()),
+            lock: Some(lock.lock.encode()),
             authorization: lock.authorization.clone(),
             error: None,
         },
         Err(e) => Receipt {
-            version: 1,
+            version: 2,
             path: path.into(),
             root: None,
             namespace: None,
+            lock: None,
             authorization: None,
             error: Some(e.to_string()),
         },
@@ -231,13 +276,14 @@ impl BootstrapReceiver {
         }
         self.finished = true;
         let receipt: Receipt = serde_json::from_slice(&self.bytes).map_err(|e| e.to_string())?;
-        if receipt.version != 1 || receipt.path != path {
+        if receipt.version != 2 || receipt.path != path {
             return Err("bootstrap scope/version mismatch".into());
         }
         if let Some(error) = receipt.error {
             if self.descriptor.is_some()
                 || receipt.root.is_some()
                 || receipt.namespace.is_some()
+                || receipt.lock.is_some()
                 || receipt.authorization.is_some()
             {
                 return Err("inconsistent bootstrap failure".into());
@@ -254,6 +300,14 @@ impl BootstrapReceiver {
             .as_deref()
             .and_then(ObjectIdentity::decode)
             .ok_or("missing bootstrap namespace identity")?;
+        let lock = receipt
+            .lock
+            .as_deref()
+            .and_then(ObjectIdentity::decode)
+            .ok_or("missing bootstrap lock identity")?;
+        if lock.uid != root.uid || lock.device != root.device || lock.size != 0 || lock.links != 1 {
+            return Err("inconsistent bootstrap lock custody".into());
+        }
         if root.uid != namespace.uid || root.device != namespace.device {
             return Err("inconsistent bootstrap custody".into());
         }
@@ -270,6 +324,7 @@ impl BootstrapReceiver {
             path: path.into(),
             root,
             namespace,
+            lock,
             authorization: receipt.authorization,
             destination_authorization: None,
             _held: self

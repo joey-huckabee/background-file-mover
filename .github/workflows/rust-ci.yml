@@ -2,9 +2,9 @@ name: Rust SLES compatibility
 
 on:
   push:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   pull_request:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   workflow_dispatch:
 
 permissions:

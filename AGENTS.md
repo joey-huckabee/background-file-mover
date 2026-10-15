@@ -45,8 +45,12 @@ see `docs/RUST-INCREMENT-23.md`. Existing populated unbound state refuses startu
 no rebind/override is provided. Increment 24 adds required destination_binding,
 per-job schema-9 policy/observation pins, worker/CLI validation and immediate
 binding review while preserving outage handoff; see docs/RUST-INCREMENT-24.md.
-Legacy jobs without destination policy refuse startup. Next qualify cross-client
-exclusion/fencing and explicit fenced re-enrollment.
+Legacy jobs without destination policy refuse startup. Increment 25 replaces
+directory custody with a preprovisioned empty mode-0600 regular coordinator.lock,
+version-2 bindings and bootstrap receipts, and actual worker descriptor checks;
+see docs/RUST-INCREMENT-25.md. Two-client tests distinguish cooperative exclusion
+from lost-lock/partition/reclaim fencing. Do not mix old/new lock protocols or
+auto-rebind existing observations. Next qualify fencing and explicit enrollment.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

@@ -48,6 +48,11 @@ impl Fixture {
             }
             std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o700)).unwrap();
         }
+        for root in [base.join("source"), destination.clone()] {
+            let lock = root.join(".file-mover/coordinator.lock");
+            std::fs::write(&lock, b"").unwrap();
+            std::fs::set_permissions(lock, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
         Self { base, destination }
     }
     fn db(&self) -> PathBuf {

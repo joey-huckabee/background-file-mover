@@ -381,7 +381,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     case.signal(case.worker, "STOP")
                     case.signal(case.service_pid(), "KILL")
                     assert case.service.wait(timeout=10) != 0
-                    assert execute(f"flock -xn {case.source}/.file-mover true", "1000:1000", check=False).returncode != 0
+                    assert execute(f"exec 9<>{case.source}/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode != 0
                     competitor_config = dict(case.config, bind="127.0.0.1:19879", state_database=case.base + "/competitor.sqlite")
                     local = output / (case.label + "-competitor.json")
                     local.write_text(json.dumps(competitor_config))
@@ -392,7 +392,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     assert execute(f"test ! -e {case.base}/competitor.sqlite", "1000:1000", check=False).returncode == 0
                     assert "Ready on" not in (output / (case.label + "-competitor.log")).read_text()
                     restore()
-                    assert execute(f"flock -xn {case.source}/.file-mover true", "1000:1000", check=False).returncode != 0
+                    assert execute(f"exec 9<>{case.source}/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode != 0
                     case.result["coordinator_death"] = "Actual assigned child retained source custody; competing startup refused before SQLite/readiness"
                     case.signal(case.worker, "CONT")
                     case.result["worker_exit_after_restore"] = case.await_exit(case.worker)

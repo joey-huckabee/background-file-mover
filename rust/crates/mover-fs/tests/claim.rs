@@ -27,6 +27,9 @@ impl Fixture {
                         std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
                             .unwrap();
                     }
+                    let lock = path.join(".file-mover/coordinator.lock");
+                    std::fs::write(&lock, b"").unwrap();
+                    std::fs::set_permissions(lock, std::fs::Permissions::from_mode(0o600)).unwrap();
                     return Self(path);
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,

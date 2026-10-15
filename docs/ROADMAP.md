@@ -20,9 +20,9 @@ before implementation.
 - [ ] Define positively fenced source enrollment/rebind for legacy jobs and
   legitimate changes to strict observed pins. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
-- [ ] Implement and qualify cross-client exclusion with actual inherited worker
-  custody, then positively fenced takeover/partition/reclaim before production NFS.
-  Qualify replacement exports, server reboot and power-loss outcomes separately.
+- [ ] Qualify lost-lock handling, partition/reclaim and positively fenced takeover
+  before production NFS. Extend cooperative exclusion beyond the shared-kernel
+  two-client fixture and qualify replacement exports, server reboot and power loss.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
 - [ ] Implement configurable gated source cleanup only after worker/filesystem
   failure qualification passes.
