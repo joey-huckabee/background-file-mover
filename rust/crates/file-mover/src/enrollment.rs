@@ -21,6 +21,14 @@ struct Request {
     create: bool,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Reply {
+    version: u32,
+    authorization: Option<EnrollmentAuthorization>,
+    diagnostic: Option<String>,
+}
+
 pub fn authorize(
     config: &crate::Config,
     store: &Store,
@@ -81,8 +89,21 @@ pub fn authorize(
         guard,
         stop,
         LIMIT,
-    )?;
-    let authorization: EnrollmentAuthorization = serde_json::from_slice(&bytes)?;
+    ).map_err(|_| "source enrollment worker stopped, failed or outcome uncertain; preserve original state and source for review")?;
+    let reply: Reply = serde_json::from_slice(&bytes)?;
+    if reply.version != 1 {
+        return Err("invalid source enrollment reply version".into());
+    }
+    let authorization = match (reply.authorization, reply.diagnostic) {
+        (Some(authorization), None) => authorization,
+        (None, Some(detail)) if crate::diagnostic::valid(&detail) => {
+            return Err(format!(
+                "source enrollment {detail}; preserve original state and source for review"
+            )
+            .into());
+        }
+        _ => return Err("invalid source enrollment reply".into()),
+    };
     if authorization.receipt != receipt
         || mover_core::ObjectIdentity::decode(&authorization.object).is_none()
         || request
@@ -116,21 +137,48 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     {
         return Err("invalid enrollment assignment".into());
     }
-    mover_fs::validate_payload_locks(&request.path, &request.path)?;
-    request.source.validate(&request.path)?;
-    let authorization = if request.create {
-        mover_fs::create_source_enrollment(&request.path, &request.source, &request.receipt)?
-    } else {
-        let authorization = EnrollmentAuthorization {
-            receipt: request.receipt,
-            object: request.object.ok_or("missing enrollment identity")?,
+    let mut stage = "custody_before";
+    let result = (|| -> Result<EnrollmentAuthorization, Box<dyn std::error::Error>> {
+        mover_fs::validate_payload_locks(&request.path, &request.path)?;
+        request.source.validate(&request.path)?;
+        stage = if request.create {
+            "create_receipt"
+        } else {
+            "verify_receipt"
         };
-        authorization.validate(&request.path, &request.source)?;
-        authorization
+        let authorization = if request.create {
+            mover_fs::create_source_enrollment(&request.path, &request.source, &request.receipt)?
+        } else {
+            let authorization = EnrollmentAuthorization {
+                receipt: request.receipt,
+                object: request.object.ok_or("missing enrollment identity")?,
+            };
+            authorization.validate(&request.path, &request.source)?;
+            authorization
+        };
+        stage = "custody_after";
+        mover_fs::validate_payload_locks(&request.path, &request.path)?;
+        request.source.validate(&request.path)?;
+        Ok(authorization)
+    })();
+    let reply = match result {
+        Ok(authorization) => Reply {
+            version: 1,
+            authorization: Some(authorization),
+            diagnostic: None,
+        },
+        Err(error) => Reply {
+            version: 1,
+            authorization: None,
+            diagnostic: Some(
+                format!("{stage}: {}", crate::diagnostic::describe(error.as_ref()))
+                    .chars()
+                    .take(240)
+                    .collect(),
+            ),
+        },
     };
-    mover_fs::validate_payload_locks(&request.path, &request.path)?;
-    request.source.validate(&request.path)?;
-    channel.write_all(&serde_json::to_vec(&authorization)?)?;
+    channel.write_all(&serde_json::to_vec(&reply)?)?;
     channel.shutdown(std::net::Shutdown::Write)?;
     Ok(())
 }

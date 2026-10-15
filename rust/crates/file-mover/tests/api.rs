@@ -9,6 +9,89 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+#[test]
+fn enrollment_io_failures_preserve_prepared_state_and_production_ignores_controls() {
+    for fault in [
+        "short_write",
+        "interrupted_write",
+        "write_zero",
+        "write_enospc",
+        "write_eio",
+        "file_sync",
+        "directory_sync",
+    ] {
+        let mut f = Fixture::uninitialized(300);
+        f.write("data", b"producer input must remain untouched");
+        let config = f.root.join("config.json");
+        let result = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg("--initialize-source")
+            .arg(&config)
+            .env("FILE_MOVER_QUALIFICATION_ENROLLMENT_FAULT", fault)
+            .output()
+            .unwrap();
+        let failed = cfg!(feature = "nfs-qualification")
+            && !["short_write", "interrupted_write"].contains(&fault);
+        assert_eq!(result.status.success(), !failed, "{fault}: {result:?}");
+        let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+        let bytes = std::fs::read(&receipt).unwrap();
+        let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let ownership = store.source_ownership().unwrap().unwrap();
+        assert_eq!(ownership.object.is_none(), failed);
+        assert_eq!(store.job_count().unwrap(), 0);
+        drop(store);
+        if failed {
+            let error = String::from_utf8(result.stderr).unwrap();
+            assert!(error.contains("create_receipt"), "{error}");
+            assert!(
+                error.contains("preserve original state and source for review"),
+                "{error}"
+            );
+            let stage = match fault {
+                "file_sync" => "enrollment_file_sync errno=5",
+                "directory_sync" => "enrollment_directory_sync errno=5",
+                "write_enospc" => "enrollment_write errno=28",
+                "write_eio" => "enrollment_write errno=5",
+                _ => "enrollment write returned zero",
+            };
+            assert!(error.contains(stage), "{error}");
+            if fault.starts_with("write_") {
+                assert_eq!(bytes.len(), 7);
+                assert!(ownership.receipt.as_bytes().starts_with(&bytes));
+            } else {
+                assert_eq!(bytes, ownership.receipt.as_bytes());
+            }
+            assert!(refused_start(&config).contains("enrollment pending"));
+            assert!(!initialize_source(&config).status.success());
+            assert_eq!(std::fs::read(&receipt).unwrap(), bytes);
+        } else {
+            assert_eq!(bytes, ownership.receipt.as_bytes());
+            f.start();
+            f.stop();
+        }
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"producer input must remain untouched"
+        );
+    }
+}
+
+#[test]
+fn missing_enrollment_receipt_reports_verification_stage_without_repair() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+    std::fs::remove_file(&receipt).unwrap();
+    let output = initialize_source(&f.root.join("config.json"));
+    assert!(!output.status.success());
+    let log = String::from_utf8(output.stderr).unwrap();
+    assert!(log.contains("verify_receipt"), "{log}");
+    assert!(
+        log.contains("preserve original state and source for review"),
+        "{log}"
+    );
+    assert!(!receipt.exists());
+}
+
 fn initialize_source(config: &std::path::Path) -> std::process::Output {
     Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--initialize-source")

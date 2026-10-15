@@ -10,7 +10,7 @@ from nfs_binding import binding_for, provision
 
 
 def run_ownership(run, execute, spawn, output, client, peer, server,
-                  gate, evidence, qualification_gate, qualification, mounted_peers, report):
+                  gate, evidence, qualification_gate, qualification, mounted_peers, report, restore):
     services = []
     holders = []
     cases = report["cases"]
@@ -178,6 +178,9 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         qualify_inherited_custody(run, execute, spawn, output, client, peer,
                                  start, stop, snapshot, cases)
         qualify_enrollment(run, execute, spawn, output, client, start, stop, snapshot, cases)
+        from nfs_enrollment import qualify_receipt_shutdown
+        qualify_receipt_shutdown(run, execute, spawn, restore, server, output, client, peer,
+                                start, stop, cases)
 
         # With all peer services stopped, remove only its own mount. Root owns
         # this empty mount point, so it may chmod it without adding CAP_CHOWN.

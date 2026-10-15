@@ -88,6 +88,14 @@ stale snapshots still require a separate fenced recovery procedure. Production
 NFS/deletion remain disabled. See [increment 27](../docs/RUST-INCREMENT-27.md)
 and the [enrollment contract](../docs/FENCED-ENROLLMENT-DESIGN.md).
 
+Enrollment errors identify receipt creation/verification and the failed write or
+file/directory sync when known. Preserve original state and source for review;
+an error is not permission to delete a partial receipt or retry with fresh state.
+The retained qualification build can inject enrollment I/O failures and pause
+between file and directory sync or before receipt reads. Those test controls have
+no effect in production. See [increment 28](../docs/RUST-INCREMENT-28.md) for
+failure and blocked-startup evidence and its limits.
+
 ## Checks
 
 [Increment 20](../docs/RUST-INCREMENT-20.md) extends the retained fixture with

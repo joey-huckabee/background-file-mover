@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 27](RUST-INCREMENT-27.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 28](RUST-INCREMENT-28.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -310,3 +310,13 @@ See the increment for current gate/fixture evidence and the catalog for SC-064/0
 Next expand enrollment error/synchronization evidence and lost-lock/partition
 diagnostics, then select an independently qualified fence before populated rebind.
 Production NFS/deletion, registration and offline repair stay disabled/deferred.
+
+Increment 28 adds narrow qualification-only enrollment write/sync fault controls,
+a process-death pause between file and directory sync, and stage-specific bounded
+enrollment diagnostics. It qualifies startup shutdown while the actual receipt
+read is blocked on hard NFS; consult the increment for observed exit timing and
+the fixture's current result before claiming cancellation. Schema 10, binding
+version 3 and the persisted receipt remain unchanged. Keep pending/ambiguous
+creation blocked and preserve original state/data. Next qualify broader storage
+errors and lost-lock/partition/reclaim, then an independently enforced fence before
+populated-state rebind or takeover. Production NFS/deletion remain disabled.

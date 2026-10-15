@@ -58,6 +58,12 @@ docs/RUST-INCREMENT-27.md for interrupted setup and fresh-state refusal evidence
 Populated rebind/takeover requires an independently qualified fence. Preserve the
 original database; no automatic legacy enrollment or receipt repair is provided.
 Cloned/stale database snapshots are not distinguished by persistent IDs alone.
+Increment 28 adds qualification-only enrollment I/O faults, a file/parent sync
+checkpoint, bounded stage diagnostics and actual blocked receipt-read startup
+shutdown cases; see docs/RUST-INCREMENT-28.md for results and timing limits.
+Schema 10, binding version 3 and the persisted receipt remain unchanged. Do not
+interpret simulated ENOSPC/EIO or a signal as hardware durability/cancellation
+proof. Keep the production controls inert and the qualification feature retained.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

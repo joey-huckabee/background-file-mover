@@ -211,9 +211,9 @@ def main():
                 report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
                 report["ownership"]["driver_sha256"] = {
                     name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py")}
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py", "nfs_enrollment.py")}
                 run_ownership(run, execute, spawn, output, client, peer, server,
-                              gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"])
+                              gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"], restore)
             if args.runtime:
                 from nfs_runtime import run_runtime
                 artifact_hashes = dict(report["artifacts"])

@@ -179,7 +179,7 @@ def qualify_enrollment(run, execute, spawn, output, client, start, stop, snapsho
 
     for profile in ("debug", "release"):
         for point in ("enrollment_intent", "enrollment_prepared", "enrollment_created",
-                      "enrollment_sync", "enrollment_receipt", "enrollment_active"):
+                      "enrollment_sync", "enrollment_directory_sync", "enrollment_receipt", "enrollment_active"):
             no_receipt = point in {"enrollment_intent", "enrollment_prepared"}
             retry_succeeds = no_receipt or point == "enrollment_active"
             label = "enrollment-"+profile+"-"+point

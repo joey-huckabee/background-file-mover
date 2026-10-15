@@ -1,7 +1,7 @@
 //! Persistent original-state pairing; neither export authentication nor fencing.
 use super::*;
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::io::Read;
 
 pub const SOURCE_RECEIPT: &str = "source-enrollment.json";
 
@@ -78,11 +78,13 @@ impl EnrollmentAuthorization {
         let area = namespace(&root(path)?)?;
         let mut file = std::fs::File::from(fs::openat(&area, SOURCE_RECEIPT, FILE, Mode::empty())?);
         let before = checked(&area, &file)?;
+        let selected = super::qualification::before_read(&file, "enrollment_read")?;
         let mut bytes = Vec::new();
         Read::by_ref(&mut file)
             .take(8193)
             .read_to_end(&mut bytes)
             .map_err(|_| ClaimError::Blocked("source enrollment read"))?;
+        super::qualification::after_read(selected)?;
         let named = fs::statat(&area, SOURCE_RECEIPT, AtFlags::SYMLINK_NOFOLLOW)?;
         if before.encode() != self.object
             || checked(&area, &file)? != before
@@ -132,12 +134,20 @@ pub fn create_source_enrollment(
     )?;
     let mut file = std::fs::File::from(fd);
     qualification_pause("enrollment_created")?;
-    file.write_all(receipt.as_bytes())
-        .map_err(|_| ClaimError::Blocked("source enrollment write uncertain"))?;
+    super::enrollment_io::write(&mut file, receipt.as_bytes()).map_err(|e| {
+        if let Some(errno) = e.raw_os_error() {
+            ClaimError::Operation("enrollment_write", Errno::from_raw_os_error(errno))
+        } else if e.kind() == std::io::ErrorKind::WriteZero {
+            ClaimError::Blocked("enrollment write returned zero")
+        } else {
+            ClaimError::Blocked("source enrollment write uncertain")
+        }
+    })?;
     fs::fchmod(&file, Mode::RUSR)?;
     qualification_pause("enrollment_sync")?;
-    fs::fsync(&file)?;
-    fs::fsync(&area)?;
+    super::enrollment_io::sync_file(&file)?;
+    qualification_pause("enrollment_directory_sync")?;
+    super::enrollment_io::sync_directory(&area)?;
     qualification_pause("enrollment_receipt")?;
     let authorization = EnrollmentAuthorization {
         receipt: receipt.into(),

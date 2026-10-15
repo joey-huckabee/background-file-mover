@@ -78,6 +78,7 @@ mod binding;
 mod bootstrap;
 mod custody;
 mod enrollment;
+mod enrollment_io;
 pub use binding::{
     DESTINATION_MARKER, DestinationAuthorization, DestinationBinding, DestinationRole,
     SOURCE_MARKER, SourceAuthorization, SourceBinding, SourceFilesystem, SourceRole,

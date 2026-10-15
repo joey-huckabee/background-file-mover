@@ -210,3 +210,13 @@ pairing and selected interrupted enrollment cases. Qualification helpers initial
 only their own newly provisioned scopes; restart uses original state. Fresh-state
 refusal after lock release is distinct from exclusion while an old worker holds
 the lock. Neither establishes a partition/reclaim or storage takeover fence.
+
+[Increment 28](RUST-INCREMENT-28.md) adds the `enrollment_directory_sync` pause
+between file and namespace sync, plus `enrollment_read` for actual receipt reads
+during startup shutdown. The read case must observe a kernel-blocked child and
+no read-completed marker before requesting shutdown. Record observed child/service
+exit relative to server restoration; no prompt-cancellation guarantee is assumed.
+Enrollment write/sync fault values simulate selected failures only in qualification
+builds. Production ignores those controls; simulated ENOSPC/EIO is not actual NFS
+server storage-error qualification. The new `nfs_enrollment.py` helper is retained
+with the rest of the owned fixture and its driver hash recorded in reports.
