@@ -169,6 +169,7 @@ def main():
         config = {"bind": "127.0.0.1:19876", "generator_id": "fixture",
                   "source_root": "/tmp/nfs/source", "destination_root": "/tmp/local/destination",
                   "state_database": "/tmp/local/state/jobs.sqlite"}
+        config["destination_binding"] = binding_for("startup-destination", False, "destination")
         config["source_binding"] = binding_for("startup-source", True)
         provision(run, execute, output, client, "/tmp/nfs/source", config["source_binding"])
         config_path = output / "config.json"

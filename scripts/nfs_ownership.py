@@ -24,6 +24,7 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         assert observe(target, f"stat -f -c %t {base}/state").stdout.strip() != "6969"
         config = {"bind": f"127.0.0.1:{port}", "generator_id": "fixture", "source_root": source,
                   "destination_root": base + "/destination", "state_database": base + "/state/jobs.sqlite"}
+        config["destination_binding"] = binding_for("ownership-"+profile+"-destination", False, "destination")
         config["source_binding"] = binding_for("ownership-" + profile, True)
         before_db = observe(target, "sha256sum " + config["state_database"], check=False)
         local = output / ("ownership-" + label + "-config.json")

@@ -58,6 +58,8 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
             assert execute(f"stat -f -c %t {state}", "1000:1000").stdout.strip() != "6969"
             config = {"bind": "127.0.0.1:19877", "generator_id": "fixture", "source_root": source,
                       "destination_root": destination, "state_database": state + "/jobs.sqlite"}
+            config["destination_binding"] = binding_for(label+"-destination", direction != "source", "destination")
+            provision(run, execute, output, client, destination, config["destination_binding"])
             config["source_binding"] = binding_for(label, direction != "destination")
             provision(run, execute, output, client, source, config["source_binding"])
             config_path = output / (label + "-config.json")

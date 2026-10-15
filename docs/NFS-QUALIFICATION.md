@@ -20,6 +20,13 @@ them through `scripts/nfs_binding.py`; service startup never creates them. A
 declared NFS source cannot fall back to an underlying local directory. Strict
 observed identity pins do not authenticate a server/export or provide fencing.
 
+Increment 24 also requires explicit `destination_binding` configuration and a
+preprovisioned private destination marker. The same fixture helper provisions
+both roles. Destination policy is pinned at acceptance without accessing the
+destination; a recording child validates/pins its first observation before
+allocation. Missing destinations defer delivery, while foreign bindings require
+operator review. Keep full runtime regression evidence after effect-path changes.
+
 Both builds identify themselves with `--check-platform`:
 
 ```text

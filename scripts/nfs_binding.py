@@ -2,10 +2,10 @@
 import json
 
 
-def binding_for(label, nfs):
+def binding_for(label, nfs, role="source"):
     return {"version": 1, "coordinator_id": "fixture-owner", "root_id": label,
             "endpoint_id": "fixture-nfs" if nfs else "fixture-local", "marker_id": label + "-marker",
-            "filesystem": "nfs" if nfs else "local", "role": "source"}
+            "filesystem": "nfs" if nfs else "local", "role": role}
 
 
 def provision(run, execute, output, client, source, binding):
@@ -16,6 +16,7 @@ def provision(run, execute, output, client, source, binding):
     local.write_text(json.dumps(binding))
     remote = "/tmp/" + label + ".json"
     run(["cp", str(local), client + ":" + remote])
-    execute(f"umask 077; test ! -e {source}/.file-mover/source-binding.json; "
-            f"cat {remote} >{source}/.file-mover/source-binding.json; chmod 600 {source}/.file-mover/source-binding.json",
+    marker = binding["role"] + "-binding.json"
+    execute(f"umask 077; test ! -e {source}/.file-mover/{marker}; "
+            f"cat {remote} >{source}/.file-mover/{marker}; chmod 600 {source}/.file-mover/{marker}",
             "1000:1000", target=client)

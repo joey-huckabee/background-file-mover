@@ -34,6 +34,7 @@ pub struct Config {
     pub source_root: String,
     pub source_binding: mover_fs::SourceBinding,
     pub destination_root: String,
+    pub destination_binding: mover_fs::DestinationBinding,
     pub state_database: String,
     #[serde(default = "retry_default")]
     pub missing_file_retry_window_seconds: u32,
@@ -64,6 +65,12 @@ fn absolute(path: &str) -> bool {
 }
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
+        self.destination_binding
+            .validate()
+            .map_err(|_| "invalid destination binding")?;
+        if self.destination_binding.coordinator_id != self.source_binding.coordinator_id {
+            return Err("coordinator binding mismatch");
+        }
         self.source_binding
             .validate()
             .map_err(|_| "invalid source binding")?;
@@ -183,9 +190,10 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
             source_root_path: c.source_root.clone(),
             source_relative_directory: relative,
             destination_path: c.destination_root.clone(),
+            destination_binding: Some(c.destination_binding.encode()),
             missing_retry_seconds: c.missing_file_retry_window_seconds,
             policy: DeliveryPolicy {
-                destination_id: "configured-local".into(),
+                destination_id: c.destination_binding.root_id.clone(),
                 group_by_generator: false,
                 delete_source_after_commit: false,
             },
@@ -241,6 +249,7 @@ impl Worker {
             &authorization.binding.encode(),
             &authorization.observation,
         )?;
+        store.require_destination_bindings()?;
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
@@ -280,6 +289,13 @@ impl Worker {
                                     &delivery_guard,
                                     &delivery_stop,
                                 );
+                                if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationBindingRefused>()) {
+                                    if let Err(error)=delivery_store.destination_binding_refused(id,now()) {
+                                        eprintln!("Destination refusal persistence failed: {error}");
+                                        delivery_stop.store(true,Ordering::Relaxed);
+                                    }
+                                    continue;
+                                }
                                 if matches!(result, Ok(false)) {
                                     if let Err(error) = delivery_store.delivery_deferred(id, now())
                                     {

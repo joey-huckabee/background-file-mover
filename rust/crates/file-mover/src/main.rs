@@ -64,6 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &authorization.binding.encode(),
             &authorization.observation,
         )?;
+        store.require_destination_bindings()?;
         let result = mover_fs::transfer_one_with_guard(&store, job, &guard)?;
         let committed = store
             .get(job)?

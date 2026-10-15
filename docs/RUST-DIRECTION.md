@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 23](RUST-INCREMENT-23.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
+[Increment 24](RUST-INCREMENT-24.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -273,3 +273,11 @@ Keep old state/source data intact; no automatic rebind, legacy-job enrollment
 override or authenticated export/fencing claim is provided. Strict device/fsid
 changes may require future fenced re-enrollment. Next pin destination bindings,
 then qualify cross-client exclusion/fencing; production NFS/deletion stay disabled.
+
+Increment 24 pins destination policy per accepted job, observes and persists
+validated destination custody before staging, and revalidates in delivery
+children and the single-file CLI. Missing destinations do not gate source 202;
+foreign or changed bindings require explicit review. Schema 9 preserves legacy
+jobs but service startup refuses jobs without a saved destination policy.
+Next qualify cross-client exclusion/fencing and explicit legacy enrollment/rebind.
+Keep production NFS and deletion disabled.

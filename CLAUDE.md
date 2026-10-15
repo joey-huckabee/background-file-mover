@@ -42,8 +42,11 @@ completion is not protection or production approval. Increment 23 implements
 required source_binding/provisioned marker checks, strict schema-8 enrollment,
 source authorization in bootstrap/claim/delivery children and the single-file CLI;
 see `docs/RUST-INCREMENT-23.md`. Existing populated unbound state refuses startup;
-no rebind/override is provided. Next implement pinned destination binding, then
-qualified cross-client exclusion/fencing and explicit fenced re-enrollment.
+no rebind/override is provided. Increment 24 adds required destination_binding,
+per-job schema-9 policy/observation pins, worker/CLI validation and immediate
+binding review while preserving outage handoff; see docs/RUST-INCREMENT-24.md.
+Legacy jobs without destination policy refuse startup. Next qualify cross-client
+exclusion/fencing and explicit fenced re-enrollment.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

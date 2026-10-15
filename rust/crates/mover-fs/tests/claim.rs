@@ -43,6 +43,7 @@ impl Fixture {
             source_root_path: self.0.to_str().unwrap().into(),
             source_relative_directory: "recording".into(),
             destination_path: "/unused".into(),
+            destination_binding: None,
             policy: DeliveryPolicy {
                 destination_id: "future".into(),
                 group_by_generator: false,

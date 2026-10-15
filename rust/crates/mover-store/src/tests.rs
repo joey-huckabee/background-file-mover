@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -75,8 +75,10 @@ fn schema_seven_jobs_require_explicit_enrollment_without_losing_jobs() {
     let job = s.accept(&input("g", "legacy", "data"), &context()).unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE source_enrollment; PRAGMA user_version=7;")
-        .unwrap();
+    c.execute_batch(
+        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
+    )
+    .unwrap();
     drop(c);
     let s = Store::open(f.db()).unwrap();
     assert!(matches!(
@@ -91,8 +93,10 @@ fn schema_seven_empty_state_can_enroll_after_migration() {
     let f = Fixture::new();
     drop(Store::open(f.db()).unwrap());
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE source_enrollment; PRAGMA user_version=7;")
-        .unwrap();
+    c.execute_batch(
+        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
+    )
+    .unwrap();
     drop(c);
     let s = Store::open(f.db()).unwrap();
     s.enroll_source("/source", "binding-v1", "observed")
@@ -250,7 +254,7 @@ fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE source_enrollment; DROP TABLE missing_resets; PRAGMA user_version=6;",
+        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; PRAGMA user_version=6;",
     )
     .unwrap();
     drop(c);
@@ -434,7 +438,7 @@ fn schema_five_migration_preserves_claims_instance_and_review() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
+        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
     )
     .unwrap();
     drop(c);
@@ -597,7 +601,7 @@ fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
-    db.connection.execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    db.connection.execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
     let s = Store::open(f.db()).unwrap();
     let instance = s.instance_id().unwrap();
@@ -630,7 +634,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -743,7 +747,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();
@@ -890,6 +894,7 @@ fn context() -> AcceptanceContext {
         source_root_path: "/mnt/recordings".into(),
         source_relative_directory: "current".into(),
         destination_path: "/mnt/archive".into(),
+        destination_binding: None,
         policy: DeliveryPolicy {
             destination_id: "archive".into(),
             group_by_generator: true,
@@ -1302,4 +1307,93 @@ fn child_reopens_committed_acceptance() {
     assert!(saved.replay);
     assert_eq!(store.job_count().unwrap(), 1);
     assert_eq!(saved.recording.handoff(), Handoff::Pending);
+}
+
+#[test]
+fn destination_policy_and_observation_survive_route_changes_and_restart() {
+    let f = Fixture::new();
+    let store = Store::open(f.db()).unwrap();
+    let mut c = context();
+    c.destination_binding = Some("policy-a".into());
+    let input = input("g", "pinned", "data");
+    let job = store.accept(&input, &c).unwrap();
+    assert!(store.destination_observation(job.job_id).unwrap().is_none());
+    store.require_destination_bindings().unwrap();
+    store
+        .pin_destination(job.job_id, "policy-a", "observed-a")
+        .unwrap();
+    drop(store);
+    let store = Store::open(f.db()).unwrap();
+    c.destination_path = "/other".into();
+    c.destination_binding = Some("policy-b".into());
+    let replay = store.accept(&input, &c).unwrap();
+    assert!(replay.replay);
+    assert_eq!(replay.context, job.context);
+    assert_eq!(
+        store
+            .destination_observation(job.job_id)
+            .unwrap()
+            .as_deref(),
+        Some("observed-a")
+    );
+    store
+        .pin_destination(job.job_id, "policy-a", "observed-a")
+        .unwrap();
+    for (policy, pin) in [("policy-b", "observed-a"), ("policy-a", "replaced")] {
+        assert!(matches!(
+            store.pin_destination(job.job_id, policy, pin),
+            Err(StoreError::DestinationBindingChanged)
+        ));
+    }
+}
+#[test]
+fn schema_eight_jobs_migrate_but_cannot_adopt_current_destination_policy() {
+    let f = Fixture::new();
+    {
+        let mut db = Database::open(&f.db(), false).unwrap();
+        db.accept(&input("g", "legacy", "data"), &context())
+            .unwrap();
+        db.connection
+            .execute_batch("DROP TABLE destination_bindings; PRAGMA user_version=8;")
+            .unwrap();
+    }
+    assert!(matches!(
+        Store::open_read_only(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let store = Store::open(f.db()).unwrap();
+    assert_eq!(store.job_count().unwrap(), 1);
+    assert!(matches!(
+        store.require_destination_bindings(),
+        Err(StoreError::DestinationEnrollmentRequired)
+    ));
+    assert!(matches!(
+        store.pin_destination(1, "new-policy", "new-observation"),
+        Err(StoreError::DestinationEnrollmentRequired)
+    ));
+    assert!(
+        store
+            .get(1)
+            .unwrap()
+            .unwrap()
+            .context
+            .destination_binding
+            .is_none()
+    );
+}
+#[test]
+fn destination_refusal_persists_immediate_review_after_an_outage() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let job = s
+        .accept(&input("g", "refused", "data"), &context())
+        .unwrap();
+    s.delivery_deferred(job.job_id, 100).unwrap();
+    s.destination_binding_refused(job.job_id, 101).unwrap();
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(
+        s.status(job.job_id).unwrap().unwrap().delivery,
+        Some((3, 101, "destination_binding_requires_review".into()))
+    );
 }

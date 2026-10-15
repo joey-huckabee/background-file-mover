@@ -17,9 +17,6 @@ before implementation.
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery
   situations, their actual evidence and remaining documentation obligations.
-- [ ] Pin destination bindings at acceptance and validate them in recording
-  workers; follow [ROOT-OWNERSHIP-DESIGN.md](ROOT-OWNERSHIP-DESIGN.md). Preserve
-  source handoff during destination unavailability within retention limits.
 - [ ] Define positively fenced source enrollment/rebind for legacy jobs and
   legitimate changes to strict observed pins. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.

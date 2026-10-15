@@ -271,6 +271,7 @@ impl BootstrapReceiver {
             root,
             namespace,
             authorization: receipt.authorization,
+            destination_authorization: None,
             _held: self
                 .descriptor
                 .take()

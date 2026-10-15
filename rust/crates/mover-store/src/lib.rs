@@ -21,7 +21,7 @@ pub use operators::{ResumeAudit, ResumeReceipt, ResumeRequest};
 pub use retention::RetentionSnapshot;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 8;
+const SCHEMA_VERSION: i64 = 9;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -35,6 +35,8 @@ pub enum StoreError {
     SourceReserved,
     SourceRootChanged,
     SourceEnrollmentRequired,
+    DestinationEnrollmentRequired,
+    DestinationBindingChanged,
     WorkerStopped,
     AdmissionFull,
     NotFound,
@@ -84,13 +86,18 @@ pub struct AcceptanceContext {
     pub source_root_path: String,
     pub source_relative_directory: String,
     pub destination_path: String,
+    pub destination_binding: Option<String>,
     pub policy: DeliveryPolicy,
     pub missing_retry_seconds: u32,
 }
 
 impl AcceptanceContext {
     fn validate(&self) -> Result<()> {
-        if self.source_root_id.trim().is_empty()
+        if self
+            .destination_binding
+            .as_ref()
+            .is_some_and(|b| b.is_empty() || b.len() > 4096)
+            || self.source_root_id.trim().is_empty()
             || self.policy.destination_id.trim().is_empty()
             || !self.source_root_path.starts_with('/')
             || !self.destination_path.starts_with('/')
@@ -149,6 +156,72 @@ enum Command {
 }
 
 impl Store {
+    /// Service startup refuses legacy jobs without an explicitly pinned policy.
+    pub fn require_destination_bindings(&self) -> Result<()> {
+        self.call(|db| {
+            let missing:bool=db.connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs LEFT JOIN destination_bindings USING(job_id) WHERE binding IS NULL)",[],|r|r.get(0))?;
+            if missing { return Err(StoreError::DestinationEnrollmentRequired); } Ok(())
+        })
+    }
+    pub fn destination_observation(&self, id: i64) -> Result<Option<String>> {
+        self.call(move |db| {
+            Ok(db
+                .connection
+                .query_row(
+                    "SELECT observation FROM destination_bindings WHERE job_id=?1",
+                    [id],
+                    |r| r.get::<_, Option<String>>(0),
+                )
+                .optional()?
+                .flatten())
+        })
+    }
+    /// Persist validated worker custody before issuing any allocation/effect.
+    pub fn pin_destination(&self, id: i64, binding: &str, observation: &str) -> Result<()> {
+        if binding.is_empty()
+            || binding.len() > 4096
+            || observation.is_empty()
+            || observation.len() > 2048
+        {
+            return Err(StoreError::InvalidContext);
+        }
+        let (binding, observation) = (binding.to_owned(), observation.to_owned());
+        self.call(move |db| {
+            let tx = db
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let prior: Option<(String, Option<String>)> = tx
+                .query_row(
+                    "SELECT binding,observation FROM destination_bindings WHERE job_id=?1",
+                    [id],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .optional()?;
+            let Some((policy, pin)) = prior else {
+                return Err(StoreError::DestinationEnrollmentRequired);
+            };
+            if policy != binding || pin.as_ref().is_some_and(|p| p != &observation) {
+                return Err(StoreError::DestinationBindingChanged);
+            }
+            if pin.is_none() {
+                let effects: bool = tx.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM transfers WHERE job_id=?1)",
+                    [id],
+                    |r| r.get(0),
+                )?;
+                if effects {
+                    return Err(StoreError::DestinationEnrollmentRequired);
+                }
+                tx.execute(
+                    "UPDATE destination_bindings SET observation=?2 WHERE job_id=?1",
+                    params![id, observation],
+                )?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+    }
+
     /// Called before service threads/readiness. Existing jobs cannot be silently
     /// enrolled; a changed binding has no automatic replacement/repair path.
     pub fn enroll_source(&self, path: &str, binding: &str, observation: &str) -> Result<()> {
@@ -365,7 +438,14 @@ impl Store {
         })
     }
     pub fn delivery_failed(&self, id: i64, now: i64) -> Result<()> {
-        self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,1,?2,'delivery_requires_review') ON CONFLICT(job_id) DO UPDATE SET failures=min(3,failures+1),retry_after=excluded.retry_after",params![id,now.saturating_add(5)])?;Ok(())})
+        self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,1,?2,'delivery_requires_review') ON CONFLICT(job_id) DO UPDATE SET failures=min(3,failures+1),retry_after=excluded.retry_after,code=excluded.code",params![id,now.saturating_add(5)])?;Ok(())})
+    }
+    pub fn destination_binding_refused(&self, id: i64, now: i64) -> Result<()> {
+        self.call(move |db| {
+            if now<0 {return Err(StoreError::InvalidContext);}
+            db.connection.execute("INSERT INTO delivery_failures VALUES(?1,3,?2,'destination_binding_requires_review') ON CONFLICT(job_id) DO UPDATE SET failures=3,retry_after=excluded.retry_after,code=excluded.code",params![id,now])?;
+            Ok(())
+        })
     }
     pub fn delivery_deferred(&self, id: i64, now: i64) -> Result<()> {
         self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,0,?2,'destination_unavailable') ON CONFLICT(job_id) DO UPDATE SET retry_after=excluded.retry_after,code=excluded.code",params![id,now.saturating_add(5)])?;Ok(())})
@@ -407,7 +487,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=7).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=8).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -445,13 +525,16 @@ impl Database {
             tx.execute_batch(include_str!("coordination.sql"))?;
             tx.execute_batch(include_str!("operators.sql"))?;
             tx.execute_batch(include_str!("missing_resets.sql"))?;
-            tx.execute_batch(include_str!("source_enrollment.sql"))?;
+            if version <= 7 {
+                tx.execute_batch(include_str!("source_enrollment.sql"))?;
+            }
+            tx.execute_batch(include_str!("destination_bindings.sql"))?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=7).contains(&version) && !read_only {
+        if (1..=8).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -472,7 +555,10 @@ impl Database {
             if version <= 6 {
                 tx.execute_batch(include_str!("missing_resets.sql"))?;
             }
-            tx.execute_batch(include_str!("source_enrollment.sql"))?;
+            if version <= 7 {
+                tx.execute_batch(include_str!("source_enrollment.sql"))?;
+            }
+            tx.execute_batch(include_str!("destination_bindings.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -647,6 +733,12 @@ impl Database {
                 context.destination_path, context.policy.group_by_generator, context.policy.delete_source_after_commit,
                 context.missing_retry_seconds, i64::try_from(submission.files().len()).map_err(|_| StoreError::InvalidContext)?])?;
         let job_id = tx.last_insert_rowid();
+        if let Some(binding) = &context.destination_binding {
+            tx.execute(
+                "INSERT INTO destination_bindings(job_id,binding) VALUES(?1,?2)",
+                params![job_id, binding],
+            )?;
+        }
         for (index, file) in submission.files().iter().enumerate() {
             let index = i64::try_from(index).map_err(|_| StoreError::InvalidContext)?;
             tx.execute(
@@ -772,11 +864,18 @@ fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
         [job_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, AcceptanceContext {
             source_root_id: r.get(3)?, source_root_path: r.get(4)?, source_relative_directory: r.get(5)?,
             policy: DeliveryPolicy { destination_id: r.get(6)?, group_by_generator: r.get(8)?, delete_source_after_commit: r.get(9)? },
-            destination_path: r.get(7)?, missing_retry_seconds: r.get(10)?,
+            destination_path: r.get(7)?, destination_binding: None, missing_retry_seconds: r.get(10)?,
         }, r.get::<_, i64>(11)?))).optional()?;
-    let Some((generator, submission, source, context, file_count)) = header else {
+    let Some((generator, submission, source, mut context, file_count)) = header else {
         return Ok(None);
     };
+    context.destination_binding = connection
+        .query_row(
+            "SELECT binding FROM destination_bindings WHERE job_id=?1",
+            [job_id],
+            |r| r.get(0),
+        )
+        .optional()?;
     let mut statement = connection.prepare("SELECT file_index,relative_path,expected_size FROM files WHERE job_id=?1 ORDER BY file_index")?;
     let rows = statement.query_map([job_id], |r| {
         Ok((

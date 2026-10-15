@@ -1,5 +1,10 @@
 # Background File Mover
 
+[Destination binding](docs/RUST-INCREMENT-24.md) now pins policy at acceptance
+and validates destination custody before effects, preserving source handoff
+during outages. Provision both configured root markers; legacy jobs without a
+destination policy require future explicit enrollment.
+
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read
 [the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).

@@ -71,6 +71,7 @@ impl Fixture {
             source_root_path: self.base.join("source").to_str().unwrap().into(),
             source_relative_directory: "recording".into(),
             destination_path: self.destination.to_str().unwrap().into(),
+            destination_binding: None,
             policy: DeliveryPolicy {
                 destination_id: "dest".into(),
                 group_by_generator: false,
@@ -107,6 +108,7 @@ impl Fixture {
             source_root_path: self.base.join("source").to_str().unwrap().into(),
             source_relative_directory: "recording".into(),
             destination_path: self.destination.to_str().unwrap().into(),
+            destination_binding: None,
             policy: DeliveryPolicy {
                 destination_id: "dest".into(),
                 group_by_generator: false,

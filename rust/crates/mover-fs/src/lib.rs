@@ -77,6 +77,7 @@ pub const fn nfs_qualification_enabled() -> bool {
 mod binding;
 mod bootstrap;
 pub use binding::{
+    DESTINATION_MARKER, DestinationAuthorization, DestinationBinding, DestinationRole,
     SOURCE_MARKER, SourceAuthorization, SourceBinding, SourceFilesystem, SourceRole,
 };
 mod manifest;
@@ -207,6 +208,7 @@ pub struct LocalClaimLock {
     root: ObjectIdentity,
     namespace: ObjectIdentity,
     authorization: Option<SourceAuthorization>,
+    destination_authorization: Option<DestinationAuthorization>,
     _held: OwnedFd,
 }
 /// Check the two inherited custody directory descriptors before child effects.
@@ -245,11 +247,15 @@ impl LocalClaimLock {
             root: owned_directory(&root, false)?,
             namespace: owned_directory(&namespace, true)?,
             authorization: None,
+            destination_authorization: None,
             _held: namespace,
         })
     }
     pub fn validate(&self) -> Result<()> {
         if let Some(authorization) = &self.authorization {
+            authorization.validate(&self.path)?;
+        }
+        if let Some(authorization) = &self.destination_authorization {
             authorization.validate(&self.path)?;
         }
         let root = root(&self.path)?;

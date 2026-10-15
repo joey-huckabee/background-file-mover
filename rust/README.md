@@ -112,3 +112,10 @@ data/source archive is uploaded by CI. The registry source cache is also retaine
 See [the platform gate](../docs/RUST-SLES-GATE.md)
 and [increment evidence](../docs/RUST-INCREMENT-01.md). Package experiments remain
 paused. Containers share the runner kernel/CPU, not an actual old SLES kernel.
+
+Increment 24 requires an explicit destination_binding and a preprovisioned
+private .file-mover/destination-binding.json marker with role destination.
+Acceptance pins policy without destination I/O; the recording worker validates
+and persists its observation before staging. Legacy jobs without destination
+bindings refuse service startup; preserve state for future explicit enrollment.
+See [increment 24](../docs/RUST-INCREMENT-24.md) for setup, evidence and limits.

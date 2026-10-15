@@ -12,6 +12,14 @@ use std::{
     time::Duration,
 };
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+#[derive(Debug)]
+pub(crate) struct DestinationBindingRefused;
+impl std::fmt::Display for DestinationBindingRefused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("destination binding requires operator review")
+    }
+}
+impl std::error::Error for DestinationBindingRefused {}
 const LIMIT: usize = 393216;
 const REPLY_LIMIT: usize = 32768;
 #[derive(Serialize, Deserialize)]
@@ -53,6 +61,10 @@ enum Operation {
         job_id: i64,
         source_root: String,
         destination_root: String,
+        #[serde(default)]
+        destination_binding: Option<mover_fs::DestinationBinding>,
+        #[serde(default)]
+        destination_observation: Option<String>,
     },
     Prepare {
         assignment: Assignment,
@@ -113,6 +125,7 @@ struct Request {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Reply {
+    destination_authorization: Option<mover_fs::DestinationAuthorization>,
     version: u32,
     sequence: u64,
     transfer: Option<Assignment>,
@@ -230,6 +243,9 @@ impl Session {
             }
             eprintln!("Delivery worker sequence {}: {detail}", self.sequence);
         }
+        if reply.error.as_deref() == Some("destination_binding_refused") {
+            return Err(Box::new(DestinationBindingRefused));
+        }
         Ok(reply)
     }
     fn transfer(
@@ -276,14 +292,35 @@ pub(crate) fn deliver(
             job_id: id,
             source_root: job.context.source_root_path.clone(),
             destination_root: job.context.destination_path.clone(),
+            destination_binding: job
+                .context
+                .destination_binding
+                .as_ref()
+                .map(|b| serde_json::from_str(b))
+                .transpose()?,
+            destination_observation: store.destination_observation(id)?,
         },
         stop,
     )?;
+    if opened.error.as_deref() == Some("destination_binding_refused") {
+        return Err(Box::new(DestinationBindingRefused));
+    }
     if opened.error.as_deref() == Some("destination_unavailable") {
         return Ok(false);
     }
     if opened.error.is_some() || opened.transfer.is_some() || opened.manifest.is_some() {
         return Err("destination custody unavailable".into());
+    }
+    if let Some(binding) = &job.context.destination_binding {
+        let authorization = opened
+            .destination_authorization
+            .ok_or("missing destination authorization")?;
+        if authorization.binding.encode() != *binding {
+            return Err("destination receipt policy changed".into());
+        }
+        store.pin_destination(id, binding, &authorization.observation)?;
+    } else if guard.source_authorization().is_some() {
+        return Err("destination policy required".into());
     }
     for index in 0..job.recording.submission().files().len() {
         let c = claim(store, id, index)?;
@@ -481,6 +518,7 @@ pub fn worker() -> Result<()> {
             return Err("delivery assignment too large".into());
         }
         let mut reply = Reply {
+            destination_authorization: None,
             version: 1,
             sequence,
             transfer: None,
@@ -488,6 +526,7 @@ pub fn worker() -> Result<()> {
             error: None,
             diagnostic: None,
         };
+        let mut checking_destination = false;
         let result = (|| -> Result<()> {
             if let Some(prior) = &source_authorization
                 && prior != &request.source_authorization
@@ -499,6 +538,8 @@ pub fn worker() -> Result<()> {
                     job_id,
                     source_root,
                     destination_root,
+                    destination_binding,
+                    destination_observation,
                 } => {
                     if context.is_some() || job_id <= 0 {
                         return Err("invalid open assignment".into());
@@ -507,12 +548,38 @@ pub fn worker() -> Result<()> {
                     if let Some(auth) = &request.source_authorization {
                         auth.validate(&source_root)?;
                     }
-                    if mover_fs::destination_unavailable(&destination_root) {
+                    checking_destination = destination_binding.is_some();
+                    if let (Some(source), Some(destination)) =
+                        (&request.source_authorization, &destination_binding)
+                        && source.binding.coordinator_id != destination.coordinator_id
+                    {
+                        return Err("destination coordinator binding mismatch".into());
+                    }
+                    let unavailable = match &destination_binding {
+                        Some(binding) => binding.unavailable(&destination_root)?,
+                        None => mover_fs::destination_unavailable(&destination_root),
+                    };
+                    if unavailable {
                         reply.error = Some("destination_unavailable".into());
                         return Ok(());
                     }
-                    let destination = LocalClaimLock::acquire(&destination_root)?;
+                    if request.source_authorization.is_some() && destination_binding.is_none() {
+                        return Err("destination policy required".into());
+                    }
+                    let destination = match &destination_binding {
+                        Some(binding) => LocalClaimLock::acquire_destination(
+                            &destination_root,
+                            binding,
+                            destination_observation.as_deref(),
+                        )?,
+                        None if destination_observation.is_none() => {
+                            LocalClaimLock::acquire(&destination_root)?
+                        }
+                        None => return Err("destination observation without policy".into()),
+                    };
                     destination.validate()?;
+                    reply.destination_authorization =
+                        destination.destination_authorization().cloned();
                     context = Some((job_id, source_root, destination));
                     source_authorization = Some(request.source_authorization.clone());
                 }
@@ -523,7 +590,9 @@ pub fn worker() -> Result<()> {
                     if let Some(auth) = &request.source_authorization {
                         auth.validate(source)?;
                     }
+                    checking_destination = true;
                     destination.validate()?;
+                    checking_destination = false;
                     let (assignment, kind, manifest) = match command {
                         Operation::Prepare { assignment } => (assignment, 0, None),
                         Operation::Restart { assignment } => (assignment, 1, None),
@@ -568,15 +637,24 @@ pub fn worker() -> Result<()> {
                     if let Some(auth) = &request.source_authorization {
                         auth.validate(source)?;
                     }
+                    checking_destination = true;
                     destination.validate()?;
                 }
             }
             Ok(())
         })();
         if let Err(e) = result {
+            reply.destination_authorization = None;
             reply.transfer = None;
             reply.manifest = None;
-            reply.error = Some("blocked_or_uncertain".into());
+            reply.error = Some(
+                if checking_destination {
+                    "destination_binding_refused"
+                } else {
+                    "blocked_or_uncertain"
+                }
+                .into(),
+            );
             reply.diagnostic = Some(super::diagnostic::describe(e.as_ref()));
         }
         let finish = reply.error.is_some();

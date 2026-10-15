@@ -74,13 +74,21 @@ impl SourceAuthorization {
 }
 fn observe(path: &str, expected: &SourceBinding) -> Result<String> {
     expected.validate()?;
+    observe_marker(path, expected, &expected.filesystem, SOURCE_MARKER)
+}
+fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
+    path: &str,
+    expected: &T,
+    expected_filesystem: &SourceFilesystem,
+    marker_name: &str,
+) -> Result<String> {
     let root = root(path)?;
     let filesystem = fs::fstatfs(&root)?.f_type;
-    if (filesystem == 0x6969) != (expected.filesystem == SourceFilesystem::Nfs) {
-        return Err(ClaimError::Blocked("source filesystem binding mismatch"));
+    if (filesystem == 0x6969) != (*expected_filesystem == SourceFilesystem::Nfs) {
+        return Err(ClaimError::Blocked("endpoint filesystem binding mismatch"));
     }
     let area = namespace(&root)?;
-    let marker = fs::openat(&area, SOURCE_MARKER, FILE, Mode::empty())?;
+    let marker = fs::openat(&area, marker_name, FILE, Mode::empty())?;
     let before = fs::fstat(&marker)?;
     if FileType::from_raw_mode(before.st_mode) != FileType::RegularFile
         || before.st_size <= 0
@@ -90,7 +98,9 @@ fn observe(path: &str, expected: &SourceBinding) -> Result<String> {
         || before.st_nlink != 1
         || before.st_dev != fs::fstat(&root)?.st_dev
     {
-        return Err(ClaimError::Blocked("invalid source binding marker custody"));
+        return Err(ClaimError::Blocked(
+            "invalid endpoint binding marker custody",
+        ));
     }
     let mut marker = std::fs::File::from(marker);
     let mut bytes = Vec::new();
@@ -98,18 +108,18 @@ fn observe(path: &str, expected: &SourceBinding) -> Result<String> {
         .by_ref()
         .take(4097)
         .read_to_end(&mut bytes)
-        .map_err(|_| ClaimError::Blocked("source marker read"))?;
-    let actual: SourceBinding = serde_json::from_slice(&bytes)
-        .map_err(|_| ClaimError::Blocked("invalid source binding marker"))?;
+        .map_err(|_| ClaimError::Blocked("endpoint marker read"))?;
+    let actual: T = serde_json::from_slice(&bytes)
+        .map_err(|_| ClaimError::Blocked("invalid endpoint binding marker"))?;
     let after = fs::fstat(&marker)?;
-    let named = fs::statat(&area, SOURCE_MARKER, fs::AtFlags::SYMLINK_NOFOLLOW)?;
+    let named = fs::statat(&area, marker_name, fs::AtFlags::SYMLINK_NOFOLLOW)?;
     if &actual != expected
         || observation(&after) != observation(&before)
         || after.st_mode != before.st_mode
         || observation(&named) != observation(&after)
         || named.st_mode != after.st_mode
     {
-        return Err(ClaimError::Blocked("source marker binding mismatch"));
+        return Err(ClaimError::Blocked("endpoint marker binding mismatch"));
     }
     let r = owned_directory(&root, false)?;
     let n = owned_directory(&area, true)?;
@@ -142,5 +152,117 @@ impl LocalClaimLock {
     }
     pub fn source_authorization(&self) -> Option<&SourceAuthorization> {
         self.authorization.as_ref()
+    }
+}
+
+pub const DESTINATION_MARKER: &str = "destination-binding.json";
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DestinationRole {
+    Destination,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DestinationBinding {
+    pub version: u32,
+    pub coordinator_id: String,
+    pub root_id: String,
+    pub endpoint_id: String,
+    pub marker_id: String,
+    pub filesystem: SourceFilesystem,
+    pub role: DestinationRole,
+}
+impl DestinationBinding {
+    /// Only an absent root/namespace is retryable; an observable wrong filesystem
+    /// is a binding refusal even when its namespace has not been provisioned.
+    pub fn unavailable(&self, path: &str) -> Result<bool> {
+        self.validate()?;
+        let result = (|| {
+            let root = root(path)?;
+            if (fs::fstatfs(&root)?.f_type == 0x6969) != (self.filesystem == SourceFilesystem::Nfs)
+            {
+                return Err(ClaimError::Blocked(
+                    "destination filesystem binding mismatch",
+                ));
+            }
+            namespace(&root).map(|_| ())
+        })();
+        match result {
+            Ok(()) => Ok(false),
+            Err(ClaimError::Io(rustix::io::Errno::NOENT)) => Ok(true),
+            Err(e) => Err(e),
+        }
+    }
+    pub fn validate(&self) -> Result<()> {
+        SourceBinding {
+            version: self.version,
+            coordinator_id: self.coordinator_id.clone(),
+            root_id: self.root_id.clone(),
+            endpoint_id: self.endpoint_id.clone(),
+            marker_id: self.marker_id.clone(),
+            filesystem: self.filesystem.clone(),
+            role: SourceRole::Source,
+        }
+        .validate()
+    }
+    pub fn encode(&self) -> String {
+        serde_json::to_string(self).expect("destination binding serialization")
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DestinationAuthorization {
+    pub binding: DestinationBinding,
+    pub observation: String,
+}
+impl DestinationAuthorization {
+    /// Observe provisioned custody without allocating or modifying storage.
+    pub fn observe(path: &str, binding: &DestinationBinding) -> Result<Self> {
+        binding.validate()?;
+        Ok(Self {
+            binding: binding.clone(),
+            observation: observe_marker(path, binding, &binding.filesystem, DESTINATION_MARKER)?,
+        })
+    }
+    pub fn validate(&self, path: &str) -> Result<()> {
+        self.binding.validate()?;
+        if self.observation.len() > 2048
+            || observe_marker(
+                path,
+                &self.binding,
+                &self.binding.filesystem,
+                DESTINATION_MARKER,
+            )? != self.observation
+        {
+            return Err(ClaimError::Blocked(
+                "destination binding observation changed",
+            ));
+        }
+        Ok(())
+    }
+}
+impl LocalClaimLock {
+    pub fn acquire_destination(
+        path: &str,
+        binding: &DestinationBinding,
+        expected: Option<&str>,
+    ) -> Result<Self> {
+        binding.validate()?;
+        let observation = observe_marker(path, binding, &binding.filesystem, DESTINATION_MARKER)?;
+        if expected.is_some_and(|pin| pin != observation) {
+            return Err(ClaimError::Blocked(
+                "destination binding observation changed",
+            ));
+        }
+        let mut lock = Self::acquire(path)?;
+        lock.destination_authorization = Some(DestinationAuthorization {
+            binding: binding.clone(),
+            observation,
+        });
+        lock.validate()?;
+        Ok(lock)
+    }
+    pub fn destination_authorization(&self) -> Option<&DestinationAuthorization> {
+        self.destination_authorization.as_ref()
     }
 }

@@ -154,8 +154,10 @@ check root/mount identity again on startup, recovery and dispatch. An unavailabl
 expected NFS mount must not redirect operations into the underlying local path.
 Device/inode numbers and mount IDs are observations, not permanent global IDs.
 The prototype's [source binding/enrollment](RUST-INCREMENT-23.md) checks an explicit
-filesystem class, protected marker and strict observed source identities. It does
-not yet authenticate a server/export, pin a destination binding or fence another
+filesystem class, protected marker and strict observed source identities.
+[Destination binding](RUST-INCREMENT-24.md) pins policy at acceptance and the
+first validated worker observation before allocation; later sessions/effects
+revalidate it. These checks do not authenticate a server/export or fence another
 client. See [root authorization and ownership design](ROOT-OWNERSHIP-DESIGN.md)
 and [increment 22 diagnostics](RUST-INCREMENT-22.md) before treating startup
 readiness or a local namespace lock as evidence of those remaining protections.

@@ -412,11 +412,35 @@ pub fn transfer_one_with_guard(
     if job.recording.submission().files().len() != 1 {
         return Err("use recording delivery for multi-file jobs".into());
     }
-    let destination_lock = LocalClaimLock::acquire(&job.context.destination_path)?;
+    let destination_lock = match &job.context.destination_binding {
+        Some(policy) => {
+            let binding: DestinationBinding = serde_json::from_str(policy)?;
+            let expected = store.destination_observation(id)?;
+            let lock = LocalClaimLock::acquire_destination(
+                &job.context.destination_path,
+                &binding,
+                expected.as_deref(),
+            )?;
+            store.pin_destination(
+                id,
+                policy,
+                &lock
+                    .destination_authorization()
+                    .ok_or("destination authorization required")?
+                    .observation,
+            )?;
+            lock
+        }
+        None if source_lock.source_authorization().is_none() => {
+            LocalClaimLock::acquire(&job.context.destination_path)?
+        }
+        None => return Err("destination policy required".into()),
+    };
     source_lock.validate_path(&job.context.source_root_path)?;
     destination_lock.validate()?;
     let result = transfer_file_with_payload(store, id, 0, &mut |t, intent| {
         source_lock.validate()?;
+        destination_lock.validate()?;
         let next = match t.phase {
             TransferPhase::Intent => copy_effect(t, intent),
             TransferPhase::Copied => verify_effect(t, intent),
@@ -424,9 +448,11 @@ pub fn transfer_one_with_guard(
             _ => Err("invalid payload phase".into()),
         }?;
         source_lock.validate()?;
+        destination_lock.validate()?;
         Ok(next)
     })?;
     source_lock.validate()?;
+    destination_lock.validate()?;
     Ok(result)
 }
 fn transfer_file_with_payload(

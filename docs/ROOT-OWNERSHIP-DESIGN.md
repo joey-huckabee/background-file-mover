@@ -27,7 +27,9 @@ and destination binding policies. A policy needs a version, logical root ID,
 endpoint/export ID, expected filesystem class, root marker ID, role and permitted
 coordinator identity. [Increment 23](RUST-INCREMENT-23.md) implements the required
 `source_binding` object, protected marker and strict SQLite enrollment/observations;
-destination binding and authenticated export identity remain future work.
+[Increment 24](RUST-INCREMENT-24.md) adds required destination policy pinned at
+acceptance, first-use observation persistence before allocation and worker/CLI
+revalidation. Authenticated export identity remains future work.
 Do not infer an expected NFS endpoint from whichever filesystem is reachable.
 
 Provision a protected marker before enrollment. The service must never create
@@ -105,9 +107,9 @@ Never attempt a timestamp/lease-file workaround with unqualified clock semantics
    NFS, wrong root/marker, changed binding, legacy state and restart refusal.
    Specify a positively fenced enrollment/rebind procedure for legacy jobs and
    legitimate changes to strict observed identity pins. Leave production NFS disabled.
-2. Pin destination bindings at acceptance and carry them through recording-worker
-   assignments. Test unavailable versus foreign destinations and restart/replay
-   under changed startup routing, retaining the producer's 202 contract.
+2. Qualify the destination-binding slice in increment 24: unavailable versus
+   foreign destinations, first observation before allocation, runtime/restart
+   refusal and replay under changed routing, retaining the producer's 202 contract.
 3. Implement and qualify the candidate cross-client lock with actual Rust
    coordinator/worker inheritance, contention and coordinator death. Verify
    separate client identities and a remote-lock positive control.

@@ -26,10 +26,10 @@ job. Changed input conflicts; a different key cannot take a reserved source.
 Local job IDs are monotonic SQLite IDs; qualify final filesystem namespace/instance
 ownership before using them for publication across service instances.
 
-The version-8 schema has an application ID, foreign keys and file-count/ledger
+The version-9 schema has an application ID, foreign keys and file-count/ledger
 checks. Unsupported/foreign schemas are rejected without replacement. Existing
 missing/inconsistent reservations or malformed claim identities block startup.
-An explicit transaction migrates versions 1–6, preserving accepted jobs/claims/reservations;
+An explicit transaction migrates versions 1–8, preserving accepted jobs/claims/reservations;
 read-only opens refuse an unmigrated version. There is no delete-and-restart upgrade.
 
 `note_missing` persists the first confirmed local absence deadline using the
