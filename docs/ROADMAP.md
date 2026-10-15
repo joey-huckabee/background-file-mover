@@ -10,8 +10,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Expand NFS runtime qualification to interrupted claim/file link
-  intermediates, longer outages and export changes.
+- [ ] Expand NFS runtime qualification to in-flight link/unlink RPCs, remaining
+  synchronization boundaries, longer outages and export changes.
 - [ ] Develop the user guides and runbooks tracked by
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery

@@ -103,6 +103,29 @@ payload pass, dependency or production requirement.
 See [the scenario catalog](RUST-SCENARIOS.md) for the user-visible situations and
 documentation work fed by these qualification results.
 
+[Increment 20](RUST-INCREMENT-20.md) adds explicit `claim_link` and `file_link`
+points after the new exclusive link is synchronized and before old-name removal.
+These cases hold the local rendezvous while NFS is unavailable, interrupt the
+worker, restore connectivity and require both owned aliases before restart.
+Recovery must preserve the recorded inode and remove only its old binding.
+This is a deterministic process crash at a real NFS link intermediate, not an
+in-flight unlink RPC test. The latter remains unqualified.
+
+If Ubuntu's post-reboot user runtime prevents native rootless Podman startup,
+the same gate can use the healthy Podman WSL2 engine from Windows:
+
+```powershell
+$env:CONTAINER_CONNECTION = 'podman-machine-default-root'
+python scripts/check-rust-sles.py
+python scripts/check-rust-sles.py --qualification
+```
+
+Use this environment selection for the gate process; no persistent connection
+default needs changing. Sources still build under `/work` in the pinned Linux
+builder, and every artifact still runs in pinned SLES userspace. Engine-local
+toolchain/registry caches are retained. This changes neither the target nor the
+compatibility checks. Record the chosen engine in the increment results.
+
 [Increment 17](RUST-INCREMENT-17.md) records the no-clobber rename refusal measured
 on the fixture and the owned link/unlink recovery implementation. Worker diagnostics
 are observations, never authorization to commit an effect or delete retained data.
@@ -110,7 +133,7 @@ are observations, never authorization to commit an effect or delete retained dat
 Allowing NFS in a test build is not production authorization. The normal baseline
 and selected runtime cases provide one-client evidence for their measured
 operations. Cross-client fencing, stable export/mount ownership, longer outages,
-interrupted claim/file link intermediates, server reboot and power-loss durability
+in-flight link/unlink RPCs, other synchronization boundaries, server reboot and power-loss durability
 remain separate qualification before production enablement. Containers
 use SLES/glibc userspace on the runner kernel; no actual SLES host testing is
 required by this plan.

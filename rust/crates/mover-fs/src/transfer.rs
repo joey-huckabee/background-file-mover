@@ -374,8 +374,15 @@ pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Tran
     claimed_intent(intent)?;
     let (_, _, staging, parent, name) = directories(t)?;
     let stage_name = format!("{}.part", t.attempt);
-    let moved =
-        super::relocate::owned(&staging, &stage_name, &parent, &name, &t.stage, &mut |_| {})?;
+    let moved = super::relocate::owned(
+        &staging,
+        &stage_name,
+        &parent,
+        &name,
+        &t.stage,
+        &mut |_| {},
+        "file_link",
+    )?;
     if moved.recovered {
         // Only uncertain recovery adds a payload reread; normal transfer is 3N.
         let read_fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;

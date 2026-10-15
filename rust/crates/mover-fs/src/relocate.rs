@@ -20,10 +20,23 @@ pub(super) fn owned(
     new_name: &str,
     expected: &ObjectIdentity,
     checkpoint: &mut impl FnMut(&'static str),
+    operation: &'static str,
 ) -> Result<Relocated> {
-    move_with(old, old_name, new, new_name, expected, checkpoint, || {
-        fs::renameat_with(old, old_name, new, new_name, RenameFlags::NOREPLACE)
-    })
+    move_with(
+        old,
+        old_name,
+        new,
+        new_name,
+        expected,
+        &mut |step| {
+            checkpoint(step);
+            if step == "link_durable" {
+                super::qualification_pause(operation)?;
+            }
+            Ok(())
+        },
+        || fs::renameat_with(old, old_name, new, new_name, RenameFlags::NOREPLACE),
+    )
 }
 fn move_with(
     old: &OwnedFd,
@@ -31,7 +44,7 @@ fn move_with(
     new: &OwnedFd,
     new_name: &str,
     expected: &ObjectIdentity,
-    checkpoint: &mut impl FnMut(&'static str),
+    checkpoint: &mut impl FnMut(&'static str) -> Result<()>,
     rename: impl FnOnce() -> std::result::Result<(), Errno>,
 ) -> Result<Relocated> {
     if expected.links != 1
@@ -70,7 +83,7 @@ fn move_with(
         fs::fsync(&original)?;
         match rename() {
             Ok(()) => {
-                checkpoint("rename_effect");
+                checkpoint("rename_effect")?;
                 let fd = fs::openat(new, new_name, FILE, Mode::empty())?;
                 exact(&fd, expected, 1)?;
                 fs::fsync(&fd)?;
@@ -83,7 +96,7 @@ fn move_with(
         }
         fs::linkat(old, old_name, new, new_name, AtFlags::empty())
             .map_err(|e| ClaimError::Operation("relocate.link_exclusive", e))?;
-        checkpoint("link_effect");
+        checkpoint("link_effect")?;
         let fd = fs::openat(new, new_name, FILE, Mode::empty())?;
         exact(&original, expected, 2)?;
         exact(&fd, expected, 2)?;
@@ -93,10 +106,7 @@ fn move_with(
     // bindings under the producer handoff/protected-parent fencing contract.
     fs::fsync(&final_fd)?;
     fs::fsync(new)?;
-    checkpoint("link_durable");
-    if new_name == "COMMITTED.json" {
-        super::qualification_pause("manifest_link")?;
-    }
+    checkpoint("link_durable")?;
     exact(
         &fs::openat(old, old_name, FILE, Mode::empty())?,
         expected,
@@ -109,9 +119,9 @@ fn move_with(
     )?;
     fs::unlinkat(old, old_name, AtFlags::empty())
         .map_err(|e| ClaimError::Operation("relocate.unlink_original", e))?;
-    checkpoint("unlink_effect");
+    checkpoint("unlink_effect")?;
     fs::fsync(old)?;
-    checkpoint("unlink_durable");
+    checkpoint("unlink_durable")?;
     exact(&final_fd, expected, 1)?;
     Ok(Relocated {
         fd: final_fd,
@@ -159,7 +169,7 @@ mod tests {
             let f = Fixture::new();
             let dir = f.directory();
             let expected = f.expected();
-            let moved = move_with(&dir, "old", &dir, "new", &expected, &mut |_| {}, || {
+            let moved = move_with(&dir, "old", &dir, "new", &expected, &mut |_| Ok(()), || {
                 Err(errno)
             })
             .unwrap();
@@ -181,7 +191,7 @@ mod tests {
                     &dir,
                     "new",
                     &f.expected(),
-                    &mut |_| {},
+                    &mut |_| Ok(()),
                     || Err(errno)
                 )
                 .is_err()
@@ -195,7 +205,7 @@ mod tests {
         let f = Fixture::new();
         let dir = f.directory();
         let expected = f.expected();
-        let result = move_with(&dir, "old", &dir, "new", &expected, &mut |_| {}, || {
+        let result = move_with(&dir, "old", &dir, "new", &expected, &mut |_| Ok(()), || {
             std::fs::write(f.0.join("new"), b"racing foreign file").unwrap();
             Err(Errno::INVAL)
         });
@@ -218,13 +228,13 @@ mod tests {
         let dir = f.directory();
         let expected = f.expected();
         std::fs::write(f.0.join("new"), b"foreign").unwrap();
-        assert!(owned(&dir, "old", &dir, "new", &expected, &mut |_| {}).is_err());
+        assert!(owned(&dir, "old", &dir, "new", &expected, &mut |_| {}, "").is_err());
         assert_eq!(std::fs::read(f.0.join("new")).unwrap(), b"foreign");
         assert!(f.0.join("old").exists());
         std::fs::remove_file(f.0.join("new")).unwrap();
         std::fs::hard_link(f.0.join("old"), f.0.join("new")).unwrap();
         std::fs::hard_link(f.0.join("old"), f.0.join("third")).unwrap();
-        assert!(owned(&dir, "old", &dir, "new", &expected, &mut |_| {}).is_err());
+        assert!(owned(&dir, "old", &dir, "new", &expected, &mut |_| {}, "").is_err());
         assert!(f.0.join("old").exists());
         assert!(f.0.join("third").exists());
     }
@@ -253,7 +263,7 @@ mod tests {
             assert!(f.0.join("new").exists(), "{stage}");
             assert_eq!(f.0.join("old").exists(), stage.starts_with("link"));
             let dir = f.directory();
-            let moved = owned(&dir, "old", &dir, "new", &expected, &mut |_| {}).unwrap();
+            let moved = owned(&dir, "old", &dir, "new", &expected, &mut |_| {}, "").unwrap();
             assert!(moved.recovered);
             assert_eq!(source(&moved.fd).unwrap(), expected);
             assert!(!f.0.join("old").exists());
@@ -277,10 +287,53 @@ mod tests {
                 if boundary == stage {
                     std::process::exit(0);
                 }
+                Ok(())
             },
             || Err(Errno::INVAL),
         )
         .unwrap();
         panic!("fault boundary was not reached");
+    }
+
+    #[test]
+    fn failed_link_checkpoint_preserves_both_owned_names_for_recovery() {
+        let f = Fixture::new();
+        let dir = f.directory();
+        let expected = f.expected();
+        let result = move_with(
+            &dir,
+            "old",
+            &dir,
+            "new",
+            &expected,
+            &mut |step| {
+                if step == "link_durable" {
+                    return Err(ClaimError::Blocked("interrupted checkpoint"));
+                }
+                Ok(())
+            },
+            || Err(Errno::INVAL),
+        );
+        assert!(matches!(
+            result,
+            Err(ClaimError::Blocked("interrupted checkpoint"))
+        ));
+        exact(
+            &fs::openat(&dir, "old", FILE, Mode::empty()).unwrap(),
+            &expected,
+            2,
+        )
+        .unwrap();
+        exact(
+            &fs::openat(&dir, "new", FILE, Mode::empty()).unwrap(),
+            &expected,
+            2,
+        )
+        .unwrap();
+        let recovered = owned(&dir, "old", &dir, "new", &expected, &mut |_| {}, "").unwrap();
+        assert!(recovered.recovered);
+        assert_eq!(source(&recovered.fd).unwrap(), expected);
+        assert!(!f.0.join("old").exists());
+        assert_eq!(std::fs::read(f.0.join("new")).unwrap(), b"owned payload");
     }
 }

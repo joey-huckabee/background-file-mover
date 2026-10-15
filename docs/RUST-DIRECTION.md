@@ -217,6 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
+[Increment 20](RUST-INCREMENT-20.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -234,3 +235,12 @@ Revise the roadmap around four increments:
 Start on the feature branch. Do not automatically resume experiments or start a
 line-for-line port. Preserve branch work as reference before any cleanup. During
 cutover, old and new daemons must not manipulate the same source namespace.
+
+Increment 20 passes durable two-name NFS claim/file link interruption in both
+profiles, preserving aliases until confirmed worker exit and recovering the same
+inode/attempt. SC-049/050 record the user-visible results. In-flight link/unlink
+RPCs, other synchronization boundaries, longer outages and stable root/export
+authorization/cross-client ownership remain future qualification. Production NFS
+and deletion remain disabled. Ubuntu's post-reboot user startup was unavailable;
+the unchanged mandatory gates passed through the healthy Podman WSL2 engine using
+the documented Windows `CONTAINER_CONNECTION` selection.

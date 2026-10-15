@@ -32,8 +32,12 @@ recovery; see `docs/RUST-INCREMENT-17.md`. Increment 18 adds deterministic
 qualification-only pause controls and selected real-worker NFS outage/death cases;
 see `docs/RUST-INCREMENT-18.md`. Increment 19 qualifies source-read/verification
 interruption and introduces the maintained scenario catalog; see
-`docs/RUST-INCREMENT-19.md`. Next qualify interrupted claim/file link intermediates,
-longer outages, stable root/export authorization and cross-client ownership.
+`docs/RUST-INCREMENT-19.md`. Increment 20 qualifies durable two-name NFS claim/file
+link interruption; see `docs/RUST-INCREMENT-20.md`. Next qualify in-flight
+link/unlink RPCs, other sync boundaries, longer outages, stable root/export
+authorization and cross-client ownership. If Ubuntu user startup prevents rootless
+Podman, use the documented Windows/Podman WSL2 gate fallback in
+`docs/NFS-QUALIFICATION.md`; preserve all compatibility checks.
 Keep production NFS and deletion disabled.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.

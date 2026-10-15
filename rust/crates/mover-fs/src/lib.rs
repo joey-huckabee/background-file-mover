@@ -387,7 +387,16 @@ pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
         Mode::empty(),
     )?;
     same_directory(&owned_directory(&area, true)?, &intent.area)?;
-    let claimed = relocate::owned(&parent, &name, &area, "data", &intent.source, &mut |_| {})?.fd;
+    let claimed = relocate::owned(
+        &parent,
+        &name,
+        &area,
+        "data",
+        &intent.source,
+        &mut |_| {},
+        "claim_link",
+    )?
+    .fd;
     if source(&claimed)? != intent.source {
         return Err(ClaimError::Blocked("foreign/changed private claim"));
     }

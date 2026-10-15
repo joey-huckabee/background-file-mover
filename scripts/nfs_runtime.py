@@ -10,6 +10,8 @@ import traceback
 
 def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
+    claim_points = {"claim_apply", "claim_link"}
+    link_points = {"claim_link", "file_link"}
 
     class Case:
         def __init__(self, profile, point, production=False):
@@ -17,7 +19,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
-            source_nfs = point in {"claim_apply", "source_read"}
+            source_nfs = point in claim_points | {"source_read"}
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
             self.destination = (self.base + "/destination" if source_nfs or production else "/tmp/nfs/" + self.label + "/destination")
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
@@ -121,7 +123,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     assert pid.isdigit() and operation == self.point
                     assert self.children() == [pid], "not exactly one live assigned worker"
                     command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", "1000:1000").stdout
-                    expected_mode = "--internal-claim-worker" if self.point == "claim_apply" else "--internal-delivery-worker"
+                    expected_mode = "--internal-claim-worker" if self.point in claim_points else "--internal-delivery-worker"
                     assert self.binary in command and expected_mode in command
                     self.worker = pid
                     self.result["paused_worker"] = {"pid": pid, "command": command}
@@ -138,6 +140,20 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     return state or "gone"
                 time.sleep(0.2)
             raise RuntimeError("worker exit not confirmed")
+
+        def link_names(self):
+            if self.point == "claim_link":
+                return self.source + "/current/nested/data.bin", self.source + "/.file-mover/1-0/data"
+            assert self.point == "file_link"
+            return self.destination + "/1/.staging/1.part", self.destination + "/1/nested/data.bin"
+
+        def owned_aliases(self):
+            old, new = self.link_names()
+            aliases = execute(f"stat -c '%d:%i:%h:%s' {old} {new}", "1000:1000").stdout.splitlines()
+            assert len(aliases) == 2 and aliases[0] == aliases[1]
+            assert aliases[0].split(":")[2:] == ["2", str(2 * 1048576 + 17)]
+            assert [line.split()[0] for line in execute(f"sha256sum {old} {new}", "1000:1000").stdout.splitlines()] == [expected, expected]
+            return aliases
 
         def recover(self):
             self.start(False)
@@ -181,7 +197,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
 
     for profile in ("debug", "release"):
-        for point in ("production_controls_ignored", "claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "manifest_link"):
+        for point in ("production_controls_ignored", "claim_apply", "claim_link", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"):
             case = None
             try:
                 case = Case(profile, "copy_chunk" if point == "production_controls_ignored" else point, point == "production_controls_ignored")
@@ -190,6 +206,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     "production_controls_ignored": "SC-035", "claim_apply": "SC-037",
                     "source_read": "SC-041", "copy_chunk": "SC-038", "verify_read": "SC-042",
                     "publish": "SC-039", "manifest_link": "SC-040",
+                    "claim_link": "SC-049", "file_link": "SC-050",
                 }[point]
                 case.start(True)
                 if case.production:
@@ -204,18 +221,18 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     case.verify()
                     case.result["passed"] = True
                     continue
-                posted = case.request("POST", "/api/v2/jobs", case.body, asynchronous=point == "claim_apply")
-                if point != "claim_apply":
+                posted = case.request("POST", "/api/v2/jobs", case.body, asynchronous=point in claim_points)
+                if point not in claim_points:
                     assert posted[0] == 202
                     execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
                 case.await_pause()
                 status = case.request("GET", "/api/v2/jobs/1")[1]
                 case.result["status_at_pause"] = status
-                if point == "claim_apply":
+                if point in claim_points:
                     assert status["state"] == "Accepted" and not status["source_paths_released"]
                 else:
                     assert status["state"] == "Claimed"
-                    expected_phase = {"source_read": "Intent", "copy_chunk": "Intent", "verify_read": "Copied", "publish": "PublishIntent", "manifest_link": "Published"}[point]
+                    expected_phase = {"source_read": "Intent", "copy_chunk": "Intent", "verify_read": "Copied", "publish": "PublishIntent", "file_link": "PublishIntent", "manifest_link": "Published"}[point]
                     assert status["details"]["files"][0]["transfer_phase"] == expected_phase
                 if point == "copy_chunk":
                     size = int(execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout)
@@ -227,8 +244,17 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     assert len(aliases) == 2 and aliases[0] == aliases[1] and aliases[0].split(":")[2] == "2"
                     case.result["manifest_aliases_before_outage"] = aliases
                     case.result["manifest_hash_before_outage"] = execute(f"sha256sum {case.destination}/1/COMMITTED.json", "1000:1000").stdout.split()[0]
+                if point in link_points:
+                    case.result["owned_aliases_before_outage"] = case.owned_aliases()
+                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    case.result["completion_manifest_absent_at_pause"] = True
                 run(["exec", server, "rpc.nfsd", "0"])
-                execute(f"umask 077; : >{case.rendezvous}/go", "1000:1000")
+                # Keep new link cases at the exact durable two-name boundary.
+                # Killing there during the outage tests two-name reconciliation,
+                # rather than letting an in-flight unlink complete on restore.
+                if point not in link_points:
+                    execute(f"umask 077; : >{case.rendezvous}/go", "1000:1000")
+                case.result["pause_released_during_outage"] = point not in link_points
                 time.sleep(3)
                 assert case.state(case.worker) not in {"", "Z"}
                 assert case.children() == [case.worker], "replacement before confirmed worker exit"
@@ -284,7 +310,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     restore()
                     case.result["worker_exit_after_restore"] = case.await_exit(case.worker)
                     assert case.service.wait(timeout=30) == 0
-                    if point == "claim_apply":
+                    if point in claim_points:
                         process, response_path = posted
                         process.wait(timeout=15)
                         response = response_path.read_text()
@@ -294,6 +320,11 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                             case.result["interrupted_handoff_response"] = reply
                         elif response.strip():
                             case.result["interrupted_handoff_transport"] = response
+                if point in link_points:
+                    case.result["owned_aliases_before_recovery"] = case.owned_aliases()
+                    assert case.result["owned_aliases_before_recovery"] == case.result["owned_aliases_before_outage"]
+                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    case.result["completion_manifest_absent_before_recovery"] = True
                 recovered = case.recover()
                 assert recovered["details"]["source_cleanup_enabled"] is False
                 attempt = recovered["details"]["files"][0]["attempt"]
@@ -307,6 +338,17 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                 if point == "manifest_link":
                     assert execute(f"test ! -e {case.destination}/1/.staging/COMMITTED.part", "1000:1000", check=False).returncode == 0
                     assert execute(f"stat -c %h {case.destination}/1/COMMITTED.json", "1000:1000").stdout.strip() == "1"
+                if point in link_points:
+                    old, new = case.link_names()
+                    assert execute(f"test ! -e {old}", "1000:1000", check=False).returncode == 0
+                    identity = execute(f"stat -c '%d:%i:%h:%s' {new}", "1000:1000").stdout.strip()
+                    before = case.result["owned_aliases_before_outage"][0].split(":")
+                    assert identity.split(":") == before[:2] + ["1", before[3]]
+                    case.result["owned_binding_after_recovery"] = identity
+                    if point == "claim_link":
+                        execute(f"printf 'next recording' >{old}", "1000:1000")
+                        code, replay = case.request("POST", "/api/v2/jobs", case.body)
+                        assert code == 202 and replay["job_id"] == "1" and replay["source_paths_released"]
                 if point != "claim_apply":
                     assert execute(f"cat {case.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
                 case.verify()

@@ -31,6 +31,9 @@ consumer and operator situations addressed so far and tracks the remaining user
 guides. Update it as each increment adds or changes behavior.
 [Source-read and verification-read qualification](docs/RUST-INCREMENT-19.md)
 also passes in both profiles with observed blocked readers and validated recovery.
+[Claim/file link interruption](docs/RUST-INCREMENT-20.md) now preserves and
+reconciles the exact two-name NFS intermediates in both profiles; see catalog
+scenarios SC-049/050 for producer and consumer behavior.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

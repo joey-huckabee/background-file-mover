@@ -82,7 +82,7 @@ def main():
         "Service startup rejection is measured; production NFS and source deletion remain disabled.",
     ]
     if args.runtime:
-        report["limitations"][2] = "Real Rust runtime cases cover selected claim, source-read, copy-write, verification-read, publication and manifest-link points; long outages, interrupted claim/file link intermediates and export changes remain unqualified. Other lock/startup probes use OS tools."
+        report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Long outages and export changes remain unqualified. Other lock/startup probes use OS tools."
     containers = []
     tasks = []
     network = volume = server = client = None

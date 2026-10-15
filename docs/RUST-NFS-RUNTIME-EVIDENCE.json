@@ -1,8 +1,8 @@
 {
   "status": "PASSED",
-  "run_id": "nfs-20261014T151123Z-329f30d1",
+  "run_id": "nfs-20261015T004040Z-b4ba6821",
   "isolated_startup_required": true,
-  "gate": "20261014T144611Z-287c12db",
+  "gate": "20261015T003101Z-95c3a6d4",
   "runtime": {
     "passed": true,
     "cases": [
@@ -11,7 +11,7 @@
         "point": "copy_chunk",
         "production": true,
         "passed": true,
-        "binary_sha256": "9519c788c54992e79643a9069d3981663ca825cd537722a7836bcc1a5a63460d",
+        "binary_sha256": "1c1a1512c4ef40a34fc390c6e1b3a63618d62146778e1921a6e7e5414a64edb9",
         "case": "production_controls_ignored",
         "scenario_id": "SC-035",
         "hashes": [
@@ -20,7 +20,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "d17bb14fa700cfd67f1d4326641c8c39",
+          "instance_id": "9a3a0a4b89fa390dda8a86d000f67a44",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-copy_chunk-production",
@@ -45,7 +45,7 @@
         "point": "claim_apply",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "claim_apply",
         "scenario_id": "SC-037",
         "paused_worker": {
@@ -81,7 +81,8 @@
             "submission_id": "runtime-debug-claim_apply"
           }
         },
-        "outage_health_seconds": 1.641,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.64,
         "outage_status": {
           "job_id": "1",
           "state": "Accepted",
@@ -157,7 +158,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "48e4630e4fe27c0ed92b493409faf0ec",
+          "instance_id": "0c2669c5f958ce31adb041c1f2282916",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-claim_apply",
@@ -181,14 +182,165 @@
       },
       {
         "profile": "debug",
+        "point": "claim_link",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+        "case": "claim_link",
+        "scenario_id": "SC-049",
+        "paused_worker": {
+          "pid": "500",
+          "command": "/tmp/qualification-debug --internal-claim-worker "
+        },
+        "status_at_pause": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_link"
+          }
+        },
+        "owned_aliases_before_outage": [
+          "99:393336:2:2097169",
+          "99:393336:2:2097169"
+        ],
+        "completion_manifest_absent_at_pause": true,
+        "pause_released_during_outage": false,
+        "outage_health_seconds": 1.625,
+        "outage_status": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_link"
+          }
+        },
+        "worker_exit_observed_before_restore": false,
+        "service_exit_observed_before_restore": false,
+        "worker_exit_after_restore": "gone",
+        "interrupted_handoff_response": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "owned_aliases_before_recovery": [
+          "99:393336:2:2097169",
+          "99:393336:2:2097169"
+        ],
+        "completion_manifest_absent_before_recovery": true,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_link"
+          }
+        },
+        "owned_binding_after_recovery": "99:393336:1:2097169",
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-claim_link/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-claim_link/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "c0bf02f3dfecadecad8a456668e397ce",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-claim_link",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-debug-claim_link-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-claim_link-service-7.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
         "point": "source_read",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "source_read",
         "scenario_id": "SC-041",
         "paused_worker": {
-          "pid": "501",
+          "pid": "609",
           "command": "/tmp/qualification-debug --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -220,11 +372,12 @@
             "submission_id": "runtime-debug-source_read"
           }
         },
+        "pause_released_during_outage": true,
         "payload_read_incomplete_during_outage": true,
         "cache_advice": "per-file Random and DontNeed before the read rendezvous",
         "outage_worker_state": "D",
         "outage_worker_wait_channel": "folio_wait_bit_common",
-        "outage_health_seconds": 1.594,
+        "outage_health_seconds": 1.625,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -267,7 +420,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791990965
+              "retry_after": 1792025186
             },
             "files": [
               {
@@ -297,7 +450,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "9f27dbdab744871fd6d6ccd404886964",
+          "instance_id": "d12a65dfd3bbc0a0ce8da4a0efc731eb",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-source_read",
@@ -324,11 +477,11 @@
         "point": "copy_chunk",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "copy_chunk",
         "scenario_id": "SC-038",
         "paused_worker": {
-          "pid": "603",
+          "pid": "711",
           "command": "/tmp/qualification-debug --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -361,7 +514,8 @@
           }
         },
         "partial_bytes_before_outage": 1048576,
-        "outage_health_seconds": 1.671,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.656,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -404,7 +558,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991049
+              "retry_after": 1792025270
             },
             "files": [
               {
@@ -434,7 +588,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "7977eb8266ffe729587b4930fe7c320f",
+          "instance_id": "fe91f2b8453454b04bfe83b397c1f4bf",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-copy_chunk",
@@ -461,11 +615,11 @@
         "point": "verify_read",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "verify_read",
         "scenario_id": "SC-042",
         "paused_worker": {
-          "pid": "716",
+          "pid": "823",
           "command": "/tmp/qualification-debug --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -497,11 +651,12 @@
             "submission_id": "runtime-debug-verify_read"
           }
         },
+        "pause_released_during_outage": true,
         "payload_read_incomplete_during_outage": true,
         "cache_advice": "per-file Random and DontNeed before the read rendezvous",
         "outage_worker_state": "D",
         "outage_worker_wait_channel": "folio_wait_bit_common",
-        "outage_health_seconds": 1.594,
+        "outage_health_seconds": 1.641,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -544,7 +699,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991100
+              "retry_after": 1792025320
             },
             "files": [
               {
@@ -573,7 +728,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "a07c332641db3372071e05a8bb873fe7",
+          "instance_id": "292ce66d73bd2d43f9aa9b344ef16288",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-verify_read",
@@ -600,11 +755,11 @@
         "point": "publish",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "publish",
         "scenario_id": "SC-039",
         "paused_worker": {
-          "pid": "834",
+          "pid": "938",
           "command": "/tmp/qualification-debug --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -636,7 +791,8 @@
             "submission_id": "runtime-debug-publish"
           }
         },
-        "outage_health_seconds": 1.687,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.641,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -705,7 +861,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "84fc917eaa8d8905e19dad7b9f1e2d81",
+          "instance_id": "d2c3b8cb68b910f82fbd6095746f53fb",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-publish",
@@ -729,14 +885,161 @@
       },
       {
         "profile": "debug",
+        "point": "file_link",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+        "case": "file_link",
+        "scenario_id": "SC-050",
+        "paused_worker": {
+          "pid": "1052",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_at_pause": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Verified",
+                "size_bytes": 2097169,
+                "transfer_phase": "PublishIntent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-file_link"
+          }
+        },
+        "owned_aliases_before_outage": [
+          "99:393565:2:2097169",
+          "99:393565:2:2097169"
+        ],
+        "completion_manifest_absent_at_pause": true,
+        "pause_released_during_outage": false,
+        "outage_health_seconds": 1.844,
+        "outage_status": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Verified",
+                "size_bytes": 2097169,
+                "transfer_phase": "PublishIntent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-file_link"
+          }
+        },
+        "worker_exit_observed_before_restore": true,
+        "service_exit_observed_before_restore": true,
+        "worker_exit_after_restore": "gone",
+        "owned_aliases_before_recovery": [
+          "99:393565:2:2097169",
+          "99:393565:2:2097169"
+        ],
+        "completion_manifest_absent_before_recovery": true,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1792025450
+            },
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-file_link"
+          }
+        },
+        "owned_binding_after_recovery": "99:393565:1:2097169",
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-file_link/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-file_link/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "f68fedb5bf6d6a0afb694c56ac58b6c3",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-file_link",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-debug-file_link-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery worker exited without receipt\n",
+          "runtime-debug-file_link-service-7.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
         "point": "manifest_link",
         "production": false,
         "passed": true,
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "case": "manifest_link",
         "scenario_id": "SC-040",
         "paused_worker": {
-          "pid": "950",
+          "pid": "1156",
           "command": "/tmp/qualification-debug --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -769,11 +1072,12 @@
           }
         },
         "manifest_aliases_before_outage": [
-          "157:281298:2:315",
-          "157:281298:2:315"
+          "99:393595:2:315",
+          "99:393595:2:315"
         ],
-        "manifest_hash_before_outage": "0a24526132c6403ab82530e55cd477197dc6ec77dfea7b21705f1d831cbbbe34",
-        "outage_health_seconds": 1.593,
+        "manifest_hash_before_outage": "fd5f68267a58ec1e6e7afc4ae5b8be5f1c3623471a0405ad3ef3a380b5403b5d",
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.625,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -816,7 +1120,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991230
+              "retry_after": 1792025522
             },
             "files": [
               {
@@ -845,7 +1149,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "446b8c1577c0dc817a47d53c514f62db",
+          "instance_id": "71547b40a20fa88a68b39619c62e2953",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-debug-manifest_link",
@@ -872,7 +1176,7 @@
         "point": "copy_chunk",
         "production": true,
         "passed": true,
-        "binary_sha256": "b72b5f77bd7c81b582e1365892f307d93f10fdbc92b500f3988fe7c461b93cb2",
+        "binary_sha256": "e0e440147be121029ae3629c6291aa30ff075eecc4c22dee3649276290730d21",
         "case": "production_controls_ignored",
         "scenario_id": "SC-035",
         "hashes": [
@@ -881,7 +1185,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "b1c3152bf92d8b25c6a00794d451b335",
+          "instance_id": "0c642d55c1156ca3458a38c866faf8b9",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-copy_chunk-production",
@@ -906,11 +1210,11 @@
         "point": "claim_apply",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "claim_apply",
         "scenario_id": "SC-037",
         "paused_worker": {
-          "pid": "1104",
+          "pid": "1307",
           "command": "/tmp/qualification-release --internal-claim-worker "
         },
         "status_at_pause": {
@@ -942,7 +1246,8 @@
             "submission_id": "runtime-release-claim_apply"
           }
         },
-        "outage_health_seconds": 1.579,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.671,
         "outage_status": {
           "job_id": "1",
           "state": "Accepted",
@@ -1018,7 +1323,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "913cc4dd0683c71267833a629d607a61",
+          "instance_id": "124b5c71645575fda0030c16f9c456e5",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-claim_apply",
@@ -1042,14 +1347,165 @@
       },
       {
         "profile": "release",
+        "point": "claim_link",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
+        "case": "claim_link",
+        "scenario_id": "SC-049",
+        "paused_worker": {
+          "pid": "1401",
+          "command": "/tmp/qualification-release --internal-claim-worker "
+        },
+        "status_at_pause": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_link"
+          }
+        },
+        "owned_aliases_before_outage": [
+          "99:393667:2:2097169",
+          "99:393667:2:2097169"
+        ],
+        "completion_manifest_absent_at_pause": true,
+        "pause_released_during_outage": false,
+        "outage_health_seconds": 1.671,
+        "outage_status": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_link"
+          }
+        },
+        "worker_exit_observed_before_restore": true,
+        "service_exit_observed_before_restore": true,
+        "worker_exit_after_restore": "gone",
+        "interrupted_handoff_response": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "owned_aliases_before_recovery": [
+          "99:393667:2:2097169",
+          "99:393667:2:2097169"
+        ],
+        "completion_manifest_absent_before_recovery": true,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_link"
+          }
+        },
+        "owned_binding_after_recovery": "99:393667:1:2097169",
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-claim_link/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-claim_link/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "e38d1e9b4d14eaaf174665926f10d7c7",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-claim_link",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-release-claim_link-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n",
+          "runtime-release-claim_link-service-7.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
         "point": "source_read",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "source_read",
         "scenario_id": "SC-041",
         "paused_worker": {
-          "pid": "1199",
+          "pid": "1510",
           "command": "/tmp/qualification-release --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -1081,11 +1537,12 @@
             "submission_id": "runtime-release-source_read"
           }
         },
+        "pause_released_during_outage": true,
         "payload_read_incomplete_during_outage": true,
         "cache_advice": "per-file Random and DontNeed before the read rendezvous",
         "outage_worker_state": "D",
         "outage_worker_wait_channel": "folio_wait_bit_common",
-        "outage_health_seconds": 1.64,
+        "outage_health_seconds": 1.657,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -1128,7 +1585,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991372
+              "retry_after": 1792025732
             },
             "files": [
               {
@@ -1158,7 +1615,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "d0d5af63de1e87a28375b1daf2c23583",
+          "instance_id": "e2370d4625c5184634a0b20b68f8d267",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-source_read",
@@ -1185,11 +1642,11 @@
         "point": "copy_chunk",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "copy_chunk",
         "scenario_id": "SC-038",
         "paused_worker": {
-          "pid": "1301",
+          "pid": "1612",
           "command": "/tmp/qualification-release --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -1222,7 +1679,8 @@
           }
         },
         "partial_bytes_before_outage": 1048576,
-        "outage_health_seconds": 1.719,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.672,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -1265,7 +1723,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991462
+              "retry_after": 1792025815
             },
             "files": [
               {
@@ -1295,7 +1753,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "d825c6828a62ec0b92708769b9943871",
+          "instance_id": "b1835b8589752c3da5cc107b9f4ad6e1",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-copy_chunk",
@@ -1322,11 +1780,11 @@
         "point": "verify_read",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "verify_read",
         "scenario_id": "SC-042",
         "paused_worker": {
-          "pid": "1414",
+          "pid": "1725",
           "command": "/tmp/qualification-release --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -1358,11 +1816,12 @@
             "submission_id": "runtime-release-verify_read"
           }
         },
+        "pause_released_during_outage": true,
         "payload_read_incomplete_during_outage": true,
         "cache_advice": "per-file Random and DontNeed before the read rendezvous",
         "outage_worker_state": "D",
         "outage_worker_wait_channel": "folio_wait_bit_common",
-        "outage_health_seconds": 1.64,
+        "outage_health_seconds": 1.672,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -1405,7 +1864,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991509
+              "retry_after": 1792025864
             },
             "files": [
               {
@@ -1434,7 +1893,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "a4cc15f5c1124b14c3864f5ecea0a067",
+          "instance_id": "900510795626a49fdbdd2b245f5b9617",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-verify_read",
@@ -1461,11 +1920,11 @@
         "point": "publish",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "publish",
         "scenario_id": "SC-039",
         "paused_worker": {
-          "pid": "1529",
+          "pid": "1837",
           "command": "/tmp/qualification-release --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -1497,7 +1956,8 @@
             "submission_id": "runtime-release-publish"
           }
         },
-        "outage_health_seconds": 1.594,
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.672,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -1566,7 +2026,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "b6eb90534ec57982a925e1fd2267e07d",
+          "instance_id": "5f39c40cabba18692a711baed1eb6762",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-publish",
@@ -1590,14 +2050,161 @@
       },
       {
         "profile": "release",
+        "point": "file_link",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
+        "case": "file_link",
+        "scenario_id": "SC-050",
+        "paused_worker": {
+          "pid": "1951",
+          "command": "/tmp/qualification-release --internal-delivery-worker "
+        },
+        "status_at_pause": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Verified",
+                "size_bytes": 2097169,
+                "transfer_phase": "PublishIntent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-file_link"
+          }
+        },
+        "owned_aliases_before_outage": [
+          "99:393847:2:2097169",
+          "99:393847:2:2097169"
+        ],
+        "completion_manifest_absent_at_pause": true,
+        "pause_released_during_outage": false,
+        "outage_health_seconds": 1.672,
+        "outage_status": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Verified",
+                "size_bytes": 2097169,
+                "transfer_phase": "PublishIntent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-file_link"
+          }
+        },
+        "worker_exit_observed_before_restore": true,
+        "service_exit_observed_before_restore": true,
+        "worker_exit_after_restore": "gone",
+        "owned_aliases_before_recovery": [
+          "99:393847:2:2097169",
+          "99:393847:2:2097169"
+        ],
+        "completion_manifest_absent_before_recovery": true,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1792025990
+            },
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-file_link"
+          }
+        },
+        "owned_binding_after_recovery": "99:393847:1:2097169",
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-file_link/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-file_link/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "2ae0195af9c217ca7e1f9b7e93c9a045",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-file_link",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-release-file_link-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery worker exited without receipt\n",
+          "runtime-release-file_link-service-7.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
         "point": "manifest_link",
         "production": false,
         "passed": true,
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "case": "manifest_link",
         "scenario_id": "SC-040",
         "paused_worker": {
-          "pid": "1644",
+          "pid": "2055",
           "command": "/tmp/qualification-release --internal-delivery-worker "
         },
         "status_at_pause": {
@@ -1630,11 +2237,12 @@
           }
         },
         "manifest_aliases_before_outage": [
-          "157:281900:2:317",
-          "157:281900:2:317"
+          "99:393339:2:317",
+          "99:393339:2:317"
         ],
-        "manifest_hash_before_outage": "d2423cfab990e95c356a4704ef9c71f7713dd656d0803605cb52c93601f91ef0",
-        "outage_health_seconds": 1.735,
+        "manifest_hash_before_outage": "8b333d0ecb97e06ef6de157904c09792552bb6d36c52321cb98fb21e476f0a95",
+        "pause_released_during_outage": true,
+        "outage_health_seconds": 1.641,
         "outage_status": {
           "job_id": "1",
           "state": "Claimed",
@@ -1677,7 +2285,7 @@
             "delivery_retry": {
               "code": "delivery_requires_review",
               "failures": 1,
-              "retry_after": 1791991639
+              "retry_after": 1792026059
             },
             "files": [
               {
@@ -1706,7 +2314,7 @@
         ],
         "manifest": {
           "version": 1,
-          "instance_id": "35bfb064f37c99196b1a82484d7e4396",
+          "instance_id": "8eb30961297f1559d7f89455d65646db",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "runtime-release-manifest_link",
@@ -1730,7 +2338,7 @@
       }
     ]
   },
-  "source_sha256": "d710742479b3928273ac62fef60f6966e933066acf2929850a287889d4107254",
+  "source_sha256": "0c5eecc3046be6b98cd60c1870b19f26e8a5c673f43020b606fe0994e5940b63",
   "checks": {
     "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
     "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
@@ -1751,7 +2359,7 @@
   "limitations": [
     "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
     "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
-    "Real Rust runtime cases cover selected claim, source-read, copy-write, verification-read, publication and manifest-link points; long outages, interrupted claim/file link intermediates and export changes remain unqualified. Other lock/startup probes use OS tools.",
+    "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Long outages and export changes remain unqualified. Other lock/startup probes use OS tools.",
     "Service startup rejection is measured; production NFS and source deletion remain disabled."
   ],
   "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
@@ -1883,7 +2491,7 @@
     "zlib1g:amd64\t1:1.2.13.dfsg-1"
   ],
   "mounts": [
-    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/47b7282be2b7e7305c763d9b5920095771e44f146639c6d811f80acca83388ab/diff,workdir=/var/lib/containers/storage/overlay/47b7282be2b7e7305c763d9b5920095771e44f146639c6d811f80acca83388ab/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/6fcb05581d11c156a5a346e732963418a9cc545076793a5b27996d17838965bc/diff,workdir=/var/lib/containers/storage/overlay/6fcb05581d11c156a5a346e732963418a9cc545076793a5b27996d17838965bc/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
     "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
     "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
     "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
@@ -1914,21 +2522,21 @@
   ],
   "kernel": "6.18.33.2-microsoft-standard-WSL2",
   "root_identity_before": [
-    "157:275782:1000:700",
-    "157:275783:1000:700"
+    "99:387667:1000:700",
+    "99:387668:1000:700"
   ],
   "artifacts": {
-    "debug": "9519c788c54992e79643a9069d3981663ca825cd537722a7836bcc1a5a63460d",
-    "release": "b72b5f77bd7c81b582e1365892f307d93f10fdbc92b500f3988fe7c461b93cb2"
+    "debug": "1c1a1512c4ef40a34fc390c6e1b3a63618d62146778e1921a6e7e5414a64edb9",
+    "release": "e0e440147be121029ae3629c6291aa30ff075eecc4c22dee3649276290730d21"
   },
-  "qualification_gate": "20261014T144611Z-97ffc0ea-nfs-qualification",
+  "qualification_gate": "20261015T003249Z-3f413ad7-nfs-qualification",
   "baseline": {
     "passed": true,
     "cases": [
       {
         "profile": "debug",
         "direction": "source",
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -1996,7 +2604,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "ea1597eeec9d89d1dae3d8d204a4a284",
+          "instance_id": "077ce79a52195d3e8ab6ff9a22ed9ea4",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-source",
@@ -2029,7 +2637,7 @@
       {
         "profile": "debug",
         "direction": "destination",
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -2097,7 +2705,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "a11e3bb799234b687553b89c0f6e0e9d",
+          "instance_id": "2bfef68f346b43c5c7d5185e3de9b0f0",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-destination",
@@ -2130,7 +2738,7 @@
       {
         "profile": "debug",
         "direction": "both",
-        "binary_sha256": "21ab8a7f4351ad65cae39cb8e8b464f9cfbaf93d0db8c9616d066299a043885b",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -2198,7 +2806,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "3ec1a24f745e9aa1bd650059c886d3e6",
+          "instance_id": "9d31db283dbf9f687ae1906164b708d3",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "debug-both",
@@ -2231,7 +2839,7 @@
       {
         "profile": "release",
         "direction": "source",
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -2299,7 +2907,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "9cc5ceaeb2950bcbe1da775defc1165c",
+          "instance_id": "6addd4b9757a74c65dd129abf98bf0ee",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-source",
@@ -2332,7 +2940,7 @@
       {
         "profile": "release",
         "direction": "destination",
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -2400,7 +3008,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "9df51202004e224872517589c1353f96",
+          "instance_id": "8a0d77cacc84226b153825f91237037a",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-destination",
@@ -2433,7 +3041,7 @@
       {
         "profile": "release",
         "direction": "both",
-        "binary_sha256": "4de7eef6db7d4d0e57ee471c3cce3db3d22bb13598f77a23784e334b05f3498d",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
         "passed": true,
         "handoff": {
           "code": 202,
@@ -2501,7 +3109,7 @@
         "original_paths_reused": true,
         "manifest": {
           "version": 1,
-          "instance_id": "153bee9f8d1b871c0d7ba91add00f3f7",
+          "instance_id": "cdb91223b65a63fc351c346082a58566",
           "job_id": "1",
           "generator_id": "fixture",
           "submission_id": "release-both",
@@ -2534,7 +3142,7 @@
     ]
   },
   "root_identity_after": [
-    "157:275782:1000:700",
-    "157:275783:1000:700"
+    "99:387667:1000:700",
+    "99:387668:1000:700"
   ]
 }

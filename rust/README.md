@@ -51,6 +51,11 @@ and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
 
 ## Checks
 
+[Increment 20](../docs/RUST-INCREMENT-20.md) extends the retained fixture with
+explicit claim/file link interruption points. It checks both owned aliases before
+recovery, withholds 202 for incomplete claims and withholds the completion manifest
+for incomplete file publication. Maintain SC-049/050 in the scenario catalog.
+
 Use [the scenario catalog](../docs/RUST-SCENARIOS.md) for producer, consumer and
 operator behavior, qualification boundaries and the user-documentation backlog.
 Update it with each increment, including new failure/recovery cases. The controlled

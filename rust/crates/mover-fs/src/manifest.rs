@@ -199,6 +199,7 @@ fn publish_manifest_in_directories(
         "COMMITTED.json",
         m.object.as_ref().ok_or("missing manifest object")?,
         checkpoint,
+        "manifest_link",
     )?
     .fd;
     let mut file = File::from(fd);
