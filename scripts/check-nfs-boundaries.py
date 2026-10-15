@@ -36,10 +36,13 @@ def main():
                         help="With --runtime, run only the four three-minute runtime cases; retain baseline and OS checks")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
+    parser.add_argument("--enrollment-storage", action="store_true",
+                        help="Qualify real ENOSPC on a bounded disposable server export, including safe retry versus review")
     args = parser.parse_args()
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
     assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
+    assert not args.enrollment_storage or args.qualification_gate, "storage probes require qualification artifacts"
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
@@ -84,6 +87,7 @@ def main():
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
+    report["enrollment_storage_requested"] = args.enrollment_storage
     report["runtime_scope"] = "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
@@ -102,6 +106,7 @@ def main():
     network = volume = server = client = None
     mounted = False
     mounted_peers = []
+    extra_mounts = []
 
     def run(arguments, check=True, timeout=45):
         result = subprocess.run(engine + arguments, capture_output=True, text=True,
@@ -198,6 +203,16 @@ def main():
             report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
             if not report["baseline"]["passed"]:
                 raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
+            if args.enrollment_storage:
+                from nfs_storage import qualify_enrollment_storage
+                report["enrollment_storage"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_storage.py", "nfs_binding.py")}}
+                qualify_enrollment_storage(run, execute, spawn, output, client, server, ip, options,
+                                           extra_mounts, report["enrollment_storage"])
+                assert report["enrollment_storage"]["passed"]
+                expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
+                assert report["enrollment_storage"]["artifacts"] == expected
             if args.ownership:
                 peer = run(["create", "--network", network, "--cap-drop", "all", "--cap-add", "SYS_ADMIN",
                             "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", CONFIG["runtime"],
@@ -312,6 +327,11 @@ def main():
             except Exception as error:
                 report["cleanup_errors"].append(str(error))
             log.close()
+        for target, path in reversed(extra_mounts):
+            try:
+                run(["exec", target, "umount", path])
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
         for peer in mounted_peers:
             try:
                 run(["exec", peer, "umount", "/tmp/nfs"])

@@ -17,7 +17,7 @@ before implementation.
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery
   situations, their actual evidence and remaining documentation obligations.
-- [ ] Qualify enrollment against actual server storage exhaustion/I/O errors,
+- [ ] Qualify enrollment against block-device/quota exhaustion, server I/O errors,
   in-flight synchronization RPCs and power loss. Preserve conservative review for
   ambiguous creation; use [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md).
 - [ ] Select and qualify an independently enforced fence before implementing

@@ -64,6 +64,10 @@ shutdown cases; see docs/RUST-INCREMENT-28.md for results and timing limits.
 Schema 10, binding version 3 and the persisted receipt remain unchanged. Do not
 interpret simulated ENOSPC/EIO or a signal as hardware durability/cancellation
 proof. Keep the production controls inert and the qualification feature retained.
+Increment 29 adds opt-in --enrollment-storage qualification with a bounded 4 MiB/
+128-inode server tmpfs export; see docs/RUST-INCREMENT-29.md for actual results.
+Distinguish no receipt creation from created-but-unactivated review, retain original
+state/data, and do not generalize tmpfs ENOSPC to disk EIO or power-loss durability.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

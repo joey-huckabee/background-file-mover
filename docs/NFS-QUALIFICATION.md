@@ -220,3 +220,13 @@ Enrollment write/sync fault values simulate selected failures only in qualificat
 builds. Production ignores those controls; simulated ENOSPC/EIO is not actual NFS
 server storage-error qualification. The new `nfs_enrollment.py` helper is retained
 with the rest of the owned fixture and its driver hash recorded in reports.
+
+[Increment 29](RUST-INCREMENT-29.md) adds opt-in `--enrollment-storage` with a
+separate server tmpfs capped at 4 MiB/128 inodes. It tests actual server ENOSPC
+before receipt creation and during receipt writing, without injected errno
+controls. Only fixture filler files are removed to restore capacity; receipts,
+producer data and original databases are preserved. It requires qualification
+artifacts and retains baseline/OS/startup checks. Add `--ownership --runtime`
+only when a full rerun is intended; the focused storage report does not claim
+those suites ran. Consult the increment for actual results and retry decisions.
+Tmpfs exhaustion does not establish physical-disk, EIO or power-loss durability.

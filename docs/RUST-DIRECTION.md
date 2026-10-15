@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 28](RUST-INCREMENT-28.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 29](RUST-INCREMENT-29.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -320,3 +320,11 @@ version 3 and the persisted receipt remain unchanged. Keep pending/ambiguous
 creation blocked and preserve original state/data. Next qualify broader storage
 errors and lost-lock/partition/reclaim, then an independently enforced fence before
 populated-state rebind or takeover. Production NFS/deletion remain disabled.
+
+Increment 29 adds opt-in real server ENOSPC qualification using a separate bounded
+tmpfs export. It distinguishes inode exhaustion before receipt creation from data
+space exhaustion after creation; the original database and source evidence remain
+required. Consult the increment for actual results before claiming safe retry or
+review outcomes. The Rust implementation, schema and dependency graph are unchanged.
+Physical-disk/EIO, in-flight synchronization, power loss and independently enforced
+fencing remain separate qualification; production NFS/deletion stay disabled.
