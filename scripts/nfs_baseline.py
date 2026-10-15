@@ -65,6 +65,7 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
             config_path = output / (label + "-config.json")
             config_path.write_text(json.dumps(config))
             run(["cp", str(config_path), client + ":/tmp/baseline-config.json"])
+            execute(f"{remote_binary} --initialize-source /tmp/baseline-config.json", "1000:1000")
             process = spawn(f"echo $$ >/tmp/local/baseline.pid; exec {remote_binary} /tmp/baseline-config.json", label)
             result = {"profile": profile, "direction": direction, "binary_sha256": digest, "passed": False}
             try:

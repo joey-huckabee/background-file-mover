@@ -64,6 +64,30 @@ changed bindings and unbound state with jobs refuse startup. Source checks remai
 in supervised children. Legacy configuration examples need the new binding;
 see the increment for provisioning, migration limitations and actual evidence.
 
+## Explicit source setup
+
+For a genuinely unused, exclusively provisioned source scope, provision its
+version-3 binding markers and empty private regular `coordinator.lock` files first.
+Then run the audited binary once with `--initialize-source CONFIG.json`, followed
+by normal `file-mover CONFIG.json` startup. Setup opens no HTTP listener and
+does not require destination availability. Retain the original local database.
+
+Schema 10 pairs that database with a private mode-0400
+`.file-mover/source-enrollment.json` receipt. Normal startup and `--transfer-one`
+require the exact active pair. Repeating setup validates an already active pair;
+it cannot repair missing/replaced receipts, adopt existing claim namespaces,
+enroll legacy local bindings/jobs, or take over another database's scope.
+Never remove state, receipts or locks to bypass a refusal.
+
+Prepared setup with no receipt may be retried explicitly. A receipt created
+without an activated local identity remains ambiguous and requires future review;
+matching text is not enough to adopt it. Source I/O runs in a supervised child.
+Signals alone do not prove a blocked remote child/effect has stopped; preserve
+custody and state until exit/reconciliation is established. Database clones and
+stale snapshots still require a separate fenced recovery procedure. Production
+NFS/deletion remain disabled. See [increment 27](../docs/RUST-INCREMENT-27.md)
+and the [enrollment contract](../docs/FENCED-ENROLLMENT-DESIGN.md).
+
 ## Checks
 
 [Increment 20](../docs/RUST-INCREMENT-20.md) extends the retained fixture with

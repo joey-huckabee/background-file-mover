@@ -63,6 +63,7 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                 provision(run, execute, output, client, destination, binding_for(label+"-destination", True, "destination"))
                 owner_label = label + "-owner"
                 owner = start(client, owner_label, profile, source, 19882,
+                              initialize=True,
                               binding_label=label, destination=destination, pause=(point, rendezvous))
                 assert owner["ready"]
                 body = {"generator_id": "fixture", "submission_id": label,
@@ -144,6 +145,15 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                 result.update({"same_original_state_recovered": True, "recovered_status": status,
                                "source_retained": True, "hashes": hashes, "probe_completed": True})
                 stop(recovered)
+                fresh = start(peer, label+"-fresh-state", profile, source, 19883,
+                              binding_label=label, destination=destination, allow_state_creation=True)
+                assert not fresh["ready"] and "SourceEnrollmentRequired" in fresh["log"]
+                fresh_config = "/tmp/local/ownership-"+label+"-fresh-state/config.json"
+                rejected = observe(peer, f"/tmp/ownership-qualification-{profile} --initialize-source {fresh_config}", check=False)
+                assert rejected.returncode != 0
+                assert observe(client, f"sha256sum {source}/.file-mover/1-0/data {destination}/1/data.bin").stdout.splitlines() == hashes
+                result["populated_source_fresh_state_refused"] = snapshot(fresh)
+                result["explicit_fresh_initialization_refused"] = True
                 (output / (label+"-result.json")).write_text(json.dumps(result, indent=2)+"\n")
                 print(f"NFS inherited custody {profile}/{point}: PASS (peer excluded through worker exit; original state recovered)", flush=True)
     finally:
@@ -153,3 +163,116 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                 await_exit(pid)
         for process in requests:
             process.wait(timeout=15)
+
+
+def qualify_enrollment(run, execute, spawn, output, client, start, stop, snapshot, cases):
+    """Actual process death at local intent and source create/sync/result boundaries.
+
+    These selected pauses are not an outage, in-flight RPC or power-loss test.
+    """
+    def observe(command, check=True):
+        return execute(command, "1000:1000", target=client, check=check)
+
+    def exited(pid):
+        result = observe(f"cat /proc/{pid}/stat", check=False)
+        return result.returncode != 0 or result.stdout.rsplit(")", 1)[1].split()[0] == "Z"
+
+    for profile in ("debug", "release"):
+        for point in ("enrollment_intent", "enrollment_prepared", "enrollment_created",
+                      "enrollment_sync", "enrollment_receipt", "enrollment_active"):
+            no_receipt = point in {"enrollment_intent", "enrollment_prepared"}
+            retry_succeeds = no_receipt or point == "enrollment_active"
+            label = "enrollment-"+profile+"-"+point
+            source = "/tmp/nfs/"+label+"/source"
+            observe(f"umask 077; mkdir -p {source}/.file-mover {source}/current; printf 'producer-owned input' >{source}/current/data")
+            provision(run, execute, output, client, source, binding_for(label, True))
+            pending = start(client, label, profile, source, 19884, binding_label=label, allow_state_creation=True)
+            assert not pending["ready"] and "SourceEnrollmentRequired" in pending["log"]
+            base = "/tmp/local/ownership-"+label
+            rendezvous = base+"/pause"
+            observe(f"umask 077; mkdir {rendezvous}")
+            binary = "/tmp/ownership-qualification-"+profile
+            marker = base+"/initialize.pid"
+            process = spawn(f"echo $$ >{marker}; exec env FILE_MOVER_QUALIFICATION_PAUSE={point} "
+                            f"FILE_MOVER_QUALIFICATION_RENDEZVOUS={rendezvous} {binary} --initialize-source {base}/config.json",
+                            label+"-initialize", target=client)
+            parent = None
+            child = None
+            try:
+                for _ in range(100):
+                    ready = observe("cat "+rendezvous+"/ready", check=False)
+                    if ready.returncode == 0 and ready.stdout.endswith("\n"):
+                        pid, actual = ready.stdout.split()
+                        assert pid.isdigit() and actual == point
+                        break
+                    assert process.poll() is None
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError("enrollment did not reach rendezvous: "+point)
+                parent = observe("cat "+marker).stdout.strip()
+                assert parent.isdigit()
+                if point in {"enrollment_intent", "enrollment_prepared", "enrollment_active"}:
+                    assert pid == parent
+                else:
+                    child = pid
+                    command = observe(f"tr '\\000' ' ' </proc/{child}/cmdline").stdout
+                    assert "--internal-enrollment-worker" in command
+                    observe("kill -STOP "+child)
+                receipt = source+"/.file-mover/source-enrollment.json"
+                before = observe(f"stat -c '%d:%i:%u:%a:%s' {receipt}; sha256sum {receipt}", check=False)
+                assert (before.returncode == 0) == (not no_receipt)
+                observe("kill -KILL "+parent)
+                assert process.wait(timeout=15) != 0
+                if child:
+                    observe("kill -KILL "+child)
+                    for _ in range(100):
+                        if exited(child):
+                            break
+                        time.sleep(0.1)
+                    else:
+                        raise RuntimeError("enrollment child exit unconfirmed")
+                blocked = start(client, label+"-pending", profile, source, 19884,
+                                state_label=label, binding_label=label, allow_state_recovery=True)
+                if point == "enrollment_active":
+                    assert blocked["ready"]
+                    stop(blocked)
+                else:
+                    assert not blocked["ready"]
+                    assert ("SourceEnrollmentRequired" if point == "enrollment_intent" else "enrollment pending") in blocked["log"]
+                retried = observe(f"{binary} --initialize-source {base}/config.json", check=False)
+                (output/(label+"-retry.json")).write_text(json.dumps({"returncode":retried.returncode,
+                    "stdout":retried.stdout,"stderr":retried.stderr},indent=2)+"\n")
+                assert (retried.returncode == 0) == retry_succeeds, retried.stdout+retried.stderr
+                if no_receipt:
+                    recovered = start(client, label+"-active", profile, source, 19884,
+                                      state_label=label, binding_label=label)
+                    assert recovered["ready"]
+                    stop(recovered)
+                else:
+                    after = observe(f"stat -c '%d:%i:%u:%a:%s' {receipt}; sha256sum {receipt}")
+                    assert after.stdout == before.stdout
+                assert observe("cat "+source+"/current/data").stdout == "producer-owned input"
+                result = {"scenario_id": "SC-065", "profile": profile, "point": point,
+                          "probe_completed": True, "jobs_submitted": 0,
+                          "parent_exit_confirmed": True, "child_exit_confirmed": child is not None,
+                          "sqlite_main_changed_after_crash_recovery": blocked.get("sqlite_main_changed_after_crash_recovery",False),
+                          "ordinary_startup": snapshot(blocked),
+                          "explicit_retry_active": retry_succeeds,
+                          "ambiguous_receipt_preserved": not retry_succeeds,
+                          "producer_input_unchanged": True}
+                cases.append(result)
+                (output/(label+"-result.json")).write_text(json.dumps(result, indent=2)+"\n")
+                print(f"NFS enrollment {profile}/{point}: PASS (startup/retry matched durable phase)", flush=True)
+            finally:
+                if parent and not exited(parent):
+                    observe("kill -KILL "+parent, check=False)
+                if child and not exited(child):
+                    observe("kill -KILL "+child, check=False)
+                process.wait(timeout=30)
+                if child:
+                    for _ in range(100):
+                        if exited(child):
+                            break
+                        time.sleep(0.1)
+                    else:
+                        raise RuntimeError("enrollment cleanup child exit unconfirmed")

@@ -13,6 +13,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return file_mover::bootstrap::worker();
     }
+    if path == "--internal-enrollment-worker" {
+        if args.next().is_some() {
+            return Err("internal worker takes no arguments".into());
+        }
+        return file_mover::enrollment::worker();
+    }
     if path == "--internal-payload-worker" {
         if args.next().is_some() {
             return Err("internal worker takes no arguments".into());
@@ -43,6 +49,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if mover_fs::nfs_qualification_enabled() {
         eprintln!("NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment");
     }
+    if path == "--initialize-source" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        if args.next().is_some() {
+            return Err("usage: file-mover --initialize-source CONFIG.json".into());
+        }
+        let config = read_config(&config_path)?;
+        let stop = AtomicBool::new(false);
+        let mut guard =
+            file_mover::bootstrap::acquire(&config.source_root, &config.source_binding, &stop)?;
+        let store = mover_store::Store::open(&config.state_database)?;
+        file_mover::enrollment::authorize(&config, &store, &mut guard, true, &stop)?;
+        println!("Source enrollment active; original database required for restart");
+        return Ok(());
+    }
     if path == "--transfer-one" {
         let config_path = args.next().ok_or("configuration path required")?;
         let job: i64 = args.next().ok_or("job ID required")?.parse()?;
@@ -50,19 +70,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("usage: file-mover --transfer-one CONFIG.json JOB_ID".into());
         }
         let config = read_config(&config_path)?;
-        let guard = file_mover::bootstrap::acquire(
+        let mut guard = file_mover::bootstrap::acquire(
             &config.source_root,
             &config.source_binding,
             &AtomicBool::new(false),
         )?;
         let store = mover_store::Store::open(&config.state_database)?;
-        let authorization = guard
-            .source_authorization()
-            .ok_or("source authorization required")?;
-        store.enroll_source(
-            &config.source_root,
-            &authorization.binding.encode(),
-            &authorization.observation,
+        file_mover::enrollment::authorize(
+            &config,
+            &store,
+            &mut guard,
+            false,
+            &AtomicBool::new(false),
         )?;
         store.require_destination_bindings()?;
         let result = mover_fs::transfer_one_with_guard(&store, job, &guard)?;

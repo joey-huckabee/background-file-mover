@@ -17,10 +17,10 @@ before implementation.
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery
   situations, their actual evidence and remaining documentation obligations.
-- [ ] Implement explicit unused-scope enrollment and matching restart from
-  [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md): paired source/state
-  ownership, interrupted-operation refusal/reconciliation and fresh-state refusal.
-  Qualify every intent/effect/sync/activation boundary before enabling it.
+- [ ] Expand source-enrollment failure qualification to short writes, sync errors,
+  the individual file/parent sync boundary and hard-mounted receipt verification
+  during startup shutdown. Preserve conservative review for ambiguous creation;
+  use [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md).
 - [ ] Select and qualify an independently enforced fence before implementing
   populated/legacy-state re-enrollment or legitimate changes to strict observed
   pins. Preserve original job/route evidence. Complete authenticated export/root

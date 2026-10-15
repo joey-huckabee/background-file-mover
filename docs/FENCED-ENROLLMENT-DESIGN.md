@@ -1,14 +1,16 @@
 # Fenced enrollment and recovery contract
 
-Design baseline for the next implementation increments. **Not implemented or
-qualified.** This adds no operator command, migration override, automatic
-takeover or production NFS approval. Read [root ownership](ROOT-OWNERSHIP-DESIGN.md)
-and [increment 26](RUST-INCREMENT-26.md) for the current evidence boundary.
+Design baseline recorded in [increment 26](RUST-INCREMENT-26.md).
+[Increment 27](RUST-INCREMENT-27.md) implements the unused-scope setup and matching
+restart slice; consult its validation/scope before treating a case below as
+qualified. Populated-state rebind, takeover and independently enforced fencing
+remain future work. No production NFS approval is given by this contract.
+Read [root ownership](ROOT-OWNERSHIP-DESIGN.md) for the separate exclusion limits.
 Generator registration and its one-time setup key are separate, deferred work.
 
 ## The gap this must close
 
-Current schema-9 `source_enrollment` binds a source policy and observed identity
+The schema-9 `source_enrollment` reviewed in increment 26 binds a source policy and observed identity
 to `metadata.instance_id` inside one local SQLite database. The protected source
 marker names the permitted coordinator, but does not name that database instance.
 An empty database can enroll after acquiring custody, even if a different
@@ -37,10 +39,10 @@ automatic marker repair, or remote recorder enrollment endpoint for these cases.
 
 ## Persistent source ownership
 
-Add a separately versioned, protected source enrollment receipt under
-`.file-mover`, paired with a local SQLite enrollment record. This is a future
-protocol artifact; current version-2 binding markers and empty `coordinator.lock`
-must not be repurposed or rewritten by normal startup.
+Use a separately versioned, protected source enrollment receipt under
+`.file-mover`, paired with a local SQLite enrollment record. Increment 27 adds
+that receipt with schema 10 and version-3 binding markers. The empty
+`coordinator.lock` must not be repurposed or rewritten by normal startup.
 
 The pair must identify the enrollment operation, original state instance,
 permitted coordinator, approved source binding and observation format/version.
@@ -80,7 +82,7 @@ unbounded worker replacement when NFS blocks.
 
 | Durable state | Required behavior |
 |---|---|
-| No operation and no root receipt | Ordinary startup refuses enrollment-required. An explicit future first-enrollment operation may proceed only after unused-scope checks and exclusive custody. |
+| No operation and no root receipt | Ordinary startup refuses enrollment-required. Explicit first enrollment may proceed only after unused-scope checks and exclusive custody. |
 | Local prepared operation; no root receipt | Remain unready. Retry only that operation after restoring and validating the same custody and provisioning prerequisites. Do not infer absence from an unavailable mount. |
 | Local prepared operation; exact owned receipt exists | Reconcile that operation's object ownership and synchronization before recording it active locally. Equal text alone is insufficient ownership evidence. |
 | Local prepared operation; foreign/malformed/unproven receipt | Preserve both sides and block for review. Never overwrite the receipt. |
@@ -151,7 +153,8 @@ sources/staging as part of enrollment.
 
 ## Required acceptance cases
 
-These are future tests, not passing results. Run Rust cases through both mandatory
+This is the acceptance backlog, not an aggregate passing-results claim. Increment
+27 records the implemented subset and its actual evidence. Run Rust cases through both mandatory
 SLES gates; run filesystem/NFS cases with the exact audited artifacts in the
 retained fixture. Keep production NFS/deletion disabled throughout.
 

@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 26](RUST-INCREMENT-26.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 27](RUST-INCREMENT-27.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -300,3 +300,13 @@ matching restart, then qualify interrupted setup and fresh-state refusal. Preser
 old state/data; no rebind command, automatic takeover or production NFS/deletion
 authorization is provided. Lost-lock/partition diagnostics and an independently
 qualified fence remain prerequisites to populated-state recovery.
+
+Increment 27 adds explicit unused-scope initialization and original-state restart.
+Schema 10 persists prepared/active ownership and version-3 binding policies exclude
+old protocols. The source receipt is validated in inherited workers and pinned to
+the original database. Unknown/preexisting namespaces and ambiguous creation stay
+blocked without automatic repair; matching text does not establish ownership.
+See the increment for current gate/fixture evidence and the catalog for SC-064/065.
+Next expand enrollment error/synchronization evidence and lost-lock/partition
+diagnostics, then select an independently qualified fence before populated rebind.
+Production NFS/deletion, registration and offline repair stay disabled/deferred.

@@ -3,7 +3,7 @@ import json
 
 
 def binding_for(label, nfs, role="source"):
-    return {"version": 2, "coordinator_id": "fixture-owner", "root_id": label,
+    return {"version": 3, "coordinator_id": "fixture-owner", "root_id": label,
             "endpoint_id": "fixture-nfs" if nfs else "fixture-local", "marker_id": label + "-marker",
             "filesystem": "nfs" if nfs else "local", "role": role}
 

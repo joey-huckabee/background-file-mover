@@ -32,7 +32,7 @@ pub struct SourceBinding {
 }
 impl SourceBinding {
     pub fn validate(&self) -> Result<()> {
-        if self.version != 2
+        if self.version != 3
             || [
                 &self.coordinator_id,
                 &self.root_id,
@@ -63,11 +63,16 @@ impl SourceBinding {
 pub struct SourceAuthorization {
     pub binding: SourceBinding,
     pub observation: String,
+    #[serde(default)]
+    pub enrollment: Option<super::EnrollmentAuthorization>,
 }
 impl SourceAuthorization {
     pub fn validate(&self, path: &str) -> Result<()> {
         if self.observation.len() > 2048 || observe(path, &self.binding)? != self.observation {
             return Err(ClaimError::Blocked("source binding observation changed"));
+        }
+        if let Some(enrollment) = &self.enrollment {
+            enrollment.validate(path, self)?;
         }
         Ok(())
     }
@@ -124,7 +129,7 @@ fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
     let r = owned_directory(&root, false)?;
     let n = owned_directory(&area, true)?;
     Ok(format!(
-        "2:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        "3:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         filesystem,
         fs::fstatvfs(&root)?.f_fsid,
         r.device,
@@ -145,6 +150,7 @@ impl LocalClaimLock {
         let authorization = SourceAuthorization {
             binding: binding.clone(),
             observation: before,
+            enrollment: None,
         };
         authorization.validate(path)?;
         lock.authorization = Some(authorization);

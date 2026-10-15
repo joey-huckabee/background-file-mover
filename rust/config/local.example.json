@@ -3,7 +3,7 @@
   "generator_id": "recorder-host-a",
   "source_root": "/srv/file-mover/source",
   "source_binding": {
-    "version": 2,
+    "version": 3,
     "coordinator_id": "mover-a",
     "root_id": "source-a",
     "endpoint_id": "local-source-a",
@@ -13,7 +13,7 @@
   },
   "destination_root": "/srv/file-mover/destination",
   "destination_binding": {
-    "version": 2,
+    "version": 3,
     "coordinator_id": "mover-a",
     "root_id": "destination-a",
     "endpoint_id": "local-destination-a",

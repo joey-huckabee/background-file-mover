@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,81 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn source_ownership_preparation_survives_restart_and_activation_is_exact() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/source", "binding", "observed", "receipt")
+        .unwrap();
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(
+        s.source_ownership().unwrap().unwrap(),
+        SourceOwnership {
+            receipt: "receipt".into(),
+            object: None
+        }
+    );
+    s.prepare_source_ownership("/source", "binding", "observed", "receipt")
+        .unwrap();
+    assert!(
+        s.prepare_source_ownership("/source", "binding", "observed", "foreign")
+            .is_err()
+    );
+    let object = ObjectIdentity {
+        device: 1,
+        inode: 2,
+        uid: 1000,
+        size: 7,
+        modified_seconds: 0,
+        modified_nanos: 0,
+        links: 1,
+    };
+    assert!(
+        s.activate_source_ownership("foreign", &object.encode())
+            .is_err()
+    );
+    s.activate_source_ownership("receipt", &object.encode())
+        .unwrap();
+    s.activate_source_ownership("receipt", &object.encode())
+        .unwrap();
+    let mut foreign = object.clone();
+    foreign.inode += 1;
+    assert!(
+        s.activate_source_ownership("receipt", &foreign.encode())
+            .is_err()
+    );
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(
+        s.source_ownership().unwrap().unwrap().object,
+        Some(object.encode())
+    );
+}
+
+#[test]
+fn schema_nine_jobs_and_enrollment_are_preserved_without_fabricated_ownership() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.enroll_source("/mnt/recordings", "binding", "observed")
+        .unwrap();
+    let job = s
+        .accept(&input("g", "legacy-nine", "data"), &context())
+        .unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE source_ownership; PRAGMA user_version=9;")
+        .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    assert!(s.source_ownership().unwrap().is_none());
+    assert!(matches!(
+        s.prepare_source_ownership("/source", "binding", "observed", "receipt"),
+        Err(StoreError::SourceEnrollmentRequired)
+    ));
+    assert_eq!(s.get(job.job_id).unwrap().unwrap().recording, job.recording);
+}
 
 #[test]
 fn source_enrollment_is_durable_and_never_rebound() {
@@ -76,7 +151,7 @@ fn schema_seven_jobs_require_explicit_enrollment_without_losing_jobs() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
+        "DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
     )
     .unwrap();
     drop(c);
@@ -94,7 +169,7 @@ fn schema_seven_empty_state_can_enroll_after_migration() {
     drop(Store::open(f.db()).unwrap());
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
+        "DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; PRAGMA user_version=7;",
     )
     .unwrap();
     drop(c);
@@ -254,7 +329,7 @@ fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; PRAGMA user_version=6;",
+        "DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; PRAGMA user_version=6;",
     )
     .unwrap();
     drop(c);
@@ -438,7 +513,7 @@ fn schema_five_migration_preserves_claims_instance_and_review() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
+        "DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
     )
     .unwrap();
     drop(c);
@@ -601,7 +676,7 @@ fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
-    db.connection.execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    db.connection.execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
     let s = Store::open(f.db()).unwrap();
     let instance = s.instance_id().unwrap();
@@ -634,7 +709,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -747,7 +822,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();
@@ -1354,7 +1429,7 @@ fn schema_eight_jobs_migrate_but_cannot_adopt_current_destination_policy() {
         db.accept(&input("g", "legacy", "data"), &context())
             .unwrap();
         db.connection
-            .execute_batch("DROP TABLE destination_bindings; PRAGMA user_version=8;")
+            .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; PRAGMA user_version=8;")
             .unwrap();
     }
     assert!(matches!(

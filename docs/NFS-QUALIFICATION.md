@@ -203,3 +203,10 @@ in-flight link/unlink RPCs, other synchronization boundaries, server reboot and 
 remain separate qualification before production enablement. Containers
 use SLES/glibc userspace on the runner kernel; no actual SLES host testing is
 required by this plan.
+
+The current service requires explicit source initialization before fixture
+readiness. [Increment 27](RUST-INCREMENT-27.md) records persistent source/state
+pairing and selected interrupted enrollment cases. Qualification helpers initialize
+only their own newly provisioned scopes; restart uses original state. Fresh-state
+refusal after lock release is distinct from exclusion while an old worker holds
+the lock. Neither establishes a partition/reclaim or storage takeover fence.

@@ -9,6 +9,213 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+fn initialize_source(config: &std::path::Path) -> std::process::Output {
+    Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg("--initialize-source")
+        .arg(config)
+        .output()
+        .unwrap()
+}
+#[test]
+fn explicit_source_enrollment_is_required_and_matching_restart_keeps_the_pair() {
+    let mut f = Fixture::uninitialized(300);
+    let config = f.root.join("config.json");
+    assert!(refused_start(&config).contains("SourceEnrollmentRequired"));
+    let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+    assert!(!receipt.exists());
+    assert!(initialize_source(&config).status.success());
+    let bytes = std::fs::read(&receipt).unwrap();
+    f.start();
+    f.write("data", b"first enrolled recording");
+    let body = f.input("paired", json!([{"name":"data"}]));
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+    assert!(initialize_source(&config).status.success());
+    assert_eq!(std::fs::read(&receipt).unwrap(), bytes);
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+}
+#[test]
+fn fresh_database_cannot_adopt_enrolled_source_after_clean_release() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"private old state payload");
+    assert_eq!(
+        f.post(&f.input("old-state", json!([{"name":"data"}]))).0,
+        202
+    );
+    f.stop();
+    let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+    let saved = std::fs::read(&receipt).unwrap();
+    let path = f.root.join("config.json");
+    let original = std::fs::read(&path).unwrap();
+    let mut config: Value = serde_json::from_slice(&original).unwrap();
+    let fresh = f.root.join("fresh-state");
+    std::fs::create_dir(&fresh).unwrap();
+    std::fs::set_permissions(&fresh, std::fs::Permissions::from_mode(0o700)).unwrap();
+    config["state_database"] = json!(fresh.join("jobs.sqlite"));
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    assert!(refused_start(&path).contains("SourceEnrollmentRequired"));
+    assert!(!initialize_source(&path).status.success());
+    assert_eq!(std::fs::read(&receipt).unwrap(), saved);
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"private old state payload"
+    );
+    std::fs::write(&path, original).unwrap();
+    f.start();
+    f.stop();
+}
+#[test]
+fn missing_unsafe_or_replaced_active_receipt_is_never_repaired() {
+    for case in [
+        "missing",
+        "foreign",
+        "permissions",
+        "symlink",
+        "hardlink",
+        "replacement",
+        "oversized",
+        "fifo",
+    ] {
+        let mut f = Fixture::new(300);
+        f.stop();
+        let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+        let bytes = std::fs::read(&receipt).unwrap();
+        let backup = f.root.join("receipt-backup");
+        match case {
+            "missing" => std::fs::remove_file(&receipt).unwrap(),
+            "foreign" => {
+                std::fs::set_permissions(&receipt, std::fs::Permissions::from_mode(0o600)).unwrap();
+                std::fs::write(&receipt, b"{}").unwrap();
+            }
+            "permissions" => {
+                std::fs::set_permissions(&receipt, std::fs::Permissions::from_mode(0o600)).unwrap()
+            }
+            "symlink" => {
+                std::fs::rename(&receipt, &backup).unwrap();
+                std::os::unix::fs::symlink(&backup, &receipt).unwrap();
+            }
+            "hardlink" => std::fs::hard_link(&receipt, &backup).unwrap(),
+            "replacement" => {
+                std::fs::rename(&receipt, &backup).unwrap();
+                std::fs::write(&receipt, &bytes).unwrap();
+                std::fs::set_permissions(&receipt, std::fs::Permissions::from_mode(0o400)).unwrap();
+            }
+            "oversized" => {
+                std::fs::set_permissions(&receipt, std::fs::Permissions::from_mode(0o600)).unwrap();
+                std::fs::write(&receipt, vec![b'x'; 8193]).unwrap();
+            }
+            "fifo" => {
+                std::fs::remove_file(&receipt).unwrap();
+                assert!(
+                    Command::new("mkfifo")
+                        .arg(&receipt)
+                        .status()
+                        .unwrap()
+                        .success()
+                );
+            }
+            _ => unreachable!(),
+        }
+        refused_start(&f.root.join("config.json"));
+        assert!(
+            !initialize_source(&f.root.join("config.json"))
+                .status
+                .success(),
+            "{case}"
+        );
+        if case == "missing" {
+            assert!(!receipt.exists());
+        }
+    }
+}
+#[test]
+fn prepared_enrollment_retries_only_without_an_ambiguous_root_receipt() {
+    for created in [false, true] {
+        let mut f = Fixture::uninitialized(300);
+        let config = f.root.join("config.json");
+        let source = f.root.join("source");
+        let guard =
+            mover_fs::LocalClaimLock::acquire_bound(source.to_str().unwrap(), &binding()).unwrap();
+        let auth = guard.source_authorization().unwrap();
+        let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let receipt = mover_fs::EnrollmentReceipt::new(store.instance_id().unwrap(), auth).encode();
+        store
+            .prepare_source_ownership(
+                source.to_str().unwrap(),
+                &auth.binding.encode(),
+                &auth.observation,
+                &receipt,
+            )
+            .unwrap();
+        if created {
+            mover_fs::create_source_enrollment(source.to_str().unwrap(), auth, &receipt).unwrap();
+        }
+        drop(store);
+        drop(guard);
+        assert!(refused_start(&config).contains("enrollment pending"));
+        let initialized = initialize_source(&config);
+        assert_eq!(initialized.status.success(), !created, "{initialized:?}");
+        if !created {
+            f.start();
+            f.stop();
+        } else {
+            assert!(refused_start(&config).contains("enrollment pending"));
+        }
+    }
+}
+#[test]
+fn source_enrollment_refuses_legacy_namespace_and_existing_local_enrollment() {
+    for local in [false, true] {
+        let f = Fixture::uninitialized(300);
+        if local {
+            let source = f.root.join("source");
+            let guard =
+                mover_fs::LocalClaimLock::acquire_bound(source.to_str().unwrap(), &binding())
+                    .unwrap();
+            let auth = guard.source_authorization().unwrap();
+            mover_store::Store::open(f.root.join("state/jobs.sqlite"))
+                .unwrap()
+                .enroll_source(
+                    source.to_str().unwrap(),
+                    &binding().encode(),
+                    &auth.observation,
+                )
+                .unwrap();
+        } else {
+            std::fs::create_dir(f.root.join("source/.file-mover/1-0")).unwrap();
+        }
+        assert!(
+            !initialize_source(&f.root.join("config.json"))
+                .status
+                .success()
+        );
+        assert!(
+            !f.root
+                .join("source/.file-mover/source-enrollment.json")
+                .exists()
+        );
+    }
+}
+#[test]
+fn active_source_receipt_replacement_blocks_live_claim() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"producer data");
+    let receipt = f.root.join("source/.file-mover/source-enrollment.json");
+    let bytes = std::fs::read(&receipt).unwrap();
+    std::fs::rename(&receipt, f.root.join("original-receipt")).unwrap();
+    std::fs::write(&receipt, bytes).unwrap();
+    std::fs::set_permissions(&receipt, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let (status, body) = f.post(&f.input("changed-enrollment", json!([{"name":"data"}])));
+    assert_eq!(status, 409);
+    assert_eq!(body["source_paths_released"], false);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer data"
+    );
+    f.stop();
+}
 #[test]
 fn missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it() {
     use std::os::unix::fs::symlink;
@@ -64,14 +271,19 @@ fn missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it() {
     }
 }
 #[test]
-fn binding_version_one_cannot_start_the_regular_lock_protocol() {
+fn old_binding_versions_cannot_start_the_enrollment_protocol() {
     let mut f = Fixture::new(300);
     f.stop();
     let path = f.root.join("config.json");
     let original: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    for role in ["source_binding", "destination_binding"] {
+    for (role, version) in [
+        ("source_binding", 1),
+        ("source_binding", 2),
+        ("destination_binding", 1),
+        ("destination_binding", 2),
+    ] {
         let mut config = original.clone();
-        config[role]["version"] = json!(1);
+        config[role]["version"] = json!(version);
         std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
         assert!(refused_start(&path).contains("invalid"));
     }
@@ -204,13 +416,13 @@ fn delivery_worker_refuses_replaced_destination_lock_before_payload() {
 }
 fn binding() -> mover_fs::SourceBinding {
     serde_json::from_value(
-        json!({"version":2,"coordinator_id":"test-owner","root_id":"local-source",
+        json!({"version":3,"coordinator_id":"test-owner","root_id":"local-source",
         "endpoint_id":"test-local","marker_id":"test-marker","filesystem":"local","role":"source"}),
     )
     .unwrap()
 }
 fn destination_binding() -> mover_fs::DestinationBinding {
-    serde_json::from_value(json!({"version":2,"coordinator_id":"test-owner","root_id":"configured-local",
+    serde_json::from_value(json!({"version":3,"coordinator_id":"test-owner","root_id":"configured-local",
         "endpoint_id":"test-local-destination","marker_id":"test-destination-marker","filesystem":"local","role":"destination"})).unwrap()
 }
 fn provision_lock(root: &std::path::Path) {
@@ -1278,6 +1490,13 @@ struct Fixture {
 }
 impl Fixture {
     fn new(window: u32) -> Self {
+        let mut f = Self::uninitialized(window);
+        let initialized = initialize_source(&f.root.join("config.json"));
+        assert!(initialized.status.success(), "{initialized:?}");
+        f.start();
+        f
+    }
+    fn uninitialized(window: u32) -> Self {
         let root = loop {
             let p = std::env::temp_dir().join(format!(
                 "file-mover-api-{}-{}",
@@ -1310,13 +1529,11 @@ impl Fixture {
         provision_lock(&root.join("source"));
         provision_binding(&root.join("source"));
         std::fs::write(root.join("config.json"),serde_json::to_vec(&json!({"bind":address.to_string(),"generator_id":"recorder","source_root":root.join("source"),"source_binding":binding(),"destination_binding":destination_binding(),"destination_root":root.join("destination"),"state_database":root.join("state/jobs.sqlite"),"missing_file_retry_window_seconds":window})).unwrap()).unwrap();
-        let mut f = Self {
+        Self {
             root,
             address,
             child: None,
-        };
-        f.start();
-        f
+        }
     }
     fn start(&mut self) {
         self.child = Some(

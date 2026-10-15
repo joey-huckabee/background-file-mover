@@ -77,11 +77,15 @@ pub const fn nfs_qualification_enabled() -> bool {
 mod binding;
 mod bootstrap;
 mod custody;
+mod enrollment;
 pub use binding::{
     DESTINATION_MARKER, DestinationAuthorization, DestinationBinding, DestinationRole,
     SOURCE_MARKER, SourceAuthorization, SourceBinding, SourceFilesystem, SourceRole,
 };
 pub use custody::COORDINATOR_LOCK;
+pub use enrollment::{
+    EnrollmentAuthorization, EnrollmentReceipt, SOURCE_RECEIPT, create_source_enrollment,
+};
 mod manifest;
 mod qualification;
 mod relocate;

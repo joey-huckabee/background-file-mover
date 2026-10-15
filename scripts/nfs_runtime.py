@@ -52,6 +52,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             local.write_text(json.dumps(self.config))
             self.config_path = self.base + "/config.json"
             run(["cp", str(local), client + ":" + self.config_path])
+            execute(f"{self.binary} --initialize-source {self.config_path}", "1000:1000")
             self.body = {"generator_id": "fixture", "submission_id": self.label, "source_path": self.source + "/current",
                          "files": [{"name": "nested/data.bin"}]}
 

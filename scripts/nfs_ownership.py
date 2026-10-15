@@ -19,7 +19,8 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         return execute(script, "1000:1000", check=check, target=target)
 
     def start(target, label, profile, source, port, state_label=None, production=False,
-              binding_label=None, destination=None, pause=None):
+              binding_label=None, destination=None, pause=None, initialize=False,
+              allow_state_creation=False, allow_state_recovery=False):
         base = "/tmp/local/ownership-" + (state_label or label)
         observe(target, f"umask 077; mkdir -p {base}/state {base}/destination/.file-mover")
         assert observe(target, f"stat -f -c %t {base}/state").stdout.strip() != "6969"
@@ -33,6 +34,9 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         local.write_text(json.dumps(config))
         run(["cp", str(local), target + ":" + base + "/config.json"])
         binary = "/tmp/ownership-" + ("production-" if production else "qualification-") + profile
+        if initialize:
+            observe(target, f"{binary} --initialize-source {base}/config.json")
+            before_db = observe(target, "sha256sum " + config["state_database"])
         marker = "/tmp/local/ownership-" + label + ".pid"
         environment = ""
         if pause:
@@ -59,9 +63,13 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
                 assert process.returncode != 0
                 assert "Error:" in log and "No such file" not in log
                 if before_db.returncode == 0:
-                    assert observe(target, "sha256sum " + service["database"]).stdout == before_db.stdout
-                    service["sqlite_unchanged"] = True
-                else:
+                    after_db = observe(target, "sha256sum " + service["database"])
+                    if after_db.stdout != before_db.stdout:
+                        assert allow_state_recovery, "unexpected SQLite main-file change: " + label
+                        service["sqlite_main_changed_after_crash_recovery"] = True
+                    else:
+                        service["sqlite_unchanged"] = True
+                elif not allow_state_creation:
                     assert observe(target, "test ! -e " + service["database"], check=False).returncode == 0
                 service["ready"] = False
                 break
@@ -114,7 +122,7 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             identities = [observe(target, f"stat -c '%i:%u:%a' {source} {source}/.file-mover; sha256sum {source}/witness").stdout
                           for target in (client, peer)]
             assert identities[0] == identities[1]
-            owner = start(client, profile + "-owner", profile, source, 19880)
+            owner = start(client, profile + "-owner", profile, source, 19880, initialize=True)
             assert owner["ready"]
             same = start(client, profile + "-same", profile, source, 19881)
             assert not same["ready"], "same-client singleton control failed"
@@ -127,12 +135,19 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             cases.append(case)
             stop(other)
             stop(owner)
-            # Only this empty-state scope is admitted after clean release. This
-            # is not permission to take over another database's recording work.
+            # Persistent enrollment refuses a fresh peer even after clean release.
             released = start(peer, profile + "-clean-release", profile, source, 19880,
-                             state_label=profile + "-peer")
-            assert released["ready"]
-            case["empty_scope_admitted_after_clean_release"] = snapshot(released)
+                             state_label=profile + "-peer", allow_state_creation=True)
+            assert not released["ready"] and "SourceEnrollmentRequired" in released["log"]
+            case["fresh_state_refused_after_clean_release"] = snapshot(released)
+            initializer = observe(peer, f"/tmp/ownership-qualification-{profile} --initialize-source /tmp/local/ownership-{profile}-peer/config.json", check=False)
+            assert initializer.returncode != 0
+            case["explicit_peer_initialization_refused"] = True
+            restarted = start(client, profile + "-restart", profile, source, 19880,
+                              state_label=profile + "-owner")
+            assert restarted["ready"]
+            case["original_state_restart"] = snapshot(restarted)
+            stop(restarted)
             stop(released)
 
             # Positive control: a regular file opened RDWR must have observable
@@ -159,9 +174,10 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             (output / ("ownership-" + profile + "-cross-client-result.json")).write_text(json.dumps(case, indent=2) + "\n")
             print(f"NFS ownership {profile}: same-client excluded; cross-client excluded={case['cross_client_startup_excluded']}; regular-file remote control passed", flush=True)
 
-        from nfs_custody import qualify_inherited_custody
+        from nfs_custody import qualify_inherited_custody, qualify_enrollment
         qualify_inherited_custody(run, execute, spawn, output, client, peer,
                                  start, stop, snapshot, cases)
+        qualify_enrollment(run, execute, spawn, output, client, start, stop, snapshot, cases)
 
         # With all peer services stopped, remove only its own mount. Root owns
         # this empty mount point, so it may chmod it without adding CAP_CHOWN.

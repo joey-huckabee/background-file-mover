@@ -16,12 +16,14 @@ use std::{
 mod missing_resets;
 mod operators;
 mod retention;
+mod source_ownership;
 pub use missing_resets::{MissingResetAudit, MissingResetReceipt, MissingResetRequest};
 pub use operators::{ResumeAudit, ResumeReceipt, ResumeRequest};
 pub use retention::RetentionSnapshot;
+pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 9;
+const SCHEMA_VERSION: i64 = 10;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -487,7 +489,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=8).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=9).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -529,12 +531,13 @@ impl Database {
                 tx.execute_batch(include_str!("source_enrollment.sql"))?;
             }
             tx.execute_batch(include_str!("destination_bindings.sql"))?;
+            tx.execute_batch(include_str!("source_ownership.sql"))?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=8).contains(&version) && !read_only {
+        if (1..=9).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -558,7 +561,10 @@ impl Database {
             if version <= 7 {
                 tx.execute_batch(include_str!("source_enrollment.sql"))?;
             }
-            tx.execute_batch(include_str!("destination_bindings.sql"))?;
+            if version <= 8 {
+                tx.execute_batch(include_str!("destination_bindings.sql"))?;
+            }
+            tx.execute_batch(include_str!("source_ownership.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }

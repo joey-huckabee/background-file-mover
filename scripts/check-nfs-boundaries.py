@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 import tarfile
 import time
+import traceback
 import uuid
 from nfs_binding import binding_for, provision
 
@@ -290,7 +291,8 @@ def main():
         report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
         report["status"] = "PASSED"
     except Exception as error:
-        report["error"] = str(error)
+        report["error"] = f"{type(error).__name__}: {error}"
+        report["traceback"] = traceback.format_exc()
     finally:
         # Restore first: killing a task is not evidence that NFS effects ended.
         if server:

@@ -314,6 +314,7 @@ impl BootstrapReceiver {
         if receipt.authorization.as_ref().map(|a| &a.binding) != binding
             || receipt.authorization.as_ref().is_some_and(|a| {
                 a.binding.validate().is_err()
+                    || a.enrollment.is_some()
                     || a.observation.is_empty()
                     || a.observation.len() > 2048
             })

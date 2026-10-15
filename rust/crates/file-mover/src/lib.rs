@@ -3,6 +3,7 @@ pub mod bootstrap;
 pub mod claim_worker;
 pub mod delivery_worker;
 mod diagnostic;
+pub mod enrollment;
 mod http;
 pub mod payload;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
@@ -239,16 +240,10 @@ impl Worker {
         stop: Arc<AtomicBool>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
-        let guard = Arc::new(guard);
+        let mut guard = guard;
         let store = Arc::new(Store::open(&c.state_database)?);
-        let authorization = guard
-            .source_authorization()
-            .ok_or("source authorization required")?;
-        store.enroll_source(
-            &c.source_root,
-            &authorization.binding.encode(),
-            &authorization.observation,
-        )?;
+        enrollment::authorize(c, &store, &mut guard, false, &stop)?;
+        let guard = Arc::new(guard);
         store.require_destination_bindings()?;
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
