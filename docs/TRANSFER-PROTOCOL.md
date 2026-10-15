@@ -153,6 +153,10 @@ unapproved mounts. Hold validated directory/file descriptors during operations;
 check root/mount identity again on startup, recovery and dispatch. An unavailable
 expected NFS mount must not redirect operations into the underlying local path.
 Device/inode numbers and mount IDs are observations, not permanent global IDs.
+The prototype does not yet implement an explicit expected-filesystem/export
+binding or cross-client fencing. See [root authorization and ownership design](ROOT-OWNERSHIP-DESIGN.md)
+and [increment 22 diagnostics](RUST-INCREMENT-22.md) before treating startup
+readiness or a local namespace lock as evidence of either protection.
 
 An illustrative layout is:
 

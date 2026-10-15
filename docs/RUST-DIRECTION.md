@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 21](RUST-INCREMENT-21.md),
+[Increment 22](RUST-INCREMENT-22.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -252,3 +252,14 @@ does not cancel the queued submission; retryable `service_busy` can follow
 `handoff_pending`. Keep the full interruption evidence and focused long-outage
 report separate. Stable root/export authorization and cross-client fencing remain
 prerequisites to production NFS; source deletion remains disabled.
+
+Increment 22 adds actual two-client startup and absent-mount diagnostics.
+SC-053/054 record gaps: a second NFS client can reach readiness against the
+same source, and an owned local stand-in is accepted after the expected mount
+is absent. Same-client refusal and a regular-file remote-lock control pass.
+These are measured limitations, not enabled production features. Next implement
+explicit source root binding/state enrollment, then pinned destination binding
+and qualified cross-client exclusion/fencing using ROOT-OWNERSHIP-DESIGN.md.
+Keep one statically assigned coordinator per disjoint source and no automatic
+takeover. Do not combine these results with earlier outage evidence as though
+they proved a distributed fence or stable export authorization.

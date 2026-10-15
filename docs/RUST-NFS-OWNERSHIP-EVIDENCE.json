@@ -1,0 +1,1036 @@
+{
+  "status": "PASSED",
+  "run_id": "nfs-20261015T025958Z-71e9bee8",
+  "isolated_startup_required": true,
+  "gate": "20261015T024021Z-c93b14b0",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "source_sha256": "3e22966bfc84a93049a4c0fe58085a2e9c7112c0caadb70f2603450650f92f30",
+  "checks": {
+    "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "inherited_lock": "Parent death retained lock; child exit released it",
+    "bootstrap_children_before_signal": 1,
+    "isolated_startup": "SIGTERM ended service and confirmed bootstrap child exit before server restoration; no SQLite or readiness",
+    "startup_sigterm": {
+      "exit_observed_before_restore": true
+    },
+    "kill_during_outage": {
+      "exit_observed_before_restore": true
+    },
+    "outage": "Metadata and source startup remained pending at 3-second observations",
+    "restored": "Stable root/namespace identity; metadata recovered and source lock became available"
+  },
+  "cleanup_errors": [],
+  "runtime_requested": false,
+  "ownership_requested": true,
+  "runtime_scope": "none",
+  "limitations": [
+    "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+    "Two container clients with distinct network/mount namespaces on one shared modern kernel. Ownership probes diagnose exclusion/missing-mount gaps; they do not prove physical-host fencing, partition/reclaim or safe takeover.",
+    "Lock and interrupted metadata probes use OS tools, not Rust claim/copy/publication on NFS.",
+    "Service startup rejection is measured; production NFS and source deletion remain disabled."
+  ],
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dmsetup\t2:1.02.185-2",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "findutils\t4.9.0-4",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "keyutils\t1.6.3-2",
+    "libacl1:amd64\t2.3.1-3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdebconfclient0:amd64\t0.270",
+    "libdevmapper1.02.1:amd64\t2:1.02.185-2",
+    "libevent-core-2.1-7:amd64\t2.1.12-stable-8+deb12u1",
+    "libexpat1:amd64\t2.5.0-1+deb12u4",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "libldap-2.5-0:amd64\t2.5.13+dfsg-5",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u2",
+    "libmd0:amd64\t1.0.4-2",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnfsidmap1:amd64\t1:2.6.2-4+deb12u1",
+    "libnsl2:amd64\t1.3.0-2",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpcre2-8-0:amd64\t10.42-1+deb12u2",
+    "libpython3-stdlib:amd64\t3.11.2-1+b1",
+    "libpython3.11-minimal:amd64\t3.11.2-6+deb12u9",
+    "libpython3.11-stdlib:amd64\t3.11.2-6+deb12u9",
+    "libreadline8:amd64\t8.2-1.3",
+    "libsasl2-2:amd64\t2.1.28+dfsg-10",
+    "libsasl2-modules-db:amd64\t2.1.28+dfsg-10",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsepol2:amd64\t3.4-2.1",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssl3:amd64\t3.0.22-1~deb12u1",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libunistring2:amd64\t1.0-2",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libwrap0:amd64\t7.6.q-32",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "media-types\t10.0.0",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "nfs-common\t1:2.6.2-4+deb12u1",
+    "nfs-kernel-server\t1:2.6.2-4+deb12u1",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "python3\t3.11.2-1+b1",
+    "python3-minimal\t3.11.2-1+b1",
+    "python3.11\t3.11.2-6+deb12u9",
+    "python3.11-minimal\t3.11.2-6+deb12u9",
+    "readline-common\t8.2-1.3",
+    "rpcbind\t1.2.6-6+b1",
+    "sed\t4.9-1+deb12u1",
+    "sensible-utils\t0.0.17+nmu1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "tzdata\t2026c-0+deb12u1",
+    "ucf\t3.0043+nmu1+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "mounts": [
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/23fe3299bc77050a6d0437451b33e540d20a75dcb947bbee3adf65e4a81ddd0d/diff,workdir=/var/lib/containers/storage/overlay/23fe3299bc77050a6d0437451b33e540d20a75dcb947bbee3adf65e4a81ddd0d/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+    "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+    "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+    "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+    "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+    "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+    "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
+    "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+    "none /etc/hosts tmpfs rw,mode=755 0 0",
+    "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+    "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+  ],
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "root_identity_before": [
+    "99:387673:1000:700",
+    "99:387674:1000:700"
+  ],
+  "artifacts": {
+    "debug": "1c1a1512c4ef40a34fc390c6e1b3a63618d62146778e1921a6e7e5414a64edb9",
+    "release": "e0e440147be121029ae3629c6291aa30ff075eecc4c22dee3649276290730d21"
+  },
+  "qualification_gate": "20261015T024033Z-df962b10-nfs-qualification",
+  "baseline": {
+    "passed": true,
+    "cases": [
+      {
+        "profile": "debug",
+        "direction": "source",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "f88c1ad5ec03960dc7cdf516ceabb6c4",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "destination",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/debug-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/debug-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/debug-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "49bce76f32812ebfe9d48e39c6e0dae1",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "both",
+        "binary_sha256": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "d793abf89faf2a747df6b4d3c4c54b71",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "source",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "bb976865c825337237fd605b4557a81c",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "destination",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/release-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/release-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/release-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "81664014e08e3c6e7c92592bce605891",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "both",
+        "binary_sha256": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "7b934ff97d61c737f052d08f4d12f6fd",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19877\n"
+      }
+    ]
+  },
+  "ownership": {
+    "probe_status": "PASSED",
+    "production_authorized": false,
+    "cases": [
+      {
+        "profile": "debug",
+        "scenario_id": "SC-053",
+        "probe_completed": true,
+        "shared_root_observations": [
+          "393264:1000:700\n393262:1000:700\naf95922493b498dfe732169b30aeb57b88bba9c56a8bb97e00dc6b3af39ca237  /tmp/nfs/ownership-debug/source/witness\n",
+          "393264:1000:700\n393262:1000:700\naf95922493b498dfe732169b30aeb57b88bba9c56a8bb97e00dc6b3af39ca237  /tmp/nfs/ownership-debug/source/witness\n"
+        ],
+        "owner": {
+          "label": "debug-owner",
+          "database": "/tmp/local/ownership-debug-owner/state/jobs.sqlite",
+          "config_sha256": "3887fbf31ad483070e9755952a47ab9622f6082f39bb304e5b7e093b6f5ae3c8",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "same_client": {
+          "label": "debug-same",
+          "database": "/tmp/local/ownership-debug-same/state/jobs.sqlite",
+          "config_sha256": "04bbb83a709615a6848b1637a3916b332efbdea37643306c7310d5155d4324dc",
+          "ready": false,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Io(Os { code: 11, kind: WouldBlock, message: \\\"Resource temporarily unavailable\\\" })\"\n"
+        },
+        "other_client": {
+          "label": "debug-peer",
+          "database": "/tmp/local/ownership-debug-peer/state/jobs.sqlite",
+          "config_sha256": "eac402a1ee525db49a523378132bda31b615d43a587c2344ee3cce4390f8a683",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "cross_client_startup_excluded": false,
+        "jobs_submitted": 0,
+        "regular_file_remote_exclusion_control": true
+      },
+      {
+        "profile": "release",
+        "scenario_id": "SC-053",
+        "probe_completed": true,
+        "shared_root_observations": [
+          "393324:1000:700\n393322:1000:700\naf95922493b498dfe732169b30aeb57b88bba9c56a8bb97e00dc6b3af39ca237  /tmp/nfs/ownership-release/source/witness\n",
+          "393324:1000:700\n393322:1000:700\naf95922493b498dfe732169b30aeb57b88bba9c56a8bb97e00dc6b3af39ca237  /tmp/nfs/ownership-release/source/witness\n"
+        ],
+        "owner": {
+          "label": "release-owner",
+          "database": "/tmp/local/ownership-release-owner/state/jobs.sqlite",
+          "config_sha256": "b524639581642788dfc8eca6f652f260575c621dbf26ef3069fa267c32f72783",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "same_client": {
+          "label": "release-same",
+          "database": "/tmp/local/ownership-release-same/state/jobs.sqlite",
+          "config_sha256": "c780c73d51cf4ff13c01ad34b7733b36492a2baa1ea3ceb82e1f4c4518c36a40",
+          "ready": false,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Io(Os { code: 11, kind: WouldBlock, message: \\\"Resource temporarily unavailable\\\" })\"\n"
+        },
+        "other_client": {
+          "label": "release-peer",
+          "database": "/tmp/local/ownership-release-peer/state/jobs.sqlite",
+          "config_sha256": "cb8fd12d4d754985d94c5c7a2887a12ff32522e9fa3f92db3ff4d3536e75069d",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "cross_client_startup_excluded": false,
+        "jobs_submitted": 0,
+        "regular_file_remote_exclusion_control": true
+      },
+      {
+        "profile": "debug",
+        "scenario_id": "SC-054",
+        "probe_completed": true,
+        "filesystem_after_unmount": "794c7630",
+        "same_config_and_state_database": true,
+        "missing_mount_startup_rejected": false,
+        "qualification": {
+          "label": "debug-fallback",
+          "database": "/tmp/local/ownership-debug-peer/state/jobs.sqlite",
+          "config_sha256": "eac402a1ee525db49a523378132bda31b615d43a587c2344ee3cce4390f8a683",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "jobs_submitted": 0,
+        "production_local_startup_rejected": false,
+        "production": {
+          "label": "debug-fallback-production",
+          "database": "/tmp/local/ownership-debug-fallback-production/state/jobs.sqlite",
+          "config_sha256": "8c4d44c542c795471acea94e30245c7322e1617e51d1e501fe2c405d289bcf0b",
+          "ready": true,
+          "log": "Ready on 127.0.0.1:19880\n"
+        }
+      },
+      {
+        "profile": "release",
+        "scenario_id": "SC-054",
+        "probe_completed": true,
+        "filesystem_after_unmount": "794c7630",
+        "same_config_and_state_database": true,
+        "missing_mount_startup_rejected": false,
+        "qualification": {
+          "label": "release-fallback",
+          "database": "/tmp/local/ownership-release-peer/state/jobs.sqlite",
+          "config_sha256": "cb8fd12d4d754985d94c5c7a2887a12ff32522e9fa3f92db3ff4d3536e75069d",
+          "ready": true,
+          "log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n"
+        },
+        "jobs_submitted": 0,
+        "production_local_startup_rejected": false,
+        "production": {
+          "label": "release-fallback-production",
+          "database": "/tmp/local/ownership-release-fallback-production/state/jobs.sqlite",
+          "config_sha256": "a5b0d1330c8b7b8a6be38c8b1b7dda818b5626fb4f35ad667c127ec965c381d6",
+          "ready": true,
+          "log": "Ready on 127.0.0.1:19880\n"
+        }
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "73a718f88ee67ac1da7b19b4059cf0230fea2e6244b0edc7dc5c0356cdfadfb3",
+      "nfs_ownership.py": "69dd4c86e839641688faa21a619debb53acc3d25f8e1039ae3d77a6955817ff7"
+    },
+    "clients": [
+      {
+        "container": "6a4ba7c737352976bb088c24e1fca98d8545e93cbc0caaf33a4e3169445d5d57",
+        "namespaces": [
+          "net:[4026532383]",
+          "mnt:[4026532486]"
+        ],
+        "mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/23fe3299bc77050a6d0437451b33e540d20a75dcb947bbee3adf65e4a81ddd0d/diff,workdir=/var/lib/containers/storage/overlay/23fe3299bc77050a6d0437451b33e540d20a75dcb947bbee3adf65e4a81ddd0d/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+          "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+        ]
+      },
+      {
+        "container": "075bb212c4d41bfea61b48006d5f3ba55d20bb4ad0d2ed8db1ead3d854f1507c",
+        "namespaces": [
+          "net:[4026532491]",
+          "mnt:[4026532591]"
+        ],
+        "mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/347c771df8209f1c29ef142b6e4e865398eb9e5adf26874f91dc8f9fc190c265/diff,workdir=/var/lib/containers/storage/overlay/347c771df8209f1c29ef142b6e4e865398eb9e5adf26874f91dc8f9fc190c265/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+          "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+          "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+          "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+          "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.4,local_lock=none,addr=10.89.0.2 0 0"
+        ]
+      }
+    ],
+    "server_client_info": "CLIENT_INFO\nclientid: 0xbe2c1ce76ad041b1\naddress: \"10.89.0.3:759\"\nstatus: confirmed\nseconds from last renew: 6\nname: \"Linux NFSv4.1 6a4ba7c73735\"\nminor version: 1\nImplementation domain: \"kernel.org\"\nImplementation name: \"Linux 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64\"\nImplementation time: [0, 0]\ncallback state: UP\ncallback address: \"10.89.0.3:0\"\nadmin-revoked states: 0\nsession slots: 64\nsession target slots: 64\nCLIENT_INFO\nclientid: 0xbe2c1ce96ad041b1\naddress: \"10.89.0.4:773\"\nstatus: confirmed\nseconds from last renew: 0\nname: \"Linux NFSv4.1 075bb212c4d4\"\nminor version: 1\nImplementation domain: \"kernel.org\"\nImplementation name: \"Linux 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64\"\nImplementation time: [0, 0]\ncallback state: UP\ncallback address: \"10.89.0.4:0\"\nadmin-revoked states: 0\nsession slots: 64\nsession target slots: 64\n",
+    "artifacts": {
+      "production-debug": "1c1a1512c4ef40a34fc390c6e1b3a63618d62146778e1921a6e7e5414a64edb9",
+      "qualification-debug": "c46fee21f0149a6b454f908ee62c0db412b9d0c31add3bc18e25c1cf8e09d7e5",
+      "production-release": "e0e440147be121029ae3629c6291aa30ff075eecc4c22dee3649276290730d21",
+      "qualification-release": "43addddec6a5eff9741a5d069d5a9a496a18ca4fe8d5e7f234e1af8b3518e918"
+    },
+    "protection_complete": false,
+    "service_logs": {
+      "debug-owner": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "debug-same": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Io(Os { code: 11, kind: WouldBlock, message: \\\"Resource temporarily unavailable\\\" })\"\n",
+      "debug-peer": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "release-owner": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "release-same": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Io(Os { code: 11, kind: WouldBlock, message: \\\"Resource temporarily unavailable\\\" })\"\n",
+      "release-peer": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "debug-fallback": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "debug-fallback-production": "Ready on 127.0.0.1:19880\n",
+      "release-fallback": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nReady on 127.0.0.1:19880\n",
+      "release-fallback-production": "Ready on 127.0.0.1:19880\n"
+    }
+  },
+  "root_identity_after": [
+    "99:387673:1000:700",
+    "99:387674:1000:700"
+  ]
+}

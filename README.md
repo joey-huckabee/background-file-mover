@@ -37,6 +37,9 @@ scenarios SC-049/050 for producer and consumer behavior.
 [Longer outage qualification](docs/RUST-INCREMENT-21.md) adds three-minute blocked
 claim/verification checks, same-ID retry/backpressure observations and live recovery.
 See SC-051/052 and the increment evidence for the qualified scope.
+[Root/ownership diagnostics](docs/RUST-INCREMENT-22.md) add separate-client and
+missing-mount startup probes; [the binding/fencing design](docs/ROOT-OWNERSHIP-DESIGN.md)
+defines the next implementation steps. Diagnostic completion is not production approval.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

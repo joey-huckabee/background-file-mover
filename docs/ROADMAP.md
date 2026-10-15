@@ -17,8 +17,12 @@ before implementation.
   [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
   with each increment, including prior/new success, retry, review and recovery
   situations, their actual evidence and remaining documentation obligations.
-- [ ] Establish stable root/export authorization and cross-client ownership/fencing
-  before enabling production NFS; qualify server reboot/power-loss outcomes.
+- [ ] Implement operator-provisioned source root bindings and durable state
+  enrollment, then pin destination bindings at acceptance and validate them in
+  recording workers; follow [ROOT-OWNERSHIP-DESIGN.md](ROOT-OWNERSHIP-DESIGN.md).
+- [ ] Implement and qualify cross-client exclusion with actual inherited worker
+  custody, then positively fenced takeover/partition/reclaim before production NFS.
+  Qualify replacement exports, server reboot and power-loss outcomes separately.
 - [ ] Improve retry classification/backoff and qualify physical free-space margins.
 - [ ] Implement configurable gated source cleanup only after worker/filesystem
   failure qualification passes.

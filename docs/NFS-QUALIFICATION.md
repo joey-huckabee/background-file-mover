@@ -81,6 +81,22 @@ unmount before removing only its own resources. See [NFS-TEST-FIXTURE.md](NFS-TE
 
 ## Qualification boundary
 
+For root/ownership diagnostics, run the same baseline runner with both gate
+directories and `--isolated-startup --ownership` (omit `--runtime` unless also
+repeating that separate matrix). It creates one additional pinned client,
+records distinct network/mount namespaces and server-side NFS client identities,
+compares actual coordinator exclusion between clients, and includes a regular-file
+remote-lock positive control. It then removes only the peer's mount and tests
+startup at the same pathname/configuration on the underlying local filesystem.
+No jobs are submitted while coordinators overlap or the mount is absent.
+
+See [increment 22](RUST-INCREMENT-22.md) and
+[the root/ownership design](ROOT-OWNERSHIP-DESIGN.md). Diagnostic completion is
+separate from protection: inspect `ownership.probe_status`, each startup
+exclusion/refusal field and `production_authorized`. PASSED is not production
+approval if those probes expose a gap. The retained full interruption and
+long-outage reports remain separate evidence with different scopes.
+
 For deterministic real-worker interruption, add `--runtime` to the fixture
 command above. It requires both passing gate directories and first repeats the
 normal baseline. [Increment 18](RUST-INCREMENT-18.md) explains its claim, partial

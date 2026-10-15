@@ -54,6 +54,12 @@ with every server/export or qualify reboot, outage, and power-loss durability.
 
 ## Hard-mount boundary qualification
 
+Later Rust qualifications and their exact supported scope are maintained in
+[NFS-QUALIFICATION.md](NFS-QUALIFICATION.md). The retained `--ownership` mode adds
+a second private SLES client and diagnoses startup exclusion/absent-mount behavior;
+see [increment 22](RUST-INCREMENT-22.md). It shares the runner kernel and does not
+establish physical-host fencing or safe takeover.
+
 [Increment 14](RUST-INCREMENT-14.md) reuses this server with the unchanged audited
 Rust service and a hard NFSv4.1 mount. Its dedicated runner is
 `scripts/check-nfs-boundaries.py`; it does not rerun E2 or enable NFS. It measures

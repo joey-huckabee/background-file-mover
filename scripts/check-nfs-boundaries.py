@@ -32,9 +32,12 @@ def main():
                         help="Also qualify real Rust worker interruption/outage and coordinator death")
     parser.add_argument("--long-outages-only", action="store_true",
                         help="With --runtime, run only the four three-minute runtime cases; retain baseline and OS checks")
+    parser.add_argument("--ownership", action="store_true",
+                        help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
     args = parser.parse_args()
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
+    assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
@@ -78,6 +81,7 @@ def main():
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["runtime_requested"] = args.runtime
+    report["ownership_requested"] = args.ownership
     report["runtime_scope"] = "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
@@ -89,10 +93,13 @@ def main():
         report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points, including 180-second blocked claim and verification outages with live recovery. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Longer or indefinite outages, queue saturation and export changes remain unqualified. Other lock/startup probes use OS tools."
         if args.long_outages_only:
             report["limitations"][2] = "Runtime cases in this report cover only 180-second blocked claim and verification outages with live recovery. A small sequential same-ID retry workload observes single-slot submission backpressure, not concurrent flooding or memory bounds. Other interruption cases are not rerun here. Longer/indefinite outages, in-flight link/unlink RPCs and export changes remain unqualified. Other lock/startup probes use OS tools."
+    if args.ownership:
+        report["limitations"][1] = "Two container clients with distinct network/mount namespaces on one shared modern kernel. Ownership probes diagnose exclusion/missing-mount gaps; they do not prove physical-host fencing, partition/reclaim or safe takeover."
     containers = []
     tasks = []
     network = volume = server = client = None
     mounted = False
+    mounted_peers = []
 
     def run(arguments, check=True, timeout=45):
         result = subprocess.run(engine + arguments, capture_output=True, text=True,
@@ -101,13 +108,13 @@ def main():
             raise RuntimeError(f"{arguments}: {result.stdout}{result.stderr}")
         return result
 
-    def execute(script, user=None, check=True):
-        return run(["exec", *(["--user", user] if user else []), client,
+    def execute(script, user=None, check=True, target=None):
+        return run(["exec", *(["--user", user] if user else []), target or client,
                     "/bin/sh", "-eu", "-c", script], check=check)
 
-    def spawn(script, name):
+    def spawn(script, name, target=None):
         log = (output / (name + ".log")).open("w", encoding="utf-8")
-        process = subprocess.Popen(engine + ["exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", client,
+        process = subprocess.Popen(engine + ["exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", target or client,
                                    "/bin/sh", "-eu", "-c", script], stdout=log, stderr=log)
         tasks.append((process, log))
         return process
@@ -186,6 +193,22 @@ def main():
             report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
             if not report["baseline"]["passed"]:
                 raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
+            if args.ownership:
+                peer = run(["create", "--network", network, "--cap-drop", "all", "--cap-add", "SYS_ADMIN",
+                            "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", CONFIG["runtime"],
+                            "-c", "exec sleep infinity"]).stdout.strip()
+                containers.append(peer)
+                run(["start", peer])
+                execute("mkdir /tmp/nfs", target=peer)
+                run(["exec", peer, "mount", "-i", "-t", "nfs4", "-o", options, ip + ":/", "/tmp/nfs"])
+                mounted_peers.append(peer)
+                from nfs_ownership import run_ownership
+                report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
+                report["ownership"]["driver_sha256"] = {
+                    name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py")}
+                run_ownership(run, execute, spawn, output, client, peer, server,
+                              gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"])
             if args.runtime:
                 from nfs_runtime import run_runtime
                 artifact_hashes = dict(report["artifacts"])
@@ -283,6 +306,11 @@ def main():
             except Exception as error:
                 report["cleanup_errors"].append(str(error))
             log.close()
+        for peer in mounted_peers:
+            try:
+                run(["exec", peer, "umount", "/tmp/nfs"])
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
         if mounted:
             try:
                 run(["exec", client, "umount", "/tmp/nfs"])

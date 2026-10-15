@@ -36,6 +36,12 @@ interruption and introduces the maintained scenario catalog; see
 link interruption; see `docs/RUST-INCREMENT-20.md`. Increment 21 adds three-minute
 blocked claim/verification and live-recovery checks, including submission backpressure;
 see `docs/RUST-INCREMENT-21.md` and the separate long-outage evidence report.
+Increment 22 adds two-client ownership/missing-mount diagnostics; see
+`docs/RUST-INCREMENT-22.md` and `docs/ROOT-OWNERSHIP-DESIGN.md`. Diagnostic
+completion is not protection or production approval. Next implement explicit
+source root binding/state enrollment, then pinned destination binding and
+qualified cross-client exclusion/fencing. Do not auto-enroll missing/foreign
+markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond
 those selected cases, stable root/export
 authorization and cross-client ownership. If Ubuntu user startup prevents rootless
