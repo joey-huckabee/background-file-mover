@@ -50,8 +50,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("usage: file-mover --transfer-one CONFIG.json JOB_ID".into());
         }
         let config = read_config(&config_path)?;
+        let guard = file_mover::bootstrap::acquire(
+            &config.source_root,
+            &config.source_binding,
+            &AtomicBool::new(false),
+        )?;
         let store = mover_store::Store::open(&config.state_database)?;
-        let result = mover_fs::transfer_one(&store, job)?;
+        let authorization = guard
+            .source_authorization()
+            .ok_or("source authorization required")?;
+        store.enroll_source(
+            &config.source_root,
+            &authorization.binding.encode(),
+            &authorization.observation,
+        )?;
+        let result = mover_fs::transfer_one_with_guard(&store, job, &guard)?;
         let committed = store
             .get(job)?
             .ok_or("unknown job")?

@@ -6,6 +6,7 @@ All shell paths are fixed fixture paths; no producer/user paths are interpolated
 import hashlib
 import json
 import time
+from nfs_binding import binding_for, provision
 
 
 def run_baseline(gate, evidence, run, execute, spawn, output, client):
@@ -57,6 +58,8 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
             assert execute(f"stat -f -c %t {state}", "1000:1000").stdout.strip() != "6969"
             config = {"bind": "127.0.0.1:19877", "generator_id": "fixture", "source_root": source,
                       "destination_root": destination, "state_database": state + "/jobs.sqlite"}
+            config["source_binding"] = binding_for(label, direction != "destination")
+            provision(run, execute, output, client, source, config["source_binding"])
             config_path = output / (label + "-config.json")
             config_path.write_text(json.dumps(config))
             run(["cp", str(config_path), client + ":/tmp/baseline-config.json"])

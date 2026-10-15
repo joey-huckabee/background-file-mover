@@ -74,13 +74,17 @@ pub const fn nfs_qualification_enabled() -> bool {
     cfg!(feature = "nfs-qualification")
 }
 
+mod binding;
 mod bootstrap;
+pub use binding::{
+    SOURCE_MARKER, SourceAuthorization, SourceBinding, SourceFilesystem, SourceRole,
+};
 mod manifest;
 mod qualification;
 mod relocate;
 pub use qualification::pause as qualification_pause;
 mod transfer;
-pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock};
+pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock, send_bound_bootstrap_lock};
 pub use manifest::commit_manifest;
 pub use manifest::commit_manifest_with_checkpoints;
 pub fn destination_unavailable(path: &str) -> bool {
@@ -91,6 +95,7 @@ pub fn destination_unavailable(path: &str) -> bool {
 }
 pub use manifest::publish_manifest_effect;
 pub use manifest::{expected_manifest, manifest_step_effect};
+pub use transfer::transfer_one_with_guard;
 pub use transfer::{
     authorize_publication, copy_stage, prepare_transfer, publish_stage, restart_transfer,
     transfer_one, verify_stage,
@@ -201,6 +206,7 @@ pub struct LocalClaimLock {
     path: String,
     root: ObjectIdentity,
     namespace: ObjectIdentity,
+    authorization: Option<SourceAuthorization>,
     _held: OwnedFd,
 }
 /// Check the two inherited custody directory descriptors before child effects.
@@ -238,10 +244,14 @@ impl LocalClaimLock {
             path: path.into(),
             root: owned_directory(&root, false)?,
             namespace: owned_directory(&namespace, true)?,
+            authorization: None,
             _held: namespace,
         })
     }
     pub fn validate(&self) -> Result<()> {
+        if let Some(authorization) = &self.authorization {
+            authorization.validate(&self.path)?;
+        }
         let root = root(&self.path)?;
         same_directory(&owned_directory(&root, false)?, &self.root)?;
         same_directory(&owned_directory(&namespace(&root)?, true)?, &self.namespace)

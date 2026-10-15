@@ -40,6 +40,10 @@ See SC-051/052 and the increment evidence for the qualified scope.
 [Root/ownership diagnostics](docs/RUST-INCREMENT-22.md) add separate-client and
 missing-mount startup probes; [the binding/fencing design](docs/ROOT-OWNERSHIP-DESIGN.md)
 defines the next implementation steps. Diagnostic completion is not production approval.
+[Source binding/enrollment](docs/RUST-INCREMENT-23.md) now requires explicit
+source identity and a preprovisioned private marker, records strict pins in schema 8
+and refuses changed bindings or populated unbound legacy state before readiness.
+See its migration limits and provisioning instructions before using older configs.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
 Every build/test uses the zigbuild/SLES gate.

@@ -107,6 +107,8 @@ struct Request {
     version: u32,
     sequence: u64,
     command: Operation,
+    #[serde(default)]
+    source_authorization: Option<mover_fs::SourceAuthorization>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -145,6 +147,7 @@ struct Session {
     child: Supervised,
     channel: UnixStream,
     sequence: u64,
+    source_authorization: Option<mover_fs::SourceAuthorization>,
 }
 impl Session {
     fn start(guard: &LocalClaimLock) -> Result<Self> {
@@ -163,6 +166,7 @@ impl Session {
             child,
             channel,
             sequence: 0,
+            source_authorization: guard.source_authorization().cloned(),
         })
     }
     fn read(&mut self, mut output: &mut [u8], stop: &AtomicBool) -> Result<()> {
@@ -201,6 +205,7 @@ impl Session {
             version: 1,
             sequence: self.sequence,
             command,
+            source_authorization: self.source_authorization.clone(),
         })?;
         write_frame(&mut self.channel, &bytes, LIMIT)?;
         let mut header = [0; 4];
@@ -464,6 +469,7 @@ pub fn worker() -> Result<()> {
     let mut channel = UnixStream::from(std::io::stderr().as_fd().try_clone_to_owned()?);
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     let mut context: Option<(i64, String, LocalClaimLock)> = None;
+    let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
         let request: Request = serde_json::from_slice(&bytes)?;
@@ -483,6 +489,11 @@ pub fn worker() -> Result<()> {
             diagnostic: None,
         };
         let result = (|| -> Result<()> {
+            if let Some(prior) = &source_authorization
+                && prior != &request.source_authorization
+            {
+                return Err("source authorization assignment changed".into());
+            }
             match request.command {
                 Operation::Open {
                     job_id,
@@ -493,6 +504,9 @@ pub fn worker() -> Result<()> {
                         return Err("invalid open assignment".into());
                     }
                     mover_fs::validate_payload_locks(&source_root, &source_root)?;
+                    if let Some(auth) = &request.source_authorization {
+                        auth.validate(&source_root)?;
+                    }
                     if mover_fs::destination_unavailable(&destination_root) {
                         reply.error = Some("destination_unavailable".into());
                         return Ok(());
@@ -500,11 +514,15 @@ pub fn worker() -> Result<()> {
                     let destination = LocalClaimLock::acquire(&destination_root)?;
                     destination.validate()?;
                     context = Some((job_id, source_root, destination));
+                    source_authorization = Some(request.source_authorization.clone());
                 }
                 command => {
                     let (id, source, destination) =
                         context.as_ref().ok_or("delivery not opened")?;
                     mover_fs::validate_payload_locks(source, source)?;
+                    if let Some(auth) = &request.source_authorization {
+                        auth.validate(source)?;
+                    }
                     destination.validate()?;
                     let (assignment, kind, manifest) = match command {
                         Operation::Prepare { assignment } => (assignment, 0, None),
@@ -547,6 +565,9 @@ pub fn worker() -> Result<()> {
                         reply.transfer = Some(Assignment::new(&next, &c));
                     }
                     mover_fs::validate_payload_locks(source, source)?;
+                    if let Some(auth) = &request.source_authorization {
+                        auth.validate(source)?;
+                    }
                     destination.validate()?;
                 }
             }

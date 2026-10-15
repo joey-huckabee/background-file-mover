@@ -32,6 +32,7 @@ pub struct Config {
     pub bind: SocketAddr,
     pub generator_id: String,
     pub source_root: String,
+    pub source_binding: mover_fs::SourceBinding,
     pub destination_root: String,
     pub state_database: String,
     #[serde(default = "retry_default")]
@@ -63,6 +64,9 @@ fn absolute(path: &str) -> bool {
 }
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
+        self.source_binding
+            .validate()
+            .map_err(|_| "invalid source binding")?;
         if !self.bind.ip().is_loopback()
             || self.max_retained_jobs == 0
             || self.max_retained_bytes == 0
@@ -175,7 +179,7 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
     Ok((
         submission,
         AcceptanceContext {
-            source_root_id: "local-source".into(),
+            source_root_id: c.source_binding.root_id.clone(),
             source_root_path: c.source_root.clone(),
             source_relative_directory: relative,
             destination_path: c.destination_root.clone(),
@@ -229,6 +233,14 @@ impl Worker {
         c.validate()?;
         let guard = Arc::new(guard);
         let store = Arc::new(Store::open(&c.state_database)?);
+        let authorization = guard
+            .source_authorization()
+            .ok_or("source authorization required")?;
+        store.enroll_source(
+            &c.source_root,
+            &authorization.binding.encode(),
+            &authorization.observation,
+        )?;
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
@@ -752,14 +764,18 @@ pub async fn serve(
     let supervisor = std::thread::Builder::new()
         .name("mover-source-bootstrap".into())
         .spawn(move || {
-            let result =
-                bootstrap::acquire(&startup_config.source_root, &startup_stop).and_then(|guard| {
-                    if startup_stop.load(Ordering::Relaxed) {
-                        return Err("startup stopped".into());
-                    }
-                    Worker::start(&startup_config, guard, startup_stop.clone())
-                        .map_err(|e| e.to_string())
-                });
+            let result = bootstrap::acquire(
+                &startup_config.source_root,
+                &startup_config.source_binding,
+                &startup_stop,
+            )
+            .and_then(|guard| {
+                if startup_stop.load(Ordering::Relaxed) {
+                    return Err("startup stopped".into());
+                }
+                Worker::start(&startup_config, guard, startup_stop.clone())
+                    .map_err(|e| e.to_string())
+            });
             let _ = ready.send(result);
         })?;
     let result = startup.await;

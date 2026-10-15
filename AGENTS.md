@@ -38,9 +38,13 @@ blocked claim/verification and live-recovery checks, including submission backpr
 see `docs/RUST-INCREMENT-21.md` and the separate long-outage evidence report.
 Increment 22 adds two-client ownership/missing-mount diagnostics; see
 `docs/RUST-INCREMENT-22.md` and `docs/ROOT-OWNERSHIP-DESIGN.md`. Diagnostic
-completion is not protection or production approval. Next implement explicit
-source root binding/state enrollment, then pinned destination binding and
-qualified cross-client exclusion/fencing. Do not auto-enroll missing/foreign
+completion is not protection or production approval. Increment 23 implements
+required source_binding/provisioned marker checks, strict schema-8 enrollment,
+source authorization in bootstrap/claim/delivery children and the single-file CLI;
+see `docs/RUST-INCREMENT-23.md`. Existing populated unbound state refuses startup;
+no rebind/override is provided. Next implement pinned destination binding, then
+qualified cross-client exclusion/fencing and explicit fenced re-enrollment.
+Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond
 those selected cases, stable root/export

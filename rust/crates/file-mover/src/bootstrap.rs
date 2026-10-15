@@ -15,6 +15,7 @@ use std::{
 struct Request {
     version: u32,
     source_root: String,
+    source_binding: mover_fs::SourceBinding,
 }
 
 pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,16 +31,24 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     if request.version != 1 {
         return Err("invalid bootstrap protocol version".into());
     }
-    mover_fs::send_bootstrap_lock(&mut channel, &request.source_root).map_err(Into::into)
+    mover_fs::send_bound_bootstrap_lock(&mut channel, &request.source_root, &request.source_binding)
+        .map_err(Into::into)
 }
 
 /// Must run on the dedicated startup supervisor thread, never the executor.
-pub(crate) fn acquire(path: &str, stop: &AtomicBool) -> Result<LocalClaimLock, String> {
+pub fn acquire(
+    path: &str,
+    binding: &mover_fs::SourceBinding,
+    stop: &AtomicBool,
+) -> Result<LocalClaimLock, String> {
     let operation = || -> Result<LocalClaimLock, Box<dyn std::error::Error>> {
         if stop.load(Ordering::Relaxed) {
             return Err("startup stopped".into());
         }
-        let bytes = serde_json::to_vec(&serde_json::json!({"version":1,"source_root":path}))?;
+        binding.validate()?;
+        let bytes = serde_json::to_vec(
+            &serde_json::json!({"version":1,"source_root":path,"source_binding":binding}),
+        )?;
         if bytes.len() > 16384 {
             return Err("bootstrap request too large".into());
         }
@@ -66,7 +75,7 @@ pub(crate) fn acquire(path: &str, stop: &AtomicBool) -> Result<LocalClaimLock, S
                 return Err("source bootstrap stopped or timed out".into());
             }
             if lock.is_none() {
-                lock = receiver.poll(&channel, path)?;
+                lock = receiver.poll_bound(&channel, path, Some(binding))?;
             }
             if let Some(status) = child.0.try_wait()? {
                 if !status.success() {

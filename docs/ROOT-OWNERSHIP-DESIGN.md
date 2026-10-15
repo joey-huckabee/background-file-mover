@@ -1,6 +1,6 @@
 # Root authorization and coordinator ownership
 
-This is the next implementation design, not an enabled production capability.
+This describes the staged implementation design, not enabled production NFS.
 Read [increment 22](RUST-INCREMENT-22.md) for measured startup behavior and
 [the protocol](TRANSFER-PROTOCOL.md) for the required custody model. Production
 NFS and deletion stay disabled. Generator registration remains deferred.
@@ -25,7 +25,9 @@ See the primary [flock(2) documentation](https://man7.org/linux/man-pages/man2/f
 Add an operator-provisioned immutable coordinator identity and separate source
 and destination binding policies. A policy needs a version, logical root ID,
 endpoint/export ID, expected filesystem class, root marker ID, role and permitted
-coordinator identity. These are proposed concepts, not existing JSON fields.
+coordinator identity. [Increment 23](RUST-INCREMENT-23.md) implements the required
+`source_binding` object, protected marker and strict SQLite enrollment/observations;
+destination binding and authenticated export identity remain future work.
 Do not infer an expected NFS endpoint from whichever filesystem is reachable.
 
 Provision a protected marker before enrollment. The service must never create
@@ -99,9 +101,10 @@ Never attempt a timestamp/lease-file workaround with unqualified clock semantics
 
 ## Short implementation and qualification sequence
 
-1. Implement explicit source binding and local-state enrollment, with absent NFS,
-   wrong root/marker, changed binding, legacy state and restart tests. Leave
-   production NFS disabled; prove absence cannot create a usable local fallback.
+1. Validate the source-binding/enrollment slice in increment 23, including absent
+   NFS, wrong root/marker, changed binding, legacy state and restart refusal.
+   Specify a positively fenced enrollment/rebind procedure for legacy jobs and
+   legitimate changes to strict observed identity pins. Leave production NFS disabled.
 2. Pin destination bindings at acceptance and carry them through recording-worker
    assignments. Test unavailable versus foreign destinations and restart/replay
    under changed startup routing, retaining the producer's 202 contract.

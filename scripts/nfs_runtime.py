@@ -6,6 +6,7 @@ import hashlib
 import json
 import time
 import traceback
+from nfs_binding import binding_for, provision
 
 
 def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False):
@@ -43,6 +44,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.identities = execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout
             self.config = {"bind": "127.0.0.1:19878", "generator_id": "fixture", "source_root": self.source,
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}
+            self.config["source_binding"] = binding_for(self.label, source_nfs)
+            provision(run, execute, output, client, self.source, self.config["source_binding"])
             local = output / (self.label + "-config.json")
             local.write_text(json.dumps(self.config))
             self.config_path = self.base + "/config.json"

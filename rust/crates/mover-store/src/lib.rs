@@ -21,7 +21,7 @@ pub use operators::{ResumeAudit, ResumeReceipt, ResumeRequest};
 pub use retention::RetentionSnapshot;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 7;
+const SCHEMA_VERSION: i64 = 8;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -34,6 +34,7 @@ pub enum StoreError {
     CorruptState,
     SourceReserved,
     SourceRootChanged,
+    SourceEnrollmentRequired,
     WorkerStopped,
     AdmissionFull,
     NotFound,
@@ -148,6 +149,35 @@ enum Command {
 }
 
 impl Store {
+    /// Called before service threads/readiness. Existing jobs cannot be silently
+    /// enrolled; a changed binding has no automatic replacement/repair path.
+    pub fn enroll_source(&self, path: &str, binding: &str, observation: &str) -> Result<()> {
+        if !path.starts_with('/')
+            || !(2..=8192).contains(&path.len())
+            || binding.is_empty()
+            || binding.len() > 4096
+            || observation.is_empty()
+            || observation.len() > 2048
+        {
+            return Err(StoreError::InvalidContext);
+        }
+        let (path, binding, observation) =
+            (path.to_owned(), binding.to_owned(), observation.to_owned());
+        self.call(move |db| {
+            let tx=db.connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let instance:String=tx.query_row("SELECT value FROM metadata WHERE key='instance_id'",[],|r|r.get(0))?;
+            let prior:Option<(String,String,String,String)>=tx.query_row("SELECT source_path,binding,observation,state_instance_id FROM source_enrollment WHERE singleton=1",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+            if let Some(prior)=prior {
+                if prior != (path,binding,observation,instance) {return Err(StoreError::SourceRootChanged);}
+            } else {
+                let jobs:i64=tx.query_row("SELECT count(*) FROM jobs",[],|r|r.get(0))?;
+                if jobs!=0 {return Err(StoreError::SourceEnrollmentRequired);}
+                tx.execute("INSERT INTO source_enrollment VALUES(1,?1,?2,?3,?4)",params![path,binding,observation,instance])?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+    }
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Self::start(path.as_ref().to_owned(), false)
     }
@@ -377,7 +407,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=6).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=7).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -415,12 +445,13 @@ impl Database {
             tx.execute_batch(include_str!("coordination.sql"))?;
             tx.execute_batch(include_str!("operators.sql"))?;
             tx.execute_batch(include_str!("missing_resets.sql"))?;
+            tx.execute_batch(include_str!("source_enrollment.sql"))?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=6).contains(&version) && !read_only {
+        if (1..=7).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -438,7 +469,10 @@ impl Database {
             if version <= 5 {
                 tx.execute_batch(include_str!("operators.sql"))?;
             }
-            tx.execute_batch(include_str!("missing_resets.sql"))?;
+            if version <= 6 {
+                tx.execute_batch(include_str!("missing_resets.sql"))?;
+            }
+            tx.execute_batch(include_str!("source_enrollment.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
@@ -567,6 +601,19 @@ impl Database {
             return Ok(saved);
         }
         context.validate()?;
+        let enrolled_path: Option<String> = tx
+            .query_row(
+                "SELECT source_path FROM source_enrollment WHERE singleton=1",
+                [],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if enrolled_path
+            .as_ref()
+            .is_some_and(|path| path != &context.source_root_path)
+        {
+            return Err(StoreError::SourceRootChanged);
+        }
         if let Some((jobs, _)) = self.limits {
             let count: i64 = tx.query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))?;
             if count as u64 >= jobs {

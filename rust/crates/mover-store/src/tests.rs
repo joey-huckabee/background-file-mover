@@ -12,7 +12,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
         let mut db = Database::open(&fixture.db(), false).unwrap();
         db.accept(&input("a", "old", "data"), &context()).unwrap();
         db.connection
-            .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
+            .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
     assert!(matches!(
@@ -34,6 +34,71 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn source_enrollment_is_durable_and_never_rebound() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.enroll_source("/mnt/recordings", "binding-v1", "observation-v1")
+        .unwrap();
+    let job = s
+        .accept(&input("g", "enrolled", "data"), &context())
+        .unwrap();
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    s.enroll_source("/mnt/recordings", "binding-v1", "observation-v1")
+        .unwrap();
+    for (path, binding, observation) in [
+        ("/other", "binding-v1", "observation-v1"),
+        ("/mnt/recordings", "foreign", "observation-v1"),
+        ("/mnt/recordings", "binding-v1", "replaced"),
+    ] {
+        assert!(matches!(
+            s.enroll_source(path, binding, observation),
+            Err(StoreError::SourceRootChanged)
+        ));
+    }
+    assert_eq!(s.get(job.job_id).unwrap().unwrap().recording, job.recording);
+    s.enroll_source("/mnt/recordings", "binding-v1", "observation-v1")
+        .unwrap();
+    let mut other = context();
+    other.source_root_path = "/other".into();
+    assert!(matches!(
+        s.accept(&input("g", "other-root", "other-data"), &other),
+        Err(StoreError::SourceRootChanged)
+    ));
+}
+#[test]
+fn schema_seven_jobs_require_explicit_enrollment_without_losing_jobs() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let job = s.accept(&input("g", "legacy", "data"), &context()).unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE source_enrollment; PRAGMA user_version=7;")
+        .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    assert!(matches!(
+        s.enroll_source("/source", "binding-v1", "observed"),
+        Err(StoreError::SourceEnrollmentRequired)
+    ));
+    assert_eq!(s.get(job.job_id).unwrap().unwrap().recording, job.recording);
+    assert_eq!(s.job_count().unwrap(), 1);
+}
+#[test]
+fn schema_seven_empty_state_can_enroll_after_migration() {
+    let f = Fixture::new();
+    drop(Store::open(f.db()).unwrap());
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE source_enrollment; PRAGMA user_version=7;")
+        .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    s.enroll_source("/source", "binding-v1", "observed")
+        .unwrap();
+    assert_eq!(s.job_count().unwrap(), 0);
+}
 
 #[test]
 fn retention_reports_pending_observations_without_truncating_large_totals() {
@@ -184,8 +249,10 @@ fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
     let instance = s.instance_id().unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE missing_resets; PRAGMA user_version=6;")
-        .unwrap();
+    c.execute_batch(
+        "DROP TABLE source_enrollment; DROP TABLE missing_resets; PRAGMA user_version=6;",
+    )
+    .unwrap();
     drop(c);
     assert!(matches!(
         Store::open_read_only(f.db()),
@@ -367,7 +434,7 @@ fn schema_five_migration_preserves_claims_instance_and_review() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
+        "DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; PRAGMA user_version=5;",
     )
     .unwrap();
     drop(c);
@@ -530,7 +597,7 @@ fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
-    db.connection.execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
+    db.connection.execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
     let s = Store::open(f.db()).unwrap();
     let instance = s.instance_id().unwrap();
@@ -563,7 +630,7 @@ fn schema_three_migration_retains_claim_evidence() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
+        .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
     assert!(matches!(
@@ -676,7 +743,7 @@ fn schema_two_migration_preserves_partial_claims() {
     db.begin_claim(&intent).unwrap();
     db.finish_claim(&intent).unwrap();
     db.connection
-        .execute_batch("DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
+        .execute_batch("DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
     let store = Store::open(f.db()).unwrap();

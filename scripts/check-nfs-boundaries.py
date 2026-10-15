@@ -14,6 +14,7 @@ import subprocess
 import tarfile
 import time
 import uuid
+from nfs_binding import binding_for, provision
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "scripts/rust-platform.json").read_text())
@@ -168,6 +169,8 @@ def main():
         config = {"bind": "127.0.0.1:19876", "generator_id": "fixture",
                   "source_root": "/tmp/nfs/source", "destination_root": "/tmp/local/destination",
                   "state_database": "/tmp/local/state/jobs.sqlite"}
+        config["source_binding"] = binding_for("startup-source", True)
+        provision(run, execute, output, client, "/tmp/nfs/source", config["source_binding"])
         config_path = output / "config.json"
         config_path.write_text(json.dumps(config))
         run(["cp", str(config_path), client + ":/tmp/local/config.json"])
@@ -206,7 +209,7 @@ def main():
                 report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
                 report["ownership"]["driver_sha256"] = {
                     name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py")}
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py")}
                 run_ownership(run, execute, spawn, output, client, peer, server,
                               gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"])
             if args.runtime:

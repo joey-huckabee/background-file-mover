@@ -1,5 +1,5 @@
 //! Private child bootstrap channel. Parent receipt handling performs no source I/O.
-use super::LocalClaimLock;
+use super::{LocalClaimLock, SourceAuthorization, SourceBinding};
 use mover_core::ObjectIdentity;
 use rustix::{
     fd::{AsFd, OwnedFd},
@@ -24,6 +24,7 @@ struct Receipt {
     path: String,
     root: Option<String>,
     namespace: Option<String>,
+    authorization: Option<SourceAuthorization>,
     error: Option<String>,
 }
 
@@ -57,6 +58,7 @@ mod tests {
             path: "/source".into(),
             root: Some(object.clone()),
             namespace: Some(object),
+            authorization: None,
             error: None,
         })
         .unwrap();
@@ -95,13 +97,31 @@ mod tests {
 /// Called only in the bootstrap child. SCM_RIGHTS preserves the locked open
 /// description; reopening /proc or the source path would not preserve custody.
 pub fn send_bootstrap_lock(channel: &mut UnixStream, path: &str) -> Result<(), String> {
-    let acquired = LocalClaimLock::acquire(path);
+    send_lock(channel, path, None)
+}
+pub fn send_bound_bootstrap_lock(
+    channel: &mut UnixStream,
+    path: &str,
+    binding: &SourceBinding,
+) -> Result<(), String> {
+    send_lock(channel, path, Some(binding))
+}
+fn send_lock(
+    channel: &mut UnixStream,
+    path: &str,
+    binding: Option<&SourceBinding>,
+) -> Result<(), String> {
+    let acquired = match binding {
+        Some(binding) => LocalClaimLock::acquire_bound(path, binding),
+        None => LocalClaimLock::acquire(path),
+    };
     let receipt = match &acquired {
         Ok(lock) => Receipt {
             version: 1,
             path: path.into(),
             root: Some(lock.root.encode()),
             namespace: Some(lock.namespace.encode()),
+            authorization: lock.authorization.clone(),
             error: None,
         },
         Err(e) => Receipt {
@@ -109,6 +129,7 @@ pub fn send_bootstrap_lock(channel: &mut UnixStream, path: &str) -> Result<(), S
             path: path.into(),
             root: None,
             namespace: None,
+            authorization: None,
             error: Some(e.to_string()),
         },
     };
@@ -158,6 +179,14 @@ impl BootstrapReceiver {
         channel: &UnixStream,
         path: &str,
     ) -> Result<Option<LocalClaimLock>, String> {
+        self.poll_bound(channel, path, None)
+    }
+    pub fn poll_bound(
+        &mut self,
+        channel: &UnixStream,
+        path: &str,
+        binding: Option<&SourceBinding>,
+    ) -> Result<Option<LocalClaimLock>, String> {
         if self.finished {
             return Err("bootstrap receipt already consumed".into());
         }
@@ -206,7 +235,11 @@ impl BootstrapReceiver {
             return Err("bootstrap scope/version mismatch".into());
         }
         if let Some(error) = receipt.error {
-            if self.descriptor.is_some() || receipt.root.is_some() || receipt.namespace.is_some() {
+            if self.descriptor.is_some()
+                || receipt.root.is_some()
+                || receipt.namespace.is_some()
+                || receipt.authorization.is_some()
+            {
                 return Err("inconsistent bootstrap failure".into());
             }
             return Err(error);
@@ -224,10 +257,20 @@ impl BootstrapReceiver {
         if root.uid != namespace.uid || root.device != namespace.device {
             return Err("inconsistent bootstrap custody".into());
         }
+        if receipt.authorization.as_ref().map(|a| &a.binding) != binding
+            || receipt.authorization.as_ref().is_some_and(|a| {
+                a.binding.validate().is_err()
+                    || a.observation.is_empty()
+                    || a.observation.len() > 2048
+            })
+        {
+            return Err("bootstrap authorization mismatch".into());
+        }
         Ok(Some(LocalClaimLock {
             path: path.into(),
             root,
             namespace,
+            authorization: receipt.authorization,
             _held: self
                 .descriptor
                 .take()

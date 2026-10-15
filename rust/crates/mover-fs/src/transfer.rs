@@ -400,22 +400,34 @@ pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Tran
 }
 pub fn transfer_one(store: &Store, id: i64) -> TransferResult<Transfer> {
     let job = store.get(id)?.ok_or("unknown job")?;
+    let source_lock = LocalClaimLock::acquire(&job.context.source_root_path)?;
+    transfer_one_with_guard(store, id, &source_lock)
+}
+pub fn transfer_one_with_guard(
+    store: &Store,
+    id: i64,
+    source_lock: &LocalClaimLock,
+) -> TransferResult<Transfer> {
+    let job = store.get(id)?.ok_or("unknown job")?;
     if job.recording.submission().files().len() != 1 {
         return Err("use recording delivery for multi-file jobs".into());
     }
-    let source_lock = LocalClaimLock::acquire(&job.context.source_root_path)?;
     let destination_lock = LocalClaimLock::acquire(&job.context.destination_path)?;
-    source_lock.validate()?;
+    source_lock.validate_path(&job.context.source_root_path)?;
     destination_lock.validate()?;
-    transfer_file(store, id, 0)
-}
-fn transfer_file(store: &Store, id: i64, index: usize) -> TransferResult<Transfer> {
-    transfer_file_with_payload(store, id, index, &mut |t, intent| match t.phase {
-        TransferPhase::Intent => copy_effect(t, intent),
-        TransferPhase::Copied => verify_effect(t, intent),
-        TransferPhase::PublishIntent => publish_effect(t, intent),
-        _ => Err("invalid payload phase".into()),
-    })
+    let result = transfer_file_with_payload(store, id, 0, &mut |t, intent| {
+        source_lock.validate()?;
+        let next = match t.phase {
+            TransferPhase::Intent => copy_effect(t, intent),
+            TransferPhase::Copied => verify_effect(t, intent),
+            TransferPhase::PublishIntent => publish_effect(t, intent),
+            _ => Err("invalid payload phase".into()),
+        }?;
+        source_lock.validate()?;
+        Ok(next)
+    })?;
+    source_lock.validate()?;
+    Ok(result)
 }
 fn transfer_file_with_payload(
     store: &Store,

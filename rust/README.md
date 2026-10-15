@@ -49,6 +49,13 @@ Earlier [increment 05](../docs/RUST-INCREMENT-05.md) documents the single-file C
 [increment 04](../docs/RUST-INCREMENT-04.md) the runnable submission/configuration,
 and [increment 03](../docs/RUST-INCREMENT-03.md) local filesystem limits.
 
+[Increment 23](../docs/RUST-INCREMENT-23.md) requires an explicit `source_binding`
+and preprovisioned owned 0600 `.file-mover/source-binding.json` before service or
+single-file CLI startup. SQLite schema 8 enrolls the source binding/observations;
+changed bindings and unbound state with jobs refuse startup. Source checks remain
+in supervised children. Legacy configuration examples need the new binding;
+see the increment for provisioning, migration limitations and actual evidence.
+
 ## Checks
 
 [Increment 20](../docs/RUST-INCREMENT-20.md) extends the retained fixture with

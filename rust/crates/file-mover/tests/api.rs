@@ -9,6 +9,237 @@ use std::{
     time::{Duration, Instant},
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
+fn binding() -> mover_fs::SourceBinding {
+    serde_json::from_value(
+        json!({"version":1,"coordinator_id":"test-owner","root_id":"local-source",
+        "endpoint_id":"test-local","marker_id":"test-marker","filesystem":"local","role":"source"}),
+    )
+    .unwrap()
+}
+fn provision_binding(root: &std::path::Path) {
+    let marker = root.join(".file-mover/source-binding.json");
+    std::fs::write(&marker, binding().encode()).unwrap();
+    std::fs::set_permissions(marker, std::fs::Permissions::from_mode(0o600)).unwrap();
+}
+fn refused_start(config: &std::path::Path) -> String {
+    let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg(config)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let log = format!(
+        "{}{}",
+        String::from_utf8(output.stdout).unwrap(),
+        String::from_utf8(output.stderr).unwrap()
+    );
+    assert!(!log.contains("Ready on"), "{log}");
+    log
+}
+#[test]
+fn source_marker_and_filesystem_failures_precede_sqlite() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let source = f.root.join("source");
+    let marker = source.join(".file-mover/source-binding.json");
+    let fresh = f.root.join("fresh-state");
+    std::fs::create_dir(&fresh).unwrap();
+    std::fs::set_permissions(&fresh, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let config_path = f.root.join("config.json");
+    let original: Value = serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    let backup = f.root.join("marker-backup");
+    std::fs::write(&backup, binding().encode()).unwrap();
+    std::fs::set_permissions(&backup, std::fs::Permissions::from_mode(0o600)).unwrap();
+    for case in [
+        "missing",
+        "foreign",
+        "filesystem",
+        "permissions",
+        "symlink",
+        "hardlink",
+        "oversized",
+        "invalid",
+    ] {
+        let _ = std::fs::remove_file(&marker);
+        let alias = f.root.join("marker-alias");
+        let _ = std::fs::remove_file(&alias);
+        provision_binding(&source);
+        let mut config = original.clone();
+        config["state_database"] = json!(fresh.join("jobs.sqlite"));
+        match case {
+            "missing" => std::fs::remove_file(&marker).unwrap(),
+            "foreign" => {
+                let mut b = binding();
+                b.coordinator_id = "foreign-owner".into();
+                std::fs::write(&marker, b.encode()).unwrap();
+            }
+            "filesystem" => {
+                let mut b = binding();
+                b.filesystem = mover_fs::SourceFilesystem::Nfs;
+                config["source_binding"] = json!(b);
+                std::fs::write(&marker, b.encode()).unwrap();
+            }
+            "permissions" => {
+                std::fs::set_permissions(&marker, std::fs::Permissions::from_mode(0o644)).unwrap()
+            }
+            "symlink" => {
+                std::fs::remove_file(&marker).unwrap();
+                std::os::unix::fs::symlink(&backup, &marker).unwrap();
+            }
+            "hardlink" => std::fs::hard_link(&marker, &alias).unwrap(),
+            "oversized" => std::fs::write(&marker, vec![b'x'; 4097]).unwrap(),
+            "invalid" => std::fs::write(&marker, b"{}").unwrap(),
+            _ => unreachable!(),
+        }
+        std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+        refused_start(&config_path);
+        assert!(!fresh.join("jobs.sqlite").exists(), "{case}");
+    }
+}
+#[test]
+fn source_marker_replacement_blocks_restart_without_rebinding_or_losing_claims() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"retained");
+    let input = f.input("binding-restart", json!([{"name":"data"}]));
+    assert_eq!(f.post(&input).0, 202);
+    f.write("data", b"next recording");
+    f.stop();
+    let marker = f.root.join("source/.file-mover/source-binding.json");
+    let held = f.root.join("original-marker");
+    std::fs::rename(&marker, &held).unwrap();
+    provision_binding(&f.root.join("source"));
+    let log = refused_start(&f.root.join("config.json"));
+    assert!(log.contains("SourceRootChanged"), "{log}");
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"retained"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    std::fs::rename(&held, &marker).unwrap();
+    f.start();
+    assert_eq!(f.post(&input).0, 202);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"next recording"
+    );
+}
+#[test]
+fn marker_change_during_runtime_blocks_claim_before_source_movement() {
+    let f = Fixture::new(300);
+    f.write("data", b"untouched");
+    let mut b = binding();
+    b.marker_id = "changed".into();
+    std::fs::write(
+        f.root.join("source/.file-mover/source-binding.json"),
+        b.encode(),
+    )
+    .unwrap();
+    let (code, reply) = f.post(&f.input("changed-binding", json!([{"name":"data"}])));
+    assert_eq!(code, 409);
+    assert_eq!(reply["source_paths_released"], false);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"untouched"
+    );
+    assert!(!f.root.join("source/.file-mover/1-0/data").exists());
+}
+#[test]
+fn replacement_root_with_original_marker_cannot_rebind_existing_state() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"original source");
+    f.stop();
+    let source = f.root.join("source");
+    let original = f.root.join("original-source");
+    std::fs::rename(&source, &original).unwrap();
+    std::fs::create_dir(&source).unwrap();
+    std::fs::create_dir(source.join(".file-mover")).unwrap();
+    for path in [&source, &source.join(".file-mover")] {
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let marker = ".file-mover/source-binding.json";
+    std::fs::rename(original.join(marker), source.join(marker)).unwrap();
+    assert!(refused_start(&f.root.join("config.json")).contains("SourceRootChanged"));
+    assert_eq!(
+        std::fs::read(original.join("current/data")).unwrap(),
+        b"original source"
+    );
+    std::fs::rename(source.join(marker), original.join(marker)).unwrap();
+    std::fs::remove_dir(source.join(".file-mover")).unwrap();
+    std::fs::remove_dir(&source).unwrap();
+    std::fs::rename(&original, &source).unwrap();
+    f.start();
+}
+#[test]
+fn source_binding_is_required_and_strictly_validated() {
+    let base = json!({"bind":"127.0.0.1:0","generator_id":"g","source_root":"/source","destination_root":"/destination","state_database":"/state/jobs.sqlite"});
+    assert!(serde_json::from_value::<file_mover::Config>(base.clone()).is_err());
+    for field in ["coordinator_id", "root_id", "endpoint_id", "marker_id"] {
+        let mut value = base.clone();
+        value["source_binding"] = json!(binding());
+        value["source_binding"][field] = json!("../wrong");
+        assert!(
+            serde_json::from_value::<file_mover::Config>(value)
+                .unwrap()
+                .validate()
+                .is_err()
+        );
+    }
+    for (field, bad) in [
+        ("filesystem", json!("auto")),
+        ("role", json!("destination")),
+        ("extra", json!(true)),
+    ] {
+        let mut value = base.clone();
+        value["source_binding"] = json!(binding());
+        value["source_binding"][field] = bad;
+        assert!(serde_json::from_value::<file_mover::Config>(value).is_err());
+    }
+}
+#[test]
+fn populated_unenrolled_state_refuses_service_startup_and_preserves_source() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    f.write("data", b"legacy source");
+    let state = f.root.join("legacy-state");
+    std::fs::create_dir(&state).unwrap();
+    std::fs::set_permissions(&state, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let path = state.join("jobs.sqlite");
+    let store = mover_store::Store::open(&path).unwrap();
+    let submission = mover_core::Submission::new(
+        "recorder",
+        "legacy",
+        f.root.join("source/current").to_str().unwrap(),
+        vec![mover_core::FileSpec::new("data", None).unwrap()],
+    )
+    .unwrap();
+    let context = mover_store::AcceptanceContext {
+        source_root_id: "local-source".into(),
+        source_root_path: f.root.join("source").to_str().unwrap().into(),
+        source_relative_directory: "current".into(),
+        destination_path: f.root.join("destination").to_str().unwrap().into(),
+        missing_retry_seconds: 300,
+        policy: mover_core::DeliveryPolicy {
+            destination_id: "configured-local".into(),
+            group_by_generator: false,
+            delete_source_after_commit: false,
+        },
+    };
+    let job = store.accept(&submission, &context).unwrap();
+    drop(store);
+    let config_path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    config["state_database"] = json!(path);
+    std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    assert!(refused_start(&config_path).contains("SourceEnrollmentRequired"));
+    let store = mover_store::Store::open(&path).unwrap();
+    assert_eq!(
+        store.get(job.job_id).unwrap().unwrap().recording,
+        job.recording
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"legacy source"
+    );
+}
 #[test]
 fn executable_identifies_its_compiled_filesystem_capability() {
     let result = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
@@ -35,6 +266,7 @@ fn stopped_startup_exits_cleanly_without_source_or_database_access() {
     let database = f.root.join("absent-state/jobs.sqlite");
     let config: file_mover::Config = serde_json::from_value(json!({
         "bind":"127.0.0.1:0","generator_id":"recorder","source_root":source,
+        "source_binding":binding(),
         "destination_root":f.root.join("destination"),"state_database":database
     }))
     .unwrap();
@@ -56,6 +288,8 @@ fn stopped_startup_exits_cleanly_without_source_or_database_access() {
     assert!(!database.exists());
 }
 fn bootstrap_child(body: &Value) -> (Child, std::os::unix::net::UnixStream) {
+    let mut body = body.clone();
+    body["source_binding"] = json!(binding());
     let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--internal-bootstrap-worker")
@@ -65,7 +299,7 @@ fn bootstrap_child(body: &Value) -> (Child, std::os::unix::net::UnixStream) {
         .spawn()
         .unwrap();
     channel
-        .write_all(&serde_json::to_vec(body).unwrap())
+        .write_all(&serde_json::to_vec(&body).unwrap())
         .unwrap();
     channel.shutdown(std::net::Shutdown::Write).unwrap();
     (child, channel)
@@ -79,7 +313,10 @@ fn bootstrap_transfers_the_locked_description_without_reopening_source() {
     let mut receiver = mover_fs::BootstrapReceiver::default();
     let deadline = Instant::now() + Duration::from_secs(5);
     let lock = loop {
-        if let Some(lock) = receiver.poll(&channel, &path).unwrap() {
+        if let Some(lock) = receiver
+            .poll_bound(&channel, &path, Some(&binding()))
+            .unwrap()
+        {
             break lock;
         }
         assert!(Instant::now() < deadline);
@@ -108,7 +345,7 @@ fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
         assert!(!child.wait().unwrap().success());
         let mut receiver = mover_fs::BootstrapReceiver::default();
         loop {
-            match receiver.poll(&channel, &path) {
+            match receiver.poll_bound(&channel, &path, Some(&binding())) {
                 Err(_) => break,
                 Ok(None) => {}
                 Ok(Some(_)) => panic!("invalid bootstrap received custody"),
@@ -119,7 +356,7 @@ fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
     assert!(child.wait().unwrap().success());
     let mut receiver = mover_fs::BootstrapReceiver::default();
     loop {
-        match receiver.poll(&channel, "/another/source") {
+        match receiver.poll_bound(&channel, "/another/source", Some(&binding())) {
             Err(_) => break,
             Ok(None) => {}
             Ok(Some(_)) => panic!("wrong scope received custody"),
@@ -223,8 +460,15 @@ fn session_reply(
     sequence: u64,
     command: Value,
 ) -> Value {
-    let bytes =
-        serde_json::to_vec(&json!({"version":1,"sequence":sequence,"command":command})).unwrap();
+    session_authorized_reply(channel, sequence, command, None)
+}
+fn session_authorized_reply(
+    channel: &mut std::os::unix::net::UnixStream,
+    sequence: u64,
+    command: Value,
+    authorization: Option<&mover_fs::SourceAuthorization>,
+) -> Value {
+    let bytes = serde_json::to_vec(&json!({"version":1,"sequence":sequence,"command":command,"source_authorization":authorization})).unwrap();
     channel
         .write_all(&(bytes.len() as u32).to_be_bytes())
         .unwrap();
@@ -236,6 +480,71 @@ fn session_reply(
     let mut bytes = vec![0; size];
     channel.read_exact(&mut bytes).unwrap();
     serde_json::from_slice(&bytes).unwrap()
+}
+#[test]
+fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"source retained");
+    assert_eq!(
+        f.post(&f.input("session-binding", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.stop();
+    provision_destination(&f);
+    let guard = mover_fs::LocalClaimLock::acquire_bound(
+        f.root.join("source").to_str().unwrap(),
+        &binding(),
+    )
+    .unwrap();
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let t = mover_fs::prepare_transfer(&store, 1).unwrap();
+    let claim = store.claim_intent(1, 0).unwrap().unwrap().0;
+    let command = json!({"operation":"payload","assignment":payload_assignment(&t,&claim)});
+    for downgrade in [true, false] {
+        let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
+        let opened = session_authorized_reply(
+            &mut channel,
+            1,
+            json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")}),
+            guard.source_authorization(),
+        );
+        assert!(opened["error"].is_null());
+        if !downgrade {
+            let mut changed = binding();
+            changed.marker_id = "changed".into();
+            std::fs::write(
+                f.root.join("source/.file-mover/source-binding.json"),
+                changed.encode(),
+            )
+            .unwrap();
+        }
+        let refused = session_authorized_reply(
+            &mut channel,
+            2,
+            command.clone(),
+            if downgrade {
+                None
+            } else {
+                guard.source_authorization()
+            },
+        );
+        assert!(refused["error"].is_string());
+        assert!(refused["transfer"].is_null());
+        // A blocked reply terminates the session. Never reuse that assignment.
+        drop(channel);
+        assert!(child.wait().unwrap().success());
+    }
+    assert_eq!(
+        std::fs::metadata(f.root.join("destination/1/.staging/1.part"))
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"source retained"
+    );
 }
 fn transfer_from_wire(t: &Value) -> mover_core::Transfer {
     let object = |i: usize| {
@@ -436,9 +745,14 @@ fn child_reply(
     mode: &str,
     body: &Value,
 ) -> Value {
+    let body = if mode == "--internal-claim-worker" {
+        json!({"assignment":body,"source_authorization":source.source_authorization()})
+    } else {
+        body.clone()
+    };
     let (mut child, mut channel) = effect_child(source, destination, mode);
     channel
-        .write_all(&serde_json::to_vec(body).unwrap())
+        .write_all(&serde_json::to_vec(&body).unwrap())
         .unwrap();
     channel.shutdown(std::net::Shutdown::Write).unwrap();
     assert!(child.wait().unwrap().success());
@@ -778,7 +1092,8 @@ impl Fixture {
             .unwrap()
             .local_addr()
             .unwrap();
-        std::fs::write(root.join("config.json"),serde_json::to_vec(&json!({"bind":address.to_string(),"generator_id":"recorder","source_root":root.join("source"),"destination_root":root.join("destination"),"state_database":root.join("state/jobs.sqlite"),"missing_file_retry_window_seconds":window})).unwrap()).unwrap();
+        provision_binding(&root.join("source"));
+        std::fs::write(root.join("config.json"),serde_json::to_vec(&json!({"bind":address.to_string(),"generator_id":"recorder","source_root":root.join("source"),"source_binding":binding(),"destination_root":root.join("destination"),"state_database":root.join("state/jobs.sqlite"),"missing_file_retry_window_seconds":window})).unwrap()).unwrap();
         let mut f = Self {
             root,
             address,
@@ -1064,6 +1379,7 @@ fn unsafe_startup_configuration_is_rejected() {
         bind: "0.0.0.0:8080".parse().unwrap(),
         generator_id: "g".into(),
         source_root: "/source".into(),
+        source_binding: binding(),
         destination_root: "/dest".into(),
         state_database: "/state/db".into(),
         missing_file_retry_window_seconds: 300,

@@ -6,6 +6,7 @@ are submitted while overlapping coordinators run. All state databases are local.
 import hashlib
 import json
 import time
+from nfs_binding import binding_for, provision
 
 
 def run_ownership(run, execute, spawn, output, client, peer, server,
@@ -23,6 +24,8 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         assert observe(target, f"stat -f -c %t {base}/state").stdout.strip() != "6969"
         config = {"bind": f"127.0.0.1:{port}", "generator_id": "fixture", "source_root": source,
                   "destination_root": base + "/destination", "state_database": base + "/state/jobs.sqlite"}
+        config["source_binding"] = binding_for("ownership-" + profile, True)
+        before_db = observe(target, "sha256sum " + config["state_database"], check=False)
         local = output / ("ownership-" + label + "-config.json")
         local.write_text(json.dumps(config))
         run(["cp", str(local), target + ":" + base + "/config.json"])
@@ -47,7 +50,11 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             if process.poll() is not None:
                 assert process.returncode != 0
                 assert "Error:" in log and "No such file" not in log
-                assert observe(target, "test ! -e " + service["database"], check=False).returncode == 0
+                if before_db.returncode == 0:
+                    assert observe(target, "sha256sum " + service["database"]).stdout == before_db.stdout
+                    service["sqlite_unchanged"] = True
+                else:
+                    assert observe(target, "test ! -e " + service["database"], check=False).returncode == 0
                 service["ready"] = False
                 break
             time.sleep(0.2)
@@ -95,6 +102,7 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
 
             source = "/tmp/nfs/ownership-" + profile + "/source"
             observe(client, f"umask 077; mkdir -p {source}/.file-mover; printf 'shared export witness' >{source}/witness")
+            provision(run, execute, output, client, source, binding_for("ownership-" + profile, True))
             identities = [observe(target, f"stat -c '%i:%u:%a' {source} {source}/.file-mover; sha256sum {source}/witness").stdout
                           for target in (client, peer)]
             assert identities[0] == identities[1]
@@ -143,11 +151,14 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
         for profile in ("debug", "release"):
             source = "/tmp/nfs/ownership-" + profile + "/source"
             observe(peer, f"umask 077; mkdir -p {source}/.file-mover")
+            # Even a copied matching marker must not authorize local fallback.
+            provision(run, execute, output, peer, source, binding_for("ownership-" + profile, True))
             filesystem = observe(peer, "stat -f -c %t " + source).stdout.strip()
             assert filesystem != "6969"
             fallback = start(peer, profile + "-fallback", profile, source, 19880, state_label=profile + "-peer")
             previous = next(c["other_client"] for c in cases if c["profile"] == profile and c["scenario_id"] == "SC-053")
             assert fallback["config_sha256"] == previous["config_sha256"]
+            assert not fallback["ready"] and fallback.get("sqlite_unchanged")
             case = {"profile": profile, "scenario_id": "SC-054", "probe_completed": True,
                     "filesystem_after_unmount": filesystem, "same_config_and_state_database": True,
                     "missing_mount_startup_rejected": not fallback["ready"], "qualification": snapshot(fallback), "jobs_submitted": 0}
@@ -157,6 +168,7 @@ def run_ownership(run, execute, spawn, output, client, peer, server,
             # control), but an underlying local filesystem is currently allowed.
             production = start(peer, profile + "-fallback-production", profile, source, 19880, production=True)
             case["production_local_startup_rejected"] = not production["ready"]
+            assert not production["ready"]
             case["production"] = snapshot(production)
             stop(production)
             (output / ("ownership-" + profile + "-missing-mount-result.json")).write_text(json.dumps(case, indent=2) + "\n")

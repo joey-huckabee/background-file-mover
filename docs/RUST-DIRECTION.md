@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 22](RUST-INCREMENT-22.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
+[Increment 23](RUST-INCREMENT-23.md), [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
@@ -263,3 +263,13 @@ and qualified cross-client exclusion/fencing using ROOT-OWNERSHIP-DESIGN.md.
 Keep one statically assigned coordinator per disjoint source and no automatic
 takeover. Do not combine these results with earlier outage evidence as though
 they proved a distributed fence or stable export authorization.
+
+Increment 23 implements required source binding and preprovisioned marker
+validation in supervised bootstrap, durable schema-8 source enrollment and
+authorization checks in claim/delivery workers and the single-file CLI. Matching
+restarts work; changed pins or populated unbound state refuse startup. Expected
+NFS sources refuse underlying local stand-ins even with matching copied markers.
+Keep old state/source data intact; no automatic rebind, legacy-job enrollment
+override or authenticated export/fencing claim is provided. Strict device/fsid
+changes may require future fenced re-enrollment. Next pin destination bindings,
+then qualify cross-client exclusion/fencing; production NFS/deletion stay disabled.

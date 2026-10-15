@@ -14,6 +14,11 @@ singleton locks, durable receipts, copying, verification, publication and source
 retention use the same implementation as the production build. There is no
 alternate transfer engine and no runtime option or environment variable that
 enables NFS in a production binary.
+From [increment 23](RUST-INCREMENT-23.md), compiled capability also requires an
+explicit `source_binding` and preprovisioned source marker. The fixture provisions
+them through `scripts/nfs_binding.py`; service startup never creates them. A
+declared NFS source cannot fall back to an underlying local directory. Strict
+observed identity pins do not authenticate a server/export or provide fencing.
 
 Both builds identify themselves with `--check-platform`:
 
@@ -88,13 +93,17 @@ records distinct network/mount namespaces and server-side NFS client identities,
 compares actual coordinator exclusion between clients, and includes a regular-file
 remote-lock positive control. It then removes only the peer's mount and tests
 startup at the same pathname/configuration on the underlying local filesystem.
-No jobs are submitted while coordinators overlap or the mount is absent.
+No jobs are submitted while coordinators overlap or the mount is absent. The
+current missing-mount probe includes a copied matching NFS marker and requires
+both builds to refuse the local stand-in without changing an existing database.
 
 See [increment 22](RUST-INCREMENT-22.md) and
 [the root/ownership design](ROOT-OWNERSHIP-DESIGN.md). Diagnostic completion is
 separate from protection: inspect `ownership.probe_status`, each startup
 exclusion/refusal field and `production_authorized`. PASSED is not production
-approval if those probes expose a gap. The retained full interruption and
+approval if those probes expose a gap. The two clients intentionally declare the
+same coordinator identity, so that probe still measures exclusion of a cloned
+identity, not marker mismatch between different IDs. The retained full interruption and
 long-outage reports remain separate evidence with different scopes.
 
 For deterministic real-worker interruption, add `--runtime` to the fixture

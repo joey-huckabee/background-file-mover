@@ -58,7 +58,7 @@ impl ClaimWire {
         })
     }
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 enum Assignment {
     Observe {
@@ -83,6 +83,12 @@ enum Assignment {
     },
 }
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Request {
+    assignment: Assignment,
+    source_authorization: Option<mover_fs::SourceAuthorization>,
+}
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum Failure {
     MissingSource,
@@ -102,8 +108,11 @@ fn request(
     guard: &LocalClaimLock,
     stop: &AtomicBool,
 ) -> Result<ClaimIntent, ClaimError> {
-    let bytes = serde_json::to_vec(assignment)
-        .map_err(|_| ClaimError::Blocked("claim assignment encoding"))?;
+    let bytes = serde_json::to_vec(&Request {
+        assignment: assignment.clone(),
+        source_authorization: guard.source_authorization().cloned(),
+    })
+    .map_err(|_| ClaimError::Blocked("claim assignment encoding"))?;
     if bytes.len() > LIMIT {
         return Err(ClaimError::Blocked("claim assignment too large"));
     }
@@ -235,7 +244,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     if bytes.len() > LIMIT {
         return Err("claim assignment too large".into());
     }
-    let assignment: Assignment = serde_json::from_slice(&bytes)?;
+    let request: Request = serde_json::from_slice(&bytes)?;
+    let assignment = request.assignment;
     let (version, path) = match &assignment {
         Assignment::Observe {
             version, root_path, ..
@@ -257,6 +267,9 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     let mut boundary = "custody_before";
     let result: Result<ClaimIntent, ClaimError> = (|| {
         mover_fs::validate_payload_locks(&path, &path)?;
+        if let Some(auth) = &request.source_authorization {
+            auth.validate(&path)?;
+        }
         boundary = operation;
         let result = match assignment {
             Assignment::Observe {
@@ -284,6 +297,9 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         let c = result?;
         boundary = "custody_after";
         mover_fs::validate_payload_locks(&path, &path)?;
+        if let Some(auth) = &request.source_authorization {
+            auth.validate(&path)?;
+        }
         Ok(c)
     })();
     let reply = match result {

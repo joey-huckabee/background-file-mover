@@ -26,7 +26,7 @@ job. Changed input conflicts; a different key cannot take a reserved source.
 Local job IDs are monotonic SQLite IDs; qualify final filesystem namespace/instance
 ownership before using them for publication across service instances.
 
-The version-7 schema has an application ID, foreign keys and file-count/ledger
+The version-8 schema has an application ID, foreign keys and file-count/ledger
 checks. Unsupported/foreign schemas are rejected without replacement. Existing
 missing/inconsistent reservations or malformed claim identities block startup.
 An explicit transaction migrates versions 1–6, preserving accepted jobs/claims/reservations;
