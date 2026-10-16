@@ -217,7 +217,8 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 34](RUST-INCREMENT-34.md), [operator guide](RUST-OPERATOR-GUIDE.md),
+[Increment 35](RUST-INCREMENT-35.md), [source-space policy](SOURCE-SPACE-ADMISSION-DESIGN.md),
+[operator guide](RUST-OPERATOR-GUIDE.md),
 [retry policy](DELIVERY-RETRY-POLICY.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
@@ -367,3 +368,9 @@ no runtime or qualification changes. Keep the other guides in the catalog backlo
 Existing job/byte reservation limits already apply; the next admission increment
 should refine source-space margins and sustained-shortage behavior, not recreate
 those limits. Design and qualify that policy before changing admission effects.
+
+Increment 35 defines the configurable/default-off source-space admission policy
+and SA-01–18, catalog SC-075–081. Design only: current config/API and schema 11
+are unchanged. The guard applies to new keys, preserves existing partial/replay
+recovery and ledger limits, and requires bounded fresh authorized observations.
+Implement and qualify before promoting these future scenarios to supported.

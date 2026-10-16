@@ -253,6 +253,17 @@ replays remain possible. Raising configured limits does not add physical space,
 remove retained attempts or qualify sustained shortage admission. Preserve state
 and data if safe capacity cannot be provided; offline repair/cleanup is deferred.
 
+## Planned source-space guard (not available yet)
+
+The [source-space admission design](SOURCE-SPACE-ADMISSION-DESIGN.md) proposes
+an optional startup guard, default off, with configurable byte/percentage margins
+and explicit `enabled:false`. It gates new submission keys only; existing work
+keeps its replay/recovery path and ordinary safety/ledger limits. Low/unknown
+observations would refuse new acceptance without creating a job or releasing
+paths. These configuration fields and new error/status details are not supported
+by the current binary. Do not add the design fragments to a running configuration.
+DOC-03 must gain executed examples when implementation and qualification land.
+
 ## Diagnostics and situations that must stay blocked
 
 Known native errors provide fixed operation/errno labels in service logs, for

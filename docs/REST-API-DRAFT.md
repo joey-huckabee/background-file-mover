@@ -280,8 +280,14 @@ are admission controls, not guarantees of future free space.
 
 If safe admission or claiming is unavailable, return a non-202 response and retain
 any already claimed data for reconciliation. Do not delete claims, reroute a job
-or issue false success to make room. Thresholds and retry timing remain startup
-configuration decisions to finalize before implementation.
+or issue false success to make room. The future
+[source-space admission policy](SOURCE-SPACE-ADMISSION-DESIGN.md) now defines
+optional/default-off byte and percentage thresholds, bounded fresh measurements
+and new-key-only gating. Proposed 503 `source_space_low` and
+`source_space_unavailable` do not create jobs or release paths. Existing-key
+replay/partial claims bypass this gate but retain all ordinary safety/ledger
+checks. These config/error/status additions are designed, not implemented;
+current code rejects the new config fields. Delivery retry timing is separate.
 
 Do not hold an unbounded HTTP request during an NFS outage. Use a bounded handoff
 wait; if claiming cannot be confirmed in that time, return a non-202 transient

@@ -77,9 +77,11 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.
 - [ ] Add timer-driven missing-file retries, clock-anomaly diagnostics and bounded backoff.
-- [ ] Define durable pending job/byte limits and source-space margins for handoff
-  during destination outages; test partial claims, admission refusal and restart
-  reservation reconciliation without deleting retained source data.
+- [ ] Implement the opt-in [source-space admission policy](SOURCE-SPACE-ADMISSION-DESIGN.md)
+  and SA-01–18: configurable byte/percent margins, explicit off/default-off,
+  replay-aware new-key gating, bounded child measurement and cached visibility.
+  Preserve existing job/byte reservation limits and accepted partial handoffs;
+  qualify restart/concurrency/unknown-space and storage cases before support.
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and
   ownership evidence against partial claims, publication and stale worker effects.
 - [ ] Finalize the versioned completion manifest schema and validation under the

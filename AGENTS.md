@@ -91,6 +91,11 @@ backoff to sync/publication, allocation, custody or unknown worker outcomes.
 Increment 34 delivers DOC-03 in docs/RUST-OPERATOR-GUIDE.md; maintain it with
 future status/retry/review changes. See docs/RUST-INCREMENT-34.md for the
 documentation-only checks. Other user guides remain in the scenario backlog.
+Increment 35 defines docs/SOURCE-SPACE-ADMISSION-DESIGN.md: configurable byte/
+percent margins, default-off/explicit off, new-key-only gating and SA-01–18.
+SC-075–081 remain future; no config/API enforcement or qualification exists yet.
+Preserve accepted replay/partial claims and existing limits; qualify bounded
+source probes before implementation is called supported.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

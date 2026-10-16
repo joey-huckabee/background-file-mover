@@ -141,7 +141,12 @@ all claims and queue delivery until the pinned target recovers. Retain claimed
 sources; do not reroute or delete to relieve backlog. Admission uses bounded
 source-size inspection, durable pending job/byte reservations and source-space
 margins, including partial claims and restart reconciliation. Claiming releases
-paths, not occupied space. Refuse further handoffs when safe limits are exhausted.
+paths, not occupied space. Refuse new admissions when safe limits are exhausted.
+The [source-space policy](SOURCE-SPACE-ADMISSION-DESIGN.md) defines a future
+optional/default-off physical margin gate for new keys only. Existing accepted
+partial handoffs/replays remain recoverable under their normal safety and ledger
+limits. Do not subtract already-present source payload again from sampled space;
+no source-space measurement is implemented yet.
 
 Use one active coordinator per local state database and disjoint source scopes
 across instances. A local lock is not cross-host fencing. Old and new services
