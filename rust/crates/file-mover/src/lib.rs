@@ -291,6 +291,14 @@ impl Worker {
                                     }
                                     continue;
                                 }
+                                if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationCapacity>()) {
+                                    eprintln!("Delivery {id} destination capacity backoff scheduled");
+                                    if let Err(error) = delivery_store.delivery_failed_with_kind(id, now(), mover_core::DeliveryFailureKind::DestinationCapacity) {
+                                        eprintln!("Delivery capacity retry persistence failed: {error}");
+                                        delivery_stop.store(true, Ordering::Relaxed);
+                                    }
+                                    continue;
+                                }
                                 if matches!(result, Ok(false)) {
                                     if let Err(error) = delivery_store.delivery_deferred(id, now())
                                     {

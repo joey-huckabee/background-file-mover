@@ -10,6 +10,80 @@ use std::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
+fn pending_capacity_retry_survives_restart_and_recovers_without_operator_resume() {
+    let mut f = Fixture::uninitialized(300);
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
+    provision_destination(&f);
+    f.write("data", b"original recording");
+    f.start_with_payload_fault(Some("payload_copy_write"));
+    assert_eq!(
+        f.post(&f.input("capacity-recovery", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    f.write("data", b"producer reused path");
+    if cfg!(feature = "nfs-qualification") {
+        let until = Instant::now() + Duration::from_secs(15);
+        let pending = loop {
+            let (_, current) = status(&f, "1");
+            if current["details"]["delivery_retry"]["failures"] == 1 {
+                break current;
+            }
+            assert!(Instant::now() < until, "{current}");
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        assert_eq!(pending["details"]["condition"], "Retrying");
+        assert_eq!(
+            pending["details"]["delivery_retry"]["code"],
+            "destination_capacity_requires_review"
+        );
+        assert_eq!(pending["details"]["files"][0]["attempt"], 1);
+        assert!(pending["details"]["latest_resume"].is_null());
+        let partial = f.root.join("destination/1/.staging/1.part");
+        let before = std::fs::read(&partial).unwrap();
+        f.stop();
+        f.start(); // Capacity fault removed; persisted deadline must still gate dispatch.
+        assert_eq!(status(&f, "1").1, pending);
+        std::thread::sleep(Duration::from_secs(1));
+        assert_eq!(status(&f, "1").1, pending);
+        let until = Instant::now() + Duration::from_secs(60);
+        loop {
+            let (_, current) = status(&f, "1");
+            assert_ne!(current["details"]["condition"], "ReviewRequired");
+            if current["state"] == "Committed" {
+                assert_eq!(current["details"]["files"][0]["attempt"], 2);
+                assert_eq!(
+                    current["details"]["delivery_retry"],
+                    pending["details"]["delivery_retry"]
+                );
+                assert!(current["details"]["latest_resume"].is_null());
+                break;
+            }
+            assert!(Instant::now() < until, "{current}");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        assert_eq!(std::fs::read(partial).unwrap(), before);
+    }
+    wait_manifest(&f, "1");
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/data")).unwrap(),
+        b"original recording"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"original recording"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reused path"
+    );
+    f.stop();
+}
+#[test]
 fn effect_diagnostics_preserve_uncertain_allocations_manifest_review_and_recovery() {
     // Allocation sync can leave an unreceipted object: never promise auto-repair.
     for (fault, recoverable, committed_name) in [
@@ -140,7 +214,7 @@ fn payload_diagnostics_preserve_review_resume_and_production_ignores_faults() {
         assert_eq!(f.post(&f.input(fault, json!([{"name":"data"}]))).0, 202);
         f.write("data", b"producer reused path");
         if cfg!(feature = "nfs-qualification") {
-            let deadline = Instant::now() + Duration::from_secs(45);
+            let deadline = Instant::now() + Duration::from_secs(150);
             let reviewed = loop {
                 assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
                 let (_, current) = status(&f, "1");
@@ -155,7 +229,11 @@ fn payload_diagnostics_preserve_review_resume_and_production_ignores_faults() {
             assert_eq!(reviewed["details"]["delivery_retry"]["failures"], 3);
             assert_eq!(
                 reviewed["details"]["delivery_retry"]["code"],
-                "delivery_requires_review"
+                if fault == "payload_copy_write" {
+                    "destination_capacity_requires_review"
+                } else {
+                    "delivery_requires_review"
+                }
             );
             assert_eq!(reviewed["details"]["files"][0]["transfer_phase"], phase);
             let published = f.root.join("destination/1/data");
@@ -1171,7 +1249,7 @@ fn session_authorized_reply(
     command: Value,
     authorization: Option<&mover_fs::SourceAuthorization>,
 ) -> Value {
-    let bytes = serde_json::to_vec(&json!({"version":1,"sequence":sequence,"command":command,"source_authorization":authorization})).unwrap();
+    let bytes = serde_json::to_vec(&json!({"version":2,"sequence":sequence,"command":command,"source_authorization":authorization})).unwrap();
     channel
         .write_all(&(bytes.len() as u32).to_be_bytes())
         .unwrap();
@@ -1182,7 +1260,10 @@ fn session_authorized_reply(
     assert!(size <= 32768);
     let mut bytes = vec![0; size];
     channel.read_exact(&mut bytes).unwrap();
-    serde_json::from_slice(&bytes).unwrap()
+    let reply: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(reply["version"], 2);
+    assert_eq!(reply["sequence"], sequence);
+    reply
 }
 #[test]
 fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() {
@@ -1381,31 +1462,39 @@ fn delivery_session_allocates_restarts_and_commits_manifest_between_parent_recei
     );
 }
 #[test]
-fn delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence() {
-    let mut f = Fixture::new(300);
-    f.stop();
-    provision_destination(&f);
-    let source =
-        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
-    let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
-    let command = json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")});
-    assert!(session_reply(&mut channel, 1, command.clone())["error"].is_null());
-    drop(source);
-    for path in ["source", "destination"] {
-        assert!(mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_err());
-    }
-    let bytes = serde_json::to_vec(&json!({"version":1,"sequence":1,"command":command})).unwrap();
-    channel
-        .write_all(&(bytes.len() as u32).to_be_bytes())
+fn delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence_or_version() {
+    for version in [2, 1] {
+        let mut f = Fixture::new(300);
+        f.stop();
+        provision_destination(&f);
+        let source =
+            mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+        let (mut child, mut channel) = effect_child(&source, &source, "--internal-delivery-worker");
+        let command = json!({"operation":"open","job_id":1,"source_root":f.root.join("source"),"destination_root":f.root.join("destination")});
+        assert!(session_reply(&mut channel, 1, command.clone())["error"].is_null());
+        drop(source);
+        for path in ["source", "destination"] {
+            assert!(
+                mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_err()
+            );
+        }
+        let bytes = serde_json::to_vec(
+            &json!({"version":version,"sequence":if version == 2 {1} else {2},"command":command}),
+        )
         .unwrap();
-    channel.write_all(&bytes).unwrap();
-    assert!(!child.wait().unwrap().success());
-    drop(channel);
-    for path in ["source", "destination"] {
-        assert!(mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_ok());
+        channel
+            .write_all(&(bytes.len() as u32).to_be_bytes())
+            .unwrap();
+        channel.write_all(&bytes).unwrap();
+        assert!(!child.wait().unwrap().success());
+        drop(channel);
+        for path in ["source", "destination"] {
+            assert!(mover_fs::LocalClaimLock::acquire(f.root.join(path).to_str().unwrap()).is_ok());
+        }
+        assert!(!f.root.join("destination/1").exists());
     }
-    assert!(!f.root.join("destination/1").exists());
 }
+
 #[test]
 fn delivery_session_refuses_oversized_frame_before_any_allocation() {
     let mut f = Fixture::new(300);

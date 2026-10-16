@@ -582,3 +582,38 @@ S3 is an additional destination design use case. Its adapter, SDK/TLS dependenci
 and GNU/glibc 2.22 compatibility remain unqualified. A binary without a qualified
 enabled adapter must reject `kind = s3` at startup; it must not silently fall back
 to a file destination. No S3 package experiment is started by this contract update.
+
+## Implemented prototype delivery-capacity status
+
+[Increment 33](RUST-INCREMENT-33.md) adds
+`destination_capacity_requires_review` to the existing
+`details.delivery_retry.code` vocabulary. The JSON shape is unchanged. For a
+confirmed ENOSPC during an owned payload copy, failures 1 and 2 remain `Retrying`
+with persisted 30/60-second deadlines. Failure 3 becomes `ReviewRequired`; a saved
+retry timestamp does not override that condition. This classification does not
+apply to allocation, manifest, publication sync, custody or unknown worker outcomes.
+
+Example pending-delivery fragment:
+
+```json
+{
+  "state": "Claimed",
+  "source_paths_released": true,
+  "details": {
+    "condition": "Retrying",
+    "delivery_retry": {
+      "failures": 1,
+      "retry_after": 1800000030,
+      "code": "destination_capacity_requires_review"
+    }
+  }
+}
+```
+
+This is a partial illustrative status object; `retry_after` is an absolute Unix
+seconds deadline, not an interval. A recorded pending deadline survives restart.
+Restoring capacity before review permits automatic delivery at the saved deadline;
+restoring capacity after review still requires audited resume. The recorder has no
+new polling or recovery obligation after receiving 202. See
+[the retry policy](DELIVERY-RETRY-POLICY.md) for scope and persistence limits and
+the increment for actual validation; production NFS/deletion remain disabled.

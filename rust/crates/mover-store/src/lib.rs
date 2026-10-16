@@ -2,7 +2,8 @@
 //! Calls block; dispatch them outside an async executor. Filesystem I/O is separate.
 
 use mover_core::{
-    ClaimIntent, DeliveryPolicy, FileSpec, ObjectIdentity, ProtocolError, Recording, Submission,
+    ClaimIntent, DeliveryFailureKind, DeliveryPolicy, FileSpec, ObjectIdentity, ProtocolError,
+    Recording, Submission,
 };
 use mover_core::{ManifestRecord, Transfer, TransferPhase};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
@@ -23,7 +24,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 10;
+const SCHEMA_VERSION: i64 = 11;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -440,7 +441,37 @@ impl Store {
         })
     }
     pub fn delivery_failed(&self, id: i64, now: i64) -> Result<()> {
-        self.call(move|db| {if now<0 {return Err(StoreError::InvalidContext);}db.connection.execute("INSERT INTO delivery_failures VALUES(?1,1,?2,'delivery_requires_review') ON CONFLICT(job_id) DO UPDATE SET failures=min(3,failures+1),retry_after=excluded.retry_after,code=excluded.code",params![id,now.saturating_add(5)])?;Ok(())})
+        self.delivery_failed_with_kind(id, now, DeliveryFailureKind::Unclassified)
+    }
+    pub fn delivery_failed_with_kind(
+        &self,
+        id: i64,
+        now: i64,
+        kind: DeliveryFailureKind,
+    ) -> Result<()> {
+        self.call(move |db| {
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            let [first, second, third] = kind.delays().map(|delay| now.saturating_add(delay));
+            // One atomic statement persists count, classification and absolute deadline.
+            // A late capacity result cannot replace an already durable review reason.
+            db.connection.execute(
+                "INSERT INTO delivery_failures VALUES(?1,1,?2,?5)
+                ON CONFLICT(job_id) DO UPDATE SET failures=min(3,failures+1),
+                retry_after=CASE min(3,failures+1) WHEN 1 THEN ?2 WHEN 2 THEN ?3 ELSE ?4 END,
+                code=excluded.code WHERE ?6=0 OR delivery_failures.failures<3",
+                params![
+                    id,
+                    first,
+                    second,
+                    third,
+                    kind.code(),
+                    i64::from(kind == DeliveryFailureKind::DestinationCapacity)
+                ],
+            )?;
+            Ok(())
+        })
     }
     pub fn destination_binding_refused(&self, id: i64, now: i64) -> Result<()> {
         self.call(move |db| {
@@ -489,7 +520,7 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=9).contains(&version) && !read_only))
+        } else if (version != SCHEMA_VERSION && !((1..=10).contains(&version) && !read_only))
             || application != APPLICATION_ID
         {
             return Err(StoreError::UnsupportedSchema);
@@ -532,12 +563,13 @@ impl Database {
             }
             tx.execute_batch(include_str!("destination_bindings.sql"))?;
             tx.execute_batch(include_str!("source_ownership.sql"))?;
+            tx.execute_batch(include_str!("capacity_retries.sql"))?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }
-        if (1..=9).contains(&version) && !read_only {
+        if (1..=10).contains(&version) && !read_only {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             if version == 1 {
                 tx.execute_batch(include_str!("claims.sql"))?;
@@ -564,7 +596,10 @@ impl Database {
             if version <= 8 {
                 tx.execute_batch(include_str!("destination_bindings.sql"))?;
             }
-            tx.execute_batch(include_str!("source_ownership.sql"))?;
+            if version <= 9 {
+                tx.execute_batch(include_str!("source_ownership.sql"))?;
+            }
+            tx.execute_batch(include_str!("capacity_retries.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }

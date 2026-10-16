@@ -32,7 +32,7 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
     assert any(f" {mount} nfs4 " in line and "vers=4.1" in line and "hard" in line for line in report["mounts"])
     assert any(f" {export} tmpfs " in line and "size=32768k" in line and "nr_inodes=512" in line for line in report["server_mounts"])
     assert observe("getconf GNU_LIBC_VERSION").stdout.strip() == "glibc 2.22"
-    report["scope"] = "Real bounded server tmpfs exhaustion during payload copying; live and restarted review/resume in debug/release. No injected errno or pause controls; no physical-disk/quota, power-loss, lost-lock or fencing qualification."
+    report["scope"] = "Real bounded server tmpfs exhaustion during payload copying; 30/60-second capacity backoff, live/restarted review-resume and pending-restart automatic recovery in debug/release. No injected errno or pause controls; no physical-disk/quota, power-loss, lost-lock or fencing qualification."
 
     def capacity():
         return [int(n) for n in server_command("stat -f -c '%b %f %a %c %d %S' "+export).stdout.split()]
@@ -40,7 +40,10 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
     for profile in ("debug", "release"):
         binary = "/tmp/qualification-"+profile
         report.setdefault("artifacts", {})[profile] = observe("sha256sum "+binary).stdout.split()[0]
-        for recovery in ("live", "restart"):
+        for recovery in ("live", "restart", "automatic"):
+            automatic = recovery == "automatic"
+            target_failures = 2 if automatic else 3
+            attempt_names = " ".join(str(n) for n in range(1, target_failures+1))
             label = "delivery-space-"+profile+"-"+recovery
             base = "/tmp/local/"+label
             source, destination = base+"/source", mount+"/"+label
@@ -63,9 +66,9 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
             run(["cp", str(local), client+":"+base+"/config.json"])
             observe(f"LD_BIND_NOW=1 {binary} --initialize-source {base}/config.json")
             roots = observe(f"stat -c '%d:%i:%u:%a' {source} {source}/.file-mover {destination} {destination}/.file-mover").stdout
-            result = {"scenario_id": "SC-071", "profile": profile, "recovery": recovery, "passed": False,
+            result = {"scenario_id": "SC-074" if automatic else "SC-071", "profile": profile, "recovery": recovery, "passed": False,
                       "jobs_submitted": 1, "config_sha256": hashlib.sha256(local.read_bytes()).hexdigest(),
-                      "samples": [], "health_status_seconds": [], "service_logs": {}}
+                      "samples": [], "health_status_seconds": [], "service_logs": {}, "retry_observations": []}
             report["cases"].append(result)
             service, marker, counter, starts = None, base+"/service.pid", 0, 0
 
@@ -92,6 +95,13 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 elapsed = time.monotonic()-began
                 result["health_status_seconds"].append(round(elapsed, 3))
                 assert elapsed < 15, "health/status exceeded selected fixture window including engine overhead"
+                retry = body["details"]["delivery_retry"]
+                if retry and retry["code"] == "destination_capacity_requires_review":
+                    observed_now = int(observe("date +%s").stdout)
+                    result["retry_observations"].append({"observed_at": observed_now, "retry": retry,
+                        "attempt": body["details"]["files"][0]["attempt"]})
+                    if body["state"] != "Committed" and retry["failures"] < 3 and observed_now < retry["retry_after"]:
+                        assert body["details"]["files"][0]["attempt"] == retry["failures"], "attempt advanced before durable deadline"
                 return body
 
             def pid():
@@ -124,7 +134,7 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 assert server_command(f"test ! -e {remote_destination}/1/COMMITTED.json; test ! -e {remote_destination}/1/nested/data.bin", check=False).returncode == 0
 
             def partials():
-                return server_command(f"for n in 1 2 3; do stat -c '%d:%i:%u:%a:%s' {remote_destination}/1/.staging/$n.part; "
+                return server_command(f"for n in {attempt_names}; do stat -c '%d:%i:%u:%a:%s' {remote_destination}/1/.staging/$n.part; "
                                       f"sha256sum {remote_destination}/1/.staging/$n.part; done").stdout
 
             body = {"generator_id": "fixture", "submission_id": label, "source_path": source+"/current",
@@ -145,20 +155,29 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 assert code == 202 and handoff["job_id"] == "1" and handoff["source_paths_released"]
                 assert observe("stat -c '%d:%i:%u:%a:%s' "+private).stdout == original
                 observe(f"printf 'next recording' >{source}/current/nested/data.bin")
-                deadline = time.monotonic()+120
+                deadline = time.monotonic()+180
                 while True:
                     current = status()
                     result["samples"].append(current)
                     assert current["state"] == "Claimed" and current["source_paths_released"]
                     no_commit()
                     assert time.monotonic() < deadline, current
-                    if current["details"]["condition"] == "ReviewRequired":
+                    retry = current["details"]["delivery_retry"]
+                    if automatic and retry and retry["failures"] == target_failures:
+                        assert current["details"]["condition"] == "Retrying"
+                        break
+                    if not automatic and current["details"]["condition"] == "ReviewRequired":
                         break
                     time.sleep(0.2)
-                result["review_status"] = current
-                assert current["details"]["delivery_retry"]["failures"] == 3
-                assert current["details"]["files"][0]["attempt"] == 3
+                result["pending_status" if automatic else "review_status"] = current
+                assert current["details"]["delivery_retry"]["failures"] == target_failures
+                assert current["details"]["delivery_retry"]["code"] == "destination_capacity_requires_review"
+                assert current["details"]["files"][0]["attempt"] == target_failures
                 assert current["details"]["files"][0]["transfer_phase"] == "Intent"
+                code, waiting_replay = request("POST", "/api/v2/jobs", body)
+                assert code == 202 and waiting_replay["job_id"] == "1" and waiting_replay["source_paths_released"]
+                result["submission_replay_while_waiting"] = waiting_replay
+                assert status() == current, "submission replay reset durable retry/review evidence"
                 assert capacity()[1] == 0
                 partial = remote_destination+"/1/.staging/1.part"
                 result["partial_server_bytes"] = int(server_command("stat -c %s "+partial).stdout)
@@ -167,27 +186,28 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 saved = partials()
                 result["partials_at_review"] = saved
                 assert observe("sha256sum "+private).stdout.split()[0] == digest
-                if recovery == "restart":
+                if recovery == "restart" or automatic:
                     stop()
                     owner_pid = start()
                     assert status() == current
                     assert partials() == saved
-                    result["review_survived_original_state_restart"] = True
+                    result["pending_survived_original_state_restart" if automatic else "review_survived_original_state_restart"] = True
                 server_command(f"rm {export}/fill/blocks")
                 result["capacity_restored"] = capacity()
                 time.sleep(1)
                 assert status() == current
                 no_commit()
                 assert partials() == saved
-                resume = {"command_id": label+"-resume", "expected_review_epoch": current["details"]["review_epoch"],
-                          "reason": "Restored capacity in the owned destination fixture"}
-                code, receipt = request("POST", "/api/v2/jobs/1/resume", resume)
-                result["resume"] = [code, receipt]
-                assert code == 200 and receipt["details"]["action"] == "DeliveryResumeScheduled"
-                code, replay = request("POST", "/api/v2/jobs/1/resume", resume)
-                assert code == 200 and replay["details"]["replay"] is True
-                result["resume_replay"] = replay
-                deadline = time.monotonic()+120
+                if not automatic:
+                    resume = {"command_id": label+"-resume", "expected_review_epoch": current["details"]["review_epoch"],
+                              "reason": "Restored capacity in the owned destination fixture"}
+                    code, receipt = request("POST", "/api/v2/jobs/1/resume", resume)
+                    result["resume"] = [code, receipt]
+                    assert code == 200 and receipt["details"]["action"] == "DeliveryResumeScheduled"
+                    code, replay = request("POST", "/api/v2/jobs/1/resume", resume)
+                    assert code == 200 and replay["details"]["replay"] is True
+                    result["resume_replay"] = replay
+                deadline = time.monotonic()+180
                 while True:
                     completed = status()
                     if completed["state"] == "Committed":
@@ -196,9 +216,13 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                     assert time.monotonic() < deadline, completed
                     time.sleep(0.2)
                 assert pid() == owner_pid
-                assert completed["details"]["files"][0]["attempt"] == 4
+                assert completed["details"]["files"][0]["attempt"] == target_failures+1
                 assert completed["details"]["source_cleanup_enabled"] is False
-                assert completed["details"]["latest_resume"]["command_id"] == resume["command_id"]
+                if automatic:
+                    assert completed["details"]["latest_resume"] is None
+                    assert completed["details"]["delivery_retry"] == current["details"]["delivery_retry"]
+                else:
+                    assert completed["details"]["latest_resume"]["command_id"] == resume["command_id"]
                 assert partials() == saved
                 final = destination+"/1/nested/data.bin"
                 hashes = observe(f"sha256sum {private} {final}").stdout.splitlines()
@@ -219,7 +243,7 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 result.update({"completed_status": completed, "manifest": manifest, "hashes": hashes,
                                "source_retained": True, "producer_reused_path_unchanged": True,
                                "old_partials_preserved": True, "recovered_job_id": "1", "recovery_coordinator_pid_stable": True})
-                if recovery == "restart":
+                if recovery == "restart" or automatic:
                     stop()
                     start()
                     assert status() == completed
@@ -235,9 +259,9 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                     combined = "\n".join(result["service_logs"].values())
                     diagnostic = "payload_copy_write errno=28; storage full; restore approved capacity; preserve source/state; resume only if review required"
                     result["payload_diagnostic"] = diagnostic
-                    assert combined.count(diagnostic) == 3, "expected one ENOSPC operation diagnostic per failed attempt"
+                    assert combined.count(diagnostic) == target_failures, "expected one ENOSPC operation diagnostic per failed attempt"
                     assert "blocked_or_uncertain" not in combined
                     assert source not in combined and destination not in combined
                 (output/(label+"-result.json")).write_text(json.dumps(result, indent=2)+"\n")
-            print(f"NFS destination full {profile}/{recovery}: PASS (claimed source retained; audited resume committed)", flush=True)
+            print(f"NFS destination full {profile}/{recovery}: PASS (claimed source retained; recovery matched retry/review policy)", flush=True)
     report["passed"] = True

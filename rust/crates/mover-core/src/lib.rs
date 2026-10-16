@@ -5,6 +5,8 @@
 
 use std::collections::BTreeSet;
 
+mod retry;
+pub use retry::DeliveryFailureKind;
 mod claim;
 pub use claim::{ClaimIntent, ObjectIdentity};
 mod transfer;

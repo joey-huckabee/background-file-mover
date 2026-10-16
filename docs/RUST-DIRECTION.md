@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 32](RUST-INCREMENT-32.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 33](RUST-INCREMENT-33.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -349,3 +349,12 @@ order. Unreceipted exclusive allocations still refuse automatic repair; a valid
 final manifest may exist before coordinator commitment if synchronization fails.
 Consult the increment and SC-073 for actual validation and qualification scope.
 Broader retry policy, EIO/power-loss and independent fencing remain future work.
+
+Increment 33 adds [typed copy-ENOSPC backoff](DELIVERY-RETRY-POLICY.md): 30/60-second
+pending retries, still review after three persisted failures. Pending deadlines and
+counts survive restart; restoration before review can recover automatically, while
+review still requires audited resume. Schema 11 widens the constrained vocabulary
+through a preserving transaction. Private delivery-session protocol 2 is distinct
+from persisted receipt version 1 and binding version 3. Consult the increment for
+actual gates, failed-development findings, selected NFS scope and limits. Preserve
+all other retry/reconciliation, ownership and production NFS/deletion restrictions.

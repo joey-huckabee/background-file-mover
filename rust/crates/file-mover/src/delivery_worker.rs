@@ -20,6 +20,19 @@ impl std::fmt::Display for DestinationBindingRefused {
     }
 }
 impl std::error::Error for DestinationBindingRefused {}
+#[derive(Debug)]
+pub(crate) struct DestinationCapacity;
+impl std::fmt::Display for DestinationCapacity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("destination payload capacity backoff required")
+    }
+}
+impl std::error::Error for DestinationCapacity {}
+#[derive(Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum FailureClass {
+    DestinationCapacity,
+}
 const LIMIT: usize = 393216;
 const REPLY_LIMIT: usize = 32768;
 #[derive(Serialize, Deserialize)]
@@ -132,6 +145,26 @@ struct Reply {
     manifest: Option<ManifestReceipt>,
     error: Option<String>,
     diagnostic: Option<String>,
+    failure: Option<FailureClass>,
+}
+// This is a scheduling hint, never a receipt. Reject mixed or out-of-scope hints.
+fn capacity_hint(reply: &Reply, copying: bool) -> Result<bool> {
+    if reply.failure.is_none() {
+        return Ok(false);
+    }
+    if !copying
+        || reply.error.as_deref() != Some("blocked_or_uncertain")
+        || reply.transfer.is_some()
+        || reply.manifest.is_some()
+        || reply.destination_authorization.is_some()
+        || reply
+            .diagnostic
+            .as_ref()
+            .is_none_or(|d| !super::diagnostic::valid(d))
+    {
+        return Err("invalid capacity failure hint".into());
+    }
+    Ok(true)
 }
 fn write_frame(stream: &mut UnixStream, bytes: &[u8], limit: usize) -> Result<()> {
     if bytes.len() > limit {
@@ -213,9 +246,10 @@ impl Session {
         if stop.load(Ordering::Relaxed) || self.sequence >= 2048 {
             return Err("delivery command budget stopped".into());
         }
+        let copying = matches!(&command, Operation::Payload { assignment } if assignment.is_copy());
         self.sequence += 1;
         let bytes = serde_json::to_vec(&Request {
-            version: 1,
+            version: 2,
             sequence: self.sequence,
             command,
             source_authorization: self.source_authorization.clone(),
@@ -230,9 +264,10 @@ impl Session {
         let mut bytes = vec![0; length];
         self.read(&mut bytes, stop)?;
         let reply: Reply = serde_json::from_slice(&bytes)?;
-        if reply.version != 1 || reply.sequence != self.sequence {
+        if reply.version != 2 || reply.sequence != self.sequence {
             return Err("delivery receipt sequence mismatch".into());
         }
+        let capacity = capacity_hint(&reply, copying)?;
         if let Some(detail) = &reply.diagnostic {
             if reply.error.is_none()
                 || reply.transfer.is_some()
@@ -242,6 +277,9 @@ impl Session {
                 return Err("invalid failure diagnostic".into());
             }
             eprintln!("Delivery worker sequence {}: {detail}", self.sequence);
+        }
+        if capacity {
+            return Err(Box::new(DestinationCapacity));
         }
         if reply.error.as_deref() == Some("destination_binding_refused") {
             return Err(Box::new(DestinationBindingRefused));
@@ -510,7 +548,7 @@ pub fn worker() -> Result<()> {
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
         let request: Request = serde_json::from_slice(&bytes)?;
-        if request.version != 1 || request.sequence != sequence + 1 || request.sequence > 2048 {
+        if request.version != 2 || request.sequence != sequence + 1 || request.sequence > 2048 {
             return Err("invalid delivery sequence".into());
         }
         sequence = request.sequence;
@@ -519,14 +557,16 @@ pub fn worker() -> Result<()> {
         }
         let mut reply = Reply {
             destination_authorization: None,
-            version: 1,
+            version: 2,
             sequence,
             transfer: None,
             manifest: None,
             error: None,
             diagnostic: None,
+            failure: None,
         };
         let mut checking_destination = false;
+        let mut copying_payload = false;
         let result = (|| -> Result<()> {
             if let Some(prior) = &source_authorization
                 && prior != &request.source_authorization
@@ -623,7 +663,10 @@ pub fn worker() -> Result<()> {
                             0 => mover_fs::prepare_transfer_effect(&t, &c)?,
                             1 => mover_fs::restart_transfer_effect(&t, &c)?,
                             2 => match t.phase {
-                                TransferPhase::Intent => mover_fs::copy_effect(&t, &c)?,
+                                TransferPhase::Intent => {
+                                    copying_payload = true;
+                                    mover_fs::copy_effect(&t, &c)?
+                                }
                                 TransferPhase::Copied => mover_fs::verify_effect(&t, &c)?,
                                 TransferPhase::PublishIntent => mover_fs::publish_effect(&t, &c)?,
                                 _ => return Err("invalid payload phase".into()),
@@ -644,6 +687,12 @@ pub fn worker() -> Result<()> {
             Ok(())
         })();
         if let Err(e) = result {
+            if !checking_destination
+                && copying_payload
+                && mover_fs::is_payload_capacity_failure(e.as_ref())
+            {
+                reply.failure = Some(FailureClass::DestinationCapacity);
+            }
             reply.destination_authorization = None;
             reply.transfer = None;
             reply.manifest = None;
@@ -664,4 +713,53 @@ pub fn worker() -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn capacity_hints_reject_receipts_wrong_scope_and_unknown_classes_without_parsing_text() {
+        let mut reply = Reply {
+            destination_authorization: None,
+            version: 2,
+            sequence: 1,
+            transfer: None,
+            manifest: None,
+            error: Some("blocked_or_uncertain".into()),
+            diagnostic: Some("safe fixed detail".into()),
+            failure: Some(FailureClass::DestinationCapacity),
+        };
+        assert!(capacity_hint(&reply, true).unwrap());
+        assert!(capacity_hint(&reply, false).is_err());
+        reply.error = None;
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.error = Some("destination_binding_refused".into());
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.error = Some("blocked_or_uncertain".into());
+        reply.manifest = Some(ManifestReceipt {
+            job_id: 1,
+            sha256: "digest".into(),
+            phase: 4,
+            object: None,
+        });
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.manifest = None;
+        reply.transfer = Some(serde_json::from_value(serde_json::json!({
+            "version":1,"job_id":1,"file_index":0,"attempt":1,"phase":0,
+            "destination_root":"root","relative_name":"data","transfer_objects":["x","x","x","x","x"],
+            "sha256":null,"source_root":"source","source_name":"data","private_name":"1-0",
+            "claim_objects":["x","x","x","x"]
+        })).unwrap());
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.transfer = None;
+        let mut value = serde_json::to_value(&reply).unwrap();
+        value["failure"] = serde_json::json!("unknown_retry_everything");
+        assert!(serde_json::from_value::<Reply>(value).is_err());
+        reply.diagnostic = None;
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.failure = None;
+        reply.diagnostic = Some("payload_copy_write errno=28".into());
+        assert!(!capacity_hint(&reply, true).unwrap());
+    }
 }

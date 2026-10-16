@@ -671,6 +671,275 @@ fn status_snapshot_preserves_deadlines_review_and_claims_across_restart() {
     assert!(after.manifest_phase.is_none());
 }
 
+// Build the exact historical schema-10 failure table using its retained DDL.
+fn schema_ten_retry_table(c: &Connection) {
+    let historical = include_str!("destination_bindings.sql");
+    c.execute_batch(&historical[historical.find("ALTER TABLE delivery_failures").unwrap()..])
+        .unwrap();
+    c.pragma_update(None, "user_version", 10).unwrap();
+}
+fn retained_table_rows(
+    c: &Connection,
+) -> std::collections::BTreeMap<String, Vec<Vec<rusqlite::types::Value>>> {
+    let names: Vec<String> = c.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").unwrap()
+        .query_map([], |r| r.get(0)).unwrap().collect::<std::result::Result<_,_>>().unwrap();
+    let mut rows = std::collections::BTreeMap::new();
+    for name in names {
+        let mut statement = c
+            .prepare(&format!(
+                "SELECT * FROM \"{}\" ORDER BY rowid",
+                name.replace('"', "\"\"")
+            ))
+            .unwrap();
+        let count = statement.column_count();
+        let values = statement
+            .query_map([], |r| {
+                (0..count)
+                    .map(|i| r.get(i))
+                    .collect::<rusqlite::Result<Vec<rusqlite::types::Value>>>()
+            })
+            .unwrap()
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .unwrap();
+        rows.insert(name, values);
+    }
+    rows
+}
+#[test]
+fn schema_ten_retry_migration_preserves_every_populated_table_and_saved_deadline() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let mut context = context();
+    context.policy.group_by_generator = false;
+    context.destination_binding = Some("destination-binding".into());
+    let submission = Submission::new(
+        "g",
+        "migration",
+        "/mnt/recordings/current",
+        vec![FileSpec::new("data", None).unwrap()],
+    )
+    .unwrap();
+    let job = s.accept(&submission, &context).unwrap();
+    let claim = intent_for(&job, 0, 3);
+    s.activate_source_ownership("receipt", &claim.source.encode())
+        .unwrap();
+    s.begin_claim(&claim).unwrap();
+    s.finish_claim(&claim).unwrap();
+    s.pin_destination(job.job_id, "destination-binding", "destination-observed")
+        .unwrap();
+    let mut transfer = Transfer {
+        job_id: job.job_id,
+        file_index: 0,
+        attempt: 1,
+        destination_root: context.destination_path.clone(),
+        relative_name: "data".into(),
+        root: claim.root.clone(),
+        area: claim.area.clone(),
+        parent: claim.parent.clone(),
+        staging_directory: claim.area.clone(),
+        stage: ObjectIdentity {
+            size: 0,
+            ..claim.source.clone()
+        },
+        sha256: None,
+        phase: TransferPhase::Intent,
+    };
+    s.save_transfer(&transfer).unwrap();
+    transfer.attempt = 2;
+    transfer.stage.inode += 1;
+    s.save_transfer(&transfer).unwrap();
+    transfer.stage.size = 3;
+    transfer.sha256 = Some("a".repeat(64));
+    for phase in [
+        TransferPhase::Copied,
+        TransferPhase::Verified,
+        TransferPhase::PublishIntent,
+        TransferPhase::Published,
+    ] {
+        transfer.phase = phase;
+        s.save_transfer(&transfer).unwrap();
+    }
+    s.save_manifest(&ManifestRecord {
+        job_id: job.job_id,
+        bytes: "trusted persistence fixture".into(),
+        sha256: "b".repeat(64),
+        phase: 0,
+        object: None,
+    })
+    .unwrap();
+    review(&s, job.job_id);
+    s.resume_delivery(job.job_id, &resume_request(0), 120)
+        .unwrap();
+    s.delivery_failed(job.job_id, 130).unwrap();
+    s.delivery_failed(job.job_id, 135).unwrap();
+    let pending = s
+        .accept(&input("g", "pending-migration", "missing"), &context)
+        .unwrap();
+    s.note_missing(pending.job_id, 1, 100).unwrap();
+    assert!(s.claim_blocked(pending.job_id, 500).unwrap());
+    s.reset_missing(pending.job_id, &reset_request(0), 500)
+        .unwrap();
+    let instance = s.instance_id().unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    schema_ten_retry_table(&c);
+    let before = retained_table_rows(&c);
+    drop(c);
+    assert!(matches!(
+        Store::open_read_only(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    let s = Store::open(f.db()).unwrap();
+    let c = Connection::open(f.db()).unwrap();
+    assert_eq!(
+        c.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
+        11
+    );
+    assert_eq!(retained_table_rows(&c), before);
+    assert_eq!(s.instance_id().unwrap(), instance);
+    assert!(s.delivery_candidates(139, 1).unwrap().is_empty());
+    assert_eq!(s.delivery_candidates(140, 1).unwrap(), vec![job.job_id]);
+    s.delivery_failed_with_kind(job.job_id, 140, DeliveryFailureKind::DestinationCapacity)
+        .unwrap();
+    assert_eq!(
+        s.status(job.job_id).unwrap().unwrap().delivery,
+        Some((3, 260, "destination_capacity_requires_review".into()))
+    );
+}
+#[test]
+fn failed_capacity_code_migration_rolls_back_schema_version_and_retained_rows() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let id = ready_job(&s).job_id;
+    s.delivery_failed(id, 100).unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    schema_ten_retry_table(&c);
+    // Controlled corrupt fixture: fail the copy after ALTER/CREATE, not before it.
+    c.execute_batch("PRAGMA ignore_check_constraints=ON; UPDATE delivery_failures SET code='invalid_fixture_code'; PRAGMA ignore_check_constraints=OFF;").unwrap();
+    let before = retained_table_rows(&c);
+    drop(c);
+    assert!(matches!(Store::open(f.db()), Err(StoreError::Sqlite(_))));
+    let c = Connection::open(f.db()).unwrap();
+    assert_eq!(
+        c.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
+        10
+    );
+    assert_eq!(retained_table_rows(&c), before);
+    let old: i64 = c
+        .query_row(
+            "SELECT count(*) FROM sqlite_schema WHERE name='delivery_failures_v10'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(old, 0);
+}
+
+#[test]
+fn capacity_backoff_deadlines_review_and_audited_reset_survive_restart() {
+    let f = Fixture::new();
+    let mut s = Store::open(f.db()).unwrap();
+    let id = ready_job(&s).job_id;
+    let kind = DeliveryFailureKind::DestinationCapacity;
+    for (now, failures, deadline) in [(100, 1, 130), (130, 2, 190), (190, 3, 310)] {
+        s.delivery_failed_with_kind(id, now, kind).unwrap();
+        drop(s);
+        s = Store::open(f.db()).unwrap();
+        assert_eq!(
+            s.status(id).unwrap().unwrap().delivery,
+            Some((failures, deadline, kind.code().into()))
+        );
+        assert!(s.delivery_candidates(deadline - 1, 1).unwrap().is_empty());
+        assert_eq!(
+            s.delivery_candidates(deadline, 1).unwrap(),
+            if failures < 3 { vec![id] } else { vec![] }
+        );
+    }
+    assert!(s.delivery_candidates(i64::MAX, 1).unwrap().is_empty());
+    let reviewed = s.status(id).unwrap().unwrap().delivery;
+    s.delivery_failed_with_kind(id, 999, kind).unwrap();
+    assert_eq!(s.status(id).unwrap().unwrap().delivery, reviewed);
+    let request = resume_request(0);
+    assert!(!s.resume_delivery(id, &request, 200).unwrap().replay);
+    let audit = s.status(id).unwrap().unwrap().latest_resume.unwrap();
+    assert_eq!(audit.prior_code, kind.code());
+    assert_eq!(audit.prior_retry_after, 310);
+    assert_eq!(s.delivery_candidates(200, 1).unwrap(), vec![id]);
+    s.delivery_failed_with_kind(id, 200, kind).unwrap();
+    assert!(s.resume_delivery(id, &request, 201).unwrap().replay);
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((1, 230, kind.code().into()))
+    );
+    assert!(s.delivery_candidates(229, 1).unwrap().is_empty());
+}
+#[test]
+fn capacity_backoff_keeps_mixed_failure_budget_binding_review_and_clock_bounds() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let id = ready_job(&s).job_id;
+    let kind = DeliveryFailureKind::DestinationCapacity;
+    s.delivery_failed(id, 100).unwrap();
+    s.delivery_failed_with_kind(id, 105, kind).unwrap();
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((2, 165, kind.code().into()))
+    );
+    s.delivery_failed(id, 165).unwrap();
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((3, 170, "delivery_requires_review".into()))
+    );
+    s.destination_binding_refused(id, 200).unwrap();
+    s.delivery_failed_with_kind(id, 999, kind).unwrap();
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((3, 200, "destination_binding_requires_review".into()))
+    );
+    s.resume_delivery(id, &resume_request(0), 1000).unwrap();
+    assert!(matches!(
+        s.delivery_failed_with_kind(id, -1, kind),
+        Err(StoreError::InvalidContext)
+    ));
+    assert!(s.status(id).unwrap().unwrap().delivery.is_none());
+    s.delivery_failed_with_kind(id, i64::MAX - 5, kind).unwrap();
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((1, i64::MAX, kind.code().into()))
+    );
+    assert!(s.delivery_candidates(i64::MAX - 1, 1).unwrap().is_empty());
+    assert_eq!(s.delivery_candidates(i64::MAX, 1).unwrap(), vec![id]);
+}
+#[test]
+fn capacity_backoff_persistence_failure_does_not_partially_update_count_or_deadline() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let id = ready_job(&s).job_id;
+    let kind = DeliveryFailureKind::DestinationCapacity;
+    s.delivery_failed_with_kind(id, 100, kind).unwrap();
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("CREATE TRIGGER reject_capacity BEFORE UPDATE ON delivery_failures BEGIN SELECT RAISE(ABORT,'test rollback'); END;").unwrap();
+    assert!(matches!(
+        s.delivery_failed_with_kind(id, 130, kind),
+        Err(StoreError::Sqlite(_))
+    ));
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((1, 130, kind.code().into()))
+    );
+    c.execute_batch("DROP TRIGGER reject_capacity;").unwrap();
+    s.delivery_failed_with_kind(id, 130, kind).unwrap();
+    assert_eq!(
+        s.status(id).unwrap().unwrap().delivery,
+        Some((2, 190, kind.code().into()))
+    );
+}
+
 #[test]
 fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
     let f = Fixture::new();

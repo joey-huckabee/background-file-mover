@@ -1,4 +1,4 @@
-//! Diagnostics around the existing payload calls; never retry/phase authority.
+//! Native failure facts and safe diagnostics; never phase/effect authority.
 use rustix::{fd::AsFd, fs};
 use std::{
     fs::File,
@@ -33,7 +33,14 @@ impl Operation {
 
 pub(super) struct Failure {
     operation: &'static str,
+    payload_operation: Option<Operation>,
     error: io::Error,
+}
+pub(super) fn capacity_failure(error: &(dyn std::error::Error + 'static)) -> bool {
+    error.downcast_ref::<Failure>().is_some_and(|failure| {
+        matches!(failure.payload_operation, Some(Operation::CopyWrite))
+            && failure.error.raw_os_error() == Some(rustix::io::Errno::NOSPC.raw_os_error())
+    })
 }
 impl std::fmt::Display for Failure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -71,6 +78,7 @@ fn run<T>(operation: Operation, effect: impl FnOnce() -> io::Result<T>) -> Resul
     {
         return Err(Failure {
             operation: operation.tag(),
+            payload_operation: Some(operation),
             error: io::Error::from_raw_os_error(if matches!(operation, Operation::CopyWrite) {
                 28
             } else {
@@ -80,6 +88,7 @@ fn run<T>(operation: Operation, effect: impl FnOnce() -> io::Result<T>) -> Resul
     }
     effect().map_err(|error| Failure {
         operation: operation.tag(),
+        payload_operation: Some(operation),
         error,
     })
 }
@@ -96,10 +105,15 @@ pub(super) fn effect<T>(
     {
         return Err(Failure {
             operation,
+            payload_operation: None,
             error: io::Error::from_raw_os_error(5),
         });
     }
-    call().map_err(|error| Failure { operation, error })
+    call().map_err(|error| Failure {
+        operation,
+        payload_operation: None,
+        error,
+    })
 }
 pub(super) fn native<T>(
     operation: &'static str,
@@ -112,6 +126,7 @@ pub(super) fn native<T>(
 pub(super) fn diagnostic(operation: &'static str, errno: rustix::io::Errno) -> String {
     Failure {
         operation,
+        payload_operation: None,
         error: io::Error::from_raw_os_error(errno.raw_os_error()),
     }
     .to_string()
@@ -148,6 +163,7 @@ mod tests {
     #[test]
     fn effect_diagnostics_preserve_errno_and_hide_arbitrary_native_error_text() {
         for tag in [
+            "payload_copy_write",
             "staging_allocate",
             "manifest_write",
             "manifest_directory_sync",
@@ -157,6 +173,7 @@ mod tests {
             for errno in [5, 28, 13, 17] {
                 let error =
                     effect::<()>(tag, || Err(io::Error::from_raw_os_error(errno))).unwrap_err();
+                assert!(!crate::is_payload_capacity_failure(&error));
                 let detail = crate::failure_diagnostic(&error);
                 assert!(detail.starts_with(&format!("{tag} errno={errno};")));
                 assert!(detail.contains("preserve source/state"));
@@ -186,8 +203,13 @@ mod tests {
             for errno in [5, 28, 13] {
                 let error = Failure {
                     operation: operation.tag(),
+                    payload_operation: Some(operation),
                     error: io::Error::from_raw_os_error(errno),
                 };
+                assert_eq!(
+                    crate::is_payload_capacity_failure(&error),
+                    matches!(operation, Operation::CopyWrite) && errno == 28
+                );
                 let detail = crate::failure_diagnostic(&error);
                 assert!(detail.starts_with(&format!("{} errno={errno};", operation.tag())));
                 assert!(detail.contains("preserve source/state"));
@@ -204,6 +226,7 @@ mod tests {
         ] {
             let error = Failure {
                 operation: Operation::CopyWrite.tag(),
+                payload_operation: Some(Operation::CopyWrite),
                 error,
             };
             let detail = crate::failure_diagnostic(&error);

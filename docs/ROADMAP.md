@@ -29,8 +29,10 @@ before implementation.
   two-client fixture and qualify replacement exports, server reboot and power loss.
 - [ ] Extend diagnostics to remaining root/traversal metadata failures and
   logical custody/integrity refusals.
-- [ ] Improve retry classification/backoff; qualify block-device/quota free-space
-  margins and admission during destination shortages.
+- [ ] Extend retry classification beyond confirmed payload-copy ENOSPC; decide
+  configurable/jittered intervals and longer capacity waits with retained-attempt
+  accounting. Qualify block-device/quota free-space margins and admission during
+  destination shortages; use [the retry policy](DELIVERY-RETRY-POLICY.md).
 - [ ] Implement configurable gated source cleanup only after worker/filesystem
   failure qualification passes.
 - [ ] Deferred: offline custody/orphan inspection and explicit repair tooling.
@@ -164,8 +166,9 @@ features. Do not treat candidate names as compatibility approval.
 - [ ] Build a crash/fault matrix around durable intent, claiming, writes, sync,
   verification, publication, recording manifests and source deletion. Test entry
   swaps, collisions, missing paths, interrupted link/unlink and recovery ambiguity.
-- [ ] Implement tested schema migrations against retained database fixtures.
-  Remove destructive delete-and-restart advice for databases protecting recordings.
+- [ ] Expand migration qualification using retained released databases, interrupted
+  upgrades and an independently fenced backup/rollback procedure. Remove destructive
+  delete-and-restart advice for databases protecting recordings.
 - [ ] Measure meaningful branch coverage and justify real uncovered failure paths;
   distinguish compiler artifacts from untested behavior before setting gates.
 - [ ] Test service accounts, path permissions, configuration/start failures,

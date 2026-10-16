@@ -255,3 +255,12 @@ actual server outages/ENOSPC; relocation keeps its existing deterministic
 checkpoints. See [increment 32](RUST-INCREMENT-32.md) and SC-073 for results,
 unreceipted-allocation refusals and final-manifest ambiguity. Keep all existing
 ownership/fencing and production-NFS restrictions.
+
+Increment 33 extends `--delivery-storage` with two pending-restart automatic
+capacity recovery cases in addition to the four existing review/resume cases.
+The native fixture preserves saved deadlines and old attempts, observes the new
+capacity status code and rejects attempts observed before their deadline. It
+never injects ENOSPC in these cases. See [the retry policy](DELIVERY-RETRY-POLICY.md)
+and [increment 33](RUST-INCREMENT-33.md) for actual results and scope. Schema 11 preserves original retry/enrollment state while widening the retry-code
+constraint. The private delivery session uses protocol version 2; persisted receipts and bindings keep
+their existing versions. Keep all production NFS/fencing restrictions.

@@ -43,6 +43,9 @@ pub(crate) struct Assignment {
     manifest: Option<ManifestInput>,
 }
 impl Assignment {
+    pub(crate) fn is_copy(&self) -> bool {
+        self.phase == TransferPhase::Intent as i64
+    }
     pub(crate) fn new(t: &Transfer, c: &ClaimIntent) -> Self {
         Self {
             version: 1,

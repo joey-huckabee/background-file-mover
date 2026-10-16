@@ -81,6 +81,13 @@ Increment 32 extends fixed diagnostics to staging allocation, relocation sync/op
 and completion-manifest I/O; see docs/RUST-INCREMENT-32.md. Preserve the existing
 retry/review policy: unreceipted allocations are not automatically repaired, and
 COMMITTED.json can exist before coordinator commitment after a failed sync.
+Increment 33 adds typed payload-copy ENOSPC backoff (30/60 seconds, still review
+at three persisted failures); see docs/DELIVERY-RETRY-POLICY.md and
+docs/RUST-INCREMENT-33.md for actual results. Schema 11 transactionally widens
+retry codes while preserving original state, source pairing and recorded deadlines.
+Private delivery sessions use version 2; persisted receipts and binding versions
+are unchanged. Never infer classification from diagnostic text or extend capacity
+backoff to sync/publication, allocation, custody or unknown worker outcomes.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

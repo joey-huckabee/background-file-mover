@@ -19,6 +19,11 @@ pub enum ClaimError {
     MissingSource,
     ExpectedSizeMismatch,
 }
+/// A native ENOSPC from payload copy-write only; not an effect receipt.
+/// Caller must also validate its failed copy assignment and retained Intent phase.
+pub fn is_payload_capacity_failure(error: &(dyn std::error::Error + 'static)) -> bool {
+    payload_io::capacity_failure(error)
+}
 pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
     let message = if let Some(e) = error.downcast_ref::<ClaimError>() {
         match e {

@@ -173,3 +173,15 @@ labels with the same safe guidance. Relocation distinguishes original/final open
 file and parent syncs, no-clobber rename, exclusive link and old-name unlink.
 A failed call can leave a final name or an unreceipted allocation: diagnostics
 never authorize repair or commitment. See [increment 32](../docs/RUST-INCREMENT-32.md).
+
+Only confirmed ENOSPC during an owned payload copy gets capacity backoff: 30 then
+60 seconds, with review still required after three total failures. Count, class
+and absolute deadline persist across restart. Typed failure hints never authorize
+publication or repair; ambiguous/other failures keep their existing policy.
+See [retry policy](../docs/DELIVERY-RETRY-POLICY.md) and
+[increment 33](../docs/RUST-INCREMENT-33.md). Production NFS/deletion remain off.
+
+The capacity code requires schema 11. Writable startup transactionally migrates
+schema 10 without resetting existing counts/deadlines, jobs, ownership or audit
+records. Read-only inspection refuses schema 10 until upgraded, and older service
+binaries refuse schema 11. No reverse migration or manual SQL repair is provided.
