@@ -96,6 +96,13 @@ between file and directory sync or before receipt reads. Those test controls hav
 no effect in production. See [increment 28](../docs/RUST-INCREMENT-28.md) for
 failure and blocked-startup evidence and its limits.
 
+## Operator instructions
+
+Use the [operator status and recovery guide](../docs/RUST-OPERATOR-GUIDE.md)
+for implemented status fields, curl commands, command replay/errors, capacity
+triage and situations that must remain blocked. It assumes an initialized
+loopback service; production NFS, source cleanup and offline repair remain off.
+
 ## Checks
 
 [Increment 20](../docs/RUST-INCREMENT-20.md) extends the retained fixture with

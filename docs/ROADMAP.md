@@ -13,10 +13,12 @@ before implementation.
 - [ ] Expand NFS runtime qualification to in-flight link/unlink RPCs, remaining
   synchronization boundaries, outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.
-- [ ] Develop the user guides and runbooks tracked by
-  [RUST-SCENARIOS.md](RUST-SCENARIOS.md) (DOC-01–06). Update the scenario catalog
-  with each increment, including prior/new success, retry, review and recovery
-  situations, their actual evidence and remaining documentation obligations.
+- [ ] Complete the producer/consumer guides, restart/shutdown troubleshooting and
+  deployment matrix tracked by [RUST-SCENARIOS.md](RUST-SCENARIOS.md)
+  (DOC-01/02/04/05); keep future adapter/repair guides (DOC-06) deferred. Maintain
+  the [operator guide](RUST-OPERATOR-GUIDE.md) as behavior changes. Update the
+  scenario catalog with each increment, including success, retry, review and
+  recovery situations, actual evidence and remaining documentation obligations.
 - [ ] Qualify enrollment against block-device/quota exhaustion, server I/O errors,
   in-flight synchronization RPCs and power loss. Preserve conservative review for
   ambiguous creation; use [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md).

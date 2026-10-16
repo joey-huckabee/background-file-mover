@@ -23,6 +23,8 @@ It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
 [audited delivery resume](docs/RUST-INCREMENT-08.md) and
 [audited missing-file deadline reset](docs/RUST-INCREMENT-09.md).
 Read-only [retention accounting](docs/RUST-INCREMENT-10.md) is also implemented.
+Use the current [Rust operator guide](docs/RUST-OPERATOR-GUIDE.md) for status,
+audited resume/missing reset, command replay and capacity/recovery triage.
 Background copy/verification now uses [supervised child workers](docs/RUST-INCREMENT-11.md).
 [Claim and publication operations](docs/RUST-INCREMENT-12.md) now use children too.
 [Recording sessions](docs/RUST-INCREMENT-13.md) isolate runtime destination opening,

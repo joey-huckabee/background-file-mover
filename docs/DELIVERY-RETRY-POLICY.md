@@ -4,6 +4,9 @@ Initial policy recorded 2026-10-16. [Increment 33](RUST-INCREMENT-33.md) impleme
 only confirmed payload-copy ENOSPC backoff. This is a narrow scheduling change;
 existing claim, verification, publication, custody and repair rules still apply.
 
+For operator status examples and audited commands, use the
+[operator guide](RUST-OPERATOR-GUIDE.md).
+
 ## Current rules
 
 | Situation | Scheduling and review | Evidence required |

@@ -217,7 +217,8 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 33](RUST-INCREMENT-33.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 34](RUST-INCREMENT-34.md), [operator guide](RUST-OPERATOR-GUIDE.md),
+[retry policy](DELIVERY-RETRY-POLICY.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -358,3 +359,11 @@ through a preserving transaction. Private delivery-session protocol 2 is distinc
 from persisted receipt version 1 and binding version 3. Consult the increment for
 actual gates, failed-development findings, selected NFS scope and limits. Preserve
 all other retry/reconciliation, ownership and production NFS/deletion restrictions.
+
+Increment 34 delivers DOC-03 in the [operator guide](RUST-OPERATOR-GUIDE.md):
+status interpretation, audited resume/missing reset, exact command replay,
+retention/capacity triage and preservation/refusal boundaries. Documentation only;
+no runtime or qualification changes. Keep the other guides in the catalog backlog.
+Existing job/byte reservation limits already apply; the next admission increment
+should refine source-space margins and sustained-shortage behavior, not recreate
+those limits. Design and qualify that policy before changing admission effects.

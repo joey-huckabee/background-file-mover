@@ -88,6 +88,9 @@ retry codes while preserving original state, source pairing and recorded deadlin
 Private delivery sessions use version 2; persisted receipts and binding versions
 are unchanged. Never infer classification from diagnostic text or extend capacity
 backoff to sync/publication, allocation, custody or unknown worker outcomes.
+Increment 34 delivers DOC-03 in docs/RUST-OPERATOR-GUIDE.md; maintain it with
+future status/retry/review changes. See docs/RUST-INCREMENT-34.md for the
+documentation-only checks. Other user guides remain in the scenario backlog.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond
