@@ -68,6 +68,10 @@ Increment 29 adds opt-in --enrollment-storage qualification with a bounded 4 MiB
 128-inode server tmpfs export; see docs/RUST-INCREMENT-29.md for actual results.
 Distinguish no receipt creation from created-but-unactivated review, retain original
 state/data, and do not generalize tmpfs ENOSPC to disk EIO or power-loss durability.
+Increment 30 adds --delivery-storage for bounded destination-full payload copying
+and live/original-state restart review/resume; see docs/RUST-INCREMENT-30.md for
+actual results. Preserve old partials and claimed source, never edit state to
+recover, and distinguish measured server capacity from generic worker diagnostics.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

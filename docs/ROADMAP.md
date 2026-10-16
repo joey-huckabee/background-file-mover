@@ -27,7 +27,8 @@ before implementation.
 - [ ] Qualify lost-lock handling, partition/reclaim and positively fenced takeover
   before production NFS. Extend cooperative exclusion beyond the shared-kernel
   two-client fixture and qualify replacement exports, server reboot and power loss.
-- [ ] Improve retry classification/backoff and qualify physical free-space margins.
+- [ ] Improve payload error diagnostics and retry classification/backoff; qualify
+  block-device/quota free-space margins and admission during destination shortages.
 - [ ] Implement configurable gated source cleanup only after worker/filesystem
   failure qualification passes.
 - [ ] Deferred: offline custody/orphan inspection and explicit repair tooling.

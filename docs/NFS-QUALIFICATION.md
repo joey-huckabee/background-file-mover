@@ -230,3 +230,12 @@ artifacts and retains baseline/OS/startup checks. Add `--ownership --runtime`
 only when a full rerun is intended; the focused storage report does not claim
 those suites ran. Consult the increment for actual results and retry decisions.
 Tmpfs exhaustion does not establish physical-disk, EIO or power-loss durability.
+
+[Increment 30](RUST-INCREMENT-30.md) adds `--delivery-storage`: a separate bounded
+32 MiB server tmpfs with 1 MiB left available before a 2 MiB recording is submitted.
+Real copying must exhaust it, retain source custody, reach review, and recover via
+audited resume after capacity restoration, both live and across original-state
+restart. The option can run alongside `--enrollment-storage`; neither implies the
+full `--runtime`/`--ownership` suite was requested. Consult the increment for
+actual results and generic payload-diagnostic limitations. Keep the new helper
+and recorded driver hashes with the permanent fixture capability.

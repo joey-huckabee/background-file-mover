@@ -38,11 +38,14 @@ def main():
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
     parser.add_argument("--enrollment-storage", action="store_true",
                         help="Qualify real ENOSPC on a bounded disposable server export, including safe retry versus review")
+    parser.add_argument("--delivery-storage", action="store_true",
+                        help="Qualify destination-full payload copying and audited recovery, including original-state restart")
     args = parser.parse_args()
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
     assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
     assert not args.enrollment_storage or args.qualification_gate, "storage probes require qualification artifacts"
+    assert not args.delivery_storage or args.qualification_gate, "delivery storage probes require qualification artifacts"
     engine = ["podman", "--connection", args.connection]
     gate = args.gate.resolve()
     evidence = json.loads((gate / "report.json").read_text())
@@ -88,6 +91,7 @@ def main():
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
     report["enrollment_storage_requested"] = args.enrollment_storage
+    report["delivery_storage_requested"] = args.delivery_storage
     report["runtime_scope"] = "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
@@ -213,6 +217,16 @@ def main():
                 assert report["enrollment_storage"]["passed"]
                 expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
                 assert report["enrollment_storage"]["artifacts"] == expected
+            if args.delivery_storage:
+                from nfs_delivery_storage import qualify_delivery_storage
+                report["delivery_storage"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_delivery_storage.py", "nfs_binding.py")}}
+                qualify_delivery_storage(run, execute, spawn, output, client, server, ip, options,
+                                         extra_mounts, report["delivery_storage"])
+                assert report["delivery_storage"]["passed"]
+                expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
+                assert report["delivery_storage"]["artifacts"] == expected
             if args.ownership:
                 peer = run(["create", "--network", network, "--cap-drop", "all", "--cap-add", "SYS_ADMIN",
                             "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", CONFIG["runtime"],
