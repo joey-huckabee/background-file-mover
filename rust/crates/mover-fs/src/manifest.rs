@@ -1,4 +1,5 @@
 //! Exact immutable recording manifest; allocation/writing/publication receipts.
+use super::payload_io::{effect, native};
 use super::*;
 use mover_core::{ManifestRecord, TransferPhase};
 use serde::{Deserialize, Serialize};
@@ -39,7 +40,9 @@ fn expected(store: &Store, id: i64) -> ManifestResult<(String, OwnedFd, OwnedFd)
         }
         super::transfer::claimed(store, id, index)?;
         let (_, area, staging, parent, name) = super::transfer::directories(&t)?;
-        let fd = fs::openat(&parent, name.as_str(), FILE, Mode::empty())?;
+        let fd = native("manifest_open", || {
+            fs::openat(&parent, name.as_str(), FILE, Mode::empty())
+        })?;
         if source(&fd)? != t.stage {
             return Err("published custody lost before commitment".into());
         }
@@ -75,7 +78,9 @@ fn read_exact_manifest(fd: &mut File, m: &ManifestRecord) -> ManifestResult<()> 
         return Err("manifest object changed".into());
     }
     let mut bytes = Vec::new();
-    (&mut *fd).take(131073).read_to_end(&mut bytes)?;
+    effect("manifest_read", || {
+        (&mut *fd).take(131073).read_to_end(&mut bytes)
+    })?;
     if bytes != m.bytes.as_bytes() || source(fd)? != before {
         return Err("manifest content mismatch".into());
     }
@@ -158,7 +163,9 @@ fn commit_with_workers(
         store.save_manifest(&m)?;
         checkpoint("committed");
     } else if m.phase == 4 {
-        let mut file = File::from(fs::openat(&area, "COMMITTED.json", FILE, Mode::empty())?);
+        let mut file = File::from(native("manifest_open", || {
+            fs::openat(&area, "COMMITTED.json", FILE, Mode::empty())
+        })?);
         read_exact_manifest(&mut file, &m)?;
     }
     Ok(m)
@@ -189,7 +196,9 @@ fn publish_manifest_in_directories(
         fs::statat(area, "COMMITTED.json", AtFlags::SYMLINK_NOFOLLOW),
         Err(Errno::NOENT)
     ) {
-        let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
+        let mut file = File::from(native("manifest_open", || {
+            fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())
+        })?);
         read_exact_manifest(&mut file, m)?;
     }
     let fd = super::relocate::owned(
@@ -204,9 +213,9 @@ fn publish_manifest_in_directories(
     .fd;
     let mut file = File::from(fd);
     read_exact_manifest(&mut file, m)?;
-    file.sync_all()?;
-    fs::fsync(staging)?;
-    fs::fsync(area)?;
+    effect("manifest_file_sync", || file.sync_all())?;
+    native("manifest_staging_sync", || fs::fsync(staging))?;
+    native("manifest_directory_sync", || fs::fsync(area))?;
     checkpoint("publication_sync");
     let mut next = m.clone();
     next.phase = 4;
@@ -237,20 +246,24 @@ fn manifest_step_in_directories(
 ) -> ManifestResult<ManifestRecord> {
     let mut m = previous.clone();
     if m.phase == 0 {
-        let fd = fs::openat(
-            staging,
-            "COMMITTED.part",
-            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::RUSR | Mode::WUSR,
-        )?;
-        fs::fsync(&fd)?;
-        fs::fsync(staging)?;
+        let fd = native("manifest_allocate", || {
+            fs::openat(
+                staging,
+                "COMMITTED.part",
+                OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::RUSR | Mode::WUSR,
+            )
+        })?;
+        native("manifest_allocation_sync", || fs::fsync(&fd))?;
+        native("manifest_staging_sync", || fs::fsync(staging))?;
         checkpoint("allocation_effect");
         m.object = Some(source(&fd)?);
         m.phase = 1;
     }
     if previous.phase == 1 {
-        let held = fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?;
+        let held = native("manifest_open", || {
+            fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())
+        })?;
         let allocated = source(&held)?;
         let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
         if allocated.device != owned.device
@@ -259,13 +272,17 @@ fn manifest_step_in_directories(
         {
             return Err("manifest allocation custody lost".into());
         }
-        fs::fchmod(&held, Mode::RUSR | Mode::WUSR)?;
-        let fd = fs::openat(
-            staging,
-            "COMMITTED.part",
-            OFlags::RDWR | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::empty(),
-        )?;
+        native("manifest_writable", || {
+            fs::fchmod(&held, Mode::RUSR | Mode::WUSR)
+        })?;
+        let fd = native("manifest_open", || {
+            fs::openat(
+                staging,
+                "COMMITTED.part",
+                OFlags::RDWR | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+        })?;
         let actual = source(&fd)?;
         let owned = m.object.as_ref().ok_or("missing allocation receipt")?;
         if actual.device != owned.device
@@ -278,18 +295,20 @@ fn manifest_step_in_directories(
         // Only the recorded owned manifest staging object may be rewritten;
         // exact manifest bytes are already durable, unlike an incomplete copy.
         let mut file = File::from(fd);
-        file.set_len(0)?;
-        file.seek(SeekFrom::Start(0))?;
-        file.write_all(m.bytes.as_bytes())?;
-        fs::fchmod(&file, Mode::RUSR)?;
-        file.sync_all()?;
-        fs::fsync(staging)?;
+        effect("manifest_truncate", || file.set_len(0))?;
+        effect("manifest_seek", || file.seek(SeekFrom::Start(0)))?;
+        effect("manifest_write", || file.write_all(m.bytes.as_bytes()))?;
+        native("manifest_readonly", || fs::fchmod(&file, Mode::RUSR))?;
+        effect("manifest_file_sync", || file.sync_all())?;
+        native("manifest_staging_sync", || fs::fsync(staging))?;
         checkpoint("write_effect");
         m.object = Some(source(&file)?);
         m.phase = 2;
     }
     if previous.phase == 2 {
-        let mut file = File::from(fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())?);
+        let mut file = File::from(native("manifest_open", || {
+            fs::openat(staging, "COMMITTED.part", FILE, Mode::empty())
+        })?);
         read_exact_manifest(&mut file, &m)?;
         m.phase = 3;
     }
@@ -297,7 +316,9 @@ fn manifest_step_in_directories(
         return publish_manifest_in_directories(area, staging, previous, checkpoint);
     }
     if previous.phase == 4 {
-        let mut file = File::from(fs::openat(area, "COMMITTED.json", FILE, Mode::empty())?);
+        let mut file = File::from(native("manifest_open", || {
+            fs::openat(area, "COMMITTED.json", FILE, Mode::empty())
+        })?);
         read_exact_manifest(&mut file, previous)?;
     }
     Ok(m)

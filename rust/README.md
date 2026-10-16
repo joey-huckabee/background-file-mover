@@ -167,3 +167,9 @@ source/state. These logs do not authorize effects or change the existing retry,
 review or audited-resume rules. Unknown error text, paths and payload bytes are
 not echoed. Qualification-only payload fault controls test those boundaries;
 production ignores them. See [increment 31](../docs/RUST-INCREMENT-31.md).
+
+Staging allocation and completion-manifest I/O now report fixed operation/errno
+labels with the same safe guidance. Relocation distinguishes original/final opens,
+file and parent syncs, no-clobber rename, exclusive link and old-name unlink.
+A failed call can leave a final name or an unreceipted allocation: diagnostics
+never authorize repair or commitment. See [increment 32](../docs/RUST-INCREMENT-32.md).

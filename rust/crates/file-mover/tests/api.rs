@@ -10,6 +10,113 @@ use std::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
+fn effect_diagnostics_preserve_uncertain_allocations_manifest_review_and_recovery() {
+    // Allocation sync can leave an unreceipted object: never promise auto-repair.
+    for (fault, recoverable, committed_name) in [
+        ("staging_allocate", false, false),
+        ("staging_allocation_sync", false, false),
+        ("staging_allocation_directory_sync", false, false),
+        ("manifest_allocate", true, false),
+        ("manifest_allocation_sync", false, false),
+        ("manifest_staging_sync", false, false),
+        ("manifest_truncate", true, false),
+        ("manifest_seek", true, false),
+        ("manifest_write", true, false),
+        ("manifest_writable", true, false),
+        ("manifest_readonly", true, false),
+        ("manifest_file_sync", true, false),
+        ("manifest_read", true, false),
+        ("manifest_directory_sync", true, true),
+    ] {
+        let mut f = Fixture::uninitialized(300);
+        assert!(
+            initialize_source(&f.root.join("config.json"))
+                .status
+                .success()
+        );
+        provision_destination(&f);
+        f.write("data", b"private recording contents");
+        f.start_with_faults(None, Some(fault));
+        assert_eq!(f.post(&f.input(fault, json!([{"name":"data"}]))).0, 202);
+        f.write("data", b"producer reused path");
+        if cfg!(feature = "nfs-qualification") {
+            let deadline = Instant::now() + Duration::from_secs(45);
+            let reviewed = loop {
+                assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+                let (_, current) = status(&f, "1");
+                assert_eq!(current["state"], "Claimed");
+                if current["details"]["condition"] == "ReviewRequired" {
+                    break current;
+                }
+                assert!(Instant::now() < deadline, "{fault}: {current}");
+                std::thread::sleep(Duration::from_millis(50));
+            };
+            assert_eq!(reviewed["details"]["delivery_retry"]["failures"], 3);
+            assert_eq!(
+                reviewed["details"]["delivery_retry"]["code"],
+                "delivery_requires_review"
+            );
+            let committed = f.root.join("destination/1/COMMITTED.json");
+            assert_eq!(committed.exists(), committed_name, "{fault}");
+            if committed_name {
+                let manifest: Value =
+                    serde_json::from_slice(&std::fs::read(&committed).unwrap()).unwrap();
+                assert_eq!(manifest["job_id"], "1");
+                assert_eq!(
+                    std::fs::read(f.root.join("destination/1/data")).unwrap(),
+                    b"private recording contents"
+                );
+            }
+            let mut stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
+            f.stop();
+            let mut log = String::new();
+            stderr.read_to_string(&mut log).unwrap();
+            let errno = 5;
+            assert!(log.contains(&format!("{fault} errno={errno};")), "{log}");
+            assert!(log.contains("preserve source/state"), "{log}");
+            assert!(!log.contains("private recording contents"));
+            assert!(!log.contains(f.root.to_str().unwrap()));
+            // Removing the fixture fault does not itself clear review.
+            f.start();
+            assert_eq!(status(&f, "1").1, reviewed);
+            assert_eq!(committed.exists(), committed_name);
+            assert_eq!(
+                std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+                b"private recording contents"
+            );
+            assert_eq!(
+                std::fs::read(f.root.join("source/current/data")).unwrap(),
+                b"producer reused path"
+            );
+            if !recoverable {
+                // Existing exclusive-allocation refusal survives restart; no repair here.
+                f.stop();
+                continue;
+            }
+            assert_eq!(resume(&f, "1", &resume_body(0)).0, 200);
+            assert_eq!(
+                resume(&f, "1", &resume_body(0)).1["details"]["replay"],
+                true
+            );
+        }
+        wait_manifest(&f, "1");
+        assert_eq!(
+            std::fs::read(f.root.join("destination/1/data")).unwrap(),
+            b"private recording contents"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+            b"private recording contents"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"producer reused path"
+        );
+        f.stop();
+    }
+}
+
+#[test]
 fn payload_diagnostics_preserve_review_resume_and_production_ignores_faults() {
     for (fault, phase) in [
         ("payload_source_read", "Intent"),
@@ -1708,12 +1815,18 @@ impl Fixture {
         self.start_with_payload_fault(None);
     }
     fn start_with_payload_fault(&mut self, fault: Option<&str>) {
+        self.start_with_faults(fault, None);
+    }
+    fn start_with_faults(&mut self, fault: Option<&str>, effect_fault: Option<&str>) {
         let mut command = Command::new(
             std::env::var("FILE_MOVER_TEST_EXECUTABLE")
                 .expect("SLES gate provides audited service binary"),
         );
         if let Some(fault) = fault {
             command.env("FILE_MOVER_QUALIFICATION_PAYLOAD_FAULT", fault);
+        }
+        if let Some(fault) = effect_fault {
+            command.env("FILE_MOVER_QUALIFICATION_EFFECT_FAULT", fault);
         }
         self.child = Some(
             command

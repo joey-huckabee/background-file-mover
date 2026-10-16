@@ -32,12 +32,12 @@ impl Operation {
 }
 
 pub(super) struct Failure {
-    operation: Operation,
+    operation: &'static str,
     error: io::Error,
 }
 impl std::fmt::Display for Failure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ", self.operation.tag())?;
+        write!(f, "{} ", self.operation)?;
         if let Some(errno) = self.error.raw_os_error() {
             write!(f, "errno={errno}; ")?;
         } else {
@@ -70,7 +70,7 @@ fn run<T>(operation: Operation, effect: impl FnOnce() -> io::Result<T>) -> Resul
         == Some(operation.tag())
     {
         return Err(Failure {
-            operation,
+            operation: operation.tag(),
             error: io::Error::from_raw_os_error(if matches!(operation, Operation::CopyWrite) {
                 28
             } else {
@@ -78,7 +78,50 @@ fn run<T>(operation: Operation, effect: impl FnOnce() -> io::Result<T>) -> Resul
             }),
         });
     }
-    effect().map_err(|error| Failure { operation, error })
+    effect().map_err(|error| Failure {
+        operation: operation.tag(),
+        error,
+    })
+}
+/// Named non-payload effects; fixed internal labels, never caller text.
+pub(super) fn effect<T>(
+    operation: &'static str,
+    call: impl FnOnce() -> io::Result<T>,
+) -> Result<T, Failure> {
+    #[cfg(feature = "nfs-qualification")]
+    if std::env::var("FILE_MOVER_QUALIFICATION_EFFECT_FAULT")
+        .ok()
+        .as_deref()
+        == Some(operation)
+    {
+        return Err(Failure {
+            operation,
+            error: io::Error::from_raw_os_error(5),
+        });
+    }
+    call().map_err(|error| Failure { operation, error })
+}
+pub(super) fn native<T>(
+    operation: &'static str,
+    call: impl FnOnce() -> rustix::io::Result<T>,
+) -> Result<T, Failure> {
+    effect(operation, || {
+        call().map_err(|e| io::Error::from_raw_os_error(e.raw_os_error()))
+    })
+}
+pub(super) fn diagnostic(operation: &'static str, errno: rustix::io::Errno) -> String {
+    Failure {
+        operation,
+        error: io::Error::from_raw_os_error(errno.raw_os_error()),
+    }
+    .to_string()
+}
+/// Relocation retains its existing typed errno matching/fallback behavior.
+pub(super) fn namespace<T>(
+    operation: &'static str,
+    call: impl FnOnce() -> rustix::io::Result<T>,
+) -> crate::Result<T> {
+    call().map_err(|e| crate::ClaimError::Operation(operation, e))
 }
 pub(super) fn read(
     file: &mut File,
@@ -103,6 +146,32 @@ pub(super) fn sync_fd(fd: &impl AsFd, operation: Operation) -> Result<(), Failur
 mod tests {
     use super::*;
     #[test]
+    fn effect_diagnostics_preserve_errno_and_hide_arbitrary_native_error_text() {
+        for tag in [
+            "staging_allocate",
+            "manifest_write",
+            "manifest_directory_sync",
+            "relocate.link_exclusive",
+            "relocate.unlink_original",
+        ] {
+            for errno in [5, 28, 13, 17] {
+                let error =
+                    effect::<()>(tag, || Err(io::Error::from_raw_os_error(errno))).unwrap_err();
+                let detail = crate::failure_diagnostic(&error);
+                assert!(detail.starts_with(&format!("{tag} errno={errno};")));
+                assert!(detail.contains("preserve source/state"));
+                assert!(detail.len() <= 240);
+            }
+            let error =
+                effect::<()>(tag, || Err(io::Error::other("private/path\nforged"))).unwrap_err();
+            let detail = crate::failure_diagnostic(&error);
+            assert!(
+                !detail.contains("private") && !detail.contains("forged") && !detail.contains('\n')
+            );
+            assert_eq!(format!("{error:?}"), detail);
+        }
+    }
+    #[test]
     fn payload_diagnostics_keep_operation_errno_and_safe_actions_without_error_text() {
         for operation in [
             Operation::SourceRead,
@@ -116,7 +185,7 @@ mod tests {
         ] {
             for errno in [5, 28, 13] {
                 let error = Failure {
-                    operation,
+                    operation: operation.tag(),
                     error: io::Error::from_raw_os_error(errno),
                 };
                 let detail = crate::failure_diagnostic(&error);
@@ -134,7 +203,7 @@ mod tests {
             (io::ErrorKind::WriteZero.into(), "write_zero"),
         ] {
             let error = Failure {
-                operation: Operation::CopyWrite,
+                operation: Operation::CopyWrite.tag(),
                 error,
             };
             let detail = crate::failure_diagnostic(&error);

@@ -59,14 +59,16 @@ pub(super) fn directories(
     Ok((root, area, staging, parent, name))
 }
 fn allocate(staging: &OwnedFd, attempt: i64) -> TransferResult<ObjectIdentity> {
-    let fd = fs::openat(
-        staging,
-        format!("{attempt}.part"),
-        OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-        Mode::RUSR | Mode::WUSR,
-    )?;
-    fs::fsync(&fd)?;
-    fs::fsync(staging)?;
+    let fd = payload_io::native("staging_allocate", || {
+        fs::openat(
+            staging,
+            format!("{attempt}.part"),
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::RUSR | Mode::WUSR,
+        )
+    })?;
+    payload_io::native("staging_allocation_sync", || fs::fsync(&fd))?;
+    payload_io::native("staging_allocation_directory_sync", || fs::fsync(staging))?;
     Ok(source(&fd)?)
 }
 pub fn prepare_transfer(store: &Store, id: i64) -> TransferResult<Transfer> {
@@ -134,7 +136,9 @@ pub fn prepare_transfer_effect(
     namespace(&root)?;
     let first = (index > 0).then_some(template);
     if first.is_none() {
-        fs::mkdirat(&root, id.to_string(), Mode::RWXU)?;
+        payload_io::native("staging_directory_create", || {
+            fs::mkdirat(&root, id.to_string(), Mode::RWXU)
+        })?;
     }
     let area = fs::openat(&root, id.to_string(), DIRECTORY, Mode::empty())?;
     if let Some(first) = &first {
@@ -142,13 +146,17 @@ pub fn prepare_transfer_effect(
         same_directory(&owned_directory(&area, true)?, &first.area)?;
     }
     if first.is_none() {
-        fs::mkdirat(&area, ".staging", Mode::RWXU)?;
+        payload_io::native("staging_directory_create", || {
+            fs::mkdirat(&area, ".staging", Mode::RWXU)
+        })?;
     }
     let mut staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
     if index > 0 {
-        fs::mkdirat(&staging, index.to_string(), Mode::RWXU)?;
+        payload_io::native("staging_directory_create", || {
+            fs::mkdirat(&staging, index.to_string(), Mode::RWXU)
+        })?;
         let child = fs::openat(&staging, index.to_string(), DIRECTORY, Mode::empty())?;
-        fs::fsync(&staging)?;
+        payload_io::native("staging_directory_sync", || fs::fsync(&staging))?;
         staging = child;
     }
     let relative_name = template.relative_name.clone();
@@ -158,16 +166,16 @@ pub fn prepare_transfer_effect(
         match fs::mkdirat(&current, *component, Mode::RWXU) {
             Ok(()) => (),
             Err(Errno::EXIST) if index > 0 => (),
-            Err(e) => return Err(e.into()),
+            Err(e) => return Err(ClaimError::Operation("staging_parent_create", e).into()),
         }
         let child = fs::openat(&current, *component, DIRECTORY, Mode::empty())?;
-        fs::fsync(&child)?;
-        fs::fsync(&current)?;
+        payload_io::native("staging_directory_sync", || fs::fsync(&child))?;
+        payload_io::native("staging_directory_sync", || fs::fsync(&current))?;
         current = child;
     }
     let stage = allocate(&staging, 1)?;
-    fs::fsync(&area)?;
-    fs::fsync(&root)?;
+    payload_io::native("staging_directory_sync", || fs::fsync(&area))?;
+    payload_io::native("staging_directory_sync", || fs::fsync(&root))?;
     let t = Transfer {
         job_id: id,
         file_index: index,

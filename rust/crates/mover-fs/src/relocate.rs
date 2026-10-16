@@ -1,5 +1,6 @@
 //! No-clobber regular-file relocation under an immutable durable intent and
 //! protected, fenced parents. Two-name recovery admits exactly the owned alias.
+use super::payload_io::namespace;
 use super::*;
 pub(super) struct Relocated {
     pub fd: OwnedFd,
@@ -70,57 +71,69 @@ fn move_with(
             }
             Err(Errno::NOENT) => {
                 exact(&fd, expected, 1)?;
-                fs::fsync(&fd)?;
-                fs::fsync(new)?;
-                fs::fsync(old)?;
+                namespace("relocate.final_file_sync", || fs::fsync(&fd))?;
+                namespace("relocate.new_parent_sync", || fs::fsync(new))?;
+                namespace("relocate.old_parent_sync", || fs::fsync(old))?;
                 return Ok(Relocated { fd, recovered });
             }
             Err(e) => return Err(ClaimError::Operation("relocate.open_original", e)),
         }
     } else {
-        let original = fs::openat(old, old_name, FILE, Mode::empty())?;
+        let original = namespace("relocate.open_original", || {
+            fs::openat(old, old_name, FILE, Mode::empty())
+        })?;
         exact(&original, expected, 1)?;
-        fs::fsync(&original)?;
+        namespace("relocate.original_file_sync", || fs::fsync(&original))?;
         match rename() {
             Ok(()) => {
                 checkpoint("rename_effect")?;
-                let fd = fs::openat(new, new_name, FILE, Mode::empty())?;
+                let fd = namespace("relocate.open_final", || {
+                    fs::openat(new, new_name, FILE, Mode::empty())
+                })?;
                 exact(&fd, expected, 1)?;
-                fs::fsync(&fd)?;
-                fs::fsync(new)?;
-                fs::fsync(old)?;
+                namespace("relocate.final_file_sync", || fs::fsync(&fd))?;
+                namespace("relocate.new_parent_sync", || fs::fsync(new))?;
+                namespace("relocate.old_parent_sync", || fs::fsync(old))?;
                 return Ok(Relocated { fd, recovered });
             }
             Err(Errno::NOSYS | Errno::OPNOTSUPP | Errno::INVAL) => (),
             Err(e) => return Err(ClaimError::Operation("relocate.rename_noreplace", e)),
         }
-        fs::linkat(old, old_name, new, new_name, AtFlags::empty())
-            .map_err(|e| ClaimError::Operation("relocate.link_exclusive", e))?;
+        namespace("relocate.link_exclusive", || {
+            fs::linkat(old, old_name, new, new_name, AtFlags::empty())
+        })?;
         checkpoint("link_effect")?;
-        let fd = fs::openat(new, new_name, FILE, Mode::empty())?;
+        let fd = namespace("relocate.open_final", || {
+            fs::openat(new, new_name, FILE, Mode::empty())
+        })?;
         exact(&original, expected, 2)?;
         exact(&fd, expected, 2)?;
         fd
     };
     // Establish the new name durably before removing the old one. Recheck both
     // bindings under the producer handoff/protected-parent fencing contract.
-    fs::fsync(&final_fd)?;
-    fs::fsync(new)?;
+    namespace("relocate.final_file_sync", || fs::fsync(&final_fd))?;
+    namespace("relocate.new_parent_sync", || fs::fsync(new))?;
     checkpoint("link_durable")?;
     exact(
-        &fs::openat(old, old_name, FILE, Mode::empty())?,
+        &namespace("relocate.open_original", || {
+            fs::openat(old, old_name, FILE, Mode::empty())
+        })?,
         expected,
         2,
     )?;
     exact(
-        &fs::openat(new, new_name, FILE, Mode::empty())?,
+        &namespace("relocate.open_final", || {
+            fs::openat(new, new_name, FILE, Mode::empty())
+        })?,
         expected,
         2,
     )?;
-    fs::unlinkat(old, old_name, AtFlags::empty())
-        .map_err(|e| ClaimError::Operation("relocate.unlink_original", e))?;
+    namespace("relocate.unlink_original", || {
+        fs::unlinkat(old, old_name, AtFlags::empty())
+    })?;
     checkpoint("unlink_effect")?;
-    fs::fsync(old)?;
+    namespace("relocate.old_parent_sync", || fs::fsync(old))?;
     checkpoint("unlink_durable")?;
     exact(&final_fd, expected, 1)?;
     Ok(Relocated {
@@ -178,6 +191,26 @@ mod tests {
             assert!(!f.0.join("old").exists());
             assert_eq!(std::fs::read(f.0.join("new")).unwrap(), b"owned payload");
         }
+    }
+    #[test]
+    fn rename_error_after_effect_preserves_final_and_recovers_only_exact_ownership() {
+        let f = Fixture::new();
+        let dir = f.directory();
+        let expected = f.expected();
+        let result = move_with(&dir, "old", &dir, "new", &expected, &mut |_| Ok(()), || {
+            // Simulate a server-applied rename whose reply reports EIO.
+            fs::renameat(&dir, "old", &dir, "new")?;
+            Err(Errno::IO)
+        });
+        let error = result.err().unwrap();
+        let detail = failure_diagnostic(&error);
+        assert!(detail.starts_with("relocate.rename_noreplace errno=5;"));
+        assert!(detail.contains("preserve source/state"));
+        assert!(!f.0.join("old").exists());
+        assert_eq!(std::fs::read(f.0.join("new")).unwrap(), b"owned payload");
+        let recovered = owned(&dir, "old", &dir, "new", &expected, &mut |_| {}, "").unwrap();
+        assert!(recovered.recovered);
+        assert_eq!(source(&recovered.fd).unwrap(), expected);
     }
     #[test]
     fn other_rename_failures_never_trigger_a_fallback() {

@@ -247,3 +247,11 @@ The real `--delivery-storage` cases use no injected fault and now require the
 actual copy-write ENOSPC diagnostic once per failed attempt. Retry/review/resume
 and effect authorization are unchanged; diagnostic guidance is not a receipt or
 storage fence. Simulated EIO is distinct from actual server/hardware failure.
+
+Increment 32 retains qualification-only `FILE_MOVER_QUALIFICATION_EFFECT_FAULT`
+for selected staging/manifest operation labels (EIO before the native call).
+Production ignores it. This is a synthetic return-error control, separate from
+actual server outages/ENOSPC; relocation keeps its existing deterministic
+checkpoints. See [increment 32](RUST-INCREMENT-32.md) and SC-073 for results,
+unreceipted-allocation refusals and final-manifest ambiguity. Keep all existing
+ownership/fencing and production-NFS restrictions.

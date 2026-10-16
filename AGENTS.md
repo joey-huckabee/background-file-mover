@@ -77,6 +77,10 @@ payload fault controls; see docs/RUST-INCREMENT-31.md for actual results. Keep
 existing retry timing, three-failure review and audited resume unchanged. Error
 messages never authorize effects; publication sync failure may leave a valid
 final file while the job remains uncommitted. Preserve source/state/partials.
+Increment 32 extends fixed diagnostics to staging allocation, relocation sync/open
+and completion-manifest I/O; see docs/RUST-INCREMENT-32.md. Preserve the existing
+retry/review policy: unreceipted allocations are not automatically repaired, and
+COMMITTED.json can exist before coordinator commitment after a failed sync.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

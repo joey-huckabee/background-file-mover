@@ -24,7 +24,11 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
         match e {
             ClaimError::Io(errno) => format!("errno={}", errno.raw_os_error()),
             ClaimError::Operation(operation, errno) => {
-                format!("{operation} errno={}", errno.raw_os_error())
+                if operation.starts_with("relocate.") || operation.starts_with("staging_") {
+                    payload_io::diagnostic(operation, *errno)
+                } else {
+                    format!("{operation} errno={}", errno.raw_os_error())
+                }
             }
             ClaimError::Blocked(reason) => format!("blocked: {reason}"),
             ClaimError::MissingSource => "missing_source".into(),
