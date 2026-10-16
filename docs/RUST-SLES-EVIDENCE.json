@@ -23,7 +23,7 @@
       "artifacts": [
         {
           "name": "debug-0-file-mover",
-          "sha256": "669e3880298687bc2c6de2f82d5c87085baa3f72927cd977ea8929598a6e1746",
+          "sha256": "4696f2275d329f28301cc324c9224f50a955a9d0dbf0f10cd98f851c303ac551",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -55,7 +55,7 @@
         },
         {
           "name": "debug-1-api-eda771dfb4961b33",
-          "sha256": "680a57a69fb8ce6eaeddd99fbb010fb776bfbf425aa4ae9e1ff545c286f4f29c",
+          "sha256": "6dcc3dd95402764f477a392167661c39b7e7726c3c0da02c4103e57e9cd0541a",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -87,7 +87,7 @@
         },
         {
           "name": "debug-2-claim-ac270e05a26f1634",
-          "sha256": "a646efcf74fc661545e9e0843866ed4dd24d4f9d1230bac5068a254a24274d9d",
+          "sha256": "88c4f5c3473ef87b15afb2e8ff4c23030cb0cf9b40e2ab0ca5a5aaa212aa6449",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -143,7 +143,7 @@
         },
         {
           "name": "debug-4-file_mover-65f8a4913577e01a",
-          "sha256": "88d48294828e2e71fd57cac3ca5348767b435f35d69fe01817b81edf86427076",
+          "sha256": "4935668d1fa40be7235b815bb2aeedb5d3844442c6e0056c2b6b29b1ead2e51e",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -197,7 +197,7 @@
         },
         {
           "name": "debug-6-mover_fs-6300e5b09427af3c",
-          "sha256": "5c4b86612f2b43d6a95d1726e0e19f0d789f5c4af4e736d3b6d3eab966f1a6ee",
+          "sha256": "d9e5fabd8ffb2f40d9ff6a7389d35d3a13f0eb0080346e55bbb20862fc7a3ee2",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -281,7 +281,7 @@
         },
         {
           "name": "debug-9-transfer-423b1b1792e4812a",
-          "sha256": "987b79e7e2baf4bdbd8b2b286d079b2597a1ab4d7724da47b723a553fb47e40b",
+          "sha256": "aa780dee7930c718d2d529ee175c56281997c5b2a1d7575cba1f88f7634d103a",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -310,13 +310,13 @@
           }
         }
       ],
-      "tests_passed": 152
+      "tests_passed": 154
     },
     "release": {
       "artifacts": [
         {
           "name": "release-0-file-mover",
-          "sha256": "21d360de1443fb61b83cef235a0e745d118bdf2c51626119f1eb970af43014fb",
+          "sha256": "4978f2c87e4b18749c597d0cb389ad63eb44f29107590cdf55a79358eeaecb60",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -347,7 +347,7 @@
         },
         {
           "name": "release-1-api-d9d238b27d6db4ff",
-          "sha256": "28743dade7428797633a6d0075538d77b3f28bc28c290f6ac8c3a1e8457e3e63",
+          "sha256": "7e8926ff6e3ea83b1bcd7cf1662e5344bf0cefca9f7a41bd5e1a4c5c67e0b39a",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -379,7 +379,7 @@
         },
         {
           "name": "release-2-claim-3db7954e61c40e58",
-          "sha256": "6dafe5910036d3c414980552f907dc2415bf6b3acb12da1dd53790efab8ffe43",
+          "sha256": "b6b137d7767a9384fde86925e681feca6097d1ae9338435d350b0e433e9b78eb",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -435,7 +435,7 @@
         },
         {
           "name": "release-4-file_mover-ee241b23812981c0",
-          "sha256": "9715ee4b541df856d2ddc0760059baa517d463e2460754e48f2d9a75ac8de57c",
+          "sha256": "cf48c8e67648587ff78b85252165523d61a4b144d423444984a4e27dd3149e06",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -489,7 +489,7 @@
         },
         {
           "name": "release-6-mover_fs-54c74ac1c414828d",
-          "sha256": "7f38421bca9a7e4f6fc836b8343c85100b31903fb45c7174304f7599f073a6dc",
+          "sha256": "a792b5b8de1111d7d8f7fc4c1479d3138281b14e9940cedd83133f22d20d9b89",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -573,7 +573,7 @@
         },
         {
           "name": "release-9-transfer-ead25c7c19d56177",
-          "sha256": "6ed9520498c7575e7aa0c3f86412173bbbbe583f43295901c6c043e2d9ddbf1c",
+          "sha256": "4ce284245cfdf1ff7ac5ee472fe747c3cb178c1d9e639628b0a5601ad1e7f568",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -602,12 +602,12 @@
           }
         }
       ],
-      "tests_passed": 152
+      "tests_passed": 154
     }
   },
-  "run_id": "20261016T003846Z-09b7dc3d",
+  "run_id": "20261016T012557Z-12a0b124",
   "build_mode": "production",
-  "source_sha256": "7b1da34d4adfa75df1ea97c6f8b6b7f3e278aa89e3f7a51fa12a72895e1ed513",
+  "source_sha256": "7c4dfec68ee6a14c32437bed47456764cc858bc574673ad7e46a2eff544b0a23",
   "workspace_features": {
     "file-mover": [
       "default"

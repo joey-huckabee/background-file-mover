@@ -72,6 +72,11 @@ Increment 30 adds --delivery-storage for bounded destination-full payload copyin
 and live/original-state restart review/resume; see docs/RUST-INCREMENT-30.md for
 actual results. Preserve old partials and claimed source, never edit state to
 recover, and distinguish measured server capacity from generic worker diagnostics.
+Increment 31 adds fixed operation/errno payload diagnostics and qualification-only
+payload fault controls; see docs/RUST-INCREMENT-31.md for actual results. Keep
+existing retry timing, three-failure review and audited resume unchanged. Error
+messages never authorize effects; publication sync failure may leave a valid
+final file while the job remains uncommitted. Preserve source/state/partials.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

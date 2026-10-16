@@ -239,3 +239,11 @@ restart. The option can run alongside `--enrollment-storage`; neither implies th
 full `--runtime`/`--ownership` suite was requested. Consult the increment for
 actual results and generic payload-diagnostic limitations. Keep the new helper
 and recorded driver hashes with the permanent fixture capability.
+
+[Increment 31](RUST-INCREMENT-31.md) adds operation-specific payload errno logs
+and retained qualification-only `FILE_MOVER_QUALIFICATION_PAYLOAD_FAULT` controls
+for selected read/write/sync boundaries. Production ignores those controls.
+The real `--delivery-storage` cases use no injected fault and now require the
+actual copy-write ENOSPC diagnostic once per failed attempt. Retry/review/resume
+and effect authorization are unchanged; diagnostic guidance is not a receipt or
+storage fence. Simulated EIO is distinct from actual server/hardware failure.

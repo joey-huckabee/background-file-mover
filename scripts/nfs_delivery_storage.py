@@ -231,6 +231,13 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 server_command(f"rm -f {export}/fill/blocks")
                 stop()
                 result["service_logs"] = {name: (output/(name+".log")).read_text() for name in result["service_logs"]}
+                if result["passed"]:
+                    combined = "\n".join(result["service_logs"].values())
+                    diagnostic = "payload_copy_write errno=28; storage full; restore approved capacity; preserve source/state; resume only if review required"
+                    result["payload_diagnostic"] = diagnostic
+                    assert combined.count(diagnostic) == 3, "expected one ENOSPC operation diagnostic per failed attempt"
+                    assert "blocked_or_uncertain" not in combined
+                    assert source not in combined and destination not in combined
                 (output/(label+"-result.json")).write_text(json.dumps(result, indent=2)+"\n")
             print(f"NFS destination full {profile}/{recovery}: PASS (claimed source retained; audited resume committed)", flush=True)
     report["passed"] = True

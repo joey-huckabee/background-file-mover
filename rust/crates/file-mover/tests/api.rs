@@ -10,6 +10,92 @@ use std::{
 };
 static NEXT: AtomicU64 = AtomicU64::new(0);
 #[test]
+fn payload_diagnostics_preserve_review_resume_and_production_ignores_faults() {
+    for (fault, phase) in [
+        ("payload_source_read", "Intent"),
+        ("payload_copy_write", "Intent"),
+        ("payload_copy_file_sync", "Intent"),
+        ("payload_copy_directory_sync", "Intent"),
+        ("payload_verification_read", "Copied"),
+        ("payload_publication_file_sync", "PublishIntent"),
+        ("payload_publication_staging_sync", "PublishIntent"),
+        ("payload_publication_directory_sync", "PublishIntent"),
+    ] {
+        let mut f = Fixture::uninitialized(300);
+        assert!(
+            initialize_source(&f.root.join("config.json"))
+                .status
+                .success()
+        );
+        provision_destination(&f);
+        f.write("data", b"private recording contents");
+        f.start_with_payload_fault(Some(fault));
+        assert_eq!(f.post(&f.input(fault, json!([{"name":"data"}]))).0, 202);
+        f.write("data", b"producer reused path");
+        if cfg!(feature = "nfs-qualification") {
+            let deadline = Instant::now() + Duration::from_secs(45);
+            let reviewed = loop {
+                assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+                let (_, current) = status(&f, "1");
+                assert_eq!(current["state"], "Claimed");
+                assert!(!f.root.join("destination/1/COMMITTED.json").exists());
+                if current["details"]["condition"] == "ReviewRequired" {
+                    break current;
+                }
+                assert!(Instant::now() < deadline, "{fault}: {current}");
+                std::thread::sleep(Duration::from_millis(50));
+            };
+            assert_eq!(reviewed["details"]["delivery_retry"]["failures"], 3);
+            assert_eq!(
+                reviewed["details"]["delivery_retry"]["code"],
+                "delivery_requires_review"
+            );
+            assert_eq!(reviewed["details"]["files"][0]["transfer_phase"], phase);
+            let published = f.root.join("destination/1/data");
+            assert_eq!(published.exists(), phase == "PublishIntent");
+            if published.exists() {
+                assert_eq!(
+                    std::fs::read(published).unwrap(),
+                    b"private recording contents"
+                );
+            }
+            let mut stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
+            f.stop();
+            let mut log = String::new();
+            stderr.read_to_string(&mut log).unwrap();
+            let errno = if fault == "payload_copy_write" { 28 } else { 5 };
+            assert!(log.contains(&format!("{fault} errno={errno};")), "{log}");
+            assert!(log.contains("preserve source/state"), "{log}");
+            assert!(!log.contains("private recording contents"));
+            assert!(!log.contains(f.root.to_str().unwrap()));
+            // Removing the fixture fault does not itself clear review.
+            f.start();
+            assert_eq!(status(&f, "1").1, reviewed);
+            assert!(!f.root.join("destination/1/COMMITTED.json").exists());
+            assert_eq!(resume(&f, "1", &resume_body(0)).0, 200);
+            assert_eq!(
+                resume(&f, "1", &resume_body(0)).1["details"]["replay"],
+                true
+            );
+        }
+        wait_manifest(&f, "1");
+        assert_eq!(
+            std::fs::read(f.root.join("destination/1/data")).unwrap(),
+            b"private recording contents"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+            b"private recording contents"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"producer reused path"
+        );
+        f.stop();
+    }
+}
+
+#[test]
 fn enrollment_io_failures_preserve_prepared_state_and_production_ignores_controls() {
     for fault in [
         "short_write",
@@ -1619,16 +1705,23 @@ impl Fixture {
         }
     }
     fn start(&mut self) {
+        self.start_with_payload_fault(None);
+    }
+    fn start_with_payload_fault(&mut self, fault: Option<&str>) {
+        let mut command = Command::new(
+            std::env::var("FILE_MOVER_TEST_EXECUTABLE")
+                .expect("SLES gate provides audited service binary"),
+        );
+        if let Some(fault) = fault {
+            command.env("FILE_MOVER_QUALIFICATION_PAYLOAD_FAULT", fault);
+        }
         self.child = Some(
-            Command::new(
-                std::env::var("FILE_MOVER_TEST_EXECUTABLE")
-                    .expect("SLES gate provides audited service binary"),
-            )
-            .arg(self.root.join("config.json"))
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap(),
+            command
+                .arg(self.root.join("config.json"))
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap(),
         );
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {

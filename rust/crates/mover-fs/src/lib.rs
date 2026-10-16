@@ -31,6 +31,8 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
             ClaimError::ExpectedSizeMismatch => "expected_size_mismatch".into(),
             ClaimError::Store(_) => "store_error".into(),
         }
+    } else if let Some(error) = error.downcast_ref::<payload_io::Failure>() {
+        error.to_string()
     } else if let Some(errno) = error.downcast_ref::<rustix::io::Errno>() {
         format!("errno={}", errno.raw_os_error())
     } else {
@@ -88,6 +90,7 @@ pub use enrollment::{
     EnrollmentAuthorization, EnrollmentReceipt, SOURCE_RECEIPT, create_source_enrollment,
 };
 mod manifest;
+mod payload_io;
 mod qualification;
 mod relocate;
 pub use qualification::pause as qualification_pause;

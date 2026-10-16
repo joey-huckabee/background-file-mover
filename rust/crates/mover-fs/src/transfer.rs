@@ -1,12 +1,10 @@
 //! Single-file local transfer, with durable boundaries for crash reconciliation.
 //! Hold source/destination LocalClaimLocks and fence workers around these calls.
+use super::payload_io::{self, Operation};
 use super::*;
 use mover_core::{Handoff, Transfer, TransferPhase};
 use sha2::{Digest, Sha256};
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use std::fs::File;
 type TransferResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn matching(store: &Store, t: &Transfer, phase: TransferPhase) -> TransferResult<()> {
@@ -254,7 +252,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
     let mut buffer = vec![0; 1024 * 1024];
     let read_fixture = super::qualification::before_read(&input, "source_read")?;
     loop {
-        let n = input.read(&mut buffer)?;
+        let n = payload_io::read(&mut input, &mut buffer, Operation::SourceRead)?;
         if n == 0 {
             break;
         }
@@ -263,7 +261,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
             return Err("source grew during copy".into());
         }
         hash.update(&buffer[..n]);
-        output.write_all(&buffer[..n])?;
+        payload_io::write(&mut output, &buffer[..n])?;
         if total == n as u64 {
             super::qualification_pause("copy_chunk")?;
         }
@@ -273,8 +271,8 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
         return Err("source changed during copy".into());
     }
     fs::fchmod(&output, Mode::RUSR)?;
-    output.sync_all()?;
-    fs::fsync(&staging)?;
+    payload_io::sync_file(&output)?;
+    payload_io::sync_fd(&staging, Operation::CopyDirectorySync)?;
     let mut next = t.clone();
     next.stage = source(&output)?;
     next.sha256 = Some(format!("{:x}", hash.finalize()));
@@ -301,7 +299,7 @@ fn digest_with_fixture(
     let mut buffer = vec![0; 1024 * 1024];
     let read_fixture = verification && super::qualification::before_read(&file, "verify_read")?;
     loop {
-        let n = file.read(&mut buffer)?;
+        let n = payload_io::read(&mut file, &mut buffer, Operation::VerificationRead)?;
         if n == 0 {
             break;
         }
@@ -391,9 +389,9 @@ pub fn publish_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Tran
         }
     }
     let fd = moved.fd;
-    fs::fsync(&fd)?;
-    fs::fsync(&staging)?;
-    fs::fsync(&parent)?;
+    payload_io::sync_fd(&fd, Operation::PublicationFileSync)?;
+    payload_io::sync_fd(&staging, Operation::PublicationStagingSync)?;
+    payload_io::sync_fd(&parent, Operation::PublicationDirectorySync)?;
     let mut next = t.clone();
     next.phase = TransferPhase::Published;
     Ok(next)

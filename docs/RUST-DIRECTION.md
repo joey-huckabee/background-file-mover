@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 30](RUST-INCREMENT-30.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
+[Increment 31](RUST-INCREMENT-31.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
 and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situation
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
@@ -335,3 +335,10 @@ Consult the increment for actual results, retained partial/source evidence and
 diagnostic limits. The Rust implementation/schema/dependency graph are unchanged.
 Continue qualifying broader storage errors, in-flight RPCs and independently
 enforced fencing before production NFS; source deletion remains disabled.
+
+Increment 31 adds payload operation/errno diagnostics with fixed safe actions and
+qualification-only read/write/sync fault controls. Retry timing, review thresholds,
+audited resume and effect authorization stay unchanged. Consult its results for
+real ENOSPC logs, synthetic boundary tests and full NFS regression. A publication
+sync error can leave a valid final file without a committed recording. Preserve
+source/state and keep broader retry policy, storage EIO and fencing as future work.

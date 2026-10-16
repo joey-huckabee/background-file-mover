@@ -23,7 +23,7 @@
       "artifacts": [
         {
           "name": "debug-0-file-mover-nfs-qualification",
-          "sha256": "89652e1ef3e033e8e8be2e212a04b3bb9da9ca9e6b7cd9595b57b178ddb512c7",
+          "sha256": "42f06cce771418ac15473b77cf6ae1b3ec57e188b33602336c7b5d5cc981e891",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -55,7 +55,7 @@
         },
         {
           "name": "debug-1-api-f77fd3690b2c8be0-nfs-qualification",
-          "sha256": "aca55e7d514c965978e3d63f9d242019008158fca93dabed3a94e1af2289a91c",
+          "sha256": "ff98443d5260c891658c98364d202105717b1bf2e5b8d7d9a7f987231fdb46fe",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -87,7 +87,7 @@
         },
         {
           "name": "debug-2-claim-ffc3c443ff2dc8b2-nfs-qualification",
-          "sha256": "09b54c1c8c90a922414ecd51fd227b5d88b623156780ea0ffeaeee1405ef6b25",
+          "sha256": "ef973079750c1a6d3a9935b7ebdf088b7a1eb4eed8304ad452f7f2c967e73543",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -143,7 +143,7 @@
         },
         {
           "name": "debug-4-file_mover-bfac9492c71a7ba9-nfs-qualification",
-          "sha256": "277e88d95c25fe84234135a97998a425ffaf41f78065259fc516407ec3edfded",
+          "sha256": "e382b40f1bee32a6884e82983601d23f4d35a02496242adc74accd3ef962119e",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -197,7 +197,7 @@
         },
         {
           "name": "debug-6-mover_fs-8c7da1a12a2d2fe4-nfs-qualification",
-          "sha256": "2db8c44e0df9da302ca030e96a5eff713c6ff5b939b990ba5e9ee3e1314493db",
+          "sha256": "00329f8f8d315d2fbd07bd80aaa5d8bbdb9e7ede36df2f62742c477718eee1de",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -281,7 +281,7 @@
         },
         {
           "name": "debug-9-transfer-77abd6d92045e0d7-nfs-qualification",
-          "sha256": "8375d1b7d0fec5f2e3b0b1c4622b7dce1825ea389cbd9dd1675e9410c5c1c9da",
+          "sha256": "3e85abd245ef0d183dde02a65bea7072d63fa810e0dfa565d7799f0e5faa77f2",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -310,13 +310,13 @@
           }
         }
       ],
-      "tests_passed": 153
+      "tests_passed": 155
     },
     "release": {
       "artifacts": [
         {
           "name": "release-0-file-mover-nfs-qualification",
-          "sha256": "958a8edc7160f90aa4317708d2bd7763c483482d6f9047c6e29614e8e9650d8c",
+          "sha256": "ce503b96d1c479b1dcf44eb72b40710901b836a71ef73053dce479283bba87fc",
           "test": false,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -347,7 +347,7 @@
         },
         {
           "name": "release-1-api-451078537942845e-nfs-qualification",
-          "sha256": "23caa8718ac10a6752b71e302769f24820a52e4c5a6660c1fcfc7c681de81b50",
+          "sha256": "b38227c76c3e5c6fdf4e389b5a424d81c19ea436f34ee0242b8c7f35b63d31a6",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -379,7 +379,7 @@
         },
         {
           "name": "release-2-claim-e661669281a1f7e0-nfs-qualification",
-          "sha256": "86d810103db5695e9495b33aeb98fe018b5f29cfcfb5171a8fe91dd113669106",
+          "sha256": "9c770fb337526df2cc5a760e351598d5bea4ba6ea01dacb78cee68bfc327ac0a",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -408,7 +408,7 @@
         },
         {
           "name": "release-3-file_mover-6e4435f2ccf9b956-nfs-qualification",
-          "sha256": "5c61d002e4d87481ade91eba35735d4e62b5b8c8724f0272c5a844da0285410b",
+          "sha256": "29677ff70812a770c8482abfffaaf9d521e530f944d5ccc4e8282e5978722f92",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -489,7 +489,7 @@
         },
         {
           "name": "release-6-mover_fs-3fe3f6c3bd0134c1-nfs-qualification",
-          "sha256": "c7d09d2c10e39962967c061f1da2d806f1c63c99929e099403264177ffec516f",
+          "sha256": "052aaeefcaa2719f61f944ad4902b5ea78947523b1815614b17b4a670639770b",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -573,7 +573,7 @@
         },
         {
           "name": "release-9-transfer-427f6c67a16a3f66-nfs-qualification",
-          "sha256": "d809d47c4f1e96021159cae9adc96420801d9ba23becd141872a8fe993a5446f",
+          "sha256": "2fd736b690760fe4b14c8a3e978c6ce6d88630e315b71bf33ab6d80fb8ea3dfe",
           "test": true,
           "elf": {
             "interpreter": "/lib64/ld-linux-x86-64.so.2",
@@ -602,12 +602,12 @@
           }
         }
       ],
-      "tests_passed": 153
+      "tests_passed": 155
     }
   },
-  "run_id": "20261016T003847Z-be3ef32f-nfs-qualification",
+  "run_id": "20261016T012557Z-361d9522-nfs-qualification",
   "build_mode": "nfs-qualification",
-  "source_sha256": "7b1da34d4adfa75df1ea97c6f8b6b7f3e278aa89e3f7a51fa12a72895e1ed513",
+  "source_sha256": "7c4dfec68ee6a14c32437bed47456764cc858bc574673ad7e46a2eff544b0a23",
   "workspace_features": {
     "file-mover": [
       "default",

@@ -159,3 +159,11 @@ Acceptance pins policy without destination I/O; the recording worker validates
 and persists its observation before staging. Legacy jobs without destination
 bindings refuse service startup; preserve state for future explicit enrollment.
 See [increment 24](../docs/RUST-INCREMENT-24.md) for setup, evidence and limits.
+
+Payload I/O diagnostics name source reads, copy writes, verification reads and
+copy/publication file or directory syncs, preserving numeric errno when present.
+Fixed guidance explains storage inspection/capacity restoration and preserving
+source/state. These logs do not authorize effects or change the existing retry,
+review or audited-resume rules. Unknown error text, paths and payload bytes are
+not echoed. Qualification-only payload fault controls test those boundaries;
+production ignores them. See [increment 31](../docs/RUST-INCREMENT-31.md).
