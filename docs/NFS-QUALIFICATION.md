@@ -81,7 +81,11 @@ After both gates pass, reuse their exact artifacts:
 python scripts/check-nfs-boundaries.py rust/validation/<production-run> --qualification-gate rust/validation/<qualification-run> --isolated-startup
 ```
 
-The runner verifies both source snapshots, artifact hashes and labels. It first
+The runner verifies both source snapshots, artifact hashes and labels. It also
+checks that service, source initialization and single-file transfer refuse an
+NFS database/state parent in both profiles and build modes, without creating a
+guard/database or opening the deliberately absent source. These local-state
+refusals do not qualify cross-host exclusion or delayed RPC settlement. It first
 proves both production profiles reject a reachable NFS source without creating
 SQLite. `scripts/nfs_baseline.py` then drives the actual qualification service
 through REST in pinned SLES userspace, using the saved private hard-mounted
@@ -309,8 +313,9 @@ behavior. Keep production NFS and deletion disabled.
 [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) around confirmed single-host,
 fixed local state/config and private NFS working areas. SH-01–14 cover shared
 local guard/inheritance, manual/systemd conflicts, default-60 configurable stop
-controller and actual NFS original-state recovery/refusal. They are pending; this
-document adds no option or passing fixture run. The earlier NF-01–18 have an
+controller and actual NFS original-state recovery/refusal. [Increment 42](RUST-INCREMENT-42.md)
+implements the local guard/handoff with selected local evidence. The configurable
+stop controller and remaining storage/lifecycle cases stay pending. The earlier NF-01–18 have an
 explicit carry-forward/deferred mapping, not silent passing status.
 
 Qualify both same-share and separate-share layouts. Actual deployment NFS version
@@ -322,3 +327,11 @@ same-host guard profile but do not prove other hosts are fenced or power-loss
 semantics. No actual SLES host or NAS-admin facility is assumed. Keep container
 userspace, ELF and exact-target gates; qualify actual systemd lifecycle separately.
 Production NFS and source deletion remain disabled.
+
+Increment 42's [local-instance fixture evidence](RUST-NFS-LOCAL-INSTANCE-EVIDENCE.json)
+records all six normal baseline cases, 12 NFS-state-parent refusals in both
+profiles/build modes, and retained isolated startup/OS lock checks passing with
+the final audited binaries. No runtime death/long-outage, two-client ownership
+or capacity-storage suite is selected in that report; earlier reports retain
+their original scope. See [increment 42](RUST-INCREMENT-42.md) for local worker
+inheritance/death evidence and remaining state-layout/lifecycle limits.

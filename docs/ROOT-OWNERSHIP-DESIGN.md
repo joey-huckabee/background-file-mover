@@ -10,9 +10,10 @@ NFS and deletion stay disabled. Generator registration remains deferred.
 [Increment 41](RUST-INCREMENT-41.md) revises the
 [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) for one mover restarting
 on the same host/account, with fixed local state/config and private NFS working
-areas. The candidate is an explicitly inherited host-local guard plus qualified
-owned recovery; shutdown wait defaults to 60 seconds and is configurable.
-SH-01–14 remain pending. Local guard release is not proof of remote settlement.
+areas. [Increment 42](RUST-INCREMENT-42.md) implements the explicitly inherited
+host-local guard with selected local evidence. The proposed default-60 shutdown
+controller and remaining SH-01–14 qualification, including owned NFS recovery,
+remain pending. Local guard release is not proof of remote settlement.
 The earlier external-fencer NF requirements are mapped to carry-forward safety
 or deferred cross-host/maintenance profiles; no provider is assumed available.
 The broad authenticated-export/fencing mechanisms below remain candidate extended

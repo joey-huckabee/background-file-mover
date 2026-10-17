@@ -1,18 +1,50 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 38. It
+This guide describes the implemented Rust prototype through increment 42. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
 Production NFS and source deletion remain disabled. Controlled NFS observations
 below apply only to the retained qualification build and fixture.
 
-The [increment 41 ownership revision](NFS-OWNERSHIP-FENCING-CONTRACT.md) proposes
-same-host shared local guard/inherited workers and shutdown_wait_seconds (default
-60). These are not implemented commands/configuration/status fields. Do not add
-the proposed key to today's config or assume a stop command/60-second process
-exit guarantee exists. Future controller timeout must leave surviving ownership
-held and restart blocked; current operational instructions below are unchanged.
+The [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) now has an
+implemented shared local guard and explicit worker handoff. The proposed
+shutdown_wait_seconds option (default 60) and bounded stop/status controller are
+still unimplemented. Do not add that key to today's strict configuration or
+assume a 60-second process-exit guarantee.
+
+## Local ownership and refused starts
+
+All supported manual/service starts must use the same configuration and fixed
+local database directory under the same account. That directory must already
+exist, be owned by the account, have no group/other permission bits (use mode
+0700), and use admitted local storage.
+SQLite, its sidecars and state stay on persistent local disk using actual local
+files. The guard validates its parent and guard file; complete database/sidecar
+alias and per-file mount validation is still pending. Do not provision redirected
+state files. The service creates
+an empty mode-0600 `instance.lock` beside the database and retains it permanently.
+It never truncates or deletes it on shutdown. Existing unsafe files, symlinks,
+multiple links or replaced identities refuse. NFS state is rejected in both
+production and qualification builds. Current admitted filesystem types are
+ext-family, tmpfs and overlay; container admission does not establish persistence
+for deployment.
+
+A competing effect-capable command reports **local instance or surviving worker
+already owns state** and exits without opening SQLite or source bootstrap. A
+normal start can also fail first if its listener port is already occupied.
+The same exclusion applies to source initialization and single-file transfer.
+Each child retains the same locked open description: killing only the coordinator
+can leave a worker holding ownership. Wait for the existing mover and workers;
+keep the original configuration, database and private working areas. Do not
+delete/replace the guard, copy state elsewhere or retry with an alternate state
+path to bypass refusal. There is no force-unlock or completed stop controller.
+
+This is cooperative exclusion on one host. A hostile same-UID process, a
+deliberately different state path or another host can bypass that profile.
+Process exit or a released local lock does not establish settlement of old NFS
+requests. Production NFS remains blocked pending recovery/lifecycle qualification;
+uncertain effects retain their existing review behavior.
 
 ## Inspect a job
 

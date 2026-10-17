@@ -11,7 +11,8 @@ Generator registration and its one-time setup key are separate, deferred work.
 ## First-release ownership boundary
 
 The [increment 41 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) narrows the first
-release to a fixed same-host/local-state owner and proposed inherited local guard,
+release to a fixed same-host/local-state owner and inherited local guard
+(implemented with selected local evidence in [increment 42](RUST-INCREMENT-42.md)),
 with bounded configurable shutdown and qualified original-state reconciliation.
 SH-01–14 remain pending. It supersedes a blanket external-provider prerequisite
 for that profile, without claiming that process exit or a local lock settles NFS.

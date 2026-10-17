@@ -57,8 +57,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Implement/qualify the shared local guard and worker inheritance (SH-01–04/13),
-   then the configurable shutdown wait and bounded controller (SH-05–09).
+1. Implement/qualify the configurable shutdown wait and bounded controller
+   (SH-05–09). Extend local guard evidence to remaining SH-01–04/13 cases.
    Discover actual mounts/version/security later and qualify NFS recovery
    (SH-10–14) before production enablement. Select/qualify the remote proxy profile
    and RA-01–16 alongside remaining producer/consumer contracts; registration stays deferred.
@@ -74,8 +74,10 @@ implementation and all RA cases remain pending, and FR-01 stays open.
 [Increment 40](RUST-INCREMENT-40.md) records the earlier broader fencing design.
 [Increment 41](RUST-INCREMENT-41.md) revises the first release to the confirmed
 single-host/user-account/local-state profile, with private NFS working folders
-and a configurable 60-second shutdown wait. The local guard/controller and all
-SH cases remain pending; FR-03/05 stay open. Prior NF obligations are explicitly
+and a configurable 60-second shutdown wait. [Increment 42](RUST-INCREMENT-42.md)
+implements the shared local guard and explicit worker handoff with selected local
+evidence. The controller and remaining SH qualification stay pending; FR-03/05
+stay open. Prior NF obligations are explicitly
 mapped to carry-forward safety or deferred extended profiles. No NAS/host-admin
 facility is a prerequisite for independent guard work. Production NFS, remote
 REST, takeover and source deletion remain disabled/deferred as applicable.

@@ -11,9 +11,7 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next implement/qualify the shared local ownership guard and explicit child
-inheritance from the [single-host contract](NFS-OWNERSHIP-FENCING-CONTRACT.md),
-SH-01–04/13. Then add the bounded stop/status controller and configurable
+Next add the bounded stop/status controller and configurable
 60-second-default shutdown_wait_seconds policy (SH-05–09). Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
 shares and systemd lifecycle qualification open (SH-10–14); a free local lock or
@@ -46,7 +44,8 @@ before implementation.
   pins. Preserve original job/route evidence. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
 - [ ] Implement and qualify SH-01–14 for the confirmed same-host/local-state
-  profile: shared guard, surviving-worker exclusion, bounded configurable shutdown,
+  profile: remaining guard/storage/death-phase cases, actual database/WAL/shared-memory
+  alias and per-file mount validation, bounded configurable shutdown,
   systemd coordination, actual NFS mount/root validation and delayed-effect owned
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or

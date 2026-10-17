@@ -237,6 +237,7 @@ struct Worker {
     observer: Option<mpsc::SyncSender<OperatorWork>>,
     observation: Option<std::thread::JoinHandle<()>>,
     _source_space: source_space::Monitor,
+    _instance: Arc<mover_fs::InstanceGuard>,
 }
 impl Worker {
     fn start(
@@ -246,6 +247,8 @@ impl Worker {
     ) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
         let mut guard = guard;
+        let instance = guard.instance()?.clone();
+        instance.validate()?;
         let store = Arc::new(Store::open(&c.state_database)?);
         enrollment::authorize(c, &store, &mut guard, false, &stop)?;
         let guard = Arc::new(guard);
@@ -260,10 +263,15 @@ impl Worker {
         let observation_admission = admission.clone();
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
+        let observation_instance = instance.clone();
         let observation = std::thread::Builder::new()
             .name("mover-status".into())
             .spawn(move || {
                 while let Ok((work, reply)) = observations.recv() {
+                    if observation_instance.validate().is_err() {
+                        let _ = reply.send(error(409, "recording_blocked", false, None));
+                        continue;
+                    }
                     let response = match work {
                         Observation::Status(id) => status_response(&observation_store, id),
                         Observation::Retention(id) => {
@@ -290,6 +298,10 @@ impl Worker {
             .name("mover-local-delivery".into())
             .spawn(move || {
                 while !delivery_stop.load(Ordering::Relaxed) {
+                    if delivery_guard.instance().and_then(|g| g.validate()).is_err() {
+                        delivery_stop.store(true, Ordering::Relaxed);
+                        break;
+                    }
                     match delivery_store.delivery_candidates(now(), 1) {
                         Ok(ids) => {
                             for id in ids {
@@ -374,6 +386,7 @@ impl Worker {
             observer: Some(observer),
             observation: Some(observation),
             _source_space: source_space,
+            _instance: instance,
         })
     }
 }
@@ -402,6 +415,9 @@ fn process(
     admission: &source_space::Handle,
 ) -> Response {
     if !guard.matches_path(&c.source_root_path) {
+        return error(409, "recording_blocked", false, None);
+    }
+    if guard.instance().and_then(|g| g.validate()).is_err() {
         return error(409, "recording_blocked", false, None);
     }
     let gate = match store.replay(s) {
@@ -869,11 +885,18 @@ pub async fn serve(
     let supervisor = std::thread::Builder::new()
         .name("mover-source-bootstrap".into())
         .spawn(move || {
-            let result = bootstrap::acquire(
-                &startup_config.source_root,
-                &startup_config.source_binding,
-                &startup_stop,
-            )
+            let result = (|| {
+                let instance = Arc::new(
+                    mover_fs::InstanceGuard::for_database(&startup_config.state_database)
+                        .map_err(|e| e.to_string())?,
+                );
+                bootstrap::acquire(
+                    &startup_config.source_root,
+                    &startup_config.source_binding,
+                    &startup_stop,
+                    &instance,
+                )
+            })()
             .and_then(|guard| {
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());

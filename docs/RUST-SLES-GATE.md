@@ -50,12 +50,12 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
-The workspace's 105 tests pass in both profiles inside the pinned runtime,
-for both production and opt-in NFS qualification builds:
-ten core, thirty-five storage, ten claims, thirteen copied-transfer/manifest,
-thirty-five executable HTTP/background/CLI tests and two bootstrap IPC unit tests.
-All twenty emitted executables use the standard
-loader and require at most GLIBC_2.18. The external graph retains E5's thirty-three
+Current production/qualification test counts, exact artifact hashes and the
+latest passing runs are recorded in [increment 42](RUST-INCREMENT-42.md) and the
+linked machine-readable reports. Every emitted executable is audited, including
+the service and each target test harness. Keep debug and release evidence for
+both build modes; a selected local test does not qualify a whole NFS profile.
+The external graph retains E5's thirty-three
 Linux packages and adds nine pinned SHA-256 packages, recorded in
 [rust-integrity-dependencies.json](../scripts/rust-integrity-dependencies.json).
 The gate checks their checksums and sha2's std/force-soft feature set, alongside

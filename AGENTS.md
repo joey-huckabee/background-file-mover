@@ -120,8 +120,12 @@ socket/peer UID and generator binding; RA-01–16 and SC-082–086 remain pendin
 No ingress, tokens or registration are implemented. Increment 40's broad fencing
 baseline is revised by increment 41 in docs/NFS-OWNERSHIP-FENCING-CONTRACT.md:
 one mover, same host/account/config and fixed local state; private NFS work areas;
-no host sudo/NAS administration assumed. Next implement shared host-local guard
-and explicit worker inheritance (SH-01–04/13), then proposed configurable
+no host sudo/NAS administration assumed. Increment 42 implements the shared
+host-local instance.lock and explicit SCM_RIGHTS handoff to all six worker modes,
+with selected local evidence; see docs/RUST-INCREMENT-42.md. Guard admission
+checks parent/guard; complete database/sidecar alias and per-file mount validation
+remains pending. Next implement the
+proposed configurable
 shutdown_wait_seconds default 60 and bounded stop/status controller (SH-05–09).
 Timeout returns incomplete/restart-blocked while live holders retain ownership;
 local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual

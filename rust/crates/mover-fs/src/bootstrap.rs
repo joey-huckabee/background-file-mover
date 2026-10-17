@@ -322,6 +322,7 @@ impl BootstrapReceiver {
             return Err("bootstrap authorization mismatch".into());
         }
         Ok(Some(LocalClaimLock {
+            instance: None,
             path: path.into(),
             root,
             namespace,

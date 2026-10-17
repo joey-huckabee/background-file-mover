@@ -61,9 +61,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("usage: file-mover --initialize-source CONFIG.json".into());
         }
         let config = read_config(&config_path)?;
+        let instance = Arc::new(mover_fs::InstanceGuard::for_database(
+            &config.state_database,
+        )?);
         let stop = AtomicBool::new(false);
-        let mut guard =
-            file_mover::bootstrap::acquire(&config.source_root, &config.source_binding, &stop)?;
+        let mut guard = file_mover::bootstrap::acquire(
+            &config.source_root,
+            &config.source_binding,
+            &stop,
+            &instance,
+        )?;
         let store = mover_store::Store::open(&config.state_database)?;
         file_mover::enrollment::authorize(&config, &store, &mut guard, true, &stop)?;
         println!("Source enrollment active; original database required for restart");
@@ -76,10 +83,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("usage: file-mover --transfer-one CONFIG.json JOB_ID".into());
         }
         let config = read_config(&config_path)?;
+        let instance = Arc::new(mover_fs::InstanceGuard::for_database(
+            &config.state_database,
+        )?);
         let mut guard = file_mover::bootstrap::acquire(
             &config.source_root,
             &config.source_binding,
             &AtomicBool::new(false),
+            &instance,
         )?;
         let store = mover_store::Store::open(&config.state_database)?;
         file_mover::enrollment::authorize(

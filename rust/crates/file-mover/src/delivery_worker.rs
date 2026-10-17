@@ -197,7 +197,7 @@ struct Session {
 }
 impl Session {
     fn start(guard: &LocalClaimLock) -> Result<Self> {
-        let (channel, worker) = UnixStream::pair()?;
+        let (mut channel, worker) = UnixStream::pair()?;
         channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
         let child = Supervised(
@@ -208,6 +208,9 @@ impl Session {
                 .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
                 .spawn()?,
         );
+        channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+        guard.instance()?.send(&mut channel)?;
+        channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         Ok(Self {
             child,
             channel,
@@ -542,11 +545,15 @@ pub(crate) fn deliver(
 }
 pub fn worker() -> Result<()> {
     let mut channel = UnixStream::from(std::io::stderr().as_fd().try_clone_to_owned()?);
+    channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+    let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
+    channel.set_read_timeout(None)?; // Preserve the existing session assignment wait.
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     let mut context: Option<(i64, String, LocalClaimLock)> = None;
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
+        _instance.validate()?;
         let request: Request = serde_json::from_slice(&bytes)?;
         if request.version != 2 || request.sequence != sequence + 1 || request.sequence > 2048 {
             return Err("invalid delivery sequence".into());

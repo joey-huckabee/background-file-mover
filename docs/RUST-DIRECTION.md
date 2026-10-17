@@ -113,9 +113,12 @@ adds bounded native source-capacity fixture evidence.
 and RA-01–16 without implementing ingress or registration.
 [Increment 40](RUST-INCREMENT-40.md) records the earlier broad fencing baseline.
 [Increment 41](RUST-INCREMENT-41.md) revises it under confirmed one-host/account,
-fixed local config/state and private NFS working-area constraints. Next implement
-the local guard/inheritance (SH-01–04/13), then the configurable default-60 stop
-wait/controller (SH-05–09), all pending. Qualify late NFS effects, actual mounts,
+fixed local config/state and private NFS working-area constraints.
+[Increment 42](RUST-INCREMENT-42.md) implements local ownership and descriptor
+handoff with selected local denial/race/surviving-worker evidence. Full database/sidecar alias and
+per-file mount validation remain pending. Next implement
+the configurable default-60 stop wait/controller (SH-05–09) and extend the
+remaining SH-01–04/13 cases. Qualify late NFS effects, actual mounts,
 same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
 settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS
 administration is assumed. Production NFS/deletion and remote ingress stay off;

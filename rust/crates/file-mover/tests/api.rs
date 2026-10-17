@@ -704,6 +704,14 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
             .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
             .spawn()
             .unwrap();
+        let instance = mover_fs::InstanceGuard::for_database(
+            f.root.join("state/jobs.sqlite").to_str().unwrap(),
+        )
+        .unwrap();
+        channel
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        instance.send(&mut channel).unwrap();
         let assignment = json!({"assignment":{"operation":"observe","version":1,"job_id":1,"file_index":0,"root_path":f.root.join("source"),"source_name":"current/data","expected_size":null},"source_authorization":null});
         channel
             .write_all(&serde_json::to_vec(&assignment).unwrap())
@@ -1068,10 +1076,16 @@ fn stopped_startup_exits_cleanly_without_source_or_database_access() {
     assert!(!source.exists());
     assert!(!database.exists());
 }
-fn bootstrap_child(body: &Value) -> (Child, std::os::unix::net::UnixStream) {
+fn bootstrap_child(f: &Fixture, body: &Value) -> (Child, std::os::unix::net::UnixStream) {
     let mut body = body.clone();
     body["source_binding"] = json!(binding());
     let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+    let guard =
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .unwrap();
+    channel
+        .set_read_timeout(Some(Duration::from_secs(3)))
+        .unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--internal-bootstrap-worker")
         .stdin(Stdio::null())
@@ -1079,6 +1093,7 @@ fn bootstrap_child(body: &Value) -> (Child, std::os::unix::net::UnixStream) {
         .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
         .spawn()
         .unwrap();
+    guard.send(&mut channel).unwrap();
     channel
         .write_all(&serde_json::to_vec(&body).unwrap())
         .unwrap();
@@ -1090,7 +1105,7 @@ fn bootstrap_transfers_the_locked_description_without_reopening_source() {
     let mut f = Fixture::new(300);
     f.stop();
     let path = f.root.join("source").to_str().unwrap().to_owned();
-    let (mut child, channel) = bootstrap_child(&json!({"version":1,"source_root":path}));
+    let (mut child, channel) = bootstrap_child(&f, &json!({"version":1,"source_root":path}));
     let mut receiver = mover_fs::BootstrapReceiver::default();
     let deadline = Instant::now() + Duration::from_secs(5);
     let lock = loop {
@@ -1122,7 +1137,7 @@ fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
         json!({"version":1,"source_root":path,"unexpected":true}),
         json!({"version":1,"source_root":"x".repeat(17000)}),
     ] {
-        let (mut child, channel) = bootstrap_child(&body);
+        let (mut child, channel) = bootstrap_child(&f, &body);
         assert!(!child.wait().unwrap().success());
         let mut receiver = mover_fs::BootstrapReceiver::default();
         loop {
@@ -1133,7 +1148,7 @@ fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
             }
         }
     }
-    let (mut child, channel) = bootstrap_child(&json!({"version":1,"source_root":path}));
+    let (mut child, channel) = bootstrap_child(&f, &json!({"version":1,"source_root":path}));
     assert!(child.wait().unwrap().success());
     let mut receiver = mover_fs::BootstrapReceiver::default();
     loop {
@@ -1518,10 +1533,15 @@ fn effect_child(
     destination: &mover_fs::LocalClaimLock,
     mode: &str,
 ) -> (Child, std::os::unix::net::UnixStream) {
-    let (channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+    let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
     channel
         .set_read_timeout(Some(Duration::from_secs(5)))
         .unwrap();
+    let database = std::path::Path::new(source.source_path())
+        .parent()
+        .unwrap()
+        .join("state/jobs.sqlite");
+    let instance = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg(mode)
         .stdin(Stdio::from(source.inherit().unwrap()))
@@ -1529,6 +1549,7 @@ fn effect_child(
         .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
         .spawn()
         .unwrap();
+    instance.send(&mut channel).unwrap();
     (child, channel)
 }
 fn child_reply(
@@ -3458,4 +3479,195 @@ fn source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries() 
         202
     );
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 2);
+}
+
+fn instance_refusal(mut command: Command) {
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(4);
+    loop {
+        if child.try_wait().unwrap().is_some() {
+            break;
+        }
+        if Instant::now() > until {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("duplicate instance failed to refuse promptly");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let result = child.wait_with_output().unwrap();
+    assert!(!result.status.success());
+    assert!(
+        String::from_utf8_lossy(&result.stderr)
+            .contains("local instance or surviving worker already owns state"),
+        "{result:?}"
+    );
+}
+#[test]
+fn local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite() {
+    let mut f = Fixture::new(300);
+    let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
+    let mut config: Value =
+        serde_json::from_slice(&std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
+    config["bind"] = json!("127.0.0.1:0");
+    config["state_database"] = json!(f.root.join("state/not-created.sqlite"));
+    config["source_root"] = json!(f.root.join("unavailable-source"));
+    let path = f.root.join("duplicate.json");
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    for mode in [None, Some("--initialize-source"), Some("--transfer-one")] {
+        let mut command = Command::new(&exe);
+        if let Some(mode) = mode {
+            command.arg(mode);
+        }
+        command.arg(&path);
+        if mode == Some("--transfer-one") {
+            command.arg("1");
+        }
+        instance_refusal(command);
+        assert!(!f.root.join("state/not-created.sqlite").exists());
+        assert!(!f.root.join("unavailable-source").exists());
+    }
+    assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+    f.stop();
+    f.start();
+    f.stop();
+}
+#[test]
+fn all_six_worker_modes_retain_explicit_local_ownership_without_parent_holder() {
+    use std::os::unix::net::UnixStream;
+    let f = Fixture::uninitialized(300);
+    let db = f.root.join("state/jobs.sqlite");
+    let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
+    for mode in [
+        "bootstrap",
+        "enrollment",
+        "claim",
+        "payload",
+        "delivery",
+        "source-space",
+    ] {
+        let guard = mover_fs::InstanceGuard::for_database(db.to_str().unwrap()).unwrap();
+        let (mut channel, worker) = UnixStream::pair().unwrap();
+        channel
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        channel
+            .set_write_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let mut child = Command::new(&exe)
+            .arg(format!("--internal-{mode}-worker"))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+            .spawn()
+            .unwrap();
+        guard.send(&mut channel).unwrap(); // ACK proves child validation, not just a queued fd.
+        drop(guard);
+        assert!(child.try_wait().unwrap().is_none(), "{mode}");
+        assert!(
+            mover_fs::InstanceGuard::for_database(db.to_str().unwrap()).is_err(),
+            "{mode}"
+        );
+        child.kill().unwrap();
+        child.wait().unwrap();
+        drop(channel);
+        drop(mover_fs::InstanceGuard::for_database(db.to_str().unwrap()).unwrap());
+        assert!(!db.exists());
+        // Same internal mode without the descriptor prefix cannot reach effects.
+        let (mut channel, worker) = UnixStream::pair().unwrap();
+        let mut child = Command::new(&exe)
+            .arg(format!("--internal-{mode}-worker"))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+            .spawn()
+            .unwrap();
+        channel.write_all(b"I").unwrap();
+        channel.shutdown(std::net::Shutdown::Write).unwrap();
+        assert!(!child.wait().unwrap().success());
+        assert!(!db.exists());
+    }
+}
+#[test]
+fn killed_coordinator_cannot_release_local_guard_held_by_paused_claim_worker() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::uninitialized(300);
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
+    provision_destination(&f);
+    let rendezvous = f.root.join("instance-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    f.write("data", b"original recording");
+    let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
+    let mut command = Command::new(&exe);
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_apply")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    let body = f.input("surviving-worker", json!([{"name":"data"}]));
+    let bytes = serde_json::to_vec(&body).unwrap();
+    let address = f.address;
+    let pending = std::thread::spawn(move || {
+        let mut s = TcpStream::connect(address).unwrap();
+        s.set_read_timeout(Some(Duration::from_secs(15))).unwrap();
+        write!(s,"POST /api/v2/jobs HTTP/1.1\r\nHost: h\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",bytes.len()).unwrap();
+        s.write_all(&bytes).unwrap();
+        let mut reply = String::new();
+        let _ = s.read_to_string(&mut reply);
+        reply
+    });
+    let until = Instant::now() + Duration::from_secs(5);
+    while !rendezvous.join("ready").exists() {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let ready = std::fs::read_to_string(rendezvous.join("ready")).unwrap();
+    let worker = ready.split_whitespace().next().unwrap();
+    assert!(worker.bytes().all(|b| b.is_ascii_digit()));
+    let mut parent = f.child.take().unwrap();
+    parent.kill().unwrap();
+    parent.wait().unwrap();
+    assert!(!pending.join().unwrap().starts_with("HTTP/1.1 202"));
+    let mut duplicate = Command::new(&exe);
+    duplicate.arg(f.root.join("config.json"));
+    instance_refusal(duplicate);
+    assert!(
+        Command::new("/bin/kill")
+            .args(["-KILL", worker])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let db = f.root.join("state/jobs.sqlite");
+    let until = Instant::now() + Duration::from_secs(3);
+    loop {
+        match mover_fs::InstanceGuard::for_database(db.to_str().unwrap()) {
+            Ok(g) => {
+                drop(g);
+                break;
+            }
+            Err(_) => {
+                assert!(Instant::now() < until);
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+    }
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    wait_manifest(&f, "1");
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"original recording"
+    );
+    f.stop();
 }

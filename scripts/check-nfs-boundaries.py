@@ -266,6 +266,41 @@ def main():
                 report["runtime"]["passed"] = completed["passed"]
                 if not report["runtime"]["passed"]:
                     raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
+        # Local instance state must refuse NFS in BOTH builds, before source/SQLite.
+        # All paths below belong to this disposable fixture, not user storage.
+        execute("mkdir /tmp/nfs/instance-state; chmod 700 /tmp/nfs/instance-state", "1000:1000")
+        assert execute("stat -f -c %t /tmp/nfs/instance-state").stdout.strip() == "6969"
+        bad_state = dict(config, source_root="/tmp/instance-source-must-not-be-opened",
+                         state_database="/tmp/nfs/instance-state/jobs.sqlite")
+        path = output / "nfs-state-config.json"
+        path.write_text(json.dumps(bad_state), encoding="utf-8")
+        run(["cp", str(path), client + ":/tmp/nfs-state-config.json"])
+        report["local_ownership"] = {"passed": False, "cases": [],
+            "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                              for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py")}}
+        builds = [("production", evidence, "/tmp/")]
+        if qualification:
+            builds.append(("nfs-qualification", qualification, "/tmp/qualification-"))
+        for mode, build_evidence, prefix in builds:
+            for profile in ("debug", "release"):
+                artifact = next(a for a in build_evidence["profiles"][profile]["artifacts"] if not a["test"])
+                assert execute("sha256sum " + prefix + profile).stdout.split()[0] == artifact["sha256"]
+                for command in ("", "--initialize-source ", "--transfer-one "):
+                    started = time.monotonic()
+                    suffix = " 1" if command.startswith("--transfer-one") else ""
+                    result = execute("LD_BIND_NOW=1 " + prefix + profile + " " + command +
+                                     "/tmp/nfs-state-config.json" + suffix, "1000:1000", check=False)
+                    elapsed = time.monotonic() - started
+                    assert result.returncode != 0 and elapsed < 10
+                    expected = "instance state filesystem" if mode == "nfs-qualification" else "filesystem not qualified"
+                    assert expected in result.stderr, result.stderr
+                    assert execute("test -z \"$(ls -A /tmp/nfs/instance-state)\" && test ! -e /tmp/instance-source-must-not-be-opened",
+                                   "1000:1000", check=False).returncode == 0
+                    report["local_ownership"]["cases"].append({"build": mode, "profile": profile,
+                        "command": command.strip() or "service", "binary_sha256": artifact["sha256"],
+                        "elapsed_seconds": round(elapsed, 3), "stderr": result.stderr.strip(),
+                        "passed": True, "state_empty": True, "source_absent": True})
+        report["local_ownership"]["passed"] = True
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")

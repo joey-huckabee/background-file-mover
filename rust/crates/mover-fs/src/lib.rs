@@ -88,6 +88,8 @@ pub const fn nfs_qualification_enabled() -> bool {
 mod binding;
 mod bootstrap;
 mod custody;
+mod instance;
+pub use instance::{INSTANCE_LOCK, InstanceGuard};
 mod enrollment;
 mod enrollment_io;
 pub use binding::{
@@ -223,6 +225,7 @@ fn namespace(root: &OwnedFd) -> Result<OwnedFd> {
 /// Cooperative singleton custody. The regular lock is not a storage fence.
 /// Production still rejects NFS; qualification uses the same inherited description.
 pub struct LocalClaimLock {
+    instance: Option<std::sync::Arc<InstanceGuard>>,
     path: String,
     root: ObjectIdentity,
     namespace: ObjectIdentity,
@@ -263,6 +266,20 @@ pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Resu
     Ok(())
 }
 impl LocalClaimLock {
+    pub fn attach_instance(&mut self, instance: std::sync::Arc<InstanceGuard>) -> Result<()> {
+        instance.validate()?;
+        if self.instance.is_some() {
+            return Err(ClaimError::Blocked("instance already attached"));
+        }
+        self.instance = Some(instance);
+        Ok(())
+    }
+    pub fn instance(&self) -> Result<&std::sync::Arc<InstanceGuard>> {
+        self.instance
+            .as_ref()
+            .ok_or(ClaimError::Blocked("local instance ownership required"))
+    }
+
     pub fn source_path(&self) -> &str {
         &self.path
     }
@@ -284,6 +301,7 @@ impl LocalClaimLock {
         custody::exclusive(&held)?;
         let lock = custody::validate(&namespace, &held)?;
         Ok(Self {
+            instance: None,
             path: path.into(),
             root: owned_directory(&root, false)?,
             namespace: owned_directory(&namespace, true)?,

@@ -1,7 +1,9 @@
 # First-release single-host NFS ownership contract
 
 Revised in [increment 41](RUST-INCREMENT-41.md), 2026-10-16, after the deployment
-clarifications below. **Design only: not implemented or qualified.** Supersedes
+clarifications below. [Increment 42](RUST-INCREMENT-42.md) implements the local
+guard and worker handoff with selected local tests; the shutdown controller and
+remaining NFS/lifecycle qualification are pending. Supersedes
 the blanket external-fencing prerequisites in increment 40 for this restricted
 first-release profile. It does not declare a local lock equivalent to NAS fencing.
 Production NFS and source deletion remain disabled. Registration, cross-host
@@ -35,12 +37,21 @@ and its limitations. Do not change/downgrade installed mount security to make a
 test pass. No cryptographic endpoint authentication or malicious-NAS/admin
 protection is newly claimed; stronger profiles need separate design/qualification.
 
-## Candidate: shared host-local ownership guard
+## Shared host-local ownership guard
 
 Use a protected persistent regular guard file under the fixed local state
-directory, separate from SQLite and NFS coordinator.lock files. Its proposed
-location is `<state-directory>/instance.lock`; this is not a currently implemented
-filename/provisioning interface. Validate local filesystem, private parent,
+directory, separate from SQLite and NFS coordinator.lock files. The implemented
+location is `<state-directory>/instance.lock`, where the state directory is the
+configured database parent. It must already exist, belong to the service account
+and have no group/other permission bits; use mode 0700 for normal operation.
+The guard is created once, empty and mode 0600; reuse does not rewrite it.
+Current local filesystem admission permits ext-family, tmpfs and overlay magic
+values; tmpfs/overlay support container tests and do not establish persistent
+production storage. Full database/sidecar alias and per-file mount validation
+remains pending; supported state files must actually reside locally. Other
+filesystem types, including NFS even in qualification
+builds, refuse. Persistent local production storage still needs deployment
+qualification. Validate local filesystem, private parent,
 regular-file type, owner, mode 0600, single link and held/named identity. Reject
 symlinks, unsafe parents, replaced/foreign files and unsupported storage. Never
 truncate, unlink, recreate or replace an existing guard to bypass a holder.
@@ -62,6 +73,19 @@ work, draining, uncertainty, reconciliation and confirmed shutdown. If the paren
 dies, surviving workers retain their copies and block a new manual/systemd start.
 If a worker loses the descriptor or cannot establish ownership, refuse its effects.
 No unconfirmed replacement is started because a worker timed out.
+
+The implementation sends one SCM_RIGHTS descriptor and a bounded, strict
+version-1 identity prefix over each existing private worker Unix stream. The child
+checks named/held parent and file identities, descriptor access and exclusive-lock
+ownership before acknowledging or reading its assignment. Missing, extra,
+unlocked, read-only or wrong-scope descriptors refuse. Bootstrap, enrollment,
+claim, payload, delivery and source-space worker modes all use the prefix. It is
+an internal same-executable protocol, not an API or mixed-version compatibility
+promise. SQLite schema and existing assignment/receipt formats are unchanged.
+Service startup, source initialization and single-file transfer acquire the guard
+before SQLite/source bootstrap; platform checking remains read-only. The normal
+TCP listener may bind before guard acquisition, so an occupied port can refuse
+first. Acquisition is nonblocking; the proposed shutdown wait does not apply to it.
 
 This is cooperative same-host instance exclusion, not a server-enforced fence.
 It requires all supported invocations to use the same approved state directory.
@@ -162,11 +186,16 @@ Committed manifests remain consumer-visible. Same-share and separate-share layou
 must both pass the agreed copy/hash/destination-reread/no-clobber recovery protocol;
 being on one share does not authorize a different integrity shortcut.
 
-## Single-host acceptance matrix (all pending)
+## Single-host acceptance matrix (selected local evidence only)
 
-SH IDs are new obligations for this revised profile, not passing tests or reused
-NF IDs. L1-SEC-009 is revised under the same ID; current implementation and prior
-fixture evidence do not establish this new local guard/stop controller.
+SH IDs remain obligations, not reused NF IDs. L1-SEC-009 retains its existing ID.
+Increment 42 covers selected SH-01/02/03/04/13 local cases: private guard
+validation, eight-way acquisition race, all three effect entry points, all six
+worker modes, coordinator death with a paused claim worker, and 12 actual
+mounted-NFS state-parent refusals across both build modes/profiles. This does not
+close the full cases: actual systemd races, every death phase, wrong UID,
+database/sidecar aliases or per-file mounts, delayed RPCs and deployment storage remain
+unqualified. The configurable controller (SH-05–09) is not implemented.
 
 | Case | Evidence required before support |
 |---|---|
@@ -229,9 +258,9 @@ this project's WAL database/state on local storage. The official systemd
 illustrates timeout/process-group controls; this is not identification or
 qualification of the deployed host's systemd version.
 
-Next implement the local guard and inheritance across all relevant entry points
-with SH-01–04/13 denial tests through the required SLES gates. Then implement the
-bounded stop/status controller and proposed shutdown_wait_seconds policy, qualify
+Next implement the bounded stop/status controller and proposed
+shutdown_wait_seconds policy. Extend selected local guard evidence to the
+remaining SH-01–04/13 lifecycle/storage cases, qualify
 SH-05–09 and actual NFS recovery/mount profiles, maintaining scenarios throughout.
 No NAS/host-admin fencing facility or package experiment is a prerequisite for
 independent local guard work. Production NFS and source deletion remain disabled.

@@ -21,6 +21,7 @@ struct Request {
 pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     let mut channel = UnixStream::from(std::io::stderr().as_fd().try_clone_to_owned()?);
     channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+    let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     let mut bytes = Vec::new();
     (&mut channel).take(16385).read_to_end(&mut bytes)?;
@@ -40,6 +41,7 @@ pub fn acquire(
     path: &str,
     binding: &mover_fs::SourceBinding,
     stop: &AtomicBool,
+    instance: &std::sync::Arc<mover_fs::InstanceGuard>,
 ) -> Result<LocalClaimLock, String> {
     let operation = || -> Result<LocalClaimLock, Box<dyn std::error::Error>> {
         if stop.load(Ordering::Relaxed) {
@@ -54,6 +56,7 @@ pub fn acquire(
         }
         let (mut channel, worker_channel) = UnixStream::pair()?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
+        channel.set_read_timeout(Some(Duration::from_secs(3)))?;
         let mut child = Supervised(
             Command::new(std::env::current_exe()?)
                 .arg("--internal-bootstrap-worker")
@@ -62,6 +65,7 @@ pub fn acquire(
                 .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker_channel)))
                 .spawn()?,
         );
+        instance.send(&mut channel)?;
         channel.write_all(&bytes)?;
         channel.shutdown(std::net::Shutdown::Write)?;
         let mut receiver = BootstrapReceiver::default();
@@ -82,7 +86,8 @@ pub fn acquire(
                     return Err("source bootstrap child failed".into());
                 }
                 // Queued socket data/EOF may lag the first exit observation.
-                if let Some(lock) = lock {
+                if let Some(mut lock) = lock {
+                    lock.attach_instance(instance.clone())?;
                     return Ok(lock);
                 }
             }

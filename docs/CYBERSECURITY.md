@@ -12,9 +12,11 @@ registration stays deferred. It is design-only and adds no current remote suppor
 The proxy/local UID trust boundary is separate from NFS custody and fencing.
 The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
 is revised in increment 41 to the confirmed single-host/local-state profile:
-proposed inherited local guard, configurable 60-second controller wait and safe
-owned NFS recovery/refusal. Local locks are not NAS settlement; stronger
-cross-host fencing remains deferred. No new runtime support is established.
+inherited local guard, proposed configurable 60-second controller wait and safe
+owned NFS recovery/refusal. [Increment 42](RUST-INCREMENT-42.md) implements the
+local guard and worker handoff with selected local evidence; the controller and
+remaining qualification stay pending. Local locks are not NAS settlement; stronger
+cross-host fencing remains deferred. Production NFS and deletion stay off.
 
 How Background File Mover moves data safely on a filesystem it shares with
 privileged agents it does not control.

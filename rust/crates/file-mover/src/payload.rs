@@ -203,6 +203,7 @@ pub(crate) fn exchange_deadline(
             .stderr(Stdio::from(std::os::fd::OwnedFd::from(child_channel)))
             .spawn()?,
     );
+    source.instance()?.send(&mut channel)?;
     channel.write_all(bytes)?;
     channel.shutdown(std::net::Shutdown::Write)?;
     let mut terminating = false;
@@ -234,6 +235,7 @@ pub(crate) fn exchange_deadline(
 pub fn worker() -> Result<()> {
     let mut channel = UnixStream::from(std::io::stderr().as_fd().try_clone_to_owned()?);
     channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+    let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     let mut bytes = Vec::new();
     (&mut channel)
