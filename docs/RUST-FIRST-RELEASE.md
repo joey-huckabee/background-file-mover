@@ -57,8 +57,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Qualify remaining bootstrap/source-read/publication/manifest death phases,
-   other NFS shutdown boundaries and systemd/account-control (SH-01-04/06-14).
+1. Qualify bootstrap death with enrolled/populated state, file-publication/
+   manifest death phases, other NFS shutdown boundaries and systemd/account-control (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
    Discover actual mounts/version/security later and qualify NFS recovery
@@ -106,6 +106,13 @@ remain prerequisites. Production gates stay off.
 exclusion to address that counterexample. It does not close FR-03/05 or qualify
 systemd/group control, other worker death phases, old kernels or NAS settlement.
 Production NFS and source deletion remain disabled pending the release gates.
+
+[Increment 48](RUST-INCREMENT-48.md) extends selected death-phase qualification
+to fresh, unenrolled bootstrap and accepted source-read workers, including blocked
+orphans and separately recorded prompt/incomplete stop outcomes. Read its report
+for actual evidence. No Rust/runtime policy change or FR-03/05 closure follows;
+enrolled/populated bootstrap, publication/manifest, systemd and delayed NFS effects
+remain open. Production NFS and source deletion stay disabled.
 
 ## Deferred beyond the first release
 

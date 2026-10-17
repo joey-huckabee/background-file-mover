@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 47. It
+This guide describes the implemented Rust prototype through increment 48. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -574,3 +574,24 @@ cannot execute its own deadline code, and SIGKILL may remain pending. Restore th
 underlying storage problem, preserve original state and confirm old completion
 before recovery. Timeout, lock release and local epoch clearance still do not
 prove NAS RPC/writeback settlement. Production NFS/deletion remain disabled.
+
+
+## Bootstrap and source-read coordinator loss
+
+[Increment 48](RUST-INCREMENT-48.md) exercises selected fresh bootstrap and
+accepted source-read workers on the disposable hard-NFS fixture. Read its report
+for actual outcomes. During bootstrap, Starting status is local; a bound listener
+and sent health request do not imply readiness or database access. If its
+coordinator dies while the child remains blocked, preserve the same state and
+lifetime files and observe OwnerUnavailable; do not start another mover or
+initialize the source until the old worker has exited and storage is restored.
+The fresh fixture performs explicit first enrollment afterward; this is not a
+repair or re-enrollment procedure for existing jobs.
+
+After accepted source-read interruption, preserve private claimed source, all
+staging attempts and the producer-reused original path. Normal same-state recovery
+can retain an interrupted partial and allocate the next copy attempt. Do not
+clear attempts or resubmit under another ID to bypass custody. A prompt worker
+exit following stop is a distinct measured outcome; it does not promise every
+hard-NFS call can be cancelled. Existing shutdown, retry/review and termination
+policies are unchanged. Production NFS and source deletion remain disabled.

@@ -33,6 +33,9 @@ qualification to blocked and terminating NFS workers. It exposes an ownership
 gap during termination. [Increment 47](docs/RUST-INCREMENT-47.md) adds a persisted
 local process-group lifetime check alongside the lock so kernel cleanup cannot
 hide a surviving worker. Production NFS and deletion remain disabled.
+[Increment 48](docs/RUST-INCREMENT-48.md) extends the selected death-phase fixture
+to fresh bootstrap and accepted source-read workers; see its results and limits.
+Enrolled-state startup, publication/manifest and deployment gates remain open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

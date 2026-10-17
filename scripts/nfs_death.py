@@ -1,10 +1,11 @@
 """Selected actual hard-NFS coordinator-death checks in a disposable fixture."""
+import hashlib
 import json
 import time
 import traceback
 
 
-def run_death(Case, run, execute, spawn, restore, server, output, client, results):
+def run_death(Case, run, execute, spawn, restore, server, output, client, results, scope="claim-copy-verify"):
     def status(case, expected):
         began = time.monotonic()
         reply = execute(f"LD_BIND_NOW=1 {case.binary} --status {case.config_path}", "1000:1000", check=False)
@@ -46,8 +47,10 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
+    assert scope in {"claim-copy-verify", "bootstrap-source-read"}
+    points = ("bootstrap", "source_read") if scope == "bootstrap-source-read" else ("claim_apply", "copy_chunk", "verify_read")
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
-             for point in ("claim_apply", "copy_chunk", "verify_read")
+             for point in points
              for phase in ("blocked", "terminating")]
     closed_profiles = set()
     for profile, point, phase, repetition in cases:
@@ -58,7 +61,25 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
-            case.start(True)
+            if point == "bootstrap":
+                # No pause hook: launch into an actual unavailable hard mount.
+                run(["exec", server, "rpc.nfsd", "0"])
+                case.launch(False)
+                for _ in range(12):
+                    initial = status(case, None)
+                    if initial["snapshot"]["phase"] == "Starting" and len(initial["snapshot"]["workers"]) == 1:
+                        case.worker = str(initial["snapshot"]["workers"][0])
+                        break
+                    assert case.service.poll() is None
+                    time.sleep(0.1)
+                else:
+                    raise AssertionError("bootstrap child not observed through local control")
+                result["startup_status"] = initial
+                command = execute(f"tr '\\000' ' ' </proc/{case.worker}/cmdline", "1000:1000").stdout
+                assert case.binary in command and "--internal-bootstrap-worker" in command
+                result["paused_worker"] = {"pid": case.worker, "command": command, "fixture_pause": False}
+            else:
+                case.start(True)
             coordinator = case.service_pid()
             result["coordinator_pid"] = coordinator
             epoch_path = case.base + "/state/workers.json"
@@ -67,25 +88,52 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             assert execute(f"stat -c '%u:%a:%h' {epoch_path}", "1000:1000").stdout.strip() == "1000:600:1"
             assert execute(f"test ! -e {case.base}/state/workers.next", "1000:1000", check=False).returncode == 0
             result["worker_epoch_before_death"] = epoch
-            posted = case.request("POST", "/api/v2/jobs", case.body, asynchronous=point == "claim_apply")
-            if point != "claim_apply":
-                assert posted[0] == 202 and posted[1]["source_paths_released"]
-                execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
-            case.await_pause()
-            result["status_before_outage"] = case.request("GET", "/api/v2/jobs/1")[1]
-            assert result["status_before_outage"]["state"] == ("Accepted" if point == "claim_apply" else "Claimed")
-            if point == "copy_chunk":
-                assert execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip() == "1048576"
-            assert case.service_pid() == coordinator
-            worker = case.worker
-            run(["exec", server, "rpc.nfsd", "0"])
-            execute(f"umask 077; : >{case.rendezvous}/go", "1000:1000")
-            time.sleep(3)
-            assert case.state(worker) == "D" and case.children() == [worker]
-            if point == "verify_read":
-                assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
-            result["blocked_worker"] = {"pid": worker, "state": "D", "pause_released": True,
-                "nfs_server_stopped": True, "status": status(case, "Running")}
+            posted = None
+            if point == "bootstrap":
+                # Local-only observations; never stat the unavailable source.
+                time.sleep(3)
+                worker = case.worker
+                assert case.state(worker) == "D" and case.children() == [worker]
+                initial = status(case, "Starting")
+                assert initial["snapshot"]["workers"] == [int(worker)]
+                connected = case.base + "/health-connected"
+                health = case.request("GET", "/healthz", asynchronous=True, connected_marker=connected)
+                for _ in range(5):
+                    if execute(f"test -f {connected}", "1000:1000", check=False).returncode == 0:
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise AssertionError("bootstrap health request was not sent")
+                result["bootstrap_health_request_sent"] = True
+                assert health[0].poll() is None and not health[1].read_text()
+                result["bootstrap_health_pending"] = True
+                execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
+                result["database_absent_before_death"] = True
+                result["blocked_worker"] = {"pid": worker, "state": "D", "pause_released": False,
+                    "nfs_server_stopped": True, "status": initial}
+            else:
+                posted = case.request("POST", "/api/v2/jobs", case.body, asynchronous=point == "claim_apply")
+                if point != "claim_apply":
+                    assert posted[0] == 202 and posted[1]["source_paths_released"]
+                    execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
+                case.await_pause()
+                result["status_before_outage"] = case.request("GET", "/api/v2/jobs/1")[1]
+                assert result["status_before_outage"]["state"] == ("Accepted" if point == "claim_apply" else "Claimed")
+                if point in {"copy_chunk", "source_read"}:
+                    size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
+                    assert size == ("1048576" if point == "copy_chunk" else "0")
+                    result["partial_bytes_before_outage"] = int(size)
+                assert case.service_pid() == coordinator
+                worker = case.worker
+                run(["exec", server, "rpc.nfsd", "0"])
+                execute(f"umask 077; : >{case.rendezvous}/go", "1000:1000")
+                time.sleep(3)
+                assert case.state(worker) == "D" and case.children() == [worker]
+                if point in {"verify_read", "source_read"}:
+                    assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
+                    result["read_not_completed_during_outage"] = True
+                result["blocked_worker"] = {"pid": worker, "state": "D", "pause_released": True,
+                    "nfs_server_stopped": True, "status": status(case, "Running")}
             result["guard_before_death"] = probe(case)
             assert result["guard_before_death"]["contended"]
             if phase == "terminating":
@@ -164,19 +212,29 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             result["guard_after_exit"] = probe(case)
             assert not result["guard_after_exit"]["contended"]
             result["local_status_after_exit"] = status(case, "NoActiveOwner")
+            if point == "bootstrap":
+                health[0].wait(timeout=10)
+                assert "200 OK" not in health[1].read_text()
+                execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
+                result["database_absent_after_old_exit"] = True
+                result["source_hash_before_first_submission"] = execute(f"sha256sum {case.source}/current/nested/data.bin", "1000:1000").stdout.split()[0]
+                assert result["source_hash_before_first_submission"] == hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
+                # First enrollment is explicit, after the old worker is gone.
+                execute(f"{case.binary} --initialize-source {case.config_path}", "1000:1000")
+                result["explicit_initialization_after_old_exit"] = True
             recovered = case.recover()
             replacement_epoch = json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout)
             assert replacement_epoch["group"] == int(case.service_pid()) and replacement_epoch["group"] != epoch["group"]
             assert all(replacement_epoch[k] == epoch[k] for k in ("version", "boot", "namespace", "guard"))
             result["worker_epoch_after_recovery"] = replacement_epoch
             assert recovered["details"]["source_cleanup_enabled"] is False
-            if point == "claim_apply":
+            if point in {"claim_apply", "bootstrap"}:
                 execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
-            if point == "copy_chunk":
+            if point in {"copy_chunk", "source_read"}:
                 assert recovered["details"]["files"][0]["attempt"] == 2
                 assert execute(f"test -f {case.destination}/1/.staging/1.part", "1000:1000", check=False).returncode == 0
                 result["old_partial_preserved"] = True
-            if point == "verify_read":
+            if point in {"verify_read", "bootstrap"}:
                 assert recovered["details"]["files"][0]["attempt"] == 1
             assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
             assert execute(f"cat {case.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
@@ -198,14 +256,22 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             return {"passed": False}
         if result.get("kernel_closed_guard") and result["passed"]:
             closed_profiles.add(profile)
-        if point == "verify_read" and phase == "terminating" and profile not in closed_profiles and repetition < 3:
+        if scope == "claim-copy-verify" and point == "verify_read" and phase == "terminating" and profile not in closed_profiles and repetition < 3:
             cases.append((profile, point, phase, repetition + 1))
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    return {"passed": 12 <= len(results) <= 18 and all(c["passed"] for c in results)
-                      and terminating_profiles == {"debug", "release"}
-                      and closed_profiles == {"debug", "release"},
+    if scope == "bootstrap-source-read":
+        passed = len(results) == 8 and all(c["passed"] for c in results) and {
+            (c["profile"], c["point"]) for c in results
+            if c["outcome"] == "blocked_orphan_retains_ownership"
+        } == {(p, point) for p in ("debug", "release") for point in points}
+    else:
+        passed = (12 <= len(results) <= 18 and all(c["passed"] for c in results)
+                  and terminating_profiles == {"debug", "release"}
+                  and closed_profiles == {"debug", "release"})
+    return {"passed": passed, "scope": scope,
+            "raw_lock_closure_required": scope == "claim-copy-verify",
             "core_cases": sum(c["repetition"] == 0 for c in results),
             "verification_repetitions": sum(c["repetition"] > 0 for c in results),
             "required_closed_guard_profiles": sorted(closed_profiles),

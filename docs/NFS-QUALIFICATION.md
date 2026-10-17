@@ -467,3 +467,29 @@ competing starts refused and all original-state recoveries. Six normal transfers
 twelve NFS state-parent refusals and 184 state-file refusals also pass; all fourteen
 state fixtures preserve bytes/identity/permissions and cleanup reports no errors.
 See the increment report for timing, exact-source and remaining-scope details.
+
+## Bootstrap/source-read death-phase expansion
+
+[Increment 48](RUST-INCREMENT-48.md) defines eight additional selected cases:
+debug/release × bootstrap/source-read × blocked/following local stop. Select
+`--coordinator-death --death-scope bootstrap-source-read` with fresh passing
+production/qualification gate directories and `--isolated-startup`. The default
+`--coordinator-death` still selects the retained claim/copy/verification matrix,
+including its raw-lock-closure requirement and bounded verification repetitions.
+The new phase matrix observes raw lock state but does not require a particular
+new worker mode to reproduce the verification-specific kernel exit path.
+
+These phase cases use an NFS source and local destination; both-NFS crash layouts
+remain outside this expansion. Bootstrap launches into unavailable NFS without a
+fixture pause; source-read uses the retained pre-read rendezvous. Direct D observations are required. Surviving
+orphans must retain ownership and refuse competitors until actual exit; prompt
+stop is recorded separately. Bootstrap cannot serve readiness or create SQLite;
+source-read must preserve custody, the original partial and producer-reused paths.
+The [saved phase evidence](RUST-NFS-STARTUP-READ-DEATH-EVIDENCE.json) passes eight
+cases: four surviving blocked orphans retain ownership and refuse twelve competing
+effect commands; four following-stop cases exit promptly. All recover with original
+state, source and reused paths preserved. Six normal transfers, twelve NFS-state-
+parent refusals and all 184 state-file refusals pass, with fourteen fixtures
+preserved and clean teardown. See increment 48 for exact gate/artifact provenance,
+timings and remaining limitations. These cases do not newly reproduce raw flock
+closure; preserve increment 47's separate strict regression evidence.

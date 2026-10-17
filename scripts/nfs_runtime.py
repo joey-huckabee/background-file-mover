@@ -9,7 +9,7 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify"):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
@@ -23,7 +23,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
-            source_nfs = point in claim_points | {"source_read"}
+            source_nfs = point in claim_points | {"source_read", "bootstrap"}
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
             self.destination = (self.base + "/destination" if source_nfs or production else "/tmp/nfs/" + self.label + "/destination")
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
@@ -57,11 +57,12 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             local.write_text(json.dumps(self.config))
             self.config_path = self.base + "/config.json"
             run(["cp", str(local), client + ":" + self.config_path])
-            execute(f"{self.binary} --initialize-source {self.config_path}", "1000:1000")
+            if point != "bootstrap":
+                execute(f"{self.binary} --initialize-source {self.config_path}", "1000:1000")
             self.body = {"generator_id": "fixture", "submission_id": self.label, "source_path": self.source + "/current",
                          "files": [{"name": "nested/data.bin"}]}
 
-        def request(self, method, path, body=None, asynchronous=False):
+        def request(self, method, path, body=None, asynchronous=False, connected_marker=None):
             self.counter += 1
             name = self.label + "-request-" + str(self.counter)
             payload = json.dumps(body).encode() if body is not None else b""
@@ -70,7 +71,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             local.write_bytes(raw)
             remote = self.base + "/request-" + str(self.counter)
             run(["cp", str(local), client + ":" + remote])
-            script = f"exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19878; cat {remote} >&3; cat <&3'"
+            connected = f": >{connected_marker}; " if connected_marker else ""
+            script = f"exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19878; cat {remote} >&3; {connected}cat <&3'"
             if asynchronous:
                 process = spawn(script, name)
                 self.processes.append(process)
@@ -85,16 +87,19 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             head, payload = text.replace("\r\n", "\n").split("\n\n", 1)
             return int(head.split()[1]), json.loads(payload)
 
-        def start(self, paused):
+        def launch(self, paused):
             self.counter += 1
             name = self.label + "-service-" + str(self.counter)
             environment = (f"FILE_MOVER_QUALIFICATION_PAUSE={self.point} FILE_MOVER_QUALIFICATION_RENDEZVOUS={self.rendezvous} " if paused else "")
             self.service = spawn(f"echo $$ >{self.marker}; exec env {environment}{self.binary} {self.config_path}", name)
             self.service_logs.append(name + ".log")
             self.processes.append(self.service)
+
+        def start(self, paused):
+            self.launch(paused)
             for _ in range(30):
                 if self.service.poll() is not None:
-                    raise RuntimeError("runtime service startup failed: " + (output / (name + ".log")).read_text())
+                    raise RuntimeError("runtime service startup failed: " + (output / self.service_logs[-1]).read_text())
                 try:
                     if self.request("GET", "/healthz")[0] == 200:
                         return
@@ -295,7 +300,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
 
     if death_only:
         from nfs_death import run_death
-        return run_death(Case, run, execute, spawn, restore, server, output, client, results)
+        return run_death(Case, run, execute, spawn, restore, server, output, client, results, death_scope)
 
     if shutdown_only:
         from nfs_shutdown import run_shutdown

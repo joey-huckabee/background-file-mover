@@ -177,6 +177,16 @@ compatibility qualification. Future branch cleanup requires the branch review.
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+Increment 48 adds the retained `--coordinator-death --death-scope
+bootstrap-source-read` fixture: selected fresh, unenrolled bootstrap and accepted
+source-read cases, blocked or following local stop, in debug/release. See
+`docs/RUST-INCREMENT-48.md` for actual results and limits. Bootstrap must remain
+unready without SQLite, then explicitly enroll only after restoration/confirmed
+old exit. Preserve source-read custody, old partials and producer-reused paths.
+The default claim/copy/verification matrix and increment 47 raw-lock-closure
+requirement remain intact. Enrolled/populated bootstrap, publication/manifest
+and other systemd/NFS/delayed-effect gates remain pending; no production enablement.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

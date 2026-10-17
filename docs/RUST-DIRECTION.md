@@ -418,3 +418,13 @@ recheck within the existing total ten-second handoff budget; existing keys skip 
 Unknown/late results return retryable unavailable; cold admission does not depend
 on fast recorder retries. See its results and SA mapping before expanding storage claims. No
 schema/dependency change; keep physical/NFS capacity qualification pending.
+
+
+[Increment 48](RUST-INCREMENT-48.md) extends the retained coordinator-death fixture
+with `--death-scope bootstrap-source-read`: eight selected fresh-bootstrap and
+accepted source-read cases, blocked or following local stop, in both profiles.
+Read the report for actual outcomes and limitations. No Rust runtime, package,
+retry/review or production-gate change is introduced. Preserve original local
+state and wait for confirmed old exit before recovery; fresh bootstrap performs
+explicit first enrollment afterward. Enrolled/populated bootstrap, publication/
+manifest death and other operation/systemd/NAS-settlement obligations remain open.

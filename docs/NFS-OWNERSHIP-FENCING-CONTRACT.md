@@ -304,6 +304,19 @@ and settled-operation obligations in [fenced enrollment](FENCED-ENROLLMENT-DESIG
 and increment 40. They cannot be satisfied by this local guard or the 60-second
 timer. Those profiles require explicit new scope, controls and qualification.
 
+## Bootstrap/source-read qualification scope
+
+[Increment 48](RUST-INCREMENT-48.md) extends selected SH-04/08 evidence to fresh,
+unenrolled bootstrap and accepted source-read workers in debug/release. Surviving
+orphans require retained logical ownership and competing-start refusal; prompt
+stop is a distinct outcome. Bootstrap must remain unready without SQLite, with
+explicit first enrollment only after restoration/confirmed exit. Source-read
+recovery preserves original custody, old staging and producer-reused paths.
+Consult the increment and its raw evidence for actual results. No ownership,
+shutdown, retry/review or production policy changes accompany this expansion.
+Enrolled/populated-state bootstrap, publication/manifest death, systemd/group
+control and delayed NAS effects remain open; FR-03/05 are not closed.
+
 ## References and next increment
 
 Linux [flock(2)](https://man7.org/linux/man-pages/man2/flock.2.html) describes

@@ -38,6 +38,8 @@ def main():
                         help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
     parser.add_argument("--coordinator-death", action="store_true",
                         help="Qualify original-state exclusion/recovery after coordinator death with blocked/terminating NFS workers")
+    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read"),
+                        help="With --coordinator-death, select the finite worker-phase matrix (default: claim-copy-verify)")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
     parser.add_argument("--enrollment-storage", action="store_true",
@@ -47,6 +49,7 @@ def main():
     parser.add_argument("--source-storage", action="store_true",
                         help="Qualify source-space admission and unchanged-policy recovery on a bounded export")
     args = parser.parse_args()
+    assert not args.death_scope or args.coordinator_death, "death-scope requires --coordinator-death"
     assert not args.coordinator_death or args.qualification_gate, "coordinator-death checks require qualification artifacts"
     assert sum((args.coordinator_death, args.shutdown, args.runtime)) <= 1, "select one runtime matrix"
     assert not args.shutdown or args.qualification_gate, "shutdown checks require qualification artifacts"
@@ -100,6 +103,7 @@ def main():
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["coordinator_death_requested"] = args.coordinator_death
+    report["coordinator_death_scope"] = args.death_scope or "claim-copy-verify"
     report["shutdown_requested"] = args.shutdown
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
@@ -115,6 +119,8 @@ def main():
     ]
     if args.coordinator_death:
         report["limitations"][2] = "Selected real hard-NFS claim/copy/verification workers after coordinator SIGKILL, while blocked or following local stop. Physical flock closure is distinct from logical process-group epoch ownership; both profiles must retain exclusion with a physically closed guard. Prompt exit is distinct from a surviving kernel-blocked child. No systemd, old-kernel, NAS settlement or takeover qualification."
+    if args.coordinator_death and args.death_scope == "bootstrap-source-read":
+        report["limitations"][2] = "Eight selected bootstrap/source-read hard-NFS cases in debug/release, while blocked or following local stop. Bootstrap must stay unready without SQLite. Surviving orphans retain logical ownership until actual exit; prompt stop is distinct and does not qualify the surviving terminating branch. The original claim/copy/verification raw-lock-closure regression is retained separately. No systemd, old-kernel, NAS settlement or takeover qualification."
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -279,9 +285,12 @@ def main():
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
                                       for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_binding.py")}}
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
-                                        artifact_hashes, report["coordinator_death"]["cases"], death_only=True)
+                                        artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
+                                        death_scope=args.death_scope or "claim-copy-verify")
                 report["coordinator_death"].update(completed)
-                assert report["coordinator_death"]["passed"] or 12 <= len(report["coordinator_death"]["cases"]) <= 18, "NFS coordinator-death matrix interrupted; inspect cases"
+                complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope == "bootstrap-source-read"
+                            else 12 <= len(report["coordinator_death"]["cases"]) <= 18)
+                assert report["coordinator_death"]["passed"] or complete, "NFS coordinator-death matrix interrupted; inspect cases"
                 # A fully observed ownership defect remains a failed matrix.
                 # Run retained regressions after safe case cleanup, then fail.
 
