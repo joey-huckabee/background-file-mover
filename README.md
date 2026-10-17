@@ -10,6 +10,10 @@ and validates destination custody before effects, preserving source handoff
 during outages. Provision both configured root markers; legacy jobs without a
 destination policy require future explicit enrollment.
 
+The [first Rust release checklist](docs/RUST-FIRST-RELEASE.md) defines the
+bounded scope, eight remaining release gates and next qualification increment.
+Production NFS and source deletion remain disabled pending those gates.
+
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read
 [the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).

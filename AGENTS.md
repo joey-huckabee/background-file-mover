@@ -109,6 +109,11 @@ authorization and cross-client ownership. If Ubuntu user startup prevents rootle
 Podman, use the documented Windows/Podman WSL2 gate fallback in
 `docs/NFS-QUALIFICATION.md`; preserve all compatibility checks.
 Keep production NFS and deletion disabled.
+Increment 37 defines docs/RUST-FIRST-RELEASE.md: eight open release gates,
+filesystem/NFS scope and deferred features. Use it to prioritize the broader
+roadmap. Next qualify bounded native source-fill/restoration with unchanged
+policy and existing-job recovery; resolve remote access and NFS fencing before
+production enablement or cleanup. No new runtime support is claimed.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
 Backfill prior scenarios and do not describe pending qualification as supported.

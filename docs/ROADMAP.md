@@ -4,6 +4,18 @@ This file contains future work and unresolved decisions for the Rust transfer
 coordinator. Remove tasks when they are complete; keep implementation evidence
 in the result documents, changelog and trace matrix.
 
+## First-release finish line
+
+Use [the first-release checklist](RUST-FIRST-RELEASE.md) to prioritize the eight
+open release gates. The sections below retain broader future obligations; they
+are not all prerequisites for the first release. Do not use increment counts as
+release progress. Deferred capabilities remain deferred unless explicitly added.
+
+The next implementation increment is bounded native source-fill/restoration
+qualification (FR-02), preserving existing-job recovery and unchanged policy.
+Then resolve the contract/access and production ownership/fencing prerequisites
+before dependent NFS qualification and source cleanup.
+
 ## Next work
 
 Work on `feature/rust-transfer-coordinator`. Read

@@ -105,6 +105,12 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Prioritize the [first-release checklist](RUST-FIRST-RELEASE.md), recorded in
+[increment 37](RUST-INCREMENT-37.md). It bounds the initial filesystem/NFS release
+and keeps optional adapters/repair/UI deferred. The next runtime increment is
+native source-fill/restoration qualification; do not implement source deletion
+or enable production NFS before their safety gates close.
+
 Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference
 cargo-zigbuild GNU/glibc 2.22 compilation, ELF audit and exact debug/release test
 execution in pinned SLES userspace. Run `python scripts/check-rust-sles.py`;

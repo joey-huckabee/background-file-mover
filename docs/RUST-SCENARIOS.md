@@ -149,6 +149,13 @@ deployment instructions. Scenario IDs are documentation keys, not requirement ID
 
 ## Documentation work fed by this catalog
 
+[The first-release checklist](RUST-FIRST-RELEASE.md) groups the remaining release
+gates and DOC-01/02/04/05 obligations; DOC-03 remains maintained. Increment 37 is
+planning/documentation only: all 81 stable situation IDs and their current
+implementation/evidence scopes are unchanged. In particular SC-043/045/046
+remain future capabilities, and SC-076/078/080/081 need native source-capacity
+qualification. A release-gate checklist is not passing runtime evidence.
+
 SC-075–080 now describe the local guard in [increment 36](RUST-INCREMENT-36.md);
 SC-081 and the evidence cells retain broader storage gaps. The
 [original policy definition](RUST-INCREMENT-35.md) is historical design evidence.
