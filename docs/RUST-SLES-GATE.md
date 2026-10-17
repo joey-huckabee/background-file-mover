@@ -85,3 +85,9 @@ the current passing run, pinned inputs, dependencies, per-profile test counts an
 artifact hashes/audits. Windows and native WSL entry points passed for the core;
 the current expanded workspace passed via the native WSL entry point. The
 GitHub workflow is configured; its remote outcome is separate from local evidence.
+
+The [real-worker shutdown matrix](RUST-INCREMENT-45.md) is fixture-only. Its driver
+requires byte-identical Rust inputs and rechecks exact artifacts from the passing
+production/qualification gates before SLES execution. It does not rebuild Rust,
+change dependencies or replace mandatory gates with a host-only test. New Rust
+inputs always require fresh gate runs.

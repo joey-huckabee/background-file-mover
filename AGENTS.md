@@ -133,8 +133,13 @@ of SQLite/NFS/the executor; see docs/RUST-INCREMENT-43.md. The running daemon ow
 the first monotonic deadline; repeated stop/signal requests and config edits do
 not reset it. Timeout exits 2 with ShutdownIncomplete/restart blocked while live
 holders retain ownership. Qualification-only shutdown_drain is a bounded local
-pause, not an uncancellable NFS call. Next qualify remaining guard/death-phase,
-hard-NFS deadline/drain and actual-version systemd/account-control cases.
+pause, not an uncancellable NFS call. Increment 45 adds opt-in --shutdown fixture
+qualification with actual kernel-blocked claim/copy/verification workers, short
+and default budgets, retained-copy exclusion, repeated requests and original-state
+recovery; see docs/RUST-INCREMENT-45.md. Prompt kernel-assisted exit and retained
+workers beyond the deadline are separate measured outcomes. Rust inputs/ABI,
+retry/review and production gates are unchanged. Next qualify remaining guard/
+death-phase, other NFS operation/drain and actual-version systemd/account cases.
 Local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
 NFS version/mount/systemd qualification remain pending. Preserve the original NF
 mapping and stronger deferred takeover/re-enrollment obligations. Keep production

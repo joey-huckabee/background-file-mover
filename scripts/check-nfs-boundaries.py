@@ -34,6 +34,8 @@ def main():
                         help="Also qualify real Rust worker interruption/outage and coordinator death")
     parser.add_argument("--long-outages-only", action="store_true",
                         help="With --runtime, run only the four three-minute runtime cases; retain baseline and OS checks")
+    parser.add_argument("--shutdown", action="store_true",
+                        help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
     parser.add_argument("--enrollment-storage", action="store_true",
@@ -43,6 +45,8 @@ def main():
     parser.add_argument("--source-storage", action="store_true",
                         help="Qualify source-space admission and unchanged-policy recovery on a bounded export")
     args = parser.parse_args()
+    assert not args.shutdown or args.qualification_gate, "shutdown checks require qualification artifacts"
+    assert not (args.shutdown and args.runtime), "select shutdown or runtime matrix, not both"
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
     assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
@@ -91,18 +95,21 @@ def main():
               "isolated_startup_required": args.isolated_startup,
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
+    report["shutdown_requested"] = args.shutdown
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
     report["enrollment_storage_requested"] = args.enrollment_storage
     report["delivery_storage_requested"] = args.delivery_storage
     report["source_storage_requested"] = args.source_storage
-    report["runtime_scope"] = "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
+    report["runtime_scope"] = "shutdown" if args.shutdown else "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
         "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
         "Lock and interrupted metadata probes use OS tools, not Rust claim/copy/publication on NFS.",
         "Service startup rejection is measured; production NFS and source deletion remain disabled.",
     ]
+    if args.shutdown:
+        report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
         report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points, including 180-second blocked claim and verification outages with live recovery. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Longer or indefinite outages, queue saturation and export changes remain unqualified. Other lock/startup probes use OS tools."
         if args.long_outages_only:
@@ -257,6 +264,17 @@ def main():
                     for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py", "nfs_enrollment.py")}
                 run_ownership(run, execute, spawn, output, client, peer, server,
                               gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"], restore)
+            if args.shutdown:
+                from nfs_runtime import run_runtime
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["shutdown"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_shutdown.py", "nfs_binding.py")}}
+                completed = run_runtime(run, execute, spawn, restore, server, output, client,
+                                        artifact_hashes, report["shutdown"]["cases"], shutdown_only=True)
+                report["shutdown"].update(completed)
+                assert report["shutdown"]["passed"], "NFS shutdown qualification failed; inspect cases"
             if args.runtime:
                 from nfs_runtime import run_runtime
                 artifact_hashes = dict(report["artifacts"])

@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 44. It
+This guide describes the implemented Rust prototype through increment 45. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -485,3 +485,26 @@ These examples were checked against source and existing evidence for
 deployment walkthrough. Producer quickstart (DOC-01), consumer manifest validator
 (DOC-02), full restart/shutdown troubleshooting (DOC-04), deployment/support matrix
 (DOC-05) and future repair/adapter guides (DOC-06) remain separate deliverables.
+
+## Controlled hard-NFS shutdown observations
+
+[Increment 45](RUST-INCREMENT-45.md) tests the existing controller after actual
+claim, copy and verification workers enter kernel D state with the NFS server
+unavailable. In the selected fixture, a blocked copy can remain alive beyond the
+short two-second or default 60-second stop budget. Stop returns exit 2 and
+ShutdownIncomplete; the guard and worker remain, and competing starts refuse.
+Repeated stop/signals or editing a next-start wait setting do not extend that
+instance's first deadline. Preserve original state and working files, restore
+approved storage, and observe confirmed process exit before attempting recovery.
+
+Other selected workers can exit promptly when the kernel handles termination.
+A local Stopped/NoActiveOwner result describes process/guard ownership; it is not
+proof that every NAS operation or client writeback has settled. The fixture always
+restores NFS before original-state restart. A brief OwnerUnavailable during final
+teardown remains an unsuccessful observation, not permission to bypass the guard.
+Original-state recovery checks same-ID replay, retained source/partials and final
+manifest integrity without changing retry/review behavior or deleting sources.
+
+These are opt-in qualification-build observations on the stated modern kernel,
+not deployment support for arbitrary NFS calls, NAS versions or systemd units.
+Production NFS and source deletion remain disabled.

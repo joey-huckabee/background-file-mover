@@ -88,6 +88,11 @@ and mount/owner refusal evidence. These checks do not close FR-03 or FR-06:
 deployment persistence, systemd/account policy, remaining shutdown/NFS failure
 cases and production enablement remain open.
 
+[Increment 45](RUST-INCREMENT-45.md) adds selected real hard-NFS worker stop,
+retained-copy deadline and original-state recovery evidence. FR-03/05 remain open:
+other operation/death boundaries, systemd/account coordination and delayed NFS
+effects are still prerequisites. No production NFS/deletion enablement follows.
+
 ## Deferred beyond the first release
 
 S3/object storage, registration/token enrollment, dashboard/UI, offline repair,

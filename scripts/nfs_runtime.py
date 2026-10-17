@@ -9,14 +9,16 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None):
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
+            if shutdown:
+                self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
@@ -44,6 +46,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.identities = execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout
             self.config = {"bind": "127.0.0.1:19878", "generator_id": "fixture", "source_root": self.source,
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}
+            if shutdown and shutdown_wait is not None:
+                self.config["shutdown_wait_seconds"] = shutdown_wait
             self.config["destination_binding"] = binding_for(self.label+"-destination", not production and not source_nfs, "destination")
             provision(run, execute, output, client, self.destination, self.config["destination_binding"])
             self.config["source_binding"] = binding_for(self.label, source_nfs)
@@ -287,6 +291,10 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if self.worker:
                 self.result["cleanup_worker_exit"] = self.await_exit(self.worker)
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
+
+    if shutdown_only:
+        from nfs_shutdown import run_shutdown
+        return run_shutdown(Case, run, execute, spawn, restore, server, output, client, results)
 
     for profile in ("debug", "release"):
         cases = [(point, False) for point in ("production_controls_ignored", "claim_apply", "claim_link", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")]

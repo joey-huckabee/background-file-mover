@@ -121,9 +121,13 @@ stop/status controller with selected config/clean/timeout/repeated-request cases
 [Increment 44](RUST-INCREMENT-44.md) adds local SQLite file/recovery-name admission,
 individual state/guard/control mount refusal and retained-WAL recovery; existing
 state is preserved on refusal and no automatic repair is introduced.
-Next qualify remaining guard/death-phase, actual hard-NFS deadline/drain and
-systemd/account-control cases (SH-01–04/06–14). Qualify late NFS effects, actual
-mounts, same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
+[Increment 45](RUST-INCREMENT-45.md) adds real hard-NFS shutdown qualification:
+selected copy workers retain ownership beyond short/default deadlines; prompt
+claim/read exit is distinct, and original-state recovery waits for restoration
+and confirmed old exit. No Rust behavior or retry/review policy changes.
+Next qualify remaining guard/death-phase, other NFS operation/drain boundaries and
+systemd/account-control cases (SH-01â€“04/06â€“14). Qualify late NFS effects, actual
+mounts, same/separate shares and systemd scope (SH-10â€“14); local exclusion is not remote
 settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS
 administration is assumed. Production NFS/deletion and remote ingress stay off;
 registration stays deferred.

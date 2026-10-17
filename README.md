@@ -25,7 +25,9 @@ returns incomplete/restart-blocked while ownership remains held. Remaining SH
 qualification and delayed-operation recovery stay pending; no takeover is enabled.
 [Increment 44](docs/RUST-INCREMENT-44.md) adds SQLite file/sidecar safety and
 individual mount checks, preserving existing state on refusal and normal WAL
-recovery after process death.
+recovery after process death. [Increment 45](docs/RUST-INCREMENT-45.md)
+qualifies selected actual hard-NFS worker shutdown, retained-copy deadlines and
+original-state recovery; other lifecycle/deployment gates remain open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

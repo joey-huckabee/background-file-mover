@@ -362,3 +362,33 @@ normal transfer/lifecycle regressions, 12 NFS-state-parent refusals and retained
 isolated-startup/OS interruption checks. Cleanup completed without errors.
 A prior fixture failed during restricted-root setup before the new matrix;
 [increment 44](RUST-INCREMENT-44.md) records its correction and limits.
+
+## Retained real-worker shutdown matrix
+
+Use --shutdown with passing production and qualification gates plus
+--isolated-startup. It selects 12 real-worker cases: claim, copy and verification,
+each with a short two-second budget and omitted/default 60, in debug and release.
+The complete normal-transfer, state-layout and startup/OS regressions still run.
+For unchanged Rust inputs, existing passing gates are reusable only after the
+driver verifies the complete source snapshot/inventory and exact artifact hashes.
+Any Rust input change requires new mandatory gates first.
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/20261017T111519Z-1ecdab26 --qualification-gate rust/validation/20261017T111519Z-8fa9a462-nfs-qualification --isolated-startup --shutdown
+```
+
+Select --shutdown separately from --runtime; --long-outages-only remains a
+--runtime selector. Existing runtime, ownership and capacity capabilities remain
+available. See [increment 45](RUST-INCREMENT-45.md) for actual outcomes and scope.
+The runner stops the server and releases the worker rendezvous, verifies a real
+kernel D-state assignment, then exercises independent local status/stop, same-state
+competitor refusal, first-deadline behavior and original-state recovery. Report
+prompt exit separately from a retained child beyond the deadline; do not use a
+userspace pause as proof of uninterruptible NFS. Never restart before restoration
+and confirmed old process exit in these cases, even if the local guard is free.
+
+
+[Recorded shutdown evidence](RUST-NFS-SHUTDOWN-EVIDENCE.json) passes all 12
+cases: five deadline-held workers and seven prompt exits, 51 competing starts
+refused, all original-state recoveries verified. Normal transfer, 12 NFS-parent
+and 120 SQLite-file admission regressions passed; cleanup had no errors.

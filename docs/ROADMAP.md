@@ -11,8 +11,8 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next qualify remaining guard/death-phase and shutdown boundaries, actual NFS
-workers beyond deadlines and systemd/account-control behavior (SH-01–04/06–14).
+Next qualify remaining guard/death-phase and shutdown boundaries, other NFS
+operation/synchronization boundaries and systemd/account-control behavior (SH-01–04/06–14).
 Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
 shares and systemd lifecycle qualification open (SH-10–14); a free local lock or

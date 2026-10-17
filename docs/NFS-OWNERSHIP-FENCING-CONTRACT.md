@@ -195,7 +195,7 @@ Committed manifests remain consumer-visible. Same-share and separate-share layou
 must both pass the agreed copy/hash/destination-reread/no-clobber recovery protocol;
 being on one share does not authorize a different integrity shortcut.
 
-## Single-host acceptance matrix (selected local evidence only)
+## Single-host acceptance matrix (selected local and controlled NFS evidence)
 
 SH IDs remain obligations, not reused NF IDs. L1-SEC-009 retains its existing ID.
 Increment 42 covers selected SH-01/02/03/04/13 local cases: private guard
@@ -218,6 +218,15 @@ individual mounts before candidate metadata calls, including guard/control names
 Valid WAL recovery and legacy private-directory file modes remain supported.
 Actual systemd/account policy, hostile concurrent same-UID/root mutation,
 deployment persistence and remaining SH boundaries are not qualified by this.
+
+[Increment 45](RUST-INCREMENT-45.md) extends selected SH-06/07/08 to real
+hard-NFS claim/copy/verification shutdown. Copy workers are observed kernel-blocked
+beyond short/default deadlines with retained ownership and bounded unsuccessful
+control; prompt claim/read exit is reported separately. Repeated requests/signals
+and a changed next-start budget cannot reset the live deadline. Original-state
+recovery follows server restoration and confirmed old exit. Other operation/death
+boundaries, actual systemd/account policy and delayed-effect settlement remain
+open; local stop success never certifies NAS settlement.
 
 | Case | Evidence required before support |
 |---|---|
