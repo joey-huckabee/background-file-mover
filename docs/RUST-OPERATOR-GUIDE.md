@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 49. It
+This guide describes the implemented Rust prototype through increment 50. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -616,5 +616,30 @@ and its corrected test setup is not an operator repair procedure.
 
 No shutdown, retry/review or termination policy changes accompany these tests.
 Production NFS and source deletion remain disabled. Both-NFS crash layouts,
-publication/manifest phases, actual systemd and delayed NAS effects remain outside
-the selected evidence.
+actual systemd and delayed NAS effects remain outside increment 49. See the
+next section for selected publication/manifest evidence.
+
+
+## Coordinator loss around file publication and commitment
+
+[Increment 50](RUST-INCREMENT-50.md) exercises selected destination-NFS file and
+manifest publication deaths. The manifest can be visible while the last API
+snapshot still says Claimed/manifest phase 3: its name alone does not prove that
+SQLite recorded Committed, or that all synchronization and worker exit finished.
+Consumers continue to validate the immutable manifest under the consumer
+contract. Neither a visible final name nor its checksum authorizes source cleanup.
+
+If local status reports OwnerUnavailable/exit 2, keep the original configuration,
+local database/recovery files, instance.lock, workers.json and private working
+folders. Do not delete an alias, create fresh state, clear review or bypass the
+guard to restart. A blocked worker may finish a previously authorized publication
+after NFS returns even though its coordinator has died. Wait for confirmed old
+exit; normal startup with the original state must reconcile owned effects and
+manifest commitment. No orphan-kill/adoption command is supplied by unserved
+local control. A bounded stop result is separate from exit and NAS settlement.
+
+The fixture checks original payload inode/attempt and manifest inode/hash across
+recovery; it is not a production deployment walkthrough. Both-NFS crashes,
+remaining synchronization/delayed RPC boundaries, real systemd/account policy and
+NAS reboot/power durability remain outside this increment. Production NFS and
+source deletion remain disabled; preserve the earlier failed evidence.

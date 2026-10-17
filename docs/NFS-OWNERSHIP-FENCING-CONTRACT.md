@@ -328,11 +328,25 @@ the fixture, replacement state or re-enrollment. Surviving orphans must exclude
 all competing effect starts until actual exit; prompt stop is distinct. Read the
 increment for actual results, corrected seed preparation and limits.
 
-Selected NFS-source/local-destination cases do not close FR-03/05. Publication/
-manifest death, other bootstrap/shutdown boundaries, both-NFS crashes, actual
-systemd/group policy and delayed NAS effects remain open. Production NFS and source
+Selected NFS-source/local-destination cases do not close FR-03/05. See increment
+50 for selected publication/manifest cases. Other bootstrap/shutdown boundaries,
+both-NFS crashes, actual systemd/group policy and delayed NAS effects remain open. Production NFS and source
 deletion remain disabled; no runtime policy or dependency change accompanies this
 qualification expansion.
+
+## Publication and manifest qualification
+
+[Increment 50](RUST-INCREMENT-50.md) extends selected SH-04/08 evidence to
+pre-publication, durable file-link and durable manifest-link boundaries using
+local source/NFS destination. Actual D observations follow release into an
+outage; surviving orphans must retain exclusion until confirmed exit and
+competitors must refuse. Prompt exit remains a distinct outcome. Recovery must
+preserve the verified payload inode/attempt and any existing manifest inode/hash,
+then reconcile through the original database without a second allocation.
+A visible file or manifest does not prove SQLite commitment, confirmed worker
+exit or settled remote effects. Read the result report for actual case outcomes.
+FR-03/05 remain open for other boundaries, both-NFS crashes, mount/deployment and
+systemd policy, and delayed remote effects. Production NFS/deletion stay disabled.
 
 ## References and next increment
 

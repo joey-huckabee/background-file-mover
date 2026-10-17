@@ -427,8 +427,8 @@ Read the report for actual outcomes and limitations. No Rust runtime, package,
 retry/review or production-gate change is introduced. Preserve original local
 state and wait for confirmed old exit before recovery; fresh bootstrap performs
 explicit first enrollment afterward. See increment 49 for the selected enrolled/
-populated extension; publication/manifest death and other operation/systemd/NAS-
-settlement obligations remain open.
+populated extension and increment 50 for selected publication/manifest cases.
+Other operation/systemd/NAS-settlement obligations remain open.
 
 
 [Increment 49](RUST-INCREMENT-49.md) adds selected enrolled-empty/populated
@@ -437,5 +437,16 @@ the original database, retained WAL/sidecars, receipt, partial and reused source
 path; snapshots must not open SQLite. Normal recovery uses the same enrollment
 pair without re-initialization. Read the increment for actual outcomes and scope;
 no runtime/dependency/retry/review change accompanies the fixture expansion.
-Publication/manifest, other synchronization, both-NFS crash and actual systemd/NAS
-settlement obligations remain open; production NFS/deletion remain disabled.
+See increment 50 for the selected publication/manifest extension. Other
+synchronization, both-NFS crash and actual systemd/NAS settlement obligations
+remain open; production NFS/deletion remain disabled.
+
+[Increment 50](RUST-INCREMENT-50.md) adds twelve selected destination-NFS
+pre-publication/file-link/manifest-link cases via `--death-scope
+publication-manifest`. Require real D after release into outage, original-state
+competitor refusal while an orphan survives and restoration/actual exit before
+recovery. Keep the verified payload inode/attempt and existing manifest inode/hash;
+visible names are distinct from SQLite commitment. Read the actual outcomes and
+initial SLES timing-test failure in the increment. No runtime/dependency/policy
+changes or production enablement accompany these checks; retain all earlier
+selectors and the strict raw-lock-closure regression.

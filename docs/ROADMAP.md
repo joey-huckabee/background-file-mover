@@ -11,9 +11,9 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next qualify file-publication/manifest coordinator-death phases, other NFS
-operation/synchronization and shutdown boundaries, and actual systemd/account-
-control behavior (SH-01–04/06–14). Preserve independently retained
+Next qualify remaining NFS operation/synchronization and shutdown boundaries,
+both-NFS crash layouts, and actual systemd/account control behavior
+(SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.
 Keep delayed NFS
@@ -54,6 +54,10 @@ before implementation.
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or
   fixed-wait shortcut for uncertain storage effects.
+- [ ] Stabilize the repeated-stop integration test's immediate daemon-status
+  assertion against the controller's intentionally conservative deadline. Preserve
+  first-stop timing and the configured wait; do not mask Draining as completed
+  shutdown or extend the runtime deadline to pass a test.
 - [ ] Define and qualify worker-health/stall and lost-coordinator diagnostics
   beyond existing assignment/channel/shutdown limits. Preserve bounded workers,
   termination requests and confirmed-exit exclusion; a worker blocked in the

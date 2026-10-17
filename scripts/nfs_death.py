@@ -47,10 +47,11 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state"}
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
-              "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated")}[scope]
+              "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
+              "publication-manifest": ("publish", "file_link", "manifest_link")}[scope]
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
              for point in points
@@ -134,6 +135,9 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
                     assert size == ("1048576" if point == "copy_chunk" else "0")
                     result["partial_bytes_before_outage"] = int(size)
+                if scope == "publication-manifest":
+                    from nfs_publication import before, after_exit, recovered as publication_recovered
+                    before(case, execute)
                 assert case.service_pid() == coordinator
                 worker = case.worker
                 run(["exec", server, "rpc.nfsd", "0"])
@@ -241,6 +245,8 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     # First enrollment is explicit, after the old worker is gone.
                     execute(f"{case.binary} --initialize-source {case.config_path}", "1000:1000")
                     result["explicit_initialization_after_old_exit"] = True
+            if scope == "publication-manifest":
+                after_exit(case, execute)
             recovered = case.recover()
             replacement_epoch = json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout)
             assert replacement_epoch["group"] == int(case.service_pid()) and replacement_epoch["group"] != epoch["group"]
@@ -258,6 +264,8 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
             assert execute(f"cat {case.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
             case.verify()
+            if scope == "publication-manifest":
+                publication_recovered(case, execute, recovered)
             if scope == "bootstrap-existing-state":
                 result["database_identity_after_recovery"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
                 result["enrollment_receipt_after_recovery"] = receipt_evidence(case, execute)
@@ -289,8 +297,8 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state"}:
-        passed = len(results) == 8 and all(c["passed"] for c in results) and {
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest"}:
+        passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"
         } == {(p, point) for p in ("debug", "release") for point in points}

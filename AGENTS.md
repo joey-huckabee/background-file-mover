@@ -185,8 +185,8 @@ unready without SQLite, then explicitly enroll only after restoration/confirmed
 old exit. Preserve source-read custody, old partials and producer-reused paths.
 The default claim/copy/verification matrix and increment 47 raw-lock-closure
 requirement remain intact. See increment 49 for the selected enrolled/populated
-bootstrap extension; publication/manifest and other systemd/NFS/delayed-effect
-gates remain pending, with no production enablement.
+bootstrap extension and increment 50 for selected publication/manifest cases.
+Other systemd/NFS/delayed-effect gates remain pending, with no production enablement.
 
 Increment 49 adds `--death-scope bootstrap-existing-state` for selected enrolled-
 empty/populated bootstrap deaths. Read docs/RUST-INCREMENT-49.md for actual scope
@@ -195,6 +195,17 @@ and results. The populated fixture requires an accepted job, retained WAL and
 original state/receipt/source evidence and recover without re-initialization or
 replacement state. Keep prior selectors/strict increment 47 regression intact.
 No runtime/dependency/policy change is intended; production NFS/deletion stay off.
+
+Increment 50 adds `--death-scope publication-manifest`: selected pre-publication,
+durable file-link and durable manifest-link deaths, debug/release, blocked or
+following local stop. Read docs/RUST-INCREMENT-50.md and the raw evidence for
+actual outcomes/limits. Release into unavailable NFS and require real D state;
+preserve logical ownership through actual old exit, then recover original inode,
+manifest hash and attempt 1 with the same local state. Keep older selectors and
+strict increment 47 regression. Preserve the initial failed SLES qualification
+report/log; the immediate post-stop status timing assertion needs stabilization
+without changing deadlines. No runtime/dependency/retry/review changes;
+production NFS/source deletion stay disabled.
 
 ## Project Overview
 

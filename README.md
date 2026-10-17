@@ -37,8 +37,10 @@ hide a surviving worker. Production NFS and deletion remain disabled.
 to fresh bootstrap and accepted source-read workers; see its results and limits.
 [Increment 49](docs/RUST-INCREMENT-49.md) adds selected enrolled/populated
 bootstrap cases with original database/WAL, receipt and partial preservation;
-read its actual results and limits. Publication/manifest and deployment gates
-remain open.
+read its actual results and limits. [Increment 50](docs/RUST-INCREMENT-50.md)
+adds selected file-publication and manifest coordinator-death cases, requiring
+original inode/attempt and manifest preservation through normal recovery.
+Other storage/lifecycle and deployment gates remain open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

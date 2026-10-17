@@ -519,3 +519,40 @@ refusals pass across fourteen preserved fixtures, with clean teardown. The initi
 worker-first seed allowed a retry and correctly hit staging EEXIST/review; preserve
 its separate failed report and use the corrected coordinator-first preparation.
 No allocation deletion, review reset or application change is part of this test.
+
+
+## File publication and manifest coordinator death
+
+[Increment 50](RUST-INCREMENT-50.md) defines twelve additional cases selected by
+`--coordinator-death --death-scope publication-manifest`: pre-file publication,
+durable file-link and durable manifest-link, debug/release, blocked/following
+local stop. A local source and NFS destination isolate destination effects.
+Before outage require Claimed/attempt 1, verified object identity/hash and exact
+presence/absence of file/manifest aliases. Release the rendezvous after stopping
+NFS and require actual D state; this is distinct from holding a local pause
+through a crash. The exact subsequent in-flight RPC is not identified.
+
+Surviving orphans must retain logical ownership and refuse all three competing
+effect commands. Distinguish prompt stop from incomplete shutdown and surviving
+termination. Restore NFS and confirm old exit before inspecting effects/recovery.
+Any final file must be the original staging inode. An already visible manifest
+must keep its original inode/hash; normal same-state recovery must reach
+Committed on attempt 1, with one final name and no remaining manifest staging
+alias or second payload allocation. Keep source/reused paths and earlier scope
+selectors, including the strict increment 47 regression. Consult the increment
+and raw results for actual outcomes; no runtime policy or production enablement
+follows. Both-NFS crash layouts, exact in-flight namespace/synchronization RPCs,
+NAS settlement/power durability, actual systemd and old kernels remain pending.
+
+
+The [publication evidence](RUST-NFS-PUBLICATION-DEATH-EVIDENCE.json) passes all
+twelve cases: six blocked and six terminating D orphans retain ownership,
+including six raw-flock closures with logical exclusion preserved. All 36
+competing effect commands refuse. Original-state recovery preserves every
+payload inode/attempt and all four existing manifest inodes/hashes. Blocked
+workers finish authorized publication/alias removal after coordinator death;
+terminating workers leave original staging/aliases for normal reconciliation.
+Six normal transfers, twelve state-parent and 184 state-file refusal cases pass,
+with fourteen fixtures preserved and clean teardown. See increment 50 for exact
+post-exit names, timings, artifact provenance and the separately preserved initial
+SLES timing-test failure followed by a full unchanged passing rerun.

@@ -38,7 +38,7 @@ def main():
                         help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
     parser.add_argument("--coordinator-death", action="store_true",
                         help="Qualify original-state exclusion/recovery after coordinator death with blocked/terminating NFS workers")
-    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state"),
+    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest"),
                         help="With --coordinator-death, select the finite worker-phase matrix (default: claim-copy-verify)")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
@@ -123,6 +123,8 @@ def main():
         report["limitations"][2] = "Eight selected bootstrap/source-read hard-NFS cases in debug/release, while blocked or following local stop. Bootstrap must stay unready without SQLite. Surviving orphans retain logical ownership until actual exit; prompt stop is distinct and does not qualify the surviving terminating branch. The original claim/copy/verification raw-lock-closure regression is retained separately. No systemd, old-kernel, NAS settlement or takeover qualification."
     if args.coordinator_death and args.death_scope == "bootstrap-existing-state":
         report["limitations"][2] = "Eight enrolled-empty/populated bootstrap cases, debug/release, blocked or following stop. Populated state has an accepted job, retained WAL and a 1 MiB partial. Local database/sidecar/staging and remote source/receipt evidence must remain unchanged before recovery, with no SQLite inspection or re-enrollment. NFS source/local destination, one shared modern kernel; no both-NFS crash, systemd, NAS settlement, old-kernel or takeover qualification. Prompt exit is distinct from a surviving terminating orphan."
+    if args.coordinator_death and args.death_scope == "publication-manifest":
+        report["limitations"][2] = "Twelve selected file pre-publication, durable file-link and durable manifest-link cases, debug/release, blocked or following stop. Release the local rendezvous into unavailable hard NFS and require actual D-state workers. Preserve original payload inode/attempt and existing manifest identity/hash through recovery after old exit. A durable manifest name is distinct from a SQLite Committed job. This does not identify the exact in-flight RPC, prove NAS settlement/power durability, qualify both-NFS crashes, systemd, old kernels or takeover. Prompt stop is distinct from a surviving terminating orphan."
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -285,12 +287,13 @@ def main():
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["coordinator_death"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_binding.py")}}
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
                                         artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
                                         death_scope=args.death_scope or "claim-copy-verify")
                 report["coordinator_death"].update(completed)
                 complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state"}
+                            else len(report["coordinator_death"]["cases"]) == 12 if args.death_scope == "publication-manifest"
                             else 12 <= len(report["coordinator_death"]["cases"]) <= 18)
                 assert report["coordinator_death"]["passed"] or complete, "NFS coordinator-death matrix interrupted; inspect cases"
                 # A fully observed ownership defect remains a failed matrix.
