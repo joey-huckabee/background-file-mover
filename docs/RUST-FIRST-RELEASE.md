@@ -53,25 +53,23 @@ explicit scope decision. Newly discovered data-safety defects still block releas
 
 ## Execution order and next increment
 
-1. Qualify bounded native source-space exhaustion/restoration (the next part of
-   FR-02), using the retained fixture and keeping SQLite on healthy local storage.
-2. Resolve FR-01 contract/access decisions and the FR-03 authority/fencing design;
+Selected FR-02 source-capacity cases have evidence in
+[increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
+Do not repeat that bounded tmpfs case as unfinished implementation work.
+
+1. Resolve FR-01 contract/access decisions and the FR-03 authority/fencing design;
    use those decisions to fix the finite production NFS qualification matrix.
-3. Complete the corresponding FR-03/05 failure cases before implementing FR-04
-   cleanup. Develop independent contract, documentation and packaging work as
-   useful, without treating it as storage qualification.
-4. Finish FR-06/07/08 and run the declared release-candidate matrix. Enable only
+2. Complete remaining FR-02 capacity cases and corresponding FR-03/05 failure
+   cases before implementing FR-04 cleanup. Develop independent contract,
+   documentation and packaging work as useful, without treating it as storage
+   qualification.
+3. Finish FR-06/07/08 and run the declared release-candidate matrix. Enable only
    the production profiles whose gates have closed.
 
-The next experiment must use disposable, bounded server storage, never fill a
-host disk, and keep the admission policy unchanged while consuming/freeing
-fixture space. Require new-key low-space refusal with no job/claim/path release;
-existing claimed and partially claimed jobs retain their normal recovery; after
-capacity restoration the previously refused ID/body can reach 202 without a
-configuration change or service restart. Record preserved files/state, cache
-freshness and the actual filesystem observations in SC-076/078/080/081 and the
-SA evidence mapping. Run the required production and qualification SLES gates
-for any Rust changes. This closes selected FR-02 cases, not the whole gate.
+The next increment should identify the supported remote producer access boundary
+while retaining deferred registration, define the enforceable NFS ownership/fence
+prerequisite and enumerate its pass/refusal cases. Do not enable remote REST,
+production NFS, takeover or source deletion merely to complete a checklist.
 
 ## Deferred beyond the first release
 

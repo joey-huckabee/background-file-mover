@@ -107,9 +107,10 @@ checks, confinement gaps and fail-closed harness requirements.
 
 Prioritize the [first-release checklist](RUST-FIRST-RELEASE.md), recorded in
 [increment 37](RUST-INCREMENT-37.md). It bounds the initial filesystem/NFS release
-and keeps optional adapters/repair/UI deferred. The next runtime increment is
-native source-fill/restoration qualification; do not implement source deletion
-or enable production NFS before their safety gates close.
+and keeps optional adapters/repair/UI deferred. [Increment 38](RUST-INCREMENT-38.md)
+adds bounded native source-capacity fixture evidence. Next resolve remote access
+and NFS authority/fencing prerequisites and their finite qualification matrix;
+do not implement source deletion or enable production NFS before their gates close.
 
 Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference
 cargo-zigbuild GNU/glibc 2.22 compilation, ELF audit and exact debug/release test

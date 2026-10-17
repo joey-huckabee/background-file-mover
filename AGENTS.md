@@ -111,9 +111,12 @@ Podman, use the documented Windows/Podman WSL2 gate fallback in
 Keep production NFS and deletion disabled.
 Increment 37 defines docs/RUST-FIRST-RELEASE.md: eight open release gates,
 filesystem/NFS scope and deferred features. Use it to prioritize the broader
-roadmap. Next qualify bounded native source-fill/restoration with unchanged
-policy and existing-job recovery; resolve remote access and NFS fencing before
-production enablement or cleanup. No new runtime support is claimed.
+roadmap. Increment 38 adds --source-storage fixture qualification for bounded
+native source fill, partial/claimed replay while Low and unchanged-policy live
+restoration; see docs/RUST-INCREMENT-38.md for actual evidence and limits.
+Next resolve remote access and NFS authority/fencing prerequisites and their finite
+qualification matrix before production enablement or cleanup. Registration stays
+deferred; no production NFS, remote REST or deletion support is newly claimed.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
 Backfill prior scenarios and do not describe pending qualification as supported.

@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 36. It
+This guide describes the implemented Rust prototype through increment 38. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -304,7 +304,18 @@ incorrectly. Turning the guard off does not add capacity or clear existing revie
 A good sample reserves no space against external writers or quotas. Source data
 is still retained after commitment; this feature cannot reclaim it. Local tests
 exercise these commands/status through the SLES gate; hard NFS statistics stalls,
-physical source-fill, inode/quota and power-loss cases remain unqualified.
+physical-disk source-fill, inode/quota and power-loss cases remain unqualified.
+
+[Increment 38](RUST-INCREMENT-38.md) qualifies a bounded source-capacity example:
+a 32 MiB server tmpfs is filled, then left with 1 MiB available against an unchanged
+4 MiB admission floor. The service returns `source_space_low` without creating a
+new job or releasing paths. Existing claimed replay still returns 202, and an
+accepted partial job can finish claiming after its missing file arrives. Removing
+only the fixture filler and waiting for a fresh sample lets the identical refused
+ID/body reach 202 with the same live coordinator and configuration. No resume is
+needed for a request that was never accepted. This is a controlled fixture result,
+not permission to delete service-owned files or a guarantee about quotas/disks.
+Inspect actual storage use and preserve claimed data and original state.
 
 ## Diagnostics and situations that must stay blocked
 

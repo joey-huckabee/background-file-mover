@@ -265,8 +265,10 @@ concurrency evidence. Keep these IDs as qualification expands.
 ## Increment boundaries
 
 Increment 36 implements the first local configuration/decision/admission/child/
-visibility slice together. Next qualify native local shortages and blocked or
-changed-root behavior using the retained NFS fixture as appropriate. Keep each
+visibility slice together. [Increment 38](RUST-INCREMENT-38.md) adds native
+bounded tmpfs source depletion/restoration on the retained NFS fixture. Next
+qualify blocked or changed-root behavior and remaining storage limits as
+appropriate. Keep each
 added scope gated on its own SA evidence; do not enable a partially enforced
 option or start another package experiment. Production NFS/deletion stay off.
 
@@ -275,20 +277,20 @@ reservations, hysteresis and live configuration are future extensions. No
 schema change or new crate is authorized merely by this design; any implementation
 need must carry its own migration/dependency and compatibility evidence.
 
-## Increment 36 acceptance evidence mapping
+## Acceptance evidence through increment 38
 
-Read the increment's final gate results before treating tests as passing. This
+Read each increment's final gate results before treating tests as passing. This
 mapping does not label every planned scenario fully qualified.
 
 | Cases | Implemented checks | Remaining qualification |
 |---|---|---|
 | SA-01/02 | Default-off/explicit-off policy and API restart; strict deserialization/ranges; disabled cache never sends work; old safety/ledger suite retained. | Deployment configuration/runbook coverage as supported environments expand. |
-| SA-03/04 | Exact integer boundaries/rounding/max counters; native source sample refused by an above-capacity configured floor; no job/private claim created. | Physical source-fill and metadata-reserve sizing. |
-| SA-05 | Fresh native sufficient sample, configurable threshold restoration across restart, nested/empty automatic delivery and cold/expired-cache acceptance without fast retry. | Actual source capacity depletion/restoration without policy change. |
+| SA-03/04 | Exact integer boundaries/rounding/max counters; native source sample refused by an above-capacity configured floor; no job/private claim created. Increment 38 adds native bounded server tmpfs fill to 1 MiB below a fixed 4 MiB floor, no job/claim/path release. | Physical-disk/quota and metadata-reserve sizing. |
+| SA-05 | Fresh native sufficient sample, configurable threshold restoration across restart, nested/empty automatic delivery and cold/expired-cache acceptance without fast retry. Increment 38 restores native bounded tmpfs capacity and admits the identical refused ID without configuration change/restart. | Physical disk/quota and external-writer/storage races. |
 | SA-06/07 | Invalid counters, stale/pending cache, wrong/mixed replies, synthetic unavailable and a paused real child before statistics; deadline termination and responsive replay/health. | Native unsupported-statistics return, hard-NFS blocked/in-flight calls, prolonged unreapable child and export replacement. |
-| SA-08/09 | Claimed replay under Low/Unknown; partial replay with no sample and under Low, prior claims/source reuse preserved; transaction replay precedes all refusal permits. | Broader partial-effect/space exhaustion combinations. |
+| SA-08/09 | Claimed replay under Low/Unknown; partial replay with no sample and under Low, prior claims/source reuse preserved; transaction replay precedes all refusal permits. Increment 38 adds actual NFS claimed/partial replay and commitment while natively Low, preserving reused producer paths. | Broader partial-effect/space exhaustion combinations. |
 | SA-10/11 | Eight concurrent replay/conflict/refusal store requests, SQLite-lock wait expires a permit, bounded async notification/waiter tests and coalesced cache demands; existing serialized job/byte limits. | Flooding concurrent new/replay request queues under real blocked statistics. |
-| SA-12/13 | Original-state restart/threshold/off, no saved sample; accepted identity survives an unavailable gate on reopened state. | New physical probe/acceptance crash matrix and actual NFS shutdown behavior; wall-clock jumps do not extend monotonic cache age by construction. |
-| SA-14–16 | Existing conservative effect/custody suite retained; native same-filesystem source/destination delivery with committed-source ledger retained. | Physical source-fill, inode/quota/metadata failures, external-write race and changed-export measurements. |
+| SA-12/13 | Original-state restart/threshold/off, no saved sample; accepted identity survives an unavailable gate on reopened state. Increment 38 adds unchanged-policy/PID live capacity restoration. | New physical probe/acceptance crash matrix and actual NFS shutdown behavior; wall-clock jumps do not extend monotonic cache age by construction. |
+| SA-14–16 | Existing conservative effect/custody suite retained; native same-filesystem source/destination delivery with committed-source ledger retained. Increment 38 adds bounded tmpfs source fill and retained claimed-source/producer-reuse checks with local destination. | Inode/quota/metadata failures, physical-disk source fill, external-write race and changed-export measurements. |
 | SA-17 | New low/unavailable no-job responses, strict conflicts/replay, cached-only global view and expiry, per-job fields unchanged. | Broader documentation examples as storage qualification expands. |
-| SA-18 | Required production and qualification GNU/glibc-2.22 SLES gates; see increment results. | New hard-NFS source-statistics fixture cases, quota/physical disk, old kernel/CPU and independent fencing. |
+| SA-18 | Required production and qualification GNU/glibc-2.22 SLES gates; see increment results. Increment 38 adds native capacity fixture evidence with exact audited artifacts. | Hard-NFS blocked statistics, quota/physical disk, old kernel/CPU and independent fencing. |

@@ -11,10 +11,10 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-The next implementation increment is bounded native source-fill/restoration
-qualification (FR-02), preserving existing-job recovery and unchanged policy.
-Then resolve the contract/access and production ownership/fencing prerequisites
-before dependent NFS qualification and source cleanup.
+Next resolve the contract/access and production ownership/fencing prerequisites
+(FR-01/03), then fix the finite supported-profile failure matrix before dependent
+NFS qualification and source cleanup. Complete remaining FR-02 capacity cases
+without changing existing-job recovery or default-off policy.
 
 ## Next work
 
@@ -90,8 +90,8 @@ passes are insufficient; keep this gate as SQLite/effects/dependencies are added
   cleanup retries. Keep initial development profiles deletion-disabled.
 - [ ] Add timer-driven missing-file retries, clock-anomaly diagnostics and bounded backoff.
 - [ ] Complete remaining [source-space acceptance evidence](SOURCE-SPACE-ADMISSION-DESIGN.md):
-  native source-fill/restoration, quota/inode and external-write races, broader
-  concurrent queue flooding and actual hard-NFS statistics interruptions/export
+  physical-disk/quota/inode and external-write races, broader concurrent queue
+  flooding and actual hard-NFS statistics interruptions/export
   changes. Preserve default-off configuration, accepted-key recovery and existing
   limits. Do not promote the protected-local slice to production NFS support.
 - [ ] Validate the protocol's applied/not-applied/uncertain outcome model and

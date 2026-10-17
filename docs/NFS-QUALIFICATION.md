@@ -278,3 +278,27 @@ source disk/quota exhaustion or remote cancellation. Extend the retained fixture
 before claiming those cases. The source-space child has its own version-1 bounded
 request/reply; existing delivery wire 2 and persisted receipt/binding formats do
 not change. Parent and child remain the same executable.
+
+## Bounded source admission qualification (increment 38)
+
+Opt-in `--source-storage` requires `--qualification-gate` and adds the permanent
+`nfs_source_storage.py` helper to the existing driver. It uses only a separate
+32 MiB/512-inode server tmpfs source export, with local state and destination.
+Consume its owned filler to native ENOSPC, release 1 MiB of metadata headroom,
+and test new-key refusal, claimed replay and partial recovery while low. Remove
+only the filler and retry the identical refused ID with the same policy and live
+coordinator. Check all claimed/final payloads and manifests and preserve reused
+producer paths. No synthetic fault/pause selectors are needed.
+
+Example, replacing the run directories with exact passing current-source gates:
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/<production-run> --qualification-gate rust/validation/<qualification-run> --source-storage --isolated-startup
+```
+
+The driver retains baseline and OS/startup checks. Other optional runtime,
+ownership and storage suites run only when selected. Consult
+[increment 38](RUST-INCREMENT-38.md) and its report for actual results; the option's
+existence is not qualification. Tmpfs block depletion does not establish disk,
+quota/inode, blocked statistics RPC, export replacement, power-loss or fencing
+behavior. Keep production NFS and deletion disabled.
