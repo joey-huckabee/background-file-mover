@@ -19,9 +19,10 @@ deferred and current remote access is not enabled.
 The [NFS ownership/fencing contract](docs/NFS-OWNERSHIP-FENCING-CONTRACT.md)
 defines the confirmed single-host/local-state profile. [Increment 42](docs/RUST-INCREMENT-42.md)
 implements its shared local guard and explicit worker handoff with selected local
-evidence. The configurable 60-second stop controller, remaining SH qualification
-and delayed-operation recovery stay pending; no new shutdown option or takeover
-is enabled.
+evidence. [Increment 43](docs/RUST-INCREMENT-43.md) adds shutdown_wait_seconds
+(default 60, integer 1–3600) and bounded local --stop/--status commands. Timeout
+returns incomplete/restart-blocked while ownership remains held. Remaining SH
+qualification and delayed-operation recovery stay pending; no takeover is enabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

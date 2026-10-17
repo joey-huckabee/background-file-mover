@@ -46,7 +46,7 @@ explicit scope decision. Newly discovered data-safety defects still block releas
 | FR-02 | Qualify source admission and capacity recovery | Actual bounded source-fill/restoration without policy changes; same-ID refusal/retry, no new job or false path release, preserved partial/claimed replay, finite concurrent load and blocked-statistics/root-change cases. Classify inode/quota/external-writer limits and destination-shortage recovery for the declared storage profile. A sample is not a physical reservation. |
 | FR-03 | Establish production NFS authority and failure safety | Implement/qualify the [single-host contract](NFS-OWNERSHIP-FENCING-CONTRACT.md), SH-01–14: same configuration/local state, inherited local ownership guard, surviving-worker exclusion, actual NFS mount/root scope and safe delayed-effect reconciliation/refusal. Cover same/separate shares, in-flight namespace/sync effects, server recovery and declared durability limits. Local lock release is not remote-settlement proof. External fencing/cryptographic NAS identity belong to separately qualified extended profiles; no takeover/rebind/stale-state adoption. |
 | FR-04 | Implement conservative configurable source cleanup | After FR-03 and relevant worker/filesystem failure gates, pin job cleanup policy, require current authorization and validated destination receipts, delete only owned claimed source, persist progress and retry cleanup independently. Prove off behavior, interruptions, restart, changed destination/custody refusal and retention accounting. Preserve producer-reused paths and other jobs' data. |
-| FR-05 | Close scheduling, recovery and lifecycle gaps | Implement the proposed shutdown_wait_seconds setting (default 60, finite validated range) and bounded stop/status controller; timeout returns incomplete/restart-blocked without releasing live ownership. Qualify manual/systemd coordination. Enumerate remaining durable effect boundaries, allocation/orphan refusal and migrations; test crashes/restart with original state, bounded queues/workers and concurrent load, missing-file timers/backoff, readiness and shutdown with blocked children. Uncertain old effects must prevent unsafe redispatch; timeout alone never proves cancellation. Unsupported repair remains an explicit stop/review outcome. |
+| FR-05 | Close scheduling, recovery and lifecycle gaps | Qualify remaining boundaries of the implemented shutdown_wait_seconds setting (default 60, range 1–3600) and bounded stop/status controller; timeout returns incomplete/restart-blocked without releasing live ownership. Complete hard-NFS deadline and manual/systemd coordination evidence. Enumerate remaining durable effect boundaries, allocation/orphan refusal and migrations; test crashes/restart with original state, bounded queues/workers and concurrent load, missing-file timers/backoff, readiness and shutdown with blocked children. Uncertain old effects must prevent unsafe redispatch; timeout alone never proves cancellation. Unsupported repair remains an explicit stop/review outcome. |
 | FR-06 | Package the supported deployment | Reproducible locked/offline build and notices, systemd install/service-account permissions and sandbox tests, supported config/provisioning/enrollment, upgrade and rollback rehearsal preserving ownership. Choose the supported SLES-container/deployment matrix and document shared-kernel limits. Keep cargo-zigbuild as the qualified reference until a replacement builder passes equivalent checks. |
 | FR-07 | Complete Rust requirements and release evidence | Reconcile active/deferred requirements, derive L2/L3 and discover Rust tests separately from historical evidence; review meaningful failure-path coverage, complete the declared crash/fault matrix and audit the exact shipping ELF/interpreter/libraries. All Rust builds/tests use the GNU/glibc-2.22 SLES gate; qualify production and retained qualification configurations. |
 | FR-08 | Deliver user guides and rehearse cutover | Finish DOC-01/02/04/05, update DOC-03 and current architecture/config/CLI/deployment references; execute producer retry/lost-response, consumer validation, capacity recovery and original-state restart walkthroughs on the release candidate. Demonstrate old/new services cannot share source custody. Publish supported profiles, known limits and review/escalation instructions. |
@@ -57,8 +57,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Implement/qualify the configurable shutdown wait and bounded controller
-   (SH-05–09). Extend local guard evidence to remaining SH-01–04/13 cases.
+1. Qualify remaining state-layout/guard and shutdown boundaries, actual NFS
+   workers beyond deadlines and systemd/account-control (SH-01–04/06–14).
    Discover actual mounts/version/security later and qualify NFS recovery
    (SH-10–14) before production enablement. Select/qualify the remote proxy profile
    and RA-01–16 alongside remaining producer/consumer contracts; registration stays deferred.
@@ -76,8 +76,9 @@ implementation and all RA cases remain pending, and FR-01 stays open.
 single-host/user-account/local-state profile, with private NFS working folders
 and a configurable 60-second shutdown wait. [Increment 42](RUST-INCREMENT-42.md)
 implements the shared local guard and explicit worker handoff with selected local
-evidence. The controller and remaining SH qualification stay pending; FR-03/05
-stay open. Prior NF obligations are explicitly
+evidence. [Increment 43](RUST-INCREMENT-43.md) implements the configurable wait
+and bounded local controller with selected config/clean/timeout/repeated-request
+cases. Remaining SH qualification stays pending; FR-03/05 stay open. Prior NF obligations are explicitly
 mapped to carry-forward safety or deferred extended profiles. No NAS/host-admin
 facility is a prerequisite for independent guard work. Production NFS, remote
 REST, takeover and source deletion remain disabled/deferred as applicable.

@@ -1,7 +1,4 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, atomic::AtomicBool};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let Some(path) = args.next() else {
@@ -54,6 +51,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if mover_fs::nfs_qualification_enabled() {
         eprintln!("NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment");
+    }
+    if path == "--stop" || path == "--status" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        if args.next().is_some() {
+            return Err("usage: file-mover --stop|--status CONFIG.json".into());
+        }
+        let config = read_config(&config_path)?;
+        let (snapshot, success) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?
+            .block_on(file_mover::control::command(
+                &config.state_database,
+                path == "--stop",
+            ))?;
+        println!("{}", serde_json::to_string(&snapshot)?);
+        if !success {
+            std::process::exit(2);
+        }
+        return Ok(());
     }
     if path == "--initialize-source" {
         let config_path = args.next().ok_or("configuration path required")?;
@@ -117,27 +133,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("one configuration path required".into());
     }
     let config = read_config(&path)?;
-    let stop = Arc::new(AtomicBool::new(false));
+    let lifecycle = file_mover::control::Lifecycle::new(
+        Arc::new(AtomicBool::new(false)),
+        config.shutdown_wait_seconds,
+    );
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?
         .block_on(async {
             let mut terminate =
                 tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
-            let terminate_stop = stop.clone();
+            let terminate_stop = lifecycle.clone();
             tokio::spawn(async move {
-                if terminate.recv().await.is_some() {
-                    terminate_stop.store(true, Ordering::Relaxed);
+                while terminate.recv().await.is_some() {
+                    terminate_stop.request_stop();
                 }
             });
-            let signal_stop = stop.clone();
+            let signal_stop = lifecycle.clone();
             tokio::spawn(async move {
-                if tokio::signal::ctrl_c().await.is_ok() {
-                    signal_stop.store(true, Ordering::Relaxed);
+                while tokio::signal::ctrl_c().await.is_ok() {
+                    signal_stop.request_stop();
                 }
             });
             let listener = tokio::net::TcpListener::bind(config.bind).await?;
-            file_mover::serve(listener, config, stop).await
+            file_mover::serve_controlled(listener, config, lifecycle).await
         })
 }
 

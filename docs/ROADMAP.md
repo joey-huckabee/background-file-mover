@@ -11,8 +11,9 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next add the bounded stop/status controller and configurable
-60-second-default shutdown_wait_seconds policy (SH-05–09). Keep delayed NFS
+Next qualify remaining state-layout/guard and shutdown boundaries, actual NFS
+workers beyond deadlines and systemd/account-control behavior (SH-01–04/06–14).
+Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
 shares and systemd lifecycle qualification open (SH-10–14); a free local lock or
 a timeout is not remote-settlement proof. No NAS-admin fencing facility is assumed
@@ -43,9 +44,9 @@ before implementation.
   populated/legacy-state re-enrollment or legitimate changes to strict observed
   pins. Preserve original job/route evidence. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
-- [ ] Implement and qualify SH-01–14 for the confirmed same-host/local-state
+- [ ] Complete remaining SH-01–04/06–14 for the confirmed same-host/local-state
   profile: remaining guard/storage/death-phase cases, actual database/WAL/shared-memory
-  alias and per-file mount validation, bounded configurable shutdown,
+  alias and per-file mount validation, remaining bounded-shutdown cases,
   systemd coordination, actual NFS mount/root validation and delayed-effect owned
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or

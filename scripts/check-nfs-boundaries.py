@@ -334,6 +334,15 @@ def main():
             children = execute("pid=$(cat /tmp/local/startup.pid); for task in /proc/$pid/task/*/children; do cat $task; done", "1000:1000").stdout.split()
             assert len(children) == 1, "startup must have exactly one bounded bootstrap child"
             report["checks"]["bootstrap_children_before_signal"] = len(children)
+            observed_at = time.monotonic()
+            lifecycle = execute("LD_BIND_NOW=1 /tmp/release --status /tmp/local/config.json", "1000:1000")
+            local_status = json.loads(lifecycle.stdout)
+            assert local_status["phase"] == "Starting" and len(local_status["workers"]) == 1
+            elapsed = time.monotonic() - observed_at
+            assert elapsed < 5
+            report["checks"]["blocked_bootstrap_local_status"] = {
+                "elapsed_seconds": round(elapsed, 3), "snapshot": local_status,
+                "scope": "Local controller while actual hard-NFS bootstrap is pending; no SQLite/readiness"}
             # A TCP listener may exist, but no HTTP readiness is served yet.
             health = spawn("exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19876; printf \"GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3; cat <&3'", "startup-health")
             time.sleep(1)

@@ -116,9 +116,10 @@ and RA-01–16 without implementing ingress or registration.
 fixed local config/state and private NFS working-area constraints.
 [Increment 42](RUST-INCREMENT-42.md) implements local ownership and descriptor
 handoff with selected local denial/race/surviving-worker evidence. Full database/sidecar alias and
-per-file mount validation remain pending. Next implement
-the configurable default-60 stop wait/controller (SH-05–09) and extend the
-remaining SH-01–04/13 cases. Qualify late NFS effects, actual mounts,
+per-file mount validation remain pending. [Increment 43](RUST-INCREMENT-43.md)
+implements the configurable default-60 local stop/status controller with selected
+config/clean/timeout/repeated-request cases. Next qualify remaining state-layout,
+actual hard-NFS deadline/drain and systemd/account-control cases (SH-01–04/06–14). Qualify late NFS effects, actual mounts,
 same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
 settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS
 administration is assumed. Production NFS/deletion and remote ingress stay off;

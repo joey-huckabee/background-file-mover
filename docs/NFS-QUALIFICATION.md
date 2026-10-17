@@ -314,8 +314,9 @@ behavior. Keep production NFS and deletion disabled.
 fixed local state/config and private NFS working areas. SH-01–14 cover shared
 local guard/inheritance, manual/systemd conflicts, default-60 configurable stop
 controller and actual NFS original-state recovery/refusal. [Increment 42](RUST-INCREMENT-42.md)
-implements the local guard/handoff with selected local evidence. The configurable
-stop controller and remaining storage/lifecycle cases stay pending. The earlier NF-01–18 have an
+implements the local guard/handoff with selected local evidence. [Increment 43](RUST-INCREMENT-43.md)
+adds the configurable wait and bounded local controller. Remaining hard-NFS drain,
+systemd and storage/lifecycle cases stay pending. The earlier NF-01–18 have an
 explicit carry-forward/deferred mapping, not silent passing status.
 
 Qualify both same-share and separate-share layouts. Actual deployment NFS version
@@ -335,3 +336,12 @@ the final audited binaries. No runtime death/long-outage, two-client ownership
 or capacity-storage suite is selected in that report; earlier reports retain
 their original scope. See [increment 42](RUST-INCREMENT-42.md) for local worker
 inheritance/death evidence and remaining state-layout/lifecycle limits.
+
+Increment 43's [lifecycle fixture evidence](RUST-NFS-LIFECYCLE-EVIDENCE.json)
+records all six normal transfers followed by local Running/clean Stopped for the
+same instance, 12 mounted-NFS state-parent refusals, and independent local
+Starting status during actual hard-NFS bootstrap (0.859 seconds including Podman
+execution overhead). Retained signal/interruption checks also pass. See
+[increment 43](RUST-INCREMENT-43.md) for measured local two-second/default-60
+controller timeouts and the remaining uncancellable-worker/systemd qualification.
+No runtime death/long-outage, ownership or capacity suite is selected here.

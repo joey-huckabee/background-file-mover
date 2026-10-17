@@ -1,6 +1,7 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
 pub mod bootstrap;
 pub mod claim_worker;
+pub mod control;
 pub mod delivery_worker;
 mod diagnostic;
 pub mod enrollment;
@@ -46,6 +47,11 @@ pub struct Config {
     pub max_retained_bytes: u64,
     #[serde(default)]
     pub source_space_admission: source_space::Policy,
+    #[serde(default = "shutdown_default")]
+    pub shutdown_wait_seconds: u32,
+}
+fn shutdown_default() -> u32 {
+    60
 }
 fn retained_jobs_default() -> u64 {
     64
@@ -70,6 +76,9 @@ fn absolute(path: &str) -> bool {
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
         self.source_space_admission.validate()?;
+        if !(1..=3600).contains(&self.shutdown_wait_seconds) {
+            return Err("shutdown_wait_seconds must be an integer from 1 through 3600");
+        }
         self.destination_binding
             .validate()
             .map_err(|_| "invalid destination binding")?;
@@ -238,12 +247,14 @@ struct Worker {
     observation: Option<std::thread::JoinHandle<()>>,
     _source_space: source_space::Monitor,
     _instance: Arc<mover_fs::InstanceGuard>,
+    control: control::Server,
 }
 impl Worker {
     fn start(
         c: &Config,
         guard: mover_fs::LocalClaimLock,
         stop: Arc<AtomicBool>,
+        control: control::Server,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
         let mut guard = guard;
@@ -264,10 +275,14 @@ impl Worker {
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
         let observation_instance = instance.clone();
+        let observation_stop = stop.clone();
         let observation = std::thread::Builder::new()
             .name("mover-status".into())
             .spawn(move || {
                 while let Ok((work, reply)) = observations.recv() {
+                    if observation_stop.load(Ordering::Relaxed) {
+                        let _ = reply.send(error(503, "service_stopping", true, None)); continue;
+                    }
                     if observation_instance.validate().is_err() {
                         let _ = reply.send(error(409, "recording_blocked", false, None));
                         continue;
@@ -360,6 +375,10 @@ impl Worker {
             .name("mover-local-claim".into())
             .spawn(move || {
                 while let Ok((submission, context, reply)) = receiver.recv() {
+                    if claim_stop.load(Ordering::Relaxed) {
+                        let _ = reply.send(error(503, "service_stopping", true, None));
+                        continue;
+                    }
                     let result = process(
                         &store,
                         &guard,
@@ -387,11 +406,15 @@ impl Worker {
             observation: Some(observation),
             _source_space: source_space,
             _instance: instance,
+            control,
         })
     }
 }
 impl Drop for Worker {
     fn drop(&mut self) {
+        self.control.lifecycle.request_stop();
+        self.control.lifecycle.phase("Draining");
+        let _ = mover_fs::qualification_pause("shutdown_drain");
         self.stop.store(true, Ordering::Relaxed);
         self.sender.take();
         self.observer.take();
@@ -875,11 +898,24 @@ pub async fn serve(
     c: Config,
     stop: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let lifecycle = control::Lifecycle::new(stop, c.shutdown_wait_seconds);
+    serve_controlled(listener, c, lifecycle).await
+}
+pub async fn serve_controlled(
+    listener: TcpListener,
+    c: Config,
+    lifecycle: Arc<control::Lifecycle>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let stop = lifecycle.stop.clone();
     if !listener.local_addr()?.ip().is_loopback() {
         return Err("loopback listener required".into());
     }
     c.validate()?;
+    if stop.load(Ordering::Relaxed) {
+        return Ok(());
+    }
     let (ready, startup) = oneshot::channel();
+    let startup_lifecycle = lifecycle.clone();
     let startup_config = c.clone();
     let startup_stop = stop.clone();
     let supervisor = std::thread::Builder::new()
@@ -890,18 +926,21 @@ pub async fn serve(
                     mover_fs::InstanceGuard::for_database(&startup_config.state_database)
                         .map_err(|e| e.to_string())?,
                 );
-                bootstrap::acquire(
+                let control = control::Server::start(instance.clone(), startup_lifecycle.clone())
+                    .map_err(|e| e.to_string())?;
+                let guard = bootstrap::acquire(
                     &startup_config.source_root,
                     &startup_config.source_binding,
                     &startup_stop,
                     &instance,
-                )
+                )?;
+                Ok((guard, control))
             })()
-            .and_then(|guard| {
+            .and_then(|(guard, control)| {
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());
                 }
-                Worker::start(&startup_config, guard, startup_stop.clone())
+                Worker::start(&startup_config, guard, startup_stop.clone(), control)
                     .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
@@ -917,6 +956,7 @@ pub async fn serve(
         return Ok(());
     }
     let worker = result.map_err(|_| "source startup supervisor disconnected")??;
+    lifecycle.phase("Running");
     println!("Ready on {}", listener.local_addr()?);
     let c = Arc::new(c);
     let permits = Arc::new(Semaphore::new(8));

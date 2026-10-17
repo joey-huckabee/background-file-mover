@@ -124,11 +124,19 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
                 actual = execute("sha256sum " + " ".join(destination + "/1/" + n for n in names), "1000:1000").stdout.splitlines()
                 assert [line.split()[0] for line in actual] == expected
                 result["manifest"] = manifest
+                lifecycle = execute(f"LD_BIND_NOW=1 {remote_binary} --status /tmp/baseline-config.json", "1000:1000")
+                result["local_status"] = json.loads(lifecycle.stdout)
+                assert result["local_status"]["phase"] == "Running"
+                stopped = execute(f"LD_BIND_NOW=1 {remote_binary} --stop /tmp/baseline-config.json", "1000:1000")
+                result["local_stop"] = json.loads(stopped.stdout)
+                assert result["local_stop"]["phase"] == "Stopped"
+                assert process.wait(timeout=5) == 0
                 result["passed"] = True
             except Exception as error:
                 result["error"] = str(error)
             finally:
-                execute("kill -TERM $(cat /tmp/local/baseline.pid) 2>/dev/null || true", "1000:1000")
+                if process.poll() is None:
+                    execute("kill -TERM $(cat /tmp/local/baseline.pid) 2>/dev/null || true", "1000:1000")
                 assert process.wait(timeout=30) == 0, "baseline service did not shut down cleanly"
                 result["service_log"] = (output / (label + ".log")).read_text()
                 results.append(result)

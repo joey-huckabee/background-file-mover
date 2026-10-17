@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 42. It
+This guide describes the implemented Rust prototype through increment 43. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -8,10 +8,10 @@ Production NFS and source deletion remain disabled. Controlled NFS observations
 below apply only to the retained qualification build and fixture.
 
 The [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) now has an
-implemented shared local guard and explicit worker handoff. The proposed
-shutdown_wait_seconds option (default 60) and bounded stop/status controller are
-still unimplemented. Do not add that key to today's strict configuration or
-assume a 60-second process-exit guarantee.
+implemented shared local guard, worker handoff and bounded local lifecycle
+controller. `shutdown_wait_seconds` now defaults to 60 and accepts integer values
+1–3600. It bounds the separate stop command; it does not promise that the daemon,
+blocked workers or NFS operations exit by that deadline.
 
 ## Local ownership and refused starts
 
@@ -38,13 +38,73 @@ Each child retains the same locked open description: killing only the coordinato
 can leave a worker holding ownership. Wait for the existing mover and workers;
 keep the original configuration, database and private working areas. Do not
 delete/replace the guard, copy state elsewhere or retry with an alternate state
-path to bypass refusal. There is no force-unlock or completed stop controller.
+path to bypass refusal. There is no force-unlock command.
 
 This is cooperative exclusion on one host. A hostile same-UID process, a
 deliberately different state path or another host can bypass that profile.
 Process exit or a released local lock does not establish settlement of old NFS
 requests. Production NFS remains blocked pending recovery/lifecycle qualification;
 uncertain effects retain their existing review behavior.
+
+## Local service status and bounded stop
+
+Use the same executable, account, configuration and fixed local state as startup:
+
+```sh
+file-mover --status /path/to/config.json
+file-mover --stop /path/to/config.json
+```
+
+The local mode-0600 `control.sock` is created under the private state directory
+before source bootstrap. Its path must fit the system Unix socket pathname limit.
+It runs independently of the transfer executor. These commands do not query
+SQLite or traverse source/destination mounts; they need a readable local config,
+usable approved local state/proc filesystems and the same PID namespace as the
+daemon. Keep configuration on local disk too; NFS-hosted configuration I/O is
+outside this bounded-control profile.
+There is no remote lifecycle route or token.
+
+| Result | Meaning and action |
+|---|---|
+| `Starting` | Guard is held; bootstrap/enrollment/readiness is pending. Local status does not claim the transfer filesystems are available. |
+| `Running` | Coordinator is serving; job completion/custody still use their own API/manifest evidence. |
+| `Draining` | First stop has fixed a monotonic deadline. New admission is stopping; original work and ownership remain until confirmed completion. |
+| `ShutdownIncomplete` | Deadline expired; stop exits 2 with shutdown incomplete; restart blocked. Daemon/workers may remain live. Restore the underlying problem and inspect again; do not force a replacement or remove state/locks. |
+| `OwnerUnavailable` | Guard is held but no controller responds (for example, orphan workers, a one-shot initialization/transfer or an IPC problem). Status/stop exit 2, preserving exclusion. No worker is signaled by PID. |
+| `Stopped` | This stop command observed its original coordinator exit and the guard become free. It does not prove old NFS RPCs/writeback settled or authorize conflicting storage work. |
+| `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. This is not readiness, storage settlement or permission to bypass original-state recovery. |
+
+Successful status and clean/no-active-owner stop exit 0. Status on an expired
+drain exits 2; unsafe configuration/state/IPC errors exit 1 and preserve evidence.
+Snapshots include the original coordinator identity, live configured budget,
+optional remaining milliseconds and up to 64 observed child PIDs. PIDs are local
+observations, not ownership authority or a complete worker inventory.
+
+For example, this startup option accepts an integer 1–3600; omission uses 60:
+
+```json
+{"shutdown_wait_seconds": 60}
+```
+
+There is no unlimited/disabled value or hot reload. Changing the file while the
+service runs does not replace its budget, and another stop/SIGTERM/SIGINT cannot
+reset the first deadline. Stop polls are pinned to the original controller
+instance. A lost IPC reply is not cancellation or completion; another request can
+observe the existing drain. The client uses bounded local I/O and the daemon's
+remaining deadline, conservatively allowing for request time.
+
+The separate stop command returns control at expiry while the foreground daemon
+can still be waiting. Existing signal handling requests shutdown but cannot give
+that foreground shell a finite exit guarantee. Source initialization and
+single-file transfer still hold the shared guard; they are not managed daemon
+instances. Systemd unit/account-control/timeout/restart guidance remains pending
+actual-version qualification; do not invent unit settings from this local CLI.
+
+Never delete `instance.lock` or an unexpected control file to bypass a refusal.
+A normal stop removes its own matching socket; a later guarded start can replace
+an owned stale socket only after all old guard holders are gone. Preserve original
+state, sources, receipts and uncertain effects. No process-exit/timeout result
+authorizes source deletion, takeover or NFS effect replay.
 
 ## Inspect a job
 

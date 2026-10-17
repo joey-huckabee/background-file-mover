@@ -89,7 +89,7 @@ mod binding;
 mod bootstrap;
 mod custody;
 mod instance;
-pub use instance::{INSTANCE_LOCK, InstanceGuard};
+pub use instance::{INSTANCE_LOCK, InstanceGuard, InstanceOwnership, instance_ownership};
 mod enrollment;
 mod enrollment_io;
 pub use binding::{

@@ -2,8 +2,9 @@
 
 Revised in [increment 41](RUST-INCREMENT-41.md), 2026-10-16, after the deployment
 clarifications below. [Increment 42](RUST-INCREMENT-42.md) implements the local
-guard and worker handoff with selected local tests; the shutdown controller and
-remaining NFS/lifecycle qualification are pending. Supersedes
+guard and worker handoff with selected local tests. [Increment 43](RUST-INCREMENT-43.md)
+adds the configurable wait and bounded controller with selected local cases;
+remaining NFS/lifecycle qualification is pending. Supersedes
 the blanket external-fencing prerequisites in increment 40 for this restricted
 first-release profile. It does not declare a local lock equivalent to NAS fencing.
 Production NFS and source deletion remain disabled. Registration, cross-host
@@ -85,7 +86,7 @@ promise. SQLite schema and existing assignment/receipt formats are unchanged.
 Service startup, source initialization and single-file transfer acquire the guard
 before SQLite/source bootstrap; platform checking remains read-only. The normal
 TCP listener may bind before guard acquisition, so an occupied port can refuse
-first. Acquisition is nonblocking; the proposed shutdown wait does not apply to it.
+first. Acquisition is nonblocking; the shutdown wait does not apply to it.
 
 This is cooperative same-host instance exclusion, not a server-enforced fence.
 It requires all supported invocations to use the same approved state directory.
@@ -97,7 +98,13 @@ writes. Keep source/destination locks and receipts as additional checks.
 
 ## Configurable shutdown wait
 
-Proposed startup option (design fragment, **not accepted by current config**):
+The implemented controller requires usable local configuration/state/proc
+filesystems and a shared PID namespace with its daemon. Keep the config file on
+local disk as a deployment requirement for bounded control; the confirmed same-
+config constraint alone does not establish its storage locality. NFS-hosted
+configuration and other namespace/sandbox profiles require separate qualification.
+
+Implemented startup option (omission uses 60):
 
 ```json
 {
@@ -105,7 +112,7 @@ Proposed startup option (design fragment, **not accepted by current config**):
 }
 ```
 
-Omission means 60 seconds. Proposed validation accepts an integer 1 through 3600
+Omission means 60 seconds. Validation accepts an integer 1 through 3600
 seconds; reject zero, negative, fractional, string/null and out-of-range values.
 There is no unlimited/disabled wait. This is a lifecycle setting, independent of
 job retry windows, source-space probe timeouts and persisted delivery deadlines.
@@ -120,8 +127,10 @@ it. Changing the next startup configuration cannot extend a stop already underwa
 
 At the deadline, the operator-facing stop controller must return an unsuccessful
 result with the clear message **shutdown incomplete; restart blocked**, plus
-bounded local progress/remaining-worker information where available. This is a
-proposed result, not a current command/status code. The controller returns control
+bounded local progress/remaining-worker information where available. Implemented
+`--stop CONFIG.json` returns JSON/exit 2 with `ShutdownIncomplete`; independent
+`--status CONFIG.json` reports local lifecycle and observed child PIDs. The
+controller returns control
 to the operator; the daemon and blocked children may still exist and must retain
 ownership. A later status/stop request may observe completion. No detach/drop of
 a live worker, forced guard deletion, alternate state path or success exit is
@@ -129,9 +138,9 @@ permitted merely to meet the time limit.
 
 The application cannot promise a blocked NFS syscall or process exits in 60
 seconds. A foreground daemon's shell cannot be promised control just by logging
-a timeout: implement/qualify a separate bounded stop/status control path using
-the same executable, without releasing the live daemon's guard. Existing SIGTERM
-handling alone does not implement that user-facing guarantee. A stop-timeout
+a timeout. Increment 43 implements a separate bounded local stop/status path
+using the same executable, without releasing the live daemon's guard. Existing
+SIGTERM handling alone does not implement that user-facing guarantee. A stop-timeout
 result is not evidence that restarting is safe.
 
 ## Manual/systemd coordination
@@ -149,8 +158,7 @@ worker exit or settled remote I/O. Any attempted restart still acquires the loca
 guard first and refuses while a surviving holder remains. Bound restart attempts
 and retain diagnostic access; avoid a retry loop while shutdown is incomplete.
 Qualify against the actual SLES systemd version in a container lifecycle tier;
-latest documentation is not proof of old-version support. No unit settings or
-new CLI/control routes are implemented here.
+latest documentation is not proof of old-version support. No systemd unit settings are implemented here; the local CLI controller is in increment 43.
 
 ## Local exclusion and NFS recovery are separate gates
 
@@ -195,7 +203,12 @@ worker modes, coordinator death with a paused claim worker, and 12 actual
 mounted-NFS state-parent refusals across both build modes/profiles. This does not
 close the full cases: actual systemd races, every death phase, wrong UID,
 database/sidecar aliases or per-file mounts, delayed RPCs and deployment storage remain
-unqualified. The configurable controller (SH-05–09) is not implemented.
+unqualified. Increment 43 implements SH-05 config validation and selected
+SH-06/07/08 local controller cases: clean stop, two-second/default-60 delayed
+drain, retained exclusion, repeated stop plus signal/config edits, silent/absent
+IPC and malformed/foreign-instance requests. The timed pause is local, not an
+uncancellable NFS syscall; actual systemd (SH-09), broader drain boundaries and
+full NFS-deadline qualification remain pending.
 
 | Case | Evidence required before support |
 |---|---|
@@ -258,9 +271,9 @@ this project's WAL database/state on local storage. The official systemd
 illustrates timeout/process-group controls; this is not identification or
 qualification of the deployed host's systemd version.
 
-Next implement the bounded stop/status controller and proposed
-shutdown_wait_seconds policy. Extend selected local guard evidence to the
-remaining SH-01–04/13 lifecycle/storage cases, qualify
-SH-05–09 and actual NFS recovery/mount profiles, maintaining scenarios throughout.
+Next qualify remaining local state-layout/guard and shutdown boundaries,
+actual NFS workers beyond deadlines and systemd/account-control behavior.
+Extend selected evidence to remaining SH-01–04/06–14 cases and actual NFS
+recovery/mount profiles, maintaining scenarios throughout.
 No NAS/host-admin fencing facility or package experiment is a prerequisite for
 independent local guard work. Production NFS and source deletion remain disabled.

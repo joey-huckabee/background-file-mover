@@ -14,7 +14,9 @@ The [increment 41 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) narrows the first
 release to a fixed same-host/local-state owner and inherited local guard
 (implemented with selected local evidence in [increment 42](RUST-INCREMENT-42.md)),
 with bounded configurable shutdown and qualified original-state reconciliation.
-SH-01–14 remain pending. It supersedes a blanket external-provider prerequisite
+[Increment 43](RUST-INCREMENT-43.md) adds bounded local shutdown control with
+selected cases. Full SH qualification remains pending. The contract supersedes
+a blanket external-provider prerequisite
 for that profile, without claiming that process exit or a local lock settles NFS.
 The stronger re-enrollment/takeover obligations below remain deferred and are
 not satisfied by the local guard or its 60-second timer. No re-enrollment command,

@@ -2222,6 +2222,7 @@ fn unsafe_startup_configuration_is_rejected() {
         max_retained_jobs: 64,
         max_retained_bytes: 1024 * 1024 * 1024 * 1024,
         source_space_admission: Default::default(),
+        shutdown_wait_seconds: 60,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -3669,5 +3670,260 @@ fn killed_coordinator_cannot_release_local_guard_held_by_paused_claim_worker() {
         std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
         b"original recording"
     );
+    f.stop();
+}
+
+fn control_child(f: &Fixture, mode: &str) -> Child {
+    Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg(mode)
+        .arg(f.root.join("config.json"))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap()
+}
+fn control_result(mut child: Child, seconds: u64) -> (bool, Value) {
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    while child.try_wait().unwrap().is_none() {
+        if Instant::now() >= deadline {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("unbounded lifecycle controller");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let out = child.wait_with_output().unwrap();
+    let value = serde_json::from_slice(&out.stdout).unwrap_or_else(|e| panic!("{e}: {out:?}"));
+    (out.status.success(), value)
+}
+fn local_status(f: &Fixture) -> (bool, Value) {
+    control_result(control_child(f, "--status"), 3)
+}
+fn shutdown_config(f: &Fixture, value: Value) {
+    let path = f.root.join("config.json");
+    let mut c: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    c["shutdown_wait_seconds"] = value;
+    std::fs::write(&path, serde_json::to_vec(&c).unwrap()).unwrap();
+}
+#[test]
+fn shutdown_setting_defaults_to_sixty_and_rejects_unbounded_or_noninteger_values() {
+    let f = Fixture::uninitialized(300);
+    let base: Value =
+        serde_json::from_slice(&std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
+    let c: file_mover::Config = serde_json::from_value(base.clone()).unwrap();
+    assert_eq!(c.shutdown_wait_seconds, 60);
+    for value in [json!(1), json!(3600)] {
+        let mut c = base.clone();
+        c["shutdown_wait_seconds"] = value;
+        assert!(
+            serde_json::from_value::<file_mover::Config>(c)
+                .unwrap()
+                .validate()
+                .is_ok()
+        );
+    }
+    for value in [
+        json!(0),
+        json!(3601),
+        json!(-1),
+        json!(1.5),
+        json!("60"),
+        Value::Null,
+        json!(true),
+        json!(4294967296_u64),
+    ] {
+        let mut c = base.clone();
+        c["shutdown_wait_seconds"] = value;
+        if let Ok(c) = serde_json::from_value::<file_mover::Config>(c) {
+            assert!(c.validate().is_err());
+        }
+    }
+    assert!(!f.root.join("state/instance.lock").exists());
+}
+#[test]
+fn local_controller_observes_clean_stop_without_sqlite_or_transfer_mount_access() {
+    let mut f = Fixture::new(300);
+    let (ok, s) = local_status(&f);
+    assert!(ok);
+    assert_eq!(s["phase"], "Running");
+    assert_eq!(s["shutdown_wait_seconds"], 60);
+    // Status/stop do not need source traversal, bindings, destination or a DB query.
+    std::fs::rename(f.root.join("source"), f.root.join("source-hidden")).unwrap();
+    let (ok, s) = local_status(&f);
+    assert!(ok);
+    assert_eq!(s["phase"], "Running");
+    assert!(control_result(control_child(&f, "--stop"), 5).0);
+    assert!(f.child.take().unwrap().wait().unwrap().success());
+    assert!(!f.root.join("state/control.sock").exists());
+    assert!(f.root.join("state/instance.lock").exists());
+    let (ok, s) = local_status(&f);
+    assert!(ok);
+    assert_eq!(s["phase"], "NoActiveOwner");
+    std::fs::rename(f.root.join("source-hidden"), f.root.join("source")).unwrap();
+    f.start();
+    f.stop();
+}
+#[test]
+fn local_controller_absence_or_surviving_holder_never_creates_state_or_reports_false_completion() {
+    let f = Fixture::uninitialized(300);
+    for mode in ["--status", "--stop"] {
+        let (ok, s) = control_result(control_child(&f, mode), 3);
+        assert!(ok);
+        assert_eq!(s["phase"], "NoActiveOwner");
+    }
+    assert!(!f.root.join("state/instance.lock").exists());
+    let guard =
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .unwrap();
+    for mode in ["--status", "--stop"] {
+        let (ok, s) = control_result(control_child(&f, mode), 3);
+        assert!(!ok);
+        assert_eq!(s["phase"], "OwnerUnavailable");
+        assert_eq!(s["message"], "shutdown incomplete; restart blocked");
+    }
+    assert!(!f.root.join("state/jobs.sqlite").exists());
+    drop(guard);
+}
+#[test]
+fn control_endpoint_rejects_invalid_requests_and_preserves_unsafe_named_files() {
+    use std::os::unix::net::UnixStream;
+    let mut f = Fixture::new(300);
+    for body in [
+        b"{}".to_vec(),
+        vec![b'x'; 257],
+        serde_json::to_vec(&json!({"version":1,"command":"stop","instance_id":"foreign"})).unwrap(),
+        serde_json::to_vec(&json!({"version":2,"command":"stop","instance_id":null})).unwrap(),
+    ] {
+        let mut s = UnixStream::connect(f.root.join("state/control.sock")).unwrap();
+        s.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        s.write_all(&body).unwrap();
+        s.shutdown(std::net::Shutdown::Write).unwrap();
+        let mut reply = vec![];
+        let _ = s.read_to_end(&mut reply);
+        assert!(reply.is_empty());
+        assert_eq!(local_status(&f).1["phase"], "Running");
+    }
+    f.stop();
+    let endpoint = f.root.join("state/control.sock");
+    std::fs::write(&endpoint, b"preserve this unrelated file").unwrap();
+    let result = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+        .arg(f.root.join("config.json"))
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert_eq!(
+        std::fs::read(endpoint).unwrap(),
+        b"preserve this unrelated file"
+    );
+}
+#[test]
+fn unresponsive_local_endpoint_returns_bounded_owner_unavailable() {
+    use std::os::unix::net::UnixListener;
+    let f = Fixture::uninitialized(300);
+    let _guard =
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .unwrap();
+    let endpoint = f.root.join("state/control.sock");
+    let _socket = UnixListener::bind(&endpoint).unwrap();
+    std::fs::set_permissions(&endpoint, std::fs::Permissions::from_mode(0o600)).unwrap();
+    for mode in ["--status", "--stop"] {
+        let start = Instant::now();
+        let (ok, s) = control_result(control_child(&f, mode), 3);
+        assert!(!ok);
+        assert_eq!(s["phase"], "OwnerUnavailable");
+        assert!(start.elapsed() < Duration::from_secs(2));
+    }
+    assert!(!f.root.join("state/jobs.sqlite").exists());
+}
+#[test]
+fn configured_stop_deadline_survives_repeated_requests_signals_and_config_edits() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(300);
+    f.stop();
+    shutdown_config(&f, json!(2));
+    let rendezvous = f.root.join("drain");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "shutdown_drain")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    f.write("data", b"retained while stopping");
+    let start = Instant::now();
+    let first = control_child(&f, "--stop");
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while !rendezvous.join("ready").exists() {
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    shutdown_config(&f, json!(3600));
+    assert!(
+        Command::new("/bin/kill")
+            .args(["-TERM", &f.child.as_ref().unwrap().id().to_string()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let second = control_result(control_child(&f, "--stop"), 4);
+    let first = control_result(first, 4);
+    for (ok, s) in [first, second] {
+        assert!(!ok);
+        assert_eq!(s["phase"], "ShutdownIncomplete");
+        assert_eq!(s["shutdown_wait_seconds"], 2);
+        assert_eq!(s["shutdown_remaining_ms"], 0);
+    }
+    assert!(start.elapsed() < Duration::from_secs(4));
+    assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
+    assert_eq!(local_status(&f).1["phase"], "ShutdownIncomplete");
+    let mut duplicate = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    duplicate
+        .arg("--initialize-source")
+        .arg(f.root.join("config.json"));
+    instance_refusal(duplicate);
+    std::fs::write(rendezvous.join("go"), b"").unwrap();
+    assert!(f.child.take().unwrap().wait().unwrap().success());
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"retained while stopping"
+    );
+    assert_eq!(local_status(&f).1["phase"], "NoActiveOwner");
+    f.start();
+    f.stop();
+}
+#[test]
+fn default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_ownership() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(300);
+    f.stop();
+    let rendezvous = f.root.join("default-drain");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "shutdown_drain")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    let start = Instant::now();
+    let (ok, s) = control_result(control_child(&f, "--stop"), 64);
+    assert!(!ok);
+    assert_eq!(s["shutdown_wait_seconds"], 60);
+    assert_eq!(s["phase"], "ShutdownIncomplete");
+    assert!(
+        start.elapsed() >= Duration::from_secs(59) && start.elapsed() < Duration::from_secs(63)
+    );
+    assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
+    assert!(
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .is_err()
+    );
+    std::fs::write(rendezvous.join("go"), b"").unwrap();
+    assert!(f.child.take().unwrap().wait().unwrap().success());
+    assert!(local_status(&f).0);
+    f.start();
     f.stop();
 }

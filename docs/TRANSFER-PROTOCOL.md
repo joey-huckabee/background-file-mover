@@ -15,8 +15,9 @@ and persistence increments can proceed while remaining details are refined.
 The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
 uses a shared local ownership guard for the confirmed same-host profile.
 [Increment 42](RUST-INCREMENT-42.md) implements worker inheritance with selected
-local evidence; the configurable 60-second stop controller and remaining SH
-cases/safe delayed-NFS-effect recovery stay pending. The guard is
+local evidence. [Increment 43](RUST-INCREMENT-43.md) implements the configurable
+60-second bounded local stop/status controller; remaining SH cases and safe
+delayed-NFS-effect recovery stay pending. The guard is
 not storage settlement. Stronger cross-host fencing remains deferred. No
 production NFS or deletion is enabled by this protocol.
 

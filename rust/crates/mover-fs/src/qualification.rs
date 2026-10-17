@@ -60,7 +60,15 @@ pub fn pause(operation: &'static str) -> Result<()> {
     }
     let path = std::env::var("FILE_MOVER_QUALIFICATION_RENDEZVOUS")
         .map_err(|_| ClaimError::Blocked("qualification rendezvous missing"))?;
-    pause_at(&path, operation, std::time::Duration::from_secs(60))
+    pause_at(
+        &path,
+        operation,
+        std::time::Duration::from_secs(if operation == "shutdown_drain" {
+            90
+        } else {
+            60
+        }),
+    )
 }
 
 #[cfg(feature = "nfs-qualification")]

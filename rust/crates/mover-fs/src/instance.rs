@@ -16,6 +16,45 @@ use std::{
 };
 
 pub const INSTANCE_LOCK: &str = "instance.lock";
+#[derive(Debug, PartialEq, Eq)]
+pub enum InstanceOwnership {
+    Absent,
+    Free,
+    Held,
+}
+/// Observe the existing guard without creating or rewriting state.
+pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
+    let directory = Path::new(database)
+        .parent()
+        .and_then(Path::to_str)
+        .ok_or(ClaimError::Blocked("local state parent required"))?;
+    let dir = local_parent(directory)?;
+    let held = match fs::openat(
+        &dir,
+        INSTANCE_LOCK,
+        OFlags::RDWR | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+        Mode::empty(),
+    ) {
+        Ok(fd) => fd,
+        Err(Errno::NOENT) => return Ok(InstanceOwnership::Absent),
+        Err(e) => return Err(e.into()),
+    };
+    let guard = InstanceGuard {
+        directory: directory.into(),
+        parent: owned_directory(&dir, true)?,
+        object: checked(&fs::fstat(&held)?)?,
+        held,
+    };
+    guard.validate_named()?;
+    let result = match fs::flock(&guard.held, fs::FlockOperation::NonBlockingLockExclusive) {
+        Ok(()) => InstanceOwnership::Free,
+        Err(Errno::AGAIN) => InstanceOwnership::Held,
+        Err(e) => return Err(e.into()),
+    };
+    guard.validate_named()?;
+    Ok(result) // Close only; never explicitly unlock another shared description.
+}
+
 const LIMIT: usize = 16384;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +73,9 @@ pub struct InstanceGuard {
     held: OwnedFd,
 }
 impl InstanceGuard {
+    pub fn state_directory(&self) -> &str {
+        &self.directory
+    }
     pub fn for_database(database: &str) -> Result<Self> {
         let directory = Path::new(database)
             .parent()
@@ -257,6 +299,28 @@ mod tests {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.0).unwrap();
         }
+    }
+    #[test]
+    fn observation_does_not_create_state_and_distinguishes_held_from_free() {
+        let f = Fixture::new();
+        assert_eq!(
+            instance_ownership(&f.database()).unwrap(),
+            InstanceOwnership::Absent
+        );
+        assert!(!f.0.join(INSTANCE_LOCK).exists());
+        let g = InstanceGuard::for_database(&f.database()).unwrap();
+        assert_eq!(
+            instance_ownership(&f.database()).unwrap(),
+            InstanceOwnership::Held
+        );
+        g.validate().unwrap();
+        drop(g);
+        assert_eq!(
+            instance_ownership(&f.database()).unwrap(),
+            InstanceOwnership::Free
+        );
+        assert_eq!(std::fs::read(f.0.join(INSTANCE_LOCK)).unwrap(), b"");
+        assert!(!f.0.join("jobs.sqlite").exists());
     }
     #[test]
     fn transferred_description_preserves_exclusion_and_releases_only_after_last_holder() {

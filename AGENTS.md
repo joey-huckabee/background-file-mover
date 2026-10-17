@@ -124,11 +124,15 @@ no host sudo/NAS administration assumed. Increment 42 implements the shared
 host-local instance.lock and explicit SCM_RIGHTS handoff to all six worker modes,
 with selected local evidence; see docs/RUST-INCREMENT-42.md. Guard admission
 checks parent/guard; complete database/sidecar alias and per-file mount validation
-remains pending. Next implement the
-proposed configurable
-shutdown_wait_seconds default 60 and bounded stop/status controller (SH-05–09).
-Timeout returns incomplete/restart-blocked while live holders retain ownership;
-local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
+remains pending. Increment 43 implements shutdown_wait_seconds (default 60,
+integer 1–3600) and --status/--stop over private local control.sock, independently
+of SQLite/NFS/the executor; see docs/RUST-INCREMENT-43.md. The running daemon owns
+the first monotonic deadline; repeated stop/signal requests and config edits do
+not reset it. Timeout exits 2 with ShutdownIncomplete/restart blocked while live
+holders retain ownership. Qualification-only shutdown_drain is a bounded local
+pause, not an uncancellable NFS call. Next qualify remaining state-layout/guard,
+hard-NFS deadline/drain and actual-version systemd/account-control cases.
+Local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
 NFS version/mount/systemd qualification remain pending. Preserve the original NF
 mapping and stronger deferred takeover/re-enrollment obligations. Keep production
 NFS/deletion/remote ingress off and registration/repair deferred.

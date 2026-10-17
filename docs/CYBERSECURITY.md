@@ -14,8 +14,9 @@ The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
 is revised in increment 41 to the confirmed single-host/local-state profile:
 inherited local guard, proposed configurable 60-second controller wait and safe
 owned NFS recovery/refusal. [Increment 42](RUST-INCREMENT-42.md) implements the
-local guard and worker handoff with selected local evidence; the controller and
-remaining qualification stay pending. Local locks are not NAS settlement; stronger
+local guard and worker handoff with selected local evidence. [Increment 43](RUST-INCREMENT-43.md)
+adds private local lifecycle IPC and a first-deadline stop controller. Remaining
+systemd/hard-NFS drain and ownership qualification stays pending. Local locks are not NAS settlement; stronger
 cross-host fencing remains deferred. Production NFS and deletion stay off.
 
 How Background File Mover moves data safely on a filesystem it shares with
