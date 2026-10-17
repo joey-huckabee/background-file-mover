@@ -11,8 +11,13 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next qualify remaining guard/death-phase and shutdown boundaries, other NFS
-operation/synchronization boundaries and systemd/account-control behavior (SH-01–04/06–14).
+First resolve the coordinator-death ownership gap: a terminating NFS worker can
+remain kernel-blocked after its local guard is released. Require independently
+retained exclusion through actual worker exit; qualify the fix before any
+production NFS enablement. Guard-free/NoActiveOwner alone cannot authorize restart.
+Then qualify remaining bootstrap/source-read/publication/manifest death phases,
+other NFS operation/synchronization and shutdown boundaries, and actual systemd/
+account-control behavior (SH-01–04/06–14).
 Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
 shares and systemd lifecycle qualification open (SH-10–14); a free local lock or

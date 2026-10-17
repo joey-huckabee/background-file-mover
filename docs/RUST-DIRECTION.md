@@ -125,7 +125,14 @@ state is preserved on refusal and no automatic repair is introduced.
 selected copy workers retain ownership beyond short/default deadlines; prompt
 claim/read exit is distinct, and original-state recovery waits for restoration
 and confirmed old exit. No Rust behavior or retry/review policy changes.
-Next qualify remaining guard/death-phase, other NFS operation/drain boundaries and
+[Increment 46](RUST-INCREMENT-46.md) tests coordinator death with selected actual
+kernel-blocked and terminating NFS children, bounded OwnerUnavailable, inherited
+local exclusion and original-state recovery. Prompt exit before parent kill is
+recorded separately. No Rust/retry/review change or production enablement follows.
+Resolve the terminating-worker ownership gap first: an actual D-state worker can
+outlive the local guard and yield NoActiveOwner after coordinator death. This is
+a release blocker, not passing SH-04 evidence. Then qualify remaining guard/death
+phases, other NFS operation/drain boundaries and
 systemd/account-control cases (SH-01–04/06–14). Qualify late NFS effects, actual
 mounts, same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
 settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS

@@ -1,11 +1,16 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 45. It
+This guide describes the implemented Rust prototype through increment 46. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
 Production NFS and source deletion remain disabled. Controlled NFS observations
 below apply only to the retained qualification build and fixture.
+
+[Increment 46](RUST-INCREMENT-46.md) confirms an NFS qualification blocker:
+a terminating worker can outlive its local guard after coordinator death.
+NoActiveOwner can therefore coexist with a kernel-blocked worker; it cannot
+by itself authorize NFS restart. The ownership-lifetime fix remains pending.
 
 The [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) now has an
 implemented shared local guard, worker handoff and bounded local lifecycle
@@ -84,7 +89,7 @@ There is no remote lifecycle route or token.
 | `ShutdownIncomplete` | Deadline expired; stop exits 2 with shutdown incomplete; restart blocked. Daemon/workers may remain live. Restore the underlying problem and inspect again; do not force a replacement or remove state/locks. |
 | `OwnerUnavailable` | Guard is held but no controller responds (for example, orphan workers, a one-shot initialization/transfer or an IPC problem). Status/stop exit 2, preserving exclusion. No worker is signaled by PID. |
 | `Stopped` | This stop command observed its original coordinator exit and the guard become free. It does not prove old NFS RPCs/writeback settled or authorize conflicting storage work. |
-| `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. This is not readiness, storage settlement or permission to bypass original-state recovery. |
+| `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. A terminating NFS worker can still be kernel-blocked after guard release (increment 46). This is not readiness, confirmed worker exit, storage settlement or permission to bypass original-state recovery. |
 
 Successful status and clean/no-active-owner stop exit 0. Status on an expired
 drain exits 2; unsafe configuration/state/IPC errors exit 1 and preserve evidence.
@@ -508,3 +513,35 @@ manifest integrity without changing retry/review behavior or deleting sources.
 These are opt-in qualification-build observations on the stated modern kernel,
 not deployment support for arbitrary NFS calls, NAS versions or systemd units.
 Production NFS and source deletion remain disabled.
+
+
+## Coordinator exit while an NFS worker survives
+
+The increment 46 fixture found a release-blocking exception: during termination,
+a verification worker can remain kernel-blocked after its local guard is closed.
+After coordinator death, current --status can then return NoActiveOwner/exit 0
+while that worker is still D. This does not meet the required exclusion contract.
+Production NFS remains disabled pending a qualified fix; do not use that local
+result alone as authorization to restart against NFS. No conflicting replacement
+was started in the failing fixture.
+
+[Increment 46](RUST-INCREMENT-46.md) exercises selected real kernel-blocked
+claim/copy/verification workers after coordinator death, including a terminating
+copy worker after an incomplete local stop. A surviving worker can retain the
+shared local guard even though the REST listener and local controller are gone.
+Local --status then returns OwnerUnavailable/exit 2; competing service,
+initialization and single-transfer starts refuse. Repeating --stop cannot make
+an absent coordinator supervise an orphan or authorize a replacement.
+
+Preserve the original state, claimed source, partials and working folders. Restore
+approved storage and establish old-process completion through the qualified
+operating procedure before restarting with the original configuration/state.
+The fixture confirms process exit before recovery; it does not supply production
+orphan inspection/killing tools or a force/delete-lock remedy. Local guard release
+still does not certify that remote RPCs/writeback settled. Unexpected custody or
+identity evidence must preserve refusal/review under the existing protocol.
+
+A worker that exits promptly during stop, before the planned coordinator kill,
+is recorded separately from a surviving terminating orphan. These controlled
+observations do not qualify actual systemd process-group/timeout/restart policy
+or every NFS death boundary. Production NFS and source deletion remain disabled.

@@ -9,16 +9,17 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix=""):
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
             if shutdown:
                 self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
+            self.label += suffix
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
@@ -291,6 +292,10 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if self.worker:
                 self.result["cleanup_worker_exit"] = self.await_exit(self.worker)
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
+
+    if death_only:
+        from nfs_death import run_death
+        return run_death(Case, run, execute, spawn, restore, server, output, client, results)
 
     if shutdown_only:
         from nfs_shutdown import run_shutdown

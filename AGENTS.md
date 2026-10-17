@@ -140,6 +140,17 @@ recovery; see docs/RUST-INCREMENT-45.md. Prompt kernel-assisted exit and retaine
 workers beyond the deadline are separate measured outcomes. Rust inputs/ABI,
 retry/review and production gates are unchanged. Next qualify remaining guard/
 death-phase, other NFS operation/drain and actual-version systemd/account cases.
+Increment 46 adds --coordinator-death fixture cases for actual kernel-blocked
+claim/copy/verification children and selected terminating orphans after local stop;
+see docs/RUST-INCREMENT-46.md. Confirm parent exit, orphan D state and contended
+local guard before competing effect commands. OwnerUnavailable is unsuccessful
+and never authorizes killing/adopting an orphan. Restore storage and confirm old
+exit before original-state recovery. Prompt stop before parent kill is a distinct
+outcome. The bracketed rerun confirms a release-blocking terminating-worker
+ownership gap: local guard release/NoActiveOwner can precede actual kernel exit.
+Keep it explicitly failed, never start competitors after detected guard loss,
+and resolve exclusion through kernel teardown before production enablement.
+No Rust/retry/review changes or production NFS/deletion enablement.
 Local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
 NFS version/mount/systemd qualification remain pending. Preserve the original NF
 mapping and stronger deferred takeover/re-enrollment obligations. Keep production

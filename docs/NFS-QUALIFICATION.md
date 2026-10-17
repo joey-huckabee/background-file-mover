@@ -392,3 +392,41 @@ and confirmed old process exit in these cases, even if the local guard is free.
 cases: five deadline-held workers and seven prompt exits, 51 competing starts
 refused, all original-state recoveries verified. Normal transfer, 12 NFS-parent
 and 120 SQLite-file admission regressions passed; cleanup had no errors.
+
+
+## Retained coordinator-death matrix
+
+Select `--coordinator-death` with passing production and qualification gates and
+`--isolated-startup`, separately from `--runtime` and `--shutdown`. The matrix
+uses the same hash-checked SLES binaries and retains the six normal-transfer,
+12 NFS-state-parent, 120 SQLite-file and isolated startup/OS regressions.
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/20261017T145042Z-b718db7b --qualification-gate rust/validation/20261017T145053Z-11bb8adc-nfs-qualification --isolated-startup --coordinator-death
+```
+
+[Increment 46](RUST-INCREMENT-46.md) defines the 12 cases and records outcomes.
+Kill only the coordinator PID after actual kernel blocking, or after ordinary
+stop leaves a terminating worker alive. Confirm coordinator exit and repeated
+orphan D state/local guard contention before competing starts. Require bounded
+OwnerUnavailable, no competing writer and original-state recovery after restored
+storage and confirmed old-worker exit. Prompt stop before the selected kill point
+is a separate outcome, not surviving-terminating-worker evidence. Both profiles
+must actually observe a surviving terminating child for the matrix to pass.
+Unexpected early guard release fails before starting competitors. Do not use
+local lock release or process exit as NAS settlement proof.
+
+
+The initial increment 46 matrix failed during verification termination after
+coordinator death. Its evidence is retained separately. The diagnostic driver
+brackets guard/status probes with D-state observations, skips competitors after
+unexpected guard loss, and may continue safe recovery/remaining cases. Such a
+case remains failed and the complete fixture exits nonzero even if all retained
+regressions pass. Compatibility success never overrides failed ownership proof.
+
+
+[Complete coordinator-death evidence](RUST-NFS-COORDINATOR-DEATH-EVIDENCE.json)
+is **FAILED**: ten worker cases passed and both verification-termination cases
+lost ownership while D. All 12 safe original-state recoveries and all retained
+regressions passed, with clean teardown. The matrix remains a release blocker;
+production NFS and deletion remain disabled. See increment 46 for exact scope.

@@ -51,7 +51,7 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 ## Coverage boundary
 
 Current production/qualification test counts, exact artifact hashes and the
-latest passing runs are recorded in [increment 44](RUST-INCREMENT-44.md) and the
+latest passing runs are recorded in [increment 46](RUST-INCREMENT-46.md) and the
 linked machine-readable reports. Every emitted executable is audited, including
 the service and each target test harness. Keep debug and release evidence for
 both build modes; a selected local test does not qualify a whole NFS profile.
@@ -83,7 +83,8 @@ qualification, no real SLES host requirement, and controlled NFS tests as slices
 introduce those effects. [RUST-SLES-EVIDENCE.json](RUST-SLES-EVIDENCE.json) records
 the current passing run, pinned inputs, dependencies, per-profile test counts and
 artifact hashes/audits. Windows and native WSL entry points passed for the core;
-the current expanded workspace passed via the native WSL entry point. The
+the expanded workspace passed via the native WSL entry point, and increment 46
+reruns both complete gates from Windows against the Linux container engine. The
 GitHub workflow is configured; its remote outcome is separate from local evidence.
 
 The [real-worker shutdown matrix](RUST-INCREMENT-45.md) is fixture-only. Its driver

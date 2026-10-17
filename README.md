@@ -28,6 +28,9 @@ individual mount checks, preserving existing state on refusal and normal WAL
 recovery after process death. [Increment 45](docs/RUST-INCREMENT-45.md)
 qualifies selected actual hard-NFS worker shutdown, retained-copy deadlines and
 original-state recovery; other lifecycle/deployment gates remain open.
+[Increment 46](docs/RUST-INCREMENT-46.md) extends selected coordinator-death
+qualification to blocked and terminating NFS workers. It exposes an ownership
+gap during termination; production NFS remains blocked pending a qualified fix.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

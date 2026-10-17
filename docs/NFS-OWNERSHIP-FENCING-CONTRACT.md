@@ -228,6 +228,19 @@ recovery follows server restoration and confirmed old exit. Other operation/deat
 boundaries, actual systemd/account policy and delayed-effect settlement remain
 open; local stop success never certifies NAS settlement.
 
+[Increment 46](RUST-INCREMENT-46.md) adds selected SH-04/08 evidence after actual
+coordinator SIGKILL with claim/copy/verification workers blocked or terminating.
+Selected surviving children retain local exclusion and report OwnerUnavailable.
+However, both debug/release terminating verification cases expose a release-blocking
+gap: the local guard is released while the worker remains in D across repeated
+bracketed observations, so current control
+can incorrectly report NoActiveOwner for the required worker-exclusion contract.
+This prevents SH-04/FR-03/05 closure; require a qualified exclusion-lifetime fix.
+A terminating child that exits with its coordinator before the kill point is
+recorded as prompt exit.
+Bootstrap/source-read/publication/manifest death phases, systemd group control
+and delayed remote settlement remain open. No force/adoption path is introduced.
+
 | Case | Evidence required before support |
 |---|---|
 | SH-01 | Default/fixed config and actual local database/WAL/state/guard path; refuse NFS state, unsafe parents, foreign/replaced/symlink/multilink guard and alternate unsupported startup scope without NFS/SQLite effects. |

@@ -57,8 +57,11 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Qualify remaining guard/death-phase and shutdown boundaries, actual NFS
-   workers beyond deadlines and systemd/account-control (SH-01–04/06–14).
+1. Resolve the observed terminating-worker ownership gap from
+   [increment 46](RUST-INCREMENT-46.md): local guard release/NoActiveOwner can
+   precede actual worker exit after coordinator death. Qualify exclusion through
+   kernel teardown. Then qualify bootstrap/source-read/publication/manifest death
+   phases, other NFS shutdown boundaries and systemd/account-control (SH-01–04/06–14).
    Discover actual mounts/version/security later and qualify NFS recovery
    (SH-10–14) before production enablement. Select/qualify the remote proxy profile
    and RA-01–16 alongside remaining producer/consumer contracts; registration stays deferred.
@@ -92,6 +95,12 @@ cases and production enablement remain open.
 retained-copy deadline and original-state recovery evidence. FR-03/05 remain open:
 other operation/death boundaries, systemd/account coordination and delayed NFS
 effects are still prerequisites. No production NFS/deletion enablement follows.
+
+[Increment 46](RUST-INCREMENT-46.md) extends selected coordinator-death cases to
+actual blocked/terminating NFS workers and original-state recovery. This is
+a failed SH-04 qualification with an observed terminating-worker ownership gap,
+not release approval. FR-03/05 remain blocked pending a qualified fix, other
+operation/death phases, systemd/account behavior and delayed remote effects. Production gates stay off.
 
 ## Deferred beyond the first release
 
