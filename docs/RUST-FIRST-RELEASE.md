@@ -57,8 +57,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Qualify bootstrap death with enrolled/populated state, file-publication/
-   manifest death phases, other NFS shutdown boundaries and systemd/account-control (SH-01-04/06-14).
+1. Qualify file-publication/manifest coordinator-death phases, other NFS shutdown
+   boundaries and systemd/account-control (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
    Discover actual mounts/version/security later and qualify NFS recovery
@@ -111,8 +111,17 @@ Production NFS and source deletion remain disabled pending the release gates.
 to fresh, unenrolled bootstrap and accepted source-read workers, including blocked
 orphans and separately recorded prompt/incomplete stop outcomes. Read its report
 for actual evidence. No Rust/runtime policy change or FR-03/05 closure follows;
-enrolled/populated bootstrap, publication/manifest, systemd and delayed NFS effects
-remain open. Production NFS and source deletion stay disabled.
+at increment 48, enrolled/populated bootstrap, publication/manifest, systemd and
+delayed NFS effects remained open. See increment 49 for the selected enrolled/
+populated extension. Production NFS and source deletion stay disabled.
+
+[Increment 49](RUST-INCREMENT-49.md) extends the bootstrap fixture to original
+enrolled-empty/populated state with retained WAL and a partial copy. Its result
+report distinguishes actual surviving orphans, prompt stop and normal same-pair
+recovery without re-enrollment. Read the failed seed evidence and correction as
+fixture history, not a changed retry/review policy. FR-03/05 remain open for
+publication/manifest, other operation/shutdown boundaries, both-NFS crashes,
+systemd and delayed remote effects. Production NFS/deletion remain disabled.
 
 ## Deferred beyond the first release
 

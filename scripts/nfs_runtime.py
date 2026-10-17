@@ -23,7 +23,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
-            source_nfs = point in claim_points | {"source_read", "bootstrap"}
+            source_nfs = point in claim_points | {"source_read", "bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
             self.destination = (self.base + "/destination" if source_nfs or production else "/tmp/nfs/" + self.label + "/destination")
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
@@ -87,16 +87,16 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             head, payload = text.replace("\r\n", "\n").split("\n\n", 1)
             return int(head.split()[1]), json.loads(payload)
 
-        def launch(self, paused):
+        def launch(self, paused, pause_point=None):
             self.counter += 1
             name = self.label + "-service-" + str(self.counter)
-            environment = (f"FILE_MOVER_QUALIFICATION_PAUSE={self.point} FILE_MOVER_QUALIFICATION_RENDEZVOUS={self.rendezvous} " if paused else "")
+            environment = (f"FILE_MOVER_QUALIFICATION_PAUSE={pause_point or self.point} FILE_MOVER_QUALIFICATION_RENDEZVOUS={self.rendezvous} " if paused else "")
             self.service = spawn(f"echo $$ >{self.marker}; exec env {environment}{self.binary} {self.config_path}", name)
             self.service_logs.append(name + ".log")
             self.processes.append(self.service)
 
-        def start(self, paused):
-            self.launch(paused)
+        def start(self, paused, pause_point=None):
+            self.launch(paused, pause_point)
             for _ in range(30):
                 if self.service.poll() is not None:
                     raise RuntimeError("runtime service startup failed: " + (output / self.service_logs[-1]).read_text())
@@ -131,15 +131,16 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             text = execute(f"for task in /proc/{pid}/task/*/children; do cat $task; done", "1000:1000").stdout
             return sorted(set(text.split()))
 
-        def await_pause(self):
+        def await_pause(self, point=None):
+            point = point or self.point
             for _ in range(60):
                 response = execute(f"cat {self.rendezvous}/ready", "1000:1000", check=False)
                 if response.returncode == 0 and response.stdout.endswith("\n") and len(response.stdout.split()) == 2:
                     pid, operation = response.stdout.split()
-                    assert pid.isdigit() and operation == self.point
+                    assert pid.isdigit() and operation == point
                     assert self.children() == [pid], "not exactly one live assigned worker"
                     command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", "1000:1000").stdout
-                    expected_mode = "--internal-claim-worker" if self.point in claim_points else "--internal-delivery-worker"
+                    expected_mode = "--internal-claim-worker" if point in claim_points else "--internal-delivery-worker"
                     assert self.binary in command and expected_mode in command
                     self.worker = pid
                     self.result["paused_worker"] = {"pid": pid, "command": command}

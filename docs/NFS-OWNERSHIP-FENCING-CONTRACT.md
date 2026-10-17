@@ -314,8 +314,25 @@ explicit first enrollment only after restoration/confirmed exit. Source-read
 recovery preserves original custody, old staging and producer-reused paths.
 Consult the increment and its raw evidence for actual results. No ownership,
 shutdown, retry/review or production policy changes accompany this expansion.
-Enrolled/populated-state bootstrap, publication/manifest death, systemd/group
-control and delayed NAS effects remain open; FR-03/05 are not closed.
+See increment 49 for the selected enrolled/populated-state extension. Publication/
+manifest death, other bootstrap boundaries, systemd/group control and delayed NAS
+effects remain open; FR-03/05 are not closed.
+
+## Existing-state bootstrap qualification
+
+[Increment 49](RUST-INCREMENT-49.md) extends selected SH-04/08 evidence to an
+active enrolled-empty pair and populated state with an accepted job, retained WAL
+and partial copy. Require unchanged local database/sidecar/staging evidence and
+remote enrollment/source evidence before recovery, with no SQLite inspection by
+the fixture, replacement state or re-enrollment. Surviving orphans must exclude
+all competing effect starts until actual exit; prompt stop is distinct. Read the
+increment for actual results, corrected seed preparation and limits.
+
+Selected NFS-source/local-destination cases do not close FR-03/05. Publication/
+manifest death, other bootstrap/shutdown boundaries, both-NFS crashes, actual
+systemd/group policy and delayed NAS effects remain open. Production NFS and source
+deletion remain disabled; no runtime policy or dependency change accompanies this
+qualification expansion.
 
 ## References and next increment
 

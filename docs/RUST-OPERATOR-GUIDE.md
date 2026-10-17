@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 48. It
+This guide describes the implemented Rust prototype through increment 49. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -595,3 +595,26 @@ clear attempts or resubmit under another ID to bypass custody. A prompt worker
 exit following stop is a distinct measured outcome; it does not promise every
 hard-NFS call can be cancelled. Existing shutdown, retry/review and termination
 policies are unchanged. Production NFS and source deletion remain disabled.
+
+
+## Restarting an enrolled or populated scope after bootstrap loss
+
+[Increment 49](RUST-INCREMENT-49.md) records selected enrolled/populated bootstrap
+death tests. Use its actual evidence and scope. Existing enrollment differs from
+first setup: keep the original database, WAL/shared-memory/journal sidecars,
+receipt and private working files together. Do not initialize again, replace state
+or discard a WAL to make startup proceed. Local Starting status does not imply
+HTTP readiness or access to jobs while source bootstrap is blocked.
+
+If the coordinator disappears while its bootstrap child remains alive, preserve
+all state and wait for confirmed old exit and restored approved storage before
+normal same-configuration startup. A populated scope can contain accepted jobs,
+producer-reused paths and partial copies; replay existing IDs and preserve all
+attempts. Unreceipted staging allocations or unresolved EEXIST refusals follow existing
+retry/review rules; they do not authorize deleting allocations or resetting review. The increment's failed seed setup demonstrates that refusal,
+and its corrected test setup is not an operator repair procedure.
+
+No shutdown, retry/review or termination policy changes accompany these tests.
+Production NFS and source deletion remain disabled. Both-NFS crash layouts,
+publication/manifest phases, actual systemd and delayed NAS effects remain outside
+the selected evidence.

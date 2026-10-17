@@ -184,8 +184,17 @@ source-read cases, blocked or following local stop, in debug/release. See
 unready without SQLite, then explicitly enroll only after restoration/confirmed
 old exit. Preserve source-read custody, old partials and producer-reused paths.
 The default claim/copy/verification matrix and increment 47 raw-lock-closure
-requirement remain intact. Enrolled/populated bootstrap, publication/manifest
-and other systemd/NFS/delayed-effect gates remain pending; no production enablement.
+requirement remain intact. See increment 49 for the selected enrolled/populated
+bootstrap extension; publication/manifest and other systemd/NFS/delayed-effect
+gates remain pending, with no production enablement.
+
+Increment 49 adds `--death-scope bootstrap-existing-state` for selected enrolled-
+empty/populated bootstrap deaths. Read docs/RUST-INCREMENT-49.md for actual scope
+and results. The populated fixture requires an accepted job, retained WAL and
+1 MiB partial; snapshot bytes/identities without opening SQLite, preserve all
+original state/receipt/source evidence and recover without re-initialization or
+replacement state. Keep prior selectors/strict increment 47 regression intact.
+No runtime/dependency/policy change is intended; production NFS/deletion stay off.
 
 ## Project Overview
 

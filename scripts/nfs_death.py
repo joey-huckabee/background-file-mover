@@ -47,8 +47,11 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read"}
-    points = ("bootstrap", "source_read") if scope == "bootstrap-source-read" else ("claim_apply", "copy_chunk", "verify_read")
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state"}
+    points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
+              "bootstrap-source-read": ("bootstrap", "source_read"),
+              "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated")}[scope]
+    bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
              for point in points
              for phase in ("blocked", "terminating")]
@@ -61,7 +64,10 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
-            if point == "bootstrap":
+            if scope == "bootstrap-existing-state":
+                from nfs_bootstrap_state import prepare, local_evidence, source_evidence, receipt_evidence, partial_evidence
+                prepare(case, execute, status)
+            if point in bootstrap_points:
                 # No pause hook: launch into an actual unavailable hard mount.
                 run(["exec", server, "rpc.nfsd", "0"])
                 case.launch(False)
@@ -89,7 +95,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             assert execute(f"test ! -e {case.base}/state/workers.next", "1000:1000", check=False).returncode == 0
             result["worker_epoch_before_death"] = epoch
             posted = None
-            if point == "bootstrap":
+            if point in bootstrap_points:
                 # Local-only observations; never stat the unavailable source.
                 time.sleep(3)
                 worker = case.worker
@@ -107,8 +113,13 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 result["bootstrap_health_request_sent"] = True
                 assert health[0].poll() is None and not health[1].read_text()
                 result["bootstrap_health_pending"] = True
-                execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
-                result["database_absent_before_death"] = True
+                if scope == "bootstrap-existing-state":
+                    observed = local_evidence(case, execute)
+                    assert observed == result["bootstrap_local_before"], "existing local state changed during blocked bootstrap"
+                    result["bootstrap_local_while_blocked"] = observed
+                else:
+                    execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
+                    result["database_absent_before_death"] = True
                 result["blocked_worker"] = {"pid": worker, "state": "D", "pause_released": False,
                     "nfs_server_stopped": True, "status": initial}
             else:
@@ -212,33 +223,50 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             result["guard_after_exit"] = probe(case)
             assert not result["guard_after_exit"]["contended"]
             result["local_status_after_exit"] = status(case, "NoActiveOwner")
-            if point == "bootstrap":
+            if point in bootstrap_points:
                 health[0].wait(timeout=10)
                 assert "200 OK" not in health[1].read_text()
-                execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
-                result["database_absent_after_old_exit"] = True
-                result["source_hash_before_first_submission"] = execute(f"sha256sum {case.source}/current/nested/data.bin", "1000:1000").stdout.split()[0]
-                assert result["source_hash_before_first_submission"] == hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
-                # First enrollment is explicit, after the old worker is gone.
-                execute(f"{case.binary} --initialize-source {case.config_path}", "1000:1000")
-                result["explicit_initialization_after_old_exit"] = True
+                if scope == "bootstrap-existing-state":
+                    result["bootstrap_local_after_old_exit"] = local_evidence(case, execute)
+                    result["bootstrap_source_after_old_exit"] = source_evidence(case, execute)
+                    assert result["bootstrap_local_after_old_exit"] == result["bootstrap_local_before"], "database/WAL/staging changed before recovery"
+                    assert result["bootstrap_source_after_old_exit"] == result["bootstrap_source_before"], "receipt/source changed before recovery"
+                    result["existing_state_preserved_before_recovery"] = True
+                    result["re_enrollment_performed"] = False
+                else:
+                    execute(f"test ! -e {case.base}/state/jobs.sqlite && test ! -e {case.base}/state/jobs.sqlite-wal && test ! -e {case.base}/state/jobs.sqlite-shm", "1000:1000")
+                    result["database_absent_after_old_exit"] = True
+                    result["source_hash_before_first_submission"] = execute(f"sha256sum {case.source}/current/nested/data.bin", "1000:1000").stdout.split()[0]
+                    assert result["source_hash_before_first_submission"] == hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
+                    # First enrollment is explicit, after the old worker is gone.
+                    execute(f"{case.binary} --initialize-source {case.config_path}", "1000:1000")
+                    result["explicit_initialization_after_old_exit"] = True
             recovered = case.recover()
             replacement_epoch = json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout)
             assert replacement_epoch["group"] == int(case.service_pid()) and replacement_epoch["group"] != epoch["group"]
             assert all(replacement_epoch[k] == epoch[k] for k in ("version", "boot", "namespace", "guard"))
             result["worker_epoch_after_recovery"] = replacement_epoch
             assert recovered["details"]["source_cleanup_enabled"] is False
-            if point in {"claim_apply", "bootstrap"}:
+            if point in {"claim_apply", "bootstrap", "bootstrap_enrolled"}:
                 execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
-            if point in {"copy_chunk", "source_read"}:
+            if point in {"copy_chunk", "source_read", "bootstrap_populated"}:
                 assert recovered["details"]["files"][0]["attempt"] == 2
                 assert execute(f"test -f {case.destination}/1/.staging/1.part", "1000:1000", check=False).returncode == 0
                 result["old_partial_preserved"] = True
-            if point in {"verify_read", "bootstrap"}:
+            if point in {"verify_read", "bootstrap", "bootstrap_enrolled"}:
                 assert recovered["details"]["files"][0]["attempt"] == 1
             assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
             assert execute(f"cat {case.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
             case.verify()
+            if scope == "bootstrap-existing-state":
+                result["database_identity_after_recovery"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
+                result["enrollment_receipt_after_recovery"] = receipt_evidence(case, execute)
+                assert result["database_identity_after_recovery"] == result["database_identity_before"]
+                assert result["enrollment_receipt_after_recovery"] == result["enrollment_receipt_before"]
+                if point == "bootstrap_populated":
+                    result["partial_after_recovery"] = partial_evidence(case, execute)
+                    assert result["partial_after_recovery"] == result["seed_partial"], "old partial bytes/inode/size changed"
+                    result["populated_job_replayed"] = True
             result.update({"original_state_recovery": True, "producer_reused_path_preserved": True,
                            "restart_only_after_restore_and_exit": True, "passed": not result.get("ownership_lost", False)})
         except Exception as error:
@@ -261,7 +289,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope == "bootstrap-source-read":
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state"}:
         passed = len(results) == 8 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

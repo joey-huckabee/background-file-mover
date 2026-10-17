@@ -426,5 +426,16 @@ accepted source-read cases, blocked or following local stop, in both profiles.
 Read the report for actual outcomes and limitations. No Rust runtime, package,
 retry/review or production-gate change is introduced. Preserve original local
 state and wait for confirmed old exit before recovery; fresh bootstrap performs
-explicit first enrollment afterward. Enrolled/populated bootstrap, publication/
-manifest death and other operation/systemd/NAS-settlement obligations remain open.
+explicit first enrollment afterward. See increment 49 for the selected enrolled/
+populated extension; publication/manifest death and other operation/systemd/NAS-
+settlement obligations remain open.
+
+
+[Increment 49](RUST-INCREMENT-49.md) adds selected enrolled-empty/populated
+bootstrap death cases through `--death-scope bootstrap-existing-state`. Preserve
+the original database, retained WAL/sidecars, receipt, partial and reused source
+path; snapshots must not open SQLite. Normal recovery uses the same enrollment
+pair without re-initialization. Read the increment for actual outcomes and scope;
+no runtime/dependency/retry/review change accompanies the fixture expansion.
+Publication/manifest, other synchronization, both-NFS crash and actual systemd/NAS
+settlement obligations remain open; production NFS/deletion remain disabled.

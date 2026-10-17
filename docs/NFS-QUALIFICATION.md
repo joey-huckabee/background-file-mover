@@ -493,3 +493,29 @@ parent refusals and all 184 state-file refusals pass, with fourteen fixtures
 preserved and clean teardown. See increment 48 for exact gate/artifact provenance,
 timings and remaining limitations. These cases do not newly reproduce raw flock
 closure; preserve increment 47's separate strict regression evidence.
+
+
+## Enrolled/populated bootstrap death
+
+[Increment 49](RUST-INCREMENT-49.md) defines eight additional cases selected by
+`--coordinator-death --death-scope bootstrap-existing-state`: enrolled-empty and
+populated state, debug/release, blocked/following local stop. The populated case
+starts with an accepted claimed job, retained WAL and a 1 MiB partial. Snapshots
+use metadata/SHA-256 without opening SQLite; require unchanged database/sidecars,
+staging, receipt and source evidence through blocked bootstrap and old exit.
+Recovery uses the original pair without re-enrollment. Preserve the prior two
+scope selectors and increment 47's stricter raw-lock-closure regression.
+
+These cases isolate an NFS source with a local destination. Record actual D state,
+connected/sent unanswered readiness, retained ownership and competing-start refusal
+for surviving orphans; distinguish prompt stop. No runtime policy, dependency or
+production-enable change is introduced. Read the increment for pass conditions,
+actual results and limitations. The [corrected existing-state evidence](RUST-NFS-ENROLLED-BOOTSTRAP-EVIDENCE.json)
+passes all eight cases: four surviving D orphans retain ownership, twelve competing
+starts refuse and four following-stop workers exit promptly. All recover using
+the same database inode and receipt, with populated WAL/partial/job replay
+preserved. Six normal transfers, twelve state-parent refusals and 184 state-file
+refusals pass across fourteen preserved fixtures, with clean teardown. The initial
+worker-first seed allowed a retry and correctly hit staging EEXIST/review; preserve
+its separate failed report and use the corrected coordinator-first preparation.
+No allocation deletion, review reset or application change is part of this test.

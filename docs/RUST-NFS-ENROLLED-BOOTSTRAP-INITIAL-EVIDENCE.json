@@ -1,0 +1,1643 @@
+{
+  "status": "FAILED",
+  "run_id": "nfs-20261017T205820Z-1afa98b1",
+  "isolated_startup_required": true,
+  "gate": "20261017T195308Z-0fbd983f",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "source_sha256": "60249323a5aa7851c0991c38b0be9cc63ab9a96e4d116a4777ac86f50165d77c",
+  "checks": {
+    "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\""
+  },
+  "cleanup_errors": [],
+  "coordinator_death_requested": true,
+  "coordinator_death_scope": "bootstrap-existing-state",
+  "shutdown_requested": false,
+  "runtime_requested": false,
+  "ownership_requested": false,
+  "enrollment_storage_requested": false,
+  "delivery_storage_requested": false,
+  "source_storage_requested": false,
+  "runtime_scope": "coordinator-death",
+  "limitations": [
+    "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+    "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
+    "Eight enrolled-empty/populated bootstrap cases, debug/release, blocked or following stop. Populated state has an accepted job, retained WAL and a 1 MiB partial. Local database/sidecar/staging and remote source/receipt evidence must remain unchanged before recovery, with no SQLite inspection or re-enrollment. NFS source/local destination, one shared modern kernel; no both-NFS crash, systemd, NAS settlement, old-kernel or takeover qualification. Prompt exit is distinct from a surviving terminating orphan.",
+    "Service startup rejection is measured; production NFS and source deletion remain disabled."
+  ],
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dmsetup\t2:1.02.185-2",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "findutils\t4.9.0-4",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "keyutils\t1.6.3-2",
+    "libacl1:amd64\t2.3.1-3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdebconfclient0:amd64\t0.270",
+    "libdevmapper1.02.1:amd64\t2:1.02.185-2",
+    "libevent-core-2.1-7:amd64\t2.1.12-stable-8+deb12u1",
+    "libexpat1:amd64\t2.5.0-1+deb12u4",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "libldap-2.5-0:amd64\t2.5.13+dfsg-5",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u2",
+    "libmd0:amd64\t1.0.4-2",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnfsidmap1:amd64\t1:2.6.2-4+deb12u1",
+    "libnsl2:amd64\t1.3.0-2",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpcre2-8-0:amd64\t10.42-1+deb12u2",
+    "libpython3-stdlib:amd64\t3.11.2-1+b1",
+    "libpython3.11-minimal:amd64\t3.11.2-6+deb12u9",
+    "libpython3.11-stdlib:amd64\t3.11.2-6+deb12u9",
+    "libreadline8:amd64\t8.2-1.3",
+    "libsasl2-2:amd64\t2.1.28+dfsg-10",
+    "libsasl2-modules-db:amd64\t2.1.28+dfsg-10",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsepol2:amd64\t3.4-2.1",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssl3:amd64\t3.0.22-1~deb12u1",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libunistring2:amd64\t1.0-2",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libwrap0:amd64\t7.6.q-32",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "media-types\t10.0.0",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "nfs-common\t1:2.6.2-4+deb12u1",
+    "nfs-kernel-server\t1:2.6.2-4+deb12u1",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "python3\t3.11.2-1+b1",
+    "python3-minimal\t3.11.2-1+b1",
+    "python3.11\t3.11.2-6+deb12u9",
+    "python3.11-minimal\t3.11.2-6+deb12u9",
+    "readline-common\t8.2-1.3",
+    "rpcbind\t1.2.6-6+b1",
+    "sed\t4.9-1+deb12u1",
+    "sensible-utils\t0.0.17+nmu1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "tzdata\t2026c-0+deb12u1",
+    "ucf\t3.0043+nmu1+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "mounts": [
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/45a0d810355b5ce2d53d34887a6b97ba7a72198bb76329c57a345483172d1605/diff,workdir=/var/lib/containers/storage/overlay/45a0d810355b5ce2d53d34887a6b97ba7a72198bb76329c57a345483172d1605/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+    "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+    "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+    "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+    "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
+    "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+    "none /etc/hosts tmpfs rw,mode=755 0 0",
+    "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+    "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+    "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+  ],
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "root_identity_before": [
+    "147:401967:1000:700",
+    "147:402011:1000:700"
+  ],
+  "artifacts": {
+    "debug": "dab1e5d4b569dd9dce552f73b21e3a6b8b9667f5f0832be2753023decd4dcd43",
+    "release": "d0bdc2484bc6ce092def0d22db8b94d54d59d59df6da326f39b2a106f214dbd7"
+  },
+  "qualification_gate": "20261017T195309Z-ea5be268-nfs-qualification",
+  "baseline": {
+    "passed": true,
+    "cases": [
+      {
+        "profile": "debug",
+        "direction": "source",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "af1bf3f70151173951673b5d789ebbf0",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "72:24704577",
+          "coordinator_pid": 72,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "72:24704577",
+          "coordinator_pid": 72,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "destination",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/debug-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/debug-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/debug-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "80df6f59e29039ceddd90442ba77fee2",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "136:24707467",
+          "coordinator_pid": 136,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "136:24707467",
+          "coordinator_pid": 136,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "both",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "f02dbcbdad9f3974c76420e3e9dc1d3f",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "200:24710573",
+          "coordinator_pid": 200,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "200:24710573",
+          "coordinator_pid": 200,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "source",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "c3a6091dd808eb4ad9a90d42aa5daa7b",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "272:24714706",
+          "coordinator_pid": 272,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "272:24714706",
+          "coordinator_pid": 272,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "destination",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/release-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/release-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/release-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "249ac5689346882afd2623197a35fcd8",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "336:24718037",
+          "coordinator_pid": 336,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "336:24718037",
+          "coordinator_pid": 336,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "both",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "5b1259eafd26172f11db8bd14ef1762f",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "400:24721530",
+          "coordinator_pid": 400,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "400:24721530",
+          "coordinator_pid": 400,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      }
+    ]
+  },
+  "coordinator_death": {
+    "passed": false,
+    "cases": [
+      {
+        "profile": "debug",
+        "point": "bootstrap_enrolled",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "blocked",
+        "repetition": 0,
+        "scenario_id": "SC-092",
+        "bootstrap_state_kind": "enrolled-empty",
+        "database_identity_before": "144:403140\n",
+        "bootstrap_local_before": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite:144:403140:1000:1000:600:1:131072:2026-10-17 21:02:43.356775759 +0000:2026-10-17 21:02:43.356775759 +0000\n01b8e2d21b9f574b6b002c3f1e4162814addda974f1b9704a8f94724d0e790b4  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json:144:403125:0:0:666:1:1006:2026-10-17 21:02:41.000000000 +0000:2026-10-17 21:02:41.960775929 +0000\n5298bf970e5fa356dfa712bb43dfe969c81a37503c634a5198ffdd69a6cd8e7c  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:403056:1000:1000:600:1:304:2026-10-17 21:02:38.584295049 +0000:2026-10-17 21:02:38.586063168 +0000\nc6c224208fa29c71be562de963d6e6b4d0b4815351528a5a8b767c031cb3139f  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "bootstrap_source_before": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403144:1000:1000:400:1:542:2026-10-17 21:02:43.304775766 +0000:2026-10-17 21:02:43.308775764 +0000\nde8913b38ebc8f8b782b76a8d4cfa31e4947dbc9b5c57376eaec15b8c3770171  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403113:1000:1000:600:1:271:2026-10-17 21:02:40.616776091 +0000:2026-10-17 21:02:40.632776089 +0000\naf0008253e5e99fb9fc5e51e9ac166d7aca734142b03afe5b10db449ef64df90  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403111:1000:1000:600:1:0:2026-10-17 21:02:40.580776095 +0000:2026-10-17 21:02:40.600776093 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/current/nested/data.bin:147:403101:1000:1000:600:1:2097169:2026-10-17 21:02:32.592777137 +0000:2026-10-17 21:02:32.592777137 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/current/nested/data.bin\nabsent:/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/1-0/data\n",
+        "enrollment_receipt_before": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403144:1000:1000:400:1:542:2026-10-17 21:02:43.304775766 +0000:2026-10-17 21:02:43.308775764 +0000\nde8913b38ebc8f8b782b76a8d4cfa31e4947dbc9b5c57376eaec15b8c3770171  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403113:1000:1000:600:1:271:2026-10-17 21:02:40.616776091 +0000:2026-10-17 21:02:40.632776089 +0000\naf0008253e5e99fb9fc5e51e9ac166d7aca734142b03afe5b10db449ef64df90  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403111:1000:1000:600:1:0:2026-10-17 21:02:40.580776095 +0000:2026-10-17 21:02:40.600776093 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n",
+        "startup_status": {
+          "exit_code": 0,
+          "elapsed_seconds": 1.61,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "492:24726008",
+            "coordinator_pid": 492,
+            "phase": "Starting",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": null,
+            "workers": [
+              495
+            ],
+            "message": null
+          }
+        },
+        "paused_worker": {
+          "pid": "495",
+          "command": "/tmp/qualification-debug --internal-bootstrap-worker ",
+          "fixture_pause": false
+        },
+        "coordinator_pid": "492",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026533112",
+          "group": 492,
+          "start": 24726008,
+          "guard": "1:144:403138:1000:0:1792270962:992775803:1"
+        },
+        "bootstrap_health_request_sent": true,
+        "bootstrap_health_pending": true,
+        "bootstrap_local_while_blocked": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite:144:403140:1000:1000:600:1:131072:2026-10-17 21:02:43.356775759 +0000:2026-10-17 21:02:43.356775759 +0000\n01b8e2d21b9f574b6b002c3f1e4162814addda974f1b9704a8f94724d0e790b4  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json:144:403125:0:0:666:1:1006:2026-10-17 21:02:41.000000000 +0000:2026-10-17 21:02:41.960775929 +0000\n5298bf970e5fa356dfa712bb43dfe969c81a37503c634a5198ffdd69a6cd8e7c  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:403056:1000:1000:600:1:304:2026-10-17 21:02:38.584295049 +0000:2026-10-17 21:02:38.586063168 +0000\nc6c224208fa29c71be562de963d6e6b4d0b4815351528a5a8b767c031cb3139f  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "blocked_worker": {
+          "pid": "495",
+          "state": "D",
+          "pause_released": false,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 1.109,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "492:24726008",
+              "coordinator_pid": 492,
+              "phase": "Starting",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                495
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "144:403138:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403138:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403138:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.937,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403138:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.937,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.984,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 1.016,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 1.109,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "144:403138:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.937,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "bootstrap_local_after_old_exit": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite:144:403140:1000:1000:600:1:131072:2026-10-17 21:02:43.356775759 +0000:2026-10-17 21:02:43.356775759 +0000\n01b8e2d21b9f574b6b002c3f1e4162814addda974f1b9704a8f94724d0e790b4  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json:144:403125:0:0:666:1:1006:2026-10-17 21:02:41.000000000 +0000:2026-10-17 21:02:41.960775929 +0000\n5298bf970e5fa356dfa712bb43dfe969c81a37503c634a5198ffdd69a6cd8e7c  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:403056:1000:1000:600:1:304:2026-10-17 21:02:38.584295049 +0000:2026-10-17 21:02:38.586063168 +0000\nc6c224208fa29c71be562de963d6e6b4d0b4815351528a5a8b767c031cb3139f  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "bootstrap_source_after_old_exit": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403144:1000:1000:400:1:542:2026-10-17 21:02:43.304775766 +0000:2026-10-17 21:02:43.308775764 +0000\nde8913b38ebc8f8b782b76a8d4cfa31e4947dbc9b5c57376eaec15b8c3770171  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403113:1000:1000:600:1:271:2026-10-17 21:02:40.616776091 +0000:2026-10-17 21:02:40.632776089 +0000\naf0008253e5e99fb9fc5e51e9ac166d7aca734142b03afe5b10db449ef64df90  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403111:1000:1000:600:1:0:2026-10-17 21:02:40.580776095 +0000:2026-10-17 21:02:40.600776093 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/current/nested/data.bin:147:403101:1000:1000:600:1:2097169:2026-10-17 21:02:32.592777137 +0000:2026-10-17 21:02:32.592777137 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/current/nested/data.bin\nabsent:/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/1-0/data\n",
+        "existing_state_preserved_before_recovery": true,
+        "re_enrollment_performed": false,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026533112",
+          "group": 594,
+          "start": 24733555,
+          "guard": "1:144:403138:1000:0:1792270962:992775803:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "9be49f1a1075c0c256030e1cb4f7fbbb",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "database_identity_after_recovery": "144:403140\n",
+        "enrollment_receipt_after_recovery": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403144:1000:1000:400:1:542:2026-10-17 21:02:43.304775766 +0000:2026-10-17 21:02:43.308775764 +0000\nde8913b38ebc8f8b782b76a8d4cfa31e4947dbc9b5c57376eaec15b8c3770171  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403113:1000:1000:600:1:271:2026-10-17 21:02:40.616776091 +0000:2026-10-17 21:02:40.632776089 +0000\naf0008253e5e99fb9fc5e51e9ac166d7aca734142b03afe5b10db449ef64df90  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403111:1000:1000:600:1:0:2026-10-17 21:02:40.580776095 +0000:2026-10-17 21:02:40.600776093 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n",
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\n",
+          "runtime-debug-bootstrap_enrolled-shutdown-2-death-blocked-service-3.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "bootstrap_enrolled",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "terminating",
+        "repetition": 0,
+        "scenario_id": "SC-092",
+        "bootstrap_state_kind": "enrolled-empty",
+        "database_identity_before": "144:403348\n",
+        "bootstrap_local_before": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite:144:403348:1000:1000:600:1:131072:2026-10-17 21:04:41.104772471 +0000:2026-10-17 21:04:41.104772471 +0000\ne2aa7e48d0482d40e3f0710e0e1e202f5713ba7cd3692680370cd8ece25bb6cb  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json:144:403175:0:0:666:1:1034:2026-10-17 21:04:39.000000000 +0000:2026-10-17 21:04:39.796773238 +0000\nc9fef671692598a4fa86e20b1f5a4c05633fed133d0241d525b72f45638f5543  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json:144:403336:1000:1000:600:1:312:2026-10-17 21:04:36.652115785 +0000:2026-10-17 21:04:36.653652267 +0000\n9b4b15f159f29c6406cef7bcba281c8edd546d3e1cc472253078658723a4f6d8  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/COMMITTED.json\n",
+        "bootstrap_source_before": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json:147:403329:1000:1000:400:1:550:2026-10-17 21:04:41.045903344 +0000:2026-10-17 21:04:41.048772505 +0000\nf9977744a4470887e1f6464ecf1a7f991c9a517f7feacc7da60cd0e51061cec4  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json:147:403340:1000:1000:600:1:279:2026-10-17 21:04:38.636773864 +0000:2026-10-17 21:04:38.668773860 +0000\nbcda6181172173ef749b22d1dba5a09bd57ea5b26a7c71fc357a728d38202fd5  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock:147:403343:1000:1000:600:1:0:2026-10-17 21:04:38.608773866 +0000:2026-10-17 21:04:38.620773865 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/current/nested/data.bin:147:403327:1000:1000:600:1:2097169:2026-10-17 21:04:31.108771885 +0000:2026-10-17 21:04:31.108771885 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/current/nested/data.bin\nabsent:/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/1-0/data\n",
+        "enrollment_receipt_before": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json:147:403329:1000:1000:400:1:550:2026-10-17 21:04:41.045903344 +0000:2026-10-17 21:04:41.048772505 +0000\nf9977744a4470887e1f6464ecf1a7f991c9a517f7feacc7da60cd0e51061cec4  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json:147:403340:1000:1000:600:1:279:2026-10-17 21:04:38.636773864 +0000:2026-10-17 21:04:38.668773860 +0000\nbcda6181172173ef749b22d1dba5a09bd57ea5b26a7c71fc357a728d38202fd5  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock:147:403343:1000:1000:600:1:0:2026-10-17 21:04:38.608773866 +0000:2026-10-17 21:04:38.620773865 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock\n",
+        "startup_status": {
+          "exit_code": 0,
+          "elapsed_seconds": 1.0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "686:24737455",
+            "coordinator_pid": 686,
+            "phase": "Starting",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": null,
+            "workers": [
+              689
+            ],
+            "message": null
+          }
+        },
+        "paused_worker": {
+          "pid": "689",
+          "command": "/tmp/qualification-debug --internal-bootstrap-worker ",
+          "fixture_pause": false
+        },
+        "coordinator_pid": "686",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026533112",
+          "group": 686,
+          "start": 24737455,
+          "guard": "1:144:403345:1000:0:1792271080:789037877:1"
+        },
+        "bootstrap_health_request_sent": true,
+        "bootstrap_health_pending": true,
+        "bootstrap_local_while_blocked": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite:144:403348:1000:1000:600:1:131072:2026-10-17 21:04:41.104772471 +0000:2026-10-17 21:04:41.104772471 +0000\ne2aa7e48d0482d40e3f0710e0e1e202f5713ba7cd3692680370cd8ece25bb6cb  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json:144:403175:0:0:666:1:1034:2026-10-17 21:04:39.000000000 +0000:2026-10-17 21:04:39.796773238 +0000\nc9fef671692598a4fa86e20b1f5a4c05633fed133d0241d525b72f45638f5543  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json:144:403336:1000:1000:600:1:312:2026-10-17 21:04:36.652115785 +0000:2026-10-17 21:04:36.653652267 +0000\n9b4b15f159f29c6406cef7bcba281c8edd546d3e1cc472253078658723a4f6d8  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/COMMITTED.json\n",
+        "blocked_worker": {
+          "pid": "689",
+          "state": "D",
+          "pause_released": false,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.922,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "686:24737455",
+              "coordinator_pid": 686,
+              "phase": "Starting",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                689
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "144:403345:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "686:24737455",
+            "coordinator_pid": 686,
+            "phase": "Stopped",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [],
+            "message": null
+          },
+          "elapsed_seconds": 0.937
+        },
+        "outcome": "prompt_exit_before_coordinator_kill",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "gone",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "144:403345:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.891,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "bootstrap_local_after_old_exit": "/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite:144:403348:1000:1000:600:1:131072:2026-10-17 21:04:41.104772471 +0000:2026-10-17 21:04:41.104772471 +0000\ne2aa7e48d0482d40e3f0710e0e1e202f5713ba7cd3692680370cd8ece25bb6cb  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-wal\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json:144:403175:0:0:666:1:1034:2026-10-17 21:04:39.000000000 +0000:2026-10-17 21:04:39.796773238 +0000\nc9fef671692598a4fa86e20b1f5a4c05633fed133d0241d525b72f45638f5543  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/config.json\n/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json:144:403336:1000:1000:600:1:312:2026-10-17 21:04:36.652115785 +0000:2026-10-17 21:04:36.653652267 +0000\n9b4b15f159f29c6406cef7bcba281c8edd546d3e1cc472253078658723a4f6d8  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/.file-mover/destination-binding.json\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/COMMITTED.json\n",
+        "bootstrap_source_after_old_exit": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json:147:403329:1000:1000:400:1:550:2026-10-17 21:04:41.045903344 +0000:2026-10-17 21:04:41.048772505 +0000\nf9977744a4470887e1f6464ecf1a7f991c9a517f7feacc7da60cd0e51061cec4  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json:147:403340:1000:1000:600:1:279:2026-10-17 21:04:38.636773864 +0000:2026-10-17 21:04:38.668773860 +0000\nbcda6181172173ef749b22d1dba5a09bd57ea5b26a7c71fc357a728d38202fd5  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock:147:403343:1000:1000:600:1:0:2026-10-17 21:04:38.608773866 +0000:2026-10-17 21:04:38.620773865 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/current/nested/data.bin:147:403327:1000:1000:600:1:2097169:2026-10-17 21:04:31.108771885 +0000:2026-10-17 21:04:31.108771885 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/current/nested/data.bin\nabsent:/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/1-0/data\n",
+        "existing_state_preserved_before_recovery": true,
+        "re_enrollment_performed": false,
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026533112",
+          "group": 749,
+          "start": 24741292,
+          "guard": "1:144:403345:1000:0:1792271080:789037877:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "ffa1ea6221166f53a8bfc4561e385bf6",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "database_identity_after_recovery": "144:403348\n",
+        "enrollment_receipt_after_recovery": "/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json:147:403329:1000:1000:400:1:550:2026-10-17 21:04:41.045903344 +0000:2026-10-17 21:04:41.048772505 +0000\nf9977744a4470887e1f6464ecf1a7f991c9a517f7feacc7da60cd0e51061cec4  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json:147:403340:1000:1000:600:1:279:2026-10-17 21:04:38.636773864 +0000:2026-10-17 21:04:38.668773860 +0000\nbcda6181172173ef749b22d1dba5a09bd57ea5b26a7c71fc357a728d38202fd5  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock:147:403343:1000:1000:600:1:0:2026-10-17 21:04:38.608773866 +0000:2026-10-17 21:04:38.620773865 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating/source/.file-mover/coordinator.lock\n",
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource bootstrap termination requested; waiting for confirmed child exit\n",
+          "runtime-debug-bootstrap_enrolled-shutdown-2-death-terminating-service-3.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "bootstrap_populated",
+        "production": false,
+        "passed": false,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "blocked",
+        "repetition": 0,
+        "scenario_id": "SC-092",
+        "bootstrap_state_kind": "populated",
+        "seed_acceptance": [
+          202,
+          {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        ],
+        "paused_worker": {
+          "pid": "897",
+          "command": "/tmp/qualification-debug --internal-bootstrap-worker ",
+          "fixture_pause": false
+        },
+        "seed_worker": {
+          "pid": "834",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "seed_job_status": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-bootstrap_populated-shutdown-2-death-blocked"
+          }
+        },
+        "seed_partial": "144:403342:1048576\n30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part\n",
+        "seed_worker_exit": "gone",
+        "seed_coordinator_pid": "815",
+        "retained_wal_before_bootstrap": true,
+        "database_identity_before": "144:403356\n",
+        "bootstrap_local_before": "/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite:144:403356:1000:1000:600:1:131072:2026-10-17 21:05:59.029766701 +0000:2026-10-17 21:05:59.029766701 +0000\n17644d64d3d7d622ad8adff8145aa6c2a80a846af30947e44664e4ec5f0b94cf  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal:144:394715:1000:1000:600:1:78312:2026-10-17 21:06:11.945113960 +0000:2026-10-17 21:06:11.945113960 +0000\n38470f3d615574443f81fbcf543b52624320e9792ad07066ec30754f5e4b1694  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm:144:394725:1000:1000:600:1:32768:2026-10-17 21:06:02.993591145 +0000:2026-10-17 21:06:02.993591145 +0000\n30cbb7eda3d85fed5453b5aede7cddd1a2978cafab0e1d9ead39d295409704db  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json:144:403339:0:0:666:1:1013:2026-10-17 21:05:57.000000000 +0000:2026-10-17 21:05:57.784768940 +0000\n2d5d695398775196da6580afe42438cf04046e6c3c0f466b919aeb394ff03af7  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:402167:1000:1000:600:1:306:2026-10-17 21:05:54.672970752 +0000:2026-10-17 21:05:54.674604416 +0000\n4865ce84df7f2c765f01f525bb7a8b7a789bc7a12af5241011cc45440239eb15  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part:144:403342:1000:1000:600:1:1048576:2026-10-17 21:06:03.655238432 +0000:2026-10-17 21:06:03.655238432 +0000\n30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "bootstrap_source_before": "/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403360:1000:1000:400:1:544:2026-10-17 21:05:58.951769967 +0000:2026-10-17 21:05:58.964768803 +0000\n497f2ea095d57a13166149982b1ca33d41700e96a015b3c865f9ea9fdbf2a1c6  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403344:1000:1000:600:1:273:2026-10-17 21:05:56.704769067 +0000:2026-10-17 21:05:56.716769067 +0000\n5589bebc3d0ddfb01c3cd7ecf2fc0590bd53e4c4f0055300a15c1b6c5c3580fb  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403347:1000:1000:600:1:0:2026-10-17 21:05:56.620769077 +0000:2026-10-17 21:05:56.635413642 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/current/nested/data.bin:147:403362:1000:1000:644:1:14:2026-10-17 21:06:04.236768325 +0000:2026-10-17 21:06:04.236768325 +0000\n477a904b3c60977ebe38c07b3f896c6894a722182744c755e21e682f3dbea755  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/current/nested/data.bin\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/1-0/data:147:403307:1000:1000:600:1:2097169:2026-10-17 21:05:48.789796683 +0000:2026-10-17 21:06:03.244768414 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/1-0/data\n",
+        "enrollment_receipt_before": "/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403360:1000:1000:400:1:544:2026-10-17 21:05:58.951769967 +0000:2026-10-17 21:05:58.964768803 +0000\n497f2ea095d57a13166149982b1ca33d41700e96a015b3c865f9ea9fdbf2a1c6  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403344:1000:1000:600:1:273:2026-10-17 21:05:56.704769067 +0000:2026-10-17 21:05:56.716769067 +0000\n5589bebc3d0ddfb01c3cd7ecf2fc0590bd53e4c4f0055300a15c1b6c5c3580fb  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403347:1000:1000:600:1:0:2026-10-17 21:05:56.620769077 +0000:2026-10-17 21:05:56.635413642 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n",
+        "startup_status": {
+          "exit_code": 0,
+          "elapsed_seconds": 1.172,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "894:24747006",
+            "coordinator_pid": 894,
+            "phase": "Starting",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": null,
+            "workers": [
+              897
+            ],
+            "message": null
+          }
+        },
+        "coordinator_pid": "894",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026533112",
+          "group": 894,
+          "start": 24747006,
+          "guard": "1:144:403355:1000:0:1792271158:678821019:1"
+        },
+        "bootstrap_health_request_sent": true,
+        "bootstrap_health_pending": true,
+        "bootstrap_local_while_blocked": "/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite:144:403356:1000:1000:600:1:131072:2026-10-17 21:05:59.029766701 +0000:2026-10-17 21:05:59.029766701 +0000\n17644d64d3d7d622ad8adff8145aa6c2a80a846af30947e44664e4ec5f0b94cf  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal:144:394715:1000:1000:600:1:78312:2026-10-17 21:06:11.945113960 +0000:2026-10-17 21:06:11.945113960 +0000\n38470f3d615574443f81fbcf543b52624320e9792ad07066ec30754f5e4b1694  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm:144:394725:1000:1000:600:1:32768:2026-10-17 21:06:02.993591145 +0000:2026-10-17 21:06:02.993591145 +0000\n30cbb7eda3d85fed5453b5aede7cddd1a2978cafab0e1d9ead39d295409704db  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json:144:403339:0:0:666:1:1013:2026-10-17 21:05:57.000000000 +0000:2026-10-17 21:05:57.784768940 +0000\n2d5d695398775196da6580afe42438cf04046e6c3c0f466b919aeb394ff03af7  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:402167:1000:1000:600:1:306:2026-10-17 21:05:54.672970752 +0000:2026-10-17 21:05:54.674604416 +0000\n4865ce84df7f2c765f01f525bb7a8b7a789bc7a12af5241011cc45440239eb15  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part:144:403342:1000:1000:600:1:1048576:2026-10-17 21:06:03.655238432 +0000:2026-10-17 21:06:03.655238432 +0000\n30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "blocked_worker": {
+          "pid": "897",
+          "state": "D",
+          "pause_released": false,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 1.062,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "894:24747006",
+              "coordinator_pid": 894,
+              "phase": "Starting",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                897
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "144:403355:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403355:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 1.016,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403355:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.984,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "144:403355:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 1.063,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 1.016,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.906,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 1.031,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "144:403355:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.906,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "bootstrap_local_after_old_exit": "/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite:144:403356:1000:1000:600:1:131072:2026-10-17 21:05:59.029766701 +0000:2026-10-17 21:05:59.029766701 +0000\n17644d64d3d7d622ad8adff8145aa6c2a80a846af30947e44664e4ec5f0b94cf  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal:144:394715:1000:1000:600:1:78312:2026-10-17 21:06:11.945113960 +0000:2026-10-17 21:06:11.945113960 +0000\n38470f3d615574443f81fbcf543b52624320e9792ad07066ec30754f5e4b1694  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-wal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm:144:394725:1000:1000:600:1:32768:2026-10-17 21:06:02.993591145 +0000:2026-10-17 21:06:02.993591145 +0000\n30cbb7eda3d85fed5453b5aede7cddd1a2978cafab0e1d9ead39d295409704db  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-shm\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/state/jobs.sqlite-journal\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json:144:403339:0:0:666:1:1013:2026-10-17 21:05:57.000000000 +0000:2026-10-17 21:05:57.784768940 +0000\n2d5d695398775196da6580afe42438cf04046e6c3c0f466b919aeb394ff03af7  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/config.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json:144:402167:1000:1000:600:1:306:2026-10-17 21:05:54.672970752 +0000:2026-10-17 21:05:54.674604416 +0000\n4865ce84df7f2c765f01f525bb7a8b7a789bc7a12af5241011cc45440239eb15  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/.file-mover/destination-binding.json\n/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part:144:403342:1000:1000:600:1:1048576:2026-10-17 21:06:03.655238432 +0000:2026-10-17 21:06:03.655238432 +0000\n30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58  /tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/.staging/1.part\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/nested/data.bin\nabsent:/tmp/local/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/destination/1/COMMITTED.json\n",
+        "bootstrap_source_after_old_exit": "/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json:147:403360:1000:1000:400:1:544:2026-10-17 21:05:58.951769967 +0000:2026-10-17 21:05:58.964768803 +0000\n497f2ea095d57a13166149982b1ca33d41700e96a015b3c865f9ea9fdbf2a1c6  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-enrollment.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json:147:403344:1000:1000:600:1:273:2026-10-17 21:05:56.704769067 +0000:2026-10-17 21:05:56.716769067 +0000\n5589bebc3d0ddfb01c3cd7ecf2fc0590bd53e4c4f0055300a15c1b6c5c3580fb  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/source-binding.json\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock:147:403347:1000:1000:600:1:0:2026-10-17 21:05:56.620769077 +0000:2026-10-17 21:05:56.635413642 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/coordinator.lock\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/current/nested/data.bin:147:403362:1000:1000:644:1:14:2026-10-17 21:06:04.236768325 +0000:2026-10-17 21:06:04.236768325 +0000\n477a904b3c60977ebe38c07b3f896c6894a722182744c755e21e682f3dbea755  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/current/nested/data.bin\n/tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/1-0/data:147:403307:1000:1000:600:1:2097169:2026-10-17 21:05:48.789796683 +0000:2026-10-17 21:06:03.244768414 +0000\na0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-bootstrap_populated-shutdown-2-death-blocked/source/.file-mover/1-0/data\n",
+        "existing_state_preserved_before_recovery": true,
+        "re_enrollment_performed": false,
+        "error": "AssertionError: {'job_id': '1', 'state': 'Claimed', 'source_paths_released': True, 'retryable': False, 'details': {'condition': 'ReviewRequired', 'delivery_retry': {'code': 'delivery_requires_review', 'failures': 3, 'retry_after': 1792271270}, 'files': [{'attempt': 1, 'file_id': '0', 'name': 'nested/data.bin', 'phase': 'Claimed', 'size_bytes': 2097169, 'transfer_phase': 'Intent'}], 'generator_id': 'fixture', 'latest_missing_reset': None, 'latest_resume': None, 'manifest_phase': None, 'missing': [], 'missing_review_epoch': 0, 'review_epoch': 0, 'source_cleanup_enabled': False, 'submission_id': 'runtime-debug-bootstrap_populated-shutdown-2-death-blocked'}}",
+        "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_death.py\", line 244, in run_death\n    recovered = case.recover()\n                ^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_runtime.py\", line 193, in recover\n    assert status[\"details\"][\"condition\"] != \"ReviewRequired\", status\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: {'job_id': '1', 'state': 'Claimed', 'source_paths_released': True, 'retryable': False, 'details': {'condition': 'ReviewRequired', 'delivery_retry': {'code': 'delivery_requires_review', 'failures': 3, 'retry_after': 1792271270}, 'files': [{'attempt': 1, 'file_id': '0', 'name': 'nested/data.bin', 'phase': 'Claimed', 'size_bytes': 2097169, 'transfer_phase': 'Intent'}], 'generator_id': 'fixture', 'latest_missing_reset': None, 'latest_resume': None, 'manifest_phase': None, 'missing': [], 'missing_review_epoch': 0, 'review_epoch': 0, 'source_cleanup_enabled': False, 'submission_id': 'runtime-debug-bootstrap_populated-shutdown-2-death-blocked'}}\n",
+        "service_logs": {
+          "runtime-debug-bootstrap_populated-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery worker exited without receipt\n",
+          "runtime-debug-bootstrap_populated-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\n",
+          "runtime-debug-bootstrap_populated-shutdown-2-death-blocked-service-7.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery worker sequence 2: staging_allocate errno=17; inspect storage; preserve source/state; existing review rules apply\nDelivery 1 requires reconciliation: delivery effect uncertain or blocked\nDelivery worker sequence 2: staging_allocate errno=17; inspect storage; preserve source/state; existing review rules apply\nDelivery 1 requires reconciliation: delivery effect uncertain or blocked\n"
+        }
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "8145248c14b2d437862a846dda38cdc88211ce177b8a2134f2fe79c18ba6b712",
+      "nfs_runtime.py": "425d6795f2caf6eb7fb37e25a054383b612e522bc8694634a793a7fe1411e276",
+      "nfs_death.py": "8db68a45f47d48cec2ee8225ef152dc47731e1f08075021b0e1abbac21cd9181",
+      "nfs_bootstrap_state.py": "839ab15056523710a7eb34ec5a118174c71482b8639ff18bde893fdec01aed9a",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa"
+    }
+  },
+  "error": "AssertionError: NFS coordinator-death matrix interrupted; inspect cases",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 295, in main\n    assert report[\"coordinator_death\"][\"passed\"] or complete, \"NFS coordinator-death matrix interrupted; inspect cases\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: NFS coordinator-death matrix interrupted; inspect cases\n"
+}

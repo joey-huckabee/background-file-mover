@@ -11,10 +11,9 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next qualify bootstrap death with enrolled/populated state and file-publication/
-manifest death phases, other NFS operation/synchronization and shutdown boundaries,
-and actual systemd/
-account-control behavior (SH-01–04/06–14). Preserve independently retained
+Next qualify file-publication/manifest coordinator-death phases, other NFS
+operation/synchronization and shutdown boundaries, and actual systemd/account-
+control behavior (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.
 Keep delayed NFS
