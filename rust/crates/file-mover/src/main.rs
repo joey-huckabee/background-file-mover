@@ -7,6 +7,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Some(path) = args.next() else {
         return Err("usage: file-mover CONFIG.json | --check-platform".into());
     };
+    if path == "--internal-source-space-worker" {
+        if args.next().is_some() {
+            return Err("internal worker takes no arguments".into());
+        }
+        return file_mover::source_space::worker();
+    }
     if path == "--internal-bootstrap-worker" {
         if args.next().is_some() {
             return Err("internal worker takes no arguments".into());

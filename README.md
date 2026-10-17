@@ -25,6 +25,9 @@ It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
 Read-only [retention accounting](docs/RUST-INCREMENT-10.md) is also implemented.
 Use the current [Rust operator guide](docs/RUST-OPERATOR-GUIDE.md) for status,
 audited resume/missing reset, command replay and capacity/recovery triage.
+[Source-space admission](docs/SOURCE-SPACE-ADMISSION-DESIGN.md) is configurable
+and off by default; it gates new keys while preserving existing-job recovery.
+See [increment 36](docs/RUST-INCREMENT-36.md) for evidence and remaining scope.
 Background copy/verification now uses [supervised child workers](docs/RUST-INCREMENT-11.md).
 [Claim and publication operations](docs/RUST-INCREMENT-12.md) now use children too.
 [Recording sessions](docs/RUST-INCREMENT-13.md) isolate runtime destination opening,

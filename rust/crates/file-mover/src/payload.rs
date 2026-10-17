@@ -176,6 +176,17 @@ pub(crate) fn exchange(
     stop: &AtomicBool,
     reply_limit: u64,
 ) -> Result<Vec<u8>> {
+    exchange_deadline(bytes, mode, source, destination, stop, reply_limit, None)
+}
+pub(crate) fn exchange_deadline(
+    bytes: &[u8],
+    mode: &str,
+    source: &LocalClaimLock,
+    destination: &LocalClaimLock,
+    stop: &AtomicBool,
+    reply_limit: u64,
+    deadline: Option<std::time::Instant>,
+) -> Result<Vec<u8>> {
     if stop.load(Ordering::Relaxed) {
         return Err("worker dispatch stopped".into());
     }
@@ -199,7 +210,10 @@ pub(crate) fn exchange(
         if let Some(status) = child.0.try_wait()? {
             break status;
         }
-        if stop.load(Ordering::Relaxed) && !terminating {
+        if (stop.load(Ordering::Relaxed)
+            || deadline.is_some_and(|d| std::time::Instant::now() >= d))
+            && !terminating
+        {
             child.0.kill()?;
             terminating = true;
         }

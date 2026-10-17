@@ -217,7 +217,7 @@ root/export authorization/cross-client ownership. Production NFS and deletion
 remain disabled; update the catalog with each increment.
 
 Next session: read this handoff, the protocol/API drafts, CONVERSATION.md,
-[Increment 35](RUST-INCREMENT-35.md), [source-space policy](SOURCE-SPACE-ADMISSION-DESIGN.md),
+[Increment 36](RUST-INCREMENT-36.md), [source-space policy](SOURCE-SPACE-ADMISSION-DESIGN.md),
 [operator guide](RUST-OPERATOR-GUIDE.md),
 [retry policy](DELIVERY-RETRY-POLICY.md), [enrollment contract](FENCED-ENROLLMENT-DESIGN.md),
 [root/ownership design](ROOT-OWNERSHIP-DESIGN.md),
@@ -374,3 +374,12 @@ and SA-01–18, catalog SC-075–081. Design only: current config/API and schema
 are unchanged. The guard applies to new keys, preserves existing partial/replay
 recovery and ledger limits, and requires bounded fresh authorized observations.
 Implement and qualify before promoting these future scenarios to supported.
+
+Increment 36 implements the default-off local source-space guard with strict
+configurable byte/percent margins, replay-first serialized new-key admission,
+one supervised capacity child and cached global retention visibility. New keys
+can await a shared probe through at most two asynchronous HTTP waiters and one
+recheck within the existing total ten-second handoff budget; existing keys skip it.
+Unknown/late results return retryable unavailable; cold admission does not depend
+on fast recorder retries. See its results and SA mapping before expanding storage claims. No
+schema/dependency change; keep physical/NFS capacity qualification pending.

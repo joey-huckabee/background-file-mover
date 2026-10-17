@@ -93,9 +93,14 @@ future status/retry/review changes. See docs/RUST-INCREMENT-34.md for the
 documentation-only checks. Other user guides remain in the scenario backlog.
 Increment 35 defines docs/SOURCE-SPACE-ADMISSION-DESIGN.md: configurable byte/
 percent margins, default-off/explicit off, new-key-only gating and SA-01–18.
-SC-075–081 remain future; no config/API enforcement or qualification exists yet.
-Preserve accepted replay/partial claims and existing limits; qualify bounded
-source probes before implementation is called supported.
+Its original future-only scenarios are now refined by increment 36; retain all
+remaining physical/NFS acceptance obligations without claiming them supported.
+Increment 36 implements the default-off source-space guard; see
+docs/RUST-INCREMENT-36.md and docs/SOURCE-SPACE-ADMISSION-DESIGN.md. New-key
+admission uses bounded child observations and final SQLite replay/freshness checks;
+accepted partial/replayed jobs bypass this guard but retain existing safety/limits.
+Cached global status never probes. Preserve qualification-only failure/pause
+controls, distinguish synthetic/local tests from hard NFS and physical exhaustion.
 Do not auto-enroll missing/foreign
 markers, treat directory locks as distributed fences, or enable automatic takeover.
 Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond

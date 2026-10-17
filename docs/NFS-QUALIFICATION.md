@@ -264,3 +264,17 @@ never injects ENOSPC in these cases. See [the retry policy](DELIVERY-RETRY-POLIC
 and [increment 33](RUST-INCREMENT-33.md) for actual results and scope. Schema 11 preserves original retry/enrollment state while widening the retry-code
 constraint. The private delivery session uses protocol version 2; persisted receipts and bindings keep
 their existing versions. Keep all production NFS/fencing restrictions.
+
+## Source-space probe controls (increment 36)
+
+Qualification-only `FILE_MOVER_QUALIFICATION_SOURCE_SPACE_FAULT=unavailable`
+returns a source probe I/O error. Existing pause controls select
+`source_space_statistics` immediately before the native descriptor statistics
+call. Production ignores both selectors. The default-off guard never dispatches
+this worker. Local target API tests exercise native measurements, explicit
+unavailability and a paused real child killed at its probe deadline, with replay/
+health retained. This does not qualify an in-flight hard NFS statistics call,
+source disk/quota exhaustion or remote cancellation. Extend the retained fixture
+before claiming those cases. The source-space child has its own version-1 bounded
+request/reply; existing delivery wire 2 and persisted receipt/binding formats do
+not change. Parent and child remain the same executable.

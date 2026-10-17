@@ -1917,6 +1917,9 @@ impl Fixture {
         if let Some(fault) = effect_fault {
             command.env("FILE_MOVER_QUALIFICATION_EFFECT_FAULT", fault);
         }
+        self.start_command(command);
+    }
+    fn start_command(&mut self, mut command: Command) {
         self.child = Some(
             command
                 .arg(self.root.join("config.json"))
@@ -2197,6 +2200,7 @@ fn unsafe_startup_configuration_is_rejected() {
         missing_file_retry_window_seconds: 300,
         max_retained_jobs: 64,
         max_retained_bytes: 1024 * 1024 * 1024 * 1024,
+        source_space_admission: Default::default(),
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -3185,4 +3189,273 @@ fn delivery_session_rechecks_destination_marker_before_payload() {
             .len(),
         0
     );
+}
+
+fn configure_space(f: &Fixture, policy: Value) {
+    let path = f.root.join("config.json");
+    let mut c: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    c["source_space_admission"] = policy;
+    std::fs::write(path, serde_json::to_vec(&c).unwrap()).unwrap();
+}
+fn space_post_until(f: &Fixture, body: &Value, target: u16) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let (code, r) = f.post(body);
+        if code == target {
+            return r;
+        }
+        assert_eq!(code, 503, "{r}");
+        assert_eq!(r["error"], "source_space_unavailable", "{r}");
+        assert!(Instant::now() < deadline, "{r}");
+        std::thread::sleep(Duration::from_millis(30));
+    }
+}
+#[test]
+fn source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart() {
+    let mut f = Fixture::new(300);
+    f.write("a", b"old");
+    let partial = f.input("partial-space", json!([{"name":"a"},{"name":"b"}]));
+    assert_eq!(f.post(&partial).1["error"], "handoff_pending");
+    f.stop();
+    configure_space(
+        &f,
+        json!({"enabled":true,"min_available_bytes":u64::MAX,"max_sample_age_seconds":1,"probe_timeout_seconds":1}),
+    );
+    f.start();
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["reason"],
+        "not_sampled"
+    );
+    assert_eq!(f.post(&partial).1["error"], "handoff_pending");
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["reason"],
+        "not_sampled"
+    );
+    let mut conflict = partial.clone();
+    conflict["files"] = json!([{"name":"different"}]);
+    assert_eq!(f.post(&conflict).0, 409);
+    f.write("new", b"pending");
+    let body = f.input("new-space", json!([{"name":"new"}]));
+    let first = f.post(&body);
+    assert_eq!(first.0, 503);
+    assert!(
+        ["source_space_low", "source_space_unavailable"]
+            .contains(&first.1["error"].as_str().unwrap())
+    );
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let refused = loop {
+        let (_, r) = f.post(&body);
+        if r["error"] == "source_space_low" {
+            break r;
+        }
+        assert!(Instant::now() < deadline, "{r}");
+        std::thread::sleep(Duration::from_millis(30));
+    };
+    assert_eq!(refused["source_paths_released"], false);
+    assert!(refused.get("job_id").is_none());
+    assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["state"],
+        "Low"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/new")).unwrap(),
+        b"pending"
+    );
+    assert!(!f.root.join("source/.file-mover/2-0").exists());
+    f.write("b", b"other");
+    assert_eq!(f.post(&partial).0, 202);
+    f.write("a", b"new recording");
+    assert_eq!(f.post(&partial).0, 202);
+    std::thread::sleep(Duration::from_millis(1100));
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["reason"],
+        "sample_expired"
+    );
+    f.stop();
+    f.start();
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["reason"],
+        "not_sampled"
+    );
+    assert_eq!(f.post(&partial).0, 202);
+    // Threshold restoration requires a fresh sample, not a persisted permit.
+    f.stop();
+    configure_space(&f, json!({"enabled":true,"min_available_bytes":1}));
+    f.start();
+    assert_eq!(space_post_until(&f, &body, 202)["job_id"], "2");
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["state"],
+        "Sufficient"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/a")).unwrap(),
+        b"new recording"
+    );
+    f.stop();
+    configure_space(&f, json!({"enabled":false,"min_available_bytes":u64::MAX}));
+    f.start();
+    f.write("off", b"off");
+    assert_eq!(
+        f.post(&f.input("off-space", json!([{"name":"off"}]))).0,
+        202
+    );
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["state"],
+        "Disabled"
+    );
+    assert!(
+        retention(&f, Some("1")).1["details"]
+            .get("source_space_admission")
+            .is_none()
+    );
+}
+#[test]
+fn enabled_source_space_native_sample_allows_nested_empty_delivery_without_double_charge() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    configure_space(
+        &f,
+        json!({"enabled":true,"min_available_bytes":1,"min_available_percent":1}),
+    );
+    provision_destination(&f);
+    f.start();
+    f.write("sub/data", b"native statistics");
+    f.write("empty", b"");
+    let body = f.input(
+        "native-space",
+        json!([{"name":"sub/data"},{"name":"empty","size_bytes":0}]),
+    );
+    assert_eq!(
+        space_post_until(&f, &body, 202)["source_paths_released"],
+        true
+    );
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while status(&f, "1").1["state"] != "Committed" {
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let (_, r) = retention(&f, None);
+    assert_eq!(r["details"]["filesystem_inspected"], false);
+    assert!(
+        r["details"]["source_space_admission"]["observed_available_bytes"]
+            .as_str()
+            .unwrap()
+            .parse::<u128>()
+            .unwrap()
+            > 0
+    );
+    assert_eq!(r["details"]["source_reserved_bytes"], "17");
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+    assert_eq!(f.post(&body).0, 202);
+}
+#[test]
+fn source_space_probe_faults_are_qualification_only_and_do_not_gate_existing_jobs() {
+    let mut f = Fixture::new(300);
+    f.write("existing", b"retained");
+    let old = f.input("existing-space", json!([{"name":"existing"}]));
+    assert_eq!(f.post(&old).0, 202);
+    f.stop();
+    configure_space(&f, json!({"enabled":true,"min_available_bytes":1}));
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command.env("FILE_MOVER_QUALIFICATION_SOURCE_SPACE_FAULT", "unavailable");
+    f.start_command(command);
+    f.write("new", b"new");
+    let body = f.input("fault-space", json!([{"name":"new"}]));
+    if cfg!(feature = "nfs-qualification") {
+        for _ in 0..5 {
+            let (code, r) = f.post(&body);
+            assert_eq!(code, 503);
+            assert_eq!(r["error"], "source_space_unavailable");
+            std::thread::sleep(Duration::from_millis(40));
+        }
+        assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
+        assert_eq!(f.post(&old).0, 202);
+        assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+    } else {
+        assert_eq!(space_post_until(&f, &body, 202)["job_id"], "2");
+    }
+}
+#[test]
+fn source_space_probe_timeout_preserves_responsive_replay_and_custody() {
+    let mut f = Fixture::new(300);
+    f.write("existing", b"retained");
+    let old = f.input("timeout-old", json!([{"name":"existing"}]));
+    assert_eq!(f.post(&old).0, 202);
+    f.stop();
+    configure_space(
+        &f,
+        json!({"enabled":true,"min_available_bytes":1,"probe_timeout_seconds":1,"max_sample_age_seconds":2}),
+    );
+    let rendezvous = f.root.join("space-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "source_space_statistics")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    f.write("new", b"new");
+    let body = f.input("timeout-new", json!([{"name":"new"}]));
+    let address = f.address;
+    let bytes = post_bytes(&body);
+    let pending = std::thread::spawn(move || exchange(address, &bytes));
+    if cfg!(feature = "nfs-qualification") {
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while !rendezvous.join("ready").exists() {
+            assert!(Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let ready = std::fs::read_to_string(rendezvous.join("ready")).unwrap();
+        let started = Instant::now();
+        assert_eq!(f.post(&old).0, 202);
+        assert!(started.elapsed() < Duration::from_secs(2));
+        assert_eq!(f.raw(b"GET /healthz HTTP/1.1\r\nHost: h\r\n\r\n").0, 200);
+        assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
+        let (code, r) = pending.join().unwrap();
+        assert_eq!(code, 503);
+        assert_eq!(r["error"], "source_space_unavailable");
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(
+            retention(&f, None).1["details"]["source_space_admission"]["state"],
+            "Unknown"
+        );
+        assert_eq!(
+            std::fs::read_to_string(rendezvous.join("ready")).unwrap(),
+            ready
+        );
+        assert_eq!(f.post(&old).0, 202);
+    } else {
+        assert_eq!(pending.join().unwrap().0, 202);
+        assert!(!rendezvous.join("ready").exists());
+    }
+    f.stop();
+}
+#[test]
+fn source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    configure_space(
+        &f,
+        json!({"enabled":true,"min_available_bytes":1,"max_sample_age_seconds":1,"probe_timeout_seconds":1}),
+    );
+    f.start();
+    f.write("one", b"1");
+    assert_eq!(
+        f.post(&f.input("slow-retry-one", json!([{"name":"one"}])))
+            .0,
+        202
+    );
+    std::thread::sleep(Duration::from_millis(1100));
+    assert_eq!(
+        retention(&f, None).1["details"]["source_space_admission"]["state"],
+        "Unknown"
+    );
+    f.write("two", b"2");
+    assert_eq!(
+        f.post(&f.input("slow-retry-two", json!([{"name":"two"}])))
+            .0,
+        202
+    );
+    assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 2);
 }

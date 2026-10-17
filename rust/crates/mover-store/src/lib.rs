@@ -42,6 +42,9 @@ pub enum StoreError {
     DestinationBindingChanged,
     WorkerStopped,
     AdmissionFull,
+    SourceSpaceLow,
+    SourceSpaceUnavailable,
+    SourceCustodyRefused,
     NotFound,
     ReviewConflict,
     ActionConflict,
@@ -82,6 +85,37 @@ impl From<ProtocolError> for StoreError {
     }
 }
 pub type Result<T> = std::result::Result<T, StoreError>;
+
+/// Process-local observation permit, evaluated inside the acceptance transaction.
+#[derive(Clone, Copy, Debug)]
+pub enum NewJobAdmission {
+    Unrestricted,
+    SourceSpace {
+        expires_at: std::time::Instant,
+        sufficient: bool,
+    },
+    Unavailable,
+    CustodyRefused,
+}
+impl NewJobAdmission {
+    fn check(self) -> Result<()> {
+        match self {
+            Self::Unrestricted => Ok(()),
+            Self::SourceSpace {
+                expires_at,
+                sufficient,
+            } if std::time::Instant::now() <= expires_at => {
+                if sufficient {
+                    Ok(())
+                } else {
+                    Err(StoreError::SourceSpaceLow)
+                }
+            }
+            Self::CustodyRefused => Err(StoreError::SourceCustodyRefused),
+            _ => Err(StoreError::SourceSpaceUnavailable),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AcceptanceContext {
@@ -312,6 +346,38 @@ impl Store {
         let submission = submission.clone();
         let context = context.clone();
         self.call(move |db| db.accept(&submission, &context))
+    }
+    /// Advisory lookup only: final acceptance repeats this check transactionally.
+    pub fn replay(&self, submission: &Submission) -> Result<bool> {
+        let submission = submission.clone();
+        self.call(move |db| {
+            let tx = db.connection.transaction()?;
+            let id: Option<i64> = tx
+                .query_row(
+                    "SELECT job_id FROM jobs WHERE generator_id=?1 AND submission_id=?2",
+                    params![submission.generator_id(), submission.submission_id()],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            if let Some(id) = id {
+                load(&tx, id)?
+                    .ok_or(StoreError::CorruptState)?
+                    .recording
+                    .replay(&submission)?;
+            }
+            tx.commit()?;
+            Ok(id.is_some())
+        })
+    }
+    pub fn accept_with_admission(
+        &self,
+        submission: &Submission,
+        context: &AcceptanceContext,
+        admission: NewJobAdmission,
+    ) -> Result<Accepted> {
+        let submission = submission.clone();
+        let context = context.clone();
+        self.call(move |db| db.accept_guarded(&submission, &context, admission))
     }
     pub fn get(&self, job_id: i64) -> Result<Option<Accepted>> {
         self.call(move |db| load(&db.connection, job_id))
@@ -710,6 +776,14 @@ impl Database {
     }
 
     fn accept(&mut self, submission: &Submission, context: &AcceptanceContext) -> Result<Accepted> {
+        self.accept_guarded(submission, context, NewJobAdmission::Unrestricted)
+    }
+    fn accept_guarded(
+        &mut self,
+        submission: &Submission,
+        context: &AcceptanceContext,
+        admission: NewJobAdmission,
+    ) -> Result<Accepted> {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -728,6 +802,7 @@ impl Database {
             return Ok(saved);
         }
         context.validate()?;
+        admission.check()?;
         let enrolled_path: Option<String> = tx
             .query_row(
                 "SELECT source_path FROM source_enrollment WHERE singleton=1",

@@ -1741,3 +1741,184 @@ fn destination_refusal_persists_immediate_review_after_an_outage() {
         Some((3, 101, "destination_binding_requires_review".into()))
     );
 }
+
+#[test]
+fn source_space_admission_is_atomic_replay_first_and_deadline_bound() {
+    use std::time::Instant;
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let body = input("g", "space", "data");
+    for (gate, low) in [
+        (NewJobAdmission::Unavailable, false),
+        (
+            NewJobAdmission::SourceSpace {
+                expires_at: Instant::now() + Duration::from_secs(30),
+                sufficient: false,
+            },
+            true,
+        ),
+        (
+            NewJobAdmission::SourceSpace {
+                expires_at: Instant::now() - Duration::from_secs(1),
+                sufficient: true,
+            },
+            false,
+        ),
+    ] {
+        let error = s
+            .accept_with_admission(&body, &context(), gate)
+            .err()
+            .unwrap();
+        assert!(if low {
+            matches!(error, StoreError::SourceSpaceLow)
+        } else {
+            matches!(error, StoreError::SourceSpaceUnavailable)
+        });
+        assert_eq!(s.job_count().unwrap(), 0);
+        let c = Connection::open(f.db()).unwrap();
+        for table in ["jobs", "files", "reservations", "claims", "missing"] {
+            assert_eq!(
+                c.query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                0
+            );
+        }
+    }
+    assert!(!s.replay(&body).unwrap());
+    let job = s
+        .accept_with_admission(
+            &body,
+            &context(),
+            NewJobAdmission::SourceSpace {
+                expires_at: Instant::now() + Duration::from_secs(30),
+                sufficient: true,
+            },
+        )
+        .unwrap();
+    assert!(s.replay(&body).unwrap());
+    for gate in [
+        NewJobAdmission::Unavailable,
+        NewJobAdmission::CustodyRefused,
+        NewJobAdmission::SourceSpace {
+            expires_at: Instant::now() - Duration::from_secs(1),
+            sufficient: false,
+        },
+    ] {
+        assert_eq!(
+            s.accept_with_admission(&body, &context(), gate)
+                .unwrap()
+                .job_id,
+            job.job_id
+        );
+        assert!(matches!(
+            s.accept_with_admission(&input("g", "space", "different"), &context(), gate),
+            Err(StoreError::Protocol(_))
+        ));
+    }
+    s.configure_limits(1, 1).unwrap();
+    assert!(
+        s.accept_with_admission(&body, &context(), NewJobAdmission::Unavailable)
+            .unwrap()
+            .replay
+    );
+    assert!(matches!(
+        s.accept_with_admission(
+            &input("g", "new", "other"),
+            &context(),
+            NewJobAdmission::Unrestricted
+        ),
+        Err(StoreError::AdmissionFull)
+    ));
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert!(
+        s.accept_with_admission(&body, &context(), NewJobAdmission::Unavailable)
+            .unwrap()
+            .replay
+    );
+}
+#[test]
+fn source_sample_that_expires_in_sqlite_queue_cannot_insert() {
+    use std::time::Instant;
+    let f = Fixture::new();
+    let s = Arc::new(Store::open(f.db()).unwrap());
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let expires_at = Instant::now() + Duration::from_millis(100);
+    let pending = s.clone();
+    let task = std::thread::spawn(move || {
+        pending.accept_with_admission(
+            &input("g", "queued", "data"),
+            &context(),
+            NewJobAdmission::SourceSpace {
+                expires_at,
+                sufficient: true,
+            },
+        )
+    });
+    std::thread::sleep(Duration::from_millis(200));
+    c.execute_batch("ROLLBACK").unwrap();
+    assert!(matches!(
+        task.join().unwrap(),
+        Err(StoreError::SourceSpaceUnavailable)
+    ));
+    assert_eq!(s.job_count().unwrap(), 0);
+}
+
+#[test]
+fn concurrent_space_refusals_and_replays_never_create_duplicate_jobs() {
+    let f = Fixture::new();
+    let s = Arc::new(Store::open(f.db()).unwrap());
+    let barrier = Arc::new(std::sync::Barrier::new(9));
+    let mut tasks = Vec::new();
+    for index in 0..8 {
+        let s = s.clone();
+        let b = barrier.clone();
+        tasks.push(std::thread::spawn(move || {
+            let body = input(
+                "g",
+                "racing-space",
+                if index == 7 { "conflict" } else { "data" },
+            );
+            assert!(!s.replay(&body).unwrap());
+            b.wait();
+            let gate = if index == 0 {
+                NewJobAdmission::SourceSpace {
+                    expires_at: std::time::Instant::now() + Duration::from_secs(30),
+                    sufficient: true,
+                }
+            } else {
+                NewJobAdmission::Unavailable
+            };
+            s.accept_with_admission(&body, &context(), gate)
+        }));
+    }
+    barrier.wait();
+    for (i, t) in tasks.into_iter().enumerate() {
+        let result = t.join().unwrap();
+        if i == 0 {
+            assert_eq!(result.unwrap().job_id, 1);
+        } else if i == 7 {
+            assert!(matches!(
+                result,
+                Err(StoreError::Protocol(_) | StoreError::SourceSpaceUnavailable)
+            ));
+        } else {
+            match result {
+                Ok(job) => assert_eq!(job.job_id, 1),
+                Err(e) => assert!(matches!(e, StoreError::SourceSpaceUnavailable)),
+            }
+        }
+    }
+    assert_eq!(s.job_count().unwrap(), 1);
+    assert!(
+        s.accept_with_admission(
+            &input("g", "racing-space", "data"),
+            &context(),
+            NewJobAdmission::Unavailable
+        )
+        .unwrap()
+        .replay
+    );
+}

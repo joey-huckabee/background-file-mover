@@ -232,6 +232,24 @@ pub struct LocalClaimLock {
     _held: OwnedFd,
 }
 /// Check inherited regular-file lock descriptions before child effects.
+/// Source child only. Caller validates inherited custody before and after.
+pub fn source_space_statistics(
+    path: &str,
+    authorization: &SourceAuthorization,
+) -> Result<mover_core::SpaceStatistics> {
+    authorization.validate(path)?;
+    let directory = root(path)?;
+    let identity = owned_directory(&directory, false)?;
+    let stats = fs::fstatvfs(&directory)?;
+    authorization.validate(path)?;
+    same_directory(&owned_directory(&root(path)?, false)?, &identity)?;
+    Ok(mover_core::SpaceStatistics {
+        available_blocks: stats.f_bavail,
+        total_blocks: stats.f_blocks,
+        fragment_size: stats.f_frsize,
+    })
+}
+
 pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Result<()> {
     for (path, held) in [
         (source_path, rustix::io::dup(std::io::stdin())?),
@@ -245,6 +263,9 @@ pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Resu
     Ok(())
 }
 impl LocalClaimLock {
+    pub fn source_path(&self) -> &str {
+        &self.path
+    }
     pub fn matches_path(&self, path: &str) -> bool {
         self.path == path
     }
@@ -478,4 +499,9 @@ pub fn claim(store: &Store, job_id: i64, index: usize) -> Result<Accepted> {
     };
     apply(store, &intent)?;
     Ok(store.finish_claim(&intent)?)
+}
+
+#[cfg(feature = "nfs-qualification")]
+pub fn source_space_unavailable_fault() -> ClaimError {
+    ClaimError::Io(Errno::IO)
 }

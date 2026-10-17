@@ -1,9 +1,9 @@
 # Configurable source-space admission policy
 
-Design recorded 2026-10-16; **not implemented or qualified**. This refines
-L1-SYS-030 and the [transfer protocol](TRANSFER-PROTOCOL.md), alongside existing
-job/byte retention limits. It does not change current service behavior. Current
-configuration rejects these new fields until an implementation lands.
+Policy recorded 2026-10-16. [Increment 36](RUST-INCREMENT-36.md) implements the
+first local slice; validation results and remaining qualification are recorded
+there. This refines L1-SYS-030 and the [transfer protocol](TRANSFER-PROTOCOL.md),
+alongside existing job/byte retention limits. Production NFS/deletion remain off.
 
 ## Purpose and scope
 
@@ -31,7 +31,7 @@ is off. Those checks can still stop a partial claim or new destination attempt.
 
 ## Configuration and explicit off switch
 
-Add an optional startup object `source_space_admission`. Omission is equivalent
+The optional startup object is `source_space_admission`. Omission is equivalent
 to `{"enabled":false}` for compatibility. There is no per-request override and
 no hot reload in the first slice; change configuration and restart normally
 against the original state. All other configuration fields remain required.
@@ -177,6 +177,14 @@ still-fresh result (age no greater than the configured maximum) at the new-job
 decision. Discard late, wrong-sequence,
 wrong-root or old-generation replies. Never use wall time to extend freshness.
 No persisted space reading survives a restart or configuration generation change.
+Implementation uses nonblocking sampler demand plus at most two asynchronous HTTP
+waiters. A cold new-key request can wait for the shared probe and recheck acceptance
+once, within the existing total ten-second POST handoff budget. Claim/database
+owners never wait for the probe. Excess waiters, missing/error/late observations
+return retryable unavailable. Low/failed results are cached until expiry. This
+avoids requiring recorder retries faster than the sample age: a healthy cold or
+expired sample can be refreshed and used within the same request. Notify
+registration and completion are checked together to avoid a lost wakeup.
 
 On timeout/error, new-key requests receive a retryable unavailable result.
 Request termination when appropriate, but retain the worker slot/custody until
@@ -192,9 +200,9 @@ no space sample. Raising thresholds can refuse new keys but cannot retroactively
 revoke acceptance, reset review or release reservations. Source enrollment and
 schema migration safeguards remain mandatory.
 
-## Proposed API and operator visibility
+## API and operator visibility
 
-These additions are **future**, not current endpoints/configuration behavior:
+Implemented in increment 36 for the local slice; consult its gate results:
 
 | New-key result | HTTP / error | Recorder action |
 |---|---|---|
@@ -207,10 +215,11 @@ validation, source custody, `submission_conflict`, `source_reserved`,
 `retention_capacity`, missing-file and delivery errors keep their meaning. This
 guard creates no new per-job ReviewRequired state or operator reset endpoint.
 
-Extend the **global** retention response with cached
+The **global** retention response adds cached
 `details.source_space_admission`: effective policy, state (`Disabled`, `Unknown`,
 `Sufficient`, `Low`), observed available/required bytes or null, monotonic sample
-age or null and a bounded reason for Unknown. Byte values are decimal strings.
+age or null and a bounded reason for Unknown. Observed/required byte values are
+decimal strings; the effective `policy` mirrors the startup configuration types.
 Unknown covers no result, expiration, failed or timed-out probe. Reading it never
 starts or waits for a probe; lack of a new request can leave it Unknown after
 expiry until another new submission requests refresh. Disabled reports null
@@ -228,8 +237,9 @@ a separately implemented cleanup policy; the recorder cannot repair retained dat
 
 ## Acceptance scenarios required before implementation is called supported
 
-All rows below are **planned tests**, with no passing runtime evidence claimed.
-Keep IDs when splitting implementation into short increments.
+These are acceptance obligations, not blanket qualification claims. The
+increment-36 mapping below distinguishes implemented tests from remaining storage/
+concurrency evidence. Keep these IDs as qualification expands.
 
 | Case | Scenario | Required observable result / evidence |
 |---|---|---|
@@ -254,15 +264,31 @@ Keep IDs when splitting implementation into short increments.
 
 ## Increment boundaries
 
-First implement configuration, pure arithmetic and replay-aware local admission,
-bounded child observation and cached visibility together with the relevant
-SA cases; do not enable a partially enforced option. Then qualify native local
-shortages and blocked/changed-root behavior using the retained NFS fixture as
-appropriate. If the worker/store boundary needs a smaller precursor, keep the
-option unavailable until the complete first slice passes. Do not start another
-package experiment or enable production NFS/deletion as part of this policy.
+Increment 36 implements the first local configuration/decision/admission/child/
+visibility slice together. Next qualify native local shortages and blocked or
+changed-root behavior using the retained NFS fixture as appropriate. Keep each
+added scope gated on its own SA evidence; do not enable a partially enforced
+option or start another package experiment. Production NFS/deletion stay off.
 
 Per-generator margins, inode thresholds, quota-aware adapters, physical-space
 reservations, hysteresis and live configuration are future extensions. No
 schema change or new crate is authorized merely by this design; any implementation
 need must carry its own migration/dependency and compatibility evidence.
+
+## Increment 36 acceptance evidence mapping
+
+Read the increment's final gate results before treating tests as passing. This
+mapping does not label every planned scenario fully qualified.
+
+| Cases | Implemented checks | Remaining qualification |
+|---|---|---|
+| SA-01/02 | Default-off/explicit-off policy and API restart; strict deserialization/ranges; disabled cache never sends work; old safety/ledger suite retained. | Deployment configuration/runbook coverage as supported environments expand. |
+| SA-03/04 | Exact integer boundaries/rounding/max counters; native source sample refused by an above-capacity configured floor; no job/private claim created. | Physical source-fill and metadata-reserve sizing. |
+| SA-05 | Fresh native sufficient sample, configurable threshold restoration across restart, nested/empty automatic delivery and cold/expired-cache acceptance without fast retry. | Actual source capacity depletion/restoration without policy change. |
+| SA-06/07 | Invalid counters, stale/pending cache, wrong/mixed replies, synthetic unavailable and a paused real child before statistics; deadline termination and responsive replay/health. | Native unsupported-statistics return, hard-NFS blocked/in-flight calls, prolonged unreapable child and export replacement. |
+| SA-08/09 | Claimed replay under Low/Unknown; partial replay with no sample and under Low, prior claims/source reuse preserved; transaction replay precedes all refusal permits. | Broader partial-effect/space exhaustion combinations. |
+| SA-10/11 | Eight concurrent replay/conflict/refusal store requests, SQLite-lock wait expires a permit, bounded async notification/waiter tests and coalesced cache demands; existing serialized job/byte limits. | Flooding concurrent new/replay request queues under real blocked statistics. |
+| SA-12/13 | Original-state restart/threshold/off, no saved sample; accepted identity survives an unavailable gate on reopened state. | New physical probe/acceptance crash matrix and actual NFS shutdown behavior; wall-clock jumps do not extend monotonic cache age by construction. |
+| SA-14–16 | Existing conservative effect/custody suite retained; native same-filesystem source/destination delivery with committed-source ledger retained. | Physical source-fill, inode/quota/metadata failures, external-write race and changed-export measurements. |
+| SA-17 | New low/unavailable no-job responses, strict conflicts/replay, cached-only global view and expiry, per-job fields unchanged. | Broader documentation examples as storage qualification expands. |
+| SA-18 | Required production and qualification GNU/glibc-2.22 SLES gates; see increment results. | New hard-NFS source-statistics fixture cases, quota/physical disk, old kernel/CPU and independent fencing. |

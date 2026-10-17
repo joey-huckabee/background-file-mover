@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 33. It
+This guide describes the implemented Rust prototype through increment 36. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -253,16 +253,58 @@ replays remain possible. Raising configured limits does not add physical space,
 remove retained attempts or qualify sustained shortage admission. Preserve state
 and data if safe capacity cannot be provided; offline repair/cleanup is deferred.
 
-## Planned source-space guard (not available yet)
+## Configure source-space admission
 
-The [source-space admission design](SOURCE-SPACE-ADMISSION-DESIGN.md) proposes
-an optional startup guard, default off, with configurable byte/percentage margins
-and explicit `enabled:false`. It gates new submission keys only; existing work
-keeps its replay/recovery path and ordinary safety/ledger limits. Low/unknown
-observations would refuse new acceptance without creating a job or releasing
-paths. These configuration fields and new error/status details are not supported
-by the current binary. Do not add the design fragments to a running configuration.
-DOC-03 must gain executed examples when implementation and qualification land.
+[Increment 36](RUST-INCREMENT-36.md) adds the optional local source-space guard.
+Omit `source_space_admission` or set `{"source_space_admission":{"enabled":false}}`
+to turn it off. Existing reservation limits and custody checks still apply.
+To enable it, add this **fragment** to the otherwise complete startup configuration:
+
+```json
+{
+  "source_space_admission": {
+    "enabled": true,
+    "min_available_bytes": 10737418240,
+    "min_available_percent": 5,
+    "max_sample_age_seconds": 5,
+    "probe_timeout_seconds": 2
+  }
+}
+```
+
+10 GiB and 5% are examples, not deployment sizing advice. Both margins must pass;
+zero disables one component, but enabled zero/zero is invalid. See the
+[policy](SOURCE-SPACE-ADMISSION-DESIGN.md) for strict ranges/defaults. Apply changes
+by a normal same-state restart after old process/worker exit; there is no hot
+reload. Startup logs the effective policy. No sample survives restart.
+
+A new submission triggers a background probe when needed. At most two HTTP
+requests may await it asynchronously and recheck once within the existing total
+ten-second handoff budget; other paths stay available. A fresh sufficient result
+permits ordinary claiming, including on a cold request. Missing/error/late samples
+or unavailable waiter slots return retryable 503 `source_space_unavailable`.
+The recorder keeps its ID/body/files untouched and retries. A low observation
+returns 503 `source_space_low`. Neither refusal creates a job or releases paths.
+Existing accepted/partial submissions bypass this guard but still obey normal
+claim, missing-review, custody and ledger checks. No new recorder duty follows 202.
+
+Inspect the existing global GET `/api/v2/retention` command for
+`details.source_space_admission`: `policy`, `state` (`Disabled`, `Unknown`,
+`Sufficient`, `Low`), `observed_available_bytes`, `required_available_bytes`,
+`sample_age_ms` and `reason`. Observed/required bytes are decimal strings or null;
+`policy` uses the same field types as startup configuration. Scope is
+`SourceRoot`, observation source `supervised_child`. GET never refreshes a sample;
+`not_sampled`, `probe_pending`, `probe_timeout`, `sample_expired`,
+`probe_unavailable` or `custody_refused` explain Unknown. Only a new-key submission
+requests refresh. A Low/failed result can remain cached until its age limit.
+Per-job status and reservation `global_headroom` are unchanged.
+
+Restore approved source capacity or review thresholds if they were configured
+incorrectly. Turning the guard off does not add capacity or clear existing review.
+A good sample reserves no space against external writers or quotas. Source data
+is still retained after commitment; this feature cannot reclaim it. Local tests
+exercise these commands/status through the SLES gate; hard NFS statistics stalls,
+physical source-fill, inode/quota and power-loss cases remain unqualified.
 
 ## Diagnostics and situations that must stay blocked
 

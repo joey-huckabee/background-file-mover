@@ -280,14 +280,19 @@ are admission controls, not guarantees of future free space.
 
 If safe admission or claiming is unavailable, return a non-202 response and retain
 any already claimed data for reconciliation. Do not delete claims, reroute a job
-or issue false success to make room. The future
-[source-space admission policy](SOURCE-SPACE-ADMISSION-DESIGN.md) now defines
+or issue false success to make room. The
+[source-space admission policy](SOURCE-SPACE-ADMISSION-DESIGN.md) defines
 optional/default-off byte and percentage thresholds, bounded fresh measurements
-and new-key-only gating. Proposed 503 `source_space_low` and
-`source_space_unavailable` do not create jobs or release paths. Existing-key
-replay/partial claims bypass this gate but retain all ordinary safety/ledger
-checks. These config/error/status additions are designed, not implemented;
-current code rejects the new config fields. Delivery retry timing is separate.
+and new-key-only gating, implemented locally in [increment 36](RUST-INCREMENT-36.md).
+503 `source_space_low` and `source_space_unavailable` create no job and release no
+paths. Cold/expired new-key requests can await a shared probe asynchronously and
+recheck once within the existing ten-second handoff budget; at most two waiters
+are allowed. Missing/error/late results remain retryable unavailable. A recorder
+need not retry faster than cache expiry. Existing-key replay/partial claims bypass
+this gate but retain ordinary safety/ledger checks. Global retention reports the
+separate cached source observation without doing filesystem I/O on GET. Delivery
+retry timing and per-job status/epochs are unchanged; wider storage qualification
+is still required.
 
 Do not hold an unbounded HTTP request during an NFS outage. Use a bounded handoff
 wait; if claiming cannot be confirmed in that time, return a non-202 transient

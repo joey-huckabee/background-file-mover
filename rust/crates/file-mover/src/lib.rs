@@ -6,6 +6,7 @@ mod diagnostic;
 pub mod enrollment;
 mod http;
 pub mod payload;
+pub mod source_space;
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
 use serde::{Deserialize, Serialize};
@@ -43,6 +44,8 @@ pub struct Config {
     pub max_retained_jobs: u64,
     #[serde(default = "retained_bytes_default")]
     pub max_retained_bytes: u64,
+    #[serde(default)]
+    pub source_space_admission: source_space::Policy,
 }
 fn retained_jobs_default() -> u64 {
     64
@@ -66,6 +69,7 @@ fn absolute(path: &str) -> bool {
 }
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
+        self.source_space_admission.validate()?;
         self.destination_binding
             .validate()
             .map_err(|_| "invalid destination binding")?;
@@ -232,6 +236,7 @@ struct Worker {
     stop: Arc<AtomicBool>,
     observer: Option<mpsc::SyncSender<OperatorWork>>,
     observation: Option<std::thread::JoinHandle<()>>,
+    _source_space: source_space::Monitor,
 }
 impl Worker {
     fn start(
@@ -246,6 +251,13 @@ impl Worker {
         let guard = Arc::new(guard);
         store.require_destination_bindings()?;
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
+        let source_space = source_space::Monitor::start(
+            c.source_space_admission.clone(),
+            guard.clone(),
+            stop.clone(),
+        )?;
+        let admission = source_space.handle.clone();
+        let observation_admission = admission.clone();
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
         let observation = std::thread::Builder::new()
@@ -254,7 +266,13 @@ impl Worker {
                 while let Ok((work, reply)) = observations.recv() {
                     let response = match work {
                         Observation::Status(id) => status_response(&observation_store, id),
-                        Observation::Retention(id) => retention_response(&observation_store, id),
+                        Observation::Retention(id) => {
+                            let mut response=retention_response(&observation_store,id);
+                            if id.is_none() && response.status==200 {
+                                response.details.as_mut().expect("retention details")["source_space_admission"]=observation_admission.snapshot();
+                            }
+                            response
+                        },
                         Observation::Resume(id, input) => {
                             resume_response(&observation_store, id, input)
                         }
@@ -330,7 +348,14 @@ impl Worker {
             .name("mover-local-claim".into())
             .spawn(move || {
                 while let Ok((submission, context, reply)) = receiver.recv() {
-                    let result = process(&store, &guard, &claim_stop, &submission, &context);
+                    let result = process(
+                        &store,
+                        &guard,
+                        &claim_stop,
+                        &submission,
+                        &context,
+                        &admission,
+                    );
                     let _ = reply.send(result); // Lost response never rolls back a claim.
                 }
             }) {
@@ -348,6 +373,7 @@ impl Worker {
             stop,
             observer: Some(observer),
             observation: Some(observation),
+            _source_space: source_space,
         })
     }
 }
@@ -373,15 +399,34 @@ fn process(
     stop: &AtomicBool,
     s: &Submission,
     c: &AcceptanceContext,
+    admission: &source_space::Handle,
 ) -> Response {
     if !guard.matches_path(&c.source_root_path) {
         return error(409, "recording_blocked", false, None);
     }
-    let mut job = match store.accept(s, c) {
+    let gate = match store.replay(s) {
+        Ok(true) => mover_store::NewJobAdmission::Unrestricted,
+        Ok(false) => admission.admission(),
+        Err(StoreError::Protocol(
+            ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
+        )) => return error(409, "submission_conflict", false, None),
+        Err(StoreError::SourceRootChanged | StoreError::CorruptState) => {
+            return error(409, "recording_blocked", false, None);
+        }
+        Err(_) => return error(503, "storage_unavailable", true, None),
+    };
+    let mut job = match store.accept_with_admission(s, c, gate) {
         Ok(j) => j,
         Err(StoreError::Protocol(
             ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
         )) => return error(409, "submission_conflict", false, None),
+        Err(StoreError::SourceSpaceLow) => return error(503, "source_space_low", true, None),
+        Err(StoreError::SourceSpaceUnavailable) => {
+            return error(503, "source_space_unavailable", true, None);
+        }
+        Err(StoreError::SourceCustodyRefused) => {
+            return error(409, "recording_blocked", false, None);
+        }
         Err(StoreError::SourceReserved) => return error(409, "source_reserved", false, None),
         Err(StoreError::AdmissionFull) => return error(503, "retention_capacity", true, None),
         Err(StoreError::SourceRootChanged | StoreError::CorruptState) => {
@@ -606,11 +651,60 @@ async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
         bytes.extend_from_slice(&buffer[..n]);
     }
 }
+async fn submission_reply(
+    sender: &mpsc::SyncSender<Work>,
+    admission: &source_space::Handle,
+    submission: Submission,
+    context: AcceptanceContext,
+) -> Response {
+    async fn once(
+        sender: &mpsc::SyncSender<Work>,
+        submission: Submission,
+        context: AcceptanceContext,
+    ) -> Response {
+        let (reply, result) = oneshot::channel();
+        if sender.try_send((submission, context, reply)).is_err() {
+            return error(503, "service_busy", true, None);
+        }
+        result
+            .await
+            .unwrap_or_else(|_| error(503, "handoff_pending", true, None))
+    }
+    let mut capacity_wait = false;
+    let outcome = timeout(Duration::from_secs(10), async {
+        let first = once(sender, submission.clone(), context.clone()).await;
+        if first.error != Some("source_space_unavailable") {
+            return first;
+        }
+        capacity_wait = true;
+        let ready = admission.wait_for_probe().await;
+        capacity_wait = false;
+        if ready {
+            once(sender, submission, context).await
+        } else {
+            first
+        }
+    })
+    .await;
+    outcome.unwrap_or_else(|_| {
+        error(
+            503,
+            if capacity_wait {
+                "source_space_unavailable"
+            } else {
+                "handoff_pending"
+            },
+            true,
+            None,
+        )
+    })
+}
 async fn connection(
     mut stream: TcpStream,
     c: Arc<Config>,
     sender: mpsc::SyncSender<Work>,
     observer: mpsc::SyncSender<OperatorWork>,
+    admission: source_space::Handle,
 ) {
     let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
         Err(_) => error(408, "request_timeout", true, None),
@@ -739,15 +833,7 @@ async fn connection(
                         }) {
                             error(400, "idempotency_key_conflict", false, None)
                         } else {
-                            let (reply, result) = oneshot::channel();
-                            if sender.try_send((submission, context, reply)).is_err() {
-                                error(503, "service_busy", true, None)
-                            } else {
-                                match timeout(Duration::from_secs(10), result).await {
-                                    Ok(Ok(r)) => r,
-                                    _ => error(503, "handoff_pending", true, None),
-                                }
-                            }
+                            submission_reply(&sender, &admission, submission, context).await
                         }
                     }
                 }
@@ -823,9 +909,10 @@ pub async fn serve(
             let c = c.clone();
             let sender = worker.sender.as_ref().unwrap().clone();
             let observer = worker.observer.as_ref().unwrap().clone();
+            let admission = worker._source_space.handle.clone();
             tasks.spawn(async move {
                 let _permit = permit;
-                connection(stream, c, sender, observer).await;
+                connection(stream, c, sender, observer, admission).await;
             });
         }
     }

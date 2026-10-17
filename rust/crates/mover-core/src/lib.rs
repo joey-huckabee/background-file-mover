@@ -5,6 +5,8 @@
 
 use std::collections::BTreeSet;
 
+mod space;
+pub use space::{SpaceDecision, SpaceStatistics};
 mod retry;
 pub use retry::DeliveryFailureKind;
 mod claim;

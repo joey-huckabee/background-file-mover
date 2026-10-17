@@ -547,15 +547,17 @@ The system shall permit durable claiming and HTTP 202 handoff during destination
 outages when source, local persistence and configured retention/admission limits
 allow safe custody, retaining files until delivery to the pinned target resumes.
 
-The planned source-space margin gate shall be startup-configurable with an explicit
+The source-space margin gate shall be startup-configurable with an explicit
 off switch, defaulting off when omitted. When enabled it shall gate only new
 submission keys against configured byte/percentage margins using fresh authorized
 source observations; unavailable measurements shall not permit new admission.
 Accepted-job replay and partial-handoff recovery shall remain subject to existing
 safety and reservation limits without being blocked by this additional gate.
 Disabling it shall not disable those limits, reset review or authorize deletion.
-See [the policy and acceptance scenarios](SOURCE-SPACE-ADMISSION-DESIGN.md);
-these additions are not implemented or qualified.
+See [the policy and acceptance scenarios](SOURCE-SPACE-ADMISSION-DESIGN.md) and
+[increment 36](RUST-INCREMENT-36.md) for implemented local behavior and exact test
+scope. Physical source exhaustion, quotas, hard NFS statistics and broader storage
+qualification remain outstanding; the historical release scope below is unchanged.
 
 **Verification Method**: Test (T), Analysis (A)
 **v1.0.0 Status**: Deferred — Rust outage admission; unsafe capacity or claiming does not authorize 202.
