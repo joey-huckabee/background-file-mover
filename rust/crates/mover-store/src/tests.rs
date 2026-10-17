@@ -1922,3 +1922,16 @@ fn concurrent_space_refusals_and_replays_never_create_duplicate_jobs() {
         .replay
     );
 }
+
+#[test]
+fn sqlite_native_open_refuses_database_symlink() {
+    let f = Fixture::new();
+    let original = f.db();
+    let store = Store::open(&original).unwrap();
+    drop(store);
+    let alias = original.with_file_name("alias.sqlite");
+    std::os::unix::fs::symlink(&original, &alias).unwrap();
+    assert!(Store::open(&alias).is_err());
+    assert!(Store::open_read_only(&alias).is_err());
+    assert_eq!(Store::open(original).unwrap().job_count().unwrap(), 0);
+}

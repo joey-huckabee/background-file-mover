@@ -3927,3 +3927,105 @@ fn default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_owne
     f.start();
     f.stop();
 }
+
+#[test]
+fn unsafe_sqlite_files_refuse_all_effect_commands_before_source_access() {
+    use std::os::unix::fs::symlink;
+    let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
+    for suffix in ["", "-wal", "-shm", "-journal"] {
+        for case in ["symlink", "hardlink", "writable"] {
+            let f = Fixture::uninitialized(300);
+            let database = f.root.join("state/jobs.sqlite");
+            if !suffix.is_empty() {
+                std::fs::write(&database, b"original database").unwrap();
+            }
+            let candidate = database.with_file_name(format!("jobs.sqlite{suffix}"));
+            let original = f.root.join("original");
+            std::fs::write(&original, b"original content").unwrap();
+            match case {
+                "symlink" => symlink(&original, &candidate).unwrap(),
+                "hardlink" => std::fs::hard_link(&original, &candidate).unwrap(),
+                _ => {
+                    std::fs::write(&candidate, b"unsafe content").unwrap();
+                    std::fs::set_permissions(&candidate, std::fs::Permissions::from_mode(0o666))
+                        .unwrap();
+                }
+            }
+            let path = f.root.join("config.json");
+            let mut c: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            c["source_root"] = json!(f.root.join("missing-source"));
+            std::fs::write(&path, serde_json::to_vec(&c).unwrap()).unwrap();
+            for mode in [None, Some("--initialize-source"), Some("--transfer-one")] {
+                let mut command = Command::new(&exe);
+                if let Some(mode) = mode {
+                    command.arg(mode);
+                }
+                command.arg(&path);
+                if mode == Some("--transfer-one") {
+                    command.arg("1");
+                }
+                let mut child = command
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .unwrap();
+                let until = Instant::now() + Duration::from_secs(4);
+                while child.try_wait().unwrap().is_none() {
+                    if Instant::now() > until {
+                        child.kill().unwrap();
+                        child.wait().unwrap();
+                        panic!("state refusal blocked");
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                let output = child.wait_with_output().unwrap();
+                assert!(!output.status.success());
+                assert!(
+                    String::from_utf8_lossy(&output.stderr).contains("unsafe SQLite state file"),
+                    "{output:?}"
+                );
+                assert_eq!(std::fs::read(&original).unwrap(), b"original content");
+                assert!(!f.root.join("missing-source").exists());
+                assert!(!f.root.join("state/control.sock").exists());
+                if !suffix.is_empty() {
+                    assert_eq!(std::fs::read(&database).unwrap(), b"original database");
+                }
+            }
+        }
+    }
+}
+#[test]
+fn private_sqlite_files_recover_original_wal_after_coordinator_death() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"retained across SQLite recovery");
+    let body = f.input("state-recovery", json!([{"name":"data"}]));
+    assert_eq!(f.post(&body).0, 202);
+    for suffix in ["", "-wal", "-shm"] {
+        assert_eq!(
+            std::fs::metadata(f.root.join(format!("state/jobs.sqlite{suffix}")))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+    }
+    let mut child = f.child.take().unwrap();
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(f.root.join("state/jobs.sqlite-wal").exists());
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
+    f.stop();
+    // Earlier private-directory databases may be 0644. Preserve their mode.
+    let database = f.root.join("state/jobs.sqlite");
+    std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o644)).unwrap();
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    f.stop();
+    assert_eq!(
+        std::fs::metadata(&database).unwrap().permissions().mode() & 0o777,
+        0o644
+    );
+}

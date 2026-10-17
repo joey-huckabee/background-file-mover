@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 43. It
+This guide describes the implemented Rust prototype through increment 44. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -20,9 +20,21 @@ local database directory under the same account. That directory must already
 exist, be owned by the account, have no group/other permission bits (use mode
 0700), and use admitted local storage.
 SQLite, its sidecars and state stay on persistent local disk using actual local
-files. The guard validates its parent and guard file; complete database/sidecar
-alias and per-file mount validation is still pending. Do not provision redirected
-state files. The service creates
+files. Before source/SQLite access, starts validate the database and its -wal,
+-shm and -journal names: owned regular files, one link, owner read/write, no
+special bits or group/other write permission. Existing 0644 files remain accepted
+inside the private directory; new databases use 0600. Symlinks, unsafe files,
+recovery files without their database, and individual mounted state files refuse.
+The local mount inventory must be readable. Guard/control names also refuse
+individual mounts. See [increment 44](RUST-INCREMENT-44.md).
+
+A refusal preserves existing state; do not delete sidecars, blindly change
+ownership/permissions, replace state or bypass the guard as a recovery shortcut. Keep the original database and
+recovery files together and verify provisioning while the service is stopped.
+Valid retained WAL after a process crash is recovered by SQLite on normal restart.
+The local status/stop commands do not inspect SQLite and are not repair tools.
+
+A refused start can leave the normal permanent empty instance guard. The service creates
 an empty mode-0600 `instance.lock` beside the database and retains it permanently.
 It never truncates or deletes it on shutdown. Existing unsafe files, symlinks,
 multiple links or replaced identities refuse. NFS state is rejected in both

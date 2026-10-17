@@ -57,7 +57,7 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Qualify remaining state-layout/guard and shutdown boundaries, actual NFS
+1. Qualify remaining guard/death-phase and shutdown boundaries, actual NFS
    workers beyond deadlines and systemd/account-control (SH-01–04/06–14).
    Discover actual mounts/version/security later and qualify NFS recovery
    (SH-10–14) before production enablement. Select/qualify the remote proxy profile
@@ -82,6 +82,11 @@ cases. Remaining SH qualification stays pending; FR-03/05 stay open. Prior NF ob
 mapped to carry-forward safety or deferred extended profiles. No NAS/host-admin
 facility is a prerequisite for independent guard work. Production NFS, remote
 REST, takeover and source deletion remain disabled/deferred as applicable.
+
+[Increment 44](RUST-INCREMENT-44.md) adds selected SQLite file/sidecar admission
+and mount/owner refusal evidence. These checks do not close FR-03 or FR-06:
+deployment persistence, systemd/account policy, remaining shutdown/NFS failure
+cases and production enablement remain open.
 
 ## Deferred beyond the first release
 

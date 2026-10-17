@@ -260,6 +260,7 @@ impl Worker {
         let mut guard = guard;
         let instance = guard.instance()?.clone();
         instance.validate()?;
+        instance.prepare_database(&c.state_database)?;
         let store = Arc::new(Store::open(&c.state_database)?);
         enrollment::authorize(c, &store, &mut guard, false, &stop)?;
         let guard = Arc::new(guard);

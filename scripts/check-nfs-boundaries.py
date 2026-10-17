@@ -301,6 +301,9 @@ def main():
                         "elapsed_seconds": round(elapsed, 3), "stderr": result.stderr.strip(),
                         "passed": True, "state_empty": True, "source_absent": True})
         report["local_ownership"]["passed"] = True
+        from nfs_state_layout import qualify as qualify_state_layout
+        report["sqlite_state_layout"] = qualify_state_layout(
+            run, execute, spawn, restore, server, client, output, config, builds, extra_mounts)
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")

@@ -23,6 +23,9 @@ evidence. [Increment 43](docs/RUST-INCREMENT-43.md) adds shutdown_wait_seconds
 (default 60, integer 1–3600) and bounded local --stop/--status commands. Timeout
 returns incomplete/restart-blocked while ownership remains held. Remaining SH
 qualification and delayed-operation recovery stay pending; no takeover is enabled.
+[Increment 44](docs/RUST-INCREMENT-44.md) adds SQLite file/sidecar safety and
+individual mount checks, preserving existing state on refusal and normal WAL
+recovery after process death.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

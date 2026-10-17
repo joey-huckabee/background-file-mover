@@ -87,6 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &stop,
             &instance,
         )?;
+        instance.prepare_database(&config.state_database)?;
         let store = mover_store::Store::open(&config.state_database)?;
         file_mover::enrollment::authorize(&config, &store, &mut guard, true, &stop)?;
         println!("Source enrollment active; original database required for restart");
@@ -108,6 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &AtomicBool::new(false),
             &instance,
         )?;
+        instance.prepare_database(&config.state_database)?;
         let store = mover_store::Store::open(&config.state_database)?;
         file_mover::enrollment::authorize(
             &config,

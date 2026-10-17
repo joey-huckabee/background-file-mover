@@ -48,8 +48,9 @@ and have no group/other permission bits; use mode 0700 for normal operation.
 The guard is created once, empty and mode 0600; reuse does not rewrite it.
 Current local filesystem admission permits ext-family, tmpfs and overlay magic
 values; tmpfs/overlay support container tests and do not establish persistent
-production storage. Full database/sidecar alias and per-file mount validation
-remains pending; supported state files must actually reside locally. Other
+production storage. [Increment 44](RUST-INCREMENT-44.md) validates actual SQLite
+file/recovery names and rejects individually mounted state/guard/control names;
+supported state files must actually reside locally. Other
 filesystem types, including NFS even in qualification
 builds, refuse. Persistent local production storage still needs deployment
 qualification. Validate local filesystem, private parent,
@@ -201,14 +202,22 @@ Increment 42 covers selected SH-01/02/03/04/13 local cases: private guard
 validation, eight-way acquisition race, all three effect entry points, all six
 worker modes, coordinator death with a paused claim worker, and 12 actual
 mounted-NFS state-parent refusals across both build modes/profiles. This does not
-close the full cases: actual systemd races, every death phase, wrong UID,
-database/sidecar aliases or per-file mounts, delayed RPCs and deployment storage remain
-unqualified. Increment 43 implements SH-05 config validation and selected
+close the full cases: actual systemd races, every death phase, delayed RPCs and
+deployment storage remain unqualified. Selected file owner/alias/mount admission
+is extended by increment 44 below. Increment 43 implements SH-05 config validation and selected
 SH-06/07/08 local controller cases: clean stop, two-second/default-60 delayed
 drain, retained exclusion, repeated stop plus signal/config edits, silent/absent
 IPC and malformed/foreign-instance requests. The timed pause is local, not an
 uncancellable NFS syscall; actual systemd (SH-09), broader drain boundaries and
 full NFS-deadline qualification remain pending.
+
+[Increment 44](RUST-INCREMENT-44.md) extends selected SH-01/13 admission to
+actual database/WAL/shared-memory/rollback-journal names, preserving original
+state on unsafe type/mode/owner/alias refusal. Kernel mount inventory rejects
+individual mounts before candidate metadata calls, including guard/control names.
+Valid WAL recovery and legacy private-directory file modes remain supported.
+Actual systemd/account policy, hostile concurrent same-UID/root mutation,
+deployment persistence and remaining SH boundaries are not qualified by this.
 
 | Case | Evidence required before support |
 |---|---|
@@ -271,7 +280,7 @@ this project's WAL database/state on local storage. The official systemd
 illustrates timeout/process-group controls; this is not identification or
 qualification of the deployed host's systemd version.
 
-Next qualify remaining local state-layout/guard and shutdown boundaries,
+Next qualify remaining local guard/death-phase and shutdown boundaries,
 actual NFS workers beyond deadlines and systemd/account-control behavior.
 Extend selected evidence to remaining SH-01–04/06–14 cases and actual NFS
 recovery/mount profiles, maintaining scenarios throughout.

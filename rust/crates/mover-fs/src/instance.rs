@@ -29,6 +29,7 @@ pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
         .and_then(Path::to_str)
         .ok_or(ClaimError::Blocked("local state parent required"))?;
     let dir = local_parent(directory)?;
+    refuse_mounted(directory, &[INSTANCE_LOCK])?;
     let held = match fs::openat(
         &dir,
         INSTANCE_LOCK,
@@ -82,6 +83,7 @@ impl InstanceGuard {
             .and_then(Path::to_str)
             .ok_or(ClaimError::Blocked("local state parent required"))?;
         let dir = local_parent(directory)?;
+        refuse_mounted(directory, &[INSTANCE_LOCK, "control.sock"])?;
         let held = match fs::openat(
             &dir,
             INSTANCE_LOCK,
@@ -117,10 +119,106 @@ impl InstanceGuard {
             ClaimError::Blocked("local instance or surviving worker already owns state")
         })?;
         guard.validate()?;
+        guard.validate_database(database)?;
         Ok(guard)
+    }
+    /// Inspect every SQLite recovery name before SQLite or source bootstrap.
+    /// Cooperative fixed-state profile: excludes concurrent same-UID/root mutation.
+    pub fn validate_database(&self, database: &str) -> Result<()> {
+        self.validate()?;
+        let path = Path::new(database);
+        if path.parent() != Some(Path::new(&self.directory)) {
+            return Err(ClaimError::Blocked(
+                "SQLite state parent differs from instance guard",
+            ));
+        }
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .filter(|n| {
+                ![INSTANCE_LOCK, "control.sock"].contains(n)
+                    && !["-wal", "-shm", "-journal"].iter().any(|s| n.ends_with(s))
+            })
+            .ok_or(ClaimError::Blocked("reserved SQLite state name"))?;
+        let dir = local_parent(&self.directory)?;
+        // Read kernel mount metadata BEFORE touching candidate names. A mounted
+        // NFS file can block even stat/open; local parent statfs is insufficient.
+        let mounts = local_mounts()?;
+        let mut database_exists = false;
+        for suffix in ["", "-wal", "-shm", "-journal"] {
+            let file = format!("{name}{suffix}");
+            if mounts.iter().any(|m| m == &path.with_file_name(&file)) {
+                return Err(ClaimError::Blocked("SQLite state file is a mount point"));
+            }
+            let named = match fs::statat(&dir, file.as_str(), AtFlags::SYMLINK_NOFOLLOW) {
+                Ok(stat) => stat,
+                Err(Errno::NOENT) => continue,
+                Err(e) => return Err(e.into()),
+            };
+            if FileType::from_raw_mode(named.st_mode) != FileType::RegularFile
+                || named.st_uid != rustix::process::geteuid().as_raw()
+                || named.st_nlink != 1
+                || named.st_mode & 0o7022 != 0
+                || named.st_mode & 0o600 != 0o600
+            {
+                return Err(ClaimError::Blocked("unsafe SQLite state file"));
+            }
+            let fd = fs::openat(
+                &dir,
+                file.as_str(),
+                OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+                Mode::empty(),
+            )?;
+            let actual = fs::fstat(&fd)?;
+            if observation(&actual) != observation(&named)
+                || actual.st_dev != fs::fstat(&dir)?.st_dev
+                || ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(&fd)?.f_type)
+            {
+                return Err(ClaimError::Blocked(
+                    "SQLite state file identity or locality changed",
+                ));
+            }
+            if suffix.is_empty() {
+                database_exists = true;
+            } else if !database_exists {
+                return Err(ClaimError::Blocked(
+                    "SQLite recovery file without database; preserve original state",
+                ));
+            }
+        }
+        self.validate()
+    }
+    /// Create only a missing database, privately, after source bootstrap succeeds.
+    /// Never chmod, truncate, remove or replace existing database/recovery files.
+    pub fn prepare_database(&self, database: &str) -> Result<()> {
+        self.validate_database(database)?;
+        let dir = local_parent(&self.directory)?;
+        let name = Path::new(database)
+            .file_name()
+            .ok_or(ClaimError::Blocked("SQLite state name required"))?;
+        match fs::openat(
+            &dir,
+            name,
+            OFlags::RDWR
+                | OFlags::CREATE
+                | OFlags::EXCL
+                | OFlags::NOFOLLOW
+                | OFlags::NONBLOCK
+                | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        ) {
+            Ok(fd) => {
+                fs::fsync(&fd)?;
+                fs::fsync(&dir)?;
+            }
+            Err(Errno::EXIST) => (),
+            Err(e) => return Err(e.into()),
+        }
+        self.validate_database(database)
     }
     fn validate_named(&self) -> Result<()> {
         let dir = local_parent(&self.directory)?;
+        refuse_mounted(&self.directory, &[INSTANCE_LOCK])?;
         same_directory(&owned_directory(&dir, true)?, &self.parent)?;
         let actual = checked(&fs::fstat(&self.held)?)?;
         let named = checked(&fs::statat(&dir, INSTANCE_LOCK, AtFlags::SYMLINK_NOFOLLOW)?)?;
@@ -252,6 +350,70 @@ impl InstanceGuard {
         Ok(guard)
     }
 }
+fn refuse_mounted(directory: &str, names: &[&str]) -> Result<()> {
+    let mounts = local_mounts()?;
+    if names
+        .iter()
+        .any(|name| mounts.contains(&Path::new(directory).join(name)))
+    {
+        return Err(ClaimError::Blocked(
+            "local ownership/control file is a mount point",
+        ));
+    }
+    Ok(())
+}
+// mountinfo is local proc metadata, never an NFS pathname traversal.
+fn local_mounts() -> Result<Vec<std::path::PathBuf>> {
+    let file = std::fs::File::open("/proc/self/mountinfo")
+        .map_err(|_| ClaimError::Blocked("local mount inventory unavailable"))?;
+    let mut bytes = Vec::new();
+    file.take(4 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| ClaimError::Blocked("local mount inventory unreadable"))?;
+    if bytes.len() > 4 * 1024 * 1024 {
+        return Err(ClaimError::Blocked("local mount inventory too large"));
+    }
+    parse_mounts(&bytes)
+}
+fn parse_mounts(bytes: &[u8]) -> Result<Vec<std::path::PathBuf>> {
+    use std::os::unix::ffi::OsStringExt;
+    let mut result = Vec::new();
+    for line in bytes.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
+        let fields: Vec<_> = line.split(|b| *b == b' ').collect();
+        if fields.len() < 10 || !fields.contains(&b"-".as_slice()) {
+            return Err(ClaimError::Blocked("invalid local mount inventory"));
+        }
+        let mut decoded = Vec::new();
+        let mut input = fields[4];
+        while !input.is_empty() {
+            if input[0] == b'\\' {
+                if input.len() < 4 {
+                    return Err(ClaimError::Blocked("invalid mount path escape"));
+                }
+                let value = match &input[..4] {
+                    b"\\040" => b' ',
+                    b"\\011" => b'\t',
+                    b"\\012" => b'\n',
+                    b"\\134" => b'\\',
+                    _ => return Err(ClaimError::Blocked("invalid mount path escape")),
+                };
+                decoded.push(value);
+                input = &input[4..];
+            } else {
+                decoded.push(input[0]);
+                input = &input[1..];
+            }
+        }
+        if decoded.first() != Some(&b'/') {
+            return Err(ClaimError::Blocked("invalid mount path"));
+        }
+        result.push(std::ffi::OsString::from_vec(decoded).into());
+    }
+    if result.is_empty() {
+        return Err(ClaimError::Blocked("empty local mount inventory"));
+    }
+    Ok(result)
+}
 fn local_parent(path: &str) -> Result<OwnedFd> {
     let dir = root(path)?;
     if ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(&dir)?.f_type) {
@@ -298,6 +460,127 @@ mod tests {
     impl Drop for Fixture {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    #[test]
+    fn sqlite_recovery_layout_refuses_unsafe_names_without_mutation() {
+        use std::os::unix::{
+            fs::{MetadataExt, symlink},
+            net::UnixListener,
+        };
+        for suffix in ["", "-wal", "-shm", "-journal"] {
+            for case in [
+                "symlink",
+                "hardlink",
+                "directory",
+                "socket",
+                "writable",
+                "special",
+                "readonly",
+            ] {
+                let f = Fixture::new();
+                let database = f.database();
+                let candidate = format!("{database}{suffix}");
+                if !suffix.is_empty() {
+                    std::fs::write(&database, b"original database").unwrap();
+                }
+                let target = f.0.join("original");
+                std::fs::write(&target, b"preserve original bytes").unwrap();
+                let original = std::fs::metadata(&target).unwrap();
+                let _socket = if case == "socket" {
+                    Some(UnixListener::bind(&candidate).unwrap())
+                } else {
+                    None
+                };
+                match case {
+                    "symlink" => symlink(&target, &candidate).unwrap(),
+                    "hardlink" => std::fs::hard_link(&target, &candidate).unwrap(),
+                    "directory" => std::fs::create_dir(&candidate).unwrap(),
+                    "socket" => (),
+                    _ => {
+                        std::fs::write(&candidate, b"preserve candidate").unwrap();
+                        let mode = match case {
+                            "writable" => 0o622,
+                            "special" => 0o4600,
+                            _ => 0o400,
+                        };
+                        std::fs::set_permissions(&candidate, std::fs::Permissions::from_mode(mode))
+                            .unwrap();
+                    }
+                }
+                assert!(
+                    InstanceGuard::for_database(&database).is_err(),
+                    "{suffix} {case}"
+                );
+                assert_eq!(std::fs::read(&target).unwrap(), b"preserve original bytes");
+                assert_eq!(std::fs::metadata(&target).unwrap().ino(), original.ino());
+                assert!(std::fs::symlink_metadata(&candidate).is_ok());
+                if !suffix.is_empty() {
+                    assert_eq!(std::fs::read(&database).unwrap(), b"original database");
+                }
+            }
+        }
+    }
+    #[test]
+    fn sqlite_state_creation_and_recovery_names_are_conservative() {
+        for suffix in ["-wal", "-shm", "-journal"] {
+            let f = Fixture::new();
+            std::fs::write(format!("{}{suffix}", f.database()), b"unreconciled").unwrap();
+            assert!(InstanceGuard::for_database(&f.database()).is_err());
+            assert!(!Path::new(&f.database()).exists());
+        }
+        for name in [
+            INSTANCE_LOCK,
+            "control.sock",
+            "jobs-wal",
+            "jobs-shm",
+            "jobs-journal",
+        ] {
+            let f = Fixture::new();
+            assert!(InstanceGuard::for_database(f.0.join(name).to_str().unwrap()).is_err());
+        }
+        let f = Fixture::new();
+        let guard = InstanceGuard::for_database(&f.database()).unwrap();
+        assert!(!Path::new(&f.database()).exists());
+        guard.prepare_database(&f.database()).unwrap();
+        assert_eq!(
+            std::fs::metadata(f.database())
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+        std::fs::write(f.database(), b"existing database").unwrap();
+        std::fs::set_permissions(f.database(), std::fs::Permissions::from_mode(0o644)).unwrap();
+        guard.prepare_database(&f.database()).unwrap();
+        assert_eq!(std::fs::read(f.database()).unwrap(), b"existing database");
+        assert_eq!(
+            std::fs::metadata(f.database())
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o644
+        );
+    }
+    #[test]
+    fn mount_inventory_decodes_kernel_escapes_and_fails_closed() {
+        let mounts = parse_mounts(
+            br"42 1 0:2 / /state/a\040b\134c\011d\012e rw - nfs server:/ rw
+",
+        )
+        .unwrap();
+        assert_eq!(
+            mounts,
+            vec![std::path::PathBuf::from("/state/a b\\c\td\ne")]
+        );
+        for bad in [
+            b"".as_slice(),
+            b"incomplete",
+            br"42 1 0:2 / /state/\099 rw - nfs s rw",
+        ] {
+            assert!(parse_mounts(bad).is_err());
         }
     }
     #[test]

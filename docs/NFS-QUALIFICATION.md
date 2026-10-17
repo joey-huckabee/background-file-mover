@@ -345,3 +345,20 @@ execution overhead). Retained signal/interruption checks also pass. See
 [increment 43](RUST-INCREMENT-43.md) for measured local two-second/default-60
 controller timeouts and the remaining uncancellable-worker/systemd qualification.
 No runtime death/long-outage, ownership or capacity suite is selected here.
+
+[Increment 44](RUST-INCREMENT-44.md) extends the retained fixture with SQLite
+file-layout admission: foreign UID files and individual NFS bind mounts of the
+database, WAL, shared memory, rollback journal, instance guard and control name.
+Mounted-file refusals run with the NFS server stopped and preserve original
+bytes/identities/modes. This is admission evidence in a disposable container,
+not actual production NFS, systemd, delayed-effect settlement or durability
+qualification. The existing normal-transfer/lifecycle and startup/lock checks
+remain required regressions.
+
+[State-layout evidence](RUST-NFS-STATE-LAYOUT-EVIDENCE.json) records final fixture
+`nfs-20261017T114805Z-60f221d4`: 48 foreign-UID and 72 mounted-file refusals,
+maximum 0.953 seconds, unchanged recorded hashes/identities/owners/modes, six
+normal transfer/lifecycle regressions, 12 NFS-state-parent refusals and retained
+isolated-startup/OS interruption checks. Cleanup completed without errors.
+A prior fixture failed during restricted-root setup before the new matrix;
+[increment 44](RUST-INCREMENT-44.md) records its correction and limits.
