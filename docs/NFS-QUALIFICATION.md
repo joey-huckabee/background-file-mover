@@ -430,3 +430,40 @@ is **FAILED**: ten worker cases passed and both verification-termination cases
 lost ownership while D. All 12 safe original-state recoveries and all retained
 regressions passed, with clean teardown. The matrix remains a release blocker;
 production NFS and deletion remain disabled. See increment 46 for exact scope.
+
+
+## Lifetime-retention regression
+
+[Increment 47](RUST-INCREMENT-47.md) retains the same `--coordinator-death` matrix
+and the failed increment 46 evidence. Run twelve core cases, with at most three
+additional terminating-verification repetitions per profile if needed to observe
+the original kernel-exit condition (at most eighteen cases total). A prompt exit
+is recorded separately and does not satisfy that coverage requirement. The
+regression records physical flock closure separately from logical ownership. All orphan D-state cases require
+OwnerUnavailable/exit 2 and three actual effect-command refusals, even if the raw
+flock is free. To pass, both debug and release must observe a kernel-closed guard
+while logical exclusion remains. Restore storage and confirm exit before recovery.
+State-file regression coverage additionally mounts NFS on workers.json/workers.next
+and requires prompt refusal without touching the blocked remote file.
+
+Use fresh passing production/qualification SLES gates after Rust changes. This is
+one-client/shared-kernel evidence, not NAS settlement or full SH-04 closure.
+
+
+Increment 47 reproduction command (passing gates are required):
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/20261017T162146Z-b28d902b --qualification-gate rust/validation/20261017T162159Z-32bce9a2-nfs-qualification --isolated-startup --coordinator-death
+```
+
+The expanded state matrix retains 120 prior refusals and adds 64 lifetime-file
+owner/mount/control refusals across fourteen preserved fixtures. No production
+NFS or source cleanup is enabled by this command.
+
+The saved [increment 47 evidence](RUST-NFS-OWNERSHIP-EXIT-EVIDENCE.json) passes
+thirteen cases (twelve core plus one release verification repeat), including
+actual raw-lock closure with D-state ownership retained in both profiles, thirty
+competing starts refused and all original-state recoveries. Six normal transfers,
+twelve NFS state-parent refusals and 184 state-file refusals also pass; all fourteen
+state fixtures preserve bytes/identity/permissions and cleanup reports no errors.
+See the increment report for timing, exact-source and remaining-scope details.

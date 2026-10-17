@@ -89,6 +89,7 @@ mod binding;
 mod bootstrap;
 mod custody;
 mod instance;
+mod worker_epoch;
 pub use instance::{INSTANCE_LOCK, InstanceGuard, InstanceOwnership, instance_ownership};
 mod enrollment;
 mod enrollment_io;

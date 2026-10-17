@@ -9,7 +9,7 @@ import time
 def qualify(run, execute, spawn, restore, server, client, output, config, builds, extra_mounts):
     report = {"passed": False, "cases": [], "fixtures": [], "driver_sha256": hashlib.sha256(
         Path(__file__).read_bytes()).hexdigest(),
-        "scope": "Owned local state parent; actual per-file NFS bind mounts with server stopped, and foreign UID files; all three effect commands, both build modes/profiles. No hostile concurrent mount mutation or production NFS approval."}
+        "scope": "Owned local state parent; actual per-file NFS bind mounts with server stopped, and foreign UID files; all three effect commands, plus stop/status for mounted lifetime files, both build modes/profiles. No hostile concurrent mount mutation or production NFS approval."}
     owned_mounts = []
     try:
         def snapshot(state, candidate, label):
@@ -27,12 +27,14 @@ def qualify(run, execute, spawn, restore, server, client, output, config, builds
         sentinel = execute("sha256sum /tmp/nfs/sqlite-state-sentinel", "1000:1000").stdout.split()[0]
         cases = []
         for kind in ("foreign-uid", "nfs-file-mount"):
-            suffixes = ("", "-wal", "-shm", "-journal") + (("instance.lock", "control.sock") if kind == "nfs-file-mount" else ())
+            suffixes = ("", "-wal", "-shm", "-journal") + (("instance.lock", "control.sock") if kind == "nfs-file-mount" else ()) + ("workers.json", "workers.next")
             for index, suffix in enumerate(suffixes):
                 state = f"/tmp/local/sqlite-{kind}-{index}"
-                filename = suffix if suffix in ("instance.lock", "control.sock") else "jobs.sqlite" + suffix
+                filename = suffix if suffix in ("instance.lock", "control.sock", "workers.json", "workers.next") else "jobs.sqlite" + suffix
                 candidate = state + "/" + filename
                 execute(f"umask 077; mkdir {state}; printf 'preserve local database' >{state}/jobs.sqlite; printf 'preserve state file' >{candidate}", "1000:1000")
+                if kind == "foreign-uid" and suffix in ("workers.json", "workers.next"):
+                    execute(f"umask 077; : >{state}/instance.lock", "1000:1000")
                 if kind == "foreign-uid":
                     local_file = output / f"foreign-uid-{index}.content"
                     local_file.write_bytes(b"preserve foreign-owned state file")
@@ -68,7 +70,10 @@ def qualify(run, execute, spawn, restore, server, client, output, config, builds
                 for mode, evidence, prefix in builds:
                     for profile in ("debug", "release"):
                         artifact = next(a for a in evidence["profiles"][profile]["artifacts"] if not a["test"])
-                        for command in ("", "--initialize-source ", "--transfer-one "):
+                        commands = ("", "--initialize-source ", "--transfer-one ")
+                        if kind == "nfs-file-mount" and suffix in ("workers.json", "workers.next"):
+                            commands += ("--status ", "--stop ")
+                        for command in commands:
                             label = f"sqlite-{len(report['cases'])}"
                             tail = " 1" if command.startswith("--transfer-one") else ""
                             process = spawn(f"echo $$ >/tmp/local/{label}.pid; exec {prefix}{profile} {command}{remote}{tail}", label)
@@ -81,10 +86,14 @@ def qualify(run, execute, spawn, restore, server, client, output, config, builds
                                 process.wait(timeout=10)
                                 raise AssertionError("SQLite state refusal touched blocked NFS")
                             elapsed = time.monotonic() - started
-                            expected = ("local ownership/control file is a mount point" if suffix in ("instance.lock", "control.sock")
+                            expected = ("local ownership/control file is a mount point" if suffix in ("instance.lock", "control.sock", "workers.json", "workers.next")
                                         else "SQLite state file is a mount point") if kind == "nfs-file-mount" else "unsafe SQLite state file"
                             diagnostic = (output / (label + ".log")).read_text()
-                            assert status != 0 and elapsed < 8 and expected in diagnostic, diagnostic
+                            if kind == "foreign-uid" and suffix in ("workers.json", "workers.next"):
+                                assert any(code in diagnostic for code in ("Permission denied", "PermissionDenied", "EACCES", "os error 13", "OS error 13")), diagnostic
+                                assert status != 0 and elapsed < 8
+                            else:
+                                assert status != 0 and elapsed < 8 and expected in diagnostic, diagnostic
                             report["cases"].append({"kind": kind, "sqlite_suffix": suffix, "build": mode,
                                 "profile": profile, "command": command.strip() or "service", "binary_sha256": artifact["sha256"],
                                 "elapsed_seconds": round(elapsed, 3), "stderr": diagnostic.strip(), "passed": True})

@@ -30,7 +30,9 @@ qualifies selected actual hard-NFS worker shutdown, retained-copy deadlines and
 original-state recovery; other lifecycle/deployment gates remain open.
 [Increment 46](docs/RUST-INCREMENT-46.md) extends selected coordinator-death
 qualification to blocked and terminating NFS workers. It exposes an ownership
-gap during termination; production NFS remains blocked pending a qualified fix.
+gap during termination. [Increment 47](docs/RUST-INCREMENT-47.md) adds a persisted
+local process-group lifetime check alongside the lock so kernel cleanup cannot
+hide a surviving worker. Production NFS and deletion remain disabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

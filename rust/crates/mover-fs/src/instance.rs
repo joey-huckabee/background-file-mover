@@ -29,7 +29,14 @@ pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
         .and_then(Path::to_str)
         .ok_or(ClaimError::Blocked("local state parent required"))?;
     let dir = local_parent(directory)?;
-    refuse_mounted(directory, &[INSTANCE_LOCK])?;
+    refuse_mounted(
+        directory,
+        &[
+            INSTANCE_LOCK,
+            crate::worker_epoch::WORKER_EPOCH,
+            crate::worker_epoch::WORKER_NEXT,
+        ],
+    )?;
     let held = match fs::openat(
         &dir,
         INSTANCE_LOCK,
@@ -37,7 +44,26 @@ pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
         Mode::empty(),
     ) {
         Ok(fd) => fd,
-        Err(Errno::NOENT) => return Ok(InstanceOwnership::Absent),
+        Err(Errno::NOENT) => {
+            if fs::statat(
+                &dir,
+                crate::worker_epoch::WORKER_EPOCH,
+                AtFlags::SYMLINK_NOFOLLOW,
+            )
+            .is_ok()
+                || fs::statat(
+                    &dir,
+                    crate::worker_epoch::WORKER_NEXT,
+                    AtFlags::SYMLINK_NOFOLLOW,
+                )
+                .is_ok()
+            {
+                return Err(ClaimError::Blocked(
+                    "worker evidence without instance guard",
+                ));
+            }
+            return Ok(InstanceOwnership::Absent);
+        }
         Err(e) => return Err(e.into()),
     };
     let guard = InstanceGuard {
@@ -48,7 +74,13 @@ pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
     };
     guard.validate_named()?;
     let result = match fs::flock(&guard.held, fs::FlockOperation::NonBlockingLockExclusive) {
-        Ok(()) => InstanceOwnership::Free,
+        Ok(()) => {
+            if crate::worker_epoch::active(&guard, false)? {
+                InstanceOwnership::Held
+            } else {
+                InstanceOwnership::Free
+            }
+        }
         Err(Errno::AGAIN) => InstanceOwnership::Held,
         Err(e) => return Err(e.into()),
     };
@@ -74,6 +106,13 @@ pub struct InstanceGuard {
     held: OwnedFd,
 }
 impl InstanceGuard {
+    pub(crate) fn epoch_identity(&self) -> String {
+        self.object.encode()
+    }
+    /// Persist group lifetime evidence before inheriting any NFS descriptor.
+    pub fn prepare_workers(&self) -> Result<()> {
+        crate::worker_epoch::prepare(self)
+    }
     pub fn state_directory(&self) -> &str {
         &self.directory
     }
@@ -83,7 +122,33 @@ impl InstanceGuard {
             .and_then(Path::to_str)
             .ok_or(ClaimError::Blocked("local state parent required"))?;
         let dir = local_parent(directory)?;
-        refuse_mounted(directory, &[INSTANCE_LOCK, "control.sock"])?;
+        refuse_mounted(
+            directory,
+            &[
+                INSTANCE_LOCK,
+                "control.sock",
+                crate::worker_epoch::WORKER_EPOCH,
+                crate::worker_epoch::WORKER_NEXT,
+            ],
+        )?;
+        if fs::statat(&dir, INSTANCE_LOCK, AtFlags::SYMLINK_NOFOLLOW).is_err()
+            && (fs::statat(
+                &dir,
+                crate::worker_epoch::WORKER_EPOCH,
+                AtFlags::SYMLINK_NOFOLLOW,
+            )
+            .is_ok()
+                || fs::statat(
+                    &dir,
+                    crate::worker_epoch::WORKER_NEXT,
+                    AtFlags::SYMLINK_NOFOLLOW,
+                )
+                .is_ok())
+        {
+            return Err(ClaimError::Blocked(
+                "worker evidence without instance guard",
+            ));
+        }
         let held = match fs::openat(
             &dir,
             INSTANCE_LOCK,
@@ -119,6 +184,11 @@ impl InstanceGuard {
             ClaimError::Blocked("local instance or surviving worker already owns state")
         })?;
         guard.validate()?;
+        if crate::worker_epoch::active(&guard, true)? {
+            return Err(ClaimError::Blocked(
+                "local instance or surviving worker already owns state",
+            ));
+        }
         guard.validate_database(database)?;
         Ok(guard)
     }
@@ -136,7 +206,13 @@ impl InstanceGuard {
             .file_name()
             .and_then(|n| n.to_str())
             .filter(|n| {
-                ![INSTANCE_LOCK, "control.sock"].contains(n)
+                ![
+                    INSTANCE_LOCK,
+                    "control.sock",
+                    crate::worker_epoch::WORKER_EPOCH,
+                    crate::worker_epoch::WORKER_NEXT,
+                ]
+                .contains(n)
                     && !["-wal", "-shm", "-journal"].iter().any(|s| n.ends_with(s))
             })
             .ok_or(ClaimError::Blocked("reserved SQLite state name"))?;
@@ -218,7 +294,14 @@ impl InstanceGuard {
     }
     fn validate_named(&self) -> Result<()> {
         let dir = local_parent(&self.directory)?;
-        refuse_mounted(&self.directory, &[INSTANCE_LOCK])?;
+        refuse_mounted(
+            &self.directory,
+            &[
+                INSTANCE_LOCK,
+                crate::worker_epoch::WORKER_EPOCH,
+                crate::worker_epoch::WORKER_NEXT,
+            ],
+        )?;
         same_directory(&owned_directory(&dir, true)?, &self.parent)?;
         let actual = checked(&fs::fstat(&self.held)?)?;
         let named = checked(&fs::statat(&dir, INSTANCE_LOCK, AtFlags::SYMLINK_NOFOLLOW)?)?;
@@ -259,7 +342,7 @@ impl InstanceGuard {
         &self,
         channel: &mut UnixStream,
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        self.validate()?;
+        self.prepare_workers()?;
         let bytes = serde_json::to_vec(&Proof {
             version: 1,
             directory: self.directory.clone(),
@@ -346,9 +429,13 @@ impl InstanceGuard {
             held,
         };
         guard.validate()?;
+        crate::worker_epoch::require_group(&guard)?;
         channel.write_all(b"A")?;
         Ok(guard)
     }
+}
+pub(crate) fn local_parent_for_epoch(directory: &str) -> Result<OwnedFd> {
+    local_parent(directory)
 }
 fn refuse_mounted(directory: &str, names: &[&str]) -> Result<()> {
     let mounts = local_mounts()?;

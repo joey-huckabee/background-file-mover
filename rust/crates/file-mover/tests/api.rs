@@ -695,6 +695,11 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
     for relative in [".file-mover", ".file-mover/coordinator.lock"] {
         let descriptor = std::fs::File::open(f.root.join("source").join(relative)).unwrap();
         let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
+        let instance = mover_fs::InstanceGuard::for_database(
+            f.root.join("state/jobs.sqlite").to_str().unwrap(),
+        )
+        .unwrap();
+        instance.prepare_workers().unwrap();
         let mut child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
             .arg("--internal-claim-worker")
             .stdin(Stdio::from(
@@ -704,10 +709,6 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
             .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
             .spawn()
             .unwrap();
-        let instance = mover_fs::InstanceGuard::for_database(
-            f.root.join("state/jobs.sqlite").to_str().unwrap(),
-        )
-        .unwrap();
         channel
             .set_read_timeout(Some(Duration::from_secs(3)))
             .unwrap();
@@ -1086,6 +1087,7 @@ fn bootstrap_child(f: &Fixture, body: &Value) -> (Child, std::os::unix::net::Uni
     channel
         .set_read_timeout(Some(Duration::from_secs(3)))
         .unwrap();
+    guard.prepare_workers().unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--internal-bootstrap-worker")
         .stdin(Stdio::null())
@@ -1542,6 +1544,7 @@ fn effect_child(
         .unwrap()
         .join("state/jobs.sqlite");
     let instance = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
+    instance.prepare_workers().unwrap();
     let child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg(mode)
         .stdin(Stdio::from(source.inherit().unwrap()))
@@ -1941,6 +1944,25 @@ impl Fixture {
         self.start_command(command);
     }
     fn start_command(&mut self, mut command: Command) {
+        // Direct internal-worker tests temporarily use this long-lived test
+        // process as their coordinator. Retire only that synthetic fixture epoch
+        // after reacquisition proves every other group member has exited. Real
+        // service epochs (different PIDs) are never cleared by the harness.
+        let epoch = self.root.join("state/workers.json");
+        if let Ok(bytes) = std::fs::read(&epoch)
+            && let Ok(value) = serde_json::from_slice::<Value>(&bytes)
+            && value["group"].as_u64() == Some(u64::from(std::process::id()))
+        {
+            let _instance = mover_fs::InstanceGuard::for_database(
+                self.root.join("state/jobs.sqlite").to_str().unwrap(),
+            )
+            .expect("direct test workers must exit before retiring their synthetic epoch");
+            std::fs::remove_file(&epoch).unwrap();
+            std::fs::File::open(self.root.join("state"))
+                .unwrap()
+                .sync_all()
+                .unwrap();
+        }
         self.child = Some(
             command
                 .arg(self.root.join("config.json"))
@@ -3559,6 +3581,7 @@ fn all_six_worker_modes_retain_explicit_local_ownership_without_parent_holder() 
         channel
             .set_write_timeout(Some(Duration::from_secs(3)))
             .unwrap();
+        guard.prepare_workers().unwrap();
         let mut child = Command::new(&exe)
             .arg(format!("--internal-{mode}-worker"))
             .stdin(Stdio::null())

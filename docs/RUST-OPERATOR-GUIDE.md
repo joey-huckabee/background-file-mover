@@ -1,16 +1,16 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 46. It
+This guide describes the implemented Rust prototype through increment 47. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
 Production NFS and source deletion remain disabled. Controlled NFS observations
 below apply only to the retained qualification build and fixture.
 
-[Increment 46](RUST-INCREMENT-46.md) confirms an NFS qualification blocker:
-a terminating worker can outlive its local guard after coordinator death.
-NoActiveOwner can therefore coexist with a kernel-blocked worker; it cannot
-by itself authorize NFS restart. The ownership-lifetime fix remains pending.
+[Increment 46](RUST-INCREMENT-46.md) found that a terminating worker can outlive
+its flock after coordinator death. [Increment 47](RUST-INCREMENT-47.md) adds a
+persistent local process-group lifetime check: a free flock alone no longer
+means NoActiveOwner. Keep the lifetime record with the original local state.
 
 The [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) now has an
 implemented shared local guard, worker handoff and bounded local lifecycle
@@ -89,7 +89,7 @@ There is no remote lifecycle route or token.
 | `ShutdownIncomplete` | Deadline expired; stop exits 2 with shutdown incomplete; restart blocked. Daemon/workers may remain live. Restore the underlying problem and inspect again; do not force a replacement or remove state/locks. |
 | `OwnerUnavailable` | Guard is held but no controller responds (for example, orphan workers, a one-shot initialization/transfer or an IPC problem). Status/stop exit 2, preserving exclusion. No worker is signaled by PID. |
 | `Stopped` | This stop command observed its original coordinator exit and the guard become free. It does not prove old NFS RPCs/writeback settled or authorize conflicting storage work. |
-| `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. A terminating NFS worker can still be kernel-blocked after guard release (increment 46). This is not readiness, confirmed worker exit, storage settlement or permission to bypass original-state recovery. |
+| `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. The observation includes the persisted worker-group epoch, so a live recorded process/thread still counts as an owner after its physical flock closes (increment 47). This is not readiness, confirmed worker exit, storage settlement or permission to bypass original-state recovery. |
 
 Successful status and clean/no-active-owner stop exit 0. Status on an expired
 drain exits 2; unsafe configuration/state/IPC errors exit 1 and preserve evidence.
@@ -515,15 +515,15 @@ not deployment support for arbitrary NFS calls, NAS versions or systemd units.
 Production NFS and source deletion remain disabled.
 
 
-## Coordinator exit while an NFS worker survives
+## Historical coordinator-death counterexample and its fix
 
 The increment 46 fixture found a release-blocking exception: during termination,
-a verification worker can remain kernel-blocked after its local guard is closed.
-After coordinator death, current --status can then return NoActiveOwner/exit 0
-while that worker is still D. This does not meet the required exclusion contract.
-Production NFS remains disabled pending a qualified fix; do not use that local
-result alone as authorization to restart against NFS. No conflicting replacement
-was started in the failing fixture.
+a verification worker remained kernel-blocked after its local guard closed.
+After coordinator death, that version returned NoActiveOwner/exit 0 while the
+worker was still D. Increment 47 addresses this with independent group lifetime
+evidence; the old failed report remains historical. No conflicting replacement
+was started in the failing fixture. Production NFS remains disabled pending the
+broader release gates; local ownership never certifies remote settlement.
 
 [Increment 46](RUST-INCREMENT-46.md) exercises selected real kernel-blocked
 claim/copy/verification workers after coordinator death, including a terminating
@@ -545,3 +545,32 @@ A worker that exits promptly during stop, before the planned coordinator kill,
 is recorded separately from a surviving terminating orphan. These controlled
 observations do not qualify actual systemd process-group/timeout/restart policy
 or every NFS death boundary. Production NFS and source deletion remain disabled.
+
+
+## Local lifetime record and worker termination
+
+Increment 47 adds `workers.json` beside instance.lock and SQLite, with a private
+`workers.next` temporary during atomic replacement. These names are reserved and
+cannot be SQLite database names. Keep them on protected
+persistent local disk under the same account/configuration and PID namespace.
+Do not delete, edit, move or restore them independently to make a start succeed.
+Published malformed/scope-mismatched evidence refuses; valid-looking cloned or
+hostile modified state is outside this cooperative profile. Stop all previous
+binary versions and their workers before an upgrade; mixed workers are unsupported.
+
+Before spawning, the coordinator records its own process group, boot/namespace,
+start ticks and guard identity. Children remain in that group. Local stop/status
+checks and effect starts consult that evidence when the raw lock is free.
+A live recorded process/thread keeps the instance owned: unavailable control
+reports OwnerUnavailable/exit 2, and starts refuse before SQLite/source bootstrap.
+Unreadable or over-budget process observations do not certify exit. PID-namespace
+changes refuse; reused group IDs may conservatively block. The normal same-state
+start replaces an inactive epoch after confirmed old exit. No force/adopt command
+or automatic orphan killer has been added.
+
+Existing supervision still requests termination and waits for actual child exit;
+workers detect bad assignments and lost channels. A worker stuck in the kernel
+cannot execute its own deadline code, and SIGKILL may remain pending. Restore the
+underlying storage problem, preserve original state and confirm old completion
+before recovery. Timeout, lock release and local epoch clearance still do not
+prove NAS RPC/writeback settlement. Production NFS/deletion remain disabled.

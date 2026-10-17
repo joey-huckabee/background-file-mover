@@ -114,7 +114,7 @@ def main():
         "Service startup rejection is measured; production NFS and source deletion remain disabled.",
     ]
     if args.coordinator_death:
-        report["limitations"][2] = "Selected real hard-NFS claim/copy/verification workers after coordinator SIGKILL, while blocked or following local stop. Prompt exit is distinct from a surviving kernel-blocked child. No systemd, old-kernel, NAS settlement or takeover qualification."
+        report["limitations"][2] = "Selected real hard-NFS claim/copy/verification workers after coordinator SIGKILL, while blocked or following local stop. Physical flock closure is distinct from logical process-group epoch ownership; both profiles must retain exclusion with a physically closed guard. Prompt exit is distinct from a surviving kernel-blocked child. No systemd, old-kernel, NAS settlement or takeover qualification."
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -281,7 +281,7 @@ def main():
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
                                         artifact_hashes, report["coordinator_death"]["cases"], death_only=True)
                 report["coordinator_death"].update(completed)
-                assert report["coordinator_death"]["passed"] or len(report["coordinator_death"]["cases"]) == 12, "NFS coordinator-death matrix interrupted; inspect cases"
+                assert report["coordinator_death"]["passed"] or 12 <= len(report["coordinator_death"]["cases"]) <= 18, "NFS coordinator-death matrix interrupted; inspect cases"
                 # A fully observed ownership defect remains a failed matrix.
                 # Run retained regressions after safe case cleanup, then fail.
 
@@ -418,7 +418,7 @@ def main():
         else:
             assert "filesystem not qualified" in startup_log
         report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
-        assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect ownership-loss cases"
+        assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect case outcomes and required closed-guard coverage"
         report["status"] = "PASSED"
     except Exception as error:
         report["error"] = f"{type(error).__name__}: {error}"

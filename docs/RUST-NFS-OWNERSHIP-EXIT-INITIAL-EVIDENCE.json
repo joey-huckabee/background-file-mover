@@ -1,0 +1,3996 @@
+{
+  "status": "FAILED",
+  "run_id": "nfs-20261017T164541Z-f88063e6",
+  "isolated_startup_required": true,
+  "gate": "20261017T162146Z-b28d902b",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "source_sha256": "ae4e87b8453f945112a2142a31067870680fa05cc2bc5db1260e568d81e4d9e8",
+  "checks": {
+    "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\""
+  },
+  "cleanup_errors": [],
+  "coordinator_death_requested": true,
+  "shutdown_requested": false,
+  "runtime_requested": false,
+  "ownership_requested": false,
+  "enrollment_storage_requested": false,
+  "delivery_storage_requested": false,
+  "source_storage_requested": false,
+  "runtime_scope": "coordinator-death",
+  "limitations": [
+    "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+    "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
+    "Selected real hard-NFS claim/copy/verification workers after coordinator SIGKILL, while blocked or following local stop. Physical flock closure is distinct from logical process-group epoch ownership; both profiles must retain exclusion with a physically closed guard. Prompt exit is distinct from a surviving kernel-blocked child. No systemd, old-kernel, NAS settlement or takeover qualification.",
+    "Service startup rejection is measured; production NFS and source deletion remain disabled."
+  ],
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dmsetup\t2:1.02.185-2",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "findutils\t4.9.0-4",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "keyutils\t1.6.3-2",
+    "libacl1:amd64\t2.3.1-3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdebconfclient0:amd64\t0.270",
+    "libdevmapper1.02.1:amd64\t2:1.02.185-2",
+    "libevent-core-2.1-7:amd64\t2.1.12-stable-8+deb12u1",
+    "libexpat1:amd64\t2.5.0-1+deb12u4",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "libldap-2.5-0:amd64\t2.5.13+dfsg-5",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u2",
+    "libmd0:amd64\t1.0.4-2",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnfsidmap1:amd64\t1:2.6.2-4+deb12u1",
+    "libnsl2:amd64\t1.3.0-2",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpcre2-8-0:amd64\t10.42-1+deb12u2",
+    "libpython3-stdlib:amd64\t3.11.2-1+b1",
+    "libpython3.11-minimal:amd64\t3.11.2-6+deb12u9",
+    "libpython3.11-stdlib:amd64\t3.11.2-6+deb12u9",
+    "libreadline8:amd64\t8.2-1.3",
+    "libsasl2-2:amd64\t2.1.28+dfsg-10",
+    "libsasl2-modules-db:amd64\t2.1.28+dfsg-10",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsepol2:amd64\t3.4-2.1",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssl3:amd64\t3.0.22-1~deb12u1",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libunistring2:amd64\t1.0-2",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libwrap0:amd64\t7.6.q-32",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "media-types\t10.0.0",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "nfs-common\t1:2.6.2-4+deb12u1",
+    "nfs-kernel-server\t1:2.6.2-4+deb12u1",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "python3\t3.11.2-1+b1",
+    "python3-minimal\t3.11.2-1+b1",
+    "python3.11\t3.11.2-6+deb12u9",
+    "python3.11-minimal\t3.11.2-6+deb12u9",
+    "readline-common\t8.2-1.3",
+    "rpcbind\t1.2.6-6+b1",
+    "sed\t4.9-1+deb12u1",
+    "sensible-utils\t0.0.17+nmu1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "tzdata\t2026c-0+deb12u1",
+    "ucf\t3.0043+nmu1+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "mounts": [
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/25d0c8b59256fac31590d1134eaecccebc751226b9052a8015cee7c50cce08ed/diff,workdir=/var/lib/containers/storage/overlay/25d0c8b59256fac31590d1134eaecccebc751226b9052a8015cee7c50cce08ed/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+    "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+    "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+    "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+    "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+    "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+    "none /etc/hosts tmpfs rw,mode=755 0 0",
+    "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+    "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
+    "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+    "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+  ],
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "root_identity_before": [
+    "99:387696:1000:700",
+    "99:387695:1000:700"
+  ],
+  "artifacts": {
+    "debug": "dab1e5d4b569dd9dce552f73b21e3a6b8b9667f5f0832be2753023decd4dcd43",
+    "release": "d0bdc2484bc6ce092def0d22db8b94d54d59d59df6da326f39b2a106f214dbd7"
+  },
+  "qualification_gate": "20261017T162159Z-32bce9a2-nfs-qualification",
+  "baseline": {
+    "passed": true,
+    "cases": [
+      {
+        "profile": "debug",
+        "direction": "source",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "8fa8df8d927d5897131bfede99391767",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "72:23188463",
+          "coordinator_pid": 72,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "72:23188463",
+          "coordinator_pid": 72,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "destination",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/debug-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/debug-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/debug-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "70dc8364adb19699c2ac157a20b740f7",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "136:23191194",
+          "coordinator_pid": 136,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "136:23191194",
+          "coordinator_pid": 136,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "both",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "d58eb31972ec82525c2b13a145069c35",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "200:23193809",
+          "coordinator_pid": 200,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "200:23193809",
+          "coordinator_pid": 200,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "source",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "1560fcece460adbf36132f5da640922c",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "272:23196973",
+          "coordinator_pid": 272,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "272:23196973",
+          "coordinator_pid": 272,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "destination",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/release-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/release-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/release-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "dbf621ff64b2b02e4a63190b96c21b65",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "336:23199637",
+          "coordinator_pid": 336,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "336:23199637",
+          "coordinator_pid": 336,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "both",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "21926e4cec55de190b780377d5e73de6",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "400:23202282",
+          "coordinator_pid": 400,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "400:23202282",
+          "coordinator_pid": 400,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      }
+    ]
+  },
+  "coordinator_death": {
+    "passed": false,
+    "cases": [
+      {
+        "profile": "debug",
+        "point": "claim_apply",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "484",
+          "command": "/tmp/qualification-debug --internal-claim-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_apply-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "466",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 466,
+          "start": 23205168,
+          "guard": "1:96:393327:1000:0:1792255765:117180215:1"
+        },
+        "blocked_worker": {
+          "pid": "484",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.89,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "466:23205168",
+              "coordinator_pid": 466,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                484
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393327:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393327:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393327:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.89,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393327:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.891,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.953,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.969,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.891,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "interrupted_handoff": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393327:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.89,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_apply-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 571,
+          "start": 23212411,
+          "guard": "1:96:393327:1000:0:1792255765:117180215:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-claim_apply-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-claim_apply-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "5b1d4785ef9d51bd9bf55023baac257d",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-claim_apply-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-claim_apply-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-claim_apply-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "claim_apply",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "645",
+          "command": "/tmp/qualification-debug --internal-claim-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_apply-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "627",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 627,
+          "start": 23215133,
+          "guard": "1:96:393446:1000:0:1792255864:729170287:1"
+        },
+        "blocked_worker": {
+          "pid": "645",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.922,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "627:23215133",
+              "coordinator_pid": 627,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                645
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393446:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "627:23215133",
+            "coordinator_pid": 627,
+            "phase": "Stopped",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [],
+            "message": null
+          },
+          "elapsed_seconds": 1.078
+        },
+        "outcome": "prompt_exit_before_coordinator_kill",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "gone",
+        "interrupted_handoff": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393446:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.844,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-claim_apply-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 691,
+          "start": 23218639,
+          "guard": "1:96:393446:1000:0:1792255864:729170287:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-claim_apply-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-claim_apply-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "452a8771f8f5d42d83a2534716f667b1",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-claim_apply-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-claim_apply-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-claim_apply-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "copy_chunk",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "766",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "747",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 747,
+          "start": 23221939,
+          "guard": "1:96:393487:1000:0:1792255932:902334921:1"
+        },
+        "blocked_worker": {
+          "pid": "766",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.891,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "747:23221939",
+              "coordinator_pid": 747,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                766
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393487:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393487:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.89,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393487:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.859,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393487:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.969,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.937,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.86,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393487:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.891,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 2,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 855,
+          "start": 23229354,
+          "guard": "1:96:393487:1000:0:1792255932:902334921:1"
+        },
+        "old_partial_preserved": true,
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-copy_chunk-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-copy_chunk-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "e7aa8ebd4dda29e3769686e8cbd01af3",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-copy_chunk-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-copy_chunk-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "copy_chunk",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "929",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "910",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 910,
+          "start": 23232068,
+          "guard": "1:96:393534:1000:0:1792256034:225851065:1"
+        },
+        "blocked_worker": {
+          "pid": "929",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.859,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "910:23232068",
+              "coordinator_pid": 910,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                929
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393534:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 2,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "910:23232068",
+            "coordinator_pid": 910,
+            "phase": "ShutdownIncomplete",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [
+              929
+            ],
+            "message": "shutdown incomplete; restart blocked"
+          },
+          "elapsed_seconds": 2.875
+        },
+        "stop_pending_worker_status": "Name:\tqualification-d\nUmask:\t0022\nState:\tD (disk sleep)\nTgid:\t929\nNgid:\t0\nPid:\t929\nPPid:\t910\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t64\nGroups:\t1000 \nNStgid:\t929\nNSpid:\t929\nNSpgid:\t910\nNSsid:\t910\nKthread:\t0\nVmPeak:\t   12240 kB\nVmSize:\t   12240 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t    8004 kB\nVmRSS:\t    8004 kB\nRssAnon:\t    1508 kB\nRssFile:\t    6496 kB\nRssShmem:\t       0 kB\nVmData:\t    1276 kB\nVmStk:\t     132 kB\nVmExe:\t    5860 kB\nVmLib:\t    2892 kB\nVmPTE:\t      68 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t1\nSigQ:\t0/47803\nSigPnd:\t0000000000000100\nShdPnd:\t0000000000000100\nSigBlk:\t0000000000000000\nSigIgn:\t0000000000001000\nSigCgt:\t0000000180000440\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t0000000000200000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t1617\nnonvoluntary_ctxt_switches:\t8\n",
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393534:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393534:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393534:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.859,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.875,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.875,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.906,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "terminating_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393534:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.875,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 2,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1023,
+          "start": 23240118,
+          "guard": "1:96:393534:1000:0:1792256034:225851065:1"
+        },
+        "old_partial_preserved": true,
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-copy_chunk-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-copy_chunk-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "03398e04f46d341da17eec63a3eaed3b",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-copy_chunk-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-copy_chunk-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-copy_chunk-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "verify_read",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1097",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Copied"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-verify_read-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "1078",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1078,
+          "start": 23242808,
+          "guard": "1:96:393577:1000:0:1792256141:605769684:1"
+        },
+        "blocked_worker": {
+          "pid": "1097",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.86,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1078:23242808",
+              "coordinator_pid": 1078,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1097
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393577:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393577:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.907,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393577:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.922,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393577:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.89,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.891,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.906,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.86,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393577:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.859,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-verify_read-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1186,
+          "start": 23250227,
+          "guard": "1:96:393577:1000:0:1792256141:605769684:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-verify_read-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-verify_read-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "b781d93c617c19cc80a699dea9d37d62",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-verify_read-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-verify_read-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-verify_read-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "verify_read",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1259",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Copied"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-verify_read-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "1240",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1240,
+          "start": 23252846,
+          "guard": "1:96:393626:1000:0:1792256241:957142866:1"
+        },
+        "blocked_worker": {
+          "pid": "1259",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.875,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1240:23252846",
+              "coordinator_pid": 1240,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1259
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393626:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "1240:23252846",
+            "coordinator_pid": 1240,
+            "phase": "Stopped",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [],
+            "message": null
+          },
+          "elapsed_seconds": 1.125
+        },
+        "outcome": "prompt_exit_before_coordinator_kill",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "gone",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393626:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.859,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1792256274
+            },
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-verify_read-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1307,
+          "start": 23256538,
+          "guard": "1:96:393626:1000:0:1792256241:957142866:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-debug-verify_read-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-debug-verify_read-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "3f948ecee83d9f0c7934916acc2c9dc2",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-verify_read-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-debug-verify_read-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery dispatch stopped\n",
+          "runtime-debug-verify_read-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "claim_apply",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1385",
+          "command": "/tmp/qualification-release --internal-claim-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_apply-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "1367",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1367,
+          "start": 23259819,
+          "guard": "1:96:393660:1000:0:1792256311:430094844:1"
+        },
+        "blocked_worker": {
+          "pid": "1385",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.859,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1367:23259819",
+              "coordinator_pid": 1367,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1385
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393660:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393660:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.86,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393660:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.844,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393660:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.875,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.906,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.938,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.891,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "interrupted_handoff": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393660:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.953,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_apply-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1472,
+          "start": 23267146,
+          "guard": "1:96:393660:1000:0:1792256311:430094844:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-claim_apply-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-claim_apply-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "479805c075348c83e176ddf9f6f1f98c",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-claim_apply-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-claim_apply-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-release-claim_apply-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "claim_apply",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1546",
+          "command": "/tmp/qualification-release --internal-claim-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Accepted",
+          "source_paths_released": false,
+          "retryable": false,
+          "details": {
+            "condition": "AwaitingClaims",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Pending",
+                "size_bytes": null,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_apply-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "1528",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1528,
+          "start": 23270005,
+          "guard": "1:96:393699:1000:0:1792256413:376690900:1"
+        },
+        "blocked_worker": {
+          "pid": "1546",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 1.125,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1528:23270005",
+              "coordinator_pid": 1528,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1546
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393699:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "1528:23270005",
+            "coordinator_pid": 1528,
+            "phase": "Stopped",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [],
+            "message": null
+          },
+          "elapsed_seconds": 1.219
+        },
+        "outcome": "prompt_exit_before_coordinator_kill",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "gone",
+        "interrupted_handoff": [
+          503,
+          {
+            "source_paths_released": false,
+            "error": "handoff_pending",
+            "retryable": true
+          }
+        ],
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393699:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.875,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-claim_apply-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1592,
+          "start": 23273898,
+          "guard": "1:96:393699:1000:0:1792256413:376690900:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-claim_apply-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-claim_apply-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "e40fbb11c1dc697398eec79022605f36",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-claim_apply-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-claim_apply-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-release-claim_apply-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "copy_chunk",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1667",
+          "command": "/tmp/qualification-release --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-copy_chunk-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "1648",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1648,
+          "start": 23277405,
+          "guard": "1:96:393727:1000:0:1792256487:443349774:1"
+        },
+        "blocked_worker": {
+          "pid": "1667",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.921,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1648:23277405",
+              "coordinator_pid": 1648,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1667
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393727:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393727:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.969,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393727:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.922,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393727:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 1.047,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 1.625,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 1.125,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.969,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393727:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.875,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 2,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-copy_chunk-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1756,
+          "start": 23285626,
+          "guard": "1:96:393727:1000:0:1792256487:443349774:1"
+        },
+        "old_partial_preserved": true,
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-copy_chunk-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-copy_chunk-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "c5804c9d75384580ca5580865d7fa5b5",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-copy_chunk-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-copy_chunk-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-release-copy_chunk-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "copy_chunk",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1830",
+          "command": "/tmp/qualification-release --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-copy_chunk-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "1811",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1811,
+          "start": 23288434,
+          "guard": "1:96:393767:1000:0:1792256597:877928769:1"
+        },
+        "blocked_worker": {
+          "pid": "1830",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.906,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1811:23288434",
+              "coordinator_pid": 1811,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1830
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393767:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 2,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "1811:23288434",
+            "coordinator_pid": 1811,
+            "phase": "ShutdownIncomplete",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [
+              1830
+            ],
+            "message": "shutdown incomplete; restart blocked"
+          },
+          "elapsed_seconds": 2.812
+        },
+        "stop_pending_worker_status": "Name:\tqualification-r\nUmask:\t0022\nState:\tD (disk sleep)\nTgid:\t1830\nNgid:\t0\nPid:\t1830\nPPid:\t1811\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t64\nGroups:\t1000 \nNStgid:\t1830\nNSpid:\t1830\nNSpgid:\t1811\nNSsid:\t1811\nKthread:\t0\nVmPeak:\t    8736 kB\nVmSize:\t    8736 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t    5008 kB\nVmRSS:\t    5008 kB\nRssAnon:\t    1276 kB\nRssFile:\t    3732 kB\nRssShmem:\t       0 kB\nVmData:\t    1272 kB\nVmStk:\t     132 kB\nVmExe:\t    3420 kB\nVmLib:\t    2892 kB\nVmPTE:\t      56 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t1\nSigQ:\t0/47803\nSigPnd:\t0000000000000100\nShdPnd:\t0000000000000100\nSigBlk:\t0000000000000000\nSigIgn:\t0000000000001000\nSigCgt:\t0000000180000440\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t0000000000200000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t1632\nnonvoluntary_ctxt_switches:\t4\n",
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393767:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.859,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393767:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.86,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393767:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.89,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.906,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.859,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.875,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "terminating_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393767:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.906,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 2,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-copy_chunk-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1922,
+          "start": 23296238,
+          "guard": "1:96:393767:1000:0:1792256597:877928769:1"
+        },
+        "old_partial_preserved": true,
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-copy_chunk-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-copy_chunk-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "478495fe29d0090fce7937e39ad54fc7",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-copy_chunk-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-copy_chunk-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-release-copy_chunk-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "verify_read",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "blocked",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "1996",
+          "command": "/tmp/qualification-release --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Copied"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-verify_read-shutdown-2-death-blocked"
+          }
+        },
+        "coordinator_pid": "1977",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 1977,
+          "start": 23298883,
+          "guard": "1:96:393808:1000:0:1792256702:361923404:1"
+        },
+        "blocked_worker": {
+          "pid": "1996",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.891,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "1977:23298883",
+              "coordinator_pid": 1977,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                1996
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393808:0:1000:600"
+        },
+        "coordinator_exit_code": 137,
+        "orphan_samples": [
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393808:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.844,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393808:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.828,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          },
+          {
+            "worker_state": "D",
+            "guard": {
+              "contended": true,
+              "exit_code": 73,
+              "identity": "96:393808:0:1000:600"
+            },
+            "worker_state_after_probe": "D",
+            "local_status": {
+              "exit_code": 2,
+              "elapsed_seconds": 0.86,
+              "snapshot": {
+                "version": 1,
+                "instance_id": null,
+                "coordinator_pid": null,
+                "phase": "OwnerUnavailable",
+                "shutdown_wait_seconds": null,
+                "shutdown_remaining_ms": null,
+                "workers": [],
+                "message": "shutdown incomplete; restart blocked"
+              }
+            },
+            "logical_ownership_retained": true,
+            "worker_state_after_status": "D"
+          }
+        ],
+        "competitors_after_death": [
+          {
+            "command": "service",
+            "elapsed_seconds": 0.89,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\""
+          },
+          {
+            "command": "--initialize-source",
+            "elapsed_seconds": 0.907,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          },
+          {
+            "command": "--transfer-one",
+            "elapsed_seconds": 0.812,
+            "refused": true,
+            "diagnostic": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"local instance or surviving worker already owns state\")"
+          }
+        ],
+        "outcome": "blocked_orphan_retains_ownership",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "Z",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393808:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.844,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-verify_read-shutdown-2-death-blocked"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 2085,
+          "start": 23306112,
+          "guard": "1:96:393808:1000:0:1792256702:361923404:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-verify_read-shutdown-2-death-blocked/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-verify_read-shutdown-2-death-blocked/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "e88f4ad48e0e43bdedf61771a678d8e3",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-verify_read-shutdown-2-death-blocked",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-verify_read-shutdown-2-death-blocked-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-release-verify_read-shutdown-2-death-blocked-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      },
+      {
+        "profile": "release",
+        "point": "verify_read",
+        "production": false,
+        "passed": true,
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "death_phase": "terminating",
+        "scenario_id": "SC-092",
+        "paused_worker": {
+          "pid": "2158",
+          "command": "/tmp/qualification-release --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Copied"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-verify_read-shutdown-2-death-terminating"
+          }
+        },
+        "coordinator_pid": "2139",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 2139,
+          "start": 23308677,
+          "guard": "1:96:393868:1000:0:1792256800:325918034:1"
+        },
+        "blocked_worker": {
+          "pid": "2158",
+          "state": "D",
+          "pause_released": true,
+          "nfs_server_stopped": true,
+          "status": {
+            "exit_code": 0,
+            "elapsed_seconds": 0.907,
+            "snapshot": {
+              "version": 1,
+              "instance_id": "2139:23308677",
+              "coordinator_pid": 2139,
+              "phase": "Running",
+              "shutdown_wait_seconds": 2,
+              "shutdown_remaining_ms": null,
+              "workers": [
+                2158
+              ],
+              "message": null
+            }
+          }
+        },
+        "guard_before_death": {
+          "contended": true,
+          "exit_code": 73,
+          "identity": "96:393868:0:1000:600"
+        },
+        "stop": {
+          "exit_code": 0,
+          "snapshot": {
+            "version": 1,
+            "instance_id": "2139:23308677",
+            "coordinator_pid": 2139,
+            "phase": "Stopped",
+            "shutdown_wait_seconds": 2,
+            "shutdown_remaining_ms": 0,
+            "workers": [],
+            "message": null
+          },
+          "elapsed_seconds": 1.031
+        },
+        "outcome": "prompt_exit_before_coordinator_kill",
+        "epoch_preserved_until_old_exit": true,
+        "worker_exit_after_restore": "gone",
+        "guard_after_exit": {
+          "contended": false,
+          "exit_code": 0,
+          "identity": "96:393868:0:1000:600"
+        },
+        "local_status_after_exit": {
+          "exit_code": 0,
+          "elapsed_seconds": 0.875,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1792256833
+            },
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-release-verify_read-shutdown-2-death-terminating"
+          }
+        },
+        "worker_epoch_after_recovery": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532489",
+          "group": 2206,
+          "start": 23312433,
+          "guard": "1:96:393868:1000:0:1792256800:325918034:1"
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/runtime-release-verify_read-shutdown-2-death-terminating/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/runtime-release-verify_read-shutdown-2-death-terminating/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "e64108ca728743585b4c022ac1a8a782",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-release-verify_read-shutdown-2-death-terminating",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "original_state_recovery": true,
+        "producer_reused_path_preserved": true,
+        "restart_only_after_restore_and_exit": true,
+        "service_logs": {
+          "runtime-release-verify_read-shutdown-2-death-terminating-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery dispatch stopped\n",
+          "runtime-release-verify_read-shutdown-2-death-terminating-service-5.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        }
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "91b00fbd7e7ecc2b458db52ea36fbeaeca216d7dfe8a7cad6c7ba83e0c539810",
+      "nfs_runtime.py": "6f53491c696241095ff81e215029f888250bec65342afc0e2ffce26656ef21a0",
+      "nfs_death.py": "47c416df99f55bb983a0b008389db95ad3929fdc1672fd6318c97202f08d4b43",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa"
+    },
+    "kernel_closed_guard_cases": 0,
+    "ownership_loss_cases": 0,
+    "blocked_orphan_cases": 6,
+    "terminating_orphan_cases": 2,
+    "prompt_exit_cases": 4
+  },
+  "local_ownership": {
+    "passed": true,
+    "cases": [
+      {
+        "build": "production",
+        "profile": "debug",
+        "command": "service",
+        "binary_sha256": "dab1e5d4b569dd9dce552f73b21e3a6b8b9667f5f0832be2753023decd4dcd43",
+        "elapsed_seconds": 0.984,
+        "stderr": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "production",
+        "profile": "debug",
+        "command": "--initialize-source",
+        "binary_sha256": "dab1e5d4b569dd9dce552f73b21e3a6b8b9667f5f0832be2753023decd4dcd43",
+        "elapsed_seconds": 0.875,
+        "stderr": "Error: Blocked(\"filesystem not qualified for local claim slice\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "production",
+        "profile": "debug",
+        "command": "--transfer-one",
+        "binary_sha256": "dab1e5d4b569dd9dce552f73b21e3a6b8b9667f5f0832be2753023decd4dcd43",
+        "elapsed_seconds": 0.937,
+        "stderr": "Error: Blocked(\"filesystem not qualified for local claim slice\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "production",
+        "profile": "release",
+        "command": "service",
+        "binary_sha256": "d0bdc2484bc6ce092def0d22db8b94d54d59d59df6da326f39b2a106f214dbd7",
+        "elapsed_seconds": 1.063,
+        "stderr": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "production",
+        "profile": "release",
+        "command": "--initialize-source",
+        "binary_sha256": "d0bdc2484bc6ce092def0d22db8b94d54d59d59df6da326f39b2a106f214dbd7",
+        "elapsed_seconds": 0.937,
+        "stderr": "Error: Blocked(\"filesystem not qualified for local claim slice\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "production",
+        "profile": "release",
+        "command": "--transfer-one",
+        "binary_sha256": "d0bdc2484bc6ce092def0d22db8b94d54d59d59df6da326f39b2a106f214dbd7",
+        "elapsed_seconds": 0.953,
+        "stderr": "Error: Blocked(\"filesystem not qualified for local claim slice\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "debug",
+        "command": "service",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "elapsed_seconds": 0.891,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"instance state filesystem must be qualified local storage\\\")\"",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "debug",
+        "command": "--initialize-source",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "elapsed_seconds": 0.922,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"instance state filesystem must be qualified local storage\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "debug",
+        "command": "--transfer-one",
+        "binary_sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+        "elapsed_seconds": 0.906,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"instance state filesystem must be qualified local storage\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "release",
+        "command": "service",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "elapsed_seconds": 0.86,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"instance state filesystem must be qualified local storage\\\")\"",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "release",
+        "command": "--initialize-source",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "elapsed_seconds": 0.891,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"instance state filesystem must be qualified local storage\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      },
+      {
+        "build": "nfs-qualification",
+        "profile": "release",
+        "command": "--transfer-one",
+        "binary_sha256": "9e34219e82d328b724778f74e12d2076a1e3d2d1d8f7e073bf30979fd5b3333e",
+        "elapsed_seconds": 0.969,
+        "stderr": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: Blocked(\"instance state filesystem must be qualified local storage\")",
+        "passed": true,
+        "state_empty": true,
+        "source_absent": true
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "91b00fbd7e7ecc2b458db52ea36fbeaeca216d7dfe8a7cad6c7ba83e0c539810",
+      "nfs_baseline.py": "a335f429fc4480629ac3dbcb280a068e446e20bd016831e7fad3b6e3289c80c6",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa"
+    }
+  },
+  "error": "AssertionError: Error: \"Blocked(\\\"worker evidence without instance guard\\\")\"\n",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 344, in main\n    report[\"sqlite_state_layout\"] = qualify_state_layout(\n                                    ^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_state_layout.py\", line 91, in qualify\n    assert any(code in diagnostic for code in (\"Permission denied\", \"PermissionDenied\", \"EACCES\", \"os error 13\", \"OS error 13\")), diagnostic\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Error: \"Blocked(\\\"worker evidence without instance guard\\\")\"\n\n"
+}

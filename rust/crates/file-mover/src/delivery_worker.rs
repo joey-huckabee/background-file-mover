@@ -200,6 +200,7 @@ impl Session {
         let (mut channel, worker) = UnixStream::pair()?;
         channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
+        guard.instance()?.prepare_workers()?;
         let child = Supervised(
             Command::new(std::env::current_exe()?)
                 .arg("--internal-delivery-worker")

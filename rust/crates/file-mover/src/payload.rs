@@ -193,6 +193,7 @@ pub(crate) fn exchange_deadline(
     let (mut channel, child_channel) = UnixStream::pair()?;
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+    source.instance()?.prepare_workers()?;
     let mut child = Supervised(
         Command::new(std::env::current_exe()?)
             .arg(mode)

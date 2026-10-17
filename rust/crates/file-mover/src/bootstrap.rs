@@ -57,6 +57,7 @@ pub fn acquire(
         let (mut channel, worker_channel) = UnixStream::pair()?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
         channel.set_read_timeout(Some(Duration::from_secs(3)))?;
+        instance.prepare_workers()?;
         let mut child = Supervised(
             Command::new(std::env::current_exe()?)
                 .arg("--internal-bootstrap-worker")

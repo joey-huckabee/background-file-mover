@@ -241,6 +241,18 @@ recorded as prompt exit.
 Bootstrap/source-read/publication/manifest death phases, systemd group control
 and delayed remote settlement remain open. No force/adoption path is introduced.
 
+[Increment 47](RUST-INCREMENT-47.md) adds independent local lifetime evidence:
+`workers.json` is synchronized before worker spawn and pins the coordinator group,
+boot, PID namespace, start ticks and guard. All workers inherit/validate that group.
+A physically free flock no longer establishes logical ownership freedom while a
+recorded process/thread is live. Effect starts refuse before SQLite/source access;
+unserved control remains OwnerUnavailable/exit 2. Bound local proc observations;
+unknown observations retain exclusion and malformed evidence refuses. Protect both
+workers.json and workers.next with the original state; no delete-file remedy or
+cross-namespace adoption is provided. No package/helper executable is added.
+Original-state reconciliation still follows confirmed exit, and remote settlement
+is separate. Keep the increment 46 counterexample and all remaining SH obligations.
+
 | Case | Evidence required before support |
 |---|---|
 | SH-01 | Default/fixed config and actual local database/WAL/state/guard path; refuse NFS state, unsafe parents, foreign/replaced/symlink/multilink guard and alternate unsupported startup scope without NFS/SQLite effects. |

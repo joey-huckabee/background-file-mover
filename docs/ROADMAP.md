@@ -11,13 +11,11 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-First resolve the coordinator-death ownership gap: a terminating NFS worker can
-remain kernel-blocked after its local guard is released. Require independently
-retained exclusion through actual worker exit; qualify the fix before any
-production NFS enablement. Guard-free/NoActiveOwner alone cannot authorize restart.
-Then qualify remaining bootstrap/source-read/publication/manifest death phases,
+Next qualify remaining bootstrap/source-read/publication/manifest death phases,
 other NFS operation/synchronization and shutdown boundaries, and actual systemd/
-account-control behavior (SH-01–04/06–14).
+account-control behavior (SH-01–04/06–14). Preserve independently retained
+exclusion through actual worker exit; local ownership observations alone cannot
+authorize uncertain-effect redispatch or prove remote settlement.
 Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
 shares and systemd lifecycle qualification open (SH-10–14); a free local lock or
@@ -56,6 +54,11 @@ before implementation.
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or
   fixed-wait shortcut for uncertain storage effects.
+- [ ] Define and qualify worker-health/stall and lost-coordinator diagnostics
+  beyond existing assignment/channel/shutdown limits. Preserve bounded workers,
+  termination requests and confirmed-exit exclusion; a worker blocked in the
+  kernel cannot execute a self-timeout, and uncertainty cannot authorize retry
+  or replacement. Keep orphan killing/adoption out of unserved local control.
 - [ ] Extend diagnostics to remaining root/traversal metadata failures and
   logical custody/integrity refusals.
 - [ ] Extend retry classification beyond confirmed payload-copy ENOSPC; decide

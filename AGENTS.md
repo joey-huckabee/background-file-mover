@@ -146,11 +146,20 @@ see docs/RUST-INCREMENT-46.md. Confirm parent exit, orphan D state and contended
 local guard before competing effect commands. OwnerUnavailable is unsuccessful
 and never authorizes killing/adopting an orphan. Restore storage and confirm old
 exit before original-state recovery. Prompt stop before parent kill is a distinct
-outcome. The bracketed rerun confirms a release-blocking terminating-worker
-ownership gap: local guard release/NoActiveOwner can precede actual kernel exit.
-Keep it explicitly failed, never start competitors after detected guard loss,
-and resolve exclusion through kernel teardown before production enablement.
+outcome. The increment 46 bracketed rerun exposed a terminating-worker
+ownership gap: raw flock release/NoActiveOwner preceded actual kernel exit.
+Keep that historical report failed; qualify independent lifetime retention with
+increment 47 rather than erasing the counterexample or forcing a replacement.
 No Rust/retry/review changes or production NFS/deletion enablement.
+Increment 47 adds a durable local workers.json process-group epoch before every
+worker launch, checks surviving group processes/threads independently of flock
+closure, and validates worker group inheritance; see docs/RUST-INCREMENT-47.md.
+The epoch pins boot/PID namespace/group/start/guard identity; workers.next is a
+private atomic-publication temporary. A live epoch blocks all effect entry points
+before SQLite/NFS and makes unserved control OwnerUnavailable even if flock is
+free. Do not delete/replace lifetime files, change PID namespace or mix old/new
+workers. Preserve increment 46's failed evidence; keep production NFS/deletion
+off and remaining systemd/NFS settlement/death phases unqualified.
 Local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
 NFS version/mount/systemd qualification remain pending. Preserve the original NF
 mapping and stronger deferred takeover/re-enrollment obligations. Keep production

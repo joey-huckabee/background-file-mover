@@ -129,10 +129,11 @@ and confirmed old exit. No Rust behavior or retry/review policy changes.
 kernel-blocked and terminating NFS children, bounded OwnerUnavailable, inherited
 local exclusion and original-state recovery. Prompt exit before parent kill is
 recorded separately. No Rust/retry/review change or production enablement follows.
-Resolve the terminating-worker ownership gap first: an actual D-state worker can
-outlive the local guard and yield NoActiveOwner after coordinator death. This is
-a release blocker, not passing SH-04 evidence. Then qualify remaining guard/death
-phases, other NFS operation/drain boundaries and
+[Increment 47](RUST-INCREMENT-47.md) adds persistent local process-group lifetime
+evidence before all worker spawns, checked independently of physical lock closure.
+Status and new starts retain exclusion while a recorded process/thread is live;
+unknown evidence never authorizes replacement. Preserve the increment 46 failure
+as history and qualify remaining death, NFS operation/drain and
 systemd/account-control cases (SH-01–04/06–14). Qualify late NFS effects, actual
 mounts, same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
 settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS
