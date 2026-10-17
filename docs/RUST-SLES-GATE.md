@@ -51,7 +51,7 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 ## Coverage boundary
 
 Current production/qualification test counts, exact artifact hashes and the
-latest passing runs are recorded in [increment 50](RUST-INCREMENT-50.md) and the
+latest passing runs are recorded in [increment 51](RUST-INCREMENT-51.md) and the
 linked machine-readable reports. Every emitted executable is audited, including
 the service and each target test harness. Keep debug and release evidence for
 both build modes; a selected local test does not qualify a whole NFS profile.

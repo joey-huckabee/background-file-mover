@@ -54,10 +54,6 @@ before implementation.
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or
   fixed-wait shortcut for uncertain storage effects.
-- [ ] Stabilize the repeated-stop integration test's immediate daemon-status
-  assertion against the controller's intentionally conservative deadline. Preserve
-  first-stop timing and the configured wait; do not mask Draining as completed
-  shutdown or extend the runtime deadline to pass a test.
 - [ ] Define and qualify worker-health/stall and lost-coordinator diagnostics
   beyond existing assignment/channel/shutdown limits. Preserve bounded workers,
   termination requests and confirmed-exit exclusion; a worker blocked in the

@@ -40,7 +40,9 @@ bootstrap cases with original database/WAL, receipt and partial preservation;
 read its actual results and limits. [Increment 50](docs/RUST-INCREMENT-50.md)
 adds selected file-publication and manifest coordinator-death cases, requiring
 original inode/attempt and manifest preservation through normal recovery.
-Other storage/lifecycle and deployment gates remain open.
+[Increment 51](docs/RUST-INCREMENT-51.md) stabilizes the post-stop status test
+within its existing bound, preserving runtime shutdown deadlines and failure
+history. Other storage/lifecycle and deployment gates remain open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

@@ -450,3 +450,13 @@ visible names are distinct from SQLite commitment. Read the actual outcomes and
 initial SLES timing-test failure in the increment. No runtime/dependency/policy
 changes or production enablement accompany these checks; retain all earlier
 selectors and the strict raw-lock-closure regression.
+
+
+[Increment 51](RUST-INCREMENT-51.md) stabilizes the existing repeated-stop test
+with bounded status polling through a valid Draining snapshot to daemon expiry.
+The same original four-second test bound, two-second loaded budget, instance
+identity, monotonic countdown and ownership/refusal checks remain enforced;
+three rounds run per qualification profile. Runtime deadlines/defaults and all
+production code stay unchanged. Keep the increment 50 failed evidence and read
+the fresh gate results in increment 51. No new NFS qualification or production
+NFS/source deletion enablement follows.

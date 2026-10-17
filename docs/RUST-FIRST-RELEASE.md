@@ -132,6 +132,13 @@ FR-03/05 remain open; these finite phase cases do not qualify every RPC/deadline
 both-NFS crash layout, NAS settlement/power durability or actual systemd/account
 policy. Production NFS and source deletion remain disabled.
 
+[Increment 51](RUST-INCREMENT-51.md) stabilizes the post-stop status timing test
+while preserving the original runtime deadline and existing test bound. Three
+qualification rounds per profile retain identity, budget, countdown and ownership
+checks; read its fresh SLES results. This test-only change adds no NFS/systemd/
+NAS coverage and closes no production release gate. Keep increment 50's failure
+history and production NFS/source deletion disabled.
+
 ## Deferred beyond the first release
 
 S3/object storage, registration/token enrollment, dashboard/UI, offline repair,

@@ -203,9 +203,17 @@ actual outcomes/limits. Release into unavailable NFS and require real D state;
 preserve logical ownership through actual old exit, then recover original inode,
 manifest hash and attempt 1 with the same local state. Keep older selectors and
 strict increment 47 regression. Preserve the initial failed SLES qualification
-report/log; the immediate post-stop status timing assertion needs stabilization
-without changing deadlines. No runtime/dependency/retry/review changes;
+report/log; see increment 51 for the bounded post-stop status test stabilization.
+Runtime deadlines remain unchanged. No runtime/dependency/retry/review changes;
 production NFS/source deletion stay disabled.
+
+Increment 51 changes only the repeated-stop API test: bounded post-stop status
+polling accepts valid Draining snapshots until the daemon reports its original
+expiry, within the existing four-second test bound. Preserve identity, the loaded
+two-second budget, nonincreasing remaining time, live ownership/refusal and
+normal exit/restart checks. Run three rounds per qualification profile via the
+required SLES gate. See docs/RUST-INCREMENT-51.md for actual evidence; keep
+increment 50 failure history. No runtime timing or production NFS/deletion change.
 
 ## Project Overview
 

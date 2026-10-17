@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 50. It
+This guide describes the implemented Rust prototype through increment 51. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -86,7 +86,7 @@ There is no remote lifecycle route or token.
 | `Starting` | Guard is held; bootstrap/enrollment/readiness is pending. Local status does not claim the transfer filesystems are available. |
 | `Running` | Coordinator is serving; job completion/custody still use their own API/manifest evidence. |
 | `Draining` | First stop has fixed a monotonic deadline. New admission is stopping; original work and ownership remain until confirmed completion. |
-| `ShutdownIncomplete` | Deadline expired; stop exits 2 with shutdown incomplete; restart blocked. Daemon/workers may remain live. Restore the underlying problem and inspect again; do not force a replacement or remove state/locks. |
+| `ShutdownIncomplete` | The stop client's bounded wait or the daemon deadline expired; stop exits 2 with shutdown incomplete; restart blocked. Daemon/workers may remain live. Restore the underlying problem and inspect again; do not force a replacement or remove state/locks. |
 | `OwnerUnavailable` | Guard is held but no controller responds (for example, orphan workers, a one-shot initialization/transfer or an IPC problem). Status/stop exit 2, preserving exclusion. No worker is signaled by PID. |
 | `Stopped` | This stop command observed its original coordinator exit and the guard become free. It does not prove old NFS RPCs/writeback settled or authorize conflicting storage work. |
 | `NoActiveOwner` | No current local guard holder is observed. There may be no daemon or it may already have exited. The observation includes the persisted worker-group epoch, so a live recorded process/thread still counts as an owner after its physical flock closes (increment 47). This is not readiness, confirmed worker exit, storage settlement or permission to bypass original-state recovery. |
@@ -108,7 +108,12 @@ service runs does not replace its budget, and another stop/SIGTERM/SIGINT cannot
 reset the first deadline. Stop polls are pinned to the original controller
 instance. A lost IPC reply is not cancellation or completion; another request can
 observe the existing drain. The client uses bounded local I/O and the daemon's
-remaining deadline, conservatively allowing for request time.
+remaining deadline, conservatively allowing for request time. A stop command can
+therefore report ShutdownIncomplete just before a status query still briefly
+reports Draining. The same original deadline remains in force; preserve ownership
+and inspect again. Neither observation proves exit or authorizes replacement.
+[Increment 51](RUST-INCREMENT-51.md) makes the integration test observe that
+transition within its existing bound without changing runtime timing.
 
 The separate stop command returns control at expiry while the foreground daemon
 can still be waiting. Existing signal handling requests shutdown but cannot give

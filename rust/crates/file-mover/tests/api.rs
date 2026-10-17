@@ -3863,58 +3863,87 @@ fn configured_stop_deadline_survives_repeated_requests_signals_and_config_edits(
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
-    let mut f = Fixture::new(300);
-    f.stop();
-    shutdown_config(&f, json!(2));
-    let rendezvous = f.root.join("drain");
-    std::fs::create_dir(&rendezvous).unwrap();
-    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
-    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
-    command
-        .env("FILE_MOVER_QUALIFICATION_PAUSE", "shutdown_drain")
-        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
-    f.start_command(command);
-    f.write("data", b"retained while stopping");
-    let start = Instant::now();
-    let first = control_child(&f, "--stop");
-    let deadline = Instant::now() + Duration::from_secs(3);
-    while !rendezvous.join("ready").exists() {
-        assert!(Instant::now() < deadline);
-        std::thread::sleep(Duration::from_millis(10));
+    for _ in 0..3 {
+        let mut f = Fixture::new(300);
+        f.stop();
+        shutdown_config(&f, json!(2));
+        let rendezvous = f.root.join("drain");
+        std::fs::create_dir(&rendezvous).unwrap();
+        std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+        command
+            .env("FILE_MOVER_QUALIFICATION_PAUSE", "shutdown_drain")
+            .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+        f.start_command(command);
+        f.write("data", b"retained while stopping");
+        let start = Instant::now();
+        let first = control_child(&f, "--stop");
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while !rendezvous.join("ready").exists() {
+            assert!(Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        shutdown_config(&f, json!(3600));
+        assert!(
+            Command::new("/bin/kill")
+                .args(["-TERM", &f.child.as_ref().unwrap().id().to_string()])
+                .status()
+                .unwrap()
+                .success()
+        );
+        let second = control_result(control_child(&f, "--stop"), 4);
+        let first = control_result(first, 4);
+        let identity = first.1["instance_id"].clone();
+        for (ok, s) in [first, second] {
+            assert!(!ok);
+            assert_eq!(s["instance_id"], identity);
+            assert_eq!(s["phase"], "ShutdownIncomplete");
+            assert_eq!(s["shutdown_wait_seconds"], 2);
+            assert_eq!(s["shutdown_remaining_ms"], 0);
+        }
+        // The client's conservative wait can end before the daemon's deadline.
+        // Poll only within the original test bound; never treat Draining as exit.
+        let status_deadline = start + Duration::from_secs(4);
+        let mut last_remaining = 2000;
+        loop {
+            assert!(Instant::now() < status_deadline);
+            let (ok, status) = local_status(&f);
+            assert!(Instant::now() < status_deadline);
+            assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
+            assert_eq!(status["instance_id"], identity);
+            assert_eq!(status["shutdown_wait_seconds"], 2);
+            let remaining = status["shutdown_remaining_ms"].as_u64().unwrap();
+            assert!(remaining <= last_remaining, "shutdown countdown increased");
+            match status["phase"].as_str().unwrap() {
+                "ShutdownIncomplete" => {
+                    assert!(!ok);
+                    assert_eq!(remaining, 0);
+                    break;
+                }
+                "Draining" => {
+                    assert!(ok);
+                    assert!(remaining > 0);
+                }
+                phase => panic!("unexpected post-stop status: {phase}"),
+            }
+            last_remaining = remaining;
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let mut duplicate = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+        duplicate
+            .arg("--initialize-source")
+            .arg(f.root.join("config.json"));
+        instance_refusal(duplicate);
+        std::fs::write(rendezvous.join("go"), b"").unwrap();
+        assert!(f.child.take().unwrap().wait().unwrap().success());
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"retained while stopping"
+        );
+        assert_eq!(local_status(&f).1["phase"], "NoActiveOwner");
+        f.start();
+        f.stop();
     }
-    shutdown_config(&f, json!(3600));
-    assert!(
-        Command::new("/bin/kill")
-            .args(["-TERM", &f.child.as_ref().unwrap().id().to_string()])
-            .status()
-            .unwrap()
-            .success()
-    );
-    let second = control_result(control_child(&f, "--stop"), 4);
-    let first = control_result(first, 4);
-    for (ok, s) in [first, second] {
-        assert!(!ok);
-        assert_eq!(s["phase"], "ShutdownIncomplete");
-        assert_eq!(s["shutdown_wait_seconds"], 2);
-        assert_eq!(s["shutdown_remaining_ms"], 0);
-    }
-    assert!(start.elapsed() < Duration::from_secs(4));
-    assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
-    assert_eq!(local_status(&f).1["phase"], "ShutdownIncomplete");
-    let mut duplicate = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
-    duplicate
-        .arg("--initialize-source")
-        .arg(f.root.join("config.json"));
-    instance_refusal(duplicate);
-    std::fs::write(rendezvous.join("go"), b"").unwrap();
-    assert!(f.child.take().unwrap().wait().unwrap().success());
-    assert_eq!(
-        std::fs::read(f.root.join("source/current/data")).unwrap(),
-        b"retained while stopping"
-    );
-    assert_eq!(local_status(&f).1["phase"], "NoActiveOwner");
-    f.start();
-    f.stop();
 }
 #[test]
 fn default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_ownership() {
