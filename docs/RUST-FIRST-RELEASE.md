@@ -44,7 +44,7 @@ explicit scope decision. Newly discovered data-safety defects still block releas
 |---|---|---|
 | FR-01 | Freeze producer, consumer and access contracts | Versioned OpenAPI and manifest rules; exact retry/error/ID-retention behavior, path/encoding and metadata rules; approved remote listener/caller binding/security profile tested end to end. Preserve the simple recorder workflow. Registration stays deferred until separately scheduled; resolve the remote access prerequisite before enabling it. |
 | FR-02 | Qualify source admission and capacity recovery | Actual bounded source-fill/restoration without policy changes; same-ID refusal/retry, no new job or false path release, preserved partial/claimed replay, finite concurrent load and blocked-statistics/root-change cases. Classify inode/quota/external-writer limits and destination-shortage recovery for the declared storage profile. A sample is not a physical reservation. |
-| FR-03 | Establish production NFS authority and failure safety | Select and qualify enforced ownership/fencing for the supported profile; authenticated root/export identity, lost-lock/partition/reclaim and old/delayed-worker effects. Extend existing cases to in-flight link/unlink and sync, server restart, longer outage and relevant storage failures. Record exact mount/server/kernel/storage scope and durability limits. No automatic takeover, rebind or stale-backup adoption is implied. |
+| FR-03 | Establish production NFS authority and failure safety | Implement and qualify the [authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md), NF-01–18, with an actual independent exclusion/settled-operation facility and authenticated endpoint profile; authenticated root/export identity, lost-lock/partition/reclaim and old/delayed-worker effects. Extend existing cases to in-flight link/unlink and sync, server restart, longer outage and relevant storage failures. Record exact mount/server/kernel/storage scope and durability limits. No automatic takeover, rebind or stale-backup adoption is implied. |
 | FR-04 | Implement conservative configurable source cleanup | After FR-03 and relevant worker/filesystem failure gates, pin job cleanup policy, require current authorization and validated destination receipts, delete only owned claimed source, persist progress and retry cleanup independently. Prove off behavior, interruptions, restart, changed destination/custody refusal and retention accounting. Preserve producer-reused paths and other jobs' data. |
 | FR-05 | Close scheduling, recovery and lifecycle gaps | Enumerate remaining durable effect boundaries, allocation/orphan refusal and migrations; test crashes/restart with original state, bounded queues/workers and concurrent load, missing-file timers/backoff, readiness and shutdown with blocked children. Uncertain old effects must prevent unsafe redispatch; timeout alone never proves cancellation. Unsupported repair remains an explicit stop/review outcome. |
 | FR-06 | Package the supported deployment | Reproducible locked/offline build and notices, systemd install/service-account permissions and sandbox tests, supported config/provisioning/enrollment, upgrade and rollback rehearsal preserving ownership. Choose the supported SLES-container/deployment matrix and document shared-kernel limits. Keep cargo-zigbuild as the qualified reference until a replacement builder passes equivalent checks. |
@@ -57,9 +57,10 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Resolve remaining FR-01 producer/consumer contract details and the FR-03
-   authority/fencing design. Use the [remote API contract](REMOTE-API-ACCESS-CONTRACT.md)
-   and RA-01–16 to select, implement and qualify its exact deployment profile;
+1. Select the actual authenticated endpoint and independent exclusion/settlement
+   facility for the [FR-03 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md); implement and
+   qualify NF-01–18. Resolve remaining FR-01 producer/consumer contract details.
+   Use the [remote API contract](REMOTE-API-ACCESS-CONTRACT.md) and RA-01–16 to select, implement and qualify its exact deployment profile;
    keep registration deferred. Fix the finite production NFS qualification matrix.
 2. Complete remaining FR-02 capacity cases and corresponding FR-03/05 failure
    cases before implementing FR-04 cleanup. Develop independent contract,
@@ -69,9 +70,13 @@ Do not repeat that bounded tmpfs case as unfinished implementation work.
    the production profiles whose gates have closed.
 
 [Increment 39](RUST-INCREMENT-39.md) defines the remote producer access boundary;
-implementation and all RA cases remain pending, and FR-01 stays open. Next define
-the enforceable NFS ownership/fence prerequisite and its pass/refusal cases,
-and select the exact proxy deployment before implementing its producer ingress. Do not enable remote REST,
+implementation and all RA cases remain pending, and FR-01 stays open.
+[Increment 40](RUST-INCREMENT-40.md) defines static NFS authority, old-execution
+exclusion/settlement and NF-01–18; no actual facility is selected or qualified,
+so FR-03 stays open. Next collect the intended endpoint topology/authentication
+and available storage/host exclusion plus server-settlement controls; select one
+profile before implementing its adapter. Independent local producer ingress may
+proceed while its proxy package is selected. Do not enable remote REST,
 production NFS, takeover or source deletion merely to complete a checklist.
 
 ## Deferred beyond the first release

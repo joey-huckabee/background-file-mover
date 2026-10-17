@@ -117,9 +117,14 @@ restoration; see docs/RUST-INCREMENT-38.md for actual evidence and limits.
 Increment 39 defines docs/REMOTE-API-ACCESS-CONTRACT.md: proposed external
 mutual TLS with manually approved certificates, protected producer-only Unix
 socket/peer UID and generator binding; RA-01–16 and SC-082–086 remain pending.
-No ingress, tokens or registration are implemented. Next resolve NFS authority/
-fencing, exact proxy packaging and remaining contract prerequisites before
-production enablement or cleanup. Keep registration deferred and runtime loopback;
+No ingress, tokens or registration are implemented. Increment 40 defines
+docs/NFS-OWNERSHIP-FENCING-CONTRACT.md: static original-state owner, independent
+old-execution exclusion and endpoint-settled-operation barriers, NF-01–18 pending.
+The actual authenticated endpoint/fencing facility is unselected/unqualified;
+next obtain its topology/control prerequisites and select one profile, while
+independent local producer ingress may proceed under disabled production gates.
+Do not treat locks, signals, a generation or operator assertions as a fence.
+No takeover/re-enrollment or cleanup authority is added. Keep registration deferred and runtime loopback;
 no production NFS, remote REST or deletion support is newly claimed.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.

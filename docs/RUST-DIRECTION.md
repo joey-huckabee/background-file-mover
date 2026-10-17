@@ -110,8 +110,11 @@ Prioritize the [first-release checklist](RUST-FIRST-RELEASE.md), recorded in
 and keeps optional adapters/repair/UI deferred. [Increment 38](RUST-INCREMENT-38.md)
 adds bounded native source-capacity fixture evidence.
 [Increment 39](RUST-INCREMENT-39.md) defines the proposed remote access contract
-and RA-01–16 without implementing ingress or registration. Next resolve NFS
-authority/fencing and select/qualify the remote deployment profile;
+and RA-01–16 without implementing ingress or registration.
+[Increment 40](RUST-INCREMENT-40.md) defines the NFS authority contract and pending
+NF-01–18. Next select/qualify actual endpoint authentication and independent
+old-execution exclusion/settlement controls; no provider is assumed available.
+Independent local producer ingress can proceed while its deployment is selected;
 do not implement source deletion or enable production NFS before their gates close.
 
 Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference

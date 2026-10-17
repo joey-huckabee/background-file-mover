@@ -302,3 +302,16 @@ ownership and storage suites run only when selected. Consult
 existence is not qualification. Tmpfs block depletion does not establish disk,
 quota/inode, blocked statistics RPC, export replacement, power-loss or fencing
 behavior. Keep production NFS and deletion disabled.
+
+## First-release authority and fencing obligations
+
+[Increment 40](RUST-INCREMENT-40.md) defines the
+[ownership/fencing contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) and eighteen pending
+NF cases. The retained fixture still measures only the scopes in its saved
+reports. Fake-provider tests, successful locks, killed containers and pre-syscall
+pause controls cannot prove independent old-client exclusion or server-side RPC
+settlement. A production provider must demonstrate both before matching-state
+restart after uncertainty; automatic takeover/re-enrollment remain deferred.
+No new option, fencer, format or runtime gate is implemented by this document.
+Production NFS and source deletion stay disabled. Do not require a real SLES host;
+qualify in containers and explicitly report shared-kernel/physical-fence limits.

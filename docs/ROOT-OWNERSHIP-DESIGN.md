@@ -5,6 +5,17 @@ Read [increment 22](RUST-INCREMENT-22.md) for measured startup behavior and
 [the protocol](TRANSFER-PROTOCOL.md) for the required custody model. Production
 NFS and deletion stay disabled. Generator registration remains deferred.
 
+## First-release authority contract
+
+[Increment 40](RUST-INCREMENT-40.md) defines the
+[NFS ownership/fencing contract](NFS-OWNERSHIP-FENCING-CONTRACT.md): static sole
+owner/original state, independent old-writer exclusion plus settled-operation
+barriers, scope-specific uncertainty and NF-01–18. It selects an enforcement
+class, not an available or qualified provider. Automatic takeover and populated
+re-enrollment remain deferred; their implementation is not a first-release goal.
+This refines the production prerequisites below without promoting current locks,
+markers or shared-kernel fixture results to fencing evidence.
+
 ## Separate the three decisions
 
 1. **Authorization:** is this the source/destination root the operator approved?
@@ -124,8 +135,9 @@ Never attempt a timestamp/lease-file workaround with unqualified clock semantics
 3. Implement and qualify the candidate cross-client lock with actual Rust
    coordinator/worker inheritance, contention and coordinator death. Verify
    separate client identities and a remote-lock positive control.
-4. Qualify replacement exports, partition/reclaim, delayed effects and positively
-   fenced takeover before considering production NFS or cleanup authorization.
+4. Qualify replacement-export refusal, partition/reclaim, delayed effects and
+   independently fenced original-state restart before considering production NFS
+   or cleanup authorization. Takeover/re-enrollment remain separate deferred work.
 
 Maintain SC-046 and the diagnostic SC-053/054 entries, plus DOC-04/05 runbooks.
 Do not mark an expected refusal as supported until implementation and evidence

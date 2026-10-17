@@ -535,6 +535,31 @@ Registration and token issuance remain deferred.
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust caller binding or explicitly trusted local deployment boundary.
 
+### L1-SEC-009
+
+The system shall require independently enforced exclusive execution authority
+for each approved NFS source and destination scope, and shall not resume effects
+after ownership uncertainty until old writers are excluded and previously issued
+operations are settled under a qualified fencing mechanism.
+
+The authority shall cover all affected pinned endpoints and the original local
+state writer, not only current routing. Lock acquisition, marker/instance IDs,
+timeouts, signals or operator assertions alone shall not authorize activation.
+Unknown/incomplete authority shall preserve original state and uncertain effects
+and refuse new affected work. Prior valid 202 acknowledgements and committed
+manifests shall remain valid; source paths reused by the recorder shall not be
+reclaimed. Destination-only unavailability with proven source authority shall
+retain L1-SYS-030 handoff behavior subject to its limits.
+
+See [the first-release contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) and NF-01–18.
+This new Rust-specific obligation is separate from L1-SEC-008 caller binding;
+existing requirement IDs and historical C++ meanings are unchanged. Provider,
+L2/L3 derivation and Rust evidence remain future work. It grants no automatic
+takeover, re-enrollment, repair or source-deletion authority.
+
+**Verification Method**: Analysis (A), Test (T), Demonstration (D)
+**v1.0.0 Status**: Deferred — Rust NFS authority design; no production support or fencing provider implemented.
+
 ### L1-SYS-028
 
 The system shall determine and durably record each submitted file's actual logical

@@ -11,12 +11,15 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next resolve production ownership/fencing (FR-03), the remaining FR-01 contract
-details and the exact deployment package for the [remote access design](REMOTE-API-ACCESS-CONTRACT.md).
-Implement and qualify that design's producer ingress and RA-01–16 before remote
-enablement; registration stays deferred. Fix the finite supported-profile failure
-matrix before dependent NFS qualification and source cleanup. Complete remaining FR-02 capacity cases
-without changing existing-job recovery or default-off policy.
+Next select an actual authenticated endpoint and independent exclusion/settled-
+operation facility for the [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
+(FR-03), then implement and qualify its finite NF-01–18 cases. Missing facilities
+remain a production blocker, not permission for a lock/timeout workaround.
+Select the exact proxy package and implement/qualify the
+[remote access design](REMOTE-API-ACCESS-CONTRACT.md), RA-01–16, alongside remaining
+FR-01 contract details. Independent local ingress work can proceed under disabled
+production gates. Keep registration deferred and complete remaining FR-02 capacity
+cases without changing existing-job recovery or default-off policy.
 
 ## Next work
 
@@ -40,9 +43,11 @@ before implementation.
   populated/legacy-state re-enrollment or legitimate changes to strict observed
   pins. Preserve original job/route evidence. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
-- [ ] Qualify lost-lock handling, partition/reclaim and positively fenced takeover
-  before production NFS. Extend cooperative exclusion beyond the shared-kernel
-  two-client fixture and qualify replacement exports, server reboot and power loss.
+- [ ] Implement and qualify NF-01–18 authority/uncertainty behavior, positive old-
+  execution exclusion and endpoint settlement before matching-state production
+  NFS restart. Extend cooperative exclusion beyond shared-kernel clients; qualify
+  replacement-export refusal, partition/reclaim, server recovery and durability
+  for the exact supported profile. Keep takeover/re-enrollment deferred.
 - [ ] Extend diagnostics to remaining root/traversal metadata failures and
   logical custody/integrity refusals.
 - [ ] Extend retry classification beyond confirmed payload-copy ENOSPC; decide

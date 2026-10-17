@@ -16,6 +16,9 @@ Production NFS and source deletion remain disabled pending those gates.
 The [remote API access contract](docs/REMOTE-API-ACCESS-CONTRACT.md) defines a
 proposed external client-certificate/protected-proxy profile; registration remains
 deferred and current remote access is not enabled.
+The [NFS ownership/fencing contract](docs/NFS-OWNERSHIP-FENCING-CONTRACT.md)
+defines static ownership and independent exclusion/settlement requirements.
+Its provider and acceptance cases remain unqualified; no takeover is enabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

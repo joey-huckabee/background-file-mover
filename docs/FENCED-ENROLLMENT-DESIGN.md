@@ -8,6 +8,15 @@ remain future work. No production NFS approval is given by this contract.
 Read [root ownership](ROOT-OWNERSHIP-DESIGN.md) for the separate exclusion limits.
 Generator registration and its one-time setup key are separate, deferred work.
 
+## First-release ownership boundary
+
+The [increment 40 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) defines the proposed
+independent exclusion/settled-operation prerequisite for static-owner operation
+and matching original-state restart. NF-01–18 remain pending. No actual provider,
+re-enrollment command, proof-import API or new persisted format is implemented.
+The maintenance/re-enrollment rules here stay deferred; obtaining a fence alone
+does not authorize changing pins, adopting old data or restoring a stale database.
+
 ## The gap this must close
 
 The schema-9 `source_enrollment` reviewed in increment 26 binds a source policy and observed identity

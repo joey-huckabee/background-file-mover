@@ -10,6 +10,9 @@ The proposed Rust [remote API access boundary](REMOTE-API-ACCESS-CONTRACT.md)
 uses external client-certificate verification and protected producer-only IPC;
 registration stays deferred. It is design-only and adds no current remote support.
 The proxy/local UID trust boundary is separate from NFS custody and fencing.
+The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
+defines independent exclusion, endpoint settlement and original-state restart
+obligations; it does not establish an available/qualified fencing facility.
 
 How Background File Mover moves data safely on a filesystem it shares with
 privileged agents it does not control.

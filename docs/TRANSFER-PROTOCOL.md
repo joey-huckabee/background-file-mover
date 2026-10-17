@@ -12,6 +12,11 @@ Review producer acknowledgements using [REST-API-DRAFT.md](REST-API-DRAFT.md)
 before implementing each dependent API/effect contract. Independent core tests
 and persistence increments can proceed while remaining details are refined.
 
+The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
+separates binding, cooperative locks and independently enforced old-writer
+exclusion/settled-operation barriers. Its authority states and NF cases remain
+design-only; no production NFS or deletion is enabled by this protocol.
+
 ## Guarantees and boundaries
 
 - `Accepted` means the request is durable. It does not release source paths.
