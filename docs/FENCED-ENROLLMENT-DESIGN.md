@@ -10,12 +10,15 @@ Generator registration and its one-time setup key are separate, deferred work.
 
 ## First-release ownership boundary
 
-The [increment 40 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) defines the proposed
-independent exclusion/settled-operation prerequisite for static-owner operation
-and matching original-state restart. NF-01–18 remain pending. No actual provider,
-re-enrollment command, proof-import API or new persisted format is implemented.
-The maintenance/re-enrollment rules here stay deferred; obtaining a fence alone
-does not authorize changing pins, adopting old data or restoring a stale database.
+The [increment 41 contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) narrows the first
+release to a fixed same-host/local-state owner and proposed inherited local guard,
+with bounded configurable shutdown and qualified original-state reconciliation.
+SH-01–14 remain pending. It supersedes a blanket external-provider prerequisite
+for that profile, without claiming that process exit or a local lock settles NFS.
+The stronger re-enrollment/takeover obligations below remain deferred and are
+not satisfied by the local guard or its 60-second timer. No re-enrollment command,
+proof-import API or persisted format is implemented. Fencing alone never permits
+changed pins, data adoption or stale-database restoration.
 
 ## The gap this must close
 

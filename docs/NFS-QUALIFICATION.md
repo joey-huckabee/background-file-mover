@@ -303,15 +303,22 @@ existence is not qualification. Tmpfs block depletion does not establish disk,
 quota/inode, blocked statistics RPC, export replacement, power-loss or fencing
 behavior. Keep production NFS and deletion disabled.
 
-## First-release authority and fencing obligations
+## First-release single-host ownership obligations
 
-[Increment 40](RUST-INCREMENT-40.md) defines the
-[ownership/fencing contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) and eighteen pending
-NF cases. The retained fixture still measures only the scopes in its saved
-reports. Fake-provider tests, successful locks, killed containers and pre-syscall
-pause controls cannot prove independent old-client exclusion or server-side RPC
-settlement. A production provider must demonstrate both before matching-state
-restart after uncertainty; automatic takeover/re-enrollment remain deferred.
-No new option, fencer, format or runtime gate is implemented by this document.
-Production NFS and source deletion stay disabled. Do not require a real SLES host;
-qualify in containers and explicitly report shared-kernel/physical-fence limits.
+[Increment 41](RUST-INCREMENT-41.md) revises the
+[ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) around confirmed single-host,
+fixed local state/config and private NFS working areas. SH-01–14 cover shared
+local guard/inheritance, manual/systemd conflicts, default-60 configurable stop
+controller and actual NFS original-state recovery/refusal. They are pending; this
+document adds no option or passing fixture run. The earlier NF-01–18 have an
+explicit carry-forward/deferred mapping, not silent passing status.
+
+Qualify both same-share and separate-share layouts. Actual deployment NFS version
+and mount/security settings remain unknown; retained fixture evidence is v4.1 only.
+Local lock release, killed containers, confirmed child exit and pre-call pauses
+cannot alone prove old client/server RPCs or writeback have settled. Preserve
+review for unsafe uncertainty. Shared-kernel clients are appropriate for this
+same-host guard profile but do not prove other hosts are fenced or power-loss
+semantics. No actual SLES host or NAS-admin facility is assumed. Keep container
+userspace, ELF and exact-target gates; qualify actual systemd lifecycle separately.
+Production NFS and source deletion remain disabled.

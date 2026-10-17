@@ -7,6 +7,13 @@ filesystems. It is not an installation, takeover or filesystem repair procedure.
 Production NFS and source deletion remain disabled. Controlled NFS observations
 below apply only to the retained qualification build and fixture.
 
+The [increment 41 ownership revision](NFS-OWNERSHIP-FENCING-CONTRACT.md) proposes
+same-host shared local guard/inherited workers and shutdown_wait_seconds (default
+60). These are not implemented commands/configuration/status fields. Do not add
+the proposed key to today's config or assume a stop command/60-second process
+exit guarantee exists. Future controller timeout must leave surviving ownership
+held and restart blocked; current operational instructions below are unchanged.
+
 ## Inspect a job
 
 Run these shell examples on the mover machine. They assume the example listener

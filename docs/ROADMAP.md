@@ -11,15 +11,17 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next select an actual authenticated endpoint and independent exclusion/settled-
-operation facility for the [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
-(FR-03), then implement and qualify its finite NF-01–18 cases. Missing facilities
-remain a production blocker, not permission for a lock/timeout workaround.
-Select the exact proxy package and implement/qualify the
-[remote access design](REMOTE-API-ACCESS-CONTRACT.md), RA-01–16, alongside remaining
-FR-01 contract details. Independent local ingress work can proceed under disabled
-production gates. Keep registration deferred and complete remaining FR-02 capacity
-cases without changing existing-job recovery or default-off policy.
+Next implement/qualify the shared local ownership guard and explicit child
+inheritance from the [single-host contract](NFS-OWNERSHIP-FENCING-CONTRACT.md),
+SH-01–04/13. Then add the bounded stop/status controller and configurable
+60-second-default shutdown_wait_seconds policy (SH-05–09). Keep delayed NFS
+operations/reconciliation, actual mount/version/security discovery, same/separate
+shares and systemd lifecycle qualification open (SH-10–14); a free local lock or
+a timeout is not remote-settlement proof. No NAS-admin fencing facility is assumed
+for this restricted profile. Keep stronger cross-host/re-enrollment controls deferred.
+Select the proxy package and implement/qualify the [remote access design](REMOTE-API-ACCESS-CONTRACT.md),
+RA-01–16, alongside remaining FR-01 details and FR-02 capacity cases. Keep
+registration deferred, existing-job recovery intact and production NFS/deletion off.
 
 ## Next work
 
@@ -43,11 +45,12 @@ before implementation.
   populated/legacy-state re-enrollment or legitimate changes to strict observed
   pins. Preserve original job/route evidence. Complete authenticated export/root
   identity qualification; copied markers/observations are not global authority.
-- [ ] Implement and qualify NF-01–18 authority/uncertainty behavior, positive old-
-  execution exclusion and endpoint settlement before matching-state production
-  NFS restart. Extend cooperative exclusion beyond shared-kernel clients; qualify
-  replacement-export refusal, partition/reclaim, server recovery and durability
-  for the exact supported profile. Keep takeover/re-enrollment deferred.
+- [ ] Implement and qualify SH-01–14 for the confirmed same-host/local-state
+  profile: shared guard, surviving-worker exclusion, bounded configurable shutdown,
+  systemd coordination, actual NFS mount/root validation and delayed-effect owned
+  recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
+  integration and takeover/re-enrollment remain deferred. No guard-release or
+  fixed-wait shortcut for uncertain storage effects.
 - [ ] Extend diagnostics to remaining root/traversal metadata failures and
   logical custody/integrity refusals.
 - [ ] Extend retry classification beyond confirmed payload-copy ENOSPC; decide

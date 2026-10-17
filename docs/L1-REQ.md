@@ -537,28 +537,33 @@ Registration and token issuance remain deferred.
 
 ### L1-SEC-009
 
-The system shall require independently enforced exclusive execution authority
-for each approved NFS source and destination scope, and shall not resume effects
-after ownership uncertainty until old writers are excluded and previously issued
-operations are settled under a qualified fencing mechanism.
+The system shall enforce the declared ownership profile before assigning effects
+and shall preserve uncertain work until safe original-state reconciliation is
+established for every affected source and pinned destination.
 
-The authority shall cover all affected pinned endpoints and the original local
-state writer, not only current routing. Lock acquisition, marker/instance IDs,
-timeouts, signals or operator assertions alone shall not authorize activation.
-Unknown/incomplete authority shall preserve original state and uncertain effects
-and refuse new affected work. Prior valid 202 acknowledgements and committed
-manifests shall remain valid; source paths reused by the recorder shall not be
-reclaimed. Destination-only unavailability with proven source authority shall
-retain L1-SYS-030 handoff behavior subject to its limits.
+For the confirmed single-host first release, all supported manual/service starts
+and effect-capable commands shall use the same configuration and local state,
+with one protected host-local ownership guard inherited by relevant workers.
+Surviving holders shall block replacement. The system shall provide a configurable
+bounded shutdown wait defaulting to 60 seconds; expiration shall report incomplete
+shutdown/restart blocked without releasing live ownership or authorizing a new
+instance. Returning operator control shall not imply process or NFS cancellation.
 
-See [the first-release contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) and NF-01–18.
-This new Rust-specific obligation is separate from L1-SEC-008 caller binding;
-existing requirement IDs and historical C++ meanings are unchanged. Provider,
-L2/L3 derivation and Rust evidence remain future work. It grants no automatic
-takeover, re-enrollment, repair or source-deletion authority.
+Local guard acquisition, process exit, timeouts, markers or operator assertions
+alone shall not prove delayed NFS effects are settled. Qualified owned recovery
+or preserved review shall precede conflicting effects. Prior valid 202 and
+committed manifests shall remain valid; reused producer paths shall not be
+reclaimed. Destination-only outage handoff shall retain L1-SYS-030 limits.
+
+See [the revised single-host contract](NFS-OWNERSHIP-FENCING-CONTRACT.md), SH-01–14
+and the explicit NF-01–18 mapping. Increment 41 revises this same Rust requirement
+under confirmed deployment constraints; it does not equate local exclusion with
+storage fencing. Independently enforced fencing remains required for future
+cross-host takeover/re-enrollment profiles. No force, repair, state adoption or
+source-deletion authority is granted. L2/L3 and Rust verification remain pending.
 
 **Verification Method**: Analysis (A), Test (T), Demonstration (D)
-**v1.0.0 Status**: Deferred — Rust NFS authority design; no production support or fencing provider implemented.
+**v1.0.0 Status**: Deferred — Rust single-host ownership/shutdown design; no new runtime support.
 
 ### L1-SYS-028
 

@@ -7,14 +7,16 @@ NFS and deletion stay disabled. Generator registration remains deferred.
 
 ## First-release authority contract
 
-[Increment 40](RUST-INCREMENT-40.md) defines the
-[NFS ownership/fencing contract](NFS-OWNERSHIP-FENCING-CONTRACT.md): static sole
-owner/original state, independent old-writer exclusion plus settled-operation
-barriers, scope-specific uncertainty and NF-01–18. It selects an enforcement
-class, not an available or qualified provider. Automatic takeover and populated
-re-enrollment remain deferred; their implementation is not a first-release goal.
-This refines the production prerequisites below without promoting current locks,
-markers or shared-kernel fixture results to fencing evidence.
+[Increment 41](RUST-INCREMENT-41.md) revises the
+[ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md) for one mover restarting
+on the same host/account, with fixed local state/config and private NFS working
+areas. The candidate is an explicitly inherited host-local guard plus qualified
+owned recovery; shutdown wait defaults to 60 seconds and is configurable.
+SH-01–14 remain pending. Local guard release is not proof of remote settlement.
+The earlier external-fencer NF requirements are mapped to carry-forward safety
+or deferred cross-host/maintenance profiles; no provider is assumed available.
+The broad authenticated-export/fencing mechanisms below remain candidate extended
+controls, not facts about the user's NAS. Current binding/receipt checks remain.
 
 ## Separate the three decisions
 
@@ -135,9 +137,10 @@ Never attempt a timestamp/lease-file workaround with unqualified clock semantics
 3. Implement and qualify the candidate cross-client lock with actual Rust
    coordinator/worker inheritance, contention and coordinator death. Verify
    separate client identities and a remote-lock positive control.
-4. Qualify replacement-export refusal, partition/reclaim, delayed effects and
-   independently fenced original-state restart before considering production NFS
-   or cleanup authorization. Takeover/re-enrollment remain separate deferred work.
+4. Implement/qualify the revised single-host SH guard/shutdown/recovery cases,
+   including delayed effects, actual mount/root validation and safe original-state
+   restart/refusal. Keep production NFS/cleanup off until the release gates pass.
+   Independently fenced takeover/re-enrollment remain separate deferred profiles.
 
 Maintain SC-046 and the diagnostic SC-053/054 entries, plus DOC-04/05 runbooks.
 Do not mark an expected refusal as supported until implementation and evidence

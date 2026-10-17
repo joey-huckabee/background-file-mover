@@ -13,9 +13,11 @@ before implementing each dependent API/effect contract. Independent core tests
 and persistence increments can proceed while remaining details are refined.
 
 The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
-separates binding, cooperative locks and independently enforced old-writer
-exclusion/settled-operation barriers. Its authority states and NF cases remain
-design-only; no production NFS or deletion is enabled by this protocol.
+now proposes a shared local ownership guard for the confirmed same-host profile,
+with worker inheritance and a configurable 60-second bounded shutdown wait.
+SH cases and safe delayed-NFS-effect recovery remain unqualified; the guard is
+not storage settlement. Stronger cross-host fencing remains deferred. No
+production NFS or deletion is enabled by this protocol.
 
 ## Guarantees and boundaries
 

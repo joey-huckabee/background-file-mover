@@ -1,226 +1,237 @@
-# First-release NFS ownership and fencing contract
+# First-release single-host NFS ownership contract
 
-Design baseline, increment 40, 2026-10-16. **Specified, not implemented or
-qualified.** Defines FR-03 within the [first-release checklist](RUST-FIRST-RELEASE.md).
-Production NFS and source deletion remain disabled. No fencer, takeover command,
-lease service, credential scheme, migration or new runtime configuration is added.
-Registration and offline repair remain deferred.
+Revised in [increment 41](RUST-INCREMENT-41.md), 2026-10-16, after the deployment
+clarifications below. **Design only: not implemented or qualified.** Supersedes
+the blanket external-fencing prerequisites in increment 40 for this restricted
+first-release profile. It does not declare a local lock equivalent to NAS fencing.
+Production NFS and source deletion remain disabled. Registration, cross-host
+failover, re-enrollment and offline repair stay deferred.
 
-## First-release scope
+## Confirmed deployment and remaining unknowns
 
-One statically assigned mover and its original local SQLite state own disjoint
-source custody and destination allocation scopes. Support explicit unused-scope
-enrollment and matching original-state restart only. No automatic failover,
-second active mover, populated re-enrollment, database clone/rollback adoption,
-route reassignment or cross-host takeover. A detected uncertainty may require
-operator intervention and indefinite refusal; availability does not override custody.
-
-The reference candidate is hard-mounted NFSv4.1 with TCP, remote cooperative
-locking (`local_lock=none`) and qualified synchronization/no-clobber behavior.
-This matches the retained fixture's protocol, not a production-approved mount
-recipe. NFSv3, other minor versions, soft mounts, alternative locking/security
-modes and arbitrary server failover profiles require separate scope decisions
-and evidence. The host kernel handles NFS; the service does not implement NFS.
-
-The existing fixture's trusted network/UID policy does not establish authenticated
-production server/export identity. The production profile must select an
-independently authenticated endpoint/transport and approved export mapping.
-RPCSEC_GSS with server authentication/integrity, such as a qualified krb5p profile,
-is a candidate to evaluate, not a selected dependency or available infrastructure
-assumption. No silent fallback to AUTH_SYS, a different server or a local directory.
-A marker, mount-source string, IP, inode or copied filehandle observation alone
-is insufficient. Keep strict source/destination binding pins; legitimate changes
-remain unsupported without the deferred reconciliation/re-enrollment mechanism.
-
-## Separate authority, exclusion and enforcement
-
-| Evidence/control | What it establishes | What it cannot establish alone |
-|---|---|---|
-| Approved endpoint policy and authenticated storage transport | Intended server/export and permitted storage identity for a scoped session | Continuous worker exclusion, original database identity or settled old RPCs |
-| Paired source enrollment receipt and original local state | Recorded source/state authorization and matching restart evidence | Detection of copied/stale databases or authenticated export identity |
-| Protected regular lock and inherited description | Cooperative exclusion and measured child custody on the qualified mount | A per-effect storage fence or proof of uninterrupted lock history |
-| Assignment/owner generation in durable state | Correlation and rejection of stale worker results by the coordinator | Rejection of a stale write/link/unlink at an NFS server |
-| Independently enforced access fence plus settled-operation barrier | Old execution cannot issue or later apply effects within the covered scope | Permission to change routes, adopt foreign objects or restore stale state |
-
-Current bindings, receipts and locks remain necessary. A new NFS lock acquisition,
-process signal, elapsed timeout, heartbeat, successful ping, normal API mTLS or
-boolean `fenced=true` cannot replace the last row. There is no promise that every
-network lock loss is observable before a subsequent syscall with today's code.
-The selected storage/host controls must enforce exclusion independently of that
-assumption throughout their declared failure model.
-
-## Ownership scope and effect authority
-
-Bind ownership to the original state instance, approved coordinator, execution
-incarnation and qualified endpoint/export/root scope. An execution incarnation
-is a design identity for one activation, distinct from persistent coordinator IDs;
-no format or generation field is implemented here. Enumerate all pinned source
-and destination roots used by retained jobs, not only current startup routes.
-Include namespace allocation, claims, partial files, links/unlinks, payload writes,
-sync, final publication and manifests. Future cleanup is separately gated and off.
-Include local SQLite writer exclusion when authorizing another activation.
-
-Producer permissions cover only approved input paths under the agreed closed-writer
-handoff; they must not grant access to private claims, lock/receipt namespaces or
-destination staging. Consumers do not mutate mover-owned destination evidence.
-Mismatched or colliding coordinator scopes refuse provisioning, including shared
-UIDs/credentials, nested namespaces and differently named aliases of one export.
-The actual server policy must demonstrate exclusion; logical root strings alone
-cannot prove disjointness. Trusted provisioning/admin controls must prevent
-uncoordinated mount/ACL/credential changes during active custody. Unexpected
-interference is preserved/refused for review, not treated as successful ownership.
-
-Every worker must use the approved assignment, held root/lock descriptions and
-current scope authorization. Old worker results cannot authorize SQL transitions,
-202, publication or cleanup after their assignment loses authority, even if the
-reported hash matches. A manager check before dispatch is necessary but cannot
-prevent an already issued syscall; the external enforcement/barrier must cover it.
-All potentially blocking validation remains in bounded supervised children.
-
-## Proposed authority states and allowed behavior
-
-These states describe required behavior, not current persisted enums/API codes.
-Missing or unrecognized authority defaults to blocked, never active. Persist
-recovery-relevant incidents/assignments before permitting further effects; exact
-schema, provider interface and migration need a later reviewed increment.
-
-| State | Allowed behavior | Required transition evidence |
-|---|---|---|
-| Unproven | Bounded diagnostics and operator observation only; no readiness/claim effects for that source | Original source/state pair, endpoint authorization, approved active-owner enforcement and cooperative custody all validated |
-| Active | Assign only effects for covered roots; use existing intent/receipt/replay and resource limits | Continuous provider guarantees and matching bindings; planned stop or uncertainty closes new assignment authority |
-| Unavailable with continuity established | Preserve pending effects, apply existing bounded retry/backpressure and original-state recovery; do not spawn replacements for unconfirmed children | Provider/profile positively preserves sole-owner authority and stable endpoint binding through this outage; timeout alone cannot establish continuity |
-| Uncertain | Stop new effects for affected scopes, preserve assignments and request bounded child shutdown; read-only local diagnostics where safe | Independent old-writer exclusion and settled-operation evidence required; restoring connectivity or reacquiring a lock does not return Active |
-| Fenced/quiescent | No normal claim/delivery effects; original-state reconciliation only under explicit scope-limited maintenance authority | Old execution remains excluded, state writer is exclusive, every ambiguous intent is reconciled without adoption/repair and all current pins match |
-| Restart eligible | Permit only a reviewed matching original-state activation, not re-enrollment or takeover | New activation authority cannot revive old clients/credentials/RPCs; persist/revalidate its scope and return Active only after normal bootstrap checks |
-
-Known/suspected lost lock, changed root/export, changed enforcement generation,
-unknown enforcement status, conflicting owner or server recovery outside a proven
-continuity guarantee enters Uncertain. Ordinary network unavailability is not by
-itself proof of lost ownership; treating it as continuity requires a qualified
-provider guarantee, not the service guessing that no other writer exists.
-If no continuity proof is available, use Uncertain. An unobservable lost lock is
-why the independent enforcement requirement cannot be replaced by an EIO detector.
-
-Scope-specific behavior preserves the producer contract: a destination-only
-outage can still allow source claiming/202 when source authority, local state,
-pinned route and admission limits are valid. No destination mutation proceeds
-without its own authority. A source authority incident blocks new claims and
-withholds new unproven 202 acknowledgements. A prior valid 202 still permits path
-reuse and must never be retracted; recovery uses private claims, not reused input.
-No replay may infer authority from a possibly stale database. Previously committed
-manifests remain consumer-visible; an incident does not retract commitment.
-
-## What the independent fencing facility must do
-
-The contract selects an enforcement class: **independent old-writer exclusion
-plus an endpoint-confirmed settled-operation barrier**, with fail-closed activation.
-The exact facility is unresolved. No cluster product, BMC, Kerberos installation,
-server revocation behavior or client-visible barrier API is assumed to exist.
-Without a selected, enforceable and qualified implementation, FR-03 stays open.
-
-The facility must cover the old coordinator, every child/client identity and all
-access paths/aliases to each affected source and pinned destination, including
-open descriptors, cached credentials, queued/retried RPCs, server-accepted work,
-writeback and reconnect/reclaim. Revoking a credential or network path for future
-requests is insufficient if accepted work can still execute later. Powering off
-a host can be one control, but cannot by itself prove server-side queues settled.
-Waiting a fixed number of seconds cannot establish that condition either.
-
-Define a barrier B at each endpoint: after B, no effect from the excluded execution
-may change that scope. Effects completed before B may be ambiguous and must be
-reconciled from original intents/receipts and qualified storage durability evidence.
-Do not require earlier operations to have done nothing; require their outcomes
-settled and no later old effect. Partial barrier success across endpoints grants
-no combined restart authority. Retain all exclusions throughout reconciliation
-and new activation; rollback of the fencing operation must never reopen old access.
-
-Re-enabling a host/network/credential must not make old requests valid again.
-The chosen facility must distinguish the new execution, or prove the old client,
-cache, descriptors and queues are fully gone before granting access to it. An
-application generation in SQLite is not an NFS per-operation fencing token.
-Cooperative locks remain an additional check, not a substitute for enforcement.
-
-A future independently obtained observation must identify the provider/version
-and qualification reference, operation/activation IDs, old execution/client
-identities, original state, endpoint/export/root scopes, denial status and barrier
-results for every endpoint, evidence freshness, still-enforced exclusions and
-reconciliation result. Unavailable/stale/incomplete/foreign/replayed observations
-refuse activation. Never accept an operator-supplied JSON file or HTTP parameter
-as fence proof merely because its fields look correct. Authentication, transport,
-bounded observation parsing and failure semantics of the real facility must be
-specified before integrating it; no fencer REST API/config format is frozen here.
-
-## Restart and incident procedure boundary
-
-A clean same-owner restart requires confirmed old coordinator/worker exit,
-exclusive original local state and provider evidence that old storage operations
-are settled or continuously excluded under the qualified profile. Process reaping
-alone does not establish remote settlement. Then validate the exact source/state
-pair and all bindings and reconcile original operation records. A legitimate reboot/remount
-that changes persisted pins can therefore remain refused in the first release;
-matching restart is not a promise of recovery across every reboot. A hard-mounted
-unreapable child, unavailable endpoint/barrier or incomplete original record keeps
-the affected scope blocked. Bounded concurrency does not imply bounded shutdown.
-
-After an uncertainty incident: stop ingress/assignments in the affected scope,
-preserve state/source/staging/final objects, obtain independent exclusion and
-all required endpoint barriers, and perform scoped original-state reconciliation.
-If any object requires missing allocation ownership, changed pins, populated
-rebind, cloned/stale state or offline repair, stop at review; those tools remain
-deferred. An independent fence is necessary, not permission to bypass evidence.
-No force/resume/reset command may clear ownership uncertainty. Existing delivery
-resume and missing reset remain their original narrow operations.
-
-## Finite qualification matrix (all pending)
-
-NF IDs refine FR-03, L1-SEC-009 and catalog scenarios; they are not replacement
-requirement IDs or passing test claims. Tests use the retained container fixture and exact
-SLES-gated artifacts. A fake provider may test coordinator refusal/transitions,
-but cannot qualify real fencing. Shared-kernel clients cannot prove independent
-host/cache behavior; report that gap instead of requiring a physical SLES host.
-
-| Case | Required evidence before declaring the profile supported |
+| Item | Confirmed first-release constraint |
 |---|---|
-| NF-01 | Default production NFS/deletion gates stay off. Unsupported protocol/security/enforcement profile, missing provider or proof refuses before effect readiness. |
-| NF-02 | Explicit unused enrollment and clean matching restart preserve original state, receipts, pins and retained jobs. No auto-enrollment or changed-observation activation. |
-| NF-03 | Two independently isolated clients contend using actual Rust inherited lock descriptions; server-visible lock control distinguishes local-only locking. Only the assigned original state may own a scope. Record independent versus shared-kernel evidence. |
-| NF-04 | Wrong server/export, copied marker, nested/aliased scopes, local fallback mount or same-label foreign state refuses before effects; prove authenticated endpoint mapping and disjointness policy. |
-| NF-05 | Kill coordinator while claim/copy/verification/publication workers survive. No replacement/activation before child exit and qualified remote settlement; original intents and data preserved. |
-| NF-06 | Partition/reconnect and lost-lock/reclaim, including a loss without prompt EIO notification: independent enforcement excludes conflicting effects; no reliance on detecting every lost lock or reacquiring a lock. |
-| NF-07 | Freeze/delay old writes, namespace allocation, link/unlink, sync and manifest RPCs at client and server boundaries; settle old outcomes before barriers, then prove zero old mutation after every barrier/new activation. A userspace pre-call pause alone is insufficient. |
-| NF-08 | Fence only one of source/multiple pinned destinations; stale, forged, replayed, wrong-scope or unavailable observations refuse combined restart and preserve all objects. Include original routes no longer in startup configuration. |
-| NF-09 | Crash/restart fencing control during deny/barrier/activation; no rollback reopens old clients. Reconnect old credentials/host/cache/session after activation and demonstrate continued denial. |
-| NF-10 | Server restart/grace/reclaim/export failover invalidates or positively preserves authority under the declared profile. Verify endpoint identity, barriers and durability separately; no automatic rebind. |
-| NF-11 | Outage beyond three minutes, bounded queue flood and unreapable children: no unbounded replacement, no false 202/commitment and responsive local diagnostics within measured limits. Unsupported indefinite shutdown stays explicit. |
-| NF-12 | Destination-only outage with proven source authority still permits configured bounded 202 handoff. Source uncertainty withholds new unproven 202; preserve previous valid 202, reused paths and committed manifests. |
-| NF-13 | Original-state post-fence reconciliation handles settled applied/not-applied/partial effects without clobber; unknown allocation, foreign aliases, changed pins or missing receipts stop for review rather than repair. |
-| NF-14 | Clone/stale backup, copied credentials, old binary and second state cannot be activated by the supported provisioning/enforcement workflow. Do not claim persistent IDs detect every clone; no backup restoration/takeover support. |
-| NF-15 | Native storage-full/quota/EIO/sync/server-reset and durability-boundary cases cover the supported server/storage profile. Container/process kills alone do not prove hardware power-loss durability; record any unresolved release gap. |
-| NF-16 | Source deletion remains off even with a valid fence; no source/input/final cleanup added. Later FR-04 must independently prove pinned/current policy and receipt-gated cleanup. |
-| NF-17 | Every changed Rust build/test passes production/qualification zigbuild GNU/glibc 2.22, ELF and exact pinned SLES-userspace gates. Qualify actual provider dependencies separately, including fail-closed parsing and asynchronous isolation. |
-| NF-18 | DOC-04/05 explain the exact supported mount/security/provider profile, incident refusal, confirmed shutdown, original-state restart and unsupported rebind/takeover. Execute the declared end-to-end cases with preserved evidence and cleanup. |
+| Mover ownership | Exactly one mover, always restarted on the same host; another host will not use these scopes |
+| Account and administration | Runs under the user's account, without host sudo or NAS administration; an administrator can set up systemd |
+| Startup paths | Manual and systemd starts use the same configuration file and fixed local state directory |
+| Persistence | SQLite database, WAL/shared-memory sidecars, state files and ownership guard live on persistent local disk, not NFS or a home directory merely assumed local |
+| Payload storage | Source and destination are mounted NFS shares, normally separate but possibly the same share; NetApp and Dell Isilon are in use |
+| Private working areas | Other applications and cleanup jobs leave mover-private claim/staging areas untouched; normal recorder input paths remain reusable after 202 |
+| Stop behavior | Wait for the old mover and every worker before replacement; configurable shutdown wait, default 60 seconds, then report incomplete/blocked instead of waiting silently forever |
 
-## Evidence baseline, references and next work
+NFS version, mount/security options and exact paths are unknown; the user cannot
+check them yet. Discover them later with read-only host information. Existing
+fixture evidence is hard NFSv4.1 on a shared modern kernel; it does not qualify
+NFSv3, every v4 minor version, actual NAS options or hardware. Do not assume a
+NAS management API, credential revocation, host power fence, Kerberos or a new
+storage service is available. The host kernel supplies NFS, not this application.
 
-Increments 22–28 establish selected binding, pairing, exclusion, worker survival
-and startup behavior; 29–33 add bounded native capacity/failure evidence;
-38 qualifies selected source-admission recovery. Consult those reports for actual
-scope. None closes NF-01–18 in aggregate or implements this authority lifecycle.
-Existing automatic fixture recovery is measured behavior, not a newly qualified
-production continuity guarantee.
+This profile trusts administrator-managed mounts and cooperating local launchers.
+Keep approved root bindings/markers, strict observations, safe traversal and
+original source/state pairing. An unexpected local fallback, changed root/pin or
+foreign receipt refuses effects; matching marker text is not cryptographic proof
+of NAS identity. Qualification must record the actual mount/security boundary
+and its limitations. Do not change/downgrade installed mount security to make a
+test pass. No cryptographic endpoint authentication or malicious-NAS/admin
+protection is newly claimed; stronger profiles need separate design/qualification.
 
-Linux documents advisory/NFS flock behavior in
-[flock(2)](https://man7.org/linux/man-pages/man2/flock.2.html), network lock loss
-and absent asynchronous notification in
-[fcntl_locking(2)](https://man7.org/linux/man-pages/man2/fcntl_locking.2.html), and
-mount/security options in [nfs(5)](https://man7.org/linux/man-pages/man5/nfs.5.html).
-These support limitations and available primitives; the activation/barrier policy
-above is a project design, not a capability certified by those references.
+## Candidate: shared host-local ownership guard
 
-Next collect the actual endpoint authentication, server/export topology, client
-identity isolation and host/storage fence plus settled-operation control available
-for the intended deployment. Select one profile and attach implementation-level
-NF pass/refusal cases before developing its adapter. An unavailable facility is
-a release blocker, not justification for a lease-file workaround. Independent
-local producer-ingress implementation and other bounded qualification may proceed
-under existing disabled production gates. Registration remains deferred.
+Use a protected persistent regular guard file under the fixed local state
+directory, separate from SQLite and NFS coordinator.lock files. Its proposed
+location is `<state-directory>/instance.lock`; this is not a currently implemented
+filename/provisioning interface. Validate local filesystem, private parent,
+regular-file type, owner, mode 0600, single link and held/named identity. Reject
+symlinks, unsafe parents, replaced/foreign files and unsupported storage. Never
+truncate, unlink, recreate or replace an existing guard to bypass a holder.
+
+Every effect-capable launch path must acquire the same nonblocking exclusive
+local flock before opening SQLite or performing NFS bootstrap/claim/delivery.
+Contention reports an existing instance/worker promptly and performs no effects.
+Initialization and single-file/maintenance effect paths must use this guard too;
+an alternate command is not an ownership bypass. Read-only/platform tools require
+an explicit no-effects boundary. Do not infer ownership from a PID file or
+`kill -0`; PIDs can be reused.
+
+Pass the same locked open description explicitly to every potentially relevant
+child, including bootstrap, claiming, capacity sampling, recording/delivery and
+publication workers. Validate inheritance/descriptor identity; do not depend on
+accidental exec descriptor leakage. All holders close their own copies only;
+none explicitly unlocks the shared description. Keep the guard through active
+work, draining, uncertainty, reconciliation and confirmed shutdown. If the parent
+dies, surviving workers retain their copies and block a new manual/systemd start.
+If a worker loses the descriptor or cannot establish ownership, refuse its effects.
+No unconfirmed replacement is started because a worker timed out.
+
+This is cooperative same-host instance exclusion, not a server-enforced fence.
+It requires all supported invocations to use the same approved state directory.
+A deliberate alternate configuration/state copy, another user/host bypassing the
+protocol or a privileged actor replacing files is outside this profile. Shared
+UIDs are not isolation from a hostile process. Document trusted account access;
+never advertise the guard as a distributed lock or prevention of arbitrary NAS
+writes. Keep source/destination locks and receipts as additional checks.
+
+## Configurable shutdown wait
+
+Proposed startup option (design fragment, **not accepted by current config**):
+
+```json
+{
+  "shutdown_wait_seconds": 60
+}
+```
+
+Omission means 60 seconds. Proposed validation accepts an integer 1 through 3600
+seconds; reject zero, negative, fractional, string/null and out-of-range values.
+There is no unlimited/disabled wait. This is a lifecycle setting, independent of
+job retry windows, source-space probe timeouts and persisted delivery deadlines.
+It authorizes neither deletion nor early guard release. No hot reload is implied.
+
+Start a monotonic deadline when shutdown begins. Stop admission/new assignments,
+request cooperative child stop/termination and drain while preserving original
+intents, receipts and uncertain results. Complete only after the coordinator and
+all owned workers are confirmed exited and the normal safe-shutdown conditions
+hold. The first request sets the deadline; repeated requests/signals do not reset
+it. Changing the next startup configuration cannot extend a stop already underway.
+
+At the deadline, the operator-facing stop controller must return an unsuccessful
+result with the clear message **shutdown incomplete; restart blocked**, plus
+bounded local progress/remaining-worker information where available. This is a
+proposed result, not a current command/status code. The controller returns control
+to the operator; the daemon and blocked children may still exist and must retain
+ownership. A later status/stop request may observe completion. No detach/drop of
+a live worker, forced guard deletion, alternate state path or success exit is
+permitted merely to meet the time limit.
+
+The application cannot promise a blocked NFS syscall or process exits in 60
+seconds. A foreground daemon's shell cannot be promised control just by logging
+a timeout: implement/qualify a separate bounded stop/status control path using
+the same executable, without releasing the live daemon's guard. Existing SIGTERM
+handling alone does not implement that user-facing guarantee. A stop-timeout
+result is not evidence that restarting is safe.
+
+## Manual/systemd coordination
+
+Both paths must use the exact same local guard, user, configuration and state.
+The administrator provisions the service/unit and path permissions; ordinary
+operation must not assume sudo. How the account requests start/stop of that unit
+(user unit or administrator-authorized system service control) must be qualified
+before publishing commands. Do not assume authorization merely from User=.
+
+Systemd stop timers, process-group handling and restart policy must be coordinated
+with the application/controller's deadline, not copied into a unit blindly.
+A systemd job finishing, failed stop, SIGKILL or service status is not proof of
+worker exit or settled remote I/O. Any attempted restart still acquires the local
+guard first and refuses while a surviving holder remains. Bound restart attempts
+and retain diagnostic access; avoid a retry loop while shutdown is incomplete.
+Qualify against the actual SLES systemd version in a container lifecycle tier;
+latest documentation is not proof of old-version support. No unit settings or
+new CLI/control routes are implemented here.
+
+## Local exclusion and NFS recovery are separate gates
+
+Keep the original local database and recorded claims/allocations, file identities,
+size/hash receipts, pinned destinations and manifests. Local lock acquisition or
+confirmed process exit alone does not establish that queued/retried/server-accepted
+NFS operations or client writeback have settled. Do not mark an uncertain effect
+not-applied because a child was killed, nor start an unsafe conflicting attempt.
+
+After the old processes exit and a new instance acquires the guard, readiness
+for the relevant effects still requires matching state/root custody and qualified
+original-state reconciliation. Start with only safe local observation and bounded
+reconciliation; authorizing payload/namespace effects needs evidence appropriate
+to each recorded applied/not-applied/uncertain operation. If late effects cannot
+be excluded or their outcome safely reconciled in the supported host/NFS profile,
+keep that work blocked for review. Restore storage and inspect original evidence;
+no force, new generation, fixed wait or delivery resume overrides custody.
+
+Delayed-RPC, server recovery, lock reclaim, reboot/remount and durability behavior
+remain mandatory qualification gaps. We do not presume a NAS-side barrier API as
+the implementation answer for this single-host profile, and we do not waive the
+underlying safety obligation. If qualification finds local exclusion plus owned
+reconciliation insufficient, retain the production block and revisit the profile
+or require stronger controls explicitly. A remount changing strict pins can still
+refuse; no automatic rebind is introduced. Actual server/transport identity limits
+must be documented, not hidden by matching marker IDs.
+
+Destination-only outages may still allow bounded source claiming and 202 when
+source/state authority and admission limits remain valid. Source uncertainty
+withholds new unproven acknowledgements. Prior valid 202 still permits producer
+path reuse; recovery uses private claims, never a newer recording at the old path.
+Committed manifests remain consumer-visible. Same-share and separate-share layouts
+must both pass the agreed copy/hash/destination-reread/no-clobber recovery protocol;
+being on one share does not authorize a different integrity shortcut.
+
+## Single-host acceptance matrix (all pending)
+
+SH IDs are new obligations for this revised profile, not passing tests or reused
+NF IDs. L1-SEC-009 is revised under the same ID; current implementation and prior
+fixture evidence do not establish this new local guard/stop controller.
+
+| Case | Evidence required before support |
+|---|---|
+| SH-01 | Default/fixed config and actual local database/WAL/state/guard path; refuse NFS state, unsafe parents, foreign/replaced/symlink/multilink guard and alternate unsupported startup scope without NFS/SQLite effects. |
+| SH-02 | Race manual/manual, manual/systemd and systemd/systemd starts on same host: exactly one shared local guard winner, prompt loser refusal before SQLite/source bootstrap. |
+| SH-03 | All effect-capable commands and every worker class explicitly inherit/validate the same locked description. No missing/CLOEXEC/early-close/unlock bypass or accidental descriptor holder prolonging ownership. |
+| SH-04 | Kill parent during bootstrap, claim, copy, verification and publication; actual surviving worker blocks another start until confirmed exit. Preserve original state/claims and no replacement overlap. |
+| SH-05 | Shutdown option omission=60; valid bounds 1/3600 and invalid types/ranges; current unrelated probe/retry/cleanup policies unchanged. |
+| SH-06 | Clean drain finishes before configured deadline; controller success only after confirmed old process/worker completion. The next same-state start uses normal binding/reconciliation. |
+| SH-07 | Block a worker on NFS beyond a short configured test deadline and exercise the default 60-second path: controller returns incomplete/nonzero within a measured tolerance, holder remains and concurrent/new starts refuse. Do not equate timeout/SIGKILL to cancellation. |
+| SH-08 | Repeated stop requests/signals and next-start config changes do not reset the first monotonic deadline. Safe local status stays bounded; later completion can be observed without forcing a replacement. |
+| SH-09 | Admin-provisioned actual-version systemd lifecycle under the unprivileged account: authorized start/stop, process-group/timeout/restart behavior, guarded manual conflict and no restart storm. No NAS-admin operations required. |
+| SH-10 | Same and separate NFS shares: original state, private working directories, producer-reused paths, destination no-clobber and 3N integrity/manifest behavior survive outage/restart. No current NFS-version guess becomes a support claim. |
+| SH-11 | Delayed client/server RPC/writeback at claim/link/unlink/copy/sync/publication/manifest boundaries after parent/child exit: qualified owned reconciliation or explicit review, no conflicting redispatch or false 202/commitment. A userspace pre-call pause is insufficient. |
+| SH-12 | Actual supported mount/version/security profile, missing/replaced mount/root, server recovery/grace/reclaim, longer outages, changed strict pins and storage durability: measured safe continuation or preserved refusal, not automatic rebind. |
+| SH-13 | Wrong/stale/cloned state, foreign allocations and scope aliases refuse the supported workflow; no force/delete-lock/delete-state remedy. Document deliberate same-UID/other-host bypass as outside this cooperative profile, not detected by IDs. |
+| SH-14 | Production/qualification GNU/glibc-2.22 SLES gates for every changed Rust build/test, exact artifact/ELF and required lifecycle/NFS fixture cases; DOC-04/05 distinguish controller completion from process/storage settlement. Production NFS and deletion remain off pending gates. |
+
+## Earlier NF obligations and extended profiles
+
+Original NF-01–18 were defined in [increment 40](RUST-INCREMENT-40.md); their
+original definitions remain in that commit's contract history. They are not
+renumbered, marked passed or silently redefined as SH tests. This mapping separates
+carry-forward safety work from requirements outside the confirmed deployment.
+
+| Original ID | Revised scope/disposition |
+|---|---|
+| NF-01 | Default-off gates and supported-profile refusal carry into SH-01/14; external provider presence is not a blanket first-release prerequisite. |
+| NF-02 | Original-state enrollment/restart evidence carries into SH-06/13 and existing binding gates. |
+| NF-03 | Same-host cooperative races are SH-02/03. Independent cross-host exclusion is deferred with cross-host operation. |
+| NF-04 | Root/pin/fallback/alias refusal carries into SH-01/12/13. Cryptographic NAS identity/hostile-server enforcement is a separate extended profile, not proven by mounts. |
+| NF-05 | Parent death and surviving workers carry into SH-04/11; neither worker exit nor local guard alone proves remote settlement. |
+| NF-06 | Actual server/client lock recovery remains SH-12. Cross-client authority transfer/enforcement remains deferred. |
+| NF-07 | Delayed/in-flight effect safety remains mandatory in SH-11; no NAS barrier API is assumed. |
+| NF-08 | All pinned endpoints still need safe owned recovery (SH-10/11/13). Multi-endpoint external fence observations remain deferred. |
+| NF-09 | External fencer crash/regrant controls remain deferred; no provider exists in this design. |
+| NF-10 | Server recovery/changed pins remain SH-12, with preserved refusal where continuity cannot be established. |
+| NF-11 | Bounded wait, load and unconfirmed children carry into SH-07/08/14 and FR-05 queue qualification. |
+| NF-12 | Source/destination outage handoff invariants carry into SH-10/11 and existing admission limits. |
+| NF-13 | Original-state owned recovery/review remains SH-06/11/13; no repair authority added. |
+| NF-14 | Clones/foreign state remain unsupported/refused by supported workflow (SH-13); distributed credential/host fencing is deferred. |
+| NF-15 | Declared storage failure/durability evidence remains SH-12 and other release gates; no power-loss guarantee from container death. |
+| NF-16 | Source deletion remains off (SH-14); later FR-04 still requires independent receipt/policy-qualified cleanup. |
+| NF-17 | SLES compatibility remains SH-14. Any future provider's dependencies require separate qualification. |
+| NF-18 | Single-host operational guides remain SH-09/14. External-provider/takeover runbooks stay deferred. |
+
+For future cross-host operation, takeover, cloned-state restoration or populated
+re-enrollment, preserve the stronger independently enforced old-writer exclusion
+and settled-operation obligations in [fenced enrollment](FENCED-ENROLLMENT-DESIGN.md)
+and increment 40. They cannot be satisfied by this local guard or the 60-second
+timer. Those profiles require explicit new scope, controls and qualification.
+
+## References and next increment
+
+Linux [flock(2)](https://man7.org/linux/man-pages/man2/flock.2.html) describes
+open-description lock inheritance and advisory scope; it does not certify NAS
+settlement. SQLite [WAL guidance](https://www.sqlite.org/wal.html) supports keeping
+this project's WAL database/state on local storage. The official systemd
+[v228 service manual source](https://raw.githubusercontent.com/systemd/systemd/v228/man/systemd.service.xml)
+illustrates timeout/process-group controls; this is not identification or
+qualification of the deployed host's systemd version.
+
+Next implement the local guard and inheritance across all relevant entry points
+with SH-01–04/13 denial tests through the required SLES gates. Then implement the
+bounded stop/status controller and proposed shutdown_wait_seconds policy, qualify
+SH-05–09 and actual NFS recovery/mount profiles, maintaining scenarios throughout.
+No NAS/host-admin fencing facility or package experiment is a prerequisite for
+independent local guard work. Production NFS and source deletion remain disabled.

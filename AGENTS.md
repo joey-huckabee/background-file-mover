@@ -117,15 +117,17 @@ restoration; see docs/RUST-INCREMENT-38.md for actual evidence and limits.
 Increment 39 defines docs/REMOTE-API-ACCESS-CONTRACT.md: proposed external
 mutual TLS with manually approved certificates, protected producer-only Unix
 socket/peer UID and generator binding; RA-01–16 and SC-082–086 remain pending.
-No ingress, tokens or registration are implemented. Increment 40 defines
-docs/NFS-OWNERSHIP-FENCING-CONTRACT.md: static original-state owner, independent
-old-execution exclusion and endpoint-settled-operation barriers, NF-01–18 pending.
-The actual authenticated endpoint/fencing facility is unselected/unqualified;
-next obtain its topology/control prerequisites and select one profile, while
-independent local producer ingress may proceed under disabled production gates.
-Do not treat locks, signals, a generation or operator assertions as a fence.
-No takeover/re-enrollment or cleanup authority is added. Keep registration deferred and runtime loopback;
-no production NFS, remote REST or deletion support is newly claimed.
+No ingress, tokens or registration are implemented. Increment 40's broad fencing
+baseline is revised by increment 41 in docs/NFS-OWNERSHIP-FENCING-CONTRACT.md:
+one mover, same host/account/config and fixed local state; private NFS work areas;
+no host sudo/NAS administration assumed. Next implement shared host-local guard
+and explicit worker inheritance (SH-01–04/13), then proposed configurable
+shutdown_wait_seconds default 60 and bounded stop/status controller (SH-05–09).
+Timeout returns incomplete/restart-blocked while live holders retain ownership;
+local lock release/process exit is not NAS RPC settlement. SH-10–14 and actual
+NFS version/mount/systemd qualification remain pending. Preserve the original NF
+mapping and stronger deferred takeover/re-enrollment obligations. Keep production
+NFS/deletion/remote ingress off and registration/repair deferred.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
 Backfill prior scenarios and do not describe pending qualification as supported.

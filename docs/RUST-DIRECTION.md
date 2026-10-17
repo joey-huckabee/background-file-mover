@@ -111,11 +111,15 @@ and keeps optional adapters/repair/UI deferred. [Increment 38](RUST-INCREMENT-38
 adds bounded native source-capacity fixture evidence.
 [Increment 39](RUST-INCREMENT-39.md) defines the proposed remote access contract
 and RA-01–16 without implementing ingress or registration.
-[Increment 40](RUST-INCREMENT-40.md) defines the NFS authority contract and pending
-NF-01–18. Next select/qualify actual endpoint authentication and independent
-old-execution exclusion/settlement controls; no provider is assumed available.
-Independent local producer ingress can proceed while its deployment is selected;
-do not implement source deletion or enable production NFS before their gates close.
+[Increment 40](RUST-INCREMENT-40.md) records the earlier broad fencing baseline.
+[Increment 41](RUST-INCREMENT-41.md) revises it under confirmed one-host/account,
+fixed local config/state and private NFS working-area constraints. Next implement
+the local guard/inheritance (SH-01–04/13), then the configurable default-60 stop
+wait/controller (SH-05–09), all pending. Qualify late NFS effects, actual mounts,
+same/separate shares and systemd scope (SH-10–14); local exclusion is not remote
+settlement. Keep stronger external fencing/cross-host takeover deferred. No NAS
+administration is assumed. Production NFS/deletion and remote ingress stay off;
+registration stays deferred.
 
 Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference
 cargo-zigbuild GNU/glibc 2.22 compilation, ELF audit and exact debug/release test

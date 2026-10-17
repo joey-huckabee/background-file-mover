@@ -17,8 +17,9 @@ The [remote API access contract](docs/REMOTE-API-ACCESS-CONTRACT.md) defines a
 proposed external client-certificate/protected-proxy profile; registration remains
 deferred and current remote access is not enabled.
 The [NFS ownership/fencing contract](docs/NFS-OWNERSHIP-FENCING-CONTRACT.md)
-defines static ownership and independent exclusion/settlement requirements.
-Its provider and acceptance cases remain unqualified; no takeover is enabled.
+defines the confirmed single-host/local-state profile, proposed shared local
+guard and configurable 60-second shutdown wait. SH-01–14 and delayed-operation
+recovery remain unqualified; no runtime option or takeover is enabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read
