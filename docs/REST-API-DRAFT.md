@@ -54,9 +54,13 @@ acceptance under admission policy. A client cannot set a job to `Claimed`.
 
 ## Generator submission with a configured destination
 
-Remote generator access and optional local clients use the proposed
-[registration/access contract](GENERATOR-REGISTRATION-DRAFT.md). Its tokens bind
-registered identity; explicit tokenless profiles handle permitted legacy clients.
+The proposed first remote profile uses the
+[remote access contract](REMOTE-API-ACCESS-CONTRACT.md): manually provisioned
+client certificates verified by an external proxy, protected producer-only Unix
+socket, peer/principal binding and no service-issued token. This is design only;
+current loopback binding and Authorization rejection remain unchanged. The
+[registration/token proposal](GENERATOR-REGISTRATION-DRAFT.md) remains deferred;
+its future tokenless profiles are not anonymous remote permission.
 
 The additive generator form identifies the recording generator and supplies a
 source directory plus explicit file names. It contains no destination. The

@@ -57,8 +57,10 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-1. Resolve FR-01 contract/access decisions and the FR-03 authority/fencing design;
-   use those decisions to fix the finite production NFS qualification matrix.
+1. Resolve remaining FR-01 producer/consumer contract details and the FR-03
+   authority/fencing design. Use the [remote API contract](REMOTE-API-ACCESS-CONTRACT.md)
+   and RA-01–16 to select, implement and qualify its exact deployment profile;
+   keep registration deferred. Fix the finite production NFS qualification matrix.
 2. Complete remaining FR-02 capacity cases and corresponding FR-03/05 failure
    cases before implementing FR-04 cleanup. Develop independent contract,
    documentation and packaging work as useful, without treating it as storage
@@ -66,9 +68,10 @@ Do not repeat that bounded tmpfs case as unfinished implementation work.
 3. Finish FR-06/07/08 and run the declared release-candidate matrix. Enable only
    the production profiles whose gates have closed.
 
-The next increment should identify the supported remote producer access boundary
-while retaining deferred registration, define the enforceable NFS ownership/fence
-prerequisite and enumerate its pass/refusal cases. Do not enable remote REST,
+[Increment 39](RUST-INCREMENT-39.md) defines the remote producer access boundary;
+implementation and all RA cases remain pending, and FR-01 stays open. Next define
+the enforceable NFS ownership/fence prerequisite and its pass/refusal cases,
+and select the exact proxy deployment before implementing its producer ingress. Do not enable remote REST,
 production NFS, takeover or source deletion merely to complete a checklist.
 
 ## Deferred beyond the first release

@@ -13,6 +13,9 @@ destination policy require future explicit enrollment.
 The [first Rust release checklist](docs/RUST-FIRST-RELEASE.md) defines the
 bounded scope, eight remaining release gates and next qualification increment.
 Production NFS and source deletion remain disabled pending those gates.
+The [remote API access contract](docs/REMOTE-API-ACCESS-CONTRACT.md) defines a
+proposed external client-certificate/protected-proxy profile; registration remains
+deferred and current remote access is not enabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

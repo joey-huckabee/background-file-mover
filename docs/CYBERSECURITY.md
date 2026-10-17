@@ -6,6 +6,10 @@ claim/copy/verify/manifest/cleanup model, use
 [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). Claimed sources are retained data;
 set visibility does not create an atomic transaction across SQL and filesystems.
 Reconcile security requirements explicitly before implementation.
+The proposed Rust [remote API access boundary](REMOTE-API-ACCESS-CONTRACT.md)
+uses external client-certificate verification and protected producer-only IPC;
+registration stays deferred. It is design-only and adds no current remote support.
+The proxy/local UID trust boundary is separate from NFS custody and fencing.
 
 How Background File Mover moves data safely on a filesystem it shares with
 privileged agents it does not control.

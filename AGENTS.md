@@ -114,9 +114,13 @@ filesystem/NFS scope and deferred features. Use it to prioritize the broader
 roadmap. Increment 38 adds --source-storage fixture qualification for bounded
 native source fill, partial/claimed replay while Low and unchanged-policy live
 restoration; see docs/RUST-INCREMENT-38.md for actual evidence and limits.
-Next resolve remote access and NFS authority/fencing prerequisites and their finite
-qualification matrix before production enablement or cleanup. Registration stays
-deferred; no production NFS, remote REST or deletion support is newly claimed.
+Increment 39 defines docs/REMOTE-API-ACCESS-CONTRACT.md: proposed external
+mutual TLS with manually approved certificates, protected producer-only Unix
+socket/peer UID and generator binding; RA-01–16 and SC-082–086 remain pending.
+No ingress, tokens or registration are implemented. Next resolve NFS authority/
+fencing, exact proxy packaging and remaining contract prerequisites before
+production enablement or cleanup. Keep registration deferred and runtime loopback;
+no production NFS, remote REST or deletion support is newly claimed.
 Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
 plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
 Backfill prior scenarios and do not describe pending qualification as supported.

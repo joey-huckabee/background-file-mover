@@ -522,6 +522,16 @@ that the deployed binary does not implement and qualify for the production targe
 The system shall authorize a generator identity and its source scope independently
 of the identity string supplied in the submission body.
 
+For the proposed remote producer profile, the system shall bind the caller to
+an operator-approved transport identity and source scope before replay/admission
+or claim effects, shall deny producer ingress access to operator/read/control
+routes, and shall not fall back to body identity or anonymous permissions after
+credential/context refusal. Credential rotation for the same authorized generator
+shall preserve submission idempotency; current revocation shall prevent replay
+without cancelling accepted work. See [the remote contract and pending RA cases](REMOTE-API-ACCESS-CONTRACT.md).
+These are Rust design obligations, not evidence of current remote support.
+Registration and token issuance remain deferred.
+
 **Verification Method**: Test (T), Inspection (I)
 **v1.0.0 Status**: Deferred — Rust caller binding or explicitly trusted local deployment boundary.
 
@@ -556,8 +566,9 @@ safety and reservation limits without being blocked by this additional gate.
 Disabling it shall not disable those limits, reset review or authorize deletion.
 See [the policy and acceptance scenarios](SOURCE-SPACE-ADMISSION-DESIGN.md) and
 [increment 36](RUST-INCREMENT-36.md) for implemented local behavior and exact test
-scope. Physical source exhaustion, quotas, hard NFS statistics and broader storage
-qualification remain outstanding; the historical release scope below is unchanged.
+scope. [Increment 38](RUST-INCREMENT-38.md) adds bounded native tmpfs source
+exhaustion/restoration evidence only; physical-disk/quota, hard NFS statistics and
+broader storage qualification remain outstanding. Historical scope is unchanged.
 
 **Verification Method**: Test (T), Analysis (A)
 **v1.0.0 Status**: Deferred — Rust outage admission; unsafe capacity or claiming does not authorize 202.

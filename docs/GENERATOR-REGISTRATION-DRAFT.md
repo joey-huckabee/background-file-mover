@@ -9,8 +9,20 @@ local clients uses the same API and handoff semantics.
 **Deferred:** the user selected a one-time setup key scoped to the generator,
 then put registration/token/authentication work on the back burner. Preserve
 this design; it does not gate independent core/storage/local test increments.
-Implement and qualify it before exposing the new service to remote untrusted
-clients. Issuance-response recovery remains a later detail.
+Implement and qualify these bearer/tokenless options before enabling them.
+The separate authenticated proxy profile below does not enable registration.
+Issuance-response recovery remains a later detail.
+
+## First remote profile without registration
+
+[Increment 39](RUST-INCREMENT-39.md) defines the proposed
+[remote API access contract](REMOTE-API-ACCESS-CONTRACT.md): external mutual TLS,
+manual operator certificate approval, protected producer-only Unix ingress and
+peer/principal/source enforcement. No registration, service-issued bearer token,
+anonymous fallback or operator access is added. Current runtime stays loopback.
+This profile is separate from the future bearer/tokenless options below; those
+options are not prerequisites for independent work on this authenticated edge.
+No remote profile is enabled until its own end-to-end qualification passes.
 
 ## Source access on remote deployments
 

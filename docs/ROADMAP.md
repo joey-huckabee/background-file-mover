@@ -11,9 +11,11 @@ open release gates. The sections below retain broader future obligations; they
 are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
-Next resolve the contract/access and production ownership/fencing prerequisites
-(FR-01/03), then fix the finite supported-profile failure matrix before dependent
-NFS qualification and source cleanup. Complete remaining FR-02 capacity cases
+Next resolve production ownership/fencing (FR-03), the remaining FR-01 contract
+details and the exact deployment package for the [remote access design](REMOTE-API-ACCESS-CONTRACT.md).
+Implement and qualify that design's producer ingress and RA-01–16 before remote
+enablement; registration stays deferred. Fix the finite supported-profile failure
+matrix before dependent NFS qualification and source cleanup. Complete remaining FR-02 capacity cases
 without changing existing-job recovery or default-off policy.
 
 ## Next work
@@ -208,11 +210,13 @@ features. Do not treat candidate names as compatibility approval.
 
 ## Optional backlog requiring a scope decision
 
-Registration/token authentication is explicitly deferred. Before remote production
-exposure, implement the selected one-time generator setup key, issuance recovery,
-rotation/operator roles and restricted tokenless profiles from the access draft.
-Preserve approved source/path mapping and deployment trust boundaries. This work
-does not gate core/storage/local test increments.
+Registration/token authentication is explicitly deferred. If separately scheduled,
+implement the selected one-time generator setup key, issuance recovery,
+rotation/operator roles and restricted tokenless profiles from the registration
+draft before enabling those options. The first remote profile instead requires
+implementation and qualification of the [authenticated proxy contract](REMOTE-API-ACCESS-CONTRACT.md).
+Preserve approved source/path mapping and deployment trust boundaries; registration
+does not gate independent core/storage/local or authenticated-proxy increments.
 
 Prioritize these after a correct recoverable transfer baseline; none implicitly
 changes the integrity or source-retention guarantees.
