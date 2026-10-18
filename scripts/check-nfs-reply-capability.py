@@ -16,8 +16,11 @@ from nfs_reply_relay import ReplyRelay, preflight
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--operation', choices=('remove', 'link'), default='remove')
+    parser.add_argument('--operation', choices=('remove', 'link', 'both'), default='remove')
+    parser.add_argument('--role', choices=('source', 'destination'), default='destination')
+    parser.add_argument('--backend-restart', action='store_true', help='After source controls, prove real backend stop/restart transport recovery')
     args = parser.parse_args()
+    assert not args.backend_restart or args.role == 'source', 'backend restart requires source role'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'reply-capability-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -27,10 +30,10 @@ def main():
     containers, volumes, mounts, servers, tasks = [], [], [], [], []
     client = relay = None
     network = 'bfm-' + label.lower()
-    report = dict(status='FAILED', run_id=label, operation=args.operation, rust_executed=False, cleanup_errors=[],
+    report = dict(status='FAILED', run_id=label, operation=args.operation, role=args.role, rust_executed=False, cleanup_errors=[],
                   config=config, driver_sha256={n: hashlib.sha256((root / 'scripts' / n).read_bytes()).hexdigest()
                       for n in ('check-nfs-reply-capability.py', 'nfs_reply_relay.py', 'nfs_rpc.py',
-                                'nfs_reply_proxy.py', 'nfs_endpoints.py', 'test_nfs_rpc.py')})
+                                'nfs_reply_proxy.py', 'nfs_endpoints.py', 'test_nfs_rpc.py', 'nfs_relay_restart.py')})
 
     def run(args, check=True):
         value = subprocess.run(engine + args, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=45)
@@ -86,11 +89,25 @@ def main():
         report['endpoints'] = dict(passed=False)
         endpoints = Endpoints(run, execute, server, client, address,
                               f'addr={address},vers=4.1,proto=tcp,port=2049,hard,timeo=10,retrans=1,noac',
-                              network, image, containers, volumes, servers, mounts, report['endpoints'], make_relay)
+                              network, image, containers, volumes, servers, mounts, report['endpoints'],
+                              destination_relay=make_relay if args.role == 'destination' else None,
+                              source_relay=make_relay if args.role == 'source' else None)
         report['relay_security'] = run(['exec', relay.container, 'cat', '/proc/1/status']).stdout
-        report['preflight'] = dict(passed=False, cases=[])
-        preflight(relay, endpoints, run, execute, spawn, output, report['preflight'], 11 if args.operation == 'link' else 28)
-        assert report['preflight']['passed']
+        operations = (11, 28) if args.operation == 'both' else (11 if args.operation == 'link' else 28,)
+        assert args.operation != 'both' or args.role == 'source', 'combined controls require distinct source probe paths'
+        report['preflights'] = {}
+        for operation in operations:
+            proof = dict(passed=False, cases=[])
+            report['preflights'][str(operation)] = proof
+            if len(operations) == 1:
+                report['preflight'] = proof
+            preflight(relay, endpoints, run, execute, spawn, output, proof, operation, args.role)
+            assert proof['passed']
+        if args.backend_restart:
+            from nfs_relay_restart import qualify
+            report['backend_restart'] = dict(passed=False)
+            qualify(relay, endpoints, run, execute, spawn, output, report['backend_restart'])
+            assert report['backend_restart']['passed']
         report['status'] = 'PASSED'
     except Exception as error:
         report.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())

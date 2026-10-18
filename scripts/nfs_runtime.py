@@ -11,7 +11,7 @@ from nfs_binding import binding_for, provision
 
 def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
-    claim_points = {"claim_apply", "claim_link"}
+    claim_points = {"claim_apply", "claim_link", "claim_link_rpc", "claim_unlink_rpc"}
     link_points = {"claim_link", "file_link"}
 
     class Case:

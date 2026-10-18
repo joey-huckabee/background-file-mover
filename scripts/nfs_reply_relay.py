@@ -31,7 +31,9 @@ class ReplyRelay:
             raise RuntimeError('reply relay did not become ready')
         self.evidence = dict(container=self.container, ip=self.address, backend=backend, image=image,
                              packages_added=False, ports_published=False,
-                             private_netns_unprivileged_port_start=0, backend_source_ports='601-616',
+                             private_netns_unprivileged_port_start=0, backend_source_ports='601-1000',
+                             max_active_connections=16, max_lifetime_connections=400,
+                             backend_connect_deadline_seconds=600, backend_connect_retry_seconds=1,
                              drivers={n: hashlib.sha256((Path(__file__).parent / n).read_bytes()).hexdigest() for n in files})
 
     def state(self, strict=True):
@@ -64,7 +66,7 @@ class ReplyRelay:
             value = self.state()
             if value['held']:
                 assert value['armed'] and not value['released'] and not value['dropped']
-                # No target REMOVE success was forwarded in this armed window.
+                # No selected target success was forwarded in this armed window.
                 assert not value['forwarded'], value
                 for row in value['held']:
                     assert row['xid'] == row['request']['decoded']['xid'] == row['reply']['xid']
@@ -95,12 +97,14 @@ def server_objects(run, server, old, final):
     return result
 
 
-def preflight(relay, endpoints, run, execute, spawn, output, evidence, operation=28):
+def preflight(relay, endpoints, run, execute, spawn, output, evidence, operation=28, role='destination'):
     results = evidence['cases']
-    server = endpoints.servers['destination']
+    assert role in ('source', 'destination') and operation in (11, 28)
+    server = endpoints.servers[role]
     for mode in ('release', 'drop'):
-        base = '/tmp/nfs-destination/reply-preflight-' + mode
-        remote = '/exports/death-destination/reply-preflight-' + mode
+        suffix = ('-' + str(operation)) if role == 'source' else ''
+        base = endpoints.mounts[role] + '/reply-preflight-' + mode + suffix
+        remote = '/exports/death-' + role + '/reply-preflight-' + mode + suffix
         execute(f"umask 077; mkdir {base}; printf 'owned reply sentinel' >{base}/staging" +
                 (f'; ln {base}/staging {base}/final' if operation == 28 else ''), '1000:1000')
         before = server_objects(run, server, remote + '/staging', remote + '/final')
@@ -110,7 +114,7 @@ def preflight(relay, endpoints, run, execute, spawn, output, evidence, operation
         probe = f'unlink {base}/staging' if operation == 28 else f'ln {base}/staging {base}/final'
         pidfile = '/tmp/reply-preflight-' + mode + '.pid'
         process = spawn(f'echo $$ >{pidfile}; exec {probe}', 'reply-preflight-' + mode)
-        row = dict(mode=mode, passed=False, before=before, armed=armed)
+        row = dict(mode=mode, role=role, operation=operation, passed=False, before=before, armed=armed)
         results.append(row)
         try:
             held = relay.await_held()

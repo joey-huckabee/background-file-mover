@@ -15,7 +15,8 @@ def serve(backend):
     os.mkdir(root, 0o700)
     lock = threading.RLock()
     state = dict(ready=False, token=None, armed=False, name=None, operation=28, held=[], released=[],
-                 dropped=[], forwarded=[], errors=[], connections=0, received=0, connection_resets=[])
+                 dropped=[], forwarded=[], errors=[], connections=0, active=0, received=0,
+                 connection_resets=[], transport_events=[])
     pending = []
     expected_disconnect = set()
 
@@ -39,7 +40,7 @@ def serve(backend):
                             if pending or state['armed']:
                                 raise ValueError('already armed')
                             state.update(token=command['token'], armed=True, name=command['name'], operation=command.get('operation', 28),
-                                         held=[], released=[], dropped=[], forwarded=[], errors=[], connection_resets=[])
+                                         held=[], released=[], dropped=[], forwarded=[], errors=[], connection_resets=[], transport_events=[])
                         elif action in ('release', 'drop'):
                             close = set()
                             for stream, wire, row in pending:
@@ -83,10 +84,52 @@ def serve(backend):
         # Preserve the controlled export's existing reserved-port requirement.
         # The runner sets unprivileged_port_start=0 only in this owned netns.
         server = socket.socket()
-        server.settimeout(10)
-        server.bind(('', 600 + number))
-        server.connect((backend, 2049))
-        server.settimeout(None)
+        closed = threading.Event()
+
+        def event(kind, error=None):
+            with lock:
+                state['transport_events'].append(dict(connection=number, kind=kind, error=error))
+                state['transport_events'] = state['transport_events'][-128:]
+                save()
+
+        def close_streams(kind):
+            with lock:
+                if closed.is_set():
+                    return
+                closed.set()
+                expected_disconnect.add(client)
+                # close() alone cannot wake a recv in the other forwarding
+                # thread. Shut down BOTH directions before releasing descriptors.
+                for stream in (client, server):
+                    try:
+                        stream.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                    stream.close()
+                state['active'] -= 1
+                event(kind)
+
+        # Keep the accepted frontend while the backend is unavailable. No RPC
+        # bytes have been forwarded yet, so retrying connect cannot duplicate RPCs.
+        deadline = time.monotonic() + 600
+        while True:
+            try:
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server.settimeout(1)
+                server.bind(('', 600 + number))
+                server.connect((backend, 2049))
+                server.settimeout(None)
+                break
+            except OSError as error:
+                event('backend_connect_failed', str(error))
+                server.close()
+                if time.monotonic() >= deadline:
+                    with lock:
+                        state['errors'].append('backend connect deadline')
+                    close_streams('connect_deadline_closed')
+                    return
+                time.sleep(1)
+                server = socket.socket()
         calls = {}
 
         def requests():
@@ -107,14 +150,13 @@ def serve(backend):
                     server.sendall(wire)
             except Exception as error:
                 with lock:
-                    if client not in expected_disconnect:
+                    if isinstance(error, OSError) and client not in expected_disconnect:
+                        event('request_transport_error', str(error))
+                    elif client not in expected_disconnect:
                         state['errors'].append('request: ' + str(error))
                     save()
             finally:
-                try:
-                    server.shutdown(socket.SHUT_WR)
-                except OSError:
-                    pass
+                close_streams('frontend_closed')
 
         threading.Thread(target=requests, daemon=True).start()
         try:
@@ -150,12 +192,13 @@ def serve(backend):
                     calls.pop(xid, None)
         except Exception as error:
             with lock:
-                if client not in expected_disconnect:
+                if isinstance(error, OSError) and client not in expected_disconnect:
+                    event('response_transport_error', str(error))
+                elif client not in expected_disconnect:
                     state['errors'].append('response: ' + str(error))
                 save()
         finally:
-            client.close()
-            server.close()
+            close_streams('backend_closed')
 
     listener = socket.create_server(('0.0.0.0', 2049), backlog=16)
     with lock:
@@ -165,10 +208,16 @@ def serve(backend):
     while True:
         client, _ = listener.accept()
         with lock:
+            if state['active'] >= 16 or state['connections'] >= 400:
+                client.close()
+                if 'connection bound' not in state['errors']:
+                    state['errors'].append('connection bound')
+                save()
+                continue
             state['connections'] += 1
-            if state['connections'] > 16:
-                raise ValueError('connection bound')
+            state['active'] += 1
             number = state['connections']
+            save()
         threading.Thread(target=connection, args=(client, number), daemon=True).start()
 
 

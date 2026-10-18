@@ -4,6 +4,8 @@ Use [increment 64](RUST-INCREMENT-64.md) for declared scope and results and
 [testing limitations](TESTING-LIMITATIONS.md) for release implications.
 Use [increment 65](RUST-INCREMENT-65.md) for the separate LINK extension and
 section 8 below for its commands and evidence requirements.
+Use [increment 66](RUST-INCREMENT-66.md) and section 9 for source-claim LINK/REMOVE
+and the pending-202 acknowledgement boundary.
 Production NFS and source deletion remain disabled. This is not a production
 deployment or NAS administration procedure.
 
@@ -51,7 +53,7 @@ The relay uses Python already present in the pinned builder image; no packages
 or application dependencies are installed. It runs as UID/GID 1000 with no
 capabilities and no-new-privileges. To preserve the existing server export's
 reserved-port requirement, only its private network namespace sets
-`net.ipv4.ip_unprivileged_port_start=0`; backend source ports are 601–616. No host
+`net.ipv4.ip_unprivileged_port_start=0`; backend source ports are 601–1000. No host
 network sysctl or export security option changes. Control is through local
 mode-0700 container files, not a network control endpoint.
 
@@ -254,3 +256,116 @@ select REMOVE; the LINK selector does not replace their historical evidence.
 ### Recorded LINK results
 
 Independent `reply-capability-20261018T200112Z-fb530318`, retained REMOVE regression `reply-capability-20261018T200427Z-a948eee5` and full mover `nfs-20261018T203516Z-eb5b56b7` pass with no cleanup errors. Both full-run capability controls precede all four worker cases; all recover on attempt one with original inode/content. See [increment 65](RUST-INCREMENT-65.md) for actual death outcomes, gates, raw evidence and remaining limits. Independent final inventory confirms no validation containers on either rootful or default rootless Podman. The rootful engine retains only the two shared Rust cache volumes and default network; the VM remains `0::/`. Normal unmount preceded removal; neither worker attempt required manual cleanup. The initial manifest-basename driver failure and exact executed sources remain retained separately in increment 65.
+
+## 9. Source-claim LINK and REMOVE with success replies withheld
+
+Use the pinned images, private infrastructure and normal-unmount-first cleanup
+from sections 1–7. [Increment 66](RUST-INCREMENT-66.md) fixes the finite scope.
+First prove both operations on the source endpoint without executing Rust:
+
+```powershell
+python scripts/check-nfs-reply-capability.py --role source --operation both --backend-restart
+if ($LASTEXITCODE -ne 0) { throw 'Source claim capability unproven; inspect report and recovery resources' }
+```
+
+Require four controls: LINK release/discard and REMOVE release/discard. The source
+mount must use the relay from its first connection; destination uses the separate
+healthy server directly. Separate source sentinel directories include the opcode
+to prevent collisions. LINK begins with one old name/no private alias and must
+produce the original inode at both names with link count two. REMOVE begins with
+two aliases and must leave only the private name with one link. For every control,
+observe server-local inode/content and namespace, a matched captured RPC/NFS
+success and actual client D state together before releasing or dropping anything.
+Release must finish successfully; discard explicitly interrupts that connection
+and must observe a new-connection/new-receive-ID successful native replay with
+unchanged SEQUENCE/filehandle/name identity. Preserve raw payloads and hashes.
+
+Run the fresh production and qualification SLES gates from section 4, then use
+their passing run directories:
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/<production-run> --qualification-gate rust/validation/<qualification-run> --isolated-startup --coordinator-death --death-scope claim-lost-reply
+if ($LASTEXITCODE -ne 0) { throw 'Source claim worker qualification failed; preserve evidence' }
+```
+
+The full driver routes even its initial `/tmp/nfs` base mount through the source
+relay, before any direct source connection can exist. `/tmp/nfs-source` uses that
+same proxy route; `/tmp/nfs-destination` stays direct to the other server. Record
+actual mount addresses, distinct devices/export IDs/network namespaces and proxy
+backend. Require no source backend address in the client's NFS mount rows. The
+driver repeats all four source controls and the OS-only backend recovery probe
+before entering the worker matrix.
+
+Four cases are debug/release × `claim_link_rpc`/`claim_unlink_rpc`. These opt-in
+qualification pauses are inside the existing relocation calls immediately before
+native linkat/unlinkat. POST asynchronously and observe exactly one claim worker.
+Arm LINK for `data`, or REMOVE for `data.bin`, before releasing the pause. Require
+actual syscall 265/263, old parent `current/nested` and private LINK parent
+`.file-mover/1-0`; flags must be zero. Observe the server-completed alias state,
+withheld successful reply and D worker concurrently, with both servers healthy.
+
+Health/job reads stay bounded by the existing five-second fixture check. The
+existing submission deadline is ten seconds: allow fifteen seconds including
+Podman overhead for a pending retry to return 503. Initial submission and same-ID
+retry must be retryable 503 with `source_paths_released: false`; job status stays
+Accepted and destination job storage is absent. The recorder still only submits
+JSON and retries the identical ID/body until 202; it need not poll status.
+
+Keep producer paths immutable until 202, even if the original name has already
+vanished on the server after REMOVE. Claim REMOVE removes a producer binding
+while preserving private custody; postcommit source cleanup remains disabled.
+Kill only the recorded coordinator, require surviving-worker exclusion where
+observed, kill only the known old worker, discard held replies and interrupt
+their connection, then confirm every old thread has exited. Reconcile the same
+job and original claim inode with the original configuration/local state. Require
+202 for the same submission before recreating the producer path, then verify
+attempt-one delivery/manifest, unchanged private payload and database/enrollment,
+preserved producer-reused contents and no second job/claim allocation.
+
+Do not infer COMMIT/fsync or media durability, server reboot/reclaim, physical NAS
+isolation, old-kernel behavior, arbitrary loss on a healthy TCP stream, concurrent
+load, separate producer-client cache visibility or all claim/export/security
+cases. Producer writes and mover reads use one controlled NFS client. The syscall and proxy intervention do
+not change production deadlines or guarantee universal termination/cancellation.
+Retain failed reports and executed driver sources if any stage fails; a failed
+fixture is not qualified service behavior. Normal unmount must precede removal
+of owned servers, client, relay, volumes and network; retain resources and report
+cleanup errors if it fails.
+
+### Source relay teardown and recovery control
+
+The source-capability command also stops only the owned source NFSD threads,
+observes an actual D-state OS hash probe, records the relay's backend EOF/connect
+failure path, restores source NFSD and requires that same probe to finish with
+the original hash. The destination stays healthy. This is fixture transport
+qualification with no live mover; it is not physical NAS reboot or service
+server-recovery qualification. The probe has a sixty-second post-restore bound;
+production submission and shutdown deadlines are unchanged.
+
+The relay now shuts down both directions of both sockets before releasing file
+descriptors. Before forwarding any RPC bytes, it retries failed backend connection
+establishment on the same accepted frontend, with one-second pauses and a
+600-second fixture-only deadline. This prevents kernel frontend reconnect storms
+without generating or replaying RPCs in the relay. It records transport events
+separately from malformed/invalid protocol evidence. Sixteen active and four
+hundred lifetime connections remain bounded; backend ports 601–1000 satisfy the
+same reserved-port export rule using only the private namespace sysctl. Historical
+increment-64/65 evidence retains its original 601–616/16-total configuration.
+
+Retain the initial increment-66 FAILED run and separate recovery/source snapshots.
+Do not restart a disposable relay and assume Podman preserves its IP: inspect the
+actual address and original mount route. The failed-run recovery restored only
+that fixture's original unused private address/MAC, waited for its old probes to
+drain, then used ordinary unmounts before removing owned resources. No forced or
+lazy unmount or probe kill was used. This manual recovery does not turn the
+initial experiment into a pass or define a production operator command.
+
+### Recorded source-claim results
+
+Independent `reply-capability-20261018T221446Z-6be218f4` and worker `nfs-20261018T221850Z-7e29f816` pass with no cleanup errors. Four independent and four repeated source LINK/REMOVE controls precede four passing claim-worker cases. Initial/same-ID requests remain retryable 503 before custody confirmation; original-state replay then returns 202 for job 1, allowing producer reuse and attempt-one delivery with the original claim inode/content retained. See [increment 66](RUST-INCREMENT-66.md) for actual outcomes, SLES artifacts, raw frames, recovery and remaining limits. Confirm final engine inventory separately after normal unmount and owned-resource removal.
+
+Independent final inventory confirms no containers on either rootful or default
+rootless Podman, only the two pre-existing rootful Rust cache volumes and default
+network, and VM cgroup `0::/`. The final worker run normally unmounted all NFS
+mounts before owned-resource removal and needed no manual cleanup. Retain the
+earlier failed runs and their separate recoveries described in increment 66.

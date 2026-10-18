@@ -6,7 +6,7 @@ import time
 
 class Endpoints:
     def __init__(self, run, execute, server, client, ip, options, network, image,
-                 containers, volumes, servers, extra_mounts, report, destination_relay=None):
+                 containers, volumes, servers, extra_mounts, report, destination_relay=None, source_relay=None):
         self.run, self.execute, self.client = run, execute, client
         self.report = report
         self.counter = 0
@@ -28,10 +28,12 @@ class Endpoints:
         assert destination_ip != ip
         self.relay = destination_relay(destination_ip) if destination_relay else None
         destination_mount_ip = self.relay.address if self.relay else destination_ip
+        source_observer = source_relay(ip) if source_relay else None
+        source_mount_ip = source_observer.address if source_observer else ip
         self.servers = {"source": server, "destination": destination}
         self.mounts = {"source": "/tmp/nfs-source", "destination": "/tmp/nfs-destination"}
         report["servers"] = {}
-        for role, address, fsid in (("source", ip, 55), ("destination", destination_mount_ip, 56)):
+        for role, address, fsid in (("source", source_mount_ip, 55), ("destination", destination_mount_ip, 56)):
             target, mount = self.servers[role], self.mounts[role]
             export = "/exports/death-" + role
             run(["exec", target, "/bin/sh", "-eu", "-c",
@@ -49,6 +51,10 @@ class Endpoints:
             if role == "destination" and self.relay:
                 report["servers"][role]["backend_ip"] = destination_ip
                 report["reply_relay"] = self.relay.evidence
+            if role == "source" and source_observer:
+                report["servers"][role]["backend_ip"] = ip
+                report["reply_relay"] = source_observer.evidence
+                report["reply_relay_role"] = "source"
             assert any(f" {export} tmpfs " in m and "size=131072k" in m and "nr_inodes=4096" in m
                        for m in report["servers"][role]["server_mounts"])
             self.healthy(role)

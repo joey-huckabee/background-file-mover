@@ -36,6 +36,8 @@ pub(super) fn owned(
             }
             #[cfg(feature = "nfs-qualification")]
             if let Some(point) = match (operation, step) {
+                ("claim_link", "link_enter") => Some("claim_link_rpc"),
+                ("claim_link", "unlink_enter") => Some("claim_unlink_rpc"),
                 ("file_link", "link_enter") => Some("file_link_rpc"),
                 ("manifest_link", "link_enter") => Some("manifest_link_rpc"),
                 ("file_link", "link_effect") => Some("file_link_sync"),
