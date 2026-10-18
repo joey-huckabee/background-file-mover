@@ -11,9 +11,12 @@ User=mover
 Group=mover
 RootDirectory=/sles
 EnvironmentFile={envfile}
+SyslogIdentifier={unit}
 ExecStartPre=/bin/sh -eu -c '{pregate}'
 ExecStart={binary} {config}
-ExecStop={binary} --stop {config}
+# A failed contender can reach ExecStop in v228. Never run the global --stop
+# controller here: it could stop an owner belonging to another unit/manual start.
+# Default SIGTERM/control-group targets only this unit's processes.
 KillMode=control-group
 SendSIGKILL=no
 TimeoutStopSec={stop_timeout}

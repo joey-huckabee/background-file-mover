@@ -264,10 +264,24 @@ Increment 58 retains `scripts/check-systemd228-preflight.py`, a pinned
 `Containerfile.228` and candidate old unit. See `docs/RUST-INCREMENT-58.md`: the
 private cgroup-v2 228-equivalent preflight is BLOCKED; ten lifecycle records
 are NOT_RUN. Compiled directive names are not a parser/lifecycle pass. Exact
-SLES-maintenance RPMs and an approved suitable isolated engine remain pending;
-no real SLES installation is required. Do not retry a host-cgroup bootstrap
-without new explicit authorization: the proposed broader action was rejected
-by automatic approval review and its boot scripts were removed. Production NFS/deletion remain disabled.
+SLES-maintenance RPM qualification remains separate; no real SLES installation
+is required. The initial broader bootstrap rejection is historical: on 2026-10-18
+the user explicitly approved it in the Podman VM for increment 59. The retained
+`--manager 228 --allow-host-cgroup-bootstrap` path creates only a fresh
+controller-free hierarchy and a nonce-owned subtree, then narrows its namespace
+view. Never attach to an unknown existing hierarchy or change unrelated process
+membership/controllers. Verify empty-subtree and kernel-hierarchy cleanup.
+See `docs/SYSTEMD-LIFECYCLE-LAB.md` for every infrastructure/test step and
+`docs/TESTING-LIMITATIONS.md` for the evidence boundaries. Preserve the failed
+58 preflight and 59 fixture attempts separately from actual lifecycle results.
+Increment 59 passes ten local 228-equivalent records, eight armed races and 32
+explicit competitor refusals, with verified hierarchy cleanup and fresh SLES
+gates. The legacy unit omits global ExecStop: 228 can invoke it after a contender
+fails the guard and thereby stop the legitimate foreign owner. Preserve
+unit-owned SIGTERM and independent same-user controller checks. See
+`docs/RUST-INCREMENT-59.md`; exact vendor patches/kernel, actual account and
+persistence policy and combined hard-NFS lifecycle remain unqualified.
+Production NFS/deletion remain disabled.
 
 ## Project Overview
 

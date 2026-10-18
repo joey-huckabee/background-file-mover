@@ -102,3 +102,7 @@ is not inferred from ELF/userspace compatibility.
 [Increment 58](RUST-INCREMENT-58.md) records independent fresh ABI/userspace
 checks alongside a blocked private-container 228 preflight. Passing these Rust
 gates cannot turn unexecuted old-manager lifecycle cases into support.
+
+See [testing limitations](TESTING-LIMITATIONS.md) for the ABI versus kernel/CPU,
+storage, manager and deployment boundaries, and the [lifecycle lab procedure](SYSTEMD-LIFECYCLE-LAB.md)
+for reproducible setup, exact-artifact checks, test steps and cleanup.

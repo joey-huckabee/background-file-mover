@@ -661,7 +661,7 @@ The recipe uses pinned base images but online manager package installation; this
 is not an offline reproducible production package. Require the supported engine
 inside its disposable VM, not access to production storage.
 
-## Old-manager preflight remains blocked
+## Private-only old-manager preflight (historical blocked path)
 
 [Increment 58](RUST-INCREMENT-58.md) retains `scripts/check-systemd228-preflight.py`,
 `Containerfile.228` and a candidate old-manager unit under `scripts/systemd/`.
@@ -680,3 +680,20 @@ starts the unmodified manager; there are no host-cgroup bootstrap scripts or
 host namespace options in the preflight. Such a broader bootstrap was rejected
 by automatic approval review. Keep suitable isolated-engine/package prerequisites
 open and production NFS/deletion disabled; the passing v252 evidence is unchanged.
+
+## Separately approved 228 lifecycle bootstrap
+
+The user approved broader bootstrap in the Podman VM on 2026-10-18.
+[Increment 59](RUST-INCREMENT-59.md) retains a separate approved image and
+nonce-scoped helpers; the preflight above retains its fully private boundary.
+Follow the [step-by-step lab procedure](SYSTEMD-LIFECYCLE-LAB.md), including
+mandatory gates, image builds, the explicit driver switch, every baseline/fault
+step, actual evidence and cleanup. It uses local payload/state, not NFS mounts.
+Read [testing limitations](TESTING-LIMITATIONS.md) before interpreting the
+results; neither a pause nor a local process exit proves NAS settlement.
+Exact SLES-maintained RPM patches, old-kernel behavior, actual account/persistence
+and combined hard-NFS/systemd remain separate. Production NFS/deletion stay off.
+All ten selected local records pass, with eight armed races, 32 competing
+effect-command refusals and verified cleanup. The corrected legacy unit has no
+global ExecStop that could stop another owner after guard refusal; its bounded
+controller is tested independently. No new NFS-runtime case is claimed here.

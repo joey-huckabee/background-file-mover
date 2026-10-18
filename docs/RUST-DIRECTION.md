@@ -517,3 +517,17 @@ records are NOT_RUN. Compiled directive introspection supports the candidate
 legacy key names only. Keep an approved suitable isolated engine/package source
 as prerequisites; no real SLES installation is required. No production behavior
 or NFS/deletion enablement changes.
+
+[Increment 59](RUST-INCREMENT-59.md) follows explicit user approval for the
+broader Podman-VM bootstrap. Retain the separate approved image/helpers and
+`--manager 228 --allow-host-cgroup-bootstrap` entry point; refuse an unknown
+existing hierarchy and require complete owned/kernel-hierarchy cleanup. Read
+its actual lifecycle results and retained failures rather than treating the
+blocked 58 preflight as changed. The [lab guide](SYSTEMD-LIFECYCLE-LAB.md) gives
+every setup/test step; [testing limitations](TESTING-LIMITATIONS.md) separates
+ABI/userspace, manager, kernel, NFS, durability, workload and deployment evidence.
+Ten local lifecycle records, eight armed races and 32 explicit competitor
+refusals pass with verified cleanup. The legacy unit uses unit-owned SIGTERM,
+with the bounded controller checked independently: a global ExecStop after
+guard refusal stopped a legitimate foreign owner in the retained failed run.
+Production NFS and source deletion remain disabled.

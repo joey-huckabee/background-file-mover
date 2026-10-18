@@ -113,7 +113,7 @@ def main():
         for kind, filename in [('legacy_candidate', 'file-mover-228.service.in'), ('modern_negative_control', 'file-mover.service.in')]:
             template = (ROOT / 'scripts/systemd' / filename).read_text(encoding='utf-8')
             unit = 'fm-228-' + kind.replace('_', '-') + '.service'
-            text = template.format(binary='/tmp/release', config='/tmp/fixture-config.json',
+            text = template.format(unit=unit, binary='/tmp/release', config='/tmp/fixture-config.json',
                                    envfile='/run/fm-228.env', pregate='true', restart='on-failure', stop_timeout=75)
             local = output / unit
             local.write_text(text, encoding='utf-8')

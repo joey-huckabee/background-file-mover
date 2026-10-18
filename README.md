@@ -1,5 +1,10 @@
 # Background File Mover
 
+For what the current tests prove and what remains unqualified, read
+[testing limitations](docs/TESTING-LIMITATIONS.md). The
+[systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
+infrastructure setup, individual test steps, evidence and cleanup.
+
 [Cooperative lock custody](docs/RUST-INCREMENT-25.md) now uses preprovisioned
 regular lock files and version-2 bindings, including actual worker inheritance.
 This is separate from the remaining takeover/partition fencing. Preserve old
@@ -61,6 +66,11 @@ Production NFS and source deletion remain disabled.
 [Increment 58](docs/RUST-INCREMENT-58.md) records a blocked private-container
 systemd-228 preflight: compiled directive checks are separate from the ten
 unexecuted lifecycle cases and pending SLES-maintenance RPM qualification.
+[Increment 59](docs/RUST-INCREMENT-59.md) passes ten local 228-equivalent
+lifecycle records using the separately approved Podman-VM bootstrap. Read its actual
+results and limits, the [step-by-step lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md)
+and [testing limitations](docs/TESTING-LIMITATIONS.md). Historical blocked and
+failed reports remain separate; production NFS and source deletion stay off.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

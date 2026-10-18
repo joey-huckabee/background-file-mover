@@ -27,11 +27,16 @@ Select the proxy package and implement/qualify the [remote access design](REMOTE
 RA-01–16, alongside remaining FR-01 details and FR-02 capacity cases. Keep
 registration deferred, existing-job recovery intact and production NFS/deletion off.
 
-An approved suitable isolated container engine and verified manager-package
-source are prerequisites for the remaining old-manager matrix. Qualify actual
-SLES-maintenance RPM behavior; do not treat compiled directive names, the
-modern-manager run or a blocked private cgroup-v2 preflight as that evidence.
-Keep testing container-only, with no real SLES installation requirement.
+Declare the supported manager/package and kernel profile and qualify its
+remaining deployment behavior. Exact SLES-maintenance RPM patches remain
+untested by the approved equivalent-228 lab; do not infer them from version
+labels or compiled directive names. Complete actual account control, persistent
+deployment and combined hard-NFS lifecycle evidence. Keep testing container-only,
+with no real SLES installation requirement, and maintain the
+[testing limitations](TESTING-LIMITATIONS.md) and [lab procedure](SYSTEMD-LIFECYCLE-LAB.md).
+Preserve unit-scoped shutdown when packaging: a rejected contender must not run
+a global stop controller against the legitimate owner. Qualify the shipping
+unit's account, restart and timeout behavior for the declared supported profile.
 
 ## Next work
 

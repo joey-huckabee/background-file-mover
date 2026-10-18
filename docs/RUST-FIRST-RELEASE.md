@@ -8,6 +8,11 @@ parts and their evidence stay in the [scenario catalog](RUST-SCENARIOS.md) and
 increment reports. Do not count increments or passing tests as a completion
 percentage.
 
+Use [testing limitations](TESTING-LIMITATIONS.md) to distinguish tested behavior,
+environment assumptions and remaining evidence. The [lifecycle lab procedure](SYSTEMD-LIFECYCLE-LAB.md)
+documents the controlled infrastructure, individual test steps and cleanup;
+it is not a production installation guide.
+
 ## Intended first release
 
 One executable/configuration/systemd service coordinates explicit recording sets
@@ -215,3 +220,14 @@ private cgroup-v2 engine. Compiled directive-name checks do not close FR-05/06.
 A suitable approved isolated engine and verified SLES manager-package source
 remain prerequisites, with container-only testing and no real SLES installation
 requirement. All eight gates remain open; production NFS/deletion stay disabled.
+
+[Increment 59](RUST-INCREMENT-59.md) adds the separately approved Podman-VM
+bootstrap for the equivalent-228 lifecycle matrix, preserving earlier failed/
+blocked evidence. Use its actual outcomes for the finite local lifecycle scope;
+exact vendor patches, old kernels, account/persistence and combined hard-NFS
+behavior remain distinct. The lab and limitations guides advance DOC-04/05;
+they do not close FR-05/06/08 or any other release gate. Production NFS and
+source deletion remain disabled.
+All ten selected equivalent-228 local lifecycle records pass, including the
+corrected unit-owned shutdown and independent controller checks. This is finite
+SH-02/08/09 evidence, not closure of the full deployment/NFS release gates.

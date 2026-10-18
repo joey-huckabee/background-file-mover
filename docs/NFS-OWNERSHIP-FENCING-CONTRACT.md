@@ -266,7 +266,7 @@ is separate. Keep the increment 46 counterexample and all remaining SH obligatio
 | SH-06 | Clean drain finishes before configured deadline; controller success only after confirmed old process/worker completion. The next same-state start uses normal binding/reconciliation. |
 | SH-07 | Block a worker on NFS beyond a short configured test deadline and exercise the default 60-second path: controller returns incomplete/nonzero within a measured tolerance, holder remains and concurrent/new starts refuse. Do not equate timeout/SIGKILL to cancellation. |
 | SH-08 | Repeated stop requests/signals and next-start config changes do not reset the first monotonic deadline. Safe local status stays bounded; later completion can be observed without forcing a replacement. |
-| SH-09 | Admin-provisioned actual-version systemd lifecycle under the unprivileged account: authorized start/stop, process-group/timeout/restart behavior, guarded manual conflict and no restart storm. No NAS-admin operations required. |
+| SH-09 | Admin-provisioned actual-version systemd lifecycle under the unprivileged account: authorized start/stop, process-group/timeout/restart behavior, guarded manual conflict and no restart storm. A rejected contender's stop path must not stop the legitimate owner in another unit/manual start; keep any global operator controller separate from unit-owned signals. No NAS-admin operations required. |
 | SH-10 | Same and separate NFS shares: original state, private working directories, producer-reused paths, destination no-clobber and 3N integrity/manifest behavior survive outage/restart. No current NFS-version guess becomes a support claim. |
 | SH-11 | Delayed client/server RPC/writeback at claim/link/unlink/copy/sync/publication/manifest boundaries after parent/child exit: qualified owned reconciliation or explicit review, no conflicting redispatch or false 202/commitment. A userspace pre-call pause is insufficient. |
 | SH-12 | Actual supported mount/version/security profile, missing/replaced mount/root, server recovery/grace/reclaim, longer outages, changed strict pins and storage durability: measured safe continuation or preserved refusal, not automatic rebind. |
@@ -382,3 +382,15 @@ and exact SLES-maintenance RPM provenance is unavailable. Ten lifecycle cases
 remain NOT_RUN. Directive-name inventory is not unit parsing or lifecycle
 evidence. An approved suitable isolated container engine and package source
 remain prerequisites; a real SLES installation is not required.
+
+[Increment 59](RUST-INCREMENT-59.md) records the separately approved broader
+228-equivalent lab and its actual outcomes; preserve the historical 58 blocker.
+The [lab procedure](SYSTEMD-LIFECYCLE-LAB.md) covers infrastructure/test steps
+and cleanup, while [testing limitations](TESTING-LIMITATIONS.md) maps evidence
+to remaining SH/release obligations. These local lifecycle cases cannot settle
+NFS effects or authorize production NFS/source deletion.
+All ten selected local equivalent-228 records pass, including preservation of
+the legitimate owner after a second-unit refusal. The legacy candidate uses
+unit-owned SIGTERM and separately qualified controller calls, with bounded
+restart attempts and complete fixture hierarchy cleanup. Remaining SH scope
+and all release gates stay open.

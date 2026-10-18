@@ -6,7 +6,9 @@ import traceback
 
 
 def exercise(Case, host, execute, spawn, popen, output, client, report):
-    template = (Path(__file__).parent / 'systemd/file-mover.service.in').read_text()
+    legacy = report.get('manager_profile') == '228'
+    template_name = 'file-mover-228.service.in' if legacy else 'file-mover.service.in'
+    template = (Path(__file__).parent / 'systemd' / template_name).read_text(encoding='utf-8')
     counter = 0
 
     def ctl(command, check=True):
@@ -18,6 +20,8 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
         return dict(line.split('=', 1) for line in text.splitlines() if '=' in line)
 
     def journal(unit):
+        if legacy:
+            return host(f'journalctl -b --no-pager -o cat _SYSTEMD_UNIT={unit} + UNIT={unit} + SYSLOG_IDENTIFIER={unit}').stdout
         return host(f'journalctl -u {unit} --no-pager -o cat').stdout
 
     def install(c, restart='on-failure', pause=None, gate=False, timeout=75, other=False, alternate=False):
@@ -26,7 +30,7 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
         value = (f'FILE_MOVER_QUALIFICATION_PAUSE={pause}\nFILE_MOVER_QUALIFICATION_RENDEZVOUS={c.rendezvous}\n' if pause else '')
         host(f"cat >{env} <<'ENV'\n{value}ENV\nchmod 600 {env}")
         pregate = (f': >{c.base}/unit-armed; while test ! -e {c.base}/race-go; do sleep 0.01; done' if gate else 'true')
-        text = template.format(binary=c.binary, config=c.alternate_config if alternate else c.config_path, envfile=env,
+        text = template.format(unit=unit, binary=c.binary, config=c.alternate_config if alternate else c.config_path, envfile=env,
                                pregate=pregate, restart=restart, stop_timeout=timeout)
         local = output / unit
         local.write_text(text, encoding='utf-8')
@@ -227,13 +231,41 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
         pid = props(c.unit)['MainPID']; held = epoch(c)
         p = popen(['exec', client, 'systemctl', 'stop', c.unit], c.label + '-systemctl-stop')
         began = time.monotonic()
+        controller = None
+        if legacy:
+            # The v228 unit deliberately has no global ExecStop controller.
+            # Exercise that same-user controller independently while the
+            # manager stops only its own group with SIGTERM.
+            controller_began = time.monotonic()
+            reply = execute(f'LD_BIND_NOW=1 {c.binary} --stop {c.config_path}', '1000:1000', check=False)
+            controller_seconds = time.monotonic() - controller_began
+            assert reply.returncode == 2 and controller_seconds < 5, reply.stderr
+            controller = dict(exit_code=reply.returncode, seconds=round(controller_seconds, 3),
+                              snapshot=json.loads(reply.stdout), stdout=reply.stdout, stderr=reply.stderr)
         p.wait(timeout=25)
         elapsed = time.monotonic() - began
         assert p.returncode in (0, 1) and elapsed < 24
         stopped = lifecycle(c, 'ShutdownIncomplete')
         assert stopped['exit_code'] == 2 and stopped['snapshot']['shutdown_wait_seconds'] == 2
         assert stopped['snapshot']['shutdown_remaining_ms'] == 0 and epoch(c) == held and c.state(pid) not in {'', 'Z'}
-        assert '"ShutdownIncomplete"' in journal(c.unit)
+        if legacy:
+            assert controller['snapshot'] == stopped['snapshot']
+            c.result['independent_stop_controller'] = controller
+        controller_log = journal(c.unit) if not legacy else controller['stdout']
+        journal_scope = 'unit'
+        if legacy:
+            journal_scope = 'independent-controller-stdout'
+        replies = []
+        for line in controller_log.splitlines():
+            if line.startswith('{'):
+                try:
+                    value = json.loads(line)
+                except ValueError:
+                    continue
+                if value.get('instance_id') == stopped['snapshot']['instance_id'] and value.get('phase') == 'ShutdownIncomplete':
+                    replies.append(value)
+        assert replies and replies[-1] == stopped['snapshot']
+        c.result['stop_controller_evidence'] = dict(scope=journal_scope, reply=replies[-1])
         c.result['incomplete_stop'] = dict(seconds=round(elapsed, 3), systemctl_exit_code=p.returncode, manager=props(c.unit), controller=stopped)
         ctl(f'start {c.unit}', check=False)
         assert epoch(c) == held and c.state(pid) not in {'', 'Z'}

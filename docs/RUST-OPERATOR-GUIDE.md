@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 57. It
+This guide describes the implemented Rust prototype and its qualification evidence. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -476,6 +476,9 @@ jobs or independently fenced takeover.
 DOC-03 covers SC-008–010, SC-023–027 and the operator response portions of
 SC-058–074, with supporting interruption/capacity explanations from SC-018–020,
 SC-028–033 and SC-049–057. Future situations remain explicitly blocked here.
+Later sections explain selected SC-087–095 lifecycle fixture outcomes and their
+limits; the separate lab guide documents reproduction. These additions do not
+turn pending production deployment/recovery procedures into supported actions.
 This guide does not promote fixture observations into production support.
 
 Implemented API/request semantics are covered by [07](RUST-INCREMENT-07.md),
@@ -724,6 +727,11 @@ delayed NAS effects remain unqualified; production NFS/deletion stay disabled.
 
 ## Controlled manual/systemd coordination evidence
 
+The [step-by-step lifecycle lab guide](SYSTEMD-LIFECYCLE-LAB.md) explains the
+controlled infrastructure and test sequence. Read [testing limitations](TESTING-LIMITATIONS.md)
+for what ABI, process-crash, NFS and manager evidence can establish. These guides
+do not replace production provisioning or authorize unsupported recovery.
+
 [Increment 57](RUST-INCREMENT-57.md) exercises a disposable system service under
 a real systemd 252 manager, with the mover/controllers inside pinned SLES 12 SP5
 userspace and local state/payload. It is not an installation recipe or native
@@ -753,7 +761,7 @@ cancellation of an uninterruptible NFS operation or settlement on the NAS.
 Native SLES systemd/cgroups, actual account policy, reboot/persistent storage and
 combined hard-NFS/systemd remain unqualified. Production NFS/deletion stay off.
 
-## Old-manager qualification is pending
+## Historical private-only old-manager preflight
 
 [Increment 58](RUST-INCREMENT-58.md) did not run the old-manager lifecycle matrix.
 The private container exposes cgroup v2, and the available systemd-228 equivalent
@@ -766,4 +774,34 @@ This does not change the working local service, its ownership guard or the
 previous v252 fixture evidence. Production NFS/deletion remain disabled. Tests
 stay container-only; an actual SLES installation is not needed to resolve the
 engine/package prerequisites. No host cgroup configuration workaround is part
-of the retained fixture.
+of that private-only preflight.
+
+## Separately approved 228-equivalent lifecycle lab
+
+The user explicitly approved broader bootstrap in the Podman VM for
+[increment 59](RUST-INCREMENT-59.md). It retains a separate image/helpers and
+driver switch, with a fresh controller-free hierarchy, nonce-owned subtree,
+private manager/helper view and bounded verified cleanup. Read the actual case
+results there; the historical failures above are not rewritten as passes.
+The [lab guide](SYSTEMD-LIFECYCLE-LAB.md) explains each infrastructure/test step.
+
+The manager is an official Leap 42.3 systemd 228 equivalent; the mover/workers/
+controllers retain pinned SLES/glibc-2.22 userspace. It is not exact SLES RPM,
+old-kernel, full host authorization, persistent deployment or hard-NFS/systemd
+qualification. The minimal manager's unprivileged bus refusal does not prove an
+administrator's eventual control policy. Follow [testing limitations](TESTING-LIMITATIONS.md)
+for these and the scale, race-observation, NAS and power-loss boundaries.
+Production NFS and source deletion remain disabled.
+
+The increment-59 candidate-unit test found that systemd 228 can invoke global
+`ExecStop=... --stop` after a contender fails the guard, stopping the legitimate
+owner. The corrected 228 fixture omits that command and uses manager SIGTERM
+for its own process group; the same-user controller is tested independently.
+Do not copy the historical fixture unit into production. Keep unit authority,
+application ownership and operator controller intent distinct.
+The corrected ten-case 228-equivalent matrix passes in both profiles/build modes,
+with eight armed races, 32 explicit competitor refusals and complete fixture
+cleanup. In both incomplete-stop cases, systemctl returned 0 with MainPID 0
+and Result=timeout while the original owner remained live; the independent
+controller returned exit 2/ShutdownIncomplete. Preserve state and confirm
+actual ownership/process status rather than using the manager's return alone.
