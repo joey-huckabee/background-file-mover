@@ -1,4 +1,4 @@
-"""Private systemd manager, unchanged SLES root, finite local lifecycle matrix."""
+"""Finite private-manager lifecycle matrices with exact gated SLES artifacts."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -21,7 +21,9 @@ def main():
     parser.add_argument('--connection', default='podman-machine-default-root')
     parser.add_argument('--manager', choices=['252', '228'], default='252')
     parser.add_argument('--allow-host-cgroup-bootstrap', action='store_true')
-    parser.add_argument('--nfs', action='store_true', help='Four qualification-only actual hard-NFS/systemd cases')
+    parser.add_argument('--nfs', action='store_true', help='Enable qualification-only actual hard-NFS/systemd cases')
+    parser.add_argument('--nfs-suite', choices=['stop-death', 'restart'], default='stop-death',
+                        help='Select the finite hard-NFS lifecycle matrix; restart has two cases')
     args = parser.parse_args()
     legacy = args.manager == '228'
     if legacy and not args.allow_host_cgroup_bootstrap:
@@ -30,6 +32,8 @@ def main():
         parser.error('the broader bootstrap is available only for --manager 228')
     if args.nfs and not legacy:
         parser.error('--nfs requires --manager 228 and its approved bootstrap')
+    if args.nfs_suite != 'stop-death' and not args.nfs:
+        parser.error('--nfs-suite restart requires --nfs')
     gates = [args.gate.resolve(), args.qualification_gate.resolve()]
     inventory = {p.relative_to(ROOT / 'rust').as_posix() for child in (ROOT / 'rust').iterdir()
                  if child.name not in {'validation', 'target'}
@@ -54,6 +58,7 @@ def main():
     record['manager_profile'] = args.manager
     record['broader_bootstrap_acknowledged'] = args.allow_host_cgroup_bootstrap
     record['nfs_requested'] = args.nfs
+    record['nfs_suite'] = args.nfs_suite if args.nfs else None
     if legacy:
         record['scope'] = 'Approved broader bootstrap; Leap 42.3 systemd 228 equivalent; pinned SLES service root; local payload/state only; no exact SLES RPM, native old kernel, hard-NFS/systemd, reboot, persistence or host account-policy qualification'
     engine = ['podman', '--connection', args.connection]
@@ -122,6 +127,8 @@ def main():
             for name in ['systemd_nfs.py', 'nfs_exports.py']:
                 record['driver_sha256'][name] = hashlib.sha256((ROOT / 'scripts' / name).read_bytes()).hexdigest()
             record['scope'] = 'Approved 228-equivalent bootstrap; four selected managed stop/death hard-NFS copy cases; distinct tmpfs-backed exports on one controlled server; local state; pinned SLES service userspace. No exact SLES RPM/kernel, independent NAS, RPC settlement, power loss, actual account policy or production NFS/deletion qualification.'
+            if args.nfs_suite == 'restart':
+                record['scope'] = 'Approved 228-equivalent bootstrap; two selected incomplete-stop/repeated-start/quiet-window/restoration cases at hard-NFS mid-copy; distinct exports on one controlled server, local state and pinned SLES service userspace. Finite restart observations only; no exact SLES RPM/kernel, independent NAS, RPC settlement, power loss, actual account/persistence or production NFS/deletion qualification.'
         image = 'localhost/background-file-mover-systemd228-approved' if legacy else 'localhost/background-file-mover-systemd'
         record['image'] = json.loads(raw(['image', 'inspect', image]).stdout)[0]
         if legacy:
@@ -208,7 +215,8 @@ def main():
         run_runtime(run, execute, spawn, lab.restore if lab else lambda: None, lab.server if lab else None,
                     output, client, hashes, record['cases'],
                     case_runner=lambda Case: exercise(Case, host, execute, spawn, popen, output, client, record, nfs_lab=lab))
-        assert len(record['cases']) == (4 if lab else 10) and all(c['passed'] for c in record['cases'])
+        expected = (2 if args.nfs_suite == 'restart' else 4) if lab else 10
+        assert len(record['cases']) == expected and all(c['passed'] for c in record['cases'])
         record['status'] = 'PASSED'
     except Exception as error:
         record.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())

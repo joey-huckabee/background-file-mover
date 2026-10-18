@@ -402,3 +402,9 @@ sampled old-thread/epoch/restart observations. Normal unmount and original-state
 recovery follow restoration/confirmed old exit. Remaining phases, delayed RPCs,
 actual NAS/storage/account/kernel and full SH/release qualification remain open.
 Production NFS and deletion remain disabled.
+
+[Increment 61](RUST-INCREMENT-61.md) adds selected SH-02/07/08/09/14
+incomplete-stop/repeated-start evidence with real D workers and original local
+state. Manager start acknowledgement, old-thread lifetime and authorized recovery
+remain separate; read actual manager/application refusals and intervention.
+This does not settle remote RPCs or close remaining SH/production NFS/deletion gates.

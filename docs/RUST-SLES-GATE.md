@@ -111,3 +111,8 @@ for reproducible setup, exact-artifact checks, test steps and cleanup.
 and their exact byte-checked artifacts for four selected combined NFS/systemd
 records. Service binaries remain byte-identical to increment 59. Manager/NFS
 evidence stays separate from ABI/userspace checks and production enablement.
+
+[Increment 61](RUST-INCREMENT-61.md) runs fresh production/qualification gates
+and uses their exact audited artifacts for the two selected restart records.
+Rust sources and four service binaries remain identical to increment 60;
+manager/NFS lifecycle evidence remains separate from ABI/userspace compatibility.

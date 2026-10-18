@@ -293,6 +293,14 @@ the lab steps, scenario catalog and testing limits. Other phases, actual NAS,
 RPC settlement/power durability, exact vendor/kernel and deployment/account
 qualification remain open. Production NFS/source deletion stay disabled.
 
+Increment 61 retains `--nfs --nfs-suite restart` for two selected debug/release
+incomplete-stop/repeated-start/restoration cases, preserving the default matrix.
+See `docs/RUST-INCREMENT-61.md` and lab section 13 for actual outcomes and finite
+limits. Preserve original state, real D-worker exclusion through old-thread exit,
+manager-versus-application refusal distinctions and explicit operator intervention
+where required. Production NFS/deletion stay disabled; remaining SH/release scope
+stays open. No Rust, dependency, unit template or shutdown-deadline change.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

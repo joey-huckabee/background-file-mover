@@ -538,3 +538,10 @@ outcomes, old-thread/epoch and original-state recovery evidence. Keep remaining
 operation/shutdown/death phases, remote settlement, actual NAS/mount/security,
 account/persistence, exact vendor/kernel and workload qualification open.
 Production NFS/source deletion remain disabled.
+
+[Increment 61](RUST-INCREMENT-61.md) adds selected restart-after-incomplete-stop
+qualification through `--nfs --nfs-suite restart`, preserving the older matrices.
+Read actual manager refusal, retained ownership, quiet/restoration observations
+and recovery actions. Update the maintained lab/operator/scenario/limits documents;
+keep remaining shipping/operation/deployment qualification open and production
+NFS/source deletion disabled.

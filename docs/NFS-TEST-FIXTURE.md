@@ -91,3 +91,9 @@ section 12 for server-image preparation, distinct hard-mounted exports, local
 state and restoration/unmount-before-removal. Earlier scope statements above
 are historical; current supported evidence and limits are in
 [NFS qualification](NFS-QUALIFICATION.md). Production NFS/deletion remain off.
+
+[Increment 61](RUST-INCREMENT-61.md) reuses the same cached server/approved manager
+for selected incomplete-stop/repeated-start/restoration cases. No package
+experiment, NFS implementation, new image or VM boot/module change is required.
+See [the lab guide](SYSTEMD-LIFECYCLE-LAB.md) section 13 and actual results/limits;
+normal-unmount-first teardown and production NFS/deletion restrictions remain.

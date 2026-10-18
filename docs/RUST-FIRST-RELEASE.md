@@ -238,3 +238,11 @@ state. It advances finite FR-03/05 evidence; all eight gates remain open.
 Remaining operation/endpoint/deadline boundaries, NAS settlement/durability,
 actual package/kernel/account/persistence and workload evidence are not waived.
 Production NFS and source deletion remain disabled.
+
+[Increment 61](RUST-INCREMENT-61.md) advances finite FR-03/05 evidence for
+restart after incomplete stop: two debug/release records with three spaced
+explicit starts each, quiet-outage observations, confirmed old-thread exit and
+original-state recovery. Read actual automatic/manual intervention outcomes.
+Other phases, shipping restart/account/persistence policy, remote settlement and
+full SH qualification remain open; all eight release gates and production
+NFS/deletion restrictions remain unchanged.

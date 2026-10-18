@@ -829,3 +829,54 @@ resets/starts the original unit. Do not assume Restart=on-failure guarantees
 automatic recovery from an incomplete group stop; the shipping policy still
 needs qualification. In the stop records, systemctl returned 0 despite the
 retained live owner; the independent controller correctly returned exit 2.
+
+## Restart after an incomplete managed stop
+
+[Increment 61](RUST-INCREMENT-61.md) and
+[lab section 13](SYSTEMD-LIFECYCLE-LAB.md) define the selected controlled test.
+Read its actual result before assuming that an accepted systemd start request
+launched a mover or that Restart=on-failure will recover automatically. A failed
+unit, MainPID 0 or systemctl exit 0 does not prove old workers have exited.
+
+1. Use the bounded `file-mover --status CONFIG.json` command under the mover's
+   user account with its original configuration and local state. ShutdownIncomplete
+   and OwnerUnavailable are unsuccessful states that preserve exclusion. A new
+   unit start may be refused by the manager before the application guard runs;
+   its acknowledgement and later job/journal result must be read separately.
+2. Preserve the original database, ownership epoch, source custody, receipts and
+   partials. Repeated starts, reset-failed, deleting a guard or using a different
+   state directory cannot make a live old worker safe to replace. Do not adopt
+   or kill an unknown orphan, force-unmount storage or change enrollment to bypass
+   the refusal. The fixture's direct competing commands are tests, not a recovery
+   workaround for operators.
+3. Restore the approved storage path and confirm actual old-process/thread exit.
+   Then inspect local ownership and manager state again. NoActiveOwner is local
+   lifetime evidence, not proof that a delayed remote operation cannot still
+   complete. Original scope/receipt checks and conservative uncertain-effect
+   reconciliation remain required; an unsupported situation stays stopped/review.
+4. If no replacement has started, use the administrator-approved systemd control
+   procedure to clear failed state and start the original unit. The controlled
+   lab uses explicit reset-failed/start after confirmation. User= in a service
+   file does not grant the mover account systemctl authorization. A production
+   unit/account policy still needs its own qualification.
+5. Require readiness and original-job recovery, rather than a new PID alone.
+   The recorder still retries only its identical ID/body until 202; it has no
+   later delivery-monitoring duty. The lab checks original-state attempt-2
+   commitment, retained source and the verified completion manifest.
+
+See [testing limits](TESTING-LIMITATIONS.md) for finite outage/quiet-window,
+manager-equivalent and shared-kernel boundaries. Production NFS and source
+deletion remain disabled; this test procedure does not enable production use.
+
+The actual increment-61 debug/release results require explicit recovery in the
+observed windows. Each of the three systemd start requests per profile returns
+0 and launches a contender, but it fails at the still-occupied listener with
+AddrInUse before reaching the ownership guard. A transient Started message is
+insufficient. Each sequence repeats the unit's stop timeout against surviving
+group processes and settles failed/timeout in about 18.4–19.1 seconds under
+the shortened fixture settings. Separate alternate-port and effect-command
+probes confirm guard refusal. No further launch occurs in the measured quiet
+windows; after restoration/confirmed old exit, status remains NoActiveOwner for
+about 12 seconds before explicit reset-failed/start recovers the original job.
+Do not assume the same times, rate-limit behavior or automatic recovery for a
+different manager, unit, listener configuration, operation or outage duration.

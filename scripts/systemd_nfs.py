@@ -76,6 +76,74 @@ class Lab:
             self.raw(['network', 'rm', self.network])
 
 
+def restart_while_blocked(c, held, old_tasks, exited, helpers):
+    """Three requested sequences, bounded settling and a finite quiet window."""
+    ctl, props = helpers['ctl'], helpers['props']
+    lifecycle, epoch, journal = helpers['lifecycle'], helpers['epoch'], helpers['journal']
+    began = time.monotonic()
+    rows = c.result['incomplete_restart_observations'] = []
+    requests = c.result['incomplete_restart_requests'] = []
+
+    def sample():
+        local = lifecycle(c)
+        tasks = old_tasks()
+        observed_epoch = epoch(c)
+        text = journal(c.unit)
+        counts = dict(guard_refusals=text.count('local instance or surviving worker already owns state'),
+                      started=text.count('Started File mover lifecycle qualification'),
+                      starting=text.count('Starting File mover lifecycle qualification'),
+                      failed_start=text.count('Failed to start File mover lifecycle qualification'),
+                      scheduled_restart=text.count('hold-off time over, scheduling restart'))
+        row = dict(seconds=round(time.monotonic() - began, 3), local=local, old_tasks=tasks,
+                   epoch=observed_epoch, manager=props(c.unit), journal_counts=counts)
+        rows.append(row)
+        assert not exited(tasks) and any(t['state'] == 'D' for t in tasks), row
+        assert local['exit_code'] == 2 and local['snapshot']['phase'] in {'ShutdownIncomplete', 'OwnerUnavailable'}, row
+        assert observed_epoch == held, row
+        assert counts['guard_refusals'] <= 6, text
+        assert counts['started'] <= 7 and counts['starting'] <= 7 and counts['scheduled_restart'] <= 6, text
+        return row
+
+    for index in range(3):
+        # Space explicit requests beyond the fixture's ten-second rate window;
+        # do not reset failed state while old workers survive.
+        if index:
+            previous = requests[-1]['seconds']
+            while time.monotonic() - began - previous < 12:
+                sample()
+                time.sleep(1)
+        request_began = time.monotonic()
+        reply = ctl(f'start --no-block {c.unit}', check=False)
+        request = dict(index=index + 1, seconds=round(request_began - began, 3),
+                       exit_code=reply.returncode, stdout=reply.stdout, stderr=reply.stderr)
+        requests.append(request)
+        while time.monotonic() - request_began < 30:
+            row = sample()
+            jobs = ctl('list-jobs --no-legend').stdout
+            row['manager_jobs'] = jobs
+            if (row['manager']['ActiveState'] in {'failed', 'inactive'}
+                    and row['manager']['MainPID'] == '0' and c.unit not in jobs):
+                request['settled_seconds'] = round(time.monotonic() - request_began, 3)
+                assert request['settled_seconds'] < 30
+                request['manager_after'] = row['manager']
+                request['journal_after'] = journal(c.unit)
+                break
+            time.sleep(1)
+        else:
+            raise AssertionError('explicit restart request did not settle within 30 seconds')
+    c.result['competitors_after_restart_requests'] = helpers['refuse'](c)
+    first = sample()
+    quiet_began = time.monotonic()
+    while time.monotonic() - began < 90 or time.monotonic() - quiet_began < 20:
+        time.sleep(2)
+        row = sample()
+        assert row['journal_counts'] == first['journal_counts'], 'activation/refusal growth during quiet window'
+        assert row['manager']['MainPID'] == '0' and row['manager']['ActiveState'] in {'failed', 'inactive'}
+    c.result['restart_quiet_window'] = dict(seconds=round(time.monotonic() - quiet_began, 3),
+        outage_after_incomplete_stop_seconds=round(time.monotonic() - began, 3),
+        first=first, last=rows[-1], journal=journal(c.unit))
+
+
 def exercise(c, kind, lab, host, execute, popen, client, helpers):
     from nfs_both import before, recovered
     ctl, props = helpers['ctl'], helpers['props']
@@ -121,7 +189,7 @@ def exercise(c, kind, lab, host, execute, popen, client, helpers):
     c.result['running_local_status'] = lifecycle(c, 'Running')
     c.result['competitors_before_signal'] = helpers['refuse'](c)
     host(f': >/run/{c.unit}.env')  # Subsequent launches must not pause.
-    if kind == 'nfs-stop':
+    if kind in {'nfs-stop', 'nfs-restart'}:
         job = popen(['exec', client, 'systemctl', 'stop', c.unit], c.label + '-systemctl-stop')
         began = time.monotonic()
         reply = execute(f'LD_BIND_NOW=1 {c.binary} --stop {c.config_path}', '1000:1000', check=False)
@@ -151,6 +219,9 @@ def exercise(c, kind, lab, host, execute, popen, client, helpers):
             assert c.state(main) in {'', 'Z'}
             c.result['outcome'] = 'prompt-kernel-assisted-exit'
         c.result['after_stop_status'] = observation
+        if kind == 'nfs-restart':
+            assert c.result['outcome'] == 'incomplete-worker-retained', 'restart qualification requires an actual surviving worker'
+            restart_while_blocked(c, held, old_tasks, exited, helpers)
     else:
         ctl(f'kill --kill-who=main --signal=KILL {c.unit}')
         observations = []
@@ -174,6 +245,7 @@ def exercise(c, kind, lab, host, execute, popen, client, helpers):
         c.result['outcome'] = 'authorized-replacement-after-old-exit' if any(
             o['local']['snapshot']['coordinator_pid'] not in (None, int(main)) for o in observations
         ) else 'old-exit-or-retained-exclusion-observed'
+    c.result['restore_requested'] = True
     lab.restore()
     c.await_exit(main); c.await_exit(worker)
     for _ in range(30):
@@ -186,7 +258,31 @@ def exercise(c, kind, lab, host, execute, popen, client, helpers):
     c.result['old_tasks_after_restore'] = tasks
     c.result['old_threads_confirmed_exited'] = True
     c.worker = None
-    helpers['start_unit'](c, restart='no', timeout=8)
+    if kind == 'nfs-restart':
+        observations = c.result['post_restore_observations'] = []
+        began = time.monotonic()
+        while True:
+            local = lifecycle(c)
+            tasks = old_tasks()
+            assert exited(tasks)
+            observations.append(dict(seconds=round(time.monotonic() - began, 3), local=local,
+                                     old_tasks=tasks, manager=props(c.unit)))
+            assert local['snapshot']['phase'] in {'NoActiveOwner', 'Starting', 'Running'}
+            if time.monotonic() - began >= 10:
+                break
+            time.sleep(1)
+        automatic = any(o['local']['snapshot']['phase'] in {'Starting', 'Running'} for o in observations)
+        c.result['automatic_replacement_after_restore'] = automatic
+        if automatic:
+            assert observations[-1]['local']['snapshot']['phase'] == 'Running'
+            assert epoch(c)['group'] != held['group']
+            c.result['recovery_action'] = 'automatic replacement observed after confirmed old exit'
+        else:
+            assert all(o['local']['snapshot']['phase'] == 'NoActiveOwner' for o in observations)
+            c.result['recovery_action'] = 'explicit reset-failed and start after restoration and confirmed old exit'
+            helpers['start_unit'](c, restart='no', timeout=8)
+    else:
+        helpers['start_unit'](c, restart='no', timeout=8)
     c.recover(restart=False)
     assert c.result['recovered_status']['details']['files'][0]['attempt'] == 2
     assert c.result['recovered_status']['details']['source_cleanup_enabled'] is False

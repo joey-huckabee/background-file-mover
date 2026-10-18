@@ -708,3 +708,9 @@ retained systemd driver with both passing gate directories. Follow
 experiments. Actual D-state blocking, epoch/thread exit, controller/restart and
 original-state recovery evidence remain distinct from NAS settlement, every
 operation or uncancellable deadline support. Production NFS/deletion stay off.
+
+[Increment 61](RUST-INCREMENT-61.md) retains the separate `--nfs --nfs-suite restart`
+selection for two debug/release incomplete-stop/repeated-start records; the
+default `--nfs` four-case stop/death matrix is unchanged. Lab section 13 describes
+setup, bounded outage/quiet observations, restoration/recovery and teardown.
+Read actual operator-action results and finite limits; production NFS/deletion stay off.

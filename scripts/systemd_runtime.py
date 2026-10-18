@@ -1,4 +1,4 @@
-"""Finite systemd/manual coordination checks, local payloads in a SLES chroot."""
+"""Finite manual/systemd coordination matrices; optional controlled hard NFS."""
 import json
 from pathlib import Path
 import time
@@ -332,7 +332,7 @@ def exercise(Case, host, execute, spawn, popen, output, client, report, nfs_lab=
     for production in (False, True):
         for profile in ('debug', 'release'):
             if nfs_lab:
-                kinds = [] if production else ['nfs-stop', 'nfs-death']
+                kinds = [] if production else (['nfs-restart'] if report.get('nfs_suite') == 'restart' else ['nfs-stop', 'nfs-death'])
             else:
                 kinds = ['basic'] if production else ['incomplete', 'manual-orphan', 'managed-crash', 'basic']
             for kind in kinds:

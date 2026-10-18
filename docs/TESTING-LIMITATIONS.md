@@ -40,6 +40,7 @@ settings or production/NAS privileges to conceal an unsupported lab backend.
 | Systemd 252 lab | Increment 57 records selected real-manager local lifecycle, account refusal, bounded restart and recovery behavior with the mover in pinned SLES userspace. | Native SLES systemd 228, its maintenance patches, old cgroup/kernel behavior, actual host authorization/install policy or combined NFS blocking. | Retain the report, but do not substitute it for the older-manager/deployment matrix; FR-05/06. |
 | Systemd 228 equivalent lab | Increment 59 passes ten selected local lifecycle records across both profiles/build modes, actual unit verification, eight armed races, independent controller checks, original-state recovery and owned-hierarchy cleanup. Mover/children/controllers retain the SLES root; the approved manager uses controller-free v1 cgroups. | Exact SLES-maintained RPM revision: the manager is a pinned Leap 42.3 equivalent. It also does not test an old SLES kernel, resource-controller policy or combined hard-NFS/systemd. A candidate key list alone does not prove lifecycle. | Keep 58's BLOCKED/NOT_RUN history and 59's failed-attempt evidence. Verify the declared package/deployment profile before claiming native SLES-manager support; FR-05/06. |
 | Systemd 228 / actual hard-NFS mid-copy | Increment 60 passes four managed stop/death records in debug/release with distinct controlled NFSv4.1 exports/local state, actual D workers, old-thread/epoch observations and original-state recovery. | Every operation/endpoint/deadline branch, exact RPC settlement, independent NAS failures, persistent disk/power durability, exact vendor/kernel policy, full account/install or production-scale behavior. Prompt exit is distinct from a retained uncancellable worker. | Read actual per-case outcomes and lab section 12. Finish remaining SH/FR-03/05/06 obligations; production NFS and deletion remain disabled. |
+| Systemd 228 / restart after incomplete stop | Increment 61 passes debug/release with three explicit starts each, 91.953/92.062-second outages after incomplete stop, 25.547/25.328-second quiet windows, preserved old epoch/D threads, 24 direct competitor refusals and original-state recovery. | Managed starts fail at the occupied listener before the guard; separate alternate-port/effect commands test the guard. No rate-limit saturation or automatic replacement is observed. This does not qualify other listener configurations, phases, endurance, every interleaving or remote settlement. | After storage restoration and confirmed old exit, all snapshots remain NoActiveOwner over 12.344/12.672 seconds; explicit reset/start recovers. Shipping restart/account/persistence and remaining SH/FR-03/05/06 stay open. See lab section 13. |
 | Process death versus machine/storage loss | SIGKILL/restart exercises selected application crash boundaries while the kernel/storage stay up. | Power loss, torn media writes, reboot persistence, volatile NAS/controller-cache behavior, disk/controller failure or a server's truthfulness about durable acknowledgements. | Qualify declared durability assumptions and storage/reboot/upgrade behavior in a controlled equivalent environment. Do not promise hardware-failure durability from process-crash tests; FR-03/05/06/08. |
 | Capacity/admission tests | Selected bounded fill/restoration, unchanged-policy refusal/retry and existing-job recovery are exercised; sampling is configurable and off by default. | Physical reservation, quotas/inodes, all external-writer races, sparse/deduplicated/compressed accounting, arbitrary concurrent load or all destination-shortage conditions. | Complete remaining FR-02 cases and profile-specific margins; preserve existing-job retries. Retained logical bytes and filesystem available capacity answer different questions. |
 | Timing and races | A finite bounded observation can demonstrate the measured deadline/refusal and stable ownership at its sample points. Armed starts exercise selected competing launches. | Fairness, all scheduling interleavings, zero arbitrarily short overlap between samples, universal cancellation bounds or progress under every kernel/server stall. | Report loaded budget, timestamps, actual outcomes and observation limits. A timeout is not cancellation; uncertainty must still prevent conflicting effects; FR-03/05. |
@@ -48,6 +49,18 @@ settings or production/NAS privileges to conceal an unsupported lab backend.
 | Packaging and release evidence | Pinned inputs, crate checksums, ELF/source/driver/artifact hashes and exact local test execution can be audited. | A finished offline/reproducible shipping bundle, all notices, upgrade/rollback safety, remote CI success or release readiness merely from the local counts. | Finish FR-06/07/08, the declared release-candidate matrix and producer/consumer/operator walkthroughs. No completion percentage follows from increment/test counts. |
 
 ## Important distinctions
+
+The selected restart-after-incomplete-stop matrix in
+[increment 61](RUST-INCREMENT-61.md) extends the mid-copy lifecycle scope, with
+three spaced explicit start requests per profile, at least 90 seconds of outage
+after incomplete stop, a quiet window and restoration/old-thread-exit checks.
+Read the actual results for manager refusal versus application guard refusal
+and automatic versus explicitly requested recovery. These are finite observations
+on the same controlled server/kernel, not an indefinite restart-storm guarantee,
+proof of arbitrarily brief non-overlap, shipping restart-policy qualification or
+NAS RPC settlement. The default 60-second application wait is unchanged; shortened
+fixture waits and rate limits are recorded separately. Other operation phases,
+independent endpoints, account/persistence and full FR-03/05/06 remain open.
 
 1. **A byte-identical tested artifact is stronger than a matching version label.**
    Keep source/feature/toolchain and exact ELF hashes. A library's version number
@@ -73,6 +86,12 @@ settings or production/NAS privileges to conceal an unsupported lab backend.
    during the bounded window. Recovery explicitly starts the original unit
    after restoration/confirmed old exit. Eventual automatic recovery and
    indefinite restart/storm behavior remain unqualified.
+   Increment 61 adds repeated starts after incomplete stop: each requested
+   contender exits at listener binding while the old coordinator still owns
+   that port; no managed guard-refusal or rate-limit trip is observed. The final
+   quiet windows show no further activation, and explicit restart succeeds after
+   restoration/old exit and a separate 12-second no-owner observation. This is
+   finite manual-recovery evidence, not an automatic-recovery guarantee.
 4. **NFS process exit is not remote settlement.** A server may have accepted work
    whose result is uncertain locally. Preserve custody, receipts, partials and
    original database/configuration; do not force retry or delete a guard to make

@@ -5,6 +5,11 @@ For what the current tests prove and what remains unqualified, read
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
 infrastructure setup, individual test steps, evidence and cleanup.
 
+[Increment 61](docs/RUST-INCREMENT-61.md) adds selected restart-after-incomplete-stop
+qualification with real hard-NFS workers, repeated manager requests and original-state
+recovery. Read actual intervention outcomes and finite limits; production NFS and
+source deletion remain disabled.
+
 [Cooperative lock custody](docs/RUST-INCREMENT-25.md) now uses preprovisioned
 regular lock files and version-2 bindings, including actual worker inheritance.
 This is separate from the remaining takeover/partition fencing. Preserve old

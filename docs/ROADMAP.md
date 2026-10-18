@@ -37,9 +37,10 @@ with no real SLES installation requirement, and maintain the
 Preserve unit-scoped shutdown when packaging: a rejected contender must not run
 a global stop controller against the legitimate owner. Qualify the shipping
 unit's account, restart and timeout behavior for the declared supported profile.
-Qualify eventual restart/recovery after incomplete group stop and longer-outage
-restart/storm behavior; retain conservative ownership when unit MainPID is zero
-or the unit is failed while an old worker remains alive.
+Define and qualify remaining shipping-unit restart/recovery policy across other
+hard-NFS phases, longer outages and endurance, including supported operator
+intervention. Retain conservative ownership when unit MainPID is zero or the
+unit is failed while an old worker remains alive.
 
 ## Next work
 

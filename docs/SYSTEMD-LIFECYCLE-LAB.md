@@ -369,3 +369,77 @@ Read the actual results in increment 60 and [testing limitations](TESTING-LIMITA
 Two exports on one modern kernel/server do not qualify independent NAS failures,
 every operation, exact in-flight RPCs, power loss, native old kernels or full
 production shutdown/restart policy.
+
+## 13. Qualify restart after incomplete managed stop
+
+[Increment 61](RUST-INCREMENT-61.md) declares two qualification-only records,
+debug/release. This is separate from the four stop/death records in section 12;
+the default command retains that older matrix. Use the same approved bootstrap,
+cached manager/NFS images, existing VM NFS modules and pinned SLES root. Let both
+fresh mandatory gates finish cleanup before creating this fixture.
+
+1. Complete infrastructure preflight and the two SLES gates above. Run:
+
+   ```powershell
+   python scripts/check-systemd-boundaries.py $ProductionGate --qualification-gate $QualificationGate --manager 228 --allow-host-cgroup-bootstrap --nfs --nfs-suite restart
+   if ($LASTEXITCODE -ne 0) { throw 'Incomplete-stop restart qualification failed; inspect evidence and retained resources' }
+   ```
+
+2. The driver creates only the owned internal network/server/volume, two distinct
+   hard-mounted tmpfs exports and local state described in section 12. It starts
+   a qualification service using the existing fixture unit with on-failure restart,
+   one-second restart delay, two starts per ten-second rate window, loaded
+   application wait 2 and manager stop timeout 8. These are disposable test values,
+   not a production installation recommendation or a change to the default 60.
+
+3. Submit and release the recording, preserve source/database/enrollment/partial
+   evidence and reuse the producer path. Stop owned NFSD threads, release the
+   mid-copy pause and require actual D-state blocking. Stop the managed unit and
+   independently run the application controller; require a genuinely retained
+   ShutdownIncomplete owner, not a prompt-exit substitute.
+
+4. Make exactly three spaced explicit unit start requests without reset-failed
+   while old threads survive. For each, retain request output, local status,
+   old-thread states, original epoch, manager properties/jobs and unit journal.
+   Distinguish manager-level refusal from an application guard refusal after a
+   contender is launched. Probe direct service/initialize/transfer competitors.
+   No replacement may acquire ownership before confirmed old-thread exit.
+
+5. Keep storage unavailable for at least 90 seconds after incomplete stop and
+   observe a quiet window of at least 20 seconds after the last settled request.
+   Each request has a 30-second settling bound. Fail on ongoing activation/refusal
+   growth in the quiet window or more than six application guard refusals from
+   the three requested sequences, more than seven unit starts including the
+   initial owner, or more than six scheduled restarts. Record actual counts and
+   durations; this finite test does not promise indefinite suppression of restart loops.
+
+6. Restore only the owned server, confirm every known old thread exited, then
+   observe manager/local state for at least ten seconds before an explicit
+   recovery request. Record automatic replacement if it actually occurs; otherwise
+   explicitly reset the failed original unit and start it. Require attempt-2
+   original-state recovery, preserved source/database/enrollment/partial and reused
+   producer path, validated manifest/hashes, retained source, cleanup false and
+   final NoActiveOwner. No state deletion, alternate-state bypass, orphan adoption
+   or takeover is part of recovery.
+
+7. Follow section 12's restoration-first, normal-unmount-first teardown, then
+   nonce-owned cgroup cleanup and independent inventory/hierarchy absence checks.
+   Retain resources and fail on uncertain teardown. Preserve raw passing/failing
+   evidence and exact driver/artifact hashes. Read increment 61's actual results
+   and [testing limits](TESTING-LIMITATIONS.md) before generalizing the outcome.
+
+The recorded increment-61 run passes both records. All three start requests per
+profile return 0 and launch a short-lived contender; each fails with AddrInUse
+at the old coordinator's occupied listener, before reaching the ownership guard.
+Each sequence settles to failed/timeout in approximately 18.4–19.1 seconds with
+the fixture timeout 8. The unit journal has four starts including the original
+owner, three bind failures and no scheduled automatic restart per profile.
+The separate alternate-port and effect-command probes reach the guard; do not
+describe the managed bind failures as guard or manager pre-launch refusals.
+
+Outages after incomplete stop last 91.953/92.062 seconds, with final quiet windows
+25.547/25.328 seconds. After restoration and confirmed old-thread exit, every
+snapshot is NoActiveOwner during 12.344/12.672 seconds of observation. Explicit
+reset-failed/start then recovers the original recording. This finite result does
+not promise automatic recovery, qualify a saturated rate limiter, or test managed
+startup after a changed/free listener; keep remaining shipping policy open.
