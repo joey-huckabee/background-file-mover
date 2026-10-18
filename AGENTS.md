@@ -301,6 +301,16 @@ manager-versus-application refusal distinctions and explicit operator interventi
 where required. Production NFS/deletion stay disabled; remaining SH/release scope
 stays open. No Rust, dependency, unit template or shutdown-deadline change.
 
+Increment 62 retains `--coordinator-death --death-scope destination-startup` on
+`scripts/check-nfs-boundaries.py` and `scripts/nfs_destination_startup.py` for eight
+selected empty/populated debug/release cases. Source startup can finish while
+only destination is down; readiness/202 custody is distinct from delivery health.
+Read `docs/RUST-INCREMENT-62.md` and `docs/NFS-DESTINATION-STARTUP-LAB.md` for actual
+D-worker/death/stop/original-state recovery outcomes. Keep pre-open source-bootstrap
+frozen-state evidence distinct from legitimately opened SQLite/WAL. Add SC-096
+without renumbering: 96 SC/six DOC IDs. No Rust/policy/dependency/deadline or VM
+boot/module change; production NFS/deletion remain disabled and release gates open.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

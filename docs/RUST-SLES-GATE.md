@@ -116,3 +116,9 @@ evidence stays separate from ABI/userspace checks and production enablement.
 and uses their exact audited artifacts for the two selected restart records.
 Rust sources and four service binaries remain identical to increment 60;
 manager/NFS lifecycle evidence remains separate from ABI/userspace compatibility.
+
+[Increment 62](RUST-INCREMENT-62.md) uses fresh production/qualification gates
+and exact byte-checked artifacts for destination-only startup outage/early recovery.
+The Rust inventory and four service binaries are unchanged from increment 61;
+selected NFS behavior, readiness and ownership evidence is separate from ABI
+compatibility or production support.

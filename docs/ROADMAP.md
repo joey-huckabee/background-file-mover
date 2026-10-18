@@ -13,8 +13,8 @@ release progress. Deferred capabilities remain deferred unless explicitly added.
 
 Next qualify remaining NFS operation/synchronization and shutdown boundaries,
 remaining endpoint-failure directions/phases beyond selected source-copy
-interruptions, remaining fresh/destination-side/later bootstrap failures, and
-native SLES manager/cgroup compatibility, actual account control/persistent
+interruptions, remaining fresh/later source bootstrap and destination recovery
+phases, native SLES manager/cgroup compatibility, actual account control/persistent
 deployment and remaining hard-NFS/systemd operation/deadline behavior (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.

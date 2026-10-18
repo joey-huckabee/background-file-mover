@@ -880,3 +880,41 @@ windows; after restoration/confirmed old exit, status remains NoActiveOwner for
 about 12 seconds before explicit reset-failed/start recovers the original job.
 Do not assume the same times, rate-limit behavior or automatic recovery for a
 different manager, unit, listener configuration, operation or outage duration.
+
+## Starting while only the destination NFS mount is unavailable
+
+The selected qualification in [increment 62](RUST-INCREMENT-62.md) distinguishes
+source startup from early destination recovery. See
+[the destination-startup lab](NFS-DESTINATION-STARTUP-LAB.md) for exact test steps
+and its result report for actual outcomes. Production NFS remains disabled.
+
+With a healthy approved source and original local state, source bootstrap and
+enrollment can finish while the destination is unreachable. Health 200/Running
+describes the ready control plane. It does not certify destination availability
+or recording commitment. An empty mover can claim submitted source files and
+return 202 while its supervised delivery worker waits on the destination.
+The recorder can then reuse its original paths and has no later polling duty.
+An identical claimed-job retry returns the original job; it cannot select a new
+destination or create replacement state to bypass the pinned route.
+
+An operator should distinguish a responsive control plane with a Claimed job
+from actual completion. Consumers still require the validated completion manifest.
+Use job/local status to diagnose pending delivery and stop/ownership state.
+During shutdown, ShutdownIncomplete or OwnerUnavailable retains exclusion while
+old workers survive. Restore approved storage and confirm old-thread exit before
+original-state restart/reconciliation. A free local owner is not remote-settlement
+proof; preserve database, custody, receipts and partials on uncertain outcomes.
+
+The lab records local-file snapshots without opening SQLite for inspection.
+Unlike source bootstrap blocked before store open, this path legitimately opens
+SQLite and may accept or schedule a job, so unchanged WAL bytes are not its
+safety criterion. Preserve database identity, actual job/custody evidence and the
+existing recording instead. Read [testing limits](TESTING-LIMITATIONS.md) before
+generalizing the small controlled fixture to a production NAS or another phase.
+
+All eight selected increment-62 records pass. The four blocked coordinator-death
+cases retain exclusion until restoration and confirmed old-thread exit. All four
+short-stop cases exit promptly; no retained terminating-worker deadline branch
+is observed. Empty cases recover attempt 1, populated cases attempt 2 with the
+old partial unchanged. These outcomes preserve the existing acceptance/retry/
+review policy and do not enable production NFS or source deletion.

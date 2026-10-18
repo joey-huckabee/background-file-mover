@@ -64,8 +64,8 @@ Do not repeat that bounded tmpfs case as unfinished implementation work.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
-   interruptions, remaining fresh/destination-side/later bootstrap failures, plus
-   native SLES systemd/cgroups, actual account/persistence and combined hard-NFS
+   interruptions, remaining fresh/later source bootstrap and destination recovery
+   phases, native SLES systemd/cgroups, actual account/persistence and combined hard-NFS
    lifecycle (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
@@ -246,3 +246,11 @@ original-state recovery. Read actual automatic/manual intervention outcomes.
 Other phases, shipping restart/account/persistence policy, remote settlement and
 full SH qualification remain open; all eight release gates and production
 NFS/deletion restrictions remain unchanged.
+
+[Increment 62](RUST-INCREMENT-62.md) advances selected FR-03/05 evidence for
+destination-only outage before empty/populated startup. Source startup/control
+readiness and confirmed custody/202 can succeed while a supervised delivery
+worker blocks; see actual death/stop and original-state recovery outcomes.
+SC-096 and [the dedicated lab](NFS-DESTINATION-STARTUP-LAB.md) explain that distinction.
+Remaining phases, remote effects, supported mount/security/deployment and all eight
+release gates stay open. Production NFS and source deletion remain disabled.

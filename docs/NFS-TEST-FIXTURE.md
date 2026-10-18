@@ -97,3 +97,11 @@ for selected incomplete-stop/repeated-start/restoration cases. No package
 experiment, NFS implementation, new image or VM boot/module change is required.
 See [the lab guide](SYSTEMD-LIFECYCLE-LAB.md) section 13 and actual results/limits;
 normal-unmount-first teardown and production NFS/deletion restrictions remain.
+
+[Increment 62](RUST-INCREMENT-62.md) reuses the cached server and pinned SLES
+client for destination-only outage before startup/early delivery on independent
+controlled endpoints. [The dedicated lab](NFS-DESTINATION-STARTUP-LAB.md) explains
+image/module preflight, both gates, exact command, healthy-source checks,
+empty/populated preparation, death/stop, original-state recovery and restore/
+normal-unmount-first teardown. No package experiment, VM boot/module or systemd
+bootstrap change is needed. Production NFS/deletion remain disabled.

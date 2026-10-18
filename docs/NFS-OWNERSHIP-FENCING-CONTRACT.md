@@ -408,3 +408,10 @@ incomplete-stop/repeated-start evidence with real D workers and original local
 state. Manager start acknowledgement, old-thread lifetime and authorized recovery
 remain separate; read actual manager/application refusals and intervention.
 This does not settle remote RPCs or close remaining SH/production NFS/deletion gates.
+
+[Increment 62](RUST-INCREMENT-62.md) adds selected same-host/local-state
+SH-02/04/07/08/09/14 destination-outage startup/early-delivery evidence. Source
+startup can finish and readiness/custody 202 can succeed with a healthy source;
+retained delivery orphans still exclude replacement until actual exit. Read
+actual outcomes, original-state recovery and finite scope. Remote settlement,
+remaining SH/deployment and production NFS/deletion gates stay open.

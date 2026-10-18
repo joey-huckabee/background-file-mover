@@ -5,6 +5,11 @@ For what the current tests prove and what remains unqualified, read
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
 infrastructure setup, individual test steps, evidence and cleanup.
 
+[Increment 62](docs/RUST-INCREMENT-62.md) qualifies selected destination-outage
+startup/early-recovery cases: source/control readiness and confirmed custody 202
+can succeed while delivery waits. The [dedicated lab](docs/NFS-DESTINATION-STARTUP-LAB.md)
+records each test/infrastructure step; production NFS/deletion remain disabled.
+
 [Increment 61](docs/RUST-INCREMENT-61.md) adds selected restart-after-incomplete-stop
 qualification with real hard-NFS workers, repeated manager requests and original-state
 recovery. Read actual intervention outcomes and finite limits; production NFS and

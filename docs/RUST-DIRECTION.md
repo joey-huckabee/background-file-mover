@@ -545,3 +545,11 @@ Read actual manager refusal, retained ownership, quiet/restoration observations
 and recovery actions. Update the maintained lab/operator/scenario/limits documents;
 keep remaining shipping/operation/deployment qualification open and production
 NFS/source deletion disabled.
+
+[Increment 62](RUST-INCREMENT-62.md) adds
+`--coordinator-death --death-scope destination-startup` to the retained NFS fixture.
+Source startup can finish during a destination outage; qualify the real early
+delivery worker and custody/replay behavior, not a fabricated destination-blocked
+source-bootstrap child. Read actual eight-case outcomes and the
+[dedicated lab](NFS-DESTINATION-STARTUP-LAB.md). Preserve original state/old partials,
+96 stable SC/six DOC IDs, and production NFS/source deletion disabled.

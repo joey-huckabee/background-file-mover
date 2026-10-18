@@ -714,3 +714,14 @@ selection for two debug/release incomplete-stop/repeated-start records; the
 default `--nfs` four-case stop/death matrix is unchanged. Lab section 13 describes
 setup, bounded outage/quiet observations, restoration/recovery and teardown.
 Read actual operator-action results and finite limits; production NFS/deletion stay off.
+
+## Destination-only outage before startup
+
+[Increment 62](RUST-INCREMENT-62.md) retains
+`--isolated-startup --coordinator-death --death-scope destination-startup` with
+both passing gate directories. Eight debug/release, empty/populated, blocked/
+following-stop records select early destination recovery after source startup.
+See [the dedicated lab](NFS-DESTINATION-STARTUP-LAB.md) for every infrastructure,
+case, recovery and teardown step. Source readiness/custody 202 is distinct from
+destination health/commitment. Read actual prompt/retained outcomes; no runtime
+policy, dependency or production NFS/deletion enablement follows.
