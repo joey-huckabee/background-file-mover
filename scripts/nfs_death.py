@@ -47,12 +47,14 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs"}
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports"}
+    both_nfs = scope in {"both-nfs", "separate-exports"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
               "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
               "publication-manifest": ("publish", "file_link", "manifest_link"),
-              "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
+              "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
+              "separate-exports": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
     publication_points = {"publish", "file_link", "manifest_link"}
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
@@ -63,7 +65,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
         case = None
         result = {"profile": profile, "point": point, "death_phase": phase, "repetition": repetition, "passed": False}
         try:
-            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=scope == "both-nfs")
+            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope == "separate-exports")
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
@@ -137,7 +139,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
                     assert size == ("1048576" if point == "copy_chunk" else "0")
                     result["partial_bytes_before_outage"] = int(size)
-                if scope == "both-nfs":
+                if both_nfs:
                     from nfs_both import before as both_before, recovered as both_recovered
                     both_before(case, execute)
                 if point in publication_points:
@@ -271,7 +273,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             case.verify()
             if point in publication_points:
                 publication_recovered(case, execute, recovered)
-            if scope == "both-nfs":
+            if both_nfs:
                 both_recovered(case, execute)
             if scope == "bootstrap-existing-state":
                 result["database_identity_after_recovery"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
@@ -304,7 +306,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs"}:
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports"}:
         passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

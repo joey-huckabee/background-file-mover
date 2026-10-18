@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 52. It
+This guide describes the implemented Rust prototype through increment 53. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -663,3 +663,17 @@ Separate exports/NAS servers, independent endpoint failures, remaining both-NFS
 bootstrap/read boundaries and actual systemd/account policy remain unqualified.
 Production NFS and source deletion remain disabled. This is fixture evidence,
 not a production NFS restart procedure.
+
+## Separate-export qualification scope
+
+[Increment 53](RUST-INCREMENT-53.md) repeats selected coordinator-death/recovery
+checks with source and destination on distinct NFS exports/mounts backed by two
+server filesystems. SQLite and local lifetime records remain local. Original
+state, private source, producer reuse, payload/manifest identity and hash must
+survive recovery after confirmed old exit; a cross-export hard link is refused.
+
+Both mounts share one controlled server and the outage affects both. This does
+not qualify independent NAS failures, production mount/security settings, delayed
+remote settlement or persistent-disk/power durability. Preserve the same fixed
+configuration and local state; no alternate-state, staging-removal, re-enrollment
+or takeover remedy is introduced. Production NFS and source deletion stay off.

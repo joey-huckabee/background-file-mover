@@ -15,14 +15,15 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False, separate_exports=False):
+            assert not separate_exports or both_nfs
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
             if shutdown:
                 self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
             self.label += suffix
             if both_nfs:
                 assert not production, "both-NFS effects require qualification artifacts"
-                self.label += "-both-nfs"
+                self.label += "-2exports" if separate_exports else "-both-nfs"
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
@@ -30,6 +31,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             destination_nfs = both_nfs or (not production and not source_nfs)
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
             self.destination = ("/tmp/nfs/" + self.label + "/destination" if destination_nfs else self.base + "/destination")
+            if separate_exports:
+                self.source = "/tmp/nfs-source/" + self.label + "/source"
+                self.destination = "/tmp/nfs-destination/" + self.label + "/destination"
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
             self.marker = self.base + "/service.pid"
             self.rendezvous = self.base + "/pause"
@@ -40,7 +44,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.service = None
             self.result = {"profile": profile, "point": point, "production": production, "passed": False}
             if both_nfs:
-                self.result["layout"] = "both-nfs-same-export-private-roots-local-state"
+                self.result["layout"] = ("both-nfs-separate-exports-local-state" if separate_exports
+                                         else "both-nfs-same-export-private-roots-local-state")
             digest = execute("sha256sum " + self.binary, "1000:1000").stdout.split()[0]
             assert digest == artifact_hashes[("" if production else "qualification-") + profile]
             self.result["binary_sha256"] = digest
@@ -53,6 +58,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if both_nfs:
                 self.result["filesystem_types"] = execute(f"stat -f -c %t {self.source} {self.destination} {self.base}/state", "1000:1000").stdout.splitlines()
                 assert self.result["filesystem_types"][:2] == ["6969", "6969"]
+            if separate_exports:
+                self.result["filesystem_devices"] = execute(f"stat -c %d {self.source} {self.destination} {self.base}/state", "1000:1000").stdout.splitlines()
+                assert len(set(self.result["filesystem_devices"])) == 3
             self.identities = execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout
             self.config = {"bind": "127.0.0.1:19878", "generator_id": "fixture", "source_root": self.source,
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}

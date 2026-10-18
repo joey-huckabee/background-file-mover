@@ -468,3 +468,10 @@ source inode/receipt, reused paths and publication evidence are required. Keep
 separate-export/independent endpoint, both-NFS bootstrap/read, in-flight RPC,
 remote settlement and actual systemd/account work open. Production NFS/source
 deletion remain disabled; no runtime policy changed.
+
+[Increment 53](RUST-INCREMENT-53.md) adds selected death/recovery cases across
+two distinct NFS exports backed by separate bounded tmpfs filesystems on one
+controlled server. The database/lifetime state stays local. Read its actual
+24-case results and SLES provenance. Independent endpoint/NAS failures, delayed
+RPC settlement, disk/power durability, remaining both-NFS bootstrap/read and
+actual systemd/account qualification remain open. Production NFS/deletion stay off.

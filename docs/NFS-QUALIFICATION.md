@@ -583,3 +583,19 @@ restoration/confirmed old exit, preserving source/database/receipt identity,
 producer reuse and final payload/manifest integrity. The retained baselines,
 state admission, OS checks and teardown pass. See increment 52 for exact
 artifacts and scope; this does not establish remote settlement or enable NFS.
+
+## Distinct source and destination exports
+
+[Increment 53](RUST-INCREMENT-53.md) adds `--coordinator-death --death-scope
+separate-exports`: 24 selected cases on distinct server tmpfs filesystems and
+client NFSv4.1 hard mounts, with local state. Device IDs, mount IDs and actual
+cross-export hard-link refusal establish the layout before crash testing.
+All 24 cases passed: 12 blocked and 7 terminating orphans retained ownership; 5 following-stop cases exited promptly. All 57 competing effect commands refused; no ownership loss occurred.
+
+The [raw report](RUST-NFS-SEPARATE-EXPORT-DEATH-EVIDENCE.json) includes topology, original-state/source/publication
+identity and hash evidence, retained baselines/state-safety/OS checks and cleanup.
+Both exports share one server and fail/restore together. Independent NAS failures,
+persistent-disk/power durability, exact in-flight RPCs, remote settlement,
+remaining both-NFS bootstrap/read and actual systemd/account policy stay pending.
+Retain all previous selectors and strict increment 47 regression. Production NFS
+and source deletion remain disabled.

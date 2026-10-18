@@ -223,6 +223,14 @@ separate exports, remaining both-NFS bootstrap/read, exact in-flight RPCs, NAS
 settlement and actual systemd/account qualification remain open. Production NFS
 and source deletion stay disabled. No runtime policy changed.
 
+Increment 53 retains `--death-scope separate-exports`: 24 selected cases across
+two distinct tmpfs-backed NFS exports/mounts on one controlled server, with local
+state and a joint outage. Require distinct devices/mount IDs, cross-export link
+refusal and original-state custody/publication recovery. See docs/RUST-INCREMENT-53.md.
+Keep independent endpoint failures, delayed RPC/NAS settlement, persistent-disk
+durability, remaining both-NFS bootstrap/read and systemd/account work pending.
+Preserve prior selectors; production NFS and source deletion remain disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

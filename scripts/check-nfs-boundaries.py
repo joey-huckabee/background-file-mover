@@ -38,7 +38,7 @@ def main():
                         help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
     parser.add_argument("--coordinator-death", action="store_true",
                         help="Qualify original-state exclusion/recovery after coordinator death with blocked/terminating NFS workers")
-    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs"),
+    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports"),
                         help="With --coordinator-death, select the finite worker-phase matrix (default: claim-copy-verify)")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
@@ -127,6 +127,8 @@ def main():
         report["limitations"][2] = "Twelve selected file pre-publication, durable file-link and durable manifest-link cases, debug/release, blocked or following stop. Release the local rendezvous into unavailable hard NFS and require actual D-state workers. Preserve original payload inode/attempt and existing manifest identity/hash through recovery after old exit. A durable manifest name is distinct from a SQLite Committed job. This does not identify the exact in-flight RPC, prove NAS settlement/power durability, qualify both-NFS crashes, systemd, old kernels or takeover. Prompt stop is distinct from a surviving terminating orphan."
     if args.coordinator_death and args.death_scope == "both-nfs":
         report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases: both private roots on the same controlled NFSv4.1 export, local database/epoch, debug/release, blocked or following stop. Require actual D-state blockage before death; distinguish prompt exit from surviving orphans. Preserve original state, source inode/receipt, reused paths and verified publication evidence. This does not qualify separate exports/NAS servers, exact in-flight RPCs, NAS settlement/power durability, systemd, old kernels or takeover."
+    if args.coordinator_death and args.death_scope == "separate-exports":
+        report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases across two distinct tmpfs-backed NFSv4.1 exports/mounts on one server, local database/epoch, joint outage, debug/release, blocked or following stop. Preserve original custody/state and publication evidence. Distinct devices/mount IDs and refused cross-filesystem link are required. No independent NAS failure, exact in-flight RPC, remote settlement, persistent-disk/power durability, systemd, old-kernel or takeover qualification."
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -284,18 +286,22 @@ def main():
                 run_ownership(run, execute, spawn, output, client, peer, server,
                               gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"], restore)
             if args.coordinator_death:
+                if args.death_scope == "separate-exports":
+                    from nfs_exports import prepare
+                    report["separate_exports"] = {"passed": False}
+                    prepare(run, execute, server, client, ip, options, extra_mounts, report["separate_exports"])
                 from nfs_runtime import run_runtime
                 artifact_hashes = dict(report["artifacts"])
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["coordinator_death"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_both.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_both.py", "nfs_exports.py", "nfs_binding.py")}}
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
                                         artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
                                         death_scope=args.death_scope or "claim-copy-verify")
                 report["coordinator_death"].update(completed)
                 complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state"}
-                            else len(report["coordinator_death"]["cases"]) == 24 if args.death_scope == "both-nfs"
+                            else len(report["coordinator_death"]["cases"]) == 24 if args.death_scope in {"both-nfs", "separate-exports"}
                             else len(report["coordinator_death"]["cases"]) == 12 if args.death_scope == "publication-manifest"
                             else 12 <= len(report["coordinator_death"]["cases"]) <= 18)
                 assert report["coordinator_death"]["passed"] or complete, "NFS coordinator-death matrix interrupted; inspect cases"
