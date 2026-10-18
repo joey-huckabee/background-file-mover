@@ -599,3 +599,26 @@ persistent-disk/power durability, exact in-flight RPCs, remote settlement,
 remaining both-NFS bootstrap/read and actual systemd/account policy stay pending.
 Retain all previous selectors and strict increment 47 regression. Production NFS
 and source deletion remain disabled.
+
+## Independently unavailable endpoints
+
+[Increment 54](RUST-INCREMENT-54.md) adds `--coordinator-death --death-scope
+independent-endpoints`: 28 selected source-claim/read and destination-copy/
+verification/publication cases, debug/release, blocked/following stop. Two
+controlled server containers have distinct IPs/network namespaces and tmpfs
+exports; state stays local. Stopped NFSD=0/healthy NFSD=2, actual D worker and
+fresh bounded healthy-peer write/read/metadata are required before death, with
+further healthy-peer probes while surviving orphans remain D.
+All 28 cases passed: 14 blocked and 4 terminating orphans retained ownership;
+10 following-stop cases exited promptly. All 54 competing effect commands
+refused; no ownership loss occurred.
+
+The [raw report](RUST-NFS-INDEPENDENT-ENDPOINT-DEATH-EVIDENCE.json) retains topology, probes, original-state/custody/
+publication identities, hashes, older baselines/state/OS checks and cleanup.
+Source-read cases hash only before worker cache invalidation, then observe
+metadata at the pause, avoiding accidental cache warming. Keep earlier selectors
+and strict increment 47 regression. Shared kernel/host, thread outages and tmpfs
+do not prove physical NAS independence, network partition/reclaim, delayed RPC
+settlement or disk/power durability. Remaining failure directions/phases,
+bootstrap, actual mount/security and systemd/account work remain open.
+Production NFS and source deletion stay disabled.

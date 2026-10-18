@@ -231,6 +231,14 @@ Keep independent endpoint failures, delayed RPC/NAS settlement, persistent-disk
 durability, remaining both-NFS bootstrap/read and systemd/account work pending.
 Preserve prior selectors; production NFS and source deletion remain disabled.
 
+Increment 54 retains `--death-scope independent-endpoints`: 28 selected cases,
+source-only claim/read and destination-only copy/verification/publication on two
+controlled server namespaces/IPs, with local state and fresh healthy-peer probes.
+Source-read evidence must not hash/re-warm payload after worker cache invalidation.
+See docs/RUST-INCREMENT-54.md and actual results/limits. Keep untested directions/
+phases, bootstrap, actual NAS/security/durability, in-flight RPC/settlement and
+systemd/account work open. Production NFS/source deletion stay disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

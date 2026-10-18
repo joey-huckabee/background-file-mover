@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 53. It
+This guide describes the implemented Rust prototype through increment 54. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -677,3 +677,20 @@ not qualify independent NAS failures, production mount/security settings, delaye
 remote settlement or persistent-disk/power durability. Preserve the same fixed
 configuration and local state; no alternate-state, staging-removal, re-enrollment
 or takeover remedy is introduced. Production NFS and source deletion stay off.
+
+## One endpoint unavailable: qualification scope
+
+[Increment 54](RUST-INCREMENT-54.md) tests selected source-only claim/read and
+destination-only copy/verification/publication interruptions while the other
+controlled endpoint remains usable. Healthy-peer I/O does not authorize a second
+mover: preserve the fixed configuration, original database, guard and lifetime
+record, wait for confirmed old-worker exit, then use owned reconciliation.
+No alternate-state, manual staging removal, re-enrollment or takeover remedy is
+introduced. Producer paths stay untouched until 202; identical-ID/body retry
+recovers uncertain handoff. A recorder that received 202 gains no polling duty.
+
+The two server containers share a modern kernel/host, with tmpfs backends and
+NFSD thread interruption. This does not qualify actual NAS failures/security,
+partition/reclaim, disk/power durability, delayed RPC settlement, every opposite
+failure direction, bootstrap or systemd policy. Production NFS and deletion stay
+disabled; this is fixture evidence, not a production outage-recovery runbook.

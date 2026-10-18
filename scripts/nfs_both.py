@@ -1,4 +1,4 @@
-"""Additional custody evidence for two private roots on one controlled NFS export."""
+"""Owned source/state/payload evidence for controlled both-NFS fixtures."""
 import hashlib
 from nfs_bootstrap_state import receipt_evidence
 
@@ -10,11 +10,19 @@ def payload(case, execute, path):
 def before(case, execute):
     result = case.result
     path = case.source + ("/current/nested/data.bin" if case.point == "claim_apply" else "/.file-mover/1-0/data")
-    result["source_payload_before"] = payload(case, execute, path)
+    if case.point == "source_read":
+        # The worker already invalidated source page cache before pausing.
+        # Hashing here would defeat the read-outage experiment.
+        identity = execute(f"stat -c '%d:%i:%s' {path}", "1000:1000").stdout.strip()
+        assert identity == result["source_payload_at_setup"][0]
+        result["source_payload_before"] = [identity, result["source_payload_at_setup"][1]]
+        result["source_hash_origin"] = "healthy setup before worker read-cache invalidation"
+    else:
+        result["source_payload_before"] = payload(case, execute, path)
     assert result["source_payload_before"][1].split()[0] == hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     result["database_identity_before"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
     result["enrollment_receipt_before"] = receipt_evidence(case, execute)
-    if case.point == "copy_chunk":
+    if case.point in {"copy_chunk", "source_read"}:
         result["copy_partial_before"] = payload(case, execute, case.destination + "/1/.staging/1.part")
 
 
@@ -27,13 +35,13 @@ def recovered(case, execute):
     result["enrollment_receipt_after"] = receipt_evidence(case, execute)
     assert result["database_identity_after"] == result["database_identity_before"]
     assert result["enrollment_receipt_after"] == result["enrollment_receipt_before"]
-    if case.point == "copy_chunk":
+    if case.point in {"copy_chunk", "source_read"}:
         result["copy_partial_after"] = payload(case, execute, case.destination + "/1/.staging/1.part")
         # The blocked old worker may finish its authorized write before exit.
         # Recovery must retain that old allocation, never overwrite or reuse it.
         old_size = int(result["copy_partial_after"][0].split(":")[-1])
         assert result["copy_partial_after"][0].split(":")[:2] == result["copy_partial_before"][0].split(":")[:2]
-        assert 1048576 <= old_size <= 2 * 1048576 + 17
+        assert (0 if case.point == "source_read" else 1048576) <= old_size <= 2 * 1048576 + 17
         expected = bytes(min(old_size, 2 * 1048576)) + b"0123456789abcdefg"[:max(0, old_size - 2 * 1048576)]
         assert result["copy_partial_after"][1].split()[0] == hashlib.sha256(expected).hexdigest()
     result["original_source_inode_preserved"] = True

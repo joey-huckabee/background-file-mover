@@ -9,21 +9,22 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify"):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False, separate_exports=False):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False, separate_exports=False, independent_endpoints=False):
             assert not separate_exports or both_nfs
+            assert not independent_endpoints or separate_exports
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
             if shutdown:
                 self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
             self.label += suffix
             if both_nfs:
                 assert not production, "both-NFS effects require qualification artifacts"
-                self.label += "-2exports" if separate_exports else "-both-nfs"
+                self.label += "-2hosts" if independent_endpoints else "-2exports" if separate_exports else "-both-nfs"
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
@@ -46,6 +47,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if both_nfs:
                 self.result["layout"] = ("both-nfs-separate-exports-local-state" if separate_exports
                                          else "both-nfs-same-export-private-roots-local-state")
+            if independent_endpoints:
+                self.result["layout"] = "both-nfs-independent-endpoints-local-state"
             digest = execute("sha256sum " + self.binary, "1000:1000").stdout.split()[0]
             assert digest == artifact_hashes[("" if production else "qualification-") + profile]
             self.result["binary_sha256"] = digest
@@ -67,8 +70,12 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if shutdown and shutdown_wait is not None:
                 self.config["shutdown_wait_seconds"] = shutdown_wait
             self.config["destination_binding"] = binding_for(self.label+"-destination", destination_nfs, "destination")
-            provision(run, execute, output, client, self.destination, self.config["destination_binding"])
             self.config["source_binding"] = binding_for(self.label, source_nfs)
+            if independent_endpoints:
+                self.config["destination_binding"]["endpoint_id"] = "fixture-nfs-destination"
+                self.config["source_binding"]["endpoint_id"] = "fixture-nfs-source"
+                self.result["source_payload_at_setup"] = execute(f"stat -c '%d:%i:%s' {self.source}/current/nested/data.bin; sha256sum {self.source}/current/nested/data.bin", "1000:1000").stdout.splitlines()
+            provision(run, execute, output, client, self.destination, self.config["destination_binding"])
             provision(run, execute, output, client, self.source, self.config["source_binding"])
             local = output / (self.label + "-config.json")
             local.write_text(json.dumps(self.config))
@@ -318,7 +325,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
 
     if death_only:
         from nfs_death import run_death
-        return run_death(Case, run, execute, spawn, restore, server, output, client, results, death_scope)
+        return run_death(Case, run, execute, spawn, restore, server, output, client, results, death_scope, endpoints)
 
     if shutdown_only:
         from nfs_shutdown import run_shutdown

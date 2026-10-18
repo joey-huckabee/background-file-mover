@@ -58,7 +58,8 @@ Selected FR-02 source-capacity cases have evidence in
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
-   independent-endpoint/remaining both-NFS bootstrap/read crash layouts and
+   remaining endpoint-failure directions/phases and both-NFS bootstrap crash
+   layouts, plus
    systemd/account-control (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
@@ -157,6 +158,14 @@ controlled server. The database/lifetime state stays local. Read its actual
 24-case results and SLES provenance. Independent endpoint/NAS failures, delayed
 RPC settlement, disk/power durability, remaining both-NFS bootstrap/read and
 actual systemd/account qualification remain open. Production NFS/deletion stay off.
+
+[Increment 54](RUST-INCREMENT-54.md) adds selected independent endpoint outages:
+source claim/read and destination copy/verification/publication, two controlled
+server network namespaces/IPs on one kernel, local state and bounded healthy-peer
+fresh I/O. Read its 28-case outcomes and exact SLES provenance. Keep remaining
+failure directions/phases, bootstrap, real NAS/disk durability, mount/security,
+in-flight RPC/remote settlement and systemd/account work open. Production NFS
+and source deletion stay disabled.
 
 ## Deferred beyond the first release
 

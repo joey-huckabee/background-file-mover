@@ -475,3 +475,11 @@ controlled server. The database/lifetime state stays local. Read its actual
 24-case results and SLES provenance. Independent endpoint/NAS failures, delayed
 RPC settlement, disk/power durability, remaining both-NFS bootstrap/read and
 actual systemd/account qualification remain open. Production NFS/deletion stay off.
+
+[Increment 54](RUST-INCREMENT-54.md) adds selected independent endpoint outages:
+source claim/read and destination copy/verification/publication, two controlled
+server network namespaces/IPs on one kernel, local state and bounded healthy-peer
+fresh I/O. Read its 28-case outcomes and exact SLES provenance. Keep remaining
+failure directions/phases, bootstrap, real NAS/disk durability, mount/security,
+in-flight RPC/remote settlement and systemd/account work open. Production NFS
+and source deletion stay disabled.

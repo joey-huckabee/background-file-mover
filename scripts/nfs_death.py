@@ -5,7 +5,7 @@ import time
 import traceback
 
 
-def run_death(Case, run, execute, spawn, restore, server, output, client, results, scope="claim-copy-verify"):
+def run_death(Case, run, execute, spawn, restore, server, output, client, results, scope="claim-copy-verify", endpoints=None):
     def status(case, expected):
         began = time.monotonic()
         reply = execute(f"LD_BIND_NOW=1 {case.binary} --status {case.config_path}", "1000:1000", check=False)
@@ -47,14 +47,17 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports"}
-    both_nfs = scope in {"both-nfs", "separate-exports"}
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints"}
+    independent = scope == "independent-endpoints"
+    assert not independent or endpoints is not None
+    both_nfs = scope in {"both-nfs", "separate-exports", "independent-endpoints"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
               "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
               "publication-manifest": ("publish", "file_link", "manifest_link"),
               "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
-              "separate-exports": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
+              "separate-exports": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
+              "independent-endpoints": ("claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
     publication_points = {"publish", "file_link", "manifest_link"}
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
@@ -65,10 +68,13 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
         case = None
         result = {"profile": profile, "point": point, "death_phase": phase, "repetition": repetition, "passed": False}
         try:
-            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope == "separate-exports")
+            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope in {"separate-exports", "independent-endpoints"}, independent_endpoints=independent)
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
+            failed_endpoint = "source" if point in {"claim_apply", "source_read"} else "destination"
+            if independent:
+                result["failed_endpoint"] = failed_endpoint
             if scope == "bootstrap-existing-state":
                 from nfs_bootstrap_state import prepare, local_evidence, source_evidence, receipt_evidence, partial_evidence
                 prepare(case, execute, status)
@@ -147,10 +153,16 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     before(case, execute)
                 assert case.service_pid() == coordinator
                 worker = case.worker
-                run(["exec", server, "rpc.nfsd", "0"])
+                if independent:
+                    result["endpoint_outage"] = endpoints.stop(failed_endpoint)
+                else:
+                    run(["exec", server, "rpc.nfsd", "0"])
                 execute(f"umask 077; : >{case.rendezvous}/go", "1000:1000")
                 time.sleep(3)
                 assert case.state(worker) == "D" and case.children() == [worker]
+                if independent:
+                    result["healthy_endpoint_while_worker_blocked"] = endpoints.during(failed_endpoint)
+                    assert case.state(worker) == "D"
                 if point in {"verify_read", "source_read"}:
                     assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
                     result["read_not_completed_during_outage"] = True
@@ -216,6 +228,10 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     assert case.state(worker) == "D"
                     assert status(case, "OwnerUnavailable")["exit_code"] == 2
                     result["outcome"] = "blocked_orphan_retains_ownership" if phase == "blocked" else "terminating_orphan_retains_ownership"
+                if independent:
+                    assert case.state(worker) == "D"
+                    result["healthy_endpoint_while_orphan_blocked"] = endpoints.during(failed_endpoint)
+                    assert case.state(worker) == "D"
             assert json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout) == epoch
             result["epoch_preserved_until_old_exit"] = True
             # A free local guard never authorizes restart during outage.
@@ -306,7 +322,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports"}:
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints"}:
         passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

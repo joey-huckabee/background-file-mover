@@ -46,8 +46,10 @@ history. [Increment 52](docs/RUST-INCREMENT-52.md) adds selected both-NFS
 coordinator-death/recovery cases on one controlled export, preserving original
 state, custody and publication evidence. [Increment 53](docs/RUST-INCREMENT-53.md)
 adds selected distinct-export/filesystem death cases on one controlled server.
-Independent endpoint failures, remote settlement and other storage/lifecycle
-and deployment gates remain open.
+[Increment 54](docs/RUST-INCREMENT-54.md) adds selected independently interrupted
+source/destination endpoints with healthy-peer probes and original-state recovery.
+Remaining failure directions/phases, remote settlement, durability and
+systemd/deployment gates stay open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read
