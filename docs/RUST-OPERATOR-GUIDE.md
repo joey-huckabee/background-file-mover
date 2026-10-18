@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 55. It
+This guide describes the implemented Rust prototype through increment 56. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -707,3 +707,17 @@ producer-reused paths untouched. No manual partial deletion, takeover or
 re-enrollment remedy is added. Prompt and incomplete stop outcomes are distinct;
 read the report for actual observations. Shared-kernel/tmpfs fixtures do not
 prove delayed NAS settlement or disk durability. Production NFS/deletion stay off.
+
+## Enrolled startup with both endpoints on NFS: qualification scope
+
+[Increment 56](RUST-INCREMENT-56.md) tests existing enrolled-empty or accepted-job/
+partial state with unavailable NFS source and usable NFS destination. Starting
+is not readiness; a healthy destination does not authorize replacement. Preserve
+the fixed configuration, original local database/WAL/sidecars and lifetime files,
+private source, destination binding and staging. Restore access and confirm old
+worker exit before normal same-state recovery. No re-enrollment, alternate state,
+manual partial removal or takeover remedy is introduced. Populated recovery
+retains the old partial and commits a new attempt. Paths released by 202 remain
+reusable, with no new recorder polling duty. Read actual prompt/surviving-worker
+outcomes. Fresh/destination-side/later startup, actual mount/security/systemd and
+delayed NAS effects remain unqualified; production NFS/deletion stay disabled.

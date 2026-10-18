@@ -51,6 +51,8 @@ source/destination endpoints with healthy-peer probes and original-state recover
 [Increment 55](docs/RUST-INCREMENT-55.md) adds selected source failure midway
 through copying with the destination usable. Remaining endpoint directions/phases,
 remote settlement, durability and systemd/deployment gates stay open.
+[Increment 56](docs/RUST-INCREMENT-56.md) adds selected enrolled startup recovery
+with both endpoints on NFS, preserving original state and retained partials.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

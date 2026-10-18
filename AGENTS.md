@@ -245,6 +245,13 @@ copy interruptions across independent controlled endpoints. See
 blocked source read-syscall evidence, unchanged healthy-destination prefix and
 original-state recovery. Production NFS/source deletion remain disabled.
 
+Increment 56 retains `--death-scope both-nfs-bootstrap`: eight selected
+enrolled-empty/populated startup death/stop cases, source outage with a healthy
+NFS destination and local state. See `docs/RUST-INCREMENT-56.md` for actual
+outcomes/limits. Preserve separate snapshots, original database/enrollment/
+source/binding and populated WAL/partial evidence. Production NFS and source
+deletion remain disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

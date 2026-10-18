@@ -38,7 +38,7 @@ def main():
                         help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
     parser.add_argument("--coordinator-death", action="store_true",
                         help="Qualify original-state exclusion/recovery after coordinator death with blocked/terminating NFS workers")
-    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"),
+    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"),
                         help="With --coordinator-death, select the finite worker-phase matrix (default: claim-copy-verify)")
     parser.add_argument("--ownership", action="store_true",
                         help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
@@ -129,11 +129,13 @@ def main():
         report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases: both private roots on the same controlled NFSv4.1 export, local database/epoch, debug/release, blocked or following stop. Require actual D-state blockage before death; distinguish prompt exit from surviving orphans. Preserve original state, source inode/receipt, reused paths and verified publication evidence. This does not qualify separate exports/NAS servers, exact in-flight RPCs, NAS settlement/power durability, systemd, old kernels or takeover."
     if args.coordinator_death and args.death_scope == "separate-exports":
         report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases across two distinct tmpfs-backed NFSv4.1 exports/mounts on one server, local database/epoch, joint outage, debug/release, blocked or following stop. Preserve original custody/state and publication evidence. Distinct devices/mount IDs and refused cross-filesystem link are required. No independent NAS failure, exact in-flight RPC, remote settlement, persistent-disk/power durability, systemd, old-kernel or takeover qualification."
-    if args.coordinator_death and args.death_scope in {"independent-endpoints", "source-mid-copy"}:
+    if args.coordinator_death and args.death_scope in {"independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}:
         report["limitations"][1] = "Two controlled server containers/IPs/network namespaces and one client share a modern kernel; no physical NAS isolation, partition/reclaim, server reboot/power-loss or takeover evidence."
         report["limitations"][2] = "Twenty-eight selected single-endpoint outages: source claim/read, destination copy/verification/publication/file-link/manifest-link, debug/release, blocked or following stop. Require failed endpoint NFSD threads zero, healthy endpoint two, actual D worker and bounded fresh healthy-endpoint write/read/metadata during outage. Preserve original state/custody/publication. No every-phase/both-side symmetry, exact in-flight RPC, remote settlement, persistent-disk, actual NAS/security/systemd or old-kernel qualification."
     if args.coordinator_death and args.death_scope == "source-mid-copy":
         report["limitations"][2] = "Four selected source-only outages after the first 1 MiB copy chunk, debug/release, blocked or following stop. Qualification-only source cache advice/rendezvous precedes the next read; require actual D, no read-completed marker, unchanged healthy-destination partial and healthy-peer I/O. Preserve original state/custody and partial allocation on recovery. No opposite failure directions, physical NAS isolation, exact in-flight RPC/settlement, persistent-disk, systemd or old-kernel qualification."
+    if args.coordinator_death and args.death_scope == "both-nfs-bootstrap":
+        report["limitations"][2] = "Eight enrolled-empty/populated bootstrap death/stop cases with both private roots on distinct controlled NFSv4.1 endpoints and local database/epoch. Source-only outage while destination stays usable; require actual bootstrap D, Starting/unready, unchanged local state and healthy destination evidence, surviving-orphan exclusion, original-state recovery without re-enrollment. Not destination-failure/later-startup, fresh-unenrolled bootstrap, actual NAS/mount-security/systemd, delayed RPC/settlement, persistent-disk or old-kernel qualification."
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -302,7 +304,7 @@ def main():
                     from nfs_exports import prepare
                     report["separate_exports"] = {"passed": False}
                     prepare(run, execute, server, client, ip, options, extra_mounts, report["separate_exports"])
-                if args.death_scope in {"independent-endpoints", "source-mid-copy"}:
+                if args.death_scope in {"independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}:
                     from nfs_endpoints import Endpoints
                     report["independent_endpoints"] = {"passed": False}
                     endpoints = Endpoints(run, execute, server, client, ip, options, network, SERVER,
@@ -318,7 +320,7 @@ def main():
                                         artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
                                         death_scope=args.death_scope or "claim-copy-verify", endpoints=endpoints)
                 report["coordinator_death"].update(completed)
-                complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state"}
+                complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state", "both-nfs-bootstrap"}
                             else len(report["coordinator_death"]["cases"]) == 4 if args.death_scope == "source-mid-copy"
                             else len(report["coordinator_death"]["cases"]) == 28 if args.death_scope == "independent-endpoints"
                             else len(report["coordinator_death"]["cases"]) == 24 if args.death_scope in {"both-nfs", "separate-exports"}

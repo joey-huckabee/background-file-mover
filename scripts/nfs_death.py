@@ -47,10 +47,11 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}
-    independent = scope in {"independent-endpoints", "source-mid-copy"}
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}
+    independent = scope in {"independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}
     assert not independent or endpoints is not None
-    both_nfs = scope in {"both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}
+    existing_bootstrap = scope in {"bootstrap-existing-state", "both-nfs-bootstrap"}
+    both_nfs = scope in {"both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
               "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
@@ -58,7 +59,8 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
               "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
               "separate-exports": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
               "independent-endpoints": ("claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
-              "source-mid-copy": ("source_copy",)}[scope]
+              "source-mid-copy": ("source_copy",),
+              "both-nfs-bootstrap": ("bootstrap_enrolled", "bootstrap_populated")}[scope]
     publication_points = {"publish", "file_link", "manifest_link"}
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
@@ -69,19 +71,22 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
         case = None
         result = {"profile": profile, "point": point, "death_phase": phase, "repetition": repetition, "passed": False}
         try:
-            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope in {"separate-exports", "independent-endpoints", "source-mid-copy"}, independent_endpoints=independent)
+            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope in {"separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}, independent_endpoints=independent)
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
-            failed_endpoint = "source" if point in {"claim_apply", "source_read", "source_copy"} else "destination"
+            failed_endpoint = "source" if point in {"claim_apply", "source_read", "source_copy"} | bootstrap_points else "destination"
             if independent:
                 result["failed_endpoint"] = failed_endpoint
-            if scope == "bootstrap-existing-state":
+            if existing_bootstrap:
                 from nfs_bootstrap_state import prepare, local_evidence, source_evidence, receipt_evidence, partial_evidence
-                prepare(case, execute, status)
+                prepare(case, execute, status, both_nfs=both_nfs)
             if point in bootstrap_points:
                 # No pause hook: launch into an actual unavailable hard mount.
-                run(["exec", server, "rpc.nfsd", "0"])
+                if independent:
+                    result["endpoint_outage"] = endpoints.stop(failed_endpoint)
+                else:
+                    run(["exec", server, "rpc.nfsd", "0"])
                 case.launch(False)
                 for _ in range(12):
                     initial = status(case, None)
@@ -114,6 +119,12 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 assert case.state(worker) == "D" and case.children() == [worker]
                 initial = status(case, "Starting")
                 assert initial["snapshot"]["workers"] == [int(worker)]
+                if independent:
+                    result["healthy_endpoint_while_worker_blocked"] = endpoints.during(failed_endpoint)
+                    from nfs_bootstrap_state import destination_evidence
+                    result["bootstrap_destination_while_blocked"] = destination_evidence(case, execute)
+                    assert result["bootstrap_destination_while_blocked"] == result["bootstrap_destination_before"]
+                    assert case.state(worker) == "D"
                 connected = case.base + "/health-connected"
                 health = case.request("GET", "/healthz", asynchronous=True, connected_marker=connected)
                 for _ in range(5):
@@ -125,8 +136,8 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 result["bootstrap_health_request_sent"] = True
                 assert health[0].poll() is None and not health[1].read_text()
                 result["bootstrap_health_pending"] = True
-                if scope == "bootstrap-existing-state":
-                    observed = local_evidence(case, execute)
+                if existing_bootstrap:
+                    observed = local_evidence(case, execute, both_nfs=both_nfs)
                     assert observed == result["bootstrap_local_before"], "existing local state changed during blocked bootstrap"
                     result["bootstrap_local_while_blocked"] = observed
                 else:
@@ -277,11 +288,14 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             if point in bootstrap_points:
                 health[0].wait(timeout=10)
                 assert "200 OK" not in health[1].read_text()
-                if scope == "bootstrap-existing-state":
-                    result["bootstrap_local_after_old_exit"] = local_evidence(case, execute)
+                if existing_bootstrap:
+                    result["bootstrap_local_after_old_exit"] = local_evidence(case, execute, both_nfs=both_nfs)
                     result["bootstrap_source_after_old_exit"] = source_evidence(case, execute)
                     assert result["bootstrap_local_after_old_exit"] == result["bootstrap_local_before"], "database/WAL/staging changed before recovery"
                     assert result["bootstrap_source_after_old_exit"] == result["bootstrap_source_before"], "receipt/source changed before recovery"
+                    if both_nfs:
+                        result["bootstrap_destination_after_old_exit"] = destination_evidence(case, execute)
+                        assert result["bootstrap_destination_after_old_exit"] == result["bootstrap_destination_before"]
                     result["existing_state_preserved_before_recovery"] = True
                     result["re_enrollment_performed"] = False
                 else:
@@ -313,13 +327,16 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             case.verify()
             if point in publication_points:
                 publication_recovered(case, execute, recovered)
-            if both_nfs:
+            if both_nfs and point not in bootstrap_points:
                 both_recovered(case, execute)
-            if scope == "bootstrap-existing-state":
+            if existing_bootstrap:
                 result["database_identity_after_recovery"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
                 result["enrollment_receipt_after_recovery"] = receipt_evidence(case, execute)
                 assert result["database_identity_after_recovery"] == result["database_identity_before"]
                 assert result["enrollment_receipt_after_recovery"] == result["enrollment_receipt_before"]
+                if both_nfs:
+                    from nfs_bootstrap_state import recovered_both
+                    recovered_both(case, execute)
                 if point == "bootstrap_populated":
                     result["partial_after_recovery"] = partial_evidence(case, execute)
                     assert result["partial_after_recovery"] == result["seed_partial"], "old partial bytes/inode/size changed"
@@ -346,7 +363,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}:
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap"}:
         passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

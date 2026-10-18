@@ -492,3 +492,12 @@ Read actual outcomes and provenance before assuming termination/recovery behavio
 Other endpoint directions/phases, bootstrap, delayed RPC/remote settlement,
 mount/security, NAS/disk durability and systemd/account work stay open.
 Production NFS and source deletion remain disabled.
+
+[Increment 56](RUST-INCREMENT-56.md) adds eight selected enrolled-empty/populated
+startup death/stop cases with both private roots on distinct controlled NFS
+endpoints, local state, source-only outage and a usable destination. Read actual
+outcomes and provenance. Preserve separate local/remote snapshots, original
+database/source/binding/enrollment and populated WAL/partial evidence. Fresh/
+destination-side/later startup, other endpoint phases, delayed RPC/settlement,
+mount/security, NAS/disk durability and systemd/account work remain open.
+Production NFS and source deletion remain disabled.
