@@ -21,12 +21,15 @@ takeover, alternate-state bypass and hostile same-UID/root interference are not
 covered by that cooperative profile. They are not made safe by a passing local
 lock test. Preserve original state and conservative refusal on uncertain effects.
 
-The reference lab requires a rootful privileged Podman VM with working named-v1
-cgroups and cgroup namespaces. The manager/bootstrap has that infrastructure
+The equivalent-systemd-228 lifecycle lab requires a rootful privileged Podman VM
+with working named-v1 cgroups and cgroup namespaces. The manager/bootstrap has that infrastructure
 privilege; tested mover processes run as UID/GID 1000 with no capabilities and
 NoNewPrivs. Rootless engines, other container backends and kernels that disable
 the required hierarchy are not qualified by this recipe. Do not change VM boot
 settings or production/NAS privileges to conceal an unsupported lab backend.
+The standalone publication/NFS fixture does not start systemd or bootstrap that
+hierarchy; its client observer needs mount and selected syscall-observation
+capabilities, while the mover/worker capability checks remain unchanged.
 
 ## Evidence matrix
 
@@ -50,6 +53,18 @@ settings or production/NAS privileges to conceal an unsupported lab backend.
 | Packaging and release evidence | Pinned inputs, crate checksums, ELF/source/driver/artifact hashes and exact local test execution can be audited. | A finished offline/reproducible shipping bundle, all notices, upgrade/rollback safety, remote CI success or release readiness merely from the local counts. | Finish FR-06/07/08, the declared release-candidate matrix and producer/consumer/operator walkthroughs. No completion percentage follows from increment/test counts. |
 
 ## Important distinctions
+
+[Publication interruption evidence](RUST-INCREMENT-63.md) adds twelve finite
+cases: four blocked client unlinkat syscalls and eight process crashes after
+link/unlink returned before sync. The selected syscall number, staging-parent
+file descriptor and D state identify client execution, not a particular RPC
+reaching the server or remote settlement. The eight pauses are before sync,
+not in-flight fsync failures; retained live-server tmpfs/cache state is not
+power-loss durability. Original-state inode/hash reconciliation passes within
+this scope. See [the step-by-step lab](NFS-PUBLICATION-SYNC-LAB.md). Remaining
+link/sync RPC, server recovery and storage-durability gates stay open.
+
+
 
 [Increment 62](RUST-INCREMENT-62.md) and
 [the destination-startup lab](NFS-DESTINATION-STARTUP-LAB.md) distinguish two

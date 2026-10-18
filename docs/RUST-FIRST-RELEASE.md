@@ -254,3 +254,12 @@ worker blocks; see actual death/stop and original-state recovery outcomes.
 SC-096 and [the dedicated lab](NFS-DESTINATION-STARTUP-LAB.md) explain that distinction.
 Remaining phases, remote effects, supported mount/security/deployment and all eight
 release gates stay open. Production NFS and source deletion remain disabled.
+
+[Increment 63](RUST-INCREMENT-63.md) adds twelve selected file/manifest
+publication interruption records: four observed blocked client unlinkat syscalls
+and eight crashes after namespace effects before sync. Original-state recovery
+preserves inode/content and attempt one. Follow [the lab](NFS-PUBLICATION-SYNC-LAB.md)
+for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
+does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
+power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
+production NFS and source deletion stay disabled.

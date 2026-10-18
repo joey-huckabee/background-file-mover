@@ -34,6 +34,18 @@ pub(super) fn owned(
             if step == "link_durable" {
                 super::qualification_pause(operation)?;
             }
+            #[cfg(feature = "nfs-qualification")]
+            if let Some(point) = match (operation, step) {
+                ("file_link", "link_effect") => Some("file_link_sync"),
+                ("manifest_link", "link_effect") => Some("manifest_link_sync"),
+                ("file_link", "unlink_enter") => Some("file_unlink"),
+                ("manifest_link", "unlink_enter") => Some("manifest_unlink"),
+                ("file_link", "unlink_effect") => Some("file_unlink_sync"),
+                ("manifest_link", "unlink_effect") => Some("manifest_unlink_sync"),
+                _ => None,
+            } {
+                super::qualification_pause(point)?;
+            }
             Ok(())
         },
         || fs::renameat_with(old, old_name, new, new_name, RenameFlags::NOREPLACE),
@@ -130,6 +142,8 @@ fn move_with(
         2,
     )?;
     namespace("relocate.unlink_original", || {
+        #[cfg(feature = "nfs-qualification")]
+        checkpoint("unlink_enter").map_err(|_| Errno::IO)?;
         fs::unlinkat(old, old_name, AtFlags::empty())
     })?;
     checkpoint("unlink_effect")?;

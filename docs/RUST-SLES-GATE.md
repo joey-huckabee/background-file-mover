@@ -122,3 +122,12 @@ and exact byte-checked artifacts for destination-only startup outage/early recov
 The Rust inventory and four service binaries are unchanged from increment 61;
 selected NFS behavior, readiness and ownership evidence is separate from ABI
 compatibility or production support.
+
+[Increment 63](RUST-INCREMENT-63.md) adds twelve selected file/manifest
+publication interruption records: four observed blocked client unlinkat syscalls
+and eight crashes after namespace effects before sync. Original-state recovery
+preserves inode/content and attempt one. Follow [the lab](NFS-PUBLICATION-SYNC-LAB.md)
+for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
+does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
+power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
+production NFS and source deletion stay disabled.

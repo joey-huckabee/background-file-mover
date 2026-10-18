@@ -415,3 +415,12 @@ startup can finish and readiness/custody 202 can succeed with a healthy source;
 retained delivery orphans still exclude replacement until actual exit. Read
 actual outcomes, original-state recovery and finite scope. Remote settlement,
 remaining SH/deployment and production NFS/deletion gates stay open.
+
+[Increment 63](RUST-INCREMENT-63.md) adds twelve selected file/manifest
+publication interruption records: four observed blocked client unlinkat syscalls
+and eight crashes after namespace effects before sync. Original-state recovery
+preserves inode/content and attempt one. Follow [the lab](NFS-PUBLICATION-SYNC-LAB.md)
+for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
+does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
+power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
+production NFS and source deletion stay disabled.

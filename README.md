@@ -5,6 +5,11 @@ For what the current tests prove and what remains unqualified, read
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
 infrastructure setup, individual test steps, evidence and cleanup.
 
+[Increment 63](docs/RUST-INCREMENT-63.md) tests selected file/manifest unlink
+interruptions and crashes before synchronization, preserving owned inode/content
+on recovery. The [lab guide](docs/NFS-PUBLICATION-SYNC-LAB.md) explains the twelve
+cases and syscall/RPC/durability limits; production NFS/deletion stay disabled.
+
 [Increment 62](docs/RUST-INCREMENT-62.md) qualifies selected destination-outage
 startup/early-recovery cases: source/control readiness and confirmed custody 202
 can succeed while delivery waits. The [dedicated lab](docs/NFS-DESTINATION-STARTUP-LAB.md)

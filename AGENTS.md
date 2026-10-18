@@ -484,3 +484,10 @@ running the WSL build then the gcc:4.8 container left a glibc-2.34 binary for th
 container to execute, failing with a wall of `GLIBC_2.xx not found` that reads as a
 code fault and is not one. `make clean` removes only the current tier; `make clean-all`
 removes every tier.
+
+Increment 63 qualifies selected file/manifest unlink-syscall and pre-sync crashes;
+see docs/RUST-INCREMENT-63.md and docs/NFS-PUBLICATION-SYNC-LAB.md. Four observed
+unlinkat calls are client syscall evidence, not on-wire RPC/remote settlement.
+Eight pre-sync crashes are not in-flight fsync or disk/power-loss tests. Preserve
+original-state owned recovery and the 97-SC/six-DOC catalog. Keep production NFS
+and source deletion disabled; remaining in-flight link/sync and SH gates stay open.

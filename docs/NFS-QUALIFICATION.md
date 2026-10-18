@@ -725,3 +725,12 @@ See [the dedicated lab](NFS-DESTINATION-STARTUP-LAB.md) for every infrastructure
 case, recovery and teardown step. Source readiness/custody 202 is distinct from
 destination health/commitment. Read actual prompt/retained outcomes; no runtime
 policy, dependency or production NFS/deletion enablement follows.
+
+[Increment 63](RUST-INCREMENT-63.md) adds twelve selected file/manifest
+publication interruption records: four observed blocked client unlinkat syscalls
+and eight crashes after namespace effects before sync. Original-state recovery
+preserves inode/content and attempt one. Follow [the lab](NFS-PUBLICATION-SYNC-LAB.md)
+for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
+does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
+power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
+production NFS and source deletion stay disabled.

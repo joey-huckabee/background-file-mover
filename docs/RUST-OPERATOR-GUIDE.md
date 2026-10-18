@@ -918,3 +918,18 @@ short-stop cases exit promptly; no retained terminating-worker deadline branch
 is observed. Empty cases recover attempt 1, populated cases attempt 2 with the
 old partial unchanged. These outcomes preserve the existing acceptance/retry/
 review policy and do not enable production NFS or source deletion.
+
+## Interrupted publication and synchronization
+
+A visible final payload or COMMITTED.json can precede SQLite Committed. During
+an outage, preserve the original local database/epoch, claimed source, staging
+aliases and producer-reused paths. Do not manually unlink staging or clear an
+ownership refusal. Restore the configured storage and confirm old-worker exit
+before restarting with the original configuration/state. Normal recovery checks
+owned inode/content, reconciles aliases and completes synchronization/commitment;
+foreign or changed evidence retains existing conservative review rules.
+
+[Increment 63](RUST-INCREMENT-63.md) and [its lab](NFS-PUBLICATION-SYNC-LAB.md)
+exercise twelve selected file/manifest cases, including blocked client unlinkat
+and process crashes before sync. They do not establish RPC settlement or hardware
+power-loss durability. Production NFS and source deletion remain disabled.

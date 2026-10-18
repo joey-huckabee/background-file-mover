@@ -105,3 +105,12 @@ image/module preflight, both gates, exact command, healthy-source checks,
 empty/populated preparation, death/stop, original-state recovery and restore/
 normal-unmount-first teardown. No package experiment, VM boot/module or systemd
 bootstrap change is needed. Production NFS/deletion remain disabled.
+
+[Increment 63](RUST-INCREMENT-63.md) adds twelve selected file/manifest
+publication interruption records: four observed blocked client unlinkat syscalls
+and eight crashes after namespace effects before sync. Original-state recovery
+preserves inode/content and attempt one. Follow [the lab](NFS-PUBLICATION-SYNC-LAB.md)
+for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
+does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
+power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
+production NFS and source deletion stay disabled.
