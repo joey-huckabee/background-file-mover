@@ -5,7 +5,7 @@ import time
 import traceback
 
 
-def exercise(Case, host, execute, spawn, popen, output, client, report):
+def exercise(Case, host, execute, spawn, popen, output, client, report, nfs_lab=None):
     legacy = report.get('manager_profile') == '228'
     template_name = 'file-mover-228.service.in' if legacy else 'file-mover.service.in'
     template = (Path(__file__).parent / 'systemd' / template_name).read_text(encoding='utf-8')
@@ -331,13 +331,18 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
 
     for production in (False, True):
         for profile in ('debug', 'release'):
-            kinds = ['basic'] if production else ['incomplete', 'manual-orphan', 'managed-crash', 'basic']
+            if nfs_lab:
+                kinds = [] if production else ['nfs-stop', 'nfs-death']
+            else:
+                kinds = ['basic'] if production else ['incomplete', 'manual-orphan', 'managed-crash', 'basic']
             for kind in kinds:
                 c = None
                 try:
                     counter += 1
-                    c = Case(profile, 'copy_chunk', production=production, local_only=True,
-                             shutdown=kind == 'incomplete', shutdown_wait=2 if kind == 'incomplete' else None,
+                    short_wait = kind == 'incomplete' or nfs_lab is not None
+                    c = Case(profile, 'copy_chunk', production=production, local_only=not nfs_lab,
+                             both_nfs=bool(nfs_lab), separate_exports=bool(nfs_lab),
+                             shutdown=short_wait, shutdown_wait=2 if short_wait else None,
                              suffix='-sd-' + str(counter))
                     c.unit = 'fm-sd-' + str(counter) + '.service'
                     c.other = 'fm-sd-' + str(counter) + '-other.service'
@@ -347,7 +352,12 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
                     c.result['contention_probe'] = 'same state/source/destination; alternate bind 19879 to reach guard rather than occupied REST port'
                     c.result.update(kind=kind, unit=c.unit, scenario_id='SC-092')
                     c.result['database_inode_before'] = execute(f'stat -c %d:%i {c.base}/state/jobs.sqlite', '1000:1000').stdout
-                    if kind == 'basic': basic(c)
+                    if nfs_lab:
+                        from systemd_nfs import exercise as nfs_exercise
+                        nfs_exercise(c, kind, nfs_lab, host, execute, popen, client,
+                                     dict(ctl=ctl, props=props, lifecycle=lifecycle, epoch=epoch,
+                                          start_unit=start_unit, stop_unit=stop_unit, security=security, refuse=refuse, journal=journal))
+                    elif kind == 'basic': basic(c)
                     elif kind == 'incomplete': incomplete(c)
                     else: orphan(c, managed=kind == 'managed-crash')
                     c.result['database_inode_after'] = execute(f'stat -c %d:%i {c.base}/state/jobs.sqlite', '1000:1000').stdout
@@ -360,6 +370,8 @@ def exercise(Case, host, execute, spawn, popen, output, client, report):
                 finally:
                     if hasattr(c, 'base'):
                         try:
+                            if nfs_lab:
+                                nfs_lab.restore()
                             # Only fixture units/processes; release local pauses before stopping.
                             host(f"sed -i 's/Restart=on-failure/Restart=no/' /etc/systemd/system/{c.unit} /etc/systemd/system/{c.other} 2>/dev/null || true")
                             ctl('daemon-reload')

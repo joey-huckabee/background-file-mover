@@ -288,3 +288,84 @@ single-host lifecycle interactions with a selected manager equivalent. It does
 not enable production NFS/deletion, qualify exact SLES RPM patches or the old
 SLES kernel, or replace combined hard-NFS/systemd, packaging, account policy,
 durability and release-candidate qualification.
+
+## 12. Run selected combined hard-NFS/systemd cases
+
+[Increment 60](RUST-INCREMENT-60.md) defines four additional qualification-only
+records, separate from the ten local baseline records above. Use the same two
+passing gates and approved manager image. Keep production NFS/deletion disabled.
+
+1. Check the retained NFS server image and VM modules before starting the lab:
+
+   ```powershell
+   podman image inspect localhost/background-file-mover-e2-nfs --format '{{.Id}}'
+   wsl -d podman-machine-default -u root -- ls -d /sys/module/nfs /sys/module/nfsd
+   ```
+
+   The reference cached image is recorded in [the NFS fixture guide](NFS-TEST-FIXTURE.md).
+   If the image is absent, build only that retained fixture recipe with
+   `podman build -t localhost/background-file-mover-e2-nfs -f experiments/e2-rustix/Nfs.Containerfile experiments/e2-rustix`.
+   Package resolution may change on rebuild; the driver records actual image
+   identity/packages. Do not automatically rerun E2 or start E6. Missing kernel
+   modules need approved VM-only setup; never change a production/NAS machine.
+
+2. Let the gate containers finish cleanup, then run:
+
+   ```powershell
+   python scripts/check-systemd-boundaries.py $ProductionGate --qualification-gate $QualificationGate --manager 228 --allow-host-cgroup-bootstrap --nfs
+   if ($LASTEXITCODE -ne 0) { throw 'Combined NFS/systemd qualification failed; inspect the report and retained resources' }
+   ```
+
+3. The driver creates an owned internal network, disposable server volume and
+   controlled kernel-NFS server without published ports. The manager joins that
+   network; the application still binds loopback. The server provides two bounded
+   128 MiB/4096-inode tmpfs exports, mounted separately inside the SLES root with
+   `vers=4.1,proto=tcp,port=2049,hard,timeo=10,retrans=1,noac`. Verify distinct
+   server/client devices and mount IDs, actual NFS magic, and cross-export hard-link
+   refusal. State/SQLite stays local. These fixture export permissions are not
+   production provisioning instructions.
+
+4. For each profile, initialize private roots/markers, start the managed service,
+   submit the nested 2 MiB plus 17 byte input, require 202, reuse the producer path
+   and pause after the first 1 MiB copied. Capture original source/database/
+   enrollment/partial evidence. Stop only the owned server's NFSD threads and
+   release the pause. Require an actual D-state worker and capture its wait
+   channel and unit cgroup. A local pause or SIGSTOP cannot substitute for D.
+
+5. In the managed-stop case, submit the unit stop and independently invoke the
+   same-user controller. Keep application wait 2 and fixture manager timeout 8.
+   Record actual controller/manager replies and local status. Prompt exit and
+   retained ShutdownIncomplete are distinct results. A surviving worker must
+   retain the original ownership epoch and refuse competitors; a free local
+   owner requires confirmed old main/worker exit.
+
+6. In the coordinator-death case, kill only the managed main PID. Observe bounded
+   manager restart behavior and local ownership during the outage. A changed
+   authorized epoch requires old main/worker exit; a rejected start process is
+   distinct from an authorized replacement. Preserve unready/Starting outcomes
+   as actual observations, not successful delivery. Sampling is not proof of
+   absence of arbitrarily brief overlap or remote RPC settlement.
+
+7. Restore the server before recovery or cleanup. Require original-state attempt-2
+   recovery with preserved database/source inodes, enrollment, old partial
+   allocation/content and producer-reused paths. Validate destination bytes,
+   manifest/hash, stable roots, retained source, cleanup false and NoActiveOwner.
+
+   The recorded increment-60 death cases retain D workers with failed/timeout
+   units and MainPID 0 throughout five observations; no automatic replacement
+   is observed. Recovery explicitly starts the original unit after old exit.
+   This is not evidence of automatic recovery after an incomplete group stop or
+   indefinite no-restart-storm behavior. The stop cases return manager exit 0
+   while the independent application controller reports ShutdownIncomplete/2.
+
+8. Restore NFSD, release controlled pauses and confirm managed users exit. Unmount
+   both client shares normally before removing the client, server, volume and
+   network; then perform nonce-owned legacy-hierarchy cleanup and an independent
+   absence probe. On unconfirmed unmount/teardown, fail and retain resources
+   identified in the report. Do not force-unmount, reset controllers or remove an
+   unavailable server to conceal a failure. Compare final inventory as in step 10.
+
+Read the actual results in increment 60 and [testing limitations](TESTING-LIMITATIONS.md).
+Two exports on one modern kernel/server do not qualify independent NAS failures,
+every operation, exact in-flight RPCs, power loss, native old kernels or full
+production shutdown/restart policy.

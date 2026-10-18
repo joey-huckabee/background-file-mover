@@ -21,12 +21,15 @@ def main():
     parser.add_argument('--connection', default='podman-machine-default-root')
     parser.add_argument('--manager', choices=['252', '228'], default='252')
     parser.add_argument('--allow-host-cgroup-bootstrap', action='store_true')
+    parser.add_argument('--nfs', action='store_true', help='Four qualification-only actual hard-NFS/systemd cases')
     args = parser.parse_args()
     legacy = args.manager == '228'
     if legacy and not args.allow_host_cgroup_bootstrap:
         parser.error('228 bootstrap requires explicit approval and --allow-host-cgroup-bootstrap')
     if args.allow_host_cgroup_bootstrap and not legacy:
         parser.error('the broader bootstrap is available only for --manager 228')
+    if args.nfs and not legacy:
+        parser.error('--nfs requires --manager 228 and its approved bootstrap')
     gates = [args.gate.resolve(), args.qualification_gate.resolve()]
     inventory = {p.relative_to(ROOT / 'rust').as_posix() for child in (ROOT / 'rust').iterdir()
                  if child.name not in {'validation', 'target'}
@@ -50,11 +53,13 @@ def main():
                   scope='systemd 252 manager outside pinned SLES root; local payload/state only; no native SLES-systemd, hard-NFS/systemd, reboot, persistence or authorization-policy approval')
     record['manager_profile'] = args.manager
     record['broader_bootstrap_acknowledged'] = args.allow_host_cgroup_bootstrap
+    record['nfs_requested'] = args.nfs
     if legacy:
         record['scope'] = 'Approved broader bootstrap; Leap 42.3 systemd 228 equivalent; pinned SLES service root; local payload/state only; no exact SLES RPM, native old kernel, hard-NFS/systemd, reboot, persistence or host account-policy qualification'
     engine = ['podman', '--connection', args.connection]
     client = None
     tasks = []
+    lab = None
 
     def raw(arguments, check=True, timeout=45):
         result = subprocess.run(engine + arguments, capture_output=True, text=True,
@@ -113,6 +118,10 @@ def main():
                          'systemd/boot-228-approved.sh', 'systemd/boot-228-inner.sh',
                          'systemd/enter-228.sh', 'systemd/cleanup-228.sh', 'systemd/file-mover-228.service.in']:
                 record['driver_sha256'][name] = hashlib.sha256((ROOT / 'scripts' / name).read_bytes()).hexdigest()
+        if args.nfs:
+            for name in ['systemd_nfs.py', 'nfs_exports.py']:
+                record['driver_sha256'][name] = hashlib.sha256((ROOT / 'scripts' / name).read_bytes()).hexdigest()
+            record['scope'] = 'Approved 228-equivalent bootstrap; four selected managed stop/death hard-NFS copy cases; distinct tmpfs-backed exports on one controlled server; local state; pinned SLES service userspace. No exact SLES RPM/kernel, independent NAS, RPC settlement, power loss, actual account policy or production NFS/deletion qualification.'
         image = 'localhost/background-file-mover-systemd228-approved' if legacy else 'localhost/background-file-mover-systemd'
         record['image'] = json.loads(raw(['image', 'inspect', image]).stdout)[0]
         if legacy:
@@ -127,6 +136,11 @@ def main():
             if 'name=systemd' in before.stdout:
                 raise RuntimeError('Refusing existing legacy hierarchy before creating a fixture')
         record['container_arguments'] = ['--systemd=always', '--cgroupns=' + ('host' if legacy else 'private'), '--privileged', '--network=none']
+        if args.nfs:
+            from systemd_nfs import Lab
+            lab = Lab(raw, record)
+            lab.create()
+            record['container_arguments'][-1] = '--network=' + lab.network
         owner = uuid.uuid4().hex if legacy else None
         if legacy:
             record['cgroup_owner_nonce'] = owner
@@ -187,16 +201,27 @@ def main():
                 # Execution still uses RootDirectory; mapped libc is asserted.
                 host(f'test ! -e /tmp/{key}; ln -s /sles/tmp/{key} /tmp/{key}')
         record['artifacts'] = hashes
+        if lab:
+            lab.mount(client, prefix, execute)
         from nfs_runtime import run_runtime
         from systemd_runtime import exercise
-        run_runtime(run, execute, spawn, lambda: None, None, output, client, hashes, record['cases'],
-                    case_runner=lambda Case: exercise(Case, host, execute, spawn, popen, output, client, record))
-        assert len(record['cases']) == 10 and all(c['passed'] for c in record['cases'])
+        run_runtime(run, execute, spawn, lab.restore if lab else lambda: None, lab.server if lab else None,
+                    output, client, hashes, record['cases'],
+                    case_runner=lambda Case: exercise(Case, host, execute, spawn, popen, output, client, record, nfs_lab=lab))
+        assert len(record['cases']) == (4 if lab else 10) and all(c['passed'] for c in record['cases'])
         record['status'] = 'PASSED'
     except Exception as error:
         record.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())
     finally:
         if client:
+            can_remove = True
+            if lab:
+                try:
+                    lab.unmount(host)
+                    record['nfs_unmounted'] = True
+                except Exception as error:
+                    can_remove = False
+                    record['cleanup_errors'].append('NFS teardown unconfirmed; retaining resources: ' + str(error))
             try:
                 record['final_journal'] = host('journalctl -b --no-pager -o short-monotonic', check=False, timeout=15).stdout
             except Exception as error:
@@ -209,12 +234,23 @@ def main():
             except Exception as error:
                 record['boot_log_capture_error'] = str(error)
             try:
-                result = raw(['rm', '--force', client], check=False, timeout=60)
-                if result.returncode:
-                    record['cleanup_errors'].append(result.stderr)
+                if can_remove:
+                    result = raw(['rm', '--force', client], check=False, timeout=60)
+                    if result.returncode:
+                        can_remove = False
+                        record['cleanup_errors'].append(result.stderr)
             except Exception as error:
                 record['cleanup_errors'].append(str(error))
-            if legacy:
+                can_remove = False
+            if lab:
+                if can_remove:
+                    try:
+                        lab.remove()
+                    except Exception as error:
+                        record['cleanup_errors'].append(str(error))
+                else:
+                    record['recovery_resources'] = dict(client=client, **record.get('nfs_resources', {}))
+            if legacy and can_remove:
                 try:
                     if record.get('bootstrap_ownership_attested'):
                         cleanup = raw(['run', '--rm', '--network=none', '--privileged', '--cgroupns=host',
@@ -231,6 +267,11 @@ def main():
                         record['cleanup_errors'].append('Legacy hierarchy remains after fixture cleanup')
                 except Exception as error:
                     record['cleanup_errors'].append(str(error))
+        elif lab:
+            try:
+                lab.remove()
+            except Exception as error:
+                record['cleanup_errors'].append(str(error))
         for process, log in tasks:
             try:
                 process.wait(timeout=10)

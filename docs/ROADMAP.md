@@ -15,7 +15,7 @@ Next qualify remaining NFS operation/synchronization and shutdown boundaries,
 remaining endpoint-failure directions/phases beyond selected source-copy
 interruptions, remaining fresh/destination-side/later bootstrap failures, and
 native SLES manager/cgroup compatibility, actual account control/persistent
-deployment and combined hard-NFS/systemd behavior (SH-01–04/06–14). Preserve independently retained
+deployment and remaining hard-NFS/systemd operation/deadline behavior (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.
 Keep delayed NFS
@@ -31,12 +31,15 @@ Declare the supported manager/package and kernel profile and qualify its
 remaining deployment behavior. Exact SLES-maintenance RPM patches remain
 untested by the approved equivalent-228 lab; do not infer them from version
 labels or compiled directive names. Complete actual account control, persistent
-deployment and combined hard-NFS lifecycle evidence. Keep testing container-only,
+deployment and remaining hard-NFS lifecycle phase/deadline evidence. Keep testing container-only,
 with no real SLES installation requirement, and maintain the
 [testing limitations](TESTING-LIMITATIONS.md) and [lab procedure](SYSTEMD-LIFECYCLE-LAB.md).
 Preserve unit-scoped shutdown when packaging: a rejected contender must not run
 a global stop controller against the legitimate owner. Qualify the shipping
 unit's account, restart and timeout behavior for the declared supported profile.
+Qualify eventual restart/recovery after incomplete group stop and longer-outage
+restart/storm behavior; retain conservative ownership when unit MainPID is zero
+or the unit is failed while an old worker remains alive.
 
 ## Next work
 

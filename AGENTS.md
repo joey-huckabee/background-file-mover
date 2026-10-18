@@ -283,6 +283,16 @@ unit-owned SIGTERM and independent same-user controller checks. See
 persistence policy and combined hard-NFS lifecycle remain unqualified.
 Production NFS/deletion remain disabled.
 
+Increment 60 retains `--nfs` on the approved 228 lifecycle driver plus
+`scripts/systemd_nfs.py`: four qualification-only actual hard-NFS mid-copy
+managed stop/death cases with distinct controlled exports and local state pass.
+See `docs/RUST-INCREMENT-60.md` for actual outcomes/limits. Inspect all old
+threads, preserve epoch/original state, restore NFS before normal unmount and
+remove only owned resources; retain fixtures on uncertain teardown. Maintain
+the lab steps, scenario catalog and testing limits. Other phases, actual NAS,
+RPC settlement/power durability, exact vendor/kernel and deployment/account
+qualification remain open. Production NFS/source deletion stay disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

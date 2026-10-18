@@ -805,3 +805,27 @@ cleanup. In both incomplete-stop cases, systemctl returned 0 with MainPID 0
 and Result=timeout while the original owner remained live; the independent
 controller returned exit 2/ShutdownIncomplete. Preserve state and confirm
 actual ownership/process status rather than using the manager's return alone.
+
+## Selected systemd and actual hard-NFS evidence
+
+[Increment 60](RUST-INCREMENT-60.md) passes four managed stop/death records in
+debug/release with source/destination on separate controlled NFS exports and
+local state. Read actual prompt-exit versus retained-worker outcomes; unit
+status and local ownership are separate observations. The fixture inspects
+every thread of the known old coordinator/worker before authorizing recovery.
+Keep original configuration/database/epoch, receipts, source and partials.
+Restore approved storage and confirm old exit; no delete-guard, force-unmount,
+alternate-state or takeover remedy is provided. The [lab guide](SYSTEMD-LIFECYCLE-LAB.md)
+section 12 documents setup, each test step and conservative teardown. Selected
+passes do not close all hard-NFS/systemd, NAS settlement, account/deployment or
+durability obligations in [testing limits](TESTING-LIMITATIONS.md). Production
+NFS and source deletion remain disabled.
+
+In both increment-60 coordinator-death records, the unit became failed/timeout
+with MainPID 0 while its old worker remained D and local status reported
+OwnerUnavailable/exit 2. No automatic replacement was observed in that bounded
+window. The fixture restores storage, confirms old-thread exit, then explicitly
+resets/starts the original unit. Do not assume Restart=on-failure guarantees
+automatic recovery from an incomplete group stop; the shipping policy still
+needs qualification. In the stop records, systemctl returned 0 despite the
+retained live owner; the independent controller correctly returned exit 2.

@@ -72,6 +72,11 @@ results and limits, the [step-by-step lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md)
 and [testing limitations](docs/TESTING-LIMITATIONS.md). Historical blocked and
 failed reports remain separate; production NFS and source deletion stay off.
 
+[Increment 60](docs/RUST-INCREMENT-60.md) passes four selected managed
+stop/death cases with actual hard-NFS blocking, separate controlled exports,
+local state and the 228-equivalent manager. Read actual outcomes and remaining
+limits; production NFS and source deletion stay disabled.
+
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read
 [the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).

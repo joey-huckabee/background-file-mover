@@ -531,3 +531,10 @@ refusals pass with verified cleanup. The legacy unit uses unit-owned SIGTERM,
 with the bounded controller checked independently: a global ExecStop after
 guard refusal stopped a legitimate foreign owner in the retained failed run.
 Production NFS and source deletion remain disabled.
+
+[Increment 60](RUST-INCREMENT-60.md) adds four selected actual hard-NFS/systemd
+managed stop/death records with separate exports and local state. Read actual
+outcomes, old-thread/epoch and original-state recovery evidence. Keep remaining
+operation/shutdown/death phases, remote settlement, actual NAS/mount/security,
+account/persistence, exact vendor/kernel and workload qualification open.
+Production NFS/source deletion remain disabled.

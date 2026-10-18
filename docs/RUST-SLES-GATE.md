@@ -106,3 +106,8 @@ gates cannot turn unexecuted old-manager lifecycle cases into support.
 See [testing limitations](TESTING-LIMITATIONS.md) for the ABI versus kernel/CPU,
 storage, manager and deployment boundaries, and the [lifecycle lab procedure](SYSTEMD-LIFECYCLE-LAB.md)
 for reproducible setup, exact-artifact checks, test steps and cleanup.
+
+[Increment 60](RUST-INCREMENT-60.md) uses new production/qualification gates
+and their exact byte-checked artifacts for four selected combined NFS/systemd
+records. Service binaries remain byte-identical to increment 59. Manager/NFS
+evidence stays separate from ABI/userspace checks and production enablement.

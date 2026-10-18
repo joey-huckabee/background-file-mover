@@ -231,3 +231,10 @@ source deletion remain disabled.
 All ten selected equivalent-228 local lifecycle records pass, including the
 corrected unit-owned shutdown and independent controller checks. This is finite
 SH-02/08/09 evidence, not closure of the full deployment/NFS release gates.
+
+[Increment 60](RUST-INCREMENT-60.md) passes four selected combined hard-NFS/
+equivalent-228 managed stop/death cases at mid-copy with distinct exports/local
+state. It advances finite FR-03/05 evidence; all eight gates remain open.
+Remaining operation/endpoint/deadline boundaries, NAS settlement/durability,
+actual package/kernel/account/persistence and workload evidence are not waived.
+Production NFS and source deletion remain disabled.

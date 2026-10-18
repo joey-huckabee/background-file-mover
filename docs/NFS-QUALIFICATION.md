@@ -697,3 +697,14 @@ All ten selected local records pass, with eight armed races, 32 competing
 effect-command refusals and verified cleanup. The corrected legacy unit has no
 global ExecStop that could stop another owner after guard refusal; its bounded
 controller is tested independently. No new NFS-runtime case is claimed here.
+
+## Selected combined hard-NFS/systemd qualification
+
+[Increment 60](RUST-INCREMENT-60.md) passes four debug/release managed stop/death
+records at mid-copy with both private roots on distinct controlled exports and
+local state. Use `--manager 228 --allow-host-cgroup-bootstrap --nfs` on the
+retained systemd driver with both passing gate directories. Follow
+[the lab procedure](SYSTEMD-LIFECYCLE-LAB.md) section 12; do not rerun package
+experiments. Actual D-state blocking, epoch/thread exit, controller/restart and
+original-state recovery evidence remain distinct from NAS settlement, every
+operation or uncancellable deadline support. Production NFS/deletion stay off.

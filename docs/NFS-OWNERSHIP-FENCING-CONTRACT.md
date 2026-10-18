@@ -394,3 +394,11 @@ the legitimate owner after a second-unit refusal. The legacy candidate uses
 unit-owned SIGTERM and separately qualified controller calls, with bounded
 restart attempts and complete fixture hierarchy cleanup. Remaining SH scope
 and all release gates stay open.
+
+[Increment 60](RUST-INCREMENT-60.md) adds selected combined SH-02/07/08/09/14
+evidence: four actual hard-NFS mid-copy managed stop/death records, separate
+controlled exports and local state. Read actual prompt/retained outcomes and
+sampled old-thread/epoch/restart observations. Normal unmount and original-state
+recovery follow restoration/confirmed old exit. Remaining phases, delayed RPCs,
+actual NAS/storage/account/kernel and full SH/release qualification remain open.
+Production NFS and deletion remain disabled.

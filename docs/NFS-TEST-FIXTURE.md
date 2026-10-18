@@ -83,3 +83,11 @@ The retained [qualification capability](NFS-QUALIFICATION.md) adds
 `--qualification-gate <passing-run>` to drive real REST transfers before outage
 checks. Baseline failure stops advancement and is recorded explicitly, including
 source-retention and commitment evidence. See [increment 16](RUST-INCREMENT-16.md).
+
+[Increment 60](RUST-INCREMENT-60.md) reuses this cached server for selected
+combined hard-NFS/systemd cases. It adds no Rust NFS implementation; the VM
+kernel still provides NFS. See [the step-by-step lab](SYSTEMD-LIFECYCLE-LAB.md)
+section 12 for server-image preparation, distinct hard-mounted exports, local
+state and restoration/unmount-before-removal. Earlier scope statements above
+are historical; current supported evidence and limits are in
+[NFS qualification](NFS-QUALIFICATION.md). Production NFS/deletion remain off.
