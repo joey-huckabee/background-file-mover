@@ -933,3 +933,20 @@ foreign or changed evidence retains existing conservative review rules.
 exercise twelve selected file/manifest cases, including blocked client unlinkat
 and process crashes before sync. They do not establish RPC settlement or hardware
 power-loss durability. Production NFS and source deletion remain disabled.
+
+## Server completion with a lost reply
+
+A failed or missing filesystem acknowledgment does not prove the server did
+nothing. The server may already have removed an owned staging alias while the
+mover still reports Claimed. Preserve original local state/epoch, claimed source,
+final objects and producer-reused paths. Do not recreate staging or clear review.
+Confirm actual old-worker exit and storage availability, then restart with the
+original configuration/database; normal recovery verifies the owned inode/content
+and completes synchronization/commitment under existing retry/review rules.
+The recorder's responsibility still ends at confirmed custody/202.
+
+[Increment 64](RUST-INCREMENT-64.md) tests selected NFSv4.1 REMOVE success replies
+withheld/discarded plus explicit connection interruption. Read [the lab](NFS-LOST-REPLY-LAB.md)
+for server/client proof, actual death outcomes and the initial discard-only timeout.
+A timeout or a free local guard is not general remote-settlement evidence.
+Production NFS and source deletion remain disabled.

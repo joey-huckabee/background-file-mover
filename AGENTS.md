@@ -491,3 +491,12 @@ unlinkat calls are client syscall evidence, not on-wire RPC/remote settlement.
 Eight pre-sync crashes are not in-flight fsync or disk/power-loss tests. Preserve
 original-state owned recovery and the 97-SC/six-DOC catalog. Keep production NFS
 and source deletion disabled; remaining in-flight link/sync and SH gates stay open.
+
+Increment 64 adds lost-reply qualification after real-server capability proof;
+see docs/RUST-INCREMENT-64.md and docs/NFS-LOST-REPLY-LAB.md. Preserve the initial
+failed healthy-TCP discard control and its recovered resources/source snapshots.
+Selected REMOVE success replies are withheld/discarded with explicit connection
+closure and verified session replay. This is not LINK/sync/power-loss or old-kernel
+support. No Rust inputs/dependencies changed; maintain 98 SC and six DOC IDs.
+Keep production NFS/deletion disabled and require both capability controls before
+running real mover lost-reply cases.

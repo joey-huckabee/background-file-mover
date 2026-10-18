@@ -562,3 +562,12 @@ for infrastructure, exact gates, interruptions and cleanup. Client syscall entry
 does not prove RPC delivery/settlement, and pre-sync process crashes do not prove
 power-loss durability. In-flight link/sync RPCs and full SH-11/12 remain open;
 production NFS and source deletion stay disabled.
+
+[Increment 64](RUST-INCREMENT-64.md) first proves server REMOVE completion
+with its successful reply withheld and an actual pending client, then qualifies
+four file/manifest worker cases. Loss includes explicit connection closure and
+observed NFSv4.1 replay; the initial healthy-stream discard timeout stays failed.
+The [lab](NFS-LOST-REPLY-LAB.md) records independent capability, exact SLES artifacts,
+recovery and normal-unmount cleanup. No Rust inputs/dependencies changed. Remaining
+claim/LINK/sync RPC, server-recovery/durability and full SH gates stay open;
+production NFS and source deletion remain disabled.

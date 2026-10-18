@@ -54,6 +54,21 @@ capabilities, while the mover/worker capability checks remain unchanged.
 
 ## Important distinctions
 
+[Lost-reply qualification](RUST-INCREMENT-64.md) proves a selected NFSv4.1
+REMOVE completed on the live server while its matching successful reply was
+withheld and the actual client stayed D. Two capability controls precede four
+file/manifest worker cases. The passing loss model discards the reply and closes
+that connection, then observes same-session/sequence replay on a new connection;
+it does not promise bounded retries after silently discarding on a healthy TCP
+stream. The initial timeout/cleanup refusal is preserved as failed evidence with
+separate recovery. This advances selected SH-11 evidence beyond the pre-server
+unlink stalls/pre-sync pauses in increment 63, without qualifying LINK/COMMIT/fsync
+loss, power/disk/server reboot, physical NAS isolation, old-kernel NFS behavior or
+arbitrary delayed settlement. The relay's connection closure is lab intervention,
+not an implemented service recovery action or universal signal/deadline guarantee. See [the step-by-step lab](NFS-LOST-REPLY-LAB.md).
+
+
+
 [Publication interruption evidence](RUST-INCREMENT-63.md) adds twelve finite
 cases: four blocked client unlinkat syscalls and eight process crashes after
 link/unlink returned before sync. The selected syscall number, staging-parent

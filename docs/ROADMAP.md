@@ -48,8 +48,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify remaining claim/link/unlink/sync RPC boundaries and server-side
-  delayed-effect settlement, remaining
+- [ ] Qualify remaining claim/LINK/unlink/COMMIT/sync RPC and reply-loss boundaries,
+  server recovery and delayed-effect settlement, remaining
   synchronization boundaries, outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.
 - [ ] Complete the producer/consumer guides, restart/shutdown troubleshooting and

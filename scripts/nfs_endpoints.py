@@ -6,7 +6,7 @@ import time
 
 class Endpoints:
     def __init__(self, run, execute, server, client, ip, options, network, image,
-                 containers, volumes, servers, extra_mounts, report):
+                 containers, volumes, servers, extra_mounts, report, destination_relay=None):
         self.run, self.execute, self.client = run, execute, client
         self.report = report
         self.counter = 0
@@ -26,10 +26,12 @@ class Endpoints:
         servers.append(destination)
         destination_ip = json.loads(run(["inspect", destination]).stdout)[0]["NetworkSettings"]["Networks"][network]["IPAddress"]
         assert destination_ip != ip
+        self.relay = destination_relay(destination_ip) if destination_relay else None
+        destination_mount_ip = self.relay.address if self.relay else destination_ip
         self.servers = {"source": server, "destination": destination}
         self.mounts = {"source": "/tmp/nfs-source", "destination": "/tmp/nfs-destination"}
         report["servers"] = {}
-        for role, address, fsid in (("source", ip, 55), ("destination", destination_ip, 56)):
+        for role, address, fsid in (("source", ip, 55), ("destination", destination_mount_ip, 56)):
             target, mount = self.servers[role], self.mounts[role]
             export = "/exports/death-" + role
             run(["exec", target, "/bin/sh", "-eu", "-c",
@@ -44,6 +46,9 @@ class Endpoints:
                 network_namespace=run(["exec", target, "readlink", "/proc/self/ns/net"]).stdout.strip(),
                 filesystem_device=run(["exec", target, "stat", "-c", "%d", export]).stdout.strip(),
                 server_mounts=run(["exec", target, "cat", "/proc/mounts"]).stdout.splitlines())
+            if role == "destination" and self.relay:
+                report["servers"][role]["backend_ip"] = destination_ip
+                report["reply_relay"] = self.relay.evidence
             assert any(f" {export} tmpfs " in m and "size=131072k" in m and "nr_inodes=4096" in m
                        for m in report["servers"][role]["server_mounts"])
             self.healthy(role)

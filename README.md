@@ -5,6 +5,11 @@ For what the current tests prove and what remains unqualified, read
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
 infrastructure setup, individual test steps, evidence and cleanup.
 
+[Increment 64](docs/RUST-INCREMENT-64.md) proves selected server-completed NFS
+REMOVE replies can be withheld, then tests file/manifest recovery after reply loss
+and connection interruption. The [lab](docs/NFS-LOST-REPLY-LAB.md) records capability,
+initial failure, exact evidence and cleanup; production NFS/deletion stay disabled.
+
 [Increment 63](docs/RUST-INCREMENT-63.md) tests selected file/manifest unlink
 interruptions and crashes before synchronization, preserving owned inode/content
 on recovery. The [lab guide](docs/NFS-PUBLICATION-SYNC-LAB.md) explains the twelve
