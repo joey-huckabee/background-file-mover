@@ -1,0 +1,24 @@
+# Disposable qualification unit; not a production installation template.
+[Unit]
+Description=File mover lifecycle qualification
+StartLimitIntervalSec=10
+StartLimitBurst=2
+
+[Service]
+Type=simple
+User=mover
+Group=mover
+RootDirectory=/sles
+EnvironmentFile={envfile}
+ExecStartPre=/bin/sh -eu -c '{pregate}'
+ExecStart={binary} {config}
+ExecStop={binary} --stop {config}
+KillMode=control-group
+SendSIGKILL=no
+TimeoutStopSec={stop_timeout}
+Restart={restart}
+RestartSec=1
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+UMask=0077
+PrivateTmp=no

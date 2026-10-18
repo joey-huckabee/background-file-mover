@@ -60,7 +60,8 @@ Do not repeat that bounded tmpfs case as unfinished implementation work.
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
    interruptions, remaining fresh/destination-side/later bootstrap failures, plus
-   systemd/account-control (SH-01-04/06-14).
+   native SLES systemd/cgroups, actual account/persistence and combined hard-NFS
+   lifecycle (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
    Discover actual mounts/version/security later and qualify NFS recovery
@@ -200,3 +201,9 @@ does not remove FR-03 same-host exclusion and safe NFS reconciliation requiremen
 Until the relevant release gates pass, production NFS and source deletion stay
 disabled. No actual SLES host is required: retain pinned SLES 12 SP5 userspace
 container qualification and explicitly report untested old-kernel/CPU behavior.
+
+[Increment 57](RUST-INCREMENT-57.md) adds selected real-manager manual/systemd
+coordination evidence using systemd 252 and a pinned SLES service root. It leaves
+native SLES systemd/cgroups, actual account policy, persistent deployment and
+combined hard-NFS/systemd open. All eight release gates remain open; no
+production NFS or source deletion is enabled.

@@ -252,6 +252,14 @@ outcomes/limits. Preserve separate snapshots, original database/enrollment/
 source/binding and populated WAL/partial evidence. Production NFS and source
 deletion remain disabled.
 
+Increment 57 retains `scripts/check-systemd-boundaries.py` and the disposable
+`scripts/systemd/` fixture. See `docs/RUST-INCREMENT-57.md`: real systemd 252
+manager outside a pinned SLES/glibc-2.22 service root, local payload/state only.
+Keep native SLES manager/cgroups, actual account/persistence and combined
+hard-NFS/systemd qualification open. Same-port starts can fail before guard
+acquisition; alternate-port probes share the same state/storage bindings.
+Production NFS/source deletion remain disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

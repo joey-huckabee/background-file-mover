@@ -9,13 +9,13 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link"}
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False, separate_exports=False, independent_endpoints=False):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False, separate_exports=False, independent_endpoints=False, local_only=False):
             assert not separate_exports or both_nfs
             assert not independent_endpoints or separate_exports
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
@@ -30,6 +30,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.base = "/tmp/local/" + self.label
             source_nfs = both_nfs or point in claim_points | {"source_read", "bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
             destination_nfs = both_nfs or (not production and not source_nfs)
+            if local_only:
+                assert not both_nfs
+                source_nfs = destination_nfs = False
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
             self.destination = ("/tmp/nfs/" + self.label + "/destination" if destination_nfs else self.base + "/destination")
             if separate_exports:
@@ -96,7 +99,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             remote = self.base + "/request-" + str(self.counter)
             run(["cp", str(local), client + ":" + remote])
             connected = f": >{connected_marker}; " if connected_marker else ""
-            script = f"exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19878; cat {remote} >&3; {connected}cat <&3'"
+            script = f"exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/{getattr(self, 'request_port', 19878)}; cat {remote} >&3; {connected}cat <&3'"
             if asynchronous:
                 process = spawn(script, name)
                 self.processes.append(process)
@@ -322,6 +325,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if self.worker:
                 self.result["cleanup_worker_exit"] = self.await_exit(self.worker)
             self.result["service_logs"] = {name: (output / name).read_text() for name in self.service_logs}
+
+    if case_runner is not None:
+        return case_runner(Case)
 
     if death_only:
         from nfs_death import run_death

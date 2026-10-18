@@ -14,12 +14,13 @@ release progress. Deferred capabilities remain deferred unless explicitly added.
 Next qualify remaining NFS operation/synchronization and shutdown boundaries,
 remaining endpoint-failure directions/phases beyond selected source-copy
 interruptions, remaining fresh/destination-side/later bootstrap failures, and
-actual systemd/account control behavior (SH-01–04/06–14). Preserve independently retained
+native SLES manager/cgroup compatibility, actual account control/persistent
+deployment and combined hard-NFS/systemd behavior (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.
 Keep delayed NFS
 operations/reconciliation, actual mount/version/security discovery, same/separate
-shares and systemd lifecycle qualification open (SH-10–14); a free local lock or
+shares and remaining systemd lifecycle qualification open (SH-10–14); a free local lock or
 a timeout is not remote-settlement proof. No NAS-admin fencing facility is assumed
 for this restricted profile. Keep stronger cross-host/re-enrollment controls deferred.
 Select the proxy package and implement/qualify the [remote access design](REMOTE-API-ACCESS-CONTRACT.md),
@@ -51,7 +52,8 @@ before implementation.
 - [ ] Complete remaining SH-01–04/06–14 for the confirmed same-host/local-state
   profile: remaining guard/storage/death-phase cases, deployment persistence and
   mount/account policy, remaining bounded-shutdown cases,
-  systemd coordination, actual NFS mount/root validation and delayed-effect owned
+  native SLES systemd/cgroups, account/persistence and combined hard-NFS lifecycle,
+  actual NFS mount/root validation and delayed-effect owned
   recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
   integration and takeover/re-enrollment remain deferred. No guard-release or
   fixed-wait shortcut for uncertain storage effects.

@@ -92,3 +92,9 @@ requires byte-identical Rust inputs and rechecks exact artifacts from the passin
 production/qualification gates before SLES execution. It does not rebuild Rust,
 change dependencies or replace mandatory gates with a host-only test. New Rust
 inputs always require fresh gate runs.
+
+[Increment 57](RUST-INCREMENT-57.md) retains a separate controlled systemd
+lifecycle driver. Its modern manager runs outside an unchanged pinned SLES root;
+the exact mover/children/controllers run inside that root. Mandatory fresh
+production and qualification gates remain separate, and manager compatibility
+is not inferred from ELF/userspace compatibility.

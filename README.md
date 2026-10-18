@@ -53,6 +53,11 @@ through copying with the destination usable. Remaining endpoint directions/phase
 remote settlement, durability and systemd/deployment gates stay open.
 [Increment 56](docs/RUST-INCREMENT-56.md) adds selected enrolled startup recovery
 with both endpoints on NFS, preserving original state and retained partials.
+[Increment 57](docs/RUST-INCREMENT-57.md) qualifies selected manual/systemd
+coordination in a private systemd 252 container with the mover inside pinned
+SLES 12 SP5/glibc 2.22 userspace. This is local lifecycle evidence; native SLES
+systemd, hard-NFS/systemd, installation/account policy and durability remain open.
+Production NFS and source deletion remain disabled.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

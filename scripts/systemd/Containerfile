@@ -1,0 +1,9 @@
+# Fixture manager only. The mover executes inside the unchanged SLES root.
+FROM registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35 AS sles
+FROM docker.io/library/debian@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
+ENV container=podman
+RUN apt-get update && apt-get install -y --no-install-recommends systemd systemd-sysv dbus util-linux procps && apt-get clean
+COPY --from=sles / /sles/
+RUN useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

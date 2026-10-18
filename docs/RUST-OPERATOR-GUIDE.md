@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 56. It
+This guide describes the implemented Rust prototype through increment 57. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -721,3 +721,34 @@ retains the old partial and commits a new attempt. Paths released by 202 remain
 reusable, with no new recorder polling duty. Read actual prompt/surviving-worker
 outcomes. Fresh/destination-side/later startup, actual mount/security/systemd and
 delayed NAS effects remain unqualified; production NFS/deletion stay disabled.
+
+## Controlled manual/systemd coordination evidence
+
+[Increment 57](RUST-INCREMENT-57.md) exercises a disposable system service under
+a real systemd 252 manager, with the mover/controllers inside pinned SLES 12 SP5
+userspace and local state/payload. It is not an installation recipe or native
+SLES-manager support declaration. Manual and managed operation share the same
+configuration and state; both must preserve the guard and worker records.
+
+`Type=simple` active status is not application readiness. Confirm `/healthz` and
+use the local `--status` controller for ownership/shutdown state. A second start
+may report an occupied REST port before reaching the guard; this does not grant
+permission to change state directories or remove guard files. The fixture also
+uses a different listening port with identical state/storage paths to verify
+explicit ownership refusal.
+
+The fixture service runs as UID/GID 1000 without capabilities. That account can
+use its local `--stop` controller, but `User=` does not grant systemctl authority;
+unit control requires administrator-provisioned policy. Do not assume sudo or
+publish those fixture-root commands as ordinary operator instructions.
+
+Preserve `ShutdownIncomplete` and `OwnerUnavailable` outcomes. A stop request
+returning success or a unit entering failed state is not confirmed worker exit.
+The controlled test observed systemctl stop exit 0 while ExecStop returned 2
+and the original mover remained alive; systemd MainPID was already 0. Read the
+application status and confirm actual process exit. Keep
+start/restart attempts bounded and retain the same state until old processes
+actually exit. Manager group cleanup of a controlled local worker does not prove
+cancellation of an uninterruptible NFS operation or settlement on the NAS.
+Native SLES systemd/cgroups, actual account policy, reboot/persistent storage and
+combined hard-NFS/systemd remain unqualified. Production NFS/deletion stay off.

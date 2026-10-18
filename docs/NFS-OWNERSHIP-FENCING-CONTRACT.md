@@ -159,7 +159,10 @@ worker exit or settled remote I/O. Any attempted restart still acquires the loca
 guard first and refuses while a surviving holder remains. Bound restart attempts
 and retain diagnostic access; avoid a retry loop while shutdown is incomplete.
 Qualify against the actual SLES systemd version in a container lifecycle tier;
-latest documentation is not proof of old-version support. No systemd unit settings are implemented here; the local CLI controller is in increment 43.
+latest documentation is not proof of old-version support. The local CLI controller
+is in increment 43. Increment 57 adds only a disposable fixture unit and modern
+manager/SLES-service-root evidence; no production Rust unit or native SLES
+manager/account-control qualification follows. See [its scope](RUST-INCREMENT-57.md).
 
 ## Local exclusion and NFS recovery are separate gates
 
@@ -364,3 +367,11 @@ Extend selected evidence to remaining SH-01–04/06–14 cases and actual NFS
 recovery/mount profiles, maintaining scenarios throughout.
 No NAS/host-admin fencing facility or package experiment is a prerequisite for
 independent local guard work. Production NFS and source deletion remain disabled.
+
+[Increment 57](RUST-INCREMENT-57.md) exercises selected SH-02/08/09 lifecycle
+cases with systemd 252 and glibc-2.22 service userspace, local payload/state and
+controlled pauses. Native SLES manager/cgroup support, actual account policy,
+persistent deployment and hard-NFS/systemd remain open. A second-port probe
+uses identical state/storage bindings to reach the guard because same-port
+service conflicts can fail at listener binding first. No guard or deadline
+semantics change; production NFS/deletion remain disabled.

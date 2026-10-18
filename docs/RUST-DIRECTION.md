@@ -501,3 +501,10 @@ database/source/binding/enrollment and populated WAL/partial evidence. Fresh/
 destination-side/later startup, other endpoint phases, delayed RPC/settlement,
 mount/security, NAS/disk durability and systemd/account work remain open.
 Production NFS and source deletion remain disabled.
+
+[Increment 57](RUST-INCREMENT-57.md) adds a retained controlled systemd/manual
+lifecycle fixture. It uses a real systemd 252 manager and pinned SLES/glibc-2.22
+service root, local payload/state, explicit account checks and bounded restart
+policy. Keep native SLES manager/cgroup compatibility, actual account authority,
+persistent deployment and combined hard-NFS/systemd qualification open. No Rust
+inputs/dependencies or production NFS/deletion enablement change.

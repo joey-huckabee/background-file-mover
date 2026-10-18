@@ -640,3 +640,23 @@ database/source/binding/enrollment and populated WAL/partial evidence. Fresh/
 destination-side/later startup, other endpoint phases, delayed RPC/settlement,
 mount/security, NAS/disk durability and systemd/account work remain open.
 Production NFS and source deletion remain disabled.
+
+## Separate systemd lifecycle fixture
+
+[Increment 57](RUST-INCREMENT-57.md) retains a separate local-payload systemd
+container driver and unit/Containerfile under `scripts/systemd/`. It reuses exact
+SLES-gated production/qualification artifacts and worker helpers. It does not
+mount NFS or replace any existing outage/death evidence. SIGSTOP/local pauses
+are not uncancellable NFS syscalls; combined hard-NFS/systemd remains pending.
+
+Use the same Podman connection for the image build and driver (`--connection`,
+default `podman-machine-default-root`). Build the fixture manager with `podman build -t localhost/background-file-mover-systemd scripts/systemd`.
+Then run `python scripts/check-systemd-boundaries.py <production-gate-directory> --qualification-gate <qualification-gate-directory>`.
+Both reports must pass and match current Rust inputs; the driver verifies exact
+artifacts and records manager packages/image, driver hashes, journals and cleanup.
+The disposable privileged container has a private cgroup namespace, no network
+and no host volumes/PID namespace. Its mover runs as UID/GID 1000 with no
+capabilities. The manager image is retained; each owned test container is removed.
+The recipe uses pinned base images but online manager package installation; this
+is not an offline reproducible production package. Require the supported engine
+inside its disposable VM, not access to production storage.
