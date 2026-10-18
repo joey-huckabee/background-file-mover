@@ -98,3 +98,7 @@ lifecycle driver. Its modern manager runs outside an unchanged pinned SLES root;
 the exact mover/children/controllers run inside that root. Mandatory fresh
 production and qualification gates remain separate, and manager compatibility
 is not inferred from ELF/userspace compatibility.
+
+[Increment 58](RUST-INCREMENT-58.md) records independent fresh ABI/userspace
+checks alongside a blocked private-container 228 preflight. Passing these Rust
+gates cannot turn unexecuted old-manager lifecycle cases into support.

@@ -1,0 +1,9 @@
+# Equivalent 228 manager, not a SLES-maintained systemd RPM qualification.
+FROM registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35 AS sles
+FROM docker.io/opensuse/leap@sha256:271c921a1c84d65467d565e3f1c754b75aa01ceed1a7ac39de4816683c355fd2
+# v228 recognizes this container hint; the engine is actually Podman.
+ENV container=docker
+COPY --from=sles / /sles/
+RUN useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local
+STOPSIGNAL SIGRTMIN+3
+CMD ["/usr/lib/systemd/systemd", "--system"]

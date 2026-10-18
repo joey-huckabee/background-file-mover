@@ -207,3 +207,11 @@ coordination evidence using systemd 252 and a pinned SLES service root. It leave
 native SLES systemd/cgroups, actual account policy, persistent deployment and
 combined hard-NFS/systemd open. All eight release gates remain open; no
 production NFS or source deletion is enabled.
+
+[Increment 58](RUST-INCREMENT-58.md) records a blocked private-container 228
+preflight, not completion of the older-manager lifecycle work. Ten planned
+records remain NOT_RUN; even unit verification cannot initialize on the selected
+private cgroup-v2 engine. Compiled directive-name checks do not close FR-05/06.
+A suitable approved isolated engine and verified SLES manager-package source
+remain prerequisites, with container-only testing and no real SLES installation
+requirement. All eight gates remain open; production NFS/deletion stay disabled.

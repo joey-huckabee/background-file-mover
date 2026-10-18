@@ -1,0 +1,25 @@
+# Disposable equivalent-v228 fixture; not a SLES production unit.
+[Unit]
+Description=File mover lifecycle qualification
+
+[Service]
+# v228 rate-limit directives belong in Service and use the old spelling.
+StartLimitInterval=10
+StartLimitBurst=2
+Type=simple
+User=mover
+Group=mover
+RootDirectory=/sles
+EnvironmentFile={envfile}
+ExecStartPre=/bin/sh -eu -c '{pregate}'
+ExecStart={binary} {config}
+ExecStop={binary} --stop {config}
+KillMode=control-group
+SendSIGKILL=no
+TimeoutStopSec={stop_timeout}
+Restart={restart}
+RestartSec=1
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+UMask=0077
+PrivateTmp=no

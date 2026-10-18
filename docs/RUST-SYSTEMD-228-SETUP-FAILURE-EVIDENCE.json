@@ -1,0 +1,326 @@
+{
+  "status": "FAILED",
+  "run_id": "systemd228-20261018T060622Z-38c5e25b",
+  "gate": "20261018T051247Z-3ef185bc",
+  "qualification_gate": "20261018T051258Z-97f50a4f-nfs-qualification",
+  "cleanup_errors": [],
+  "native_sles_rpm_qualified": false,
+  "lifecycle_qualified": false,
+  "scope": "Leap 42.3 equivalent manager; pinned SLES service root; private cgroup v2 preflight only",
+  "lifecycle_cases": [
+    {
+      "production": true,
+      "profile": "debug",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": true,
+      "profile": "release",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "incomplete",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "manual-orphan",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "managed-crash",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "incomplete",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "manual-orphan",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "managed-crash",
+      "status": "NOT_RUN"
+    }
+  ],
+  "driver_sha256": {
+    "check-systemd228-preflight.py": "51cfa2ba9d8cc0821a1a8c5c53dc11b9b7e633845f9e5179d656558aef984f40",
+    "systemd/Containerfile.228": "85724128d7104ab87007793262e2fd2e693fdd24ec2b001898b2c879cebd29e0",
+    "systemd/file-mover-228.service.in": "dec2f112cb9926c39ed79baf4a8f430ac62645b9d1bd13f1ad3cf973f44a9280",
+    "systemd/file-mover.service.in": "ae1ebf612393b464ea458201b67d7088de8b500ad14c7715fe5e7f8f6f97fee1"
+  },
+  "image": {
+    "Id": "2aa94a5c78f9fed22d52182f469a5b5c7aa4828ead071d2174edfea9b25776b1",
+    "Digest": "sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529",
+    "RepoTags": [
+      "localhost/background-file-mover-systemd228:latest"
+    ],
+    "RepoDigests": [
+      "localhost/background-file-mover-systemd228@sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529"
+    ],
+    "Parent": "8cefcbbbbd835e0ef72eccee503b1e2a09bf5f6265de1c062db24dc0639e1bbe",
+    "Comment": "",
+    "Created": "2026-10-18T06:02:45.90443062Z",
+    "Config": {
+      "Env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "container=docker"
+      ],
+      "Cmd": [
+        "/usr/lib/systemd/systemd",
+        "--system"
+      ],
+      "Labels": {
+        "io.buildah.version": "1.44.1",
+        "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+      },
+      "StopSignal": "SIGRTMIN+3"
+    },
+    "Version": "",
+    "Author": "SUSE Containers Team <containers@suse.com>",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 211714683,
+    "VirtualSize": 211714683,
+    "GraphDriver": {
+      "Name": "overlay",
+      "Data": {
+        "LowerDir": "/var/lib/containers/storage/overlay/06fe04f193cc52e48cdd972205fa306143bf3ad99492fc23a130abc1d2173e58/diff:/var/lib/containers/storage/overlay/55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c/diff",
+        "UpperDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/diff",
+        "WorkDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/work"
+      }
+    },
+    "RootFS": {
+      "Type": "layers",
+      "Layers": [
+        "sha256:55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c",
+        "sha256:07b77801340e2e10b69a06f08bec4c55b559b1e012b475c44bb5b73225d66096",
+        "sha256:0c651e45a45a96218fc279e8a5be3ba377071955b8dff6115e7becc6e0a6ddcf"
+      ]
+    },
+    "Labels": {
+      "io.buildah.version": "1.44.1",
+      "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+    },
+    "Annotations": {
+      "org.opencontainers.image.base.digest": "sha256:84d4bef2c4657b7bfb48233aa84f40e2303af0607de06562cf4afc496ec18b59",
+      "org.opencontainers.image.base.name": "docker.io/opensuse/leap:42.3",
+      "org.opencontainers.image.created": "2026-10-18T06:02:45.90443062Z"
+    },
+    "ManifestType": "application/vnd.oci.image.manifest.v1+json",
+    "User": "",
+    "History": [
+      {
+        "created": "2019-08-13T08:48:40.372298552Z",
+        "created_by": "umoci config"
+      },
+      {
+        "created": "2019-08-13T08:49:10.375196393Z",
+        "created_by": "umoci config",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T05:59:55.177328682Z",
+        "created_by": "/bin/sh -c #(nop) ENV container=docker",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "comment": "FROM docker.io/opensuse/leap:42.3",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T06:00:00.211055395Z",
+        "created_by": "/bin/sh -c #(nop) COPY dir:a5c99bbee662b15152c4b5e234544dcf63714d06a7d108376ee3672b6d40ab42 in /sles/      ",
+        "author": "SUSE Containers Team <containers@suse.com>"
+      },
+      {
+        "created": "2026-10-18T06:02:45.465622359Z",
+        "created_by": "/bin/sh -c useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local",
+        "author": "SUSE Containers Team <containers@suse.com>"
+      },
+      {
+        "created": "2026-10-18T06:02:45.763900897Z",
+        "created_by": "/bin/sh -c #(nop) STOPSIGNAL SIGRTMIN+3",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T06:02:45.904638816Z",
+        "created_by": "/bin/sh -c #(nop) CMD [\"/usr/lib/systemd/systemd\", \"--system\"]",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      }
+    ],
+    "NamesHistory": [
+      "localhost/background-file-mover-systemd228:latest"
+    ]
+  },
+  "manager_version": "systemd 228\n+PAM -AUDIT +SELINUX -IMA +APPARMOR -SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT -GNUTLS +ACL +XZ -LZ4 +SECCOMP +BLKID +ELFUTILS +KMOD -IDN\n",
+  "manager_os": "NAME=\"openSUSE Leap\"\nVERSION=\"42.3\"\nID=opensuse\nID_LIKE=\"suse\"\nVERSION_ID=\"42.3\"\nPRETTY_NAME=\"openSUSE Leap 42.3\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:opensuse:leap:42.3\"\nBUG_REPORT_URL=\"https://bugs.opensuse.org\"\nHOME_URL=\"https://www.opensuse.org/\"\n",
+  "manager_packages": [
+    "aaa_base-13.2+git20140911.61c1681-28.9.1.x86_64",
+    "acl-2.2.52-11.3.1.x86_64",
+    "bash-4.3-83.15.1.x86_64",
+    "blog-2.19-3.3.1.x86_64",
+    "bzip2-1.0.6-34.15.x86_64",
+    "ca-certificates-1_201403302107-12.3.noarch",
+    "ca-certificates-mozilla-2.30-21.1.noarch",
+    "coreutils-8.25-5.1.x86_64",
+    "cpio-2.11-38.3.1.x86_64",
+    "cracklib-2.9.0-9.15.x86_64",
+    "cracklib-dict-small-2.9.0-9.15.x86_64",
+    "device-mapper-1.02.97-80.1.x86_64",
+    "diffutils-3.3-10.3.x86_64",
+    "dirmngr-1.1.1-18.1.x86_64",
+    "elfutils-0.158-12.15.x86_64",
+    "expat-2.1.0-24.1.x86_64",
+    "file-5.22-16.1.x86_64",
+    "file-magic-5.22-16.1.x86_64",
+    "filesystem-13.1-9.5.x86_64",
+    "fillup-1.42-275.3.x86_64",
+    "findutils-4.5.12-13.15.x86_64",
+    "gawk-4.1.3-7.15.x86_64",
+    "glibc-2.22-25.1.x86_64",
+    "gpg-pubkey-307e3d54-5aaa90a5",
+    "gpg-pubkey-39db7c82-5847eb1f",
+    "gpg-pubkey-3dbdc284-53674dd4",
+    "gpg2-2.0.24-9.3.1.x86_64",
+    "grep-2.16-7.3.x86_64",
+    "gzip-1.6-14.1.x86_64",
+    "hardlink-1.0-11.3.x86_64",
+    "info-4.13a-42.18.x86_64",
+    "insserv-compat-0.1-18.2.noarch",
+    "iputils-s20121221-6.3.x86_64",
+    "kbd-legacy-2.0.3-3.14.noarch",
+    "kmod-compat-17-19.1.x86_64",
+    "krb5-1.12.5-25.1.x86_64",
+    "libacl1-2.2.52-11.3.1.x86_64",
+    "libadns1-1.4-106.3.x86_64",
+    "libaio1-0.3.109-22.3.x86_64",
+    "libapparmor1-2.10.4-19.1.x86_64",
+    "libasm1-0.158-12.15.x86_64",
+    "libassuan0-2.1.1-6.13.x86_64",
+    "libattr1-2.4.47-8.15.x86_64",
+    "libaudit1-2.3.6-8.1.x86_64",
+    "libaugeas0-1.2.0-13.3.1.x86_64",
+    "libblkid1-2.29.2-8.1.x86_64",
+    "libbz2-1-1.0.6-34.15.x86_64",
+    "libcap-ng0-0.7.3-6.15.x86_64",
+    "libcap2-2.22-18.16.x86_64",
+    "libcom_err2-1.42.11-15.1.x86_64",
+    "libcrack2-2.9.0-9.15.x86_64",
+    "libcryptsetup4-1.6.4-7.5.x86_64",
+    "libcurl4-7.37.0-51.1.x86_64",
+    "libdbus-1-3-1.8.22-5.1.x86_64",
+    "libdw1-0.158-12.15.x86_64",
+    "libelf1-0.158-12.15.x86_64",
+    "libexpat1-2.1.0-24.1.x86_64",
+    "libfdisk1-2.29.2-8.1.x86_64",
+    "libffi4-5.3.1+r233831-10.1.x86_64",
+    "libfipscheck1-1.2.0-10.3.x86_64",
+    "libgcc_s1-8.2.1+r264010-2.3.x86_64",
+    "libgcrypt20-1.6.1-48.1.x86_64",
+    "libgmp10-5.1.3-7.15.x86_64",
+    "libgpg-error0-1.27-1.3.x86_64",
+    "libidn11-1.28-9.6.1.x86_64",
+    "libkeyutils1-1.5.9-7.13.x86_64",
+    "libkmod2-17-19.1.x86_64",
+    "libksba8-1.3.0-10.4.x86_64",
+    "libldap-2_4-2-2.4.44-18.1.x86_64",
+    "liblua5_1-5.1.5-16.1.x86_64",
+    "liblzma5-5.2.2-3.15.x86_64",
+    "libmagic1-5.22-16.1.x86_64",
+    "libmodman1-2.0.1-20.3.x86_64",
+    "libmount1-2.29.2-8.1.x86_64",
+    "libncurses5-5.9-70.1.x86_64",
+    "libncurses6-5.9-70.1.x86_64",
+    "libopenssl1_0_0-1.0.2j-38.1.x86_64",
+    "libp11-kit0-0.20.7-1.2.x86_64",
+    "libpcre1-8.39-11.1.x86_64",
+    "libpopt0-1.16-31.15.x86_64",
+    "libprocps3-3.3.9-23.1.x86_64",
+    "libproxy1-0.4.13-4.3.x86_64",
+    "libpth20-2.0.7-144.3.x86_64",
+    "libqrencode3-3.4.3-7.5.x86_64",
+    "libreadline6-6.3-83.15.1.x86_64",
+    "libsasl2-3-2.1.26-14.1.x86_64",
+    "libseccomp2-2.3.1-6.3.x86_64",
+    "libselinux1-2.5-4.17.x86_64",
+    "libsemanage1-2.5-6.3.1.x86_64",
+    "libsepol1-2.5-3.15.x86_64",
+    "libsgutils2-2-1.43+46.4b09c76-21.1.x86_64",
+    "libsmartcols1-2.29.2-8.1.x86_64",
+    "libsolv-tools-0.6.34-9.1.x86_64",
+    "libssh2-1-1.4.3-19.9.1.x86_64",
+    "libstdc++6-8.2.1+r264010-2.3.x86_64",
+    "libsystemd0-228-71.1.x86_64",
+    "libtasn1-4.9-6.1.x86_64",
+    "libtasn1-6-4.9-6.1.x86_64",
+    "libudev1-228-71.1.x86_64",
+    "libusb-0_1-4-0.1.13-34.3.x86_64",
+    "libusb-1_0-0-1.0.20-5.5.x86_64",
+    "libustr-1_0-1-1.0.4-37.15.x86_64",
+    "libutempter0-1.1.6-9.16.x86_64",
+    "libuuid1-2.29.2-8.1.x86_64",
+    "libverto1-0.2.6-10.3.x86_64",
+    "libxml2-2-2.9.4-18.1.x86_64",
+    "libz1-1.2.8-14.3.1.x86_64",
+    "libzio1-1.00-14.15.x86_64",
+    "libzypp-16.19.0-30.1.x86_64",
+    "ncurses-utils-5.9-70.1.x86_64",
+    "netcfg-11.5-30.3.noarch",
+    "openSUSE-build-key-1.0-36.3.1.noarch",
+    "openSUSE-release-42.3-2.1.x86_64",
+    "openSUSE-release-ftp-42.3-2.1.x86_64",
+    "openssl-1.0.2j-38.1.x86_64",
+    "p11-kit-0.20.7-1.2.x86_64",
+    "p11-kit-tools-0.20.7-1.2.x86_64",
+    "pam-1.3.0-19.1.x86_64",
+    "pam-config-0.91-3.3.x86_64",
+    "perl-base-5.18.2-15.2.x86_64",
+    "permissions-2015.09.28.1626-22.1.x86_64",
+    "pigz-2.3-8.3.x86_64",
+    "procps-3.3.9-23.1.x86_64",
+    "rpm-4.11.2-14.13.1.x86_64",
+    "sed-4.2.2-11.1.x86_64",
+    "shadow-4.2.1-20.1.x86_64",
+    "suse-module-tools-12.4-5.3.x86_64",
+    "systemd-228-71.1.x86_64",
+    "systemd-presets-branding-openSUSE-12.2-1.3.noarch",
+    "sysvinit-tools-2.88+-103.3.1.x86_64",
+    "terminfo-base-5.9-70.1.x86_64",
+    "update-alternatives-1.18.4-4.15.x86_64",
+    "util-linux-2.29.2-8.1.x86_64",
+    "xz-5.2.2-3.15.x86_64",
+    "zypper-1.13.45-20.1.x86_64"
+  ],
+  "manager_glibc": "glibc 2.22",
+  "manager_binary_sha256": "48487ec7a9c037d634a233d7fc52fc9961dc5a4dc44e46a035cc643ca57b3761",
+  "error": "RuntimeError: ['exec', '249fabf6d33ad09db84905aa4386d792a260d8ad7395e8ae50c777bed49d1c0a', '/bin/sh', '-eu', '-c', 'chroot /sles /bin/cat /etc/os-release']: chroot: cannot change root directory to '/sles': Operation not permitted\n",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-systemd228-preflight.py\", line 86, in main\n    record['service_os'] = execute(client, 'chroot /sles /bin/cat /etc/os-release').stdout\n                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-systemd228-preflight.py\", line 64, in execute\n    return run(['exec', client, '/bin/sh', '-eu', '-c', script], check)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-systemd228-preflight.py\", line 57, in run\n    raise RuntimeError(f'{arguments}: {result.stdout}{result.stderr}')\nRuntimeError: ['exec', '249fabf6d33ad09db84905aa4386d792a260d8ad7395e8ae50c777bed49d1c0a', '/bin/sh', '-eu', '-c', 'chroot /sles /bin/cat /etc/os-release']: chroot: cannot change root directory to '/sles': Operation not permitted\n\n"
+}

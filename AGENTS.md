@@ -260,6 +260,15 @@ hard-NFS/systemd qualification open. Same-port starts can fail before guard
 acquisition; alternate-port probes share the same state/storage bindings.
 Production NFS/source deletion remain disabled.
 
+Increment 58 retains `scripts/check-systemd228-preflight.py`, a pinned
+`Containerfile.228` and candidate old unit. See `docs/RUST-INCREMENT-58.md`: the
+private cgroup-v2 228-equivalent preflight is BLOCKED; ten lifecycle records
+are NOT_RUN. Compiled directive names are not a parser/lifecycle pass. Exact
+SLES-maintenance RPMs and an approved suitable isolated engine remain pending;
+no real SLES installation is required. Do not retry a host-cgroup bootstrap
+without new explicit authorization: the proposed broader action was rejected
+by automatic approval review and its boot scripts were removed. Production NFS/deletion remain disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

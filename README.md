@@ -58,6 +58,9 @@ coordination in a private systemd 252 container with the mover inside pinned
 SLES 12 SP5/glibc 2.22 userspace. This is local lifecycle evidence; native SLES
 systemd, hard-NFS/systemd, installation/account policy and durability remain open.
 Production NFS and source deletion remain disabled.
+[Increment 58](docs/RUST-INCREMENT-58.md) records a blocked private-container
+systemd-228 preflight: compiled directive checks are separate from the ten
+unexecuted lifecycle cases and pending SLES-maintenance RPM qualification.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

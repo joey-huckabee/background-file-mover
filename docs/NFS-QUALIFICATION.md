@@ -660,3 +660,23 @@ capabilities. The manager image is retained; each owned test container is remove
 The recipe uses pinned base images but online manager package installation; this
 is not an offline reproducible production package. Require the supported engine
 inside its disposable VM, not access to production storage.
+
+## Old-manager preflight remains blocked
+
+[Increment 58](RUST-INCREMENT-58.md) retains `scripts/check-systemd228-preflight.py`,
+`Containerfile.228` and a candidate old-manager unit under `scripts/systemd/`.
+Build with `podman build -t localhost/background-file-mover-systemd228 -f scripts/systemd/Containerfile.228 scripts/systemd`
+on the same connection used by the driver. Run
+`python scripts/check-systemd228-preflight.py <production-gate-directory> --qualification-gate <qualification-gate-directory>`.
+The report distinguishes BLOCKED (CLI exit 2), setup failure (1) and preflight
+readiness (0); readiness alone never qualifies the lifecycle matrix. Current
+private cgroup-v2 evidence is BLOCKED, ten lifecycle cases NOT_RUN. The available
+manager is an official Leap 42.3 equivalent, not a SLES-maintenance RPM.
+
+Only compiled directive inventory checks complete: actual unit verification
+fails before parsing because the old manager cannot initialize its cgroup
+context. No failed verifier/negative control is a pass. The retained image
+starts the unmodified manager; there are no host-cgroup bootstrap scripts or
+host namespace options in the preflight. Such a broader bootstrap was rejected
+by automatic approval review. Keep suitable isolated-engine/package prerequisites
+open and production NFS/deletion disabled; the passing v252 evidence is unchanged.

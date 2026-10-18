@@ -375,3 +375,10 @@ persistent deployment and hard-NFS/systemd remain open. A second-port probe
 uses identical state/storage bindings to reach the guard because same-port
 service conflicts can fail at listener binding first. No guard or deadline
 semantics change; production NFS/deletion remain disabled.
+
+[Increment 58](RUST-INCREMENT-58.md) leaves old-manager SH-02/08/09 execution
+blocked: the private cgroup-v2 228 equivalent cannot initialize manager context,
+and exact SLES-maintenance RPM provenance is unavailable. Ten lifecycle cases
+remain NOT_RUN. Directive-name inventory is not unit parsing or lifecycle
+evidence. An approved suitable isolated container engine and package source
+remain prerequisites; a real SLES installation is not required.

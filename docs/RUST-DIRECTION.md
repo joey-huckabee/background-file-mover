@@ -508,3 +508,12 @@ service root, local payload/state, explicit account checks and bounded restart
 policy. Keep native SLES manager/cgroup compatibility, actual account authority,
 persistent deployment and combined hard-NFS/systemd qualification open. No Rust
 inputs/dependencies or production NFS/deletion enablement change.
+
+[Increment 58](RUST-INCREMENT-58.md) records a blocked systemd-228
+equivalent-container preflight. Public official SLES images omit the manager;
+Leap 42.3 provides 228, while exact SLES-maintained RPM qualification remains
+pending. The private cgroup-v2 manager/parser cannot initialize; all ten lifecycle
+records are NOT_RUN. Compiled directive introspection supports the candidate
+legacy key names only. Keep an approved suitable isolated engine/package source
+as prerequisites; no real SLES installation is required. No production behavior
+or NFS/deletion enablement changes.

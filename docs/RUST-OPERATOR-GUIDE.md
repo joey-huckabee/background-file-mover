@@ -752,3 +752,18 @@ actually exit. Manager group cleanup of a controlled local worker does not prove
 cancellation of an uninterruptible NFS operation or settlement on the NAS.
 Native SLES systemd/cgroups, actual account policy, reboot/persistent storage and
 combined hard-NFS/systemd remain unqualified. Production NFS/deletion stay off.
+
+## Old-manager qualification is pending
+
+[Increment 58](RUST-INCREMENT-58.md) did not run the old-manager lifecycle matrix.
+The private container exposes cgroup v2, and the available systemd-228 equivalent
+cannot initialize its manager context there. Even unit verification stops before
+parsing. Do not use the candidate v228 fixture unit as a production deployment
+recipe: its directive names are present in the compiled inventory, but behavior
+is unqualified. The exact SLES-maintenance RPM revision is also untested.
+
+This does not change the working local service, its ownership guard or the
+previous v252 fixture evidence. Production NFS/deletion remain disabled. Tests
+stay container-only; an actual SLES installation is not needed to resolve the
+engine/package prerequisites. No host cgroup configuration workaround is part
+of the retained fixture.

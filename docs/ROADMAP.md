@@ -27,6 +27,12 @@ Select the proxy package and implement/qualify the [remote access design](REMOTE
 RA-01–16, alongside remaining FR-01 details and FR-02 capacity cases. Keep
 registration deferred, existing-job recovery intact and production NFS/deletion off.
 
+An approved suitable isolated container engine and verified manager-package
+source are prerequisites for the remaining old-manager matrix. Qualify actual
+SLES-maintenance RPM behavior; do not treat compiled directive names, the
+modern-manager run or a blocked private cgroup-v2 preflight as that evidence.
+Keep testing container-only, with no real SLES installation requirement.
+
 ## Next work
 
 Work on `feature/rust-transfer-coordinator`. Read
