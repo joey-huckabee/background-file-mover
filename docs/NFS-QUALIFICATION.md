@@ -556,3 +556,30 @@ Six normal transfers, twelve state-parent and 184 state-file refusal cases pass,
 with fourteen fixtures preserved and clean teardown. See increment 50 for exact
 post-exit names, timings, artifact provenance and the separately preserved initial
 SLES timing-test failure followed by a full unchanged passing rerun.
+
+## Both endpoints on NFS during coordinator death
+
+[Increment 52](RUST-INCREMENT-52.md) adds `--coordinator-death --death-scope
+both-nfs`: 24 cases, debug/release × claim/copy/verification/pre-publication/
+file-link/manifest-link × blocked/following stop. Both private roots use the
+same controlled NFSv4.1 export; SQLite and local ownership/control remain local.
+Check actual NFS filesystem types and original source/database identity and
+enrollment evidence as well as the existing custody/publication/manifest checks.
+The previous scope selectors and strict increment 47 regression remain available.
+
+The selected hard-mount outage releases the worker rendezvous and requires real
+D state before coordinator death. Surviving workers must retain logical ownership
+and refuse competitors through actual exit; prompt termination is distinct.
+Restore the server and confirm old exit before normal original-state recovery.
+Read the increment and its raw report for actual results, artifact provenance
+and teardown. This finite layout does not qualify separate exports/NAS servers,
+independent endpoint failures, both-NFS bootstrap/source-read death, exact
+in-flight namespace/synchronization RPCs, remote settlement/power durability,
+systemd/account policy or old kernels. Production NFS/source deletion stay off.
+
+The [both-endpoint evidence](RUST-NFS-BOTH-ENDPOINT-DEATH-EVIDENCE.json)
+passes the complete selected matrix. All 24 selected cases passed: 12 blocked and 7 terminating orphans retained ownership; 5 following-stop cases exited promptly. All 57 competing effect commands refused; no ownership loss occurred. All recover normally after
+restoration/confirmed old exit, preserving source/database/receipt identity,
+producer reuse and final payload/manifest integrity. The retained baselines,
+state admission, OS checks and teardown pass. See increment 52 for exact
+artifacts and scope; this does not establish remote settlement or enable NFS.

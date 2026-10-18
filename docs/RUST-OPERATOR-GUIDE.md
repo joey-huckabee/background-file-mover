@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 51. It
+This guide describes the implemented Rust prototype through increment 52. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -648,3 +648,18 @@ recovery; it is not a production deployment walkthrough. Both-NFS crashes,
 remaining synchronization/delayed RPC boundaries, real systemd/account policy and
 NAS reboot/power durability remain outside this increment. Production NFS and
 source deletion remain disabled; preserve the earlier failed evidence.
+
+## Both endpoints on NFS: qualification scope
+
+[Increment 52](RUST-INCREMENT-52.md) tests selected coordinator-death/recovery
+boundaries with both private roots on one controlled NFSv4.1 export. Local state
+and lifetime records stay on local disk. Keep the same configuration/database;
+surviving workers must exit before restart, followed by owned reconciliation.
+The fixture checks original source/database/receipt identity, producer-reused
+paths and final payload/manifest integrity. It does not authorize alternate state,
+re-enrollment, manual staging removal or treating a free lock as NAS settlement.
+
+Separate exports/NAS servers, independent endpoint failures, remaining both-NFS
+bootstrap/read boundaries and actual systemd/account policy remain unqualified.
+Production NFS and source deletion remain disabled. This is fixture evidence,
+not a production NFS restart procedure.

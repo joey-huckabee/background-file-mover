@@ -58,7 +58,8 @@ Selected FR-02 source-capacity cases have evidence in
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
-   both-NFS crash layouts and systemd/account-control (SH-01-04/06-14).
+   separate-export/remaining both-NFS bootstrap/read crash layouts and
+   systemd/account-control (SH-01-04/06-14).
    Maintain the [lifetime-ownership fix](RUST-INCREMENT-47.md) and its regression
    matrix; retain the failed increment 46 evidence without calling it support.
    Discover actual mounts/version/security later and qualify NFS recovery
@@ -138,6 +139,16 @@ qualification rounds per profile retain identity, budget, countdown and ownershi
 checks; read its fresh SLES results. This test-only change adds no NFS/systemd/
 NAS coverage and closes no production release gate. Keep increment 50's failure
 history and production NFS/source deletion disabled.
+
+## Selected both-NFS death evidence
+
+[Increment 52](RUST-INCREMENT-52.md) passes 24 selected claim/copy/verification/
+publication/manifest death cases with both private roots on one controlled
+NFSv4.1 export and local state. Original-state recovery, custody/publication
+identity and surviving-worker exclusion are checked. FR-03/05 remain open for
+separate exports/independent endpoint failures, remaining both-NFS bootstrap/read,
+exact in-flight RPCs, remote settlement/power durability and actual systemd/account
+policy. This evidence closes no first-release gate. Production NFS/deletion stay off.
 
 ## Deferred beyond the first release
 

@@ -42,7 +42,10 @@ adds selected file-publication and manifest coordinator-death cases, requiring
 original inode/attempt and manifest preservation through normal recovery.
 [Increment 51](docs/RUST-INCREMENT-51.md) stabilizes the post-stop status test
 within its existing bound, preserving runtime shutdown deadlines and failure
-history. Other storage/lifecycle and deployment gates remain open.
+history. [Increment 52](docs/RUST-INCREMENT-52.md) adds selected both-NFS
+coordinator-death/recovery cases on one controlled export, preserving original
+state, custody and publication evidence. Separate exports, remote settlement
+and other storage/lifecycle and deployment gates remain open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

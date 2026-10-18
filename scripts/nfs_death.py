@@ -47,11 +47,13 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest"}
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
               "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
-              "publication-manifest": ("publish", "file_link", "manifest_link")}[scope]
+              "publication-manifest": ("publish", "file_link", "manifest_link"),
+              "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
+    publication_points = {"publish", "file_link", "manifest_link"}
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
              for point in points
@@ -61,7 +63,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
         case = None
         result = {"profile": profile, "point": point, "death_phase": phase, "repetition": repetition, "passed": False}
         try:
-            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""))
+            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=scope == "both-nfs")
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
@@ -135,7 +137,10 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
                     assert size == ("1048576" if point == "copy_chunk" else "0")
                     result["partial_bytes_before_outage"] = int(size)
-                if scope == "publication-manifest":
+                if scope == "both-nfs":
+                    from nfs_both import before as both_before, recovered as both_recovered
+                    both_before(case, execute)
+                if point in publication_points:
                     from nfs_publication import before, after_exit, recovered as publication_recovered
                     before(case, execute)
                 assert case.service_pid() == coordinator
@@ -245,7 +250,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     # First enrollment is explicit, after the old worker is gone.
                     execute(f"{case.binary} --initialize-source {case.config_path}", "1000:1000")
                     result["explicit_initialization_after_old_exit"] = True
-            if scope == "publication-manifest":
+            if point in publication_points:
                 after_exit(case, execute)
             recovered = case.recover()
             replacement_epoch = json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout)
@@ -264,8 +269,10 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             assert case.request("POST", "/api/v2/jobs", case.body)[0] == 202
             assert execute(f"cat {case.source}/current/nested/data.bin", "1000:1000").stdout == "next recording"
             case.verify()
-            if scope == "publication-manifest":
+            if point in publication_points:
                 publication_recovered(case, execute, recovered)
+            if scope == "both-nfs":
+                both_recovered(case, execute)
             if scope == "bootstrap-existing-state":
                 result["database_identity_after_recovery"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
                 result["enrollment_receipt_after_recovery"] = receipt_evidence(case, execute)
@@ -297,7 +304,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest"}:
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs"}:
         passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

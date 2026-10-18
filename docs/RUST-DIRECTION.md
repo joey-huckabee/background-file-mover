@@ -460,3 +460,11 @@ three rounds run per qualification profile. Runtime deadlines/defaults and all
 production code stay unchanged. Keep the increment 50 failed evidence and read
 the fresh gate results in increment 51. No new NFS qualification or production
 NFS/source deletion enablement follows.
+
+[Increment 52](RUST-INCREMENT-52.md) extends selected coordinator-death/recovery
+qualification to both private roots on one controlled NFSv4.1 export with local
+state. Read its actual 24-case results and exact SLES provenance. Original-state,
+source inode/receipt, reused paths and publication evidence are required. Keep
+separate-export/independent endpoint, both-NFS bootstrap/read, in-flight RPC,
+remote settlement and actual systemd/account work open. Production NFS/source
+deletion remain disabled; no runtime policy changed.

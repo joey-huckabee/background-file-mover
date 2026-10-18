@@ -15,17 +15,21 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
     link_points = {"claim_link", "file_link"}
 
     class Case:
-        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix=""):
+        def __init__(self, profile, point, production=False, prolonged=False, shutdown=False, shutdown_wait=None, suffix="", both_nfs=False):
             self.label = "runtime-" + profile + "-" + point + ("-production" if production else "") + ("-long" if prolonged else "")
             if shutdown:
                 self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
             self.label += suffix
+            if both_nfs:
+                assert not production, "both-NFS effects require qualification artifacts"
+                self.label += "-both-nfs"
             self.point = point
             self.production = production
             self.base = "/tmp/local/" + self.label
-            source_nfs = point in claim_points | {"source_read", "bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
+            source_nfs = both_nfs or point in claim_points | {"source_read", "bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
+            destination_nfs = both_nfs or (not production and not source_nfs)
             self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
-            self.destination = (self.base + "/destination" if source_nfs or production else "/tmp/nfs/" + self.label + "/destination")
+            self.destination = ("/tmp/nfs/" + self.label + "/destination" if destination_nfs else self.base + "/destination")
             self.binary = "/tmp/" + (profile if production else "qualification-" + profile)
             self.marker = self.base + "/service.pid"
             self.rendezvous = self.base + "/pause"
@@ -35,6 +39,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.worker = None
             self.service = None
             self.result = {"profile": profile, "point": point, "production": production, "passed": False}
+            if both_nfs:
+                self.result["layout"] = "both-nfs-same-export-private-roots-local-state"
             digest = execute("sha256sum " + self.binary, "1000:1000").stdout.split()[0]
             assert digest == artifact_hashes[("" if production else "qualification-") + profile]
             self.result["binary_sha256"] = digest
@@ -43,13 +49,16 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     f"printf '0123456789abcdefg' >>{self.source}/current/nested/data.bin", "1000:1000")
             assert execute(f"stat -f -c %t {self.base}/state", "1000:1000").stdout.strip() != "6969"
             assert (execute(f"stat -f -c %t {self.source}", "1000:1000").stdout.strip() == "6969") == source_nfs
-            assert (execute(f"stat -f -c %t {self.destination}", "1000:1000").stdout.strip() == "6969") == (not production and not source_nfs)
+            assert (execute(f"stat -f -c %t {self.destination}", "1000:1000").stdout.strip() == "6969") == destination_nfs
+            if both_nfs:
+                self.result["filesystem_types"] = execute(f"stat -f -c %t {self.source} {self.destination} {self.base}/state", "1000:1000").stdout.splitlines()
+                assert self.result["filesystem_types"][:2] == ["6969", "6969"]
             self.identities = execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout
             self.config = {"bind": "127.0.0.1:19878", "generator_id": "fixture", "source_root": self.source,
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}
             if shutdown and shutdown_wait is not None:
                 self.config["shutdown_wait_seconds"] = shutdown_wait
-            self.config["destination_binding"] = binding_for(self.label+"-destination", not production and not source_nfs, "destination")
+            self.config["destination_binding"] = binding_for(self.label+"-destination", destination_nfs, "destination")
             provision(run, execute, output, client, self.destination, self.config["destination_binding"])
             self.config["source_binding"] = binding_for(self.label, source_nfs)
             provision(run, execute, output, client, self.source, self.config["source_binding"])

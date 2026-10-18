@@ -215,6 +215,14 @@ normal exit/restart checks. Run three rounds per qualification profile via the
 required SLES gate. See docs/RUST-INCREMENT-51.md for actual evidence; keep
 increment 50 failure history. No runtime timing or production NFS/deletion change.
 
+Increment 52 retains `--coordinator-death --death-scope both-nfs`: 24 selected
+claim/copy/verification/publication/manifest cases with two private NFS roots on
+one controlled export and local state. See docs/RUST-INCREMENT-52.md and the raw
+both-endpoint evidence. Preserve all prior scopes and strict increment 47 coverage;
+separate exports, remaining both-NFS bootstrap/read, exact in-flight RPCs, NAS
+settlement and actual systemd/account qualification remain open. Production NFS
+and source deletion stay disabled. No runtime policy changed.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**
