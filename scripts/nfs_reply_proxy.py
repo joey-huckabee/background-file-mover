@@ -1,4 +1,4 @@
-"""Private disposable TCP observer; hold only matched successful REMOVE replies."""
+"""Private disposable TCP observer; hold matched successful REMOVE or LINK replies."""
 import hashlib
 import json
 import os
@@ -14,7 +14,7 @@ def serve(backend):
     root = '/tmp/control'
     os.mkdir(root, 0o700)
     lock = threading.RLock()
-    state = dict(ready=False, token=None, armed=False, name=None, held=[], released=[],
+    state = dict(ready=False, token=None, armed=False, name=None, operation=28, held=[], released=[],
                  dropped=[], forwarded=[], errors=[], connections=0, received=0, connection_resets=[])
     pending = []
     expected_disconnect = set()
@@ -34,9 +34,11 @@ def serve(backend):
                     with lock:
                         action = command['action']
                         if action == 'arm':
+                            if command.get('operation', 28) not in (11, 28):
+                                raise ValueError('unsupported selected operation')
                             if pending or state['armed']:
                                 raise ValueError('already armed')
-                            state.update(token=command['token'], armed=True, name=command['name'],
+                            state.update(token=command['token'], armed=True, name=command['name'], operation=command.get('operation', 28),
                                          held=[], released=[], dropped=[], forwarded=[], errors=[], connection_resets=[])
                         elif action in ('release', 'drop'):
                             close = set()
@@ -100,7 +102,7 @@ def serve(backend):
                         if len(calls) >= 4096 and xid not in calls:
                             raise ValueError('request map bound')
                         calls[xid] = dict(decoded=decoded, sha256=hashlib.sha256(data).hexdigest())
-                        if decoded and any(op.get('op') == 28 for op in decoded['operations']):
+                        if decoded and any(op.get('op') in (11, 28) for op in decoded['operations']):
                             calls[xid]['payload_hex'] = data.hex()
                     server.sendall(wire)
             except Exception as error:
@@ -124,14 +126,14 @@ def serve(backend):
                     decoded = request.get('decoded')
                     state['received'] += 1
                     selected = state['armed'] and decoded and any(
-                        op.get('op') == 28 and op.get('name') == state['name'] for op in decoded['operations'])
+                        op.get('op') == state['operation'] and op.get('name') == state['name'] for op in decoded['operations'])
                     row = dict(connection=number, xid=xid, request=request, receive_id=state['received'],
                                reply_sha256=hashlib.sha256(data).hexdigest(), wire_bytes=len(wire))
                     if selected:
                         row['payload_hex'] = data.hex()
                         observed = reply(data)
                         row['reply'] = observed
-                        if observed['status'] == 0 and any(op == dict(op=28, status=0) for op in observed['operations']):
+                        if observed['status'] == 0 and dict(op=state['operation'], status=0) in observed['operations']:
                             if len(pending) >= 128 or sum(len(v[1]) for v in pending) + len(wire) > 16 * 1048576:
                                 raise ValueError('withheld reply bound')
                             pending.append((client, wire, row))
@@ -139,7 +141,7 @@ def serve(backend):
                             save()
                             continue
                     client.sendall(wire)
-                    if request.get('decoded') and any(op.get('op') == 28 for op in decoded['operations']):
+                    if request.get('decoded') and any(op.get('op') == state['operation'] and op.get('name') == state['name'] for op in decoded['operations']):
                         row['payload_hex'] = data.hex()
                         row['reply'] = reply(data)
                         state['forwarded'].append(row)

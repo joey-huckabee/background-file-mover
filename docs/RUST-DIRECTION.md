@@ -571,3 +571,5 @@ The [lab](NFS-LOST-REPLY-LAB.md) records independent capability, exact SLES arti
 recovery and normal-unmount cleanup. No Rust inputs/dependencies changed. Remaining
 claim/LINK/sync RPC, server-recovery/durability and full SH gates stay open;
 production NFS and source deletion remain disabled.
+
+Increment 65 adds server-completed publication LINK reply-loss qualification; see [results](RUST-INCREMENT-65.md). Keep production NFS/deletion disabled and maintain SC-099, the step-by-step lab and remaining reply-loss/durability limits.

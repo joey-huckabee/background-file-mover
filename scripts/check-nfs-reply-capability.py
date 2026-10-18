@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prove reply-loss fixture capability without executing any Rust binary."""
 from datetime import datetime, timezone
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +15,9 @@ from nfs_reply_relay import ReplyRelay, preflight
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--operation', choices=('remove', 'link'), default='remove')
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'reply-capability-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -23,7 +27,7 @@ def main():
     containers, volumes, mounts, servers, tasks = [], [], [], [], []
     client = relay = None
     network = 'bfm-' + label.lower()
-    report = dict(status='FAILED', run_id=label, rust_executed=False, cleanup_errors=[],
+    report = dict(status='FAILED', run_id=label, operation=args.operation, rust_executed=False, cleanup_errors=[],
                   config=config, driver_sha256={n: hashlib.sha256((root / 'scripts' / n).read_bytes()).hexdigest()
                       for n in ('check-nfs-reply-capability.py', 'nfs_reply_relay.py', 'nfs_rpc.py',
                                 'nfs_reply_proxy.py', 'nfs_endpoints.py', 'test_nfs_rpc.py')})
@@ -85,7 +89,7 @@ def main():
                               network, image, containers, volumes, servers, mounts, report['endpoints'], make_relay)
         report['relay_security'] = run(['exec', relay.container, 'cat', '/proc/1/status']).stdout
         report['preflight'] = dict(passed=False, cases=[])
-        preflight(relay, endpoints, run, execute, spawn, output, report['preflight'])
+        preflight(relay, endpoints, run, execute, spawn, output, report['preflight'], 11 if args.operation == 'link' else 28)
         assert report['preflight']['passed']
         report['status'] = 'PASSED'
     except Exception as error:

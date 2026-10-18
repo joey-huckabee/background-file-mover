@@ -36,6 +36,8 @@ pub(super) fn owned(
             }
             #[cfg(feature = "nfs-qualification")]
             if let Some(point) = match (operation, step) {
+                ("file_link", "link_enter") => Some("file_link_rpc"),
+                ("manifest_link", "link_enter") => Some("manifest_link_rpc"),
                 ("file_link", "link_effect") => Some("file_link_sync"),
                 ("manifest_link", "link_effect") => Some("manifest_link_sync"),
                 ("file_link", "unlink_enter") => Some("file_unlink"),
@@ -112,6 +114,8 @@ fn move_with(
             Err(e) => return Err(ClaimError::Operation("relocate.rename_noreplace", e)),
         }
         namespace("relocate.link_exclusive", || {
+            #[cfg(feature = "nfs-qualification")]
+            checkpoint("link_enter").map_err(|_| Errno::IO)?;
             fs::linkat(old, old_name, new, new_name, AtFlags::empty())
         })?;
         checkpoint("link_effect")?;

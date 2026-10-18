@@ -743,3 +743,5 @@ The [lab](NFS-LOST-REPLY-LAB.md) records independent capability, exact SLES arti
 recovery and normal-unmount cleanup. No Rust inputs/dependencies changed. Remaining
 claim/LINK/sync RPC, server-recovery/durability and full SH gates stay open;
 production NFS and source deletion remain disabled.
+
+[Increment 65](RUST-INCREMENT-65.md) qualifies four selected debug/release file/manifest LINK success-reply-loss cases after independent and repeated server-completion/withheld-success/pending-client controls. Recovery preserves original inode/content and attempt one. The loss model explicitly includes connection interruption; it does not qualify source-claim LINK, COMMIT/fsync reply loss, persistent-media/power/server recovery or old kernels. Production NFS and source deletion remain disabled.

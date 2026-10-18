@@ -40,11 +40,11 @@ class ReplyRelay:
             raise AssertionError(value['errors'])
         return value
 
-    def command(self, action, name=None):
+    def command(self, action, name=None, operation=28):
         token = uuid.uuid4().hex
         self.counter += 1
         local = self.output / ('relay-command-' + str(self.counter) + '.json')
-        local.write_text(json.dumps(dict(token=token, action=action, name=name)), encoding='utf-8')
+        local.write_text(json.dumps(dict(token=token, action=action, name=name, operation=operation)), encoding='utf-8')
         self.run(['cp', str(local), self.container + ':/tmp/control/command.next'])
         self.run(['exec', self.container, '/usr/bin/python3', '-c',
                   "import os; os.replace('/tmp/control/command.next','/tmp/control/command.json')"])
@@ -69,10 +69,10 @@ class ReplyRelay:
                 for row in value['held']:
                     assert row['xid'] == row['request']['decoded']['xid'] == row['reply']['xid']
                     assert row['reply']['status'] == 0
-                    assert dict(op=28, status=0) in row['reply']['operations']
+                    assert dict(op=value['operation'], status=0) in row['reply']['operations']
                 return value
             time.sleep(.2)
-        raise AssertionError('no matched successful REMOVE reply was withheld')
+        raise AssertionError('no matched successful selected reply was withheld')
 
 
 def server_objects(run, server, old, final):
@@ -95,18 +95,21 @@ def server_objects(run, server, old, final):
     return result
 
 
-def preflight(relay, endpoints, run, execute, spawn, output, evidence):
+def preflight(relay, endpoints, run, execute, spawn, output, evidence, operation=28):
     results = evidence['cases']
     server = endpoints.servers['destination']
     for mode in ('release', 'drop'):
         base = '/tmp/nfs-destination/reply-preflight-' + mode
         remote = '/exports/death-destination/reply-preflight-' + mode
-        execute(f"umask 077; mkdir {base}; printf 'owned reply sentinel' >{base}/staging; ln {base}/staging {base}/final", '1000:1000')
+        execute(f"umask 077; mkdir {base}; printf 'owned reply sentinel' >{base}/staging" +
+                (f'; ln {base}/staging {base}/final' if operation == 28 else ''), '1000:1000')
         before = server_objects(run, server, remote + '/staging', remote + '/final')
-        assert before['old'] == before['final'] and before['old']['links'] == 2
-        armed = relay.command('arm', 'staging')
+        assert before['old']['links'] == (2 if operation == 28 else 1)
+        assert before['final'] == (before['old'] if operation == 28 else None)
+        armed = relay.command('arm', 'staging' if operation == 28 else 'final', operation)
+        probe = f'unlink {base}/staging' if operation == 28 else f'ln {base}/staging {base}/final'
         pidfile = '/tmp/reply-preflight-' + mode + '.pid'
-        process = spawn(f'echo $$ >{pidfile}; exec unlink {base}/staging', 'reply-preflight-' + mode)
+        process = spawn(f'echo $$ >{pidfile}; exec {probe}', 'reply-preflight-' + mode)
         row = dict(mode=mode, passed=False, before=before, armed=armed)
         results.append(row)
         try:
@@ -117,13 +120,14 @@ def preflight(relay, endpoints, run, execute, spawn, output, evidence):
             assert pid.isdigit()
             process_state = execute(f'cat /proc/{pid}/stat', '1000:1000').stdout.rsplit(') ', 1)[1].split()[0]
             command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", '1000:1000').stdout.strip()
-            assert process_state == 'D' and command == 'unlink ' + base + '/staging'
+            assert process_state == 'D' and command == probe
             row['pending_client'] = dict(pid=pid, state=process_state, command=command)
             after = server_objects(run, server, remote + '/staging', remote + '/final')
             row['server_completed_while_withheld'] = after
-            assert after['old'] is None and after['final']['links'] == 1
+            assert after['final']['links'] == (1 if operation == 28 else 2)
+            assert after['old'] == (None if operation == 28 else after['final'])
             for key in ('device', 'inode', 'size', 'sha256'):
-                assert after['final'][key] == before['final'][key]
+                assert after['final'][key] == before['old'][key]
             observed = relay.state()
             assert observed['held'] and not observed['forwarded'] and process.poll() is None
             assert execute(f'cat /proc/{pid}/stat', '1000:1000').stdout.rsplit(') ', 1)[1].split()[0] == 'D'
@@ -143,7 +147,7 @@ def preflight(relay, endpoints, run, execute, spawn, output, evidence):
                 assert {json.dumps(r['request']['decoded']['operations'], sort_keys=True) for r in final['forwarded']} <= identities
                 assert not {r['connection'] for r in settled['dropped']} & {r['connection'] for r in final['forwarded']}
             row.update(passed=True, before_release_or_drop=observed, settled=settled, final=final)
-            print('NFS reply fixture ' + mode + ': PASS (server REMOVE success and missing old name while client waits)', flush=True)
+            print(f'NFS reply fixture op={operation} {mode}: PASS (server completion while client waits)', flush=True)
         except Exception as error:
             row['error'] = f'{type(error).__name__}: {error}'
             raise
@@ -155,7 +159,7 @@ def preflight(relay, endpoints, run, execute, spawn, output, evidence):
                 pid = execute('cat ' + pidfile, '1000:1000').stdout.strip()
                 assert pid.isdigit()
                 command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", '1000:1000').stdout.strip()
-                assert command == 'unlink ' + base + '/staging'
+                assert command == probe
                 execute(f'kill -KILL {pid}', '1000:1000')
                 process.wait(timeout=10)
                 row['cleanup_probe_terminated'] = True

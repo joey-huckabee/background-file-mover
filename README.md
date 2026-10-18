@@ -222,3 +222,5 @@ for the rewrite and each opens with a banner saying so.
 ## License
 
 Apache-2.0 — see `LICENSE`.
+
+Increment 65 adds server-completed publication LINK reply-loss qualification; see [results](docs/RUST-INCREMENT-65.md). Keep production NFS/deletion disabled and maintain SC-099, the step-by-step lab and remaining reply-loss/durability limits.

@@ -1,0 +1,1754 @@
+{
+  "status": "PASSED",
+  "run_id": "reply-capability-20261018T200112Z-fb530318",
+  "operation": "link",
+  "rust_executed": false,
+  "cleanup_errors": [],
+  "config": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_zigbuild": "0.23.4",
+    "zig": "0.16.0",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "driver_sha256": {
+    "check-nfs-reply-capability.py": "ceedc798dac561a952f9cf1f21fa191b645d55a0da980b88689ec31da30da861",
+    "nfs_reply_relay.py": "41f3d1501b581efa1cb1eb3fe452d07f2d7deddcd14d552b988d144c2b6ddb7f",
+    "nfs_rpc.py": "66cd3dbb0388bca5cd2ab326304b8f9f968807918c4c15e788811bbd62ad6fda",
+    "nfs_reply_proxy.py": "659e09d16e841d3fb685950be074085f46578ddc51ad9ea0b34125c96893102b",
+    "nfs_endpoints.py": "f9b94f49e2ee756435f4e8eb9d9b6e511d6d5f2cb1c6b62045696f4b387b674a",
+    "test_nfs_rpc.py": "0fc87a65eda2109322393e841f0a381064677a6ed3503cc6e9433d53f5b7dc22"
+  },
+  "decoder_tests": {
+    "passed": true,
+    "output": "test_every_truncation_and_trailing_bytes_refused (__main__.EvidenceDecoder.test_every_truncation_and_trailing_bytes_refused) ... ok\ntest_fragmented_records_preserved_exactly (__main__.EvidenceDecoder.test_fragmented_records_preserved_exactly) ... ok\ntest_matching_remove_and_success (__main__.EvidenceDecoder.test_matching_remove_and_success) ... ok\ntest_record_bounds_and_truncation (__main__.EvidenceDecoder.test_record_bounds_and_truncation) ... ok\ntest_unknown_opcode_and_opcode_inside_handle_are_not_evidence (__main__.EvidenceDecoder.test_unknown_opcode_and_opcode_inside_handle_are_not_evidence) ... ok\ntest_wrong_protocol_auth_lengths_minor_and_counts_refused (__main__.EvidenceDecoder.test_wrong_protocol_auth_lengths_minor_and_counts_refused) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.011s\n\nOK\n"
+  },
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "endpoints": {
+    "passed": true,
+    "servers": {
+      "source": {
+        "container": "77cd458aaab364cb79e61f51d71801501d9b59237f327b8eb2aa16067d07631b",
+        "ip": "10.89.0.2",
+        "export": "/exports/death-source",
+        "mount": "/tmp/nfs-source",
+        "network_namespace": "net:[4026532241]",
+        "filesystem_device": "116",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/05c230059834d477c59bb1f03437478f18193617e25299fc3df5486d412b01e1/diff,workdir=/var/lib/containers/storage/overlay/05c230059834d477c59bb1f03437478f18193617e25299fc3df5486d412b01e1/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-source tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ]
+      },
+      "destination": {
+        "container": "65bba72e1727908f9593f55f6c9cf1dc4c5145a44e6e8dcfffc550ceface0cad",
+        "ip": "10.89.0.5",
+        "export": "/exports/death-destination",
+        "mount": "/tmp/nfs-destination",
+        "network_namespace": "net:[4026532587]",
+        "filesystem_device": "117",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/43d625ab9bb05dc5947b73498232cfe42dd24f00131ca084740ac4430cf8ac10/diff,workdir=/var/lib/containers/storage/overlay/43d625ab9bb05dc5947b73498232cfe42dd24f00131ca084740ac4430cf8ac10/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-destination tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ],
+        "backend_ip": "10.89.0.4"
+      }
+    },
+    "reply_relay": {
+      "container": "04999a09b3f00e29aeabc33fbfdf6408734bc218239950fe573d84448cada031",
+      "ip": "10.89.0.5",
+      "backend": "10.89.0.4",
+      "image": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+      "packages_added": false,
+      "ports_published": false,
+      "private_netns_unprivileged_port_start": 0,
+      "backend_source_ports": "601-616",
+      "drivers": {
+        "nfs_rpc.py": "66cd3dbb0388bca5cd2ab326304b8f9f968807918c4c15e788811bbd62ad6fda",
+        "nfs_reply_proxy.py": "659e09d16e841d3fb685950be074085f46578ddc51ad9ea0b34125c96893102b"
+      }
+    },
+    "mounts": [
+      "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/337a9ccc90ed6c86ba1d48812f9605b77384a3aab405b5cc4c779fae1c62bc9b/diff,workdir=/var/lib/containers/storage/overlay/337a9ccc90ed6c86ba1d48812f9605b77384a3aab405b5cc4c779fae1c62bc9b/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+      "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+      "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+      "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+      "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+      "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+      "none /run/secrets tmpfs rw,mode=755 0 0",
+      "none /etc/hostname tmpfs rw,mode=755 0 0",
+      "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+      "none /etc/hosts tmpfs rw,mode=755 0 0",
+      "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+      "none /run/.containerenv tmpfs rw,mode=755 0 0",
+      "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+      "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "10.89.0.2:/death-source /tmp/nfs-source nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+      "10.89.0.5:/death-destination /tmp/nfs-destination nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5 0 0"
+    ],
+    "mountinfo": [
+      "719 640 0:96 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/337a9ccc90ed6c86ba1d48812f9605b77384a3aab405b5cc4c779fae1c62bc9b/diff,workdir=/var/lib/containers/storage/overlay/337a9ccc90ed6c86ba1d48812f9605b77384a3aab405b5cc4c779fae1c62bc9b/work,redirect_dir=on,uuid=on,metacopy=on",
+      "720 719 0:101 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw",
+      "721 719 0:102 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755",
+      "722 719 0:103 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw",
+      "723 721 0:104 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666",
+      "724 721 0:98 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw",
+      "725 719 0:63 /containers/storage/overlay-containers/dc0df18493a0b00ef2155610527b3e380c31101ee764551a0af56874a1a3ad40/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755",
+      "726 719 0:63 /containers/storage/overlay-containers/dc0df18493a0b00ef2155610527b3e380c31101ee764551a0af56874a1a3ad40/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755",
+      "727 719 0:63 /containers/storage/overlay-containers/dc0df18493a0b00ef2155610527b3e380c31101ee764551a0af56874a1a3ad40/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755",
+      "728 719 0:63 /containers/storage/overlay-containers/dc0df18493a0b00ef2155610527b3e380c31101ee764551a0af56874a1a3ad40/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755",
+      "729 721 0:91 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k",
+      "730 719 0:63 /containers/storage/overlay-containers/dc0df18493a0b00ef2155610527b3e380c31101ee764551a0af56874a1a3ad40/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755",
+      "731 722 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate",
+      "732 720 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "733 720 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "734 720 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "735 720 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "736 720 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "737 720 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "738 722 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "739 722 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "740 720 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "741 720 0:101 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "742 720 0:101 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "743 720 0:101 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "744 720 0:101 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "745 720 0:101 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "793 719 0:122 / /tmp/nfs-source rw,relatime - nfs4 10.89.0.2:/death-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+      "809 719 0:124 / /tmp/nfs-destination rw,relatime - nfs4 10.89.0.5:/death-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5"
+    ],
+    "client_devices": [
+      "122",
+      "124"
+    ],
+    "client_filesystems": [
+      "6969",
+      "6969"
+    ],
+    "client_mount_ids": [
+      "793",
+      "809"
+    ],
+    "scope": "Two controlled NFSv4.1 server containers/net namespaces/IPs and tmpfs exports on one modern kernel; independent NFSD thread outages, not physical NAS failures or reboot/power durability."
+  },
+  "relay_security": "Name:\tpython3\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t1\nNgid:\t0\nPid:\t1\nPPid:\t0\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t64\nGroups:\t1000 \nNStgid:\t1\nNSpid:\t1\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t  246716 kB\nVmSize:\t  246716 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t   17752 kB\nVmRSS:\t   17752 kB\nRssAnon:\t    6788 kB\nRssFile:\t   10964 kB\nRssShmem:\t       0 kB\nVmData:\t   33232 kB\nVmStk:\t     132 kB\nVmExe:\t    3196 kB\nVmLib:\t    6596 kB\nVmPTE:\t     116 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t4\nSigQ:\t0/47803\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000001001000\nSigCgt:\t0000000100000002\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t0000000000000000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t10\nnonvoluntary_ctxt_switches:\t2\n",
+  "preflight": {
+    "passed": true,
+    "cases": [
+      {
+        "mode": "release",
+        "passed": true,
+        "before": {
+          "old": {
+            "device": 117,
+            "inode": 4,
+            "links": 1,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": null
+        },
+        "armed": {
+          "ready": true,
+          "token": "186aae512fed4f08b287a6f568b06ade",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 46,
+          "connection_resets": [],
+          "command_token": "186aae512fed4f08b287a6f568b06ade"
+        },
+        "held": {
+          "ready": true,
+          "token": "186aae512fed4f08b287a6f568b06ade",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "186aae512fed4f08b287a6f568b06ade"
+        },
+        "pending_client": {
+          "pid": "22",
+          "state": "D",
+          "command": "ln /tmp/nfs-destination/reply-preflight-release/staging /tmp/nfs-destination/reply-preflight-release/final"
+        },
+        "server_completed_while_withheld": {
+          "old": {
+            "device": 117,
+            "inode": 4,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": {
+            "device": 117,
+            "inode": 4,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          }
+        },
+        "before_release_or_drop": {
+          "ready": true,
+          "token": "186aae512fed4f08b287a6f568b06ade",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "186aae512fed4f08b287a6f568b06ade"
+        },
+        "settled": {
+          "ready": true,
+          "token": "186aae512fed4f08b287a6f568b06ade",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 68,
+          "connection_resets": [],
+          "command_token": "eeff9477a3c9481d87d99aa6233aa0e5"
+        },
+        "final": {
+          "ready": true,
+          "token": "186aae512fed4f08b287a6f568b06ade",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [
+            {
+              "connection": 1,
+              "xid": 3472491816,
+              "request": {
+                "decoded": {
+                  "xid": 3472491816,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "13d5d6cad35cc56b6c65ce334dd515ec54fc45f16798342106d60587e6e8c919"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b6dd4467f369f271aedc01117a5ddf9182b1cfc67e5edf512fb45910e50841c3"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "aa0084d800d6e2332e901cc24604fc5dcbdc46c2ca3984f117e84575bb1763e4",
+                "payload_hex": "cefa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000003e0000000000000000000000010000001600000014010001013800000017bf725e04000000000000000000002000000016000000140100010138000000d57ed0fc03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "f9e347fb60a8c20744fbf7bf7862395bfeb2a87d9a923c74a67bfb7909252282",
+              "wire_bytes": 308,
+              "payload_hex": "cefa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000083300000000000008340000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54972ea3b939b000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525c626d29b81000000006ad525c518c188e3000000006ad525cb2a3b8d63000000006ad525c518ed04e70000000000000004",
+              "reply": {
+                "xid": 3472491816,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 68,
+          "connection_resets": [],
+          "command_token": "eeff9477a3c9481d87d99aa6233aa0e5"
+        }
+      },
+      {
+        "mode": "drop",
+        "passed": true,
+        "before": {
+          "old": {
+            "device": 117,
+            "inode": 6,
+            "links": 1,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": null
+        },
+        "armed": {
+          "ready": true,
+          "token": "dcbc506e67464dd2b06f90c114aabecb",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 80,
+          "connection_resets": [],
+          "command_token": "dcbc506e67464dd2b06f90c114aabecb"
+        },
+        "held": {
+          "ready": true,
+          "token": "dcbc506e67464dd2b06f90c114aabecb",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 101,
+          "connection_resets": [],
+          "command_token": "dcbc506e67464dd2b06f90c114aabecb"
+        },
+        "pending_client": {
+          "pid": "30",
+          "state": "D",
+          "command": "ln /tmp/nfs-destination/reply-preflight-drop/staging /tmp/nfs-destination/reply-preflight-drop/final"
+        },
+        "server_completed_while_withheld": {
+          "old": {
+            "device": 117,
+            "inode": 6,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": {
+            "device": 117,
+            "inode": 6,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          }
+        },
+        "before_release_or_drop": {
+          "ready": true,
+          "token": "dcbc506e67464dd2b06f90c114aabecb",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 101,
+          "connection_resets": [],
+          "command_token": "dcbc506e67464dd2b06f90c114aabecb"
+        },
+        "settled": {
+          "ready": true,
+          "token": "dcbc506e67464dd2b06f90c114aabecb",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [
+            {
+              "connection": 2,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 103,
+              "reply_sha256": "e2220a109e8d4a37bd5692252a63d79832e982051b727070b4009824e5b79b1b",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000010000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "errors": [],
+          "connections": 2,
+          "received": 103,
+          "connection_resets": [
+            1
+          ],
+          "command_token": "b95e646069184848b24fa1766d539ca7"
+        },
+        "final": {
+          "ready": true,
+          "token": "dcbc506e67464dd2b06f90c114aabecb",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 1,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 101,
+              "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [
+            {
+              "connection": 2,
+              "xid": 4026139944,
+              "request": {
+                "decoded": {
+                  "xid": 4026139944,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+                "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 103,
+              "reply_sha256": "e2220a109e8d4a37bd5692252a63d79832e982051b727070b4009824e5b79b1b",
+              "wire_bytes": 308,
+              "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000010000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+              "reply": {
+                "xid": 4026139944,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "errors": [],
+          "connections": 2,
+          "received": 103,
+          "connection_resets": [
+            1
+          ],
+          "command_token": "b95e646069184848b24fa1766d539ca7"
+        }
+      }
+    ]
+  },
+  "relay_final": {
+    "ready": true,
+    "token": "dcbc506e67464dd2b06f90c114aabecb",
+    "armed": false,
+    "name": "final",
+    "operation": 11,
+    "held": [
+      {
+        "connection": 1,
+        "xid": 4026139944,
+        "request": {
+          "decoded": {
+            "xid": 4026139944,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+              },
+              {
+                "op": 11,
+                "name": "final"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+          "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+        },
+        "receive_id": 101,
+        "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+        "wire_bytes": 308,
+        "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+        "reply": {
+          "xid": 4026139944,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "released": [],
+    "dropped": [
+      {
+        "connection": 1,
+        "xid": 4026139944,
+        "request": {
+          "decoded": {
+            "xid": 4026139944,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+              },
+              {
+                "op": 11,
+                "name": "final"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+          "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+        },
+        "receive_id": 101,
+        "reply_sha256": "415ce167027283abc491fd366ee15a241d6719b80aee6127d2eeef47346b87b7",
+        "wire_bytes": 308,
+        "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+        "reply": {
+          "xid": 4026139944,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "forwarded": [
+      {
+        "connection": 2,
+        "xid": 4026139944,
+        "request": {
+          "decoded": {
+            "xid": 4026139944,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "9f25d56a19fe0b45ff010000000000000000005e000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "99e64c7118730ada0fe7809054711d1ab819f60ad12a663247042741873c1a22"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "c1c57b1e39bee4278c3ba4a9025d4c27a83ae16b9e7008125eb90a0798c65708"
+              },
+              {
+                "op": 11,
+                "name": "final"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "20d919cda29c31bbfa1861d097803a697f73782d936d5db8355507701c171c88",
+          "payload_hex": "effa05280000000000000002000186a300000004000000010000000100000024000000000000000c646330646631383439336130000003e8000003e800000001000003e80000000000000000000000000000000100000007000000359f25d56a19fe0b45ff010000000000000000005e000000000000000000000001000000160000001401000101380000007498667706000000000000000000002000000016000000140100010138000000d2e5767c05000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+        },
+        "receive_id": 103,
+        "reply_sha256": "e2220a109e8d4a37bd5692252a63d79832e982051b727070b4009824e5b79b1b",
+        "wire_bytes": 308,
+        "payload_hex": "effa0528000000010000000000000000000000000000000000000000000000000000000700000035000000009f25d56a19fe0b45ff010000000000000000005e000000000000003f0000003f000000010000001600000000000000200000000000000016000000000000000b000000000000000100000000000005b900000000000005ba0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54978091cf468000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad525dc01640674000000006ad525db021b2212000000006ad525e0091cf44e000000006ad525db023741890000000000000006",
+        "reply": {
+          "xid": 4026139944,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "errors": [],
+    "connections": 2,
+    "received": 103,
+    "connection_resets": [
+      1
+    ],
+    "command_token": "b95e646069184848b24fa1766d539ca7"
+  },
+  "relay_log": ""
+}

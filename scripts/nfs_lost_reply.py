@@ -7,7 +7,7 @@ from nfs_publication import objects, same_object
 from nfs_reply_relay import server_objects
 
 
-def qualify(Case, run, execute, spawn, restore, output, client, results, endpoints, relay):
+def qualify(Case, run, execute, spawn, restore, output, client, results, endpoints, relay, link=False):
     def status(c, phase):
         began = time.monotonic()
         reply = execute(f'{c.binary} --status {c.config_path}', '1000:1000', check=False)
@@ -27,9 +27,9 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
 
     server = endpoints.servers['destination']
     for profile in ('debug', 'release'):
-        for point in ('file_unlink', 'manifest_unlink'):
+        for point in (('file_link_rpc', 'manifest_link_rpc') if link else ('file_unlink', 'manifest_unlink')):
             c = None
-            result = dict(profile=profile, point=point, passed=False, scenario_id='SC-098')
+            result = dict(profile=profile, point=point, passed=False, scenario_id='SC-099' if link else 'SC-098')
             try:
                 c = Case(profile, point, suffix='-lr', both_nfs=True,
                          separate_exports=True, independent_endpoints=True)
@@ -55,13 +55,16 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 before(c, execute)
                 initial = objects(c, execute)
                 result['publication_before_interception'] = initial
-                expected, payload = initial[final_name], initial['nested/data.bin']
-                assert initial[old] == expected and expected['links'] == 2
+                expected = initial[old] if link else initial[final_name]
+                payload = initial['.staging/1.part'] if link and not manifest else initial['nested/data.bin']
+                assert initial[old] == expected and expected['links'] == (1 if link else 2)
+                assert initial[final_name] == (None if link else expected)
                 remote = c.destination.replace('/tmp/nfs-destination/', '/exports/death-destination/', 1) + '/1/'
                 original = server_objects(run, server, remote + old, remote + final_name)
                 result['server_before'] = original
-                assert original['old'] == original['final'] and original['final']['links'] == 2
-                assert all(original['final'][k] == expected[k] for k in ('size', 'sha256'))
+                assert original['old']['links'] == (1 if link else 2)
+                assert original['final'] == (None if link else original['old'])
+                assert all(original['old'][k] == expected[k] for k in ('size', 'sha256'))
                 job = c.request('GET', '/api/v2/jobs/1')[1]
                 assert job['state'] == 'Claimed' and job['details']['source_cleanup_enabled'] is False
                 assert job['details']['files'][0]['attempt'] == 1
@@ -70,21 +73,30 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 held_epoch = json.loads(execute(f'cat {c.base}/state/workers.json', '1000:1000').stdout)
                 assert held_epoch['group'] == int(main)
                 result['worker_epoch_before_death'] = held_epoch
-                result['relay_armed'] = relay.command('arm', old.rsplit('/', 1)[1])
+                result['relay_armed'] = relay.command('arm', final_name.rsplit('/', 1)[-1] if link else old.rsplit('/', 1)[1], 11 if link else 28)
                 execute(f'umask 077; : >{c.rendezvous}/go', '1000:1000')
                 result['reply_withheld'] = relay.await_held()
                 assert c.state(worker) == 'D'
                 raw = execute(f'cat /proc/{worker}/syscall').stdout.strip()
                 words = raw.split()
-                assert len(words) == 9 and words[0] == '263', raw
+                assert len(words) == 9 and words[0] == ('265' if link else '263'), raw
                 descriptor = int(words[1], 16)
                 parent = execute(f'readlink /proc/{worker}/fd/{descriptor}', '1000:1000').stdout.strip()
-                assert parent == c.destination + '/1/.staging' and int(words[3], 16) == 0
-                result['blocked_unlink_syscall'] = dict(raw=raw, fd=descriptor, parent=parent)
+                assert parent == c.destination + '/1/.staging'
+                if link:
+                    new_fd = int(words[3], 16)
+                    new_parent = execute(f'readlink /proc/{worker}/fd/{new_fd}', '1000:1000').stdout.strip()
+                    assert new_parent == c.destination + '/1' + ('' if manifest else '/nested')
+                    assert int(words[5], 16) == 0
+                    result['blocked_link_new_parent'] = new_parent
+                else:
+                    assert int(words[3], 16) == 0
+                result['blocked_link_syscall' if link else 'blocked_unlink_syscall'] = dict(raw=raw, fd=descriptor, parent=parent)
                 completed = server_objects(run, server, remote + old, remote + final_name)
                 result['server_completed_with_reply_withheld'] = completed
-                assert completed['old'] is None and completed['final']['links'] == 1
-                assert all(completed['final'][k] == original['final'][k] for k in ('device', 'inode', 'size', 'sha256'))
+                assert completed['final']['links'] == (2 if link else 1)
+                assert completed['old'] == (completed['final'] if link else None)
+                assert all(completed['final'][k] == original['old'][k] for k in ('device', 'inode', 'size', 'sha256'))
                 result['server_threads_while_withheld'] = {role: run(['exec', target, 'cat', '/proc/fs/nfsd/threads']).stdout.strip()
                                                          for role, target in endpoints.servers.items()}
                 assert set(result['server_threads_while_withheld'].values()) == {'2'}
@@ -147,7 +159,8 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 result['status_after_old_exit'] = status(c, 'NoActiveOwner')
                 observed = objects(c, execute)
                 result['publication_after_old_exit'] = observed
-                assert observed[old] is None
+                assert observed[old] == (observed[final_name] if link else None)
+                assert observed[final_name]['links'] == (2 if link else 1)
                 same_object(observed[final_name], expected)
                 final = c.recover()
                 assert final['details']['files'][0]['attempt'] == 1 and final['details']['source_cleanup_enabled'] is False
@@ -176,4 +189,4 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 print(f"NFS lost reply {profile}/{point}: {'PASS' if result['passed'] else 'FAILED'}", flush=True)
             if not result['passed']:
                 return dict(passed=False)
-    return dict(passed=len(results) == 4 and all(c['passed'] for c in results), scope='lost-reply', core_cases=len(results))
+    return dict(passed=len(results) == 4 and all(c['passed'] for c in results), scope='lost-link-reply' if link else 'lost-reply', core_cases=len(results))

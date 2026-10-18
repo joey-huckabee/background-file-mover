@@ -950,3 +950,5 @@ withheld/discarded plus explicit connection interruption. Read [the lab](NFS-LOS
 for server/client proof, actual death outcomes and the initial discard-only timeout.
 A timeout or a free local guard is not general remote-settlement evidence.
 Production NFS and source deletion remain disabled.
+
+[Increment 65](RUST-INCREMENT-65.md) qualifies four selected debug/release file/manifest LINK success-reply-loss cases after independent and repeated server-completion/withheld-success/pending-client controls. Recovery preserves original inode/content and attempt one. The loss model explicitly includes connection interruption; it does not qualify source-claim LINK, COMMIT/fsync reply loss, persistent-media/power/server recovery or old kernels. Production NFS and source deletion remain disabled.

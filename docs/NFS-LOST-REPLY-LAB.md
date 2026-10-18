@@ -2,6 +2,8 @@
 
 Use [increment 64](RUST-INCREMENT-64.md) for declared scope and results and
 [testing limitations](TESTING-LIMITATIONS.md) for release implications.
+Use [increment 65](RUST-INCREMENT-65.md) for the separate LINK extension and
+section 8 below for its commands and evidence requirements.
 Production NFS and source deletion remain disabled. This is not a production
 deployment or NAS administration procedure.
 
@@ -194,3 +196,61 @@ every known old thread exits before original-state recovery. Independent final
 inventory has no containers/fixture volumes/networks, only shared build caches
 and default podman network. Pre-existing modules and the VM's `0::/` hierarchy
 are retained.
+
+## 8. LINK completion with a withheld success reply
+
+Use the same prerequisites, private infrastructure and normal-unmount-first
+cleanup as sections 1–7. First run a separate capability proof, without Rust:
+
+```powershell
+python scripts/check-nfs-reply-capability.py --operation link
+if ($LASTEXITCODE -ne 0) { throw 'LINK capability unproven; inspect report and recovery resources' }
+```
+
+Each release/discard control starts with exactly one staging link and no final
+name. The normal client runs `ln staging final`. Arm for LINK (11) and the exact
+final basename. Before intervening require all three observations together:
+server-local staging/final are the original inode with link count two and
+unchanged size/hash; captured RPC/COMPOUND/LINK success matches connection/XID
+and decoded request; the actual client is still D/pending and the target success
+has not been forwarded. A local final name alone is insufficient evidence.
+Release forwards that exact frame. Discard permanently drops it and closes the
+affected connection; require native successful replay on a different connection
+with identical SEQUENCE/filehandle/name identity and distinct receive ID.
+
+The standalone proof must pass before the mover matrix. Run fresh production and
+qualification SLES gates using section 4, then substitute their passing run paths:
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/<production-run> --qualification-gate rust/validation/<qualification-run> --isolated-startup --coordinator-death --death-scope lost-link-reply
+if ($LASTEXITCODE -ne 0) { throw 'LINK worker qualification failed; preserve evidence' }
+```
+
+The driver repeats both LINK capability controls before any mover LINK case.
+It runs debug/release × `file_link_rpc`/`manifest_link_rpc`. These qualification-only
+rendezvous are immediately inside the exclusive-link namespace call, before
+native linkat; they are absent from production builds. Arm the relay before
+releasing the rendezvous. Require actual x86_64 syscall 265, flags zero and both
+parent descriptors identifying the private staging and intended final parent.
+Observe server completion while the worker remains D, both endpoints healthy,
+API health/status and 202 custody replay responsive, and durable job phases
+unchanged. A visible final manifest does not authorize SQLite commitment.
+
+Kill only the recorded coordinator, require surviving-worker exclusion where
+applicable, then kill only that known worker, discard held replies and interrupt
+their connection. Confirm every recorded old thread exited before restarting
+with original local state. Both owned aliases must still identify the original
+inode before recovery; recovery must remove only staging, preserve file/manifest
+inode/hash and attempt one, commit normally, retain claimed source and preserve
+producer-reused paths. Keep exact source, artifact, driver and raw RPC hashes.
+
+Do not infer LINK fsync/disk durability, source-claim LINK behavior, COMMIT reply
+loss, physical NAS recovery or healthy-stream bounded silent-loss retry. The
+connection interruption is a controlled fixture intervention, not a production
+recovery command. Keep the increment-64 failed silent-loss control and recovery
+records unchanged. The default capability command and `lost-reply` scope still
+select REMOVE; the LINK selector does not replace their historical evidence.
+
+### Recorded LINK results
+
+Independent `reply-capability-20261018T200112Z-fb530318`, retained REMOVE regression `reply-capability-20261018T200427Z-a948eee5` and full mover `nfs-20261018T203516Z-eb5b56b7` pass with no cleanup errors. Both full-run capability controls precede all four worker cases; all recover on attempt one with original inode/content. See [increment 65](RUST-INCREMENT-65.md) for actual death outcomes, gates, raw evidence and remaining limits. Independent final inventory confirms no validation containers on either rootful or default rootless Podman. The rootful engine retains only the two shared Rust cache volumes and default network; the VM remains `0::/`. Normal unmount preceded removal; neither worker attempt required manual cleanup. The initial manifest-basename driver failure and exact executed sources remain retained separately in increment 65.
