@@ -48,8 +48,9 @@ state, custody and publication evidence. [Increment 53](docs/RUST-INCREMENT-53.m
 adds selected distinct-export/filesystem death cases on one controlled server.
 [Increment 54](docs/RUST-INCREMENT-54.md) adds selected independently interrupted
 source/destination endpoints with healthy-peer probes and original-state recovery.
-Remaining failure directions/phases, remote settlement, durability and
-systemd/deployment gates stay open.
+[Increment 55](docs/RUST-INCREMENT-55.md) adds selected source failure midway
+through copying with the destination usable. Remaining endpoint directions/phases,
+remote settlement, durability and systemd/deployment gates stay open.
 
 **Rust redesign work:** E1–E5 compatibility experiments and the next-session
 direction are on `feature/rust-transfer-coordinator`. Read

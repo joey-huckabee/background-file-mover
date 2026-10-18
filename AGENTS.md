@@ -239,6 +239,12 @@ See docs/RUST-INCREMENT-54.md and actual results/limits. Keep untested direction
 phases, bootstrap, actual NAS/security/durability, in-flight RPC/settlement and
 systemd/account work open. Production NFS/source deletion stay disabled.
 
+Increment 55 retains `--death-scope source-mid-copy`: four selected source-only
+copy interruptions across independent controlled endpoints. See
+`docs/RUST-INCREMENT-55.md` for actual outcomes/cache controls and limits. Preserve
+blocked source read-syscall evidence, unchanged healthy-destination prefix and
+original-state recovery. Production NFS/source deletion remain disabled.
+
 ## Project Overview
 
 Background File Mover is a **C++11** durable transfer coordinator with a **REST**

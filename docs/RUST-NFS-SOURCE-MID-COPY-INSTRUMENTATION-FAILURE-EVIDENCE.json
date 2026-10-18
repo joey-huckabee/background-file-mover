@@ -1,0 +1,1189 @@
+{
+  "status": "FAILED",
+  "run_id": "nfs-20261018T040358Z-fe4dc59b",
+  "isolated_startup_required": true,
+  "gate": "20261018T034035Z-f07bc86c",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "source_sha256": "b1903ab2ecc41b92acd7fefd6baa4d172e405aaa4d775a4fab59cf6cf672b0d2",
+  "checks": {
+    "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\""
+  },
+  "cleanup_errors": [],
+  "coordinator_death_requested": true,
+  "coordinator_death_scope": "source-mid-copy",
+  "shutdown_requested": false,
+  "runtime_requested": false,
+  "ownership_requested": false,
+  "enrollment_storage_requested": false,
+  "delivery_storage_requested": false,
+  "source_storage_requested": false,
+  "runtime_scope": "coordinator-death",
+  "limitations": [
+    "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+    "Two controlled server containers/IPs/network namespaces and one client share a modern kernel; no physical NAS isolation, partition/reclaim, server reboot/power-loss or takeover evidence.",
+    "Four selected source-only outages after the first 1 MiB copy chunk, debug/release, blocked or following stop. Qualification-only source cache advice/rendezvous precedes the next read; require actual D, no read-completed marker, unchanged healthy-destination partial and healthy-peer I/O. Preserve original state/custody and partial allocation on recovery. No opposite failure directions, physical NAS isolation, exact in-flight RPC/settlement, persistent-disk, systemd or old-kernel qualification.",
+    "Service startup rejection is measured; production NFS and source deletion remain disabled."
+  ],
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dmsetup\t2:1.02.185-2",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "findutils\t4.9.0-4",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "keyutils\t1.6.3-2",
+    "libacl1:amd64\t2.3.1-3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdebconfclient0:amd64\t0.270",
+    "libdevmapper1.02.1:amd64\t2:1.02.185-2",
+    "libevent-core-2.1-7:amd64\t2.1.12-stable-8+deb12u1",
+    "libexpat1:amd64\t2.5.0-1+deb12u4",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "libldap-2.5-0:amd64\t2.5.13+dfsg-5",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u2",
+    "libmd0:amd64\t1.0.4-2",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnfsidmap1:amd64\t1:2.6.2-4+deb12u1",
+    "libnsl2:amd64\t1.3.0-2",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpcre2-8-0:amd64\t10.42-1+deb12u2",
+    "libpython3-stdlib:amd64\t3.11.2-1+b1",
+    "libpython3.11-minimal:amd64\t3.11.2-6+deb12u9",
+    "libpython3.11-stdlib:amd64\t3.11.2-6+deb12u9",
+    "libreadline8:amd64\t8.2-1.3",
+    "libsasl2-2:amd64\t2.1.28+dfsg-10",
+    "libsasl2-modules-db:amd64\t2.1.28+dfsg-10",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsepol2:amd64\t3.4-2.1",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssl3:amd64\t3.0.22-1~deb12u1",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libunistring2:amd64\t1.0-2",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libwrap0:amd64\t7.6.q-32",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "media-types\t10.0.0",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "nfs-common\t1:2.6.2-4+deb12u1",
+    "nfs-kernel-server\t1:2.6.2-4+deb12u1",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "python3\t3.11.2-1+b1",
+    "python3-minimal\t3.11.2-1+b1",
+    "python3.11\t3.11.2-6+deb12u9",
+    "python3.11-minimal\t3.11.2-6+deb12u9",
+    "readline-common\t8.2-1.3",
+    "rpcbind\t1.2.6-6+b1",
+    "sed\t4.9-1+deb12u1",
+    "sensible-utils\t0.0.17+nmu1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "tzdata\t2026c-0+deb12u1",
+    "ucf\t3.0043+nmu1+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "mounts": [
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/diff,workdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+    "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+    "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+    "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+    "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+    "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+    "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
+    "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+    "none /etc/hosts tmpfs rw,mode=755 0 0",
+    "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+    "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+  ],
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "root_identity_before": [
+    "99:387689:1000:700",
+    "99:387690:1000:700"
+  ],
+  "artifacts": {
+    "debug": "282611a3ea3e35bd48a4287c1db3ed4a9aa35acd1d5c7b28b4b908ee705c0716",
+    "release": "349a5c7db9eb2b09678d29acfb04e02aea144c5439ad2cd75767423223744b25"
+  },
+  "qualification_gate": "20261018T034048Z-9fd95a19-nfs-qualification",
+  "baseline": {
+    "passed": true,
+    "cases": [
+      {
+        "profile": "debug",
+        "direction": "source",
+        "binary_sha256": "bb2a1e288c123087cbb992f24638fc581c6e1a65ca5f1f1921663378c1e2d952",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "055e968844fe049027baba269c8bcd7c",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "72:27256645",
+          "coordinator_pid": 72,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "72:27256645",
+          "coordinator_pid": 72,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "destination",
+        "binary_sha256": "bb2a1e288c123087cbb992f24638fc581c6e1a65ca5f1f1921663378c1e2d952",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/debug-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/debug-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/debug-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "38cdf7e42912304af4cfdbec2210ed78",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "136:27259286",
+          "coordinator_pid": 136,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "136:27259286",
+          "coordinator_pid": 136,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "both",
+        "binary_sha256": "bb2a1e288c123087cbb992f24638fc581c6e1a65ca5f1f1921663378c1e2d952",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "e8c359bd62e0227e78418e1a511dcf39",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "200:27261830",
+          "coordinator_pid": 200,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "200:27261830",
+          "coordinator_pid": 200,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "source",
+        "binary_sha256": "904ac9aacd92c388a7cebf78a3f379f1d6d2748f46b658e23109712d4683344d",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "1ee3c89943311234fd4858c29ea0cfe6",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "272:27264844",
+          "coordinator_pid": 272,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "272:27264844",
+          "coordinator_pid": 272,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "destination",
+        "binary_sha256": "904ac9aacd92c388a7cebf78a3f379f1d6d2748f46b658e23109712d4683344d",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/release-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/release-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/release-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "8a02ab7173d49514a5a457b239186913",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "336:27267465",
+          "coordinator_pid": 336,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "336:27267465",
+          "coordinator_pid": 336,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "both",
+        "binary_sha256": "904ac9aacd92c388a7cebf78a3f379f1d6d2748f46b658e23109712d4683344d",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "95ffced6883f57ab5355e8b7d0292ace",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "400:27270045",
+          "coordinator_pid": 400,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "400:27270045",
+          "coordinator_pid": 400,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      }
+    ]
+  },
+  "independent_endpoints": {
+    "passed": true,
+    "servers": {
+      "source": {
+        "container": "282be7137629fac1d1be5d9a3af3ce6cc13b3dec0406f3da3412f7f0a25c9b2d",
+        "ip": "10.89.0.2",
+        "export": "/exports/death-source",
+        "mount": "/tmp/nfs-source",
+        "network_namespace": "net:[4026532241]",
+        "filesystem_device": "109",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/55787db8e2011fc8a0fd0d0f408aacd01aa576aadaa5f66b5603c9f854e61f49/diff,workdir=/var/lib/containers/storage/overlay/55787db8e2011fc8a0fd0d0f408aacd01aa576aadaa5f66b5603c9f854e61f49/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-source tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ]
+      },
+      "destination": {
+        "container": "5b70ae7b20995f92196c42274ea92087b1c6cf770669d7d054d1015aa772e4a1",
+        "ip": "10.89.0.4",
+        "export": "/exports/death-destination",
+        "mount": "/tmp/nfs-destination",
+        "network_namespace": "net:[4026532489]",
+        "filesystem_device": "115",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/f5229104aed47ed0b82237f7911e8295ebff26b6e275e5ae394b558fed6b50a6/diff,workdir=/var/lib/containers/storage/overlay/f5229104aed47ed0b82237f7911e8295ebff26b6e275e5ae394b558fed6b50a6/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-destination tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ]
+      }
+    },
+    "mounts": [
+      "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/diff,workdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+      "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+      "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+      "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+      "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+      "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+      "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+      "none /run/.containerenv tmpfs rw,mode=755 0 0",
+      "none /run/secrets tmpfs rw,mode=755 0 0",
+      "none /etc/hostname tmpfs rw,mode=755 0 0",
+      "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+      "none /etc/hosts tmpfs rw,mode=755 0 0",
+      "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+      "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+      "10.89.0.2:/death-source /tmp/nfs-source nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+      "10.89.0.4:/death-destination /tmp/nfs-destination nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.4 0 0"
+    ],
+    "mountinfo": [
+      "718 639 0:96 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/diff,workdir=/var/lib/containers/storage/overlay/c684a16e649f368ca7612eefc501905426ee20345ee7565dc5feab08a47dfc3d/work,redirect_dir=on,uuid=on,metacopy=on",
+      "719 718 0:101 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw",
+      "720 718 0:102 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755",
+      "721 718 0:103 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw",
+      "722 720 0:104 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666",
+      "723 720 0:98 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw",
+      "724 720 0:91 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k",
+      "725 718 0:63 /containers/storage/overlay-containers/11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755",
+      "726 718 0:63 /containers/storage/overlay-containers/11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755",
+      "727 718 0:63 /containers/storage/overlay-containers/11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755",
+      "728 718 0:63 /containers/storage/overlay-containers/11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755",
+      "729 718 0:63 /containers/storage/overlay-containers/11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755",
+      "730 721 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate",
+      "731 719 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "732 719 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "733 719 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "734 719 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "735 719 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "736 719 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "737 721 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "738 721 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "739 719 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "740 719 0:101 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "741 719 0:101 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "742 719 0:101 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "743 719 0:101 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "744 719 0:101 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "652 718 0:99 / /tmp/nfs rw,relatime - nfs4 10.89.0.2:/ rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+      "714 718 0:114 / /tmp/nfs-source rw,relatime - nfs4 10.89.0.2:/death-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+      "717 718 0:117 / /tmp/nfs-destination rw,relatime - nfs4 10.89.0.4:/death-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.4"
+    ],
+    "client_devices": [
+      "114",
+      "117"
+    ],
+    "client_filesystems": [
+      "6969",
+      "6969"
+    ],
+    "client_mount_ids": [
+      "714",
+      "717"
+    ],
+    "scope": "Two controlled NFSv4.1 server containers/net namespaces/IPs and tmpfs exports on one modern kernel; independent NFSD thread outages, not physical NAS failures or reboot/power durability."
+  },
+  "coordinator_death": {
+    "passed": false,
+    "cases": [
+      {
+        "profile": "debug",
+        "point": "source_copy",
+        "production": false,
+        "passed": false,
+        "layout": "both-nfs-independent-endpoints-local-state",
+        "binary_sha256": "bb2a1e288c123087cbb992f24638fc581c6e1a65ca5f1f1921663378c1e2d952",
+        "filesystem_types": [
+          "6969",
+          "6969",
+          "794c7630"
+        ],
+        "filesystem_devices": [
+          "114",
+          "117",
+          "96"
+        ],
+        "source_payload_at_setup": [
+          "114:8:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/current/nested/data.bin"
+        ],
+        "death_phase": "blocked",
+        "repetition": 0,
+        "scenario_id": "SC-092",
+        "failed_endpoint": "source",
+        "coordinator_pid": "487",
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532487",
+          "group": 487,
+          "start": 27276249,
+          "guard": "1:96:393371:1000:0:1792296488:625353705:1"
+        },
+        "paused_worker": {
+          "pid": "510",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "status_before_outage": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Claimed",
+                "size_bytes": 2097169,
+                "transfer_phase": "Intent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-source_copy-shutdown-2-death-blocked-2hosts"
+          }
+        },
+        "partial_bytes_before_outage": 1048576,
+        "source_payload_before": [
+          "114:8:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/current/nested/data.bin"
+        ],
+        "source_hash_origin": "healthy setup before worker read-cache invalidation",
+        "database_identity_before": "96:387425\n",
+        "enrollment_receipt_before": "/tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/source-enrollment.json:114:11:1000:1000:400:1:530:2026-10-18 04:08:08.886620639 +0000:2026-10-18 04:08:08.886620639 +0000\n031c5b78785a31efc0888639d6282eaa8bf4ff8efbe152b0ad0725bdd6e16338  /tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/source-enrollment.json\n/tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/source-binding.json:114:10:1000:1000:600:1:278:2026-10-18 04:08:06.922881941 +0000:2026-10-18 04:08:06.925353836 +0000\n8e7eb093b10429f9bc98c9034cef864a2185139207579e1bc3e44614fafe0054  /tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/source-binding.json\n/tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/coordinator.lock:114:9:1000:1000:600:1:0:2026-10-18 04:08:06.910826739 +0000:2026-10-18 04:08:06.913353836 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs-source/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/source/.file-mover/coordinator.lock\n",
+        "copy_partial_before": [
+          "117:11:1048576",
+          "30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58  /tmp/nfs-destination/runtime-debug-source_copy-shutdown-2-death-blocked-2hosts/destination/1/.staging/1.part"
+        ],
+        "endpoint_outage": {
+          "failed_endpoint": "source",
+          "nfsd_threads": {
+            "source": "0",
+            "destination": "2"
+          },
+          "healthy": {
+            "role": "destination",
+            "elapsed_seconds": 0.907,
+            "fresh_write_read_metadata": [
+              "117:12:16",
+              "4814f3c3d6820875b97865bbc341910231db12576df82f80ef2161b4695cda4e  /tmp/nfs-destination/healthy-3"
+            ]
+          }
+        },
+        "healthy_endpoint_while_worker_blocked": {
+          "role": "destination",
+          "elapsed_seconds": 0.828,
+          "fresh_write_read_metadata": [
+            "117:13:16",
+            "4814f3c3d6820875b97865bbc341910231db12576df82f80ef2161b4695cda4e  /tmp/nfs-destination/healthy-4"
+          ]
+        },
+        "read_not_completed_during_outage": true,
+        "error": "RuntimeError: ['exec', '11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f', '/bin/sh', '-eu', '-c', 'cat /proc/510/syscall']: cat: /proc/510/syscall: Permission denied\n",
+        "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_death.py\", line 171, in run_death\n    syscall = execute(f\"cat /proc/{worker}/syscall\").stdout.strip()\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 162, in execute\n    return run([\"exec\", *([\"--user\", user] if user else []), target or client,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 158, in run\n    raise RuntimeError(f\"{arguments}: {result.stdout}{result.stderr}\")\nRuntimeError: ['exec', '11c8e32c208b5d176ea77d74fe3482c6abe1d5b3e567602d581250d9ff4fbd3f', '/bin/sh', '-eu', '-c', 'cat /proc/510/syscall']: cat: /proc/510/syscall: Permission denied\n\n",
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-debug-source_copy-shutdown-2-death-blocked-2hosts-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery worker exited without receipt\n"
+        }
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "af04961fed585176d7d156801a32946d92290e8d76def4f948e7a5e22207b88b",
+      "nfs_runtime.py": "e5e466b1ea1bb1f3f712b1fd2d12dd8692a648171c43fc59faa0f1e9b62958ef",
+      "nfs_death.py": "2f4ed48b47091c92fe7d4192d485ab4e361d5ce650669f58fd2daa3fb3913bbc",
+      "nfs_bootstrap_state.py": "6e1fefadc3f51773a57eadda068b6fd1e1800903b33b47d55ca68d7d5fa692ab",
+      "nfs_publication.py": "0256e9a1979b0d2977be282c36f5ba0d43ed9d5e85507635bcead14a3c2ef776",
+      "nfs_both.py": "9a4931a0852cad9ebe2dab662822b46029ef5605bf2aa22f3e17e54290c1eb6b",
+      "nfs_exports.py": "fdd6fe55573b9aee674dd7a30ec991c9c7b7a8f62da9e92ebea45f871b109eae",
+      "nfs_endpoints.py": "7563b6ad89b8a8979973b3d0e76a2e41bbf70e88493102b397e2db4e29bdc0d2",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa"
+    }
+  },
+  "error": "AssertionError: NFS coordinator-death matrix interrupted; inspect cases",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 324, in main\n    assert report[\"coordinator_death\"][\"passed\"] or complete, \"NFS coordinator-death matrix interrupted; inspect cases\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: NFS coordinator-death matrix interrupted; inspect cases\n"
+}

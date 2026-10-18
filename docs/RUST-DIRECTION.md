@@ -483,3 +483,12 @@ fresh I/O. Read its 28-case outcomes and exact SLES provenance. Keep remaining
 failure directions/phases, bootstrap, real NAS/disk durability, mount/security,
 in-flight RPC/remote settlement and systemd/account work open. Production NFS
 and source deletion stay disabled.
+
+[Increment 55](RUST-INCREMENT-55.md) adds four selected source-only NFS failures
+after the first copied chunk, with the destination independently usable. The
+qualification-only source_copy rendezvous advises source cache eviction before
+the next read; actual blocked read-syscall/unchanged-prefix evidence is required.
+Read actual outcomes and provenance before assuming termination/recovery behavior.
+Other endpoint directions/phases, bootstrap, delayed RPC/remote settlement,
+mount/security, NAS/disk durability and systemd/account work stay open.
+Production NFS and source deletion remain disabled.

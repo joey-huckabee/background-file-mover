@@ -12,8 +12,9 @@ are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
 Next qualify remaining NFS operation/synchronization and shutdown boundaries,
-remaining endpoint-failure directions/phases and both-NFS bootstrap crash layouts,
-and actual systemd/account control behavior
+remaining endpoint-failure directions/phases beyond selected source-copy
+interruptions, both-NFS bootstrap crash layouts, and actual systemd/account
+control behavior
 (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
 authorize uncertain-effect redispatch or prove remote settlement.

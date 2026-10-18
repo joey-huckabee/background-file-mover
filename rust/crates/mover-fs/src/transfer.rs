@@ -258,7 +258,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
     let mut hash = Sha256::new();
     let mut total = 0_u64;
     let mut buffer = vec![0; 1024 * 1024];
-    let read_fixture = super::qualification::before_read(&input, "source_read")?;
+    let mut read_fixture = super::qualification::before_read(&input, "source_read")?;
     loop {
         let n = payload_io::read(&mut input, &mut buffer, Operation::SourceRead)?;
         if n == 0 {
@@ -271,6 +271,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
         hash.update(&buffer[..n]);
         payload_io::write(&mut output, &buffer[..n])?;
         if total == n as u64 {
+            read_fixture |= super::qualification::before_read(&input, "source_copy")?;
             super::qualification_pause("copy_chunk")?;
         }
     }

@@ -47,17 +47,18 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                          "refused": True, "diagnostic": diagnostic.strip()})
         return rows
 
-    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints"}
-    independent = scope == "independent-endpoints"
+    assert scope in {"claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}
+    independent = scope in {"independent-endpoints", "source-mid-copy"}
     assert not independent or endpoints is not None
-    both_nfs = scope in {"both-nfs", "separate-exports", "independent-endpoints"}
+    both_nfs = scope in {"both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}
     points = {"claim-copy-verify": ("claim_apply", "copy_chunk", "verify_read"),
               "bootstrap-source-read": ("bootstrap", "source_read"),
               "bootstrap-existing-state": ("bootstrap_enrolled", "bootstrap_populated"),
               "publication-manifest": ("publish", "file_link", "manifest_link"),
               "both-nfs": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
               "separate-exports": ("claim_apply", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
-              "independent-endpoints": ("claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link")}[scope]
+              "independent-endpoints": ("claim_apply", "source_read", "copy_chunk", "verify_read", "publish", "file_link", "manifest_link"),
+              "source-mid-copy": ("source_copy",)}[scope]
     publication_points = {"publish", "file_link", "manifest_link"}
     bootstrap_points = {"bootstrap", "bootstrap_enrolled", "bootstrap_populated"}
     cases = [(profile, point, phase, 0) for profile in ("debug", "release")
@@ -68,11 +69,11 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
         case = None
         result = {"profile": profile, "point": point, "death_phase": phase, "repetition": repetition, "passed": False}
         try:
-            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope in {"separate-exports", "independent-endpoints"}, independent_endpoints=independent)
+            case = Case(profile, point, shutdown=True, shutdown_wait=2, suffix="-death-" + phase + (f"-repeat-{repetition}" if repetition else ""), both_nfs=both_nfs, separate_exports=scope in {"separate-exports", "independent-endpoints", "source-mid-copy"}, independent_endpoints=independent)
             case.result.update(result)
             result = case.result
             result["scenario_id"] = "SC-092"
-            failed_endpoint = "source" if point in {"claim_apply", "source_read"} else "destination"
+            failed_endpoint = "source" if point in {"claim_apply", "source_read", "source_copy"} else "destination"
             if independent:
                 result["failed_endpoint"] = failed_endpoint
             if scope == "bootstrap-existing-state":
@@ -141,9 +142,9 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 case.await_pause()
                 result["status_before_outage"] = case.request("GET", "/api/v2/jobs/1")[1]
                 assert result["status_before_outage"]["state"] == ("Accepted" if point == "claim_apply" else "Claimed")
-                if point in {"copy_chunk", "source_read"}:
+                if point in {"copy_chunk", "source_read", "source_copy"}:
                     size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
-                    assert size == ("1048576" if point == "copy_chunk" else "0")
+                    assert size == ("0" if point == "source_read" else "1048576")
                     result["partial_bytes_before_outage"] = int(size)
                 if both_nfs:
                     from nfs_both import before as both_before, recovered as both_recovered
@@ -163,9 +164,26 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 if independent:
                     result["healthy_endpoint_while_worker_blocked"] = endpoints.during(failed_endpoint)
                     assert case.state(worker) == "D"
-                if point in {"verify_read", "source_read"}:
+                if point in {"verify_read", "source_read", "source_copy"}:
                     assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
                     result["read_not_completed_during_outage"] = True
+                if point == "source_copy":
+                    syscall = execute(f"cat /proc/{worker}/syscall").stdout.strip()
+                    # x86_64 read(2), with the descriptor still naming claimed source.
+                    fields = syscall.split()
+                    assert len(fields) == 9 and fields[0] == "0", syscall
+                    descriptor = int(fields[1], 16)
+                    target = execute(f"readlink /proc/{worker}/fd/{descriptor}", "1000:1000").stdout.strip()
+                    assert target == case.source + "/.file-mover/1-0/data", target
+                    assert int(fields[3], 16) == 1048576, syscall
+                    worker_status = execute(f"cat /proc/{worker}/status", "1000:1000").stdout
+                    security = {k: v.strip() for line in worker_status.splitlines() if ":" in line
+                                for k, v in [line.split(":", 1)] if k in {"Uid", "CapInh", "CapPrm", "CapEff", "NoNewPrivs"}}
+                    assert security["Uid"].split() == ["1000"] * 4 and security["NoNewPrivs"] == "1"
+                    assert all(int(security[k], 16) == 0 for k in ("CapInh", "CapPrm", "CapEff"))
+                    result["blocked_source_read_syscall"] = {"raw": syscall, "fd": descriptor, "target": target,
+                                                           "worker_security": security}
+                    assert case.state(worker) == "D"
                 result["blocked_worker"] = {"pid": worker, "state": "D", "pause_released": True,
                     "nfs_server_stopped": True, "status": status(case, "Running")}
             result["guard_before_death"] = probe(case)
@@ -232,6 +250,12 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     assert case.state(worker) == "D"
                     result["healthy_endpoint_while_orphan_blocked"] = endpoints.during(failed_endpoint)
                     assert case.state(worker) == "D"
+            if point == "source_copy":
+                from nfs_both import payload
+                result["partial_while_source_unavailable"] = payload(case, execute, case.destination + "/1/.staging/1.part")
+                assert result["partial_while_source_unavailable"] == result["copy_partial_before"]
+                assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
+                result["read_not_completed_before_restore"] = True
             assert json.loads(execute(f"cat {epoch_path}", "1000:1000").stdout) == epoch
             result["epoch_preserved_until_old_exit"] = True
             # A free local guard never authorizes restart during outage.
@@ -278,7 +302,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
             assert recovered["details"]["source_cleanup_enabled"] is False
             if point in {"claim_apply", "bootstrap", "bootstrap_enrolled"}:
                 execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
-            if point in {"copy_chunk", "source_read", "bootstrap_populated"}:
+            if point in {"copy_chunk", "source_read", "source_copy", "bootstrap_populated"}:
                 assert recovered["details"]["files"][0]["attempt"] == 2
                 assert execute(f"test -f {case.destination}/1/.staging/1.part", "1000:1000", check=False).returncode == 0
                 result["old_partial_preserved"] = True
@@ -322,7 +346,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
     terminating_profiles = {c["profile"] for c in results
                             if c["outcome"] == "terminating_orphan_retains_ownership"}
     closed_profiles = {c["profile"] for c in results if c.get("kernel_closed_guard")}
-    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints"}:
+    if scope in {"bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy"}:
         passed = len(results) == len(points) * 4 and all(c["passed"] for c in results) and {
             (c["profile"], c["point"]) for c in results
             if c["outcome"] == "blocked_orphan_retains_ownership"

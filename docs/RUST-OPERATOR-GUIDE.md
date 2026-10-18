@@ -1,6 +1,6 @@
 # Rust operator status and recovery guide
 
-This guide describes the implemented Rust prototype through increment 54. It
+This guide describes the implemented Rust prototype through increment 55. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local
 filesystems. It is not an installation, takeover or filesystem repair procedure.
@@ -694,3 +694,16 @@ NFSD thread interruption. This does not qualify actual NAS failures/security,
 partition/reclaim, disk/power durability, delayed RPC settlement, every opposite
 failure direction, bootstrap or systemd policy. Production NFS and deletion stay
 disabled; this is fixture evidence, not a production outage-recovery runbook.
+
+## Source disappears during copying: qualification scope
+
+[Increment 55](RUST-INCREMENT-55.md) qualifies selected source-only outages after
+a 1 MiB prefix has reached an independently usable destination. A healthy
+destination does not mean copying finished or authorize replacement. Keep the
+original configuration, local state and private source/staging allocations;
+restore access and confirm old-worker exit before normal owned recovery. The
+selected recovery retains the old allocation and commits a new attempt. Keep
+producer-reused paths untouched. No manual partial deletion, takeover or
+re-enrollment remedy is added. Prompt and incomplete stop outcomes are distinct;
+read the report for actual observations. Shared-kernel/tmpfs fixtures do not
+prove delayed NAS settlement or disk durability. Production NFS/deletion stay off.
