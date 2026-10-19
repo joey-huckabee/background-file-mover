@@ -294,3 +294,15 @@ surviving-worker/old-thread exclusion, original-inode recovery and committed rep
 See [increment 72](RUST-INCREMENT-72.md) for measured results and failed initial
 expectation. This does not qualify pending fsync/COMMIT, successful RPC replies
 withheld, foreign-target conflicts, power loss or production NFS/source deletion.
+
+## Buffered after-unlink/before-directory-sync extension
+
+Use `--buffered-post-unlink` with both passing gates for the eight
+file_unlink_sync/manifest_unlink_sync cases across same/separate shares and
+debug/release. It reuses the publication helper with a distinct matrix selection
+and separate evidence. It needs only mount-setup SYS_ADMIN on the root client;
+no syscall-observer capabilities are added. Ordinary workers retain zero active
+capabilities. Follow the [step-by-step lab](NFS-BUFFERED-POST-UNLINK-LAB.md) and
+[increment 73](RUST-INCREMENT-73.md) for absent-staging/original-allocation
+evidence, ownership, actual old-thread exit, recovery/replay, cleanup and limits.
+This is a returned-effect process crash, not pending sync/RPC or physical durability.

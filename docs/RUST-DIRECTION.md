@@ -619,3 +619,12 @@ and committed replay. Maintain SC-107 and DOC-01/02/03/04/05. Joint-outage POST
 replay includes source revalidation; this matrix tests replay before outage and
 after recovery. Preserve unchanged retry/review/deadlines, remaining actual
 RPC/sync/remote-settlement qualification and production NFS/source deletion off.
+
+[Increment 73](RUST-INCREMENT-73.md) extends the retained publication helper and
+verifier with --buffered-post-unlink/--post-unlink. Eight buffered same/separate-
+share debug/release cases pause after file/manifest staging unlink returns and
+before directory sync. Require absent staging, original one-link final allocation,
+old-thread exit before original-state attempt-1 recovery and stable replay. See
+[the lab](NFS-BUFFERED-POST-UNLINK-LAB.md); maintain SC-108 and DOC-01/02/03/04/05.
+This pause-only mode adds no syscall-observer capabilities. Keep production
+NFS/deletion disabled and actual pending-sync/RPC/durability gates open.

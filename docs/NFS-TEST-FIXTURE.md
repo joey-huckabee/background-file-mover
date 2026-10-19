@@ -163,3 +163,12 @@ death/recovery/replay cases, original-state preservation and normal teardown.
 Separate exports share one server/outage domain. Production NFS and source
 deletion stay off; syscall/process-crash evidence is distinct from lost replies
 or physical durability.
+
+[Increment 73](RUST-INCREMENT-73.md) reuses that fixture with
+`--buffered-post-unlink`, eight after-staging-removal/before-directory-sync
+process-crash cases. The root client needs only mount-setup SYS_ADMIN; no extra
+syscall-observer capabilities are added, and ordinary processes remain UID/GID
+1000 with zero active capabilities. The [lab](NFS-BUFFERED-POST-UNLINK-LAB.md)
+documents exact commands, original one-link allocation recovery, normal cleanup
+and the distinction from actual pending sync/RPC or persistent-media qualification.
+Production NFS and source deletion remain disabled.

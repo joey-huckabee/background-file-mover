@@ -55,6 +55,35 @@ capabilities, while the mover/worker capability checks remain unchanged.
 
 ## Important distinctions
 
+[Post-unlink qualification](RUST-INCREMENT-73.md) adds eight buffered
+same/separate-share debug/release process-crash cases after staging unlink has
+returned, before the following staging-directory sync is called. Require staging
+absent and the original final one-link inode/content both before crash and after
+old-worker exit, then attempt-1 recovery and stable committed replay. The worker
+remains at an unreleased local pause and is SIGSTOPped during the controlled joint
+NFSD outage. This is not a pending fsync/COMMIT, successful RPC reply withheld or
+power-loss test; retained server/cache state does not establish persistent-media
+durability. The [lab](NFS-BUFFERED-POST-UNLINK-LAB.md) needs no extra syscall-
+observer capabilities. One server/client/shared modern kernel cannot establish
+independent NAS/cache failures, old SLES kernel semantics or production-scale
+behavior. Guard observations are measured separately; contender probes precede
+worker SIGKILL and add no terminating/free-raw-guard branch. Full FR-03/05 and
+production NFS/source deletion stay gated.
+
+The initial post-unlink run fails a combined health/status timing assertion:
+two requests plus host copy/Podman overhead total 5.344 seconds, with no individual
+timings retained. It cannot establish an individual request failure or a passing
+eight-case matrix. The corrected fixture measures each request independently
+below five seconds and keeps the combined value only as diagnostic cost; service
+timeouts, retry/review and shutdown deadlines remain unchanged. Preserve the
+[failed initial report](RUST-NFS-BUFFERED-POST-UNLINK-INITIAL-EVIDENCE.json) and
+read the final measured cases separately.
+The final eight cases pass: maximum measured health/status requests are
+1.937/1.922 seconds including host overhead. All sixteen sampled orphan guards
+remain contended (no observed early raw-lock closure); all twenty-four competing
+commands refuse before worker SIGKILL. These are the observed finite branches,
+not new terminating/free-guard or universal timing guarantees.
+
 [Buffered publication/manifest qualification](RUST-INCREMENT-72.md) distinguishes
 actual D-state client unlinkat on an owned staging-parent descriptor from a
 returned LINK paused before following sync. The latter is a stopped-process

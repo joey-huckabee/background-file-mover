@@ -22,12 +22,14 @@ def main():
     parser.add_argument('--same-share', action='store_true', help='Run buffered same-share service and crash recovery cases instead of authorization cases')
     parser.add_argument('--buffered-reads', action='store_true', help='Qualify blocked copy/verification reads and coordinator-death recovery on same/separate shares')
     parser.add_argument('--buffered-publication', action='store_true', help='Qualify returned-LINK/pre-sync and blocked-unlink file/manifest recovery on buffered same/separate shares')
+    parser.add_argument('--buffered-post-unlink', action='store_true', help='Qualify file/manifest crashes after staging unlink returned, before directory sync, on buffered same/separate shares')
     args = parser.parse_args()
     assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
     assert not args.same_share or args.production_gate, 'same-share requires both gates'
     assert not args.buffered_reads or args.production_gate, 'buffered-reads requires both gates'
     assert not args.buffered_publication or args.production_gate, 'buffered-publication requires both gates'
-    assert sum((args.same_share, args.buffered_reads, args.buffered_publication)) <= 1, 'select one worker matrix'
+    assert not args.buffered_post_unlink or args.production_gate, 'buffered-post-unlink requires both gates'
+    assert sum((args.same_share, args.buffered_reads, args.buffered_publication, args.buffered_post_unlink)) <= 1, 'select one worker matrix'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'mount-profile-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -118,7 +120,7 @@ def main():
         address = json.loads(run(['inspect', server]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
         report['server_packages'] = run(['exec', server, 'dpkg-query', '-W', 'nfs-common', 'nfs-kernel-server', 'rpcbind']).stdout
         for role, fsid in (('source', 68), ('destination', 69)):
-            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication else '16m'
+            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication or args.buffered_post_unlink else '16m'
             run(['exec', server, '/bin/sh', '-eu', '-c',
                  f'mkdir /exports/profile-{role}; mount -t tmpfs -o size={size},mode=1777 tmpfs /exports/profile-{role}; '
                  f"exportfs -i -o rw,sync,no_subtree_check,root_squash,fsid={fsid} '*:/exports/profile-{role}'"])
@@ -277,7 +279,8 @@ def main():
             qualify(root, args.production_gate, args.qualification_gate, run, execute,
                     client, output, mount, unmount_all, mounts, report['authorization'],
                     same_share=args.same_share, buffered_reads=args.buffered_reads,
-                    buffered_publication=args.buffered_publication, server=server)
+                    buffered_publication=args.buffered_publication, server=server,
+                    buffered_post_unlink=args.buffered_post_unlink)
         report['status'] = 'PASSED'
     except Exception as error:
         report.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())

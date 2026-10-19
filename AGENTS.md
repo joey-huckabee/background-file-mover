@@ -556,3 +556,17 @@ and DOC-01/02/03/04/05 current. Joint-outage POST replay has source revalidation
 do not require healthy replay semantics while both shares are offline. Preserve
 failed initial evidence, unchanged retry/review/deadlines, production NFS/deletion
 off and remaining bootstrap/claim/post-unlink/sync/RPC/deployment qualification.
+
+Increment 73 adds --buffered-post-unlink and verifier --post-unlink using the
+retained publication helper: eight file_unlink_sync/manifest_unlink_sync cases
+across buffered same/separate shares and debug/release. Require absent staging
+and the original one-link final allocation before death/after old-thread exit,
+then original-state attempt-1 commitment and stable replay. No extra syscall-
+observer capabilities are needed; workers remain UID/GID 1000 with zero active
+capabilities. See docs/RUST-INCREMENT-73.md and
+docs/NFS-BUFFERED-POST-UNLINK-LAB.md; maintain SC-108 and DOC-01/02/03/04/05.
+Preserve earlier evidence, unchanged retry/review/deadlines, production NFS/deletion
+off and remaining bootstrap/claim/actual-sync/RPC/deployment qualification.
+Health/status requests each retain a five-second observation bound; combined
+host copy/Podman launch cost is diagnostic. Preserve increment 73's failed initial
+aggregate-timer report separately from the corrected eight-case qualification.

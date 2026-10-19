@@ -261,3 +261,10 @@ layouts. The [lab](docs/NFS-BUFFERED-PUBLICATION-LAB.md) distinguishes
 returned-LINK/pre-sync crashes from actual blocked staging unlinkat, and checks
 old-worker exclusion and original allocation/replay preservation. Production NFS
 and source deletion remain disabled; remaining first-release gates stay open.
+
+[Increment 73](docs/RUST-INCREMENT-73.md) adds eight buffered after-staging-unlink,
+before-directory-sync recovery cases across both share layouts and build profiles.
+The [lab](docs/NFS-BUFFERED-POST-UNLINK-LAB.md) documents absent-staging/original-
+allocation evidence, old-worker exclusion, original-state recovery and replay.
+Production NFS and source deletion remain disabled; pending sync/RPC and physical
+durability qualification remain separate.

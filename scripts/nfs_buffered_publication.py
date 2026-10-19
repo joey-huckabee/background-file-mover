@@ -1,4 +1,4 @@
-"""Buffered returned-LINK/pre-sync and pending-unlink crash/recovery qualification.
+"""Buffered publication namespace/pre-sync crash/recovery qualification.
 
 Only owned fixture processes/mounts. No lost-reply or physical durability claim.
 """
@@ -10,8 +10,12 @@ from nfs_publication import objects, same_object
 from nfs_runtime import run_runtime
 
 
-def qualify_buffered_publication(run, execute, client, server, output, mount, unmount_all, report, binaries):
+def qualify_buffered_publication(run, execute, client, server, output, mount, unmount_all, report, binaries, post_unlink=False):
     assert server
+    points = ('file_unlink_sync', 'manifest_unlink_sync') if post_unlink else (
+        'file_link_sync', 'file_unlink', 'manifest_link_sync', 'manifest_unlink')
+    expected_cases = 8 if post_unlink else 16
+    report['matrix'] = 'buffered-post-unlink' if post_unlink else 'buffered-publication'
     engine = ['podman', '--connection', 'podman-machine-default-root']
     execute('umask 077; mkdir /tmp/local', '1000:1000')
     artifacts = {}
@@ -56,11 +60,11 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
     def cases(Case):
         nonlocal stopped
         for profile in ('debug', 'release'):
-            for point in ('file_link_sync', 'file_unlink', 'manifest_link_sync', 'manifest_unlink'):
+            for point in points:
                 print('Buffered publication '+layout+' '+profile+' '+point, flush=True)
-                c = Case(profile, point, suffix='-bp-'+layout, both_nfs=True)
+                c = Case(profile, point, suffix=('-bpu-' if post_unlink else '-bp-')+layout, both_nfs=True)
                 r = c.result
-                r.update(layout=layout, config=c.config, scenario_id='SC-107')
+                r.update(layout=layout, config=c.config, scenario_id='SC-108' if post_unlink else 'SC-107')
                 report['cases'].append(r)
                 report['rust_executed'] = True
                 try:
@@ -93,7 +97,12 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
                     active_old = '.staging/COMMITTED.part' if manifest else '.staging/1.part'
                     active_new = 'COMMITTED.json' if manifest else 'nested/data.bin'
                     expected = initial[active_new]
-                    assert expected is not None and initial[active_old] == expected and expected['links'] == 2
+                    assert expected is not None
+                    if post_unlink:
+                        assert initial[active_old] is None and expected['links'] == 1
+                        r['staging_absent_before_directory_sync'] = True
+                    else:
+                        assert initial[active_old] == expected and expected['links'] == 2
                     payload = initial['nested/data.bin']
                     assert payload['sha256'] == r['original_source'][1].split()[0]
                     if manifest:
@@ -133,14 +142,21 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
                         execute('test ! -e '+c.rendezvous+'/go', '1000:1000')
                         c.signal(c.worker, 'STOP')
                         assert c.state(c.worker) in ('T', 't')
-                        r['interruption_kind'] = 'link_returned_following_sync_not_called'
+                        r['interruption_kind'] = ('unlink_returned_following_directory_sync_not_called' if post_unlink
+                                                  else 'link_returned_following_sync_not_called')
+                        r['pause_unreleased_before_crash'] = True
+                        r['worker_stopped_before_crash'] = c.state(c.worker)
                     worker_state = 'D' if actual_unlink else 'T'
                     assert c.children() == [c.worker]
                     began = time.monotonic()
                     assert c.request('GET', '/healthz')[0] == 200
+                    r['outage_health_seconds'] = round(time.monotonic()-began, 3)
+                    assert r['outage_health_seconds'] < 5
+                    began = time.monotonic()
                     assert c.request('GET', '/api/v2/jobs/1')[1] == job
-                    r['outage_api_seconds'] = round(time.monotonic()-began, 3)
-                    assert r['outage_api_seconds'] < 5
+                    r['outage_job_seconds'] = round(time.monotonic()-began, 3)
+                    assert r['outage_job_seconds'] < 5
+                    r['outage_api_seconds'] = round(r['outage_health_seconds']+r['outage_job_seconds'], 3)
                     r['status_during_outage'] = status(c, 'Running')
                     assert guard(c)['contended']
                     c.signal(c.service_pid(), 'KILL')
@@ -186,6 +202,9 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
                     observed = objects(c, adapted)
                     r['publication_after_old_exit'] = observed
                     same_object(observed[active_new], expected)
+                    if post_unlink:
+                        assert observed[active_old] is None and observed[active_new]['links'] == 1
+                        r['staging_absent_after_old_exit'] = True
                     aliases = [observed[n] for n in (active_old, active_new) if observed[n] is not None]
                     for obj in aliases:
                         same_object(obj, expected)
@@ -231,8 +250,9 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
                         case_runner=cases, nfs_root='/tmp/profile-source',
                         destination_nfs_root='/tmp/profile-destination' if layout == 'separate-shares' else None)
             unmount_all()
-        assert len(report['cases']) == 16 and all(c['passed'] for c in report['cases'])
+        assert len(report['cases']) == expected_cases and all(c['passed'] for c in report['cases'])
         report['passed'] = True
-        report['scope'] = 'Sixteen buffered same/separate-export file/manifest returned-LINK pre-sync or blocked unlinkat deaths, orphan exclusion, original-state recovery/replay; one server/joint outage, no RPC reply-loss or power-durability proof.'
+        report['scope'] = ('Eight buffered same/separate-export file/manifest staging-unlink-returned before-directory-sync process crashes, orphan exclusion and original-state recovery/replay; no pending-sync/RPC reply-loss or power-durability proof.' if post_unlink else
+                           'Sixteen buffered same/separate-export file/manifest returned-LINK pre-sync or blocked unlinkat deaths, orphan exclusion, original-state recovery/replay; one server/joint outage, no RPC reply-loss or power-durability proof.')
     finally:
         restore()

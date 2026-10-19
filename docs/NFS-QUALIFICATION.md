@@ -792,3 +792,11 @@ at returned-LINK/pre-sync and actual pending staging unlinkat boundaries. See
 exclusion, actual old-thread exit, original publication/manifest inode recovery,
 committed replay and cleanup. These finite cases do not close sync/RPC reply-loss,
 remote settlement or full deployment gates. Production NFS and deletion stay off.
+
+[Increment 73](RUST-INCREMENT-73.md) adds eight buffered post-unlink/pre-directory-
+sync process-crash cases, using --buffered-post-unlink on both share layouts and
+build profiles. See the [lab](NFS-BUFFERED-POST-UNLINK-LAB.md) for absent-staging
+and original one-link final allocation evidence, coordinator-death exclusion,
+old-thread exit before attempt-1 recovery and committed replay. This adds no
+pending sync/RPC, power durability or terminating/free-raw-guard branch.
+Production NFS/source deletion and full-release support remain disabled/gated.
