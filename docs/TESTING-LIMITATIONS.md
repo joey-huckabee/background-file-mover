@@ -194,3 +194,27 @@ profile; do not silently expand a passing result's scope.
 ## Synchronization observation limits (increment 67)
 
 [Increment 67](RUST-INCREMENT-67.md) correlates four actual debug/release claim/delivery synchronization traces with raw NFS traffic. Selected noac sync intervals have no observed outgoing RPC; separate buffered OS controls prove stable WRITE reply withholding/recovery, not COMMIT or mover sync-loss support. See [the reproducible sync lab](NFS-SYNC-LAB.md). No Rust/service/dependency policy changes; production NFS and source deletion remain disabled, and FR-03/05 remain open. A separately privileged external ptrace observer uses modern-kernel APIs and changes scheduling; it is not deployed with the service. Local proc descriptor inspection avoids inducing target NFS I/O. Unknown/nonempty or overflowed/truncated trace windows cannot prove RPC absence. Buffered control mount options are deliberately separate from the service fixture. Server-reported FILE_SYNC and tmpfs bytes do not establish power-loss durability. Both initial fixture failures and exact sources remain preserved with clean cleanup. The simple JSON-until-202 recorder and manifest-based consumer workflow are unchanged.
+
+## Mount-profile model limits (increment 68)
+
+[Increment 68](RUST-INCREMENT-68.md) selects buffered hard/TCP NFSv4.1/sec=sys
+as a first-release qualification candidate and retains noac as a separate
+fixture diagnostic. The [contract](NFS-MOUNT-PROFILE.md) and
+[lab](NFS-MOUNT-PROFILE-LAB.md) validate read-only inventory decisions, not new
+Rust startup enforcement or authorization for production NFS/deletion. Earlier
+noac worker evidence and buffered OS-only WRITE controls retain their scope.
+The initial failed assumption is preserved: unmount/remount reused the mount IDs
+and the entire observed pin. Matching snapshots cannot establish mount continuity.
+NFSD-zero inventory still matches, so it also cannot prove availability, effect
+settlement, real path/descriptor custody, symlink safety or authenticated NAS
+identity. Changed effective options refuse prior pins in the model; concurrent
+replacement/alias exclusion and protected descriptor/enrollment rechecks remain
+required. New service enforcement remains pending, including unchanged-job replay.
+
+Synthetic v3/v4.2/UDP/security-option mutations are negative parser/policy controls,
+not actual variant mounts. Same-share/mixed-profile matches are not mover transfer
+or recovery tests. Root-squashed child exports demonstrate only ordinary fixture
+UID/GID access. Controlled sync exports/tmpfs and local overlay state establish no
+NAS policy, physical durability, persistent state, firmware or old-kernel behavior.
+No real SLES host, NAS administration or host mount changes are prerequisites for
+this lab. The pinned userspace still shares the modern Podman/WSL2 kernel.

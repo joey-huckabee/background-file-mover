@@ -48,6 +48,14 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
+- [ ] Integrate the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12, into
+  supervised Rust startup/effect authorization. Bind explicit per-root declarations
+  to protected descriptor/enrollment observations, reject observed mismatches and
+  preserve existing-job retries without unsafe rebind. Matching proc pins do not
+  establish mount continuity, path identity, availability or settlement.
+- [ ] Qualify actual buffered NMP-41B service bootstrap/claim/copy/verification/
+  publication/manifest behavior on separate shares and disjoint same-share roots;
+  retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
   in the declared shipping mount/export profile; do not substitute buffered OS
   controls for unobserved service COMMIT/fsync boundaries. Cover

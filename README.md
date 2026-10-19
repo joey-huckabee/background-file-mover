@@ -5,6 +5,13 @@ For what the current tests prove and what remains unqualified, read
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
 infrastructure setup, individual test steps, evidence and cleanup.
 
+The [NFS mount-profile contract](docs/NFS-MOUNT-PROFILE.md) selects a buffered
+first-release qualification candidate and preserves noac diagnostics separately.
+[Increment 68](docs/RUST-INCREMENT-68.md) and its
+[lab procedure](docs/NFS-MOUNT-PROFILE-LAB.md) validate read-only model decisions;
+new Rust startup enforcement remains pending. Matching mount pins cannot prove
+continuity or server availability. Production NFS and source deletion stay off.
+
 [Increment 64](docs/RUST-INCREMENT-64.md) proves selected server-completed NFS
 REMOVE replies can be withheld, then tests file/manifest recovery after reply loss
 and connection interruption. The [lab](docs/NFS-LOST-REPLY-LAB.md) records capability,

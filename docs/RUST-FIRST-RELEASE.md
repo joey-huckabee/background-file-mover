@@ -62,6 +62,13 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
+The next bounded increment is supervised Rust integration of the
+[mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12, preserving original
+descriptor/enrollment authority and existing-job recovery. Its inventory model
+is qualified separately; new service enforcement is pending. Keep production
+NFS/deletion off, then qualify actual buffered NMP-41B worker behavior before
+using that profile for remaining synchronization reply-loss cases.
+
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
    interruptions, remaining fresh/later source bootstrap and destination recovery
@@ -278,3 +285,11 @@ production NFS and source deletion remain disabled.
 [Increment 66](RUST-INCREMENT-66.md) qualifies four selected debug/release source-claim LINK/REMOVE success-reply-loss cases after independent and repeated source-server completion/withheld-success/pending-client controls. Initial/same-ID submissions remain retryable 503 with paths unreleased until original-state custody recovery confirms 202; only then does the producer reuse paths. Original claim inode/content, job ID, database/enrollment and attempt one survive delivery. Loss explicitly includes connection interruption; COMMIT/fsync, remaining claim/mount/security boundaries, server/media/power durability and old kernels remain unqualified. Production NFS and source deletion remain disabled.
 
 [Increment 67](RUST-INCREMENT-67.md) correlates four actual debug/release claim/delivery synchronization traces with raw NFS traffic. Selected noac sync intervals have no observed outgoing RPC; separate buffered OS controls prove stable WRITE reply withholding/recovery, not COMMIT or mover sync-loss support. See [the reproducible sync lab](NFS-SYNC-LAB.md). No Rust/service/dependency policy changes; production NFS and source deletion remain disabled, and FR-03/05 remain open.
+
+[Increment 68](RUST-INCREMENT-68.md) selects the buffered NMP-41B qualification
+candidate and retains NMP-41N as a distinct noac diagnostic. The
+[mount contract](NFS-MOUNT-PROFILE.md) and [lab](NFS-MOUNT-PROFILE-LAB.md) validate
+read-only model decisions for selected SH-10/12/13 inventory cases. New Rust
+startup/effect enforcement, descriptor/enrollment rechecks and real buffered
+service fault tests remain pending. Reused mount IDs show that matching pins do
+not prove continuity. FR-03/05 remain open; production NFS/deletion stay disabled.

@@ -749,3 +749,12 @@ production NFS and source deletion remain disabled.
 [Increment 66](RUST-INCREMENT-66.md) qualifies four selected debug/release source-claim LINK/REMOVE success-reply-loss cases after independent and repeated source-server completion/withheld-success/pending-client controls. Initial/same-ID submissions remain retryable 503 with paths unreleased until original-state custody recovery confirms 202; only then does the producer reuse paths. Original claim inode/content, job ID, database/enrollment and attempt one survive delivery. Loss explicitly includes connection interruption; COMMIT/fsync, remaining claim/mount/security boundaries, server/media/power durability and old kernels remain unqualified. Production NFS and source deletion remain disabled.
 
 [Increment 67](RUST-INCREMENT-67.md) correlates four actual debug/release claim/delivery synchronization traces with raw NFS traffic. Selected noac sync intervals have no observed outgoing RPC; separate buffered OS controls prove stable WRITE reply withholding/recovery, not COMMIT or mover sync-loss support. See [the reproducible sync lab](NFS-SYNC-LAB.md). No Rust/service/dependency policy changes; production NFS and source deletion remain disabled, and FR-03/05 remain open.
+
+## Declared mount profiles
+
+[Increment 68](RUST-INCREMENT-68.md) defines [NMP-41B and NMP-41N](NFS-MOUNT-PROFILE.md).
+B is a buffered first-release qualification candidate; N retains prior noac
+fixture observations. The new [lab](NFS-MOUNT-PROFILE-LAB.md) executes no Rust and
+checks inventory decisions only. Do not relabel earlier noac worker runs or
+buffered OS controls as buffered mover qualification. Profile enforcement and
+service fault coverage remain pending; production NFS/source deletion stay off.

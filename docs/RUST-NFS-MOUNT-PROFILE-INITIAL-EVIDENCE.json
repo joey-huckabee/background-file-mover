@@ -1,0 +1,1627 @@
+{
+  "status": "FAILED",
+  "run_id": "mount-profile-20261019T004903Z-4d74cf97",
+  "rust_executed": false,
+  "production_nfs_enabled": false,
+  "source_deletion_enabled": false,
+  "checks": [
+    {
+      "name": "NMP-41N/NMP-41N",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "7b2b5955fb884895d466342b38474e515411cd26ce38374871480d40ba99002c",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "stable same-namespace pin NMP-41N/NMP-41N",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "7b2b5955fb884895d466342b38474e515411cd26ce38374871480d40ba99002c",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "NMP-41B/NMP-41B",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "1ffa742a32a4dd487c0a65cef39a6792b0e12d727dc3cd5dc8f38d6235484e8f",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "stable same-namespace pin NMP-41B/NMP-41B",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "1ffa742a32a4dd487c0a65cef39a6792b0e12d727dc3cd5dc8f38d6235484e8f",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "NMP-41B/NMP-41N",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "85e748b117d8ade492fdb6cb25b4e358832519f9e6b060b60cafc02d13c1ac37",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "stable same-namespace pin NMP-41B/NMP-41N",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "85e748b117d8ade492fdb6cb25b4e358832519f9e6b060b60cafc02d13c1ac37",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "NMP-41N/NMP-41B",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1050 1115 0:153 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "be9e70d11e0ceb93ba826d607c02fae22240fcd38391e059d1021d2989cb2748",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1050,
+              "parent": 1115,
+              "device": "0:153",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "stable same-namespace pin NMP-41N/NMP-41B",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41N"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1050 1115 0:153 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "be9e70d11e0ceb93ba826d607c02fae22240fcd38391e059d1021d2989cb2748",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41N",
+            "mount": {
+              "id": 1050,
+              "parent": 1115,
+              "device": "0:153",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "sync": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "acregmin": "0",
+                "acregmax": "0",
+                "acdirmin": "0",
+                "acdirmax": "0",
+                "hard": null,
+                "noac": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "buffered baseline",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "1ffa742a32a4dd487c0a65cef39a6792b0e12d727dc3cd5dc8f38d6235484e8f",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-destination",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1066,
+              "parent": 1115,
+              "device": "0:159",
+              "root": "/",
+              "point": "/tmp/profile-destination",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-destination",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "same-share disjoint directories",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source/incoming",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-source/received",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "PROFILE_MATCH_ONLY",
+        "pin": "2c11c5ee26e85d46e32c4612b14393d7edc75e32170ac0ede2c603b4e1ee59ea",
+        "selected": {
+          "source": {
+            "path": "/tmp/profile-source/incoming",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "destination": {
+            "path": "/tmp/profile-source/received",
+            "profile": "NMP-41B",
+            "mount": {
+              "id": 1051,
+              "parent": 1115,
+              "device": "0:154",
+              "root": "/",
+              "point": "/tmp/profile-source",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "nfs4",
+              "source": "10.89.0.2:/profile-source",
+              "super": {
+                "rw": null,
+                "vers": "4.1",
+                "rsize": "1048576",
+                "wsize": "1048576",
+                "namlen": "255",
+                "hard": null,
+                "fatal_neterrors": "ENETDOWN:ENETUNREACH",
+                "proto": "tcp",
+                "timeo": "10",
+                "retrans": "1",
+                "sec": "sys",
+                "clientaddr": "10.89.0.3",
+                "local_lock": "none",
+                "addr": "10.89.0.2"
+              }
+            }
+          },
+          "state": {
+            "path": "/tmp/profile-state",
+            "mount": {
+              "id": 1115,
+              "parent": 1036,
+              "device": "0:150",
+              "root": "/",
+              "point": "/",
+              "vfs": {
+                "rw": null,
+                "relatime": null
+              },
+              "optional": [],
+              "filesystem": "overlay",
+              "source": "overlay",
+              "super": {
+                "rw": null,
+                "lowerdir": "/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff",
+                "upperdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff",
+                "workdir": "/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work",
+                "redirect_dir": "on",
+                "uuid": "on",
+                "metacopy": "on"
+              }
+            }
+          }
+        },
+        "production_authorized": false,
+        "source_deletion_authorized": false,
+        "warnings": [
+          "No descriptor, symlink, root inode, permission, marker, RPC settlement or media proof.",
+          "AUTH_SYS requires a trusted network and consistent UID/GID; no server authentication.",
+          "Local state persistence is not proven, including overlay/tmpfs fixture state.",
+          "All effective options are pinned; modern fatal_neterrors is recorded, not old-kernel qualification."
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "source soft",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,soft,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "retry/coherence/cache policy outside profile"
+      },
+      "passed": true
+    },
+    {
+      "name": "source read-only",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source ro,relatime - nfs4 10.89.0.2:/profile-source ro,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "read-only mount"
+      },
+      "passed": true
+    },
+    {
+      "name": "source no close-to-open",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,nocto,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "retry/coherence/cache policy outside profile"
+      },
+      "passed": true
+    },
+    {
+      "name": "destination soft",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,soft,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "retry/coherence/cache policy outside profile"
+      },
+      "passed": true
+    },
+    {
+      "name": "destination read-only",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination ro,relatime - nfs4 10.89.0.2:/profile-destination ro,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "read-only mount"
+      },
+      "passed": true
+    },
+    {
+      "name": "destination no close-to-open",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n1066 1115 0:159 / /tmp/profile-destination rw,relatime - nfs4 10.89.0.2:/profile-destination rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,nocto,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "retry/coherence/cache policy outside profile"
+      },
+      "passed": true
+    },
+    {
+      "name": "both mounts absent/local fallback",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "unexpected mountpoint or subtree/bind root"
+      },
+      "passed": true
+    },
+    {
+      "name": "destination mount absent",
+      "scope": "live inventory",
+      "declaration": {
+        "state_path": "/tmp/profile-state",
+        "source": {
+          "path": "/tmp/profile-source",
+          "mountpoint": "/tmp/profile-source",
+          "source": "10.89.0.2:/profile-source",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        },
+        "destination": {
+          "path": "/tmp/profile-destination",
+          "mountpoint": "/tmp/profile-destination",
+          "source": "10.89.0.2:/profile-destination",
+          "addr": "10.89.0.2",
+          "profile": "NMP-41B"
+        }
+      },
+      "inventory": "1115 1036 0:150 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/diff,workdir=/var/lib/containers/storage/overlay/4fd7596b3d8463a1e03818f7f2dd4ffc87ca0003f48ba8fb506c3ac9443eb548/work,redirect_dir=on,uuid=on,metacopy=on\n1116 1115 0:155 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw\n1117 1115 0:156 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755\n1118 1115 0:157 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw\n1119 1117 0:158 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666\n1120 1117 0:152 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw\n1121 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755\n1122 1117 0:149 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k\n1123 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755\n1124 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755\n1125 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755\n1126 1115 0:63 /containers/storage/overlay-containers/032500bf7d0e2875fb2d06c2c135a6641bd8d8e25c5b3bf4d2f34cbafbdfc75b/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755\n1127 1118 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate\n1128 1116 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755\n1129 1116 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1130 1116 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1131 1116 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1132 1116 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755\n1133 1116 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1134 1118 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755\n1135 1118 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755\n1136 1116 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755\n1137 1116 0:155 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw\n1138 1116 0:155 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw\n1139 1116 0:155 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw\n1140 1116 0:155 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw\n1141 1116 0:155 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw\n1051 1115 0:154 / /tmp/profile-source rw,relatime - nfs4 10.89.0.2:/profile-source rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2\n",
+      "result": {
+        "status": "REFUSED",
+        "reason": "unexpected mountpoint or subtree/bind root"
+      },
+      "passed": true
+    }
+  ],
+  "cleanup_errors": [],
+  "config": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_zigbuild": "0.23.4",
+    "zig": "0.16.0",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "sources": {
+    "nfs_mount_profile.py": {
+      "sha256": "8c8567190f822e0035c96a4e4f79f55a77b789226a65f02174eded69313f6db2",
+      "base64": "IiIiUmVhZC1vbmx5IHF1YWxpZmljYXRpb24gbW9kZWwuIFRoaXMgaXMgTk9UIGEgc2hpcHBpbmcgc3RhcnR1cCBndWFyZC4KCk9ubHkga2VybmVsIG1vdW50aW5mbyB0ZXh0IGFuZCBhbiBleHBsaWNpdCBkZWNsYXJhdGlvbiBhcmUgaW5wdXRzLiBOZXZlciByZXNvbHZlLApzdGF0LCBvcGVuLCBvciBwcm9iZSBhbiBORlMgcGF0aG5hbWUgaGVyZS4gRGVzY3JpcHRvci9yb290L2Vucm9sbG1lbnQgdmFsaWRhdGlvbgphbmQgcmFjZSBleGNsdXNpb24gcmVtYWluIHNlcGFyYXRlIHNlcnZpY2Ugb2JsaWdhdGlvbnMuCiIiIgppbXBvcnQgaGFzaGxpYgppbXBvcnQganNvbgppbXBvcnQgcmUKCgpjbGFzcyBSZWZ1c2VkKFZhbHVlRXJyb3IpOgogICAgcGFzcwoKCmRlZiBwYXRoKHZhbHVlKToKICAgIGlmIChub3QgaXNpbnN0YW5jZSh2YWx1ZSwgc3RyKSBvciBub3QgdmFsdWUuc3RhcnRzd2l0aCgnLycpIG9yCiAgICAgICAgICAgIGFueShjIGluIHZhbHVlIGZvciBjIGluICdceDAwXG5ccicpIG9yCiAgICAgICAgICAgICh2YWx1ZSAhPSAnLycgYW5kIGFueShwIGluICgnJywgJy4nLCAnLi4nKSBmb3IgcCBpbiB2YWx1ZVsxOl0uc3BsaXQoJy8nKSkpKToKICAgICAgICByYWlzZSBSZWZ1c2VkKCdub25jYW5vbmljYWwgYWJzb2x1dGUgcGF0aCcpCiAgICByZXR1cm4gdmFsdWUKCgpkZWYgYmVuZWF0aChjaGlsZCwgcGFyZW50KToKICAgIHJldHVybiBjaGlsZCA9PSBwYXJlbnQgb3IgY2hpbGQuc3RhcnRzd2l0aChwYXJlbnQucnN0cmlwKCcvJykgKyAnLycpCgoKZGVmIHVuZXNjYXBlKHZhbHVlKToKICAgIGlmIHJlLnNlYXJjaChyJ1xcKD8hMDQwfDAxMXwwMTJ8MTM0KScsIHZhbHVlKToKICAgICAgICByYWlzZSBSZWZ1c2VkKCdpbnZhbGlkIG1vdW50aW5mbyBlc2NhcGUnKQogICAgcmV0dXJuIHJlLnN1YihyJ1xcKDA0MHwwMTF8MDEyfDEzNCknLCBsYW1iZGEgbTogY2hyKGludChtWzFdLCA4KSksIHZhbHVlKQoKCmRlZiBvcHRpb25zKHZhbHVlKToKICAgIGFuc3dlciA9IHt9CiAgICBmb3IgaXRlbSBpbiB2YWx1ZS5zcGxpdCgnLCcpOgogICAgICAgIGtleSwgc2VwLCB2YWwgPSBpdGVtLnBhcnRpdGlvbignPScpCiAgICAgICAgaWYgbm90IGtleSBvciBrZXkgaW4gYW5zd2VyIG9yIChzZXAgYW5kIG5vdCB2YWwpOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdkdXBsaWNhdGUvZW1wdHkgbW91bnQgb3B0aW9uJykKICAgICAgICBhbnN3ZXJba2V5XSA9IHZhbCBpZiBzZXAgZWxzZSBOb25lCiAgICByZXR1cm4gYW5zd2VyCgoKZGVmIHBhcnNlKHRleHQpOgogICAgaWYgbm90IGlzaW5zdGFuY2UodGV4dCwgc3RyKSBvciBsZW4odGV4dC5lbmNvZGUoJ3V0Zi04JykpID4gMTAyNCAqIDEwMjQ6CiAgICAgICAgcmFpc2UgUmVmdXNlZCgnaW52YWxpZC9vdmVyc2l6ZWQgbW91bnQgaW52ZW50b3J5JykKICAgIHJlY29yZHMgPSBbXQogICAgZm9yIGxpbmUgaW4gdGV4dC5zcGxpdGxpbmVzKCk6CiAgICAgICAgZmllbGRzID0gbGluZS5zcGxpdCgpCiAgICAgICAgdHJ5OgogICAgICAgICAgICBwaXZvdCA9IGZpZWxkcy5pbmRleCgnLScpCiAgICAgICAgICAgIGlmIHBpdm90IDwgNiBvciBsZW4oZmllbGRzKSAhPSBwaXZvdCArIDQ6CiAgICAgICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdpbnZhbGlkIG1vdW50aW5mbyBmaWVsZHMnKQogICAgICAgICAgICBtaWQsIHBhcmVudCA9IGludChmaWVsZHNbMF0pLCBpbnQoZmllbGRzWzFdKQogICAgICAgICAgICBpZiBtaWQgPD0gMCBvciBwYXJlbnQgPD0gMCBvciBub3QgcmUuZnVsbG1hdGNoKHInXGQrOlxkKycsIGZpZWxkc1syXSk6CiAgICAgICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdpbnZhbGlkIG1vdW50IGlkZW50aXR5JykKICAgICAgICAgICAgcmVjb3Jkcy5hcHBlbmQoZGljdChpZD1taWQsIHBhcmVudD1wYXJlbnQsIGRldmljZT1maWVsZHNbMl0sCiAgICAgICAgICAgICAgICByb290PXBhdGgodW5lc2NhcGUoZmllbGRzWzNdKSksIHBvaW50PXBhdGgodW5lc2NhcGUoZmllbGRzWzRdKSksCiAgICAgICAgICAgICAgICB2ZnM9b3B0aW9ucyhmaWVsZHNbNV0pLCBvcHRpb25hbD1maWVsZHNbNjpwaXZvdF0sCiAgICAgICAgICAgICAgICBmaWxlc3lzdGVtPWZpZWxkc1twaXZvdCsxXSwgc291cmNlPXVuZXNjYXBlKGZpZWxkc1twaXZvdCsyXSksCiAgICAgICAgICAgICAgICBzdXBlcj1vcHRpb25zKGZpZWxkc1twaXZvdCszXSkpKQogICAgICAgIGV4Y2VwdCAoVmFsdWVFcnJvciwgSW5kZXhFcnJvcikgYXMgZXJyb3I6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ21hbGZvcm1lZCBtb3VudCBpbnZlbnRvcnk6ICcgKyBzdHIoZXJyb3IpKSBmcm9tIGVycm9yCiAgICBpZiBub3QgcmVjb3JkcyBvciBsZW4oe3JbJ2lkJ10gZm9yIHIgaW4gcmVjb3Jkc30pICE9IGxlbihyZWNvcmRzKToKICAgICAgICByYWlzZSBSZWZ1c2VkKCdlbXB0eS9kdXBsaWNhdGUgbW91bnQgaW52ZW50b3J5JykKICAgIHJldHVybiByZWNvcmRzCgoKZGVmIGNvdmVyaW5nKHJlY29yZHMsIHRhcmdldCk6CiAgICBjYW5kaWRhdGVzID0gW3IgZm9yIHIgaW4gcmVjb3JkcyBpZiBiZW5lYXRoKHRhcmdldCwgclsncG9pbnQnXSldCiAgICBpZiBub3QgY2FuZGlkYXRlczoKICAgICAgICByYWlzZSBSZWZ1c2VkKCdubyBjb3ZlcmluZyBtb3VudCcpCiAgICBkZXB0aCA9IG1heChsZW4oclsncG9pbnQnXSkgZm9yIHIgaW4gY2FuZGlkYXRlcykKICAgIHNlbGVjdGVkID0gW3IgZm9yIHIgaW4gY2FuZGlkYXRlcyBpZiBsZW4oclsncG9pbnQnXSkgPT0gZGVwdGhdCiAgICBpZiBsZW4oc2VsZWN0ZWQpICE9IDE6CiAgICAgICAgcmFpc2UgUmVmdXNlZCgnc3RhY2tlZC9hbWJpZ3VvdXMgY292ZXJpbmcgbW91bnQnKQogICAgcmV0dXJuIHNlbGVjdGVkWzBdCgoKIyBSZWNvZ25pemVkIGVmZmVjdGl2ZSBrZXJuZWwgb3B0aW9ucy4gQWJzZW5jZSBvZiBhYy9hc3luYy9jdG8vbG9va3VwY2FjaGU9YWxsCiMgZGVub3RlcyBMaW51eCBkZWZhdWx0czsgYWJzZW5jZSBpcyBuZXZlciBpbnRlcnByZXRlZCBhcyBhbiBlbmRwb2ludCBpZGVudGl0eS4KRkxBR1MgPSB7J3J3JywgJ3N5bmMnLCAnYXN5bmMnLCAnaGFyZCcsICdub2FjJywgJ2FjJywgJ2N0bycsICdub2N0bycsCiAgICAgICAgICdzb2Z0JywgJ3NvZnRlcnInLCAnc29mdHJldmFsJywgJ25vc29mdHJldmFsJywgJ25vbG9jaycsICdsb2NrJywKICAgICAgICAgJ3Jlc3Zwb3J0JywgJ25vcmVzdnBvcnQnLCAnc2hhcmVjYWNoZScsICdub3NoYXJlY2FjaGUnLCAnZnNjJywgJ25vZnNjJ30KVkFMVUVTID0geyd2ZXJzJywgJ3JzaXplJywgJ3dzaXplJywgJ25hbWxlbicsICdhY3JlZ21pbicsICdhY3JlZ21heCcsCiAgICAgICAgICAnYWNkaXJtaW4nLCAnYWNkaXJtYXgnLCAncHJvdG8nLCAndGltZW8nLCAncmV0cmFucycsICdzZWMnLAogICAgICAgICAgJ2NsaWVudGFkZHInLCAnbG9jYWxfbG9jaycsICdhZGRyJywgJ3BvcnQnLCAnbG9va3VwY2FjaGUnLAogICAgICAgICAgJ25jb25uZWN0JywgJ2ZhdGFsX25ldGVycm9ycyd9CgoKZGVmIHZhbGlkYXRlKHRleHQsIGRlY2xhcmF0aW9uLCBwcmV2aW91cz1Ob25lKToKICAgIHJlY29yZHMgPSBwYXJzZSh0ZXh0KQogICAgc2VsZWN0ZWQgPSB7fQogICAgcm9vdHMgPSBbcGF0aChkZWNsYXJhdGlvbltrXVsncGF0aCddKSBmb3IgayBpbiAoJ3NvdXJjZScsICdkZXN0aW5hdGlvbicpXQogICAgaWYgYmVuZWF0aChyb290c1swXSwgcm9vdHNbMV0pIG9yIGJlbmVhdGgocm9vdHNbMV0sIHJvb3RzWzBdKToKICAgICAgICByYWlzZSBSZWZ1c2VkKCdzb3VyY2UvZGVzdGluYXRpb24gcm9vdHMgb3ZlcmxhcCcpCiAgICBzdGF0ZSA9IHBhdGgoZGVjbGFyYXRpb25bJ3N0YXRlX3BhdGgnXSkKICAgIGlmIGFueShiZW5lYXRoKHN0YXRlLCByKSBvciBiZW5lYXRoKHIsIHN0YXRlKSBmb3IgciBpbiByb290cyk6CiAgICAgICAgcmFpc2UgUmVmdXNlZCgnc3RhdGUgYW5kIHBheWxvYWQgcm9vdHMgb3ZlcmxhcCcpCiAgICBmb3Igcm9sZSBpbiAoJ3NvdXJjZScsICdkZXN0aW5hdGlvbicpOgogICAgICAgIGV4cGVjdGVkID0gZGVjbGFyYXRpb25bcm9sZV0KICAgICAgICByb290ID0gcGF0aChleHBlY3RlZFsncGF0aCddKQogICAgICAgIG1vdW50ID0gY292ZXJpbmcocmVjb3Jkcywgcm9vdCkKICAgICAgICBvcHRzID0gbW91bnRbJ3N1cGVyJ10KICAgICAgICBpZiBleHBlY3RlZFsncHJvZmlsZSddIG5vdCBpbiAoJ05NUC00MUInLCAnTk1QLTQxTicpOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCd1bmRlY2xhcmVkIHByb2ZpbGUnKQogICAgICAgIGlmIG1vdW50Wydwb2ludCddICE9IHBhdGgoZXhwZWN0ZWRbJ21vdW50cG9pbnQnXSkgb3IgbW91bnRbJ3Jvb3QnXSAhPSAnLyc6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ3VuZXhwZWN0ZWQgbW91bnRwb2ludCBvciBzdWJ0cmVlL2JpbmQgcm9vdCcpCiAgICAgICAgaWYgbW91bnRbJ2ZpbGVzeXN0ZW0nXSBub3QgaW4gKCduZnMnLCAnbmZzNCcpOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdtaXNzaW5nIE5GUyBtb3VudC9sb2NhbCBmYWxsYmFjaycpCiAgICAgICAgaWYgbW91bnRbJ3NvdXJjZSddICE9IGV4cGVjdGVkWydzb3VyY2UnXSBvciBvcHRzLmdldCgnYWRkcicpICE9IGV4cGVjdGVkWydhZGRyJ106CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ2VuZHBvaW50L2V4cG9ydCBkaWZmZXJzIGZyb20gZGVjbGFyYXRpb24nKQogICAgICAgIGlmIG9wdHMuZ2V0KCd2ZXJzJykgIT0gJzQuMScgb3Igb3B0cy5nZXQoJ3Byb3RvJykgIT0gJ3RjcCcgb3Igb3B0cy5nZXQoJ3NlYycpICE9ICdzeXMnOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCd2ZXJzaW9uL3RyYW5zcG9ydC9zZWN1cml0eSBvdXRzaWRlIGNhbmRpZGF0ZSBwcm9maWxlJykKICAgICAgICBpZiAncncnIG5vdCBpbiBtb3VudFsndmZzJ10gb3IgJ3JvJyBpbiBtb3VudFsndmZzJ10gb3IgJ3J3JyBub3QgaW4gb3B0cyBvciAncm8nIGluIG9wdHM6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ3JlYWQtb25seSBtb3VudCcpCiAgICAgICAgaWYgJ2hhcmQnIG5vdCBpbiBvcHRzIG9yIHNldChvcHRzKSAmIHsnc29mdCcsICdzb2Z0ZXJyJywgJ3NvZnRyZXZhbCcsICdub2N0bycsICdub2xvY2snLCAnbm9zaGFyZWNhY2hlJywgJ2ZzYyd9OgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdyZXRyeS9jb2hlcmVuY2UvY2FjaGUgcG9saWN5IG91dHNpZGUgcHJvZmlsZScpCiAgICAgICAgaWYgb3B0cy5nZXQoJ2xvY2FsX2xvY2snLCAnbm9uZScpICE9ICdub25lJyBvciBvcHRzLmdldCgnbG9va3VwY2FjaGUnLCAnYWxsJykgIT0gJ2FsbCc6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ2xvY2FsIGxvY2tpbmcvbG9va3VwIGNhY2hlIG92ZXJyaWRlJykKICAgICAgICBpZiBvcHRzLmdldCgnbmNvbm5lY3QnLCAnMScpICE9ICcxJyBvciBvcHRzLmdldCgncG9ydCcsICcyMDQ5JykgIT0gJzIwNDknOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCd1bnF1YWxpZmllZCBjb25uZWN0aW9uL3BvcnQgb3ZlcnJpZGUnKQogICAgICAgIGlmIHNldChvcHRzKSAtIEZMQUdTIC0gVkFMVUVTOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCd1bnJldmlld2VkIGVmZmVjdGl2ZSBtb3VudCBvcHRpb24nKQogICAgICAgIGlmIGFueSgoayBpbiBGTEFHUyBhbmQgdiBpcyBub3QgTm9uZSkgb3IgKGsgaW4gVkFMVUVTIGFuZCB2IGlzIE5vbmUpIGZvciBrLCB2IGluIG9wdHMuaXRlbXMoKSk6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ2ludmFsaWQgb3B0aW9uIHZhbHVlIHNoYXBlJykKICAgICAgICBmb3Iga2V5IGluICgncnNpemUnLCAnd3NpemUnLCAnbmFtbGVuJywgJ3RpbWVvJywgJ3JldHJhbnMnKToKICAgICAgICAgICAgaWYga2V5IG5vdCBpbiBvcHRzIG9yIG5vdCByZS5mdWxsbWF0Y2gocidbMS05XVxkKicsIG9wdHNba2V5XSk6CiAgICAgICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCdtaXNzaW5nL2ludmFsaWQgZWZmZWN0aXZlIG51bWVyaWMgb3B0aW9uJykKICAgICAgICBpZiAnc3luYycgaW4gb3B0cyBhbmQgJ2FzeW5jJyBpbiBvcHRzIG9yICdhYycgaW4gb3B0cyBhbmQgJ25vYWMnIGluIG9wdHM6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ2NvbmZsaWN0aW5nIGNhY2hlL3dyaXRlIHBvbGljeScpCiAgICAgICAgbm9hYyA9ICdub2FjJyBpbiBvcHRzCiAgICAgICAgaWYgZXhwZWN0ZWRbJ3Byb2ZpbGUnXSA9PSAnTk1QLTQxQicgYW5kIChub2FjIG9yICdzeW5jJyBpbiBvcHRzKToKICAgICAgICAgICAgcmFpc2UgUmVmdXNlZCgnYnVmZmVyZWQgY2FuZGlkYXRlIHJlcXVpcmVzIGFjL2FzeW5jaHJvbm91cyBjbGllbnQgd3JpdGVzJykKICAgICAgICBpZiBleHBlY3RlZFsncHJvZmlsZSddID09ICdOTVAtNDFOJyBhbmQgKG5vdCBub2FjIG9yICdzeW5jJyBub3QgaW4gb3B0cyk6CiAgICAgICAgICAgIHJhaXNlIFJlZnVzZWQoJ25vYWMgZGlhZ25vc3RpYyByZXF1aXJlcyBvYnNlcnZlZCBzeW5jaHJvbm91cyB3cml0ZXMnKQogICAgICAgIGlmIGFueShyWydpZCddICE9IG1vdW50WydpZCddIGFuZCBiZW5lYXRoKHJbJ3BvaW50J10sIHJvb3QpIGZvciByIGluIHJlY29yZHMpOgogICAgICAgICAgICByYWlzZSBSZWZ1c2VkKCduZXN0ZWQgb3Igc3RhY2tlZCBtb3VudCBpbiBhcHByb3ZlZCByb290JykKICAgICAgICBzZWxlY3RlZFtyb2xlXSA9IGRpY3QocGF0aD1yb290LCBwcm9maWxlPWV4cGVjdGVkWydwcm9maWxlJ10sIG1vdW50PW1vdW50KQogICAgbG9jYWwgPSBjb3ZlcmluZyhyZWNvcmRzLCBzdGF0ZSkKICAgIGlmIGxvY2FsWydmaWxlc3lzdGVtJ10gbm90IGluICgnZXh0NCcsICd4ZnMnLCAnYnRyZnMnLCAnb3ZlcmxheScsICd0bXBmcycpOgogICAgICAgIHJhaXNlIFJlZnVzZWQoJ3N0YXRlIGlzIG5vdCBvbiBhIGRlY2xhcmVkIGxvY2FsIGZpbGVzeXN0ZW0nKQogICAgaWYgYW55KGJlbmVhdGgoclsncG9pbnQnXSwgc3RhdGUpIGZvciByIGluIHJlY29yZHMgaWYgclsnaWQnXSAhPSBsb2NhbFsnaWQnXSk6CiAgICAgICAgcmFpc2UgUmVmdXNlZCgnbmVzdGVkL2luZGl2aWR1YWwgc3RhdGUgbW91bnQnKQogICAgc2VsZWN0ZWRbJ3N0YXRlJ10gPSBkaWN0KHBhdGg9c3RhdGUsIG1vdW50PWxvY2FsKQogICAgIyBUaGlzIGlzIGEgc2FtZS1uYW1lc3BhY2Ugb2JzZXJ2YXRpb24gcGluLCBub3QgYXV0aGVudGljYXRlZCBOQVMgYXV0aG9yaXR5LgogICAgZGlnZXN0ID0gaGFzaGxpYi5zaGEyNTYoanNvbi5kdW1wcyhzZWxlY3RlZCwgc29ydF9rZXlzPVRydWUpLmVuY29kZSgpKS5oZXhkaWdlc3QoKQogICAgaWYgcHJldmlvdXMgaXMgbm90IE5vbmUgYW5kIHByZXZpb3VzICE9IGRpZ2VzdDoKICAgICAgICByYWlzZSBSZWZ1c2VkKCdvYnNlcnZlZCBtb3VudCBwaW4gY2hhbmdlZDsgbm8gYXV0b21hdGljIHJlYmluZCcpCiAgICByZXR1cm4gZGljdChzdGF0dXM9J1BST0ZJTEVfTUFUQ0hfT05MWScsIHBpbj1kaWdlc3QsIHNlbGVjdGVkPXNlbGVjdGVkLAogICAgICAgICAgICAgICAgcHJvZHVjdGlvbl9hdXRob3JpemVkPUZhbHNlLCBzb3VyY2VfZGVsZXRpb25fYXV0aG9yaXplZD1GYWxzZSwKICAgICAgICAgICAgICAgIHdhcm5pbmdzPVsnTm8gZGVzY3JpcHRvciwgc3ltbGluaywgcm9vdCBpbm9kZSwgcGVybWlzc2lvbiwgbWFya2VyLCBSUEMgc2V0dGxlbWVudCBvciBtZWRpYSBwcm9vZi4nLAogICAgICAgICAgICAgICAgICAgICAgICAgICdBVVRIX1NZUyByZXF1aXJlcyBhIHRydXN0ZWQgbmV0d29yayBhbmQgY29uc2lzdGVudCBVSUQvR0lEOyBubyBzZXJ2ZXIgYXV0aGVudGljYXRpb24uJywKICAgICAgICAgICAgICAgICAgICAgICAgICAnTG9jYWwgc3RhdGUgcGVyc2lzdGVuY2UgaXMgbm90IHByb3ZlbiwgaW5jbHVkaW5nIG92ZXJsYXkvdG1wZnMgZml4dHVyZSBzdGF0ZS4nLAogICAgICAgICAgICAgICAgICAgICAgICAgICdBbGwgZWZmZWN0aXZlIG9wdGlvbnMgYXJlIHBpbm5lZDsgbW9kZXJuIGZhdGFsX25ldGVycm9ycyBpcyByZWNvcmRlZCwgbm90IG9sZC1rZXJuZWwgcXVhbGlmaWNhdGlvbi4nXSkK"
+    },
+    "check-nfs-mount-profile.py": {
+      "sha256": "8b230b86792f3924df7e8fce8ae87f1c370c2e5aa3d4c613c7bcd51c389d0f9f",
+      "base64": "IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwoiIiJRdWFsaWZ5IGEgcmVhZC1vbmx5IE5GUyBtb3VudC1wcm9maWxlIG1vZGVsIGluIGRpc3Bvc2FibGUgU0xFUyBjb250YWluZXJzLiIiIgpmcm9tIGRhdGV0aW1lIGltcG9ydCBkYXRldGltZSwgdGltZXpvbmUKaW1wb3J0IGJhc2U2NAppbXBvcnQgY29weQppbXBvcnQgaGFzaGxpYgppbXBvcnQganNvbgpmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKaW1wb3J0IHN1YnByb2Nlc3MKaW1wb3J0IHRpbWUKaW1wb3J0IHRyYWNlYmFjawppbXBvcnQgdXVpZAoKZnJvbSBuZnNfbW91bnRfcHJvZmlsZSBpbXBvcnQgUmVmdXNlZCwgcGFyc2UsIHZhbGlkYXRlCgoKZGVmIG1haW4oKToKICAgIHJvb3QgPSBQYXRoKF9fZmlsZV9fKS5yZXNvbHZlKCkucGFyZW50c1sxXQogICAgY29uZmlnID0ganNvbi5sb2Fkcygocm9vdCAvICdzY3JpcHRzL3J1c3QtcGxhdGZvcm0uanNvbicpLnJlYWRfdGV4dChlbmNvZGluZz0ndXRmLTgnKSkKICAgIGxhYmVsID0gJ21vdW50LXByb2ZpbGUtJyArIGRhdGV0aW1lLm5vdyh0aW1lem9uZS51dGMpLnN0cmZ0aW1lKCclWSVtJWRUJUglTSVTWicpICsgJy0nICsgdXVpZC51dWlkNCgpLmhleFs6OF0KICAgIG91dHB1dCA9IHJvb3QgLyAncnVzdC92YWxpZGF0aW9uJyAvIGxhYmVsCiAgICBvdXRwdXQubWtkaXIocGFyZW50cz1UcnVlKQogICAgcHJpbnQoJ01vdW50LXByb2ZpbGUgdmFsaWRhdGlvbjogJyArIHN0cihvdXRwdXQpLCBmbHVzaD1UcnVlKQogICAgZW5naW5lID0gWydwb2RtYW4nLCAnLS1jb25uZWN0aW9uJywgJ3BvZG1hbi1tYWNoaW5lLWRlZmF1bHQtcm9vdCddCiAgICBuZXR3b3JrID0gJ2JmbS0nICsgbGFiZWwubG93ZXIoKQogICAgY29udGFpbmVycywgbW91bnRzLCB2b2x1bWVzID0gW10sIFtdLCBbXQogICAgY2xpZW50ID0gc2VydmVyID0gTm9uZQogICAgc2VydmVyX3N0b3BwZWQgPSBGYWxzZQogICAgbmV0d29ya19jcmVhdGVkID0gRmFsc2UKICAgIHJlcG9ydCA9IGRpY3Qoc3RhdHVzPSdGQUlMRUQnLCBydW5faWQ9bGFiZWwsIHJ1c3RfZXhlY3V0ZWQ9RmFsc2UsCiAgICAgICAgcHJvZHVjdGlvbl9uZnNfZW5hYmxlZD1GYWxzZSwgc291cmNlX2RlbGV0aW9uX2VuYWJsZWQ9RmFsc2UsCiAgICAgICAgY2hlY2tzPVtdLCBjbGVhbnVwX2Vycm9ycz1bXSwgY29uZmlnPWNvbmZpZywgc291cmNlcz17fSkKICAgIGZvciBuYW1lIGluICgnbmZzX21vdW50X3Byb2ZpbGUucHknLCAnY2hlY2stbmZzLW1vdW50LXByb2ZpbGUucHknKToKICAgICAgICBkYXRhID0gKHJvb3QgLyAnc2NyaXB0cycgLyBuYW1lKS5yZWFkX2J5dGVzKCkKICAgICAgICByZXBvcnRbJ3NvdXJjZXMnXVtuYW1lXSA9IGRpY3Qoc2hhMjU2PWhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpLCBiYXNlNjQ9YmFzZTY0LmI2NGVuY29kZShkYXRhKS5kZWNvZGUoKSkKCiAgICBkZWYgcnVuKGFyZ3MsIGNoZWNrPVRydWUpOgogICAgICAgIHZhbHVlID0gc3VicHJvY2Vzcy5ydW4oZW5naW5lICsgYXJncywgY2FwdHVyZV9vdXRwdXQ9VHJ1ZSwgdGV4dD1UcnVlLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZW5jb2Rpbmc9J3V0Zi04JywgZXJyb3JzPSdyZXBsYWNlJywgdGltZW91dD00NSkKICAgICAgICBpZiBjaGVjayBhbmQgdmFsdWUucmV0dXJuY29kZToKICAgICAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKHN0cihhcmdzKSArICc6ICcgKyB2YWx1ZS5zdGRvdXQgKyB2YWx1ZS5zdGRlcnIpCiAgICAgICAgcmV0dXJuIHZhbHVlCgogICAgZGVmIGV4ZWN1dGUoc2NyaXB0LCB1c2VyPU5vbmUpOgogICAgICAgIHJldHVybiBydW4oWydleGVjJywgKihbJy0tdXNlcicsIHVzZXJdIGlmIHVzZXIgZWxzZSBbXSksIGNsaWVudCwKICAgICAgICAgICAgICAgICAgICAnL2Jpbi9zaCcsICctZXUnLCAnLWMnLCBzY3JpcHRdKS5zdGRvdXQKCiAgICBkZWYgaW52ZW50b3J5KCk6CiAgICAgICAgcmV0dXJuIGV4ZWN1dGUoJ2NhdCAvcHJvYy9zZWxmL21vdW50aW5mbycpCgogICAgZGVmIGRlY2xhcmF0aW9uKHNvdXJjZT0nTk1QLTQxQicsIGRlc3RpbmF0aW9uPSdOTVAtNDFCJyk6CiAgICAgICAgcmV0dXJuIGRpY3Qoc3RhdGVfcGF0aD0nL3RtcC9wcm9maWxlLXN0YXRlJywgKip7cm9sZTogZGljdCgKICAgICAgICAgICAgcGF0aD0nL3RtcC9wcm9maWxlLScgKyByb2xlLCBtb3VudHBvaW50PScvdG1wL3Byb2ZpbGUtJyArIHJvbGUsCiAgICAgICAgICAgIHNvdXJjZT1hZGRyZXNzICsgJzovcHJvZmlsZS0nICsgcm9sZSwgYWRkcj1hZGRyZXNzLCBwcm9maWxlPXByb2ZpbGUpCiAgICAgICAgICAgIGZvciByb2xlLCBwcm9maWxlIGluICgoJ3NvdXJjZScsIHNvdXJjZSksICgnZGVzdGluYXRpb24nLCBkZXN0aW5hdGlvbikpfSkKCiAgICBkZWYgY2hlY2sobmFtZSwgdGV4dCwgZGVjbGFyZWQsIHJlZnVzZT1GYWxzZSwgcHJldmlvdXM9Tm9uZSwgc2NvcGU9J2xpdmUgaW52ZW50b3J5Jyk6CiAgICAgICAgdHJ5OgogICAgICAgICAgICByZXN1bHQgPSB2YWxpZGF0ZSh0ZXh0LCBkZWNsYXJlZCwgcHJldmlvdXMpCiAgICAgICAgZXhjZXB0IFJlZnVzZWQgYXMgZXJyb3I6CiAgICAgICAgICAgIGlmIG5vdCByZWZ1c2U6CiAgICAgICAgICAgICAgICByYWlzZQogICAgICAgICAgICByZXN1bHQgPSBkaWN0KHN0YXR1cz0nUkVGVVNFRCcsIHJlYXNvbj1zdHIoZXJyb3IpKQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIGlmIHJlZnVzZToKICAgICAgICAgICAgICAgIHJhaXNlIEFzc2VydGlvbkVycm9yKCduZWdhdGl2ZSBjb250cm9sIGFjY2VwdGVkOiAnICsgbmFtZSkKICAgICAgICByZXBvcnRbJ2NoZWNrcyddLmFwcGVuZChkaWN0KG5hbWU9bmFtZSwgc2NvcGU9c2NvcGUsIGRlY2xhcmF0aW9uPWRlY2xhcmVkLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpbnZlbnRvcnk9dGV4dCwgcmVzdWx0PXJlc3VsdCwgcGFzc2VkPVRydWUpKQogICAgICAgIHJldHVybiByZXN1bHQKCiAgICBkZWYgbW91bnQocm9sZSwgZXh0cmEpOgogICAgICAgIHBvaW50ID0gJy90bXAvcHJvZmlsZS0nICsgcm9sZQogICAgICAgIHJ1bihbJ2V4ZWMnLCBjbGllbnQsICdtb3VudCcsICctaScsICctdCcsICduZnM0JywgJy1vJywKICAgICAgICAgICAgIGYnYWRkcj17YWRkcmVzc30sdmVycz00LjEscHJvdG89dGNwLHBvcnQ9MjA0OSxzZWM9c3lzLHRpbWVvPTEwLHJldHJhbnM9MSwnICsgZXh0cmEsCiAgICAgICAgICAgICBhZGRyZXNzICsgJzovcHJvZmlsZS0nICsgcm9sZSwgcG9pbnRdKQogICAgICAgIG1vdW50cy5hcHBlbmQocG9pbnQpCgogICAgZGVmIHVubW91bnRfYWxsKCk6CiAgICAgICAgZm9yIHBvaW50IGluIHJldmVyc2VkKG1vdW50cy5jb3B5KCkpOgogICAgICAgICAgICBydW4oWydleGVjJywgY2xpZW50LCAndW1vdW50JywgcG9pbnRdKQogICAgICAgICAgICBtb3VudHMucmVtb3ZlKHBvaW50KQoKICAgIHRyeToKICAgICAgICBpbWFnZSA9ICdsb2NhbGhvc3QvYmFja2dyb3VuZC1maWxlLW1vdmVyLWUyLW5mcycKICAgICAgICByZXBvcnRbJ3NlcnZlcl9pbWFnZSddID0gcnVuKFsnaW1hZ2UnLCAnaW5zcGVjdCcsIGltYWdlLCAnLS1mb3JtYXQnLCAne3suSWR9fSddKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIHJ1bihbJ25ldHdvcmsnLCAnY3JlYXRlJywgJy0taW50ZXJuYWwnLCBuZXR3b3JrXSkKICAgICAgICBuZXR3b3JrX2NyZWF0ZWQgPSBUcnVlCiAgICAgICAgdm9sdW1lID0gbmV0d29yayArICctZXhwb3J0JwogICAgICAgIHJ1bihbJ3ZvbHVtZScsICdjcmVhdGUnLCB2b2x1bWVdKQogICAgICAgIHZvbHVtZXMuYXBwZW5kKHZvbHVtZSkKICAgICAgICBzZXJ2ZXIgPSBydW4oWydjcmVhdGUnLCAnLS1wcml2aWxlZ2VkJywgJy0tbmV0d29yaycsIG5ldHdvcmssCiAgICAgICAgICAgICAgICAgICAgICAnLS12b2x1bWUnLCB2b2x1bWUgKyAnOi9leHBvcnRzJywgaW1hZ2VdKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIGNvbnRhaW5lcnMuYXBwZW5kKHNlcnZlcikKICAgICAgICBydW4oWydzdGFydCcsIHNlcnZlcl0pCiAgICAgICAgZm9yIF8gaW4gcmFuZ2UoNDApOgogICAgICAgICAgICBpZiAnTkZTX1JFQURZJyBpbiBydW4oWydsb2dzJywgc2VydmVyXSkuc3Rkb3V0OgogICAgICAgICAgICAgICAgYnJlYWsKICAgICAgICAgICAgdGltZS5zbGVlcCguNSkKICAgICAgICBlbHNlOgogICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoJ05GUyBzZXJ2ZXIgbm90IHJlYWR5JykKICAgICAgICBhZGRyZXNzID0ganNvbi5sb2FkcyhydW4oWydpbnNwZWN0Jywgc2VydmVyXSkuc3Rkb3V0KVswXVsnTmV0d29ya1NldHRpbmdzJ11bJ05ldHdvcmtzJ11bbmV0d29ya11bJ0lQQWRkcmVzcyddCiAgICAgICAgcmVwb3J0WydzZXJ2ZXJfcGFja2FnZXMnXSA9IHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdkcGtnLXF1ZXJ5JywgJy1XJywgJ25mcy1jb21tb24nLCAnbmZzLWtlcm5lbC1zZXJ2ZXInLCAncnBjYmluZCddKS5zdGRvdXQKICAgICAgICBmb3Igcm9sZSwgZnNpZCBpbiAoKCdzb3VyY2UnLCA2OCksICgnZGVzdGluYXRpb24nLCA2OSkpOgogICAgICAgICAgICBydW4oWydleGVjJywgc2VydmVyLCAnL2Jpbi9zaCcsICctZXUnLCAnLWMnLAogICAgICAgICAgICAgICAgIGYnbWtkaXIgL2V4cG9ydHMvcHJvZmlsZS17cm9sZX07IG1vdW50IC10IHRtcGZzIC1vIHNpemU9MTZtLG1vZGU9MTc3NyB0bXBmcyAvZXhwb3J0cy9wcm9maWxlLXtyb2xlfTsgJwogICAgICAgICAgICAgICAgIGYiZXhwb3J0ZnMgLWkgLW8gcncsc3luYyxub19zdWJ0cmVlX2NoZWNrLHJvb3Rfc3F1YXNoLGZzaWQ9e2ZzaWR9ICcqOi9leHBvcnRzL3Byb2ZpbGUte3JvbGV9JyJdKQogICAgICAgIHJlcG9ydFsnc2VydmVyX2V4cG9ydHMnXSA9IHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdleHBvcnRmcycsICctdiddKS5zdGRvdXQKICAgICAgICBjbGllbnQgPSBydW4oWydjcmVhdGUnLCAnLS1uZXR3b3JrJywgbmV0d29yaywgJy0tY2FwLWRyb3AnLCAnYWxsJywgJy0tY2FwLWFkZCcsICdTWVNfQURNSU4nLAogICAgICAgICAgICAgICAgICAgICAgJy0tc2VjdXJpdHktb3B0JywgJ25vLW5ldy1wcml2aWxlZ2VzJywgJy0tZW50cnlwb2ludCcsICcvYmluL3NoJywKICAgICAgICAgICAgICAgICAgICAgIGNvbmZpZ1sncnVudGltZSddLCAnLWMnLCAnZXhlYyBzbGVlcCBpbmZpbml0eSddKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIGNvbnRhaW5lcnMuYXBwZW5kKGNsaWVudCkKICAgICAgICBydW4oWydzdGFydCcsIGNsaWVudF0pCiAgICAgICAgcmVwb3J0WydrZXJuZWwnXSA9IGV4ZWN1dGUoJ3VuYW1lIC1yJykuc3RyaXAoKQogICAgICAgIHJlcG9ydFsnZ2xpYmMnXSA9IGV4ZWN1dGUoJ2dldGNvbmYgR05VX0xJQkNfVkVSU0lPTicpLnN0cmlwKCkKICAgICAgICBhc3NlcnQgcmVwb3J0WydnbGliYyddID09ICdnbGliYyAyLjIyJwogICAgICAgIHJlcG9ydFsnbW91bnRfbmFtZXNwYWNlJ10gPSBleGVjdXRlKCdyZWFkbGluayAvcHJvYy9zZWxmL25zL21udCcpLnN0cmlwKCkKICAgICAgICBleGVjdXRlKCdta2RpciAvdG1wL3Byb2ZpbGUtc291cmNlIC90bXAvcHJvZmlsZS1kZXN0aW5hdGlvbiAvdG1wL3Byb2ZpbGUtc3RhdGUgL3RtcC9wcm9maWxlLWJpbmQ7IGNobW9kIDcwMCAvdG1wL3Byb2ZpbGUtc3RhdGUnKQogICAgICAgIHJlcG9ydFsnY2xpZW50X3NlY3VyaXR5J10gPSBleGVjdXRlKCdjYXQgL3Byb2MvMS9zdGF0dXMnKQogICAgICAgIGZvciBzb3VyY2UsIGRlc3RpbmF0aW9uIGluICgoJ05NUC00MU4nLCAnTk1QLTQxTicpLCAoJ05NUC00MUInLCAnTk1QLTQxQicpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAoJ05NUC00MUInLCAnTk1QLTQxTicpLCAoJ05NUC00MU4nLCAnTk1QLTQxQicpKToKICAgICAgICAgICAgZm9yIHJvbGUsIHByb2ZpbGUgaW4gKCgnc291cmNlJywgc291cmNlKSwgKCdkZXN0aW5hdGlvbicsIGRlc3RpbmF0aW9uKSk6CiAgICAgICAgICAgICAgICBtb3VudChyb2xlLCAnaGFyZCxub2FjJyBpZiBwcm9maWxlID09ICdOTVAtNDFOJyBlbHNlICdoYXJkLGFjLGFzeW5jJykKICAgICAgICAgICAgdGV4dCwgZGVjbGFyZWQgPSBpbnZlbnRvcnkoKSwgZGVjbGFyYXRpb24oc291cmNlLCBkZXN0aW5hdGlvbikKICAgICAgICAgICAgcmVzdWx0ID0gY2hlY2soc291cmNlICsgJy8nICsgZGVzdGluYXRpb24sIHRleHQsIGRlY2xhcmVkKQogICAgICAgICAgICBjaGVjaygnc3RhYmxlIHNhbWUtbmFtZXNwYWNlIHBpbiAnICsgc291cmNlICsgJy8nICsgZGVzdGluYXRpb24sIGludmVudG9yeSgpLCBkZWNsYXJlZCwgcHJldmlvdXM9cmVzdWx0WydwaW4nXSkKICAgICAgICAgICAgcmVwb3J0LnNldGRlZmF1bHQoJ2lvX2NvbnRyb2xzJywgW10pLmFwcGVuZChleGVjdXRlKAogICAgICAgICAgICAgICAgInVtYXNrIDA3NzsgcHJpbnRmICdtb3VudC1wcm9maWxlJyA+L3RtcC9wcm9maWxlLXNvdXJjZS9wcm9iZTsgIgogICAgICAgICAgICAgICAgImNwIC90bXAvcHJvZmlsZS1zb3VyY2UvcHJvYmUgL3RtcC9wcm9maWxlLWRlc3RpbmF0aW9uL3Byb2JlOyAiCiAgICAgICAgICAgICAgICAic2hhMjU2c3VtIC90bXAvcHJvZmlsZS1zb3VyY2UvcHJvYmUgL3RtcC9wcm9maWxlLWRlc3RpbmF0aW9uL3Byb2JlOyAiCiAgICAgICAgICAgICAgICAic3RhdCAtYyAnJXU6JWc6JWE6JXMnIC90bXAvcHJvZmlsZS1zb3VyY2UvcHJvYmUgL3RtcC9wcm9maWxlLWRlc3RpbmF0aW9uL3Byb2JlIiwgJzEwMDA6MTAwMCcpKQogICAgICAgICAgICB1bm1vdW50X2FsbCgpCiAgICAgICAgIyBCYXNlbGluZSBidWZmZXJlZCBwcm9maWxlIGZvciByZWFkLW9ubHkgb2JzZXJ2YXRpb24gYW5kIHJlZnVzYWwgY2FzZXMuCiAgICAgICAgbW91bnQoJ3NvdXJjZScsICdoYXJkLGFjLGFzeW5jJykKICAgICAgICBtb3VudCgnZGVzdGluYXRpb24nLCAnaGFyZCxhYyxhc3luYycpCiAgICAgICAgdGV4dCwgZGVjbGFyZWQgPSBpbnZlbnRvcnkoKSwgZGVjbGFyYXRpb24oKQogICAgICAgIGJhc2VsaW5lID0gY2hlY2soJ2J1ZmZlcmVkIGJhc2VsaW5lJywgdGV4dCwgZGVjbGFyZWQpCiAgICAgICAgY2hhbmdlZCA9IGNvcHkuZGVlcGNvcHkoZGVjbGFyZWQpCiAgICAgICAgY2hhbmdlZFsnc291cmNlJ11bJ3BhdGgnXSArPSAnL2luY29taW5nJwogICAgICAgIGNoYW5nZWRbJ2Rlc3RpbmF0aW9uJ10gPSBkaWN0KGNoYW5nZWRbJ3NvdXJjZSddLCBwYXRoPScvdG1wL3Byb2ZpbGUtc291cmNlL3JlY2VpdmVkJykKICAgICAgICBleGVjdXRlKCdta2RpciAvdG1wL3Byb2ZpbGUtc291cmNlL2luY29taW5nIC90bXAvcHJvZmlsZS1zb3VyY2UvcmVjZWl2ZWQnLCAnMTAwMDoxMDAwJykKICAgICAgICBjaGVjaygnc2FtZS1zaGFyZSBkaXNqb2ludCBkaXJlY3RvcmllcycsIGludmVudG9yeSgpLCBjaGFuZ2VkKQogICAgICAgIGZvciByb2xlIGluICgnc291cmNlJywgJ2Rlc3RpbmF0aW9uJyk6CiAgICAgICAgICAgIGZvciBleHRyYSwgbmFtZSBpbiAoKCdzb2Z0LGFjLGFzeW5jJywgJ3NvZnQnKSwgKCdoYXJkLGFjLGFzeW5jLHJvJywgJ3JlYWQtb25seScpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICgnaGFyZCxhYyxhc3luYyxub2N0bycsICdubyBjbG9zZS10by1vcGVuJykpOgogICAgICAgICAgICAgICAgdW5tb3VudF9hbGwoKQogICAgICAgICAgICAgICAgZm9yIHNlbGVjdGVkIGluICgnc291cmNlJywgJ2Rlc3RpbmF0aW9uJyk6CiAgICAgICAgICAgICAgICAgICAgbW91bnQoc2VsZWN0ZWQsIGV4dHJhIGlmIHNlbGVjdGVkID09IHJvbGUgZWxzZSAnaGFyZCxhYyxhc3luYycpCiAgICAgICAgICAgICAgICBjaGVjayhyb2xlICsgJyAnICsgbmFtZSwgaW52ZW50b3J5KCksIGRlY2xhcmF0aW9uKCksIHJlZnVzZT1UcnVlKQogICAgICAgIHVubW91bnRfYWxsKCkKICAgICAgICBjaGVjaygnYm90aCBtb3VudHMgYWJzZW50L2xvY2FsIGZhbGxiYWNrJywgaW52ZW50b3J5KCksIGRlY2xhcmF0aW9uKCksIHJlZnVzZT1UcnVlKQogICAgICAgIG1vdW50KCdzb3VyY2UnLCAnaGFyZCxhYyxhc3luYycpCiAgICAgICAgY2hlY2soJ2Rlc3RpbmF0aW9uIG1vdW50IGFic2VudCcsIGludmVudG9yeSgpLCBkZWNsYXJhdGlvbigpLCByZWZ1c2U9VHJ1ZSkKICAgICAgICBtb3VudCgnZGVzdGluYXRpb24nLCAnaGFyZCxhYyxhc3luYycpCiAgICAgICAgdGV4dCA9IGludmVudG9yeSgpCiAgICAgICAgY2hlY2soJ3JlbW91bnQgcmV0YWlucyBjb250ZW50IGJ1dCBjaGFuZ2VzIG9ic2VydmF0aW9uIHBpbicsIHRleHQsIGRlY2xhcmF0aW9uKCksIHJlZnVzZT1UcnVlLCBwcmV2aW91cz1iYXNlbGluZVsncGluJ10pCiAgICAgICAgZm9yIHJvbGUgaW4gKCdzb3VyY2UnLCAnZGVzdGluYXRpb24nKToKICAgICAgICAgICAgZXhlY3V0ZShmJ21rZGlyIC1wIC90bXAvcHJvZmlsZS17cm9sZX0vbmVzdGVkJywgJzEwMDA6MTAwMCcpCiAgICAgICAgICAgIHBvaW50ID0gJy90bXAvcHJvZmlsZS0nICsgcm9sZSArICcvbmVzdGVkJwogICAgICAgICAgICBydW4oWydleGVjJywgY2xpZW50LCAnbW91bnQnLCAnLXQnLCAndG1wZnMnLCAndG1wZnMnLCBwb2ludF0pCiAgICAgICAgICAgIG1vdW50cy5hcHBlbmQocG9pbnQpCiAgICAgICAgICAgIGNoZWNrKHJvbGUgKyAnIG5lc3RlZCBtb3VudCcsIGludmVudG9yeSgpLCBkZWNsYXJhdGlvbigpLCByZWZ1c2U9VHJ1ZSkKICAgICAgICAgICAgcnVuKFsnZXhlYycsIGNsaWVudCwgJ3Vtb3VudCcsIHBvaW50XSkKICAgICAgICAgICAgbW91bnRzLnJlbW92ZShwb2ludCkKICAgICAgICBydW4oWydleGVjJywgY2xpZW50LCAnbW91bnQnLCAnLS1iaW5kJywgJy90bXAvcHJvZmlsZS1zb3VyY2UvaW5jb21pbmcnLCAnL3RtcC9wcm9maWxlLWJpbmQnXSkKICAgICAgICBtb3VudHMuYXBwZW5kKCcvdG1wL3Byb2ZpbGUtYmluZCcpCiAgICAgICAgY2hhbmdlZCA9IGRlY2xhcmF0aW9uKCkKICAgICAgICBjaGFuZ2VkWydzb3VyY2UnXS51cGRhdGUocGF0aD0nL3RtcC9wcm9maWxlLWJpbmQnLCBtb3VudHBvaW50PScvdG1wL3Byb2ZpbGUtYmluZCcpCiAgICAgICAgY2hlY2soJ3N1YnRyZWUgYmluZCBhbGlhcycsIGludmVudG9yeSgpLCBjaGFuZ2VkLCByZWZ1c2U9VHJ1ZSkKICAgICAgICBydW4oWydleGVjJywgY2xpZW50LCAndW1vdW50JywgJy90bXAvcHJvZmlsZS1iaW5kJ10pCiAgICAgICAgbW91bnRzLnJlbW92ZSgnL3RtcC9wcm9maWxlLWJpbmQnKQogICAgICAgIGNoYW5nZWQgPSBkZWNsYXJhdGlvbigpCiAgICAgICAgY2hhbmdlZFsnc3RhdGVfcGF0aCddID0gJy90bXAvcHJvZmlsZS1zb3VyY2Uvc3RhdGUnCiAgICAgICAgY2hlY2soJ1NRTGl0ZSBzdGF0ZSBvbiBORlMnLCBpbnZlbnRvcnkoKSwgY2hhbmdlZCwgcmVmdXNlPVRydWUpCiAgICAgICAgZXhlY3V0ZSgnbWtkaXIgL3RtcC9wcm9maWxlLXN0YXRlL25lc3RlZCcpCiAgICAgICAgcnVuKFsnZXhlYycsIGNsaWVudCwgJ21vdW50JywgJy10JywgJ3RtcGZzJywgJ3RtcGZzJywgJy90bXAvcHJvZmlsZS1zdGF0ZS9uZXN0ZWQnXSkKICAgICAgICBtb3VudHMuYXBwZW5kKCcvdG1wL3Byb2ZpbGUtc3RhdGUvbmVzdGVkJykKICAgICAgICBjaGVjaygnbmVzdGVkIHN0YXRlIG1vdW50JywgaW52ZW50b3J5KCksIGRlY2xhcmF0aW9uKCksIHJlZnVzZT1UcnVlKQogICAgICAgIHJ1bihbJ2V4ZWMnLCBjbGllbnQsICd1bW91bnQnLCAnL3RtcC9wcm9maWxlLXN0YXRlL25lc3RlZCddKQogICAgICAgIG1vdW50cy5yZW1vdmUoJy90bXAvcHJvZmlsZS1zdGF0ZS9uZXN0ZWQnKQogICAgICAgIHRleHQgPSBpbnZlbnRvcnkoKQogICAgICAgICMgTXV0YXRpb25zIGFyZSBwYXJzZXIvbW9kZWwgY29udHJvbHMsIE5FVkVSIGFjdHVhbCBtb3VudC9zZXJ2ZXIgZXZpZGVuY2UuCiAgICAgICAgZm9yIG9sZCwgbmV3LCBuYW1lIGluICgoJ3ZlcnM9NC4xJywgJ3ZlcnM9MycsICdORlN2MycpLCAoJ3ZlcnM9NC4xJywgJ3ZlcnM9NC4yJywgJ05GU3Y0LjInKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICgncHJvdG89dGNwJywgJ3Byb3RvPXVkcCcsICdVRFAnKSwgKCdzZWM9c3lzJywgJ3NlYz1rcmI1cCcsICdkaWZmZXJlbnQgc2VjdXJpdHknKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICgnbG9jYWxfbG9jaz1ub25lJywgJ2xvY2FsX2xvY2s9YWxsJywgJ2xvY2FsLW9ubHkgbG9ja3MnKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICgnaGFyZCwnLCAnaGFyZCxzb2Z0cmV2YWwsJywgJ2NhY2hlZCBmYWlsdXJlIGZhbGxiYWNrJyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAoJ2hhcmQsJywgJ2hhcmQsdW5rbm93bl9zZW1hbnRpY3M9MSwnLCAndW5rbm93biBlZmZlY3RpdmUgb3B0aW9uJyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAoJ2hhcmQsJywgJ2hhcmQsaGFyZCwnLCAnZHVwbGljYXRlIG9wdGlvbicpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKCdoYXJkLCcsICdoYXJkLG5jb25uZWN0PTIsJywgJ211bHRpcGxlIGNvbm5lY3Rpb25zJyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAoJ2hhcmQsJywgJ2hhcmQsbG9va3VwY2FjaGU9bm9uZSwnLCAnbG9va3VwIG92ZXJyaWRlJykpOgogICAgICAgICAgICBhc3NlcnQgb2xkIGluIHRleHQKICAgICAgICAgICAgY2hlY2sobmFtZSwgdGV4dC5yZXBsYWNlKG9sZCwgbmV3KSwgZGVjbGFyYXRpb24oKSwgcmVmdXNlPVRydWUsIHNjb3BlPSdzeW50aGV0aWMgaW52ZW50b3J5IG11dGF0aW9uJykKICAgICAgICBmb3Iga2V5LCB2YWx1ZSBpbiAoKCdhZGRyJywgJzE5Mi4wLjIuOTknKSwgKCdzb3VyY2UnLCAnMTkyLjAuMi45OTovZm9yZWlnbicpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAoJ3Byb2ZpbGUnLCAndW5kZWNsYXJlZCcpLCAoJ3Byb2ZpbGUnLCAnTk1QLTQxTicpLCAoJ3BhdGgnLCAnL3RtcC9wcm9maWxlLXNvdXJjZS8uLi9lc2NhcGUnKSk6CiAgICAgICAgICAgIGNoYW5nZWQgPSBkZWNsYXJhdGlvbigpCiAgICAgICAgICAgIGNoYW5nZWRbJ3NvdXJjZSddW2tleV0gPSB2YWx1ZQogICAgICAgICAgICBjaGVjaygnZGVjbGFyYXRpb24gbWlzbWF0Y2ggJyArIGtleSArICc9JyArIHZhbHVlLCB0ZXh0LCBjaGFuZ2VkLCByZWZ1c2U9VHJ1ZSwgc2NvcGU9J2RlY2xhcmF0aW9uIG5lZ2F0aXZlIGNvbnRyb2wnKQogICAgICAgIGNoYW5nZWQgPSBkZWNsYXJhdGlvbigpCiAgICAgICAgY2hhbmdlZFsnZGVzdGluYXRpb24nXSA9IGNvcHkuZGVlcGNvcHkoY2hhbmdlZFsnc291cmNlJ10pCiAgICAgICAgY2hlY2soJ292ZXJsYXBwaW5nIHJvb3RzJywgdGV4dCwgY2hhbmdlZCwgcmVmdXNlPVRydWUsIHNjb3BlPSdkZWNsYXJhdGlvbiBuZWdhdGl2ZSBjb250cm9sJykKICAgICAgICBmb3IgbWFsZm9ybWVkIGluICgnJywgJ2JhZCBpbnZlbnRvcnknLCB0ZXh0LnJlcGxhY2UoJyBydywnLCByJ1wwOTkgcncsJywgMSksIHRleHQgKyB0ZXh0LCAneCcgKiAoMTAyNCoxMDI0KzEpKToKICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgcGFyc2UobWFsZm9ybWVkKQogICAgICAgICAgICBleGNlcHQgUmVmdXNlZDoKICAgICAgICAgICAgICAgIHJlcG9ydC5zZXRkZWZhdWx0KCdwYXJzZXJfbmVnYXRpdmVfY29udHJvbHMnLCBbXSkuYXBwZW5kKGRpY3Qoc2hhMjU2PWhhc2hsaWIuc2hhMjU2KG1hbGZvcm1lZC5lbmNvZGUoKSkuaGV4ZGlnZXN0KCksIHBhc3NlZD1UcnVlKSkKICAgICAgICAgICAgZWxzZToKICAgICAgICAgICAgICAgIHJhaXNlIEFzc2VydGlvbkVycm9yKCdtYWxmb3JtZWQgaW52ZW50b3J5IGFjY2VwdGVkJykKICAgICAgICAjIEtlcm5lbCBlc2NhcGVzL29wdGlvbmFsIGZpZWxkcy9sb25nZXN0IGNvbXBvbmVudCBtYXRjaCBhcmUgcmVhbCBwYXJzZXIgb2JsaWdhdGlvbnMuCiAgICAgICAgZXNjYXBlZCA9ICcxIDIgMDoxIC8gLyBydyAtIG92ZXJsYXkgb3ZlcmxheSByd1xuMyAxIDA6MiAvIC9hXFwwNDBiIHJ3IHNoYXJlZDo3IC0gbmZzNCBob3N0Oi8gcncsaGFyZFxuJwogICAgICAgIGFzc2VydCBwYXJzZShlc2NhcGVkKVsxXVsncG9pbnQnXSA9PSAnL2EgYicKICAgICAgICBmcm9tIG5mc19tb3VudF9wcm9maWxlIGltcG9ydCBjb3ZlcmluZwogICAgICAgIGFzc2VydCBjb3ZlcmluZyhwYXJzZShlc2NhcGVkKSwgJy9hIGIvc3ViJylbJ2lkJ10gPT0gMwogICAgICAgIGFzc2VydCBjb3ZlcmluZyhwYXJzZShlc2NhcGVkKSwgJy9hIGJjJylbJ2lkJ10gPT0gMQogICAgICAgIHJlcG9ydFsncGFyc2VyX3Bvc2l0aXZlX2NvbnRyb2xzJ10gPSBbJ2tlcm5lbCBlc2NhcGUnLCAnb3B0aW9uYWwgZmllbGRzJywgJ2xvbmdlc3QgY29tcG9uZW50IG1hdGNoJywgJ3ByZWZpeCBjb2xsaXNpb24nXQogICAgICAgIHN0YWJsZSA9IGNoZWNrKCdiZWZvcmUgc2VydmVyIG91dGFnZScsIGludmVudG9yeSgpLCBkZWNsYXJhdGlvbigpKQogICAgICAgIHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdycGMubmZzZCcsICcwJ10pCiAgICAgICAgc2VydmVyX3N0b3BwZWQgPSBUcnVlCiAgICAgICAgYXNzZXJ0IHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdjYXQnLCAnL3Byb2MvZnMvbmZzZC90aHJlYWRzJ10pLnN0ZG91dC5zdHJpcCgpID09ICcwJwogICAgICAgIHN0YXJ0ZWQgPSB0aW1lLm1vbm90b25pYygpCiAgICAgICAgY2hlY2soJ3NlcnZlciBkb3duIHN0aWxsIG1hdGNoZXMgaW52ZW50b3J5OyBOT1QgcmVhZHkvc2V0dGxlZCcsIGludmVudG9yeSgpLCBkZWNsYXJhdGlvbigpLCBwcmV2aW91cz1zdGFibGVbJ3BpbiddKQogICAgICAgIHJlcG9ydFsnc2VydmVyX2Rvd25faW52ZW50b3J5X3NlY29uZHMnXSA9IHRpbWUubW9ub3RvbmljKCkgLSBzdGFydGVkCiAgICAgICAgYXNzZXJ0IHJlcG9ydFsnc2VydmVyX2Rvd25faW52ZW50b3J5X3NlY29uZHMnXSA8IDUKICAgICAgICBydW4oWydleGVjJywgc2VydmVyLCAncnBjLm5mc2QnLCAnLUcnLCAnMTAnLCAnLUwnLCAnMTAnLCAnLVYnLCAnNCcsICctcCcsICcyMDQ5JywgJzInXSkKICAgICAgICBzZXJ2ZXJfc3RvcHBlZCA9IEZhbHNlCiAgICAgICAgdGltZS5zbGVlcCgxMSkKICAgICAgICByZXBvcnRbJ3Jlc3RvcmVkX2lvJ10gPSBleGVjdXRlKCdzaGEyNTZzdW0gL3RtcC9wcm9maWxlLXNvdXJjZS9wcm9iZSAvdG1wL3Byb2ZpbGUtZGVzdGluYXRpb24vcHJvYmUnLCAnMTAwMDoxMDAwJykKICAgICAgICByZXBvcnRbJ3N0YXR1cyddID0gJ1BBU1NFRCcKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZXJyb3I6CiAgICAgICAgcmVwb3J0LnVwZGF0ZShlcnJvcj1mJ3t0eXBlKGVycm9yKS5fX25hbWVfX306IHtlcnJvcn0nLCB0cmFjZWJhY2s9dHJhY2ViYWNrLmZvcm1hdF9leGMoKSkKICAgIGZpbmFsbHk6CiAgICAgICAgaWYgc2VydmVyX3N0b3BwZWQ6CiAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgIHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdycGMubmZzZCcsICctRycsICcxMCcsICctTCcsICcxMCcsICctVicsICc0JywgJy1wJywgJzIwNDknLCAnMiddKQogICAgICAgICAgICAgICAgdGltZS5zbGVlcCgxMSkKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoc3RyKGVycm9yKSkKICAgICAgICBpZiBjbGllbnQ6CiAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgIHVubW91bnRfYWxsKCkKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoc3RyKGVycm9yKSkKICAgICAgICBpZiBub3QgcmVwb3J0WydjbGVhbnVwX2Vycm9ycyddOgogICAgICAgICAgICBpZiBzZXJ2ZXI6CiAgICAgICAgICAgICAgICBydW4oWydleGVjJywgc2VydmVyLCAncnBjLm5mc2QnLCAnMCddLCBjaGVjaz1GYWxzZSkKICAgICAgICAgICAgICAgIHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdleHBvcnRmcycsICctYXUnXSwgY2hlY2s9RmFsc2UpCiAgICAgICAgICAgIGZvciB0YXJnZXQgaW4gcmV2ZXJzZWQoY29udGFpbmVycyk6CiAgICAgICAgICAgICAgICBpZiBydW4oWydybScsICctLWZvcmNlJywgdGFyZ2V0XSwgY2hlY2s9RmFsc2UpLnJldHVybmNvZGU6CiAgICAgICAgICAgICAgICAgICAgcmVwb3J0WydjbGVhbnVwX2Vycm9ycyddLmFwcGVuZCgnY29udGFpbmVyIHJlbW92YWwgZmFpbGVkOiAnICsgdGFyZ2V0KQogICAgICAgICAgICBmb3Igdm9sdW1lIGluIHZvbHVtZXM6CiAgICAgICAgICAgICAgICBpZiBydW4oWyd2b2x1bWUnLCAncm0nLCB2b2x1bWVdLCBjaGVjaz1GYWxzZSkucmV0dXJuY29kZToKICAgICAgICAgICAgICAgICAgICByZXBvcnRbJ2NsZWFudXBfZXJyb3JzJ10uYXBwZW5kKCd2b2x1bWUgcmVtb3ZhbCBmYWlsZWQ6ICcgKyB2b2x1bWUpCiAgICAgICAgICAgIGlmIG5ldHdvcmtfY3JlYXRlZCBhbmQgcnVuKFsnbmV0d29yaycsICdybScsIG5ldHdvcmtdLCBjaGVjaz1GYWxzZSkucmV0dXJuY29kZToKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoJ25ldHdvcmsgcmVtb3ZhbCBmYWlsZWQ6ICcgKyBuZXR3b3JrKQogICAgICAgIGlmIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXToKICAgICAgICAgICAgcmVwb3J0WydzdGF0dXMnXSA9ICdGQUlMRUQnCiAgICAgICAgICAgIHJlcG9ydFsncmVjb3ZlcnlfcmVzb3VyY2VzJ10gPSBkaWN0KGNvbnRhaW5lcnM9Y29udGFpbmVycywgbW91bnRzPW1vdW50cywgdm9sdW1lcz12b2x1bWVzLCBuZXR3b3JrPW5ldHdvcmspCiAgICAgICAgKG91dHB1dCAvICdyZXBvcnQuanNvbicpLndyaXRlX3RleHQoanNvbi5kdW1wcyhyZXBvcnQsIGluZGVudD0yKSArICdcbicsIGVuY29kaW5nPSd1dGYtOCcpCiAgICAgICAgcHJpbnQocmVwb3J0WydzdGF0dXMnXSArICc6ICcgKyBzdHIob3V0cHV0KSwgZmx1c2g9VHJ1ZSkKICAgICAgICBpZiAnZXJyb3InIGluIHJlcG9ydDoKICAgICAgICAgICAgcHJpbnQocmVwb3J0WydlcnJvciddLCBmbHVzaD1UcnVlKQogICAgcmV0dXJuIDAgaWYgcmVwb3J0WydzdGF0dXMnXSA9PSAnUEFTU0VEJyBlbHNlIDEKCgppZiBfX25hbWVfXyA9PSAnX19tYWluX18nOgogICAgcmFpc2UgU3lzdGVtRXhpdChtYWluKCkpCg=="
+    }
+  },
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": "nfs-common\t1:2.6.2-4+deb12u1\nnfs-kernel-server\t1:2.6.2-4+deb12u1\nrpcbind\t1.2.6-6+b1\n",
+  "server_exports": "/exports/profile-destination\n\t\t<world>(sync,wdelay,hide,no_subtree_check,fsid=69,sec=sys,rw,secure,root_squash,no_all_squash)\n/exports      \t<world>(sync,wdelay,hide,no_subtree_check,fsid=0,sec=sys,rw,secure,no_root_squash,no_all_squash)\n/exports/profile-source\n\t\t<world>(sync,wdelay,hide,no_subtree_check,fsid=68,sec=sys,rw,secure,root_squash,no_all_squash)\n",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "glibc": "glibc 2.22",
+  "mount_namespace": "mnt:[4026533212]",
+  "client_security": "Name:\tsleep\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t1\nNgid:\t0\nPid:\t1\nPPid:\t0\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t64\nGroups:\t \nNStgid:\t1\nNSpid:\t1\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t    2172 kB\nVmSize:\t    2172 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t    1304 kB\nVmRSS:\t    1304 kB\nRssAnon:\t      80 kB\nRssFile:\t    1224 kB\nRssShmem:\t       0 kB\nVmData:\t     180 kB\nVmStk:\t     132 kB\nVmExe:\t      28 kB\nVmLib:\t    1784 kB\nVmPTE:\t      44 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t1\nSigQ:\t5/47803\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000000000000\nSigCgt:\t0000000000000000\nCapInh:\t0000000000000000\nCapPrm:\t0000000000200000\nCapEff:\t0000000000200000\nCapBnd:\t0000000000200000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t35\nnonvoluntary_ctxt_switches:\t0\n",
+  "io_controls": [
+    "61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-source/probe\n61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-destination/probe\n1000:1000:600:13\n1000:1000:600:13\n",
+    "61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-source/probe\n61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-destination/probe\n1000:1000:600:13\n1000:1000:600:13\n",
+    "61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-source/probe\n61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-destination/probe\n1000:1000:600:13\n1000:1000:600:13\n",
+    "61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-source/probe\n61073ae407625ffc294c025442238f10b535b6c27bf0d6b3f94dcd983ef3da1e  /tmp/profile-destination/probe\n1000:1000:600:13\n1000:1000:600:13\n"
+  ],
+  "error": "AssertionError: negative control accepted: remount retains content but changes observation pin",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-mount-profile.py\", line 155, in main\n    check('remount retains content but changes observation pin', text, declaration(), refuse=True, previous=baseline['pin'])\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-mount-profile.py\", line 66, in check\n    raise AssertionError('negative control accepted: ' + name)\nAssertionError: negative control accepted: remount retains content but changes observation pin\n"
+}

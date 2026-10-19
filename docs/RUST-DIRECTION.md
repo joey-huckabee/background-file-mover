@@ -577,3 +577,10 @@ Increment 65 adds server-completed publication LINK reply-loss qualification; se
 Increment 66 adds source-claim LINK/REMOVE success-reply-loss qualification; see [results](RUST-INCREMENT-66.md). Keep production NFS/source deletion disabled, preserve SC-100 and the simple same-ID JSON-until-202 producer workflow, and maintain the step-by-step source lab and testing limits.
 
 Increment 67 records synchronization RPC capability and actual worker observations; see [results](RUST-INCREMENT-67.md) and [lab](NFS-SYNC-LAB.md). No COMMIT/mover sync-loss support follows from buffered OS controls. Preserve SC-101/102, GNU/glibc-2.22 checks and production NFS/source deletion disabled.
+
+[Increment 68](RUST-INCREMENT-68.md) defines the [mount-profile contract](NFS-MOUNT-PROFILE.md)
+and [step-by-step lab](NFS-MOUNT-PROFILE-LAB.md). Buffered NMP-41B is the bounded
+first-release qualification candidate; noac NMP-41N retains its earlier diagnostic
+scope. Read-only model decisions are validated; new Rust startup/effect enforcement
+and real buffered worker fault qualification remain pending. Matching proc pins
+cannot prove continuity or NAS availability. Production NFS/deletion remain off.
