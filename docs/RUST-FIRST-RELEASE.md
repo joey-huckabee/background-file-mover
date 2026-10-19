@@ -62,8 +62,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-Next qualify remaining buffered NMP-41B bootstrap/publication/manifest and
-synchronization boundaries, plus untested copy/verification failure directions,
+Next qualify remaining buffered NMP-41B bootstrap/claim, post-unlink/pre-sync
+and actual pending synchronization/RPC boundaries, plus untested copy/verification failure directions,
 under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
@@ -317,3 +317,12 @@ server is distinct from independent endpoints or mutating-RPC settlement.
 FR-03/05 and all eight release gates remain open. Keep production NFS and source
 deletion disabled; remaining buffered bootstrap/publication/manifest, failure
 directions, synchronization, workload and deployment cases stay open.
+
+[Increment 72](RUST-INCREMENT-72.md) addresses selected buffered file/manifest
+publication interruption and original-state recovery on both layouts; see the
+[lab](NFS-BUFFERED-PUBLICATION-LAB.md). Returned-LINK/pre-sync process crashes
+and actual pending staging unlinkat are distinct from withheld-success RPCs or
+in-flight fsync/COMMIT. Normal recovery must retain original payload/manifest
+allocations and producer-reused bytes. Remaining boundaries, remote settlement,
+workload and deployment gates stay open. Production NFS/source deletion remain
+disabled; all eight release gates stay open.

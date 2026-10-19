@@ -154,3 +154,12 @@ active capabilities and no-new-privileges. Follow the [buffered-read lab](NFS-BU
 for the independent permission preflight, cache ordering, actual blocked-read
 proof, joint same/separate-export outage/death/recovery and cleanup. Production
 NFS/deletion remain disabled; no host/NAS privilege or ptrace policy is changed.
+
+[Increment 72](RUST-INCREMENT-72.md) adds `--buffered-publication` on the same
+owned infrastructure and observer capabilities. The
+[step-by-step lab](NFS-BUFFERED-PUBLICATION-LAB.md) documents sixteen
+same/separate-share returned-LINK/pre-sync and blocked file/manifest unlinkat
+death/recovery/replay cases, original-state preservation and normal teardown.
+Separate exports share one server/outage domain. Production NFS and source
+deletion stay off; syscall/process-crash evidence is distinct from lost replies
+or physical durability.

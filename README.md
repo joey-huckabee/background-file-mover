@@ -254,3 +254,10 @@ interruption and recovery qualification on same/separate shares; see the
 [step-by-step lab](docs/NFS-BUFFERED-READS-LAB.md) for actual blocked-read proof,
 original-state recovery and limits. Production NFS and source deletion remain
 disabled.
+
+[Increment 72](docs/RUST-INCREMENT-72.md) extends buffered qualification to
+file publication and manifest commitment interruption/recovery on both share
+layouts. The [lab](docs/NFS-BUFFERED-PUBLICATION-LAB.md) distinguishes
+returned-LINK/pre-sync crashes from actual blocked staging unlinkat, and checks
+old-worker exclusion and original allocation/replay preservation. Production NFS
+and source deletion remain disabled; remaining first-release gates stay open.

@@ -545,3 +545,14 @@ old-partial and verification attempt-1 policy. See docs/RUST-INCREMENT-71.md and
 docs/NFS-BUFFERED-READS-LAB.md; maintain SC-106 and DOC-01/03/04/05. Keep failed
 capability evidence separate, production NFS/deletion off, and remaining buffered
 RPC/bootstrap/publication/manifest/deployment work open.
+
+Increment 72 adds --buffered-publication and scripts/nfs_buffered_publication.py:
+buffered same/separate-share file/manifest returned-LINK/pre-sync and actual
+pending unlinkat interruption, coordinator death, old-worker exclusion and
+original-state attempt-1 recovery/replay. Observe live old threads before restart.
+Use scripts/verify-nfs-buffered-publication.py for retained evidence; see
+docs/RUST-INCREMENT-72.md and docs/NFS-BUFFERED-PUBLICATION-LAB.md. Keep SC-107
+and DOC-01/02/03/04/05 current. Joint-outage POST replay has source revalidation;
+do not require healthy replay semantics while both shares are offline. Preserve
+failed initial evidence, unchanged retry/review/deadlines, production NFS/deletion
+off and remaining bootstrap/claim/post-unlink/sync/RPC/deployment qualification.

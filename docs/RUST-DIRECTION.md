@@ -610,3 +610,12 @@ gets SYS_PTRACE/DAC_READ_SEARCH inside its isolated client; ordinary workers kee
 capabilities. Copy recovery preserves old partials/uses attempt 2; verification
 retains attempt 1. Production NFS and source deletion stay disabled, and remaining
 buffered RPC, bootstrap/publication/manifest and deployment gates stay open.
+
+[Increment 72](RUST-INCREMENT-72.md) adds --buffered-publication and the
+[lab](NFS-BUFFERED-PUBLICATION-LAB.md) for buffered same/separate-share
+file/manifest returned-LINK/pre-sync and pending-unlink process interruption,
+coordinator death, surviving-worker exclusion, original-inode attempt-1 recovery
+and committed replay. Maintain SC-107 and DOC-01/02/03/04/05. Joint-outage POST
+replay includes source revalidation; this matrix tests replay before outage and
+after recovery. Preserve unchanged retry/review/deadlines, remaining actual
+RPC/sync/remote-settlement qualification and production NFS/source deletion off.

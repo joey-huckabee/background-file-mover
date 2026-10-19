@@ -48,8 +48,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify remaining buffered NMP-41B bootstrap/claim/publication/manifest
-  interruption/death/RPC and synchronization boundaries, plus untested
+- [ ] Qualify remaining buffered NMP-41B bootstrap/claim, post-unlink/pre-sync
+  and actual pending synchronization/RPC boundaries, plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
@@ -58,6 +58,8 @@ before implementation.
   server recovery and delayed-effect settlement, remaining
   synchronization boundaries, outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.
+- [ ] Qualify claimed same-ID replay/source revalidation and bounded backpressure
+  during joint source/destination outage without changing recorder handoff rules.
 - [ ] Complete the producer/consumer guides, restart/shutdown troubleshooting and
   deployment matrix tracked by [RUST-SCENARIOS.md](RUST-SCENARIOS.md)
   (DOC-01/02/04/05); keep future adapter/repair guides (DOC-06) deferred. Maintain

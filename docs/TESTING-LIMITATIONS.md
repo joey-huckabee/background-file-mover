@@ -55,6 +55,33 @@ capabilities, while the mover/worker capability checks remain unchanged.
 
 ## Important distinctions
 
+[Buffered publication/manifest qualification](RUST-INCREMENT-72.md) distinguishes
+actual D-state client unlinkat on an owned staging-parent descriptor from a
+returned LINK paused before following sync. The latter is a stopped-process
+crash with live server/cache retained, not an in-flight fsync/COMMIT failure or
+power loss. The sixteen-case matrix covers debug/release on same/separate shares
+of one controlled server; it does not establish independent NAS failure/cache
+coherence or server reboot/failover/reclaim and delayed mutating settlement.
+Read the [lab](NFS-BUFFERED-PUBLICATION-LAB.md) and actual per-case results for
+original-inode reconciliation, manifest validity, raw guard observations and
+confirmed old-thread exit. Existing foreign-target no-clobber negative tests
+remain separate; this matrix adds no concurrent foreign-target conflict race.
+Contender probes precede worker SIGKILL; following it, the harness waits for
+confirmed exit. Do not infer a new terminating/free-raw-guard contender branch.
+Actual results show all 32 orphan guard samples contended, with no observed early
+raw-lock closure. All eight pending-unlink cases retain two owned aliases after
+old-worker exit; normal recovery removes staging. No successful server REMOVE
+or withheld success reply is inferred from the client syscall observation.
+
+Same-ID POST replay revalidates source custody. The initial buffered-publication
+run's expectation of 202 during joint source/destination outage failed; it did
+not capture its actual response body/code. Keep that run failed rather than
+claiming a specific response. The corrected matrix checks replay before outage
+and after original-state recovery; during outage it checks health/status/control
+without adding a separate custody-validation worker. This changes fixture scope,
+not service retry/review/timeouts or recorder obligations. Production NFS and
+source deletion remain disabled; full FR-03/05 qualification remains open.
+
 [Lost-reply qualification](RUST-INCREMENT-64.md) proves a selected NFSv4.1
 REMOVE completed on the live server while its matching successful reply was
 withheld and the actual client stayed D. Two capability controls precede four

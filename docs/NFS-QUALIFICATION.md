@@ -784,3 +784,11 @@ for actual syscall/descriptor requirements and result interpretation. Both share
 use one server with a joint outage; independent NAS failures, RPC reply loss,
 server reboot/power durability and remaining worker phases stay separate.
 Production NFS and source deletion remain disabled.
+
+[Increment 72](RUST-INCREMENT-72.md) adds the retained `--buffered-publication`
+matrix: sixteen buffered same/separate-share debug/release file/manifest cases
+at returned-LINK/pre-sync and actual pending staging unlinkat boundaries. See
+[the step-by-step lab](NFS-BUFFERED-PUBLICATION-LAB.md) for coordinator-death
+exclusion, actual old-thread exit, original publication/manifest inode recovery,
+committed replay and cleanup. These finite cases do not close sync/RPC reply-loss,
+remote settlement or full deployment gates. Production NFS and deletion stay off.

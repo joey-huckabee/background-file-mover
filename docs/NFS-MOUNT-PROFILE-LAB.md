@@ -275,10 +275,22 @@ synchronization reply-loss boundaries are separate work.
 ## Buffered read interruption extension
 
 Use --buffered-reads with both passing gates to select same/separate-share copy
-and verification read interruption/death/recovery cases. This mode alone adds
+and verification read interruption/death/recovery cases. The read and publication matrices add
 SYS_PTRACE and DAC_READ_SEARCH to the isolated root observer for local /proc syscall inspection;
 UID-1000 service/workers retain no active capabilities. No host ptrace policy is
 changed. Follow [the complete buffered-read procedure](NFS-BUFFERED-READS-LAB.md)
 for cache ordering, actual read/descriptor proof, joint NFSD outage, orphan
 exclusion, original-state recovery and cleanup. Results and limitations are in
 [increment 71](RUST-INCREMENT-71.md).
+
+## Buffered publication interruption extension
+
+Use `--buffered-publication` with both passing gates to select sixteen
+same/separate-share debug/release file/manifest cases. It uses the isolated
+SYS_PTRACE/DAC_READ_SEARCH observer and zero-capability UID-1000 workers, as above.
+Follow [the full procedure](NFS-BUFFERED-PUBLICATION-LAB.md) for returned-LINK
+before-sync versus actual blocked unlinkat, joint outage, coordinator death,
+surviving-worker/old-thread exclusion, original-inode recovery and committed replay.
+See [increment 72](RUST-INCREMENT-72.md) for measured results and failed initial
+expectation. This does not qualify pending fsync/COMMIT, successful RPC replies
+withheld, foreign-target conflicts, power loss or production NFS/source deletion.
