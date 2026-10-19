@@ -31,7 +31,7 @@ def control_traversal(execute, target):
 
 def qualify(root, production_gate, qualification_gate, run, execute, client,
             output, mount, unmount_all, mounts, report, same_share=False, buffered_reads=False,
-            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False):
+            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False, buffered_commit=False):
     report['gates'] = {}
     engine = ['podman', '--connection', 'podman-machine-default-root']
     binaries = {}
@@ -67,6 +67,9 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
             report['gates'][mode]['artifacts'][profile] = artifact
     execute('umask 077; mkdir /tmp/mount-auth', '1000:1000')
     unmount_all()
+    if buffered_commit:
+        from nfs_buffered_commit import qualify_buffered_commit
+        return qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture)
     if buffered_sync or buffered_io:
         from nfs_buffered_sync import qualify_buffered_sync
         return qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=buffered_io)

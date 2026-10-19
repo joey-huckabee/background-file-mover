@@ -352,3 +352,13 @@ Follow [the I/O procedure](NFS-BUFFERED-IO-LAB.md) and
 handle-state analysis. Capture both active relays and actual clocks; retain
 unknown traffic and distinguish positive identity/range matches from timing.
 The earlier sync mode stays available. No production NFS/deletion change follows.
+
+## Buffered payload COMMIT reply withholding
+
+Use --buffered-commit separately from the earlier observation matrices. Follow
+[the step-by-step COMMIT lab](NFS-BUFFERED-COMMIT-LAB.md) and
+[increment 78](RUST-INCREMENT-78.md). Six native controls precede eight selected
+service release/death-drop cases on NMP-41B same/separate layouts. Preserve
+actual syscall-91 FD and server-object proof; a returned fsync, noac history,
+4 KiB FILE_SYNC WRITE or assumed destination transport is insufficient.
+Production NFS/deletion and all existing deadlines remain unchanged.

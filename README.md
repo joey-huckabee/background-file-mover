@@ -294,3 +294,9 @@ observation, matching descriptor metadata and captured write bytes to NFS
 filehandle evidence where proven. The [step-by-step lab](docs/NFS-BUFFERED-IO-LAB.md)
 separates identity/interval matches from unknown traffic and future fault tests.
 Production NFS and source deletion remain disabled.
+
+[Increment 78](docs/RUST-INCREMENT-78.md) adds a finite payload-fchmod COMMIT
+reply-withholding and recovery matrix. The [step-by-step lab](docs/NFS-BUFFERED-COMMIT-LAB.md)
+documents native capability prerequisites, actual pending descriptor/server proof,
+release/coordinator-death cases, original-state recovery, audit and cleanup.
+Production NFS and source deletion remain disabled.

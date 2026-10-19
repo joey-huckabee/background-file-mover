@@ -190,3 +190,10 @@ retaining --buffered-sync and its default decoder output. Use the separate
 bytes and protocol identities where evidence permits. Neither timing alone nor
 a decoded COMMIT in another worker's window proves the selected worker issued it.
 Keep initial failed analysis, unknown compounds and remaining fault scope explicit.
+
+[Increment 78](RUST-INCREMENT-78.md) and the
+[payload COMMIT lab](NFS-BUFFERED-COMMIT-LAB.md) add a separate --buffered-commit
+matrix at the observed fchmod boundary. Independent large-payload native
+withholding controls must pass before selected service release/death recovery.
+Keep COMMIT success/reply loss separate from UNSTABLE WRITE reply loss, physical
+durability and unobserved pending source synchronization. Production NFS/deletion stay off.

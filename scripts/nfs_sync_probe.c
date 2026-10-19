@@ -25,8 +25,20 @@ int main(int argc, char **argv) {
         nanosleep(&pause, NULL);
     }
     if (!directory && strcmp(argv[1], "clean") != 0) {
-        char data[4096]; memset(data, 'S', sizeof(data));
-        if (write(fd, data, sizeof(data)) != sizeof(data)) fail("write");
+        if (strcmp(argv[1], "chmod") == 0) {
+            char *data = calloc(1048576, 1);
+            if (!data) fail("calloc");
+            for (int i = 0; i < 2; ++i)
+                if (write(fd, data, 1048576) != 1048576) fail("large write");
+            free(data);
+            if (write(fd, "0123456789abcdefg", 17) != 17) fail("tail write");
+            printf("fchmod enter %d\n", fd); fflush(stdout);
+            if (fchmod(fd, 0400)) fail("fchmod");
+            printf("fchmod returned 0\n"); fflush(stdout);
+        } else {
+            char data[4096]; memset(data, 'S', sizeof(data));
+            if (write(fd, data, sizeof(data)) != sizeof(data)) fail("write");
+        }
     }
     printf("fsync enter %d\n", fd); fflush(stdout);
     if (fsync(fd)) fail("fsync");

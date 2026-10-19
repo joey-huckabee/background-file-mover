@@ -416,3 +416,27 @@ inside them. This selects a COMMIT candidate, not tested reply-withholding or
 fault recovery. Fixture preparation precedes the checkpoint; pending producer/
 source synchronization remains unqualified. Server FILE_SYNC/COMMIT success on
 volatile tmpfs does not establish physical-media/power durability.
+
+## Buffered payload-fchmod COMMIT reply-loss qualification
+
+[Increment 78](RUST-INCREMENT-78.md) and [the complete procedure](NFS-BUFFERED-COMMIT-LAB.md)
+retain six native controls and eight selected mover cases. Actual fchmod syscall
+91/0400/target FD remains D-state while a matching server-success COMMIT reply is
+held before forwarding; server-local inode/size/hash and successful UNSTABLE
+ranges with the same handle/verifier corroborate the controlled boundary. Native
+reply drops include explicit connection interruption and exact session replay.
+Four service cases delay/release the reply with a live coordinator. Four combine
+coordinator death, independently observed orphan local-guard retention, worker
+kill and reply drop; actual exit precedes preserved-state restart/attempt 2.
+Original source/database/enrollment/partial and newer producer bytes survive.
+
+No live-COMMIT-loss-without-death or UNSTABLE-WRITE-loss case is inferred. Native
+ptrace discovery and service pending-proc snapshots have different scopes;
+protocol/FD/server correlations are not unique kernel causality or authenticated
+global NAS identity. Both exports share one server and volatile tmpfs on modern
+WSL2 kernel 6.18.33.2 with pinned SLES/glibc 2.22 userspace. Neither server COMMIT
+success nor client fsync/hash proves physical power durability, original SLES
+kernel/maintenance-package behavior, independent NAS failover or NetApp/Isilon
+interoperability. Larger files/load/endurance, other phases/ranges/outages and
+delayed effects remain open. Local exit/guard availability alone is not remote
+settlement. Production NFS/deletion remain disabled; all eight release gates remain open.

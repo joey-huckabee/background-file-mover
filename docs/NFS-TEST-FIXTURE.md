@@ -211,3 +211,12 @@ proc descriptor/memory observations, with bounded payloads and zero target
 observation I/O. Services remain unprivileged; observers retain their explicit
 fixture capabilities. Preserve exact 24-driver provenance, initial failed
 analysis and normal cleanup. No production NFS/source deletion is enabled.
+
+[Increment 78](RUST-INCREMENT-78.md) retains --buffered-commit on this same
+owned server/client/relay infrastructure. Follow the [complete COMMIT procedure](NFS-BUFFERED-COMMIT-LAB.md):
+native 2 MiB+17-byte writes/fchmod discovery and release/drop controls precede
+service fault injection on each layout. Require matched server-success withheld,
+actual pending target FD, server-local inode/size/hash, live NFSD and actual
+exit before recovery. Capture both transports and 25 exact driver sources;
+retain the audited native probe separately from the single shipping executable.
+Production NFS/deletion stay off; old-kernel/NAS/power durability remains unproved.

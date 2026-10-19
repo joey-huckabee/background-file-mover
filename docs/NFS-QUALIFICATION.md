@@ -859,3 +859,15 @@ including twelve earlier-buffer range/hash matches. Claim traffic is not
 attributed to the selected claim worker. All 112 observed syncs still succeed
 without captured interval traffic. First prove matched COMMIT success withheld
 at payload fchmod before its service loss/death/recovery matrix; none runs here.
+
+[Increment 78](RUST-INCREMENT-78.md) adds --buffered-commit and its
+[complete lab](NFS-BUFFERED-COMMIT-LAB.md). Six native discovery/release/drop
+controls precede eight selected service cases. Actual target fchmod is blocked
+with a matched status-zero COMMIT reply withheld and server-local inode/hash
+proof. Native drops replay exactly on new connections. Four live releases commit
+attempt 1; four coordinator-death/worker-kill/drop recoveries retain the first
+partial and commit attempt 2. Capture both relays: selected traffic uses source
+transport even for separate shares. Original state/custody and local orphan guard
+are preserved. This adds no live-COMMIT-loss-without-death, UNSTABLE-WRITE-loss,
+physical durability, original-kernel or general NAS qualification. Production
+NFS/deletion and existing retry/review/deadline policy remain unchanged.

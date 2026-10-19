@@ -376,3 +376,12 @@ Its [lab](NFS-BUFFERED-IO-LAB.md) distinguishes supported identity matches,
 plain timing, unmatched/unknown operations and the initially refused fixture
 analysis. This selects future finite RPC fault cases; it adds none itself and
 closes no full FR-03/05 gate. Production NFS/deletion remain disabled.
+
+[Increment 78](RUST-INCREMENT-78.md)/SC-112 qualifies six native COMMIT
+controls and eight finite payload-fchmod service release/death-drop cases on
+both buffered layouts/profiles. Its [lab](NFS-BUFFERED-COMMIT-LAB.md) documents
+matched completion-withheld proof, original-state/partial recovery and cleanup.
+This supplies selected FR-03/05 evidence, not full gate closure. UNSTABLE WRITE
+loss, live COMMIT loss without death, unobserved sync phases, workload/NAS/kernel
+and remaining deployment qualification stay open. Keep all eight gates open and
+production NFS/source deletion disabled.

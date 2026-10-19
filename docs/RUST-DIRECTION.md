@@ -672,3 +672,13 @@ COMMIT requests with payload/manifest fchmod before fsync; twelve WRITE ranges
 match earlier captured buffers. Claim-window requests stay unattributed. Next
 prove server completion/reply withholding for the payload fchmod COMMIT path
 before selected service loss/death/recovery cases. Keep production NFS/deletion off.
+
+[Increment 78](RUST-INCREMENT-78.md) proves payload-fchmod COMMIT success held
+before forwarding: six native controls, then eight service live-release or
+coordinator-death/worker-kill/drop recoveries, both NMP-41B layouts/profiles.
+Read [the lab](NFS-BUFFERED-COMMIT-LAB.md) and actual scope: release commits on
+attempt 1; death/drop preserves the first partial and original state, then commits
+attempt 2. Both shares can use the source relay. Maintain SC-112/DOC-01–05.
+Next qualify actual UNSTABLE-WRITE withholding; keep live COMMIT loss without
+death and unobserved source sync open. No Rust/retry/review/deadline or production
+NFS/source-deletion change.

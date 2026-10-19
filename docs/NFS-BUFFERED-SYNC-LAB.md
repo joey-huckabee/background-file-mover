@@ -216,3 +216,13 @@ increment injects no service synchronization reply loss, coordinator death or
 storage outage. No new retry/review/shutdown policy or recorder monitoring duty
 is introduced. All eight first-release gates remain open. SC-111 feeds DOC-01–05;
 DOC-06 remains deferred.
+
+## Separate payload-fchmod COMMIT matrix
+
+The retained --buffered-commit mode is documented step by step in
+[NFS-BUFFERED-COMMIT-LAB.md](NFS-BUFFERED-COMMIT-LAB.md), with actual results in
+[increment 78](RUST-INCREMENT-78.md). It reproduces the large-payload UNSTABLE
+write/COMMIT path and proves matched success withheld at fchmod before selected
+service faults. The original 4 KiB probe modes and --buffered-sync/--buffered-io
+remain available. Their historical absence-of-sync-traffic observations do not
+replace this actual syscall-91 proof. No production NFS/deletion or deadline change.

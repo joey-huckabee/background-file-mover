@@ -45,7 +45,7 @@ def main():
     assert int(client['CapInh'], 16) == int(client['CapAmb'], 16) == 0 and client['NoNewPrivs'].strip() == '1'
     # Increment 77 adds opt-in I/O drivers; synchronization-only behavior stays
     # available with either historical or expanded exact source inventories.
-    assert len(live['sources']) in (21,24)
+    assert len(live['sources']) in (21,24,25)
     assert len(live['checks']) == 43 and all(c['passed'] for c in live['checks'])
     assert live['authorization']['passed']
     for name, item in live['sources'].items():

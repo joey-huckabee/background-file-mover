@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--buffered-bootstrap', action='store_true', help='Qualify interrupted enrolled-empty/populated startup on buffered same/separate shares')
     parser.add_argument('--buffered-sync', action='store_true', help='Trace eight buffered claim/delivery workers and prove available native sync reply-withholding controls')
     parser.add_argument('--buffered-io', action='store_true', help='Trace eight buffered workers with descriptor/payload/filehandle I/O attribution')
+    parser.add_argument('--buffered-commit', action='store_true', help='Prove payload fchmod COMMIT withholding before eight release/death recovery cases')
     args = parser.parse_args()
     assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
     assert not args.same_share or args.production_gate, 'same-share requires both gates'
@@ -37,7 +38,8 @@ def main():
     assert not args.buffered_bootstrap or args.production_gate, 'buffered-bootstrap requires both gates'
     assert not args.buffered_sync or args.production_gate, 'buffered-sync requires both gates'
     assert not args.buffered_io or args.production_gate, 'buffered-io requires both gates'
-    assert sum((args.same_share, args.buffered_reads, args.buffered_publication, args.buffered_post_unlink, args.buffered_claims, args.buffered_bootstrap, args.buffered_sync, args.buffered_io)) <= 1, 'select one worker matrix'
+    assert not args.buffered_commit or args.production_gate, 'buffered-commit requires both gates'
+    assert sum((args.same_share, args.buffered_reads, args.buffered_publication, args.buffered_post_unlink, args.buffered_claims, args.buffered_bootstrap, args.buffered_sync, args.buffered_io, args.buffered_commit)) <= 1, 'select one worker matrix'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'mount-profile-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -57,7 +59,7 @@ def main():
         data = (root / 'scripts' / name).read_bytes()
         report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
     if args.production_gate:
-        for name in ('nfs_mount_authorization.py', 'nfs_binding.py', 'nfs_same_share.py', 'nfs_runtime.py', 'nfs_buffered_reads.py', 'nfs_buffered_publication.py', 'nfs_publication.py', 'nfs_buffered_claims.py', 'nfs_buffered_bootstrap.py', 'nfs_bootstrap_state.py', 'nfs_buffered_sync.py', 'nfs_reply_relay.py', 'nfs_reply_proxy.py', 'nfs_rpc.py', 'test_nfs_rpc.py', 'nfs_sync_support.py', 'nfs_syscall_trace.py', 'nfs_sync_capability.py', 'nfs_sync_probe.c', 'nfs_io_trace.py', 'nfs_io_analysis.py', 'test_nfs_io_analysis.py'):
+        for name in ('nfs_mount_authorization.py', 'nfs_binding.py', 'nfs_same_share.py', 'nfs_runtime.py', 'nfs_buffered_reads.py', 'nfs_buffered_publication.py', 'nfs_publication.py', 'nfs_buffered_claims.py', 'nfs_buffered_bootstrap.py', 'nfs_bootstrap_state.py', 'nfs_buffered_sync.py', 'nfs_reply_relay.py', 'nfs_reply_proxy.py', 'nfs_rpc.py', 'test_nfs_rpc.py', 'nfs_sync_support.py', 'nfs_syscall_trace.py', 'nfs_sync_capability.py', 'nfs_sync_probe.c', 'nfs_io_trace.py', 'nfs_io_analysis.py', 'test_nfs_io_analysis.py', 'nfs_buffered_commit.py'):
             data = (root / 'scripts' / name).read_bytes()
             report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 
@@ -128,12 +130,12 @@ def main():
         address = json.loads(run(['inspect', server]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
         report['server_packages'] = run(['exec', server, 'dpkg-query', '-W', 'nfs-common', 'nfs-kernel-server', 'rpcbind']).stdout
         for role, fsid in (('source', 68), ('destination', 69)):
-            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication or args.buffered_post_unlink or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io else '16m'
+            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication or args.buffered_post_unlink or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit else '16m'
             run(['exec', server, '/bin/sh', '-eu', '-c',
                  f'mkdir /exports/profile-{role}; mount -t tmpfs -o size={size},mode=1777 tmpfs /exports/profile-{role}; '
                  f"exportfs -i -o rw,sync,no_subtree_check,root_squash,fsid={fsid} '*:/exports/profile-{role}'"])
         report['server_exports'] = run(['exec', server, 'exportfs', '-v']).stdout
-        observer = ['--cap-add', 'SYS_PTRACE', '--cap-add', 'DAC_READ_SEARCH'] if args.buffered_reads or args.buffered_publication or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io else []
+        observer = ['--cap-add', 'SYS_PTRACE', '--cap-add', 'DAC_READ_SEARCH'] if args.buffered_reads or args.buffered_publication or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit else []
         report['observer_capabilities'] = ['SYS_PTRACE', 'DAC_READ_SEARCH'] if observer else []
         client = run(['create', '--network', network, '--cap-drop', 'all', '--cap-add', 'SYS_ADMIN', *observer,
                       '--security-opt', 'no-new-privileges', '--entrypoint', '/bin/sh',
@@ -288,7 +290,7 @@ def main():
                     client, output, mount, unmount_all, mounts, report['authorization'],
                     same_share=args.same_share, buffered_reads=args.buffered_reads,
                     buffered_publication=args.buffered_publication, server=server,
-                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io,
+                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io, buffered_commit=args.buffered_commit,
                     fixture=dict(network=network, containers=containers, mounts=mounts, address=address, config=config))
         report['status'] = 'PASSED'
     except Exception as error:

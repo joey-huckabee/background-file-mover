@@ -620,3 +620,11 @@ requests match fchmod on the payload/manifest before fsync; 12 WRITE ranges matc
 earlier captured buffers. Claim-window traffic remains unattributed. Next prove
 server-success COMMIT reply withholding at payload fchmod before service fault/
 death/recovery tests; old 4 KiB FILE_SYNC controls are not this UNSTABLE path.
+
+Increment 78 retains --buffered-commit: native payload-fchmod COMMIT discovery,
+matched server-success reply-withholding release/drop controls, then a finite
+same/separate-share debug/release service release/coordinator-death matrix.
+Read docs/RUST-INCREMENT-78.md and docs/NFS-BUFFERED-COMMIT-LAB.md for actual
+results and proof limits. Preserve original state, orphan guard, uncertain
+partials and newer producer bytes. Keep Rust behavior, retry/review/deadlines,
+production NFS and source deletion unchanged; UNSTABLE WRITE loss is separate.
