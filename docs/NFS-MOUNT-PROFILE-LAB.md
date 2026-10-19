@@ -271,3 +271,14 @@ for private layout, 64 MiB export capacity, actual durable-link pauses, worker a
 coordinator exit, original-state recovery, replay and normal cleanup. See
 [increment 70](RUST-INCREMENT-70.md) for results; remaining buffered outage and
 synchronization reply-loss boundaries are separate work.
+
+## Buffered read interruption extension
+
+Use --buffered-reads with both passing gates to select same/separate-share copy
+and verification read interruption/death/recovery cases. This mode alone adds
+SYS_PTRACE and DAC_READ_SEARCH to the isolated root observer for local /proc syscall inspection;
+UID-1000 service/workers retain no active capabilities. No host ptrace policy is
+changed. Follow [the complete buffered-read procedure](NFS-BUFFERED-READS-LAB.md)
+for cache ordering, actual read/descriptor proof, joint NFSD outage, orphan
+exclusion, original-state recovery and cleanup. Results and limitations are in
+[increment 71](RUST-INCREMENT-71.md).

@@ -20,9 +20,12 @@ def main():
     parser.add_argument('--production-gate', type=Path)
     parser.add_argument('--qualification-gate', type=Path)
     parser.add_argument('--same-share', action='store_true', help='Run buffered same-share service and crash recovery cases instead of authorization cases')
+    parser.add_argument('--buffered-reads', action='store_true', help='Qualify blocked copy/verification reads and coordinator-death recovery on same/separate shares')
     args = parser.parse_args()
     assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
     assert not args.same_share or args.production_gate, 'same-share requires both gates'
+    assert not args.buffered_reads or args.production_gate, 'buffered-reads requires both gates'
+    assert not (args.same_share and args.buffered_reads), 'select one worker matrix'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'mount-profile-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -42,7 +45,7 @@ def main():
         data = (root / 'scripts' / name).read_bytes()
         report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
     if args.production_gate:
-        for name in ('nfs_mount_authorization.py', 'nfs_binding.py', 'nfs_same_share.py', 'nfs_runtime.py'):
+        for name in ('nfs_mount_authorization.py', 'nfs_binding.py', 'nfs_same_share.py', 'nfs_runtime.py', 'nfs_buffered_reads.py'):
             data = (root / 'scripts' / name).read_bytes()
             report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 
@@ -113,12 +116,14 @@ def main():
         address = json.loads(run(['inspect', server]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
         report['server_packages'] = run(['exec', server, 'dpkg-query', '-W', 'nfs-common', 'nfs-kernel-server', 'rpcbind']).stdout
         for role, fsid in (('source', 68), ('destination', 69)):
-            size = '64m' if args.same_share else '16m'
+            size = '64m' if args.same_share or args.buffered_reads else '16m'
             run(['exec', server, '/bin/sh', '-eu', '-c',
                  f'mkdir /exports/profile-{role}; mount -t tmpfs -o size={size},mode=1777 tmpfs /exports/profile-{role}; '
                  f"exportfs -i -o rw,sync,no_subtree_check,root_squash,fsid={fsid} '*:/exports/profile-{role}'"])
         report['server_exports'] = run(['exec', server, 'exportfs', '-v']).stdout
-        client = run(['create', '--network', network, '--cap-drop', 'all', '--cap-add', 'SYS_ADMIN',
+        observer = ['--cap-add', 'SYS_PTRACE', '--cap-add', 'DAC_READ_SEARCH'] if args.buffered_reads else []
+        report['observer_capabilities'] = ['SYS_PTRACE', 'DAC_READ_SEARCH'] if observer else []
+        client = run(['create', '--network', network, '--cap-drop', 'all', '--cap-add', 'SYS_ADMIN', *observer,
                       '--security-opt', 'no-new-privileges', '--entrypoint', '/bin/sh',
                       config['runtime'], '-c', 'exec sleep infinity']).stdout.strip()
         containers.append(client)
@@ -268,7 +273,8 @@ def main():
             from nfs_mount_authorization import qualify
             report['authorization'] = dict(passed=False, cases=[])
             qualify(root, args.production_gate, args.qualification_gate, run, execute,
-                    client, output, mount, unmount_all, mounts, report['authorization'], same_share=args.same_share)
+                    client, output, mount, unmount_all, mounts, report['authorization'],
+                    same_share=args.same_share, buffered_reads=args.buffered_reads, server=server)
         report['status'] = 'PASSED'
     except Exception as error:
         report.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())

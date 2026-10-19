@@ -534,3 +534,14 @@ See docs/RUST-INCREMENT-70.md and docs/NFS-SAME-SHARE-LAB.md. Maintain SC-104 an
 DOC-03/04/05, original-state recovery and the distinction between returned
 operations and pending/withheld RPCs. Keep production NFS/source deletion off;
 remaining buffered fault/sync/deployment qualification stays open.
+
+Increment 71 adds scripts/nfs_buffered_reads.py and --buffered-reads to the
+mount-profile runner. Require actual blocked read(2)/descriptor evidence for
+buffered source_copy/verify_read on same/separate shares, coordinator-death
+exclusion through actual worker exit, original-state recovery and replay.
+The isolated root observer gets SYS_PTRACE/DAC_READ_SEARCH only for this mode; workers stay
+UID/GID 1000 with zero active capabilities. Preserve existing copy attempt-2/
+old-partial and verification attempt-1 policy. See docs/RUST-INCREMENT-71.md and
+docs/NFS-BUFFERED-READS-LAB.md; maintain SC-106 and DOC-01/03/04/05. Keep failed
+capability evidence separate, production NFS/deletion off, and remaining buffered
+RPC/bootstrap/publication/manifest/deployment work open.

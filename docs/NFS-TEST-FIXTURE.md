@@ -145,3 +145,12 @@ fresh declared root-squashed B/B and N/N fixtures. The shared nfs_binding helper
 adds declarations only when provisioning new disposable markers; it never updates
 them automatically at service restart. Retained noac boundary checks remain scoped
 separately. Production NFS and source deletion remain disabled.
+
+[Increment 71](RUST-INCREMENT-71.md) adds the mount-profile runner's
+--buffered-reads mode. Its isolated root observer has SYS_PTRACE and
+DAC_READ_SEARCH in addition to the mount-setup SYS_ADMIN capability, matching
+the earlier syscall-observer facility. Ordinary UID-1000 processes retain zero
+active capabilities and no-new-privileges. Follow the [buffered-read lab](NFS-BUFFERED-READS-LAB.md)
+for the independent permission preflight, cache ordering, actual blocked-read
+proof, joint same/separate-export outage/death/recovery and cleanup. Production
+NFS/deletion remain disabled; no host/NAS privilege or ptrace policy is changed.

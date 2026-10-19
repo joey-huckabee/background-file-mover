@@ -776,3 +776,11 @@ post-202 producer-path reuse survive recovery and committed replay. See the
 [step-by-step same-share lab](NFS-SAME-SHARE-LAB.md). These returned-operation
 pauses do not qualify pending RPCs, outages, server/power recovery or the full
 worker matrix; production NFS/source deletion remain disabled.
+
+[Increment 71](RUST-INCREMENT-71.md) extends buffered NMP-41B qualification to
+copy/verification read interruptions, coordinator death and original-state
+recovery on same/separate shares. See the [buffered-read lab](NFS-BUFFERED-READS-LAB.md)
+for actual syscall/descriptor requirements and result interpretation. Both shares
+use one server with a joint outage; independent NAS failures, RPC reply loss,
+server reboot/power durability and remaining worker phases stay separate.
+Production NFS and source deletion remain disabled.

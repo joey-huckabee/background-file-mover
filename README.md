@@ -248,3 +248,9 @@ remote settlement; remaining buffered interruption/synchronization gates stay op
 and process-crash recovery qualification; the [lab](docs/NFS-SAME-SHARE-LAB.md)
 documents exact steps and limits. Production NFS and source deletion remain
 disabled; the remaining fault/synchronization and first-release gates stay open.
+
+[Increment 71](docs/RUST-INCREMENT-71.md) adds buffered copy/verification
+interruption and recovery qualification on same/separate shares; see the
+[step-by-step lab](docs/NFS-BUFFERED-READS-LAB.md) for actual blocked-read proof,
+original-state recovery and limits. Production NFS and source deletion remain
+disabled.

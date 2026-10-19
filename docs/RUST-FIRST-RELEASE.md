@@ -62,9 +62,9 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-The next bounded increment is qualification of remaining real buffered NMP-41B
-worker interruption/recovery boundaries under the [mount-profile contract](NFS-MOUNT-PROFILE.md),
-MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
+Next qualify remaining buffered NMP-41B bootstrap/publication/manifest and
+synchronization boundaries, plus untested copy/verification failure directions,
+under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
@@ -308,3 +308,12 @@ recovery, original-state replay and unchanged producer-reused bytes. See the
 remaining buffered outage, RPC/sync and bootstrap/copy/verify/manifest boundaries
 stay open. FR-03/05 and all eight release gates remain open; production NFS and
 source deletion remain disabled.
+
+[Increment 71](RUST-INCREMENT-71.md) addresses selected buffered NMP-41B
+copy/verification interruption/death recovery on same/separate shares. The
+[lab](NFS-BUFFERED-READS-LAB.md) requires actual blocked read descriptors and
+surviving-worker exclusion before original-state recovery. Joint outage of one
+server is distinct from independent endpoints or mutating-RPC settlement.
+FR-03/05 and all eight release gates remain open. Keep production NFS and source
+deletion disabled; remaining buffered bootstrap/publication/manifest, failure
+directions, synchronization, workload and deployment cases stay open.

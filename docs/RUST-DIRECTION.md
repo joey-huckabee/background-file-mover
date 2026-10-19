@@ -601,3 +601,12 @@ Maintain SC-104, the [step-by-step lab](NFS-SAME-SHARE-LAB.md), original local
 state/enrollment and the producer JSON-until-202 contract. Remaining buffered
 bootstrap/copy/verify/manifest, outage and synchronization/RPC boundaries stay
 open. Production NFS/source deletion remain disabled.
+
+[Increment 71](RUST-INCREMENT-71.md) adds the retained --buffered-reads matrix
+and [lab](NFS-BUFFERED-READS-LAB.md) for actual source-copy/destination-verification
+read blockage, coordinator death and original-state recovery on buffered same/
+separate shares. Maintain SC-106 and DOC-01/03/04/05. The syscall observer alone
+gets SYS_PTRACE/DAC_READ_SEARCH inside its isolated client; ordinary workers keep zero active
+capabilities. Copy recovery preserves old partials/uses attempt 2; verification
+retains attempt 1. Production NFS and source deletion stay disabled, and remaining
+buffered RPC, bootstrap/publication/manifest and deployment gates stay open.
