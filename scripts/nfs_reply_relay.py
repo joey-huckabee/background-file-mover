@@ -71,7 +71,7 @@ class ReplyRelay:
                 for row in value['held']:
                     assert row['xid'] == row['request']['decoded']['xid'] == row['reply']['xid']
                     assert row['reply']['status'] == 0
-                    assert dict(op=value['operation'], status=0) in row['reply']['operations']
+                    assert any(o['op']==value['operation'] and o['status']==0 for o in row['reply']['operations'])
                 return value
             time.sleep(.2)
         raise AssertionError('no matched successful selected reply was withheld')

@@ -36,6 +36,20 @@ class EvidenceDecoder(unittest.TestCase):
         self.assertEqual(result['operations'][2], dict(op=28, status=0))
         self.assertEqual(result['status'], 0)
 
+    def test_write_commit_fields_and_truncation(self):
+        prefix = u(123,0,2,100003,4,1,0,0,0,0)+opaque(b'')+u(1,2,22)+opaque(b'handle')
+        response = u(123,1,0,0,0,0,0)+opaque(b'')+u(2,22,0)
+        for request,result,op in ((prefix+u(5)+bytes(8)+u(4096),response+u(5,0)+b'verifier',5),
+                                  (prefix+u(38)+bytes(16)+bytes(8)+u(2)+opaque(b'data'),response+u(38,0,4,2)+b'verifier',38)):
+            self.assertEqual(call(request)['operations'][-1]['op'],op)
+            self.assertEqual(reply(result)['operations'][-1]['verifier_hex'],b'verifier'.hex())
+            for decoder,value in ((call,request),(reply,result)):
+                for end in range(len(value)):
+                    with self.assertRaises(ValueError):decoder(value[:end])
+                with self.assertRaises(ValueError):decoder(value+bytes(4))
+        with self.assertRaises(ValueError):call(prefix+u(38)+bytes(24)+u(3)+opaque(b'data'))
+        with self.assertRaises(ValueError):reply(response+u(38,0,4,3)+b'verifier')
+
     def test_every_truncation_and_trailing_bytes_refused(self):
         for decoder, value in ((call, CALL), (reply, REPLY)):
             for end in range(len(value)):

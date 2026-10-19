@@ -1,4 +1,6 @@
 """Private disposable TCP observer; hold matched successful REMOVE or LINK replies."""
+import base64
+import zlib
 import hashlib
 import json
 import os
@@ -16,7 +18,7 @@ def serve(backend):
     lock = threading.RLock()
     state = dict(ready=False, token=None, armed=False, name=None, operation=28, held=[], released=[],
                  dropped=[], forwarded=[], errors=[], connections=0, active=0, received=0,
-                 connection_resets=[], transport_events=[])
+                 connection_resets=[], transport_events=[], observing=False, trace=[], trace_bytes=0, trace_overflow=False)
     pending = []
     expected_disconnect = set()
 
@@ -34,8 +36,12 @@ def serve(backend):
                 if command['token'] != last:
                     with lock:
                         action = command['action']
-                        if action == 'arm':
-                            if command.get('operation', 28) not in (11, 28):
+                        if action == 'observe':
+                            state.update(observing=True, trace=[], trace_bytes=0, trace_overflow=False)
+                        elif action == 'stop_observe':
+                            state['observing'] = False
+                        elif action == 'arm':
+                            if command.get('operation', 28) not in (5, 11, 28, 38):
                                 raise ValueError('unsupported selected operation')
                             if pending or state['armed']:
                                 raise ValueError('already armed')
@@ -79,6 +85,20 @@ def serve(backend):
                     last = command.get('token')
                     save()
             time.sleep(.02)
+
+    def observe(direction, number, data, decoded):
+        if not state['observing']:
+            return
+        if len(state['trace']) >= 8192 or state['trace_bytes'] + len(data) > 64 * 1048576:
+            state['trace_overflow'] = True
+            return
+        state['trace_bytes'] += len(data)
+        state['trace'].append(dict(direction=direction, connection=number,
+            monotonic_ns=time.monotonic_ns(), xid=struct.unpack('!I', data[:4])[0],
+            sha256=hashlib.sha256(data).hexdigest(), decoded=decoded,
+            payload_zlib_base64=base64.b64encode(zlib.compress(data)).decode('ascii')))
+        # Flush with the next acknowledged control/hold/event/error checkpoint.
+        # Rewriting the full growing window per packet distorts the workload.
 
     def connection(client, number):
         # Preserve the controlled export's existing reserved-port requirement.
@@ -142,10 +162,11 @@ def serve(backend):
                     except (ValueError, UnicodeError):
                         decoded = None
                     with lock:
+                        observe('call', number, data, decoded)
                         if len(calls) >= 4096 and xid not in calls:
                             raise ValueError('request map bound')
                         calls[xid] = dict(decoded=decoded, sha256=hashlib.sha256(data).hexdigest())
-                        if decoded and any(op.get('op') in (11, 28) for op in decoded['operations']):
+                        if decoded and any(op.get('op') in (5, 11, 28, 38) for op in decoded['operations']):
                             calls[xid]['payload_hex'] = data.hex()
                     server.sendall(wire)
             except Exception as error:
@@ -167,15 +188,20 @@ def serve(backend):
                     request = calls.get(xid, {})
                     decoded = request.get('decoded')
                     state['received'] += 1
+                    try:
+                        observed_reply = reply(data)
+                    except ValueError:
+                        observed_reply = None
+                    observe('reply', number, data, observed_reply)
                     selected = state['armed'] and decoded and any(
-                        op.get('op') == state['operation'] and op.get('name') == state['name'] for op in decoded['operations'])
+                        op.get('op') == state['operation'] and (state['name'] is None or op.get('name') == state['name']) for op in decoded['operations'])
                     row = dict(connection=number, xid=xid, request=request, receive_id=state['received'],
                                reply_sha256=hashlib.sha256(data).hexdigest(), wire_bytes=len(wire))
                     if selected:
                         row['payload_hex'] = data.hex()
                         observed = reply(data)
                         row['reply'] = observed
-                        if observed['status'] == 0 and dict(op=state['operation'], status=0) in observed['operations']:
+                        if observed['status'] == 0 and any(op['op'] == state['operation'] and op['status'] == 0 for op in observed['operations']):
                             if len(pending) >= 128 or sum(len(v[1]) for v in pending) + len(wire) > 16 * 1048576:
                                 raise ValueError('withheld reply bound')
                             pending.append((client, wire, row))
@@ -183,7 +209,7 @@ def serve(backend):
                             save()
                             continue
                     client.sendall(wire)
-                    if request.get('decoded') and any(op.get('op') == state['operation'] and op.get('name') == state['name'] for op in decoded['operations']):
+                    if request.get('decoded') and any(op.get('op') == state['operation'] and (state['name'] is None or op.get('name') == state['name']) for op in decoded['operations']):
                         row['payload_hex'] = data.hex()
                         row['reply'] = reply(data)
                         state['forwarded'].append(row)

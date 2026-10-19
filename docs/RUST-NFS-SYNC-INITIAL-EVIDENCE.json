@@ -1,0 +1,2404 @@
+{
+  "report": {
+    "status": "FAILED",
+    "run_id": "reply-capability-20261018T225831Z-9000d3c9",
+    "operation": "remove",
+    "role": "destination",
+    "rust_executed": false,
+    "cleanup_errors": [],
+    "config": {
+      "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+      "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+      "rust": "1.99.0",
+      "cargo_zigbuild": "0.23.4",
+      "zig": "0.16.0",
+      "target": "x86_64-unknown-linux-gnu.2.22",
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "allowed_libraries": [
+        "libc.so.6",
+        "libm.so.6",
+        "libpthread.so.0",
+        "librt.so.1",
+        "libdl.so.2",
+        "libgcc_s.so.1",
+        "ld-linux-x86-64.so.2"
+      ]
+    },
+    "driver_sha256": {
+      "check-nfs-reply-capability.py": "493ccc90a33152eb3c4c0a95ae8ad908b4e23ffc871684bf20913aaa75384248",
+      "nfs_reply_relay.py": "9476fc81b4113679990ccf02b57c22740a5336999a4e596e717bf8de4ac144dc",
+      "nfs_rpc.py": "cd81c5efb7289b9047070e895d07db337f2d25a3db4852f7917870872e61d5eb",
+      "nfs_reply_proxy.py": "b707f485fe5e3b16a7d00f11c555a6be5d0834fb2403f598b43b10ebf362495a",
+      "nfs_endpoints.py": "47d9a28d1da68331bdde74b44d0d66b513c978776b81c5091914ec8a14d4ed8b",
+      "test_nfs_rpc.py": "2c32a0b973f6d63257acc11660187f70d087b71e5abbcfc454c85c1e5d5841cd",
+      "nfs_relay_restart.py": "5149c87e490e811898d1ce0bdc7184e9192f84306ad1231488bcd5a02fc14700",
+      "nfs_sync_capability.py": "bd911c8835bc09b91d89f39c1639f0d840cd89219c7b05c43757829a440a9b61",
+      "nfs_sync_support.py": "1149023a228a5183667dd648a9125d0c4cb8959e7fb7f4f2c04bddf0d6359b18",
+      "nfs_syscall_trace.py": "6ba6ef02a6d8a910a20b349d4c6c2e21310fe3a071a18b674aa77d59a1cd9172",
+      "nfs_sync_probe.c": "8566e2644b002a37af7c6646bfe26aed7bde7f82400c924c0364f86c502cd60f"
+    },
+    "decoder_tests": {
+      "passed": true,
+      "output": "test_every_truncation_and_trailing_bytes_refused (__main__.EvidenceDecoder.test_every_truncation_and_trailing_bytes_refused) ... ok\ntest_fragmented_records_preserved_exactly (__main__.EvidenceDecoder.test_fragmented_records_preserved_exactly) ... ok\ntest_matching_remove_and_success (__main__.EvidenceDecoder.test_matching_remove_and_success) ... ok\ntest_record_bounds_and_truncation (__main__.EvidenceDecoder.test_record_bounds_and_truncation) ... ok\ntest_unknown_opcode_and_opcode_inside_handle_are_not_evidence (__main__.EvidenceDecoder.test_unknown_opcode_and_opcode_inside_handle_are_not_evidence) ... ok\ntest_write_commit_fields_and_truncation (__main__.EvidenceDecoder.test_write_commit_fields_and_truncation) ... ok\ntest_wrong_protocol_auth_lengths_minor_and_counts_refused (__main__.EvidenceDecoder.test_wrong_protocol_auth_lengths_minor_and_counts_refused) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.016s\n\nOK\n"
+    },
+    "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+    "kernel": "6.18.33.2-microsoft-standard-WSL2",
+    "endpoints": {
+      "passed": true,
+      "servers": {
+        "source": {
+          "container": "780d4cf87af297bb14cb38a8afc1427ed9e7e22b846b2daa25939b8c9477e4e3",
+          "ip": "10.89.0.2",
+          "export": "/exports/death-source",
+          "mount": "/tmp/nfs-source",
+          "network_namespace": "net:[4026533006]",
+          "filesystem_device": "168",
+          "server_mounts": [
+            "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/c447fc87c901c43467081bc55901dcadf2162c6fad4408261a26650f224bea13/diff,workdir=/var/lib/containers/storage/overlay/c447fc87c901c43467081bc55901dcadf2162c6fad4408261a26650f224bea13/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+            "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+            "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+            "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+            "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+            "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+            "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+            "none /run/secrets tmpfs rw,mode=755 0 0",
+            "none /etc/hostname tmpfs rw,mode=755 0 0",
+            "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+            "none /etc/hosts tmpfs rw,mode=755 0 0",
+            "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+            "none /run/.containerenv tmpfs rw,mode=755 0 0",
+            "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+            "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+            "tmpfs /exports/death-source tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+          ]
+        },
+        "destination": {
+          "container": "b18e2322cd2f920676442abb19ac2216500fe12b8a4062920fec7dde910eea97",
+          "ip": "10.89.0.5",
+          "export": "/exports/death-destination",
+          "mount": "/tmp/nfs-destination",
+          "network_namespace": "net:[4026533217]",
+          "filesystem_device": "169",
+          "server_mounts": [
+            "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/4609901d7d00d3b6d0ff7275fc34a68a5b1cad679803092a0d7cf6c7c1a92881/diff,workdir=/var/lib/containers/storage/overlay/4609901d7d00d3b6d0ff7275fc34a68a5b1cad679803092a0d7cf6c7c1a92881/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+            "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+            "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+            "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+            "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+            "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+            "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+            "none /etc/hosts tmpfs rw,mode=755 0 0",
+            "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+            "none /run/.containerenv tmpfs rw,mode=755 0 0",
+            "none /run/secrets tmpfs rw,mode=755 0 0",
+            "none /etc/hostname tmpfs rw,mode=755 0 0",
+            "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+            "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+            "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+            "tmpfs /exports/death-destination tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+          ],
+          "backend_ip": "10.89.0.4"
+        }
+      },
+      "reply_relay": {
+        "container": "9bc87e2eed3f778d43b20e953c0f21bb13c9e9064d8f6c51dde6890f5cfb21af",
+        "ip": "10.89.0.5",
+        "backend": "10.89.0.4",
+        "image": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+        "packages_added": false,
+        "ports_published": false,
+        "private_netns_unprivileged_port_start": 0,
+        "backend_source_ports": "601-1000",
+        "max_active_connections": 16,
+        "max_lifetime_connections": 400,
+        "backend_connect_deadline_seconds": 600,
+        "backend_connect_retry_seconds": 1,
+        "drivers": {
+          "nfs_rpc.py": "cd81c5efb7289b9047070e895d07db337f2d25a3db4852f7917870872e61d5eb",
+          "nfs_reply_proxy.py": "b707f485fe5e3b16a7d00f11c555a6be5d0834fb2403f598b43b10ebf362495a"
+        }
+      },
+      "mounts": [
+        "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/13809741e0149bed619929eff31070e58332dc80e55cdfb764d8df9774996b1d/diff,workdir=/var/lib/containers/storage/overlay/13809741e0149bed619929eff31070e58332dc80e55cdfb764d8df9774996b1d/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+        "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+        "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+        "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+        "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+        "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+        "none /etc/hostname tmpfs rw,mode=755 0 0",
+        "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+        "none /etc/hosts tmpfs rw,mode=755 0 0",
+        "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+        "none /run/.containerenv tmpfs rw,mode=755 0 0",
+        "none /run/secrets tmpfs rw,mode=755 0 0",
+        "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+        "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+        "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+        "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+        "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+        "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+        "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+        "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+        "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+        "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+        "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+        "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+        "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+        "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+        "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+        "10.89.0.2:/death-source /tmp/nfs-source nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+        "10.89.0.5:/death-destination /tmp/nfs-destination nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5 0 0"
+      ],
+      "mountinfo": [
+        "1113 1034 0:148 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/13809741e0149bed619929eff31070e58332dc80e55cdfb764d8df9774996b1d/diff,workdir=/var/lib/containers/storage/overlay/13809741e0149bed619929eff31070e58332dc80e55cdfb764d8df9774996b1d/work,redirect_dir=on,uuid=on,metacopy=on",
+        "1114 1113 0:153 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1115 1113 0:154 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755",
+        "1116 1113 0:155 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw",
+        "1117 1115 0:156 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666",
+        "1118 1115 0:150 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw",
+        "1119 1113 0:63 /containers/storage/overlay-containers/c408955322799ed4898998fc8ed414529e5f1402baffd79a13537b82ee357b04/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755",
+        "1120 1113 0:63 /containers/storage/overlay-containers/c408955322799ed4898998fc8ed414529e5f1402baffd79a13537b82ee357b04/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755",
+        "1121 1113 0:63 /containers/storage/overlay-containers/c408955322799ed4898998fc8ed414529e5f1402baffd79a13537b82ee357b04/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755",
+        "1122 1115 0:143 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k",
+        "1123 1113 0:63 /containers/storage/overlay-containers/c408955322799ed4898998fc8ed414529e5f1402baffd79a13537b82ee357b04/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755",
+        "1124 1113 0:63 /containers/storage/overlay-containers/c408955322799ed4898998fc8ed414529e5f1402baffd79a13537b82ee357b04/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755",
+        "1125 1116 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate",
+        "1126 1114 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755",
+        "1127 1114 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+        "1128 1114 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+        "1129 1114 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+        "1130 1114 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755",
+        "1131 1114 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+        "1132 1116 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755",
+        "1133 1116 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755",
+        "1134 1114 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+        "1135 1114 0:153 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1136 1114 0:153 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1137 1114 0:153 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1138 1114 0:153 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1139 1114 0:153 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw",
+        "1187 1113 0:174 / /tmp/nfs-source rw,relatime - nfs4 10.89.0.2:/death-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+        "1203 1113 0:176 / /tmp/nfs-destination rw,relatime - nfs4 10.89.0.5:/death-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5"
+      ],
+      "client_devices": [
+        "174",
+        "176"
+      ],
+      "client_filesystems": [
+        "6969",
+        "6969"
+      ],
+      "client_mount_ids": [
+        "1187",
+        "1203"
+      ],
+      "scope": "Two controlled NFSv4.1 server containers/net namespaces/IPs and tmpfs exports on one modern kernel; independent NFSD thread outages, not physical NAS failures or reboot/power durability."
+    },
+    "relay_security": "Name:\tpython3\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t1\nNgid:\t0\nPid:\t1\nPPid:\t0\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t64\nGroups:\t1000 \nNStgid:\t1\nNSpid:\t1\nNSpgid:\t1\nNSsid:\t1\nKthread:\t0\nVmPeak:\t  247016 kB\nVmSize:\t  247016 kB\nVmLck:\t       0 kB\nVmPin:\t       0 kB\nVmHWM:\t   18372 kB\nVmRSS:\t   18372 kB\nRssAnon:\t    7120 kB\nRssFile:\t   11252 kB\nRssShmem:\t       0 kB\nVmData:\t   33532 kB\nVmStk:\t     132 kB\nVmExe:\t    3196 kB\nVmLib:\t    6596 kB\nVmPTE:\t     104 kB\nVmSwap:\t       0 kB\nHugetlbPages:\t       0 kB\nCoreDumping:\t0\nTHP_enabled:\t1\nuntag_mask:\t0xffffffffffffffff\nThreads:\t4\nSigQ:\t0/47803\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000001001000\nSigCgt:\t0000000100000002\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t0000000000000000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t12\nnonvoluntary_ctxt_switches:\t4\n",
+    "preflights": {
+      "28": {
+        "passed": true,
+        "cases": [
+          {
+            "mode": "release",
+            "role": "destination",
+            "operation": 28,
+            "passed": true,
+            "before": {
+              "old": {
+                "device": 169,
+                "inode": 4,
+                "links": 2,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              },
+              "final": {
+                "device": 169,
+                "inode": 4,
+                "links": 2,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              }
+            },
+            "armed": {
+              "ready": true,
+              "token": "6174d2b831f64d82876ff45aff7a5f0b",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 63,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+            },
+            "held": {
+              "ready": true,
+              "token": "6174d2b831f64d82876ff45aff7a5f0b",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 70,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+            },
+            "pending_client": {
+              "pid": "23",
+              "state": "D",
+              "command": "unlink /tmp/nfs-destination/reply-preflight-release/staging"
+            },
+            "server_completed_while_withheld": {
+              "old": null,
+              "final": {
+                "device": 169,
+                "inode": 4,
+                "links": 1,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              }
+            },
+            "before_release_or_drop": {
+              "ready": true,
+              "token": "6174d2b831f64d82876ff45aff7a5f0b",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 70,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+            },
+            "settled": {
+              "ready": true,
+              "token": "6174d2b831f64d82876ff45aff7a5f0b",
+              "armed": false,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 70,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "0954f7800a184fc58706bb82c39a289e"
+            },
+            "final": {
+              "ready": true,
+              "token": "6174d2b831f64d82876ff45aff7a5f0b",
+              "armed": false,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [
+                {
+                  "connection": 1,
+                  "xid": 816316766,
+                  "request": {
+                    "decoded": {
+                      "xid": 816316766,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                    "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 70,
+                  "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                  "wire_bytes": 120,
+                  "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                  "reply": {
+                    "xid": 816316766,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 70,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "0954f7800a184fc58706bb82c39a289e"
+            }
+          },
+          {
+            "mode": "drop",
+            "role": "destination",
+            "operation": 28,
+            "passed": true,
+            "before": {
+              "old": {
+                "device": 169,
+                "inode": 6,
+                "links": 2,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              },
+              "final": {
+                "device": 169,
+                "inode": 6,
+                "links": 2,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              }
+            },
+            "armed": {
+              "ready": true,
+              "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 99,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+            },
+            "held": {
+              "ready": true,
+              "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 106,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+            },
+            "pending_client": {
+              "pid": "32",
+              "state": "D",
+              "command": "unlink /tmp/nfs-destination/reply-preflight-drop/staging"
+            },
+            "server_completed_while_withheld": {
+              "old": null,
+              "final": {
+                "device": 169,
+                "inode": 6,
+                "links": 1,
+                "size": 20,
+                "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+              }
+            },
+            "before_release_or_drop": {
+              "ready": true,
+              "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+              "armed": true,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [],
+              "forwarded": [],
+              "errors": [],
+              "connections": 1,
+              "active": 1,
+              "received": 106,
+              "connection_resets": [],
+              "transport_events": [],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+            },
+            "settled": {
+              "ready": true,
+              "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+              "armed": false,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "forwarded": [
+                {
+                  "connection": 2,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 108,
+                  "reply_sha256": "805975ae1e792cdf2049f6313b6fee6fd10dc3594cd6252b5a81a6fadf602ed3",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000100000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "errors": [],
+              "connections": 2,
+              "active": 1,
+              "received": 108,
+              "connection_resets": [
+                1
+              ],
+              "transport_events": [
+                {
+                  "connection": 1,
+                  "kind": "frontend_closed",
+                  "error": null
+                }
+              ],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "894dad6653c847bd9ded55edfa483336"
+            },
+            "final": {
+              "ready": true,
+              "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+              "armed": false,
+              "name": "staging",
+              "operation": 28,
+              "held": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "released": [],
+              "dropped": [
+                {
+                  "connection": 1,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 106,
+                  "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "forwarded": [
+                {
+                  "connection": 2,
+                  "xid": 1403519326,
+                  "request": {
+                    "decoded": {
+                      "xid": 1403519326,
+                      "operations": [
+                        {
+                          "op": 53,
+                          "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                        },
+                        {
+                          "op": 22,
+                          "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                        },
+                        {
+                          "op": 28,
+                          "name": "staging"
+                        }
+                      ]
+                    },
+                    "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                    "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                  },
+                  "receive_id": 108,
+                  "reply_sha256": "805975ae1e792cdf2049f6313b6fee6fd10dc3594cd6252b5a81a6fadf602ed3",
+                  "wire_bytes": 120,
+                  "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000100000016000000000000001c000000000000000100000000000000260000000000000027",
+                  "reply": {
+                    "xid": 1403519326,
+                    "status": 0,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "status": 0
+                      },
+                      {
+                        "op": 22,
+                        "status": 0
+                      },
+                      {
+                        "op": 28,
+                        "status": 0
+                      }
+                    ]
+                  }
+                }
+              ],
+              "errors": [],
+              "connections": 2,
+              "active": 1,
+              "received": 108,
+              "connection_resets": [
+                1
+              ],
+              "transport_events": [
+                {
+                  "connection": 1,
+                  "kind": "frontend_closed",
+                  "error": null
+                }
+              ],
+              "observing": false,
+              "trace": [],
+              "trace_bytes": 0,
+              "trace_overflow": false,
+              "command_token": "894dad6653c847bd9ded55edfa483336"
+            }
+          }
+        ]
+      }
+    },
+    "preflight": {
+      "passed": true,
+      "cases": [
+        {
+          "mode": "release",
+          "role": "destination",
+          "operation": 28,
+          "passed": true,
+          "before": {
+            "old": {
+              "device": 169,
+              "inode": 4,
+              "links": 2,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            },
+            "final": {
+              "device": 169,
+              "inode": 4,
+              "links": 2,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            }
+          },
+          "armed": {
+            "ready": true,
+            "token": "6174d2b831f64d82876ff45aff7a5f0b",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 63,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+          },
+          "held": {
+            "ready": true,
+            "token": "6174d2b831f64d82876ff45aff7a5f0b",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 70,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+          },
+          "pending_client": {
+            "pid": "23",
+            "state": "D",
+            "command": "unlink /tmp/nfs-destination/reply-preflight-release/staging"
+          },
+          "server_completed_while_withheld": {
+            "old": null,
+            "final": {
+              "device": 169,
+              "inode": 4,
+              "links": 1,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            }
+          },
+          "before_release_or_drop": {
+            "ready": true,
+            "token": "6174d2b831f64d82876ff45aff7a5f0b",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 70,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "6174d2b831f64d82876ff45aff7a5f0b"
+          },
+          "settled": {
+            "ready": true,
+            "token": "6174d2b831f64d82876ff45aff7a5f0b",
+            "armed": false,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 70,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "0954f7800a184fc58706bb82c39a289e"
+          },
+          "final": {
+            "ready": true,
+            "token": "6174d2b831f64d82876ff45aff7a5f0b",
+            "armed": false,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [
+              {
+                "connection": 1,
+                "xid": 816316766,
+                "request": {
+                  "decoded": {
+                    "xid": 816316766,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000041000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "bad65ba715d0cf0f32c21e05584fdc0aabbfce8e5e5b4066fea7a2040d27447e"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "fbf7da8e5b73c811d5580109b641993e5f141d3faf663753b1027d9a50e017e5",
+                  "payload_hex": "30a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b020000000000000000004100000000000000000000000100000016000000140100010138000000b09f1fa903000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 70,
+                "reply_sha256": "5939418c0ba37937a2efe500b6029f9231fc931a18d33ab1af62654821c4d6b5",
+                "wire_bytes": 120,
+                "payload_hex": "30a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000041000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000180000000000000019",
+                "reply": {
+                  "xid": 816316766,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 70,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "0954f7800a184fc58706bb82c39a289e"
+          }
+        },
+        {
+          "mode": "drop",
+          "role": "destination",
+          "operation": 28,
+          "passed": true,
+          "before": {
+            "old": {
+              "device": 169,
+              "inode": 6,
+              "links": 2,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            },
+            "final": {
+              "device": 169,
+              "inode": 6,
+              "links": 2,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            }
+          },
+          "armed": {
+            "ready": true,
+            "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 99,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+          },
+          "held": {
+            "ready": true,
+            "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 106,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+          },
+          "pending_client": {
+            "pid": "32",
+            "state": "D",
+            "command": "unlink /tmp/nfs-destination/reply-preflight-drop/staging"
+          },
+          "server_completed_while_withheld": {
+            "old": null,
+            "final": {
+              "device": 169,
+              "inode": 6,
+              "links": 1,
+              "size": 20,
+              "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+            }
+          },
+          "before_release_or_drop": {
+            "ready": true,
+            "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+            "armed": true,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [],
+            "forwarded": [],
+            "errors": [],
+            "connections": 1,
+            "active": 1,
+            "received": 106,
+            "connection_resets": [],
+            "transport_events": [],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "e4c6ea02e3714c54890ed9923d0b6f11"
+          },
+          "settled": {
+            "ready": true,
+            "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+            "armed": false,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "forwarded": [
+              {
+                "connection": 2,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 108,
+                "reply_sha256": "805975ae1e792cdf2049f6313b6fee6fd10dc3594cd6252b5a81a6fadf602ed3",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000100000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "errors": [],
+            "connections": 2,
+            "active": 1,
+            "received": 108,
+            "connection_resets": [
+              1
+            ],
+            "transport_events": [
+              {
+                "connection": 1,
+                "kind": "frontend_closed",
+                "error": null
+              }
+            ],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "894dad6653c847bd9ded55edfa483336"
+          },
+          "final": {
+            "ready": true,
+            "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+            "armed": false,
+            "name": "staging",
+            "operation": 28,
+            "held": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "released": [],
+            "dropped": [
+              {
+                "connection": 1,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 106,
+                "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "forwarded": [
+              {
+                "connection": 2,
+                "xid": 1403519326,
+                "request": {
+                  "decoded": {
+                    "xid": 1403519326,
+                    "operations": [
+                      {
+                        "op": 53,
+                        "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                      },
+                      {
+                        "op": 22,
+                        "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                      },
+                      {
+                        "op": 28,
+                        "name": "staging"
+                      }
+                    ]
+                  },
+                  "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+                  "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+                },
+                "receive_id": 108,
+                "reply_sha256": "805975ae1e792cdf2049f6313b6fee6fd10dc3594cd6252b5a81a6fadf602ed3",
+                "wire_bytes": 120,
+                "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000100000016000000000000001c000000000000000100000000000000260000000000000027",
+                "reply": {
+                  "xid": 1403519326,
+                  "status": 0,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "status": 0
+                    },
+                    {
+                      "op": 22,
+                      "status": 0
+                    },
+                    {
+                      "op": 28,
+                      "status": 0
+                    }
+                  ]
+                }
+              }
+            ],
+            "errors": [],
+            "connections": 2,
+            "active": 1,
+            "received": 108,
+            "connection_resets": [
+              1
+            ],
+            "transport_events": [
+              {
+                "connection": 1,
+                "kind": "frontend_closed",
+                "error": null
+              }
+            ],
+            "observing": false,
+            "trace": [],
+            "trace_bytes": 0,
+            "trace_overflow": false,
+            "command_token": "894dad6653c847bd9ded55edfa483336"
+          }
+        }
+      ]
+    },
+    "synchronization": {
+      "passed": false,
+      "observations": [],
+      "withholding": [],
+      "scope": "OS-only sync discovery; buffered controls do not qualify noac mover behavior"
+    },
+    "error": "RuntimeError: ['exec', '--user', '1000:1000', 'ef7638eca05b8b629916cf8613121b8a30b9d908e408c0b6c411ad46cac2622b', 'zig', 'cc', '-target', 'x86_64-linux-gnu.2.22', '-O2', '-Wall', '-Wextra', '-Werror', '/tmp/nfs_sync_probe.c', '-o', '/tmp/nfs-sync-probe']: error: unable to resolve zig cache directory: AppDataDirUnavailable\n",
+    "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-reply-capability.py\", line 117, in main\n    qualify(relay,endpoints,run,execute,spawn,output,client,containers,config,report['synchronization'])\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_sync_capability.py\", line 8, in qualify\n    result['probe']=build_probe(run,output,client,containers,config)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_sync_support.py\", line 10, in build_probe\n    run(['exec','--user','1000:1000',builder,'zig','cc','-target','x86_64-linux-gnu.2.22','-O2','-Wall','-Wextra','-Werror','/tmp/nfs_sync_probe.c','-o','/tmp/nfs-sync-probe'])\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-reply-capability.py\", line 42, in run\n    raise RuntimeError(str(args) + ': ' + value.stdout + value.stderr)\nRuntimeError: ['exec', '--user', '1000:1000', 'ef7638eca05b8b629916cf8613121b8a30b9d908e408c0b6c411ad46cac2622b', 'zig', 'cc', '-target', 'x86_64-linux-gnu.2.22', '-O2', '-Wall', '-Wextra', '-Werror', '/tmp/nfs_sync_probe.c', '-o', '/tmp/nfs-sync-probe']: error: unable to resolve zig cache directory: AppDataDirUnavailable\n\n",
+    "relay_final": {
+      "ready": true,
+      "token": "e4c6ea02e3714c54890ed9923d0b6f11",
+      "armed": false,
+      "name": "staging",
+      "operation": 28,
+      "held": [
+        {
+          "connection": 1,
+          "xid": 1403519326,
+          "request": {
+            "decoded": {
+              "xid": 1403519326,
+              "operations": [
+                {
+                  "op": 53,
+                  "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                },
+                {
+                  "op": 22,
+                  "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                },
+                {
+                  "op": 28,
+                  "name": "staging"
+                }
+              ]
+            },
+            "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+            "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+          },
+          "receive_id": 106,
+          "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+          "wire_bytes": 120,
+          "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+          "reply": {
+            "xid": 1403519326,
+            "status": 0,
+            "operations": [
+              {
+                "op": 53,
+                "status": 0
+              },
+              {
+                "op": 22,
+                "status": 0
+              },
+              {
+                "op": 28,
+                "status": 0
+              }
+            ]
+          }
+        }
+      ],
+      "released": [],
+      "dropped": [
+        {
+          "connection": 1,
+          "xid": 1403519326,
+          "request": {
+            "decoded": {
+              "xid": 1403519326,
+              "operations": [
+                {
+                  "op": 53,
+                  "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                },
+                {
+                  "op": 22,
+                  "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                },
+                {
+                  "op": 28,
+                  "name": "staging"
+                }
+              ]
+            },
+            "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+            "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+          },
+          "receive_id": 106,
+          "reply_sha256": "fbce2f71bd6afd036c7f73b7b3705b5762f683e2d1ffb6611c83983adab96227",
+          "wire_bytes": 120,
+          "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000000000016000000000000001c000000000000000100000000000000260000000000000027",
+          "reply": {
+            "xid": 1403519326,
+            "status": 0,
+            "operations": [
+              {
+                "op": 53,
+                "status": 0
+              },
+              {
+                "op": 22,
+                "status": 0
+              },
+              {
+                "op": 28,
+                "status": 0
+              }
+            ]
+          }
+        }
+      ],
+      "forwarded": [
+        {
+          "connection": 2,
+          "xid": 1403519326,
+          "request": {
+            "decoded": {
+              "xid": 1403519326,
+              "operations": [
+                {
+                  "op": 53,
+                  "sequence_hex": "324fd56a4c2fbb191b0200000000000000000064000000000000000000000001"
+                },
+                {
+                  "op": 22,
+                  "filehandle_sha256": "70929c6f4e0daffa29d25945cf72fbfccc1e2b0157a9154eac75b0dadc30683b"
+                },
+                {
+                  "op": 28,
+                  "name": "staging"
+                }
+              ]
+            },
+            "sha256": "e40d2d0424c664abea02f0faaf74297cb54f0ae388093154a0b20d2d2e70f024",
+            "payload_hex": "53a8015e0000000000000002000186a300000004000000010000000100000024000000000000000c633430383935353332323739000003e8000003e800000001000003e8000000000000000000000000000000010000000300000035324fd56a4c2fbb191b0200000000000000000064000000000000000000000001000000160000001401000101380000004b684c8705000000000000000000001c0000000773746167696e6700"
+          },
+          "receive_id": 108,
+          "reply_sha256": "805975ae1e792cdf2049f6313b6fee6fd10dc3594cd6252b5a81a6fadf602ed3",
+          "wire_bytes": 120,
+          "payload_hex": "53a8015e00000001000000000000000000000000000000000000000000000000000000030000003500000000324fd56a4c2fbb191b0200000000000000000064000000000000003f0000003f0000000100000016000000000000001c000000000000000100000000000000260000000000000027",
+          "reply": {
+            "xid": 1403519326,
+            "status": 0,
+            "operations": [
+              {
+                "op": 53,
+                "status": 0
+              },
+              {
+                "op": 22,
+                "status": 0
+              },
+              {
+                "op": 28,
+                "status": 0
+              }
+            ]
+          }
+        }
+      ],
+      "errors": [],
+      "connections": 2,
+      "active": 1,
+      "received": 108,
+      "connection_resets": [
+        1
+      ],
+      "transport_events": [
+        {
+          "connection": 1,
+          "kind": "frontend_closed",
+          "error": null
+        }
+      ],
+      "observing": false,
+      "trace": [],
+      "trace_bytes": 0,
+      "trace_overflow": false,
+      "command_token": "894dad6653c847bd9ded55edfa483336"
+    },
+    "relay_log": ""
+  },
+  "source_snapshots": {
+    "check-nfs-reply-capability.py": {
+      "sha256": "493ccc90a33152eb3c4c0a95ae8ad908b4e23ffc871684bf20913aaa75384248",
+      "content_base64": "IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwoiIiJQcm92ZSByZXBseS1sb3NzIGZpeHR1cmUgY2FwYWJpbGl0eSB3aXRob3V0IGV4ZWN1dGluZyBhbnkgUnVzdCBiaW5hcnkuIiIiCmZyb20gZGF0ZXRpbWUgaW1wb3J0IGRhdGV0aW1lLCB0aW1lem9uZQppbXBvcnQgYXJncGFyc2UKaW1wb3J0IGhhc2hsaWIKaW1wb3J0IGpzb24KZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCmltcG9ydCBzdWJwcm9jZXNzCmltcG9ydCBzeXMKaW1wb3J0IHRpbWUKaW1wb3J0IHRyYWNlYmFjawppbXBvcnQgdXVpZApmcm9tIG5mc19lbmRwb2ludHMgaW1wb3J0IEVuZHBvaW50cwpmcm9tIG5mc19yZXBseV9yZWxheSBpbXBvcnQgUmVwbHlSZWxheSwgcHJlZmxpZ2h0CgoKZGVmIG1haW4oKToKICAgIHBhcnNlciA9IGFyZ3BhcnNlLkFyZ3VtZW50UGFyc2VyKGRlc2NyaXB0aW9uPV9fZG9jX18pCiAgICBwYXJzZXIuYWRkX2FyZ3VtZW50KCctLW9wZXJhdGlvbicsIGNob2ljZXM9KCdyZW1vdmUnLCAnbGluaycsICdib3RoJyksIGRlZmF1bHQ9J3JlbW92ZScpCiAgICBwYXJzZXIuYWRkX2FyZ3VtZW50KCctLXJvbGUnLCBjaG9pY2VzPSgnc291cmNlJywgJ2Rlc3RpbmF0aW9uJyksIGRlZmF1bHQ9J2Rlc3RpbmF0aW9uJykKICAgIHBhcnNlci5hZGRfYXJndW1lbnQoJy0tYmFja2VuZC1yZXN0YXJ0JywgYWN0aW9uPSdzdG9yZV90cnVlJywgaGVscD0nQWZ0ZXIgc291cmNlIGNvbnRyb2xzLCBwcm92ZSByZWFsIGJhY2tlbmQgc3RvcC9yZXN0YXJ0IHRyYW5zcG9ydCByZWNvdmVyeScpCiAgICBwYXJzZXIuYWRkX2FyZ3VtZW50KCctLXN5bmNocm9uaXphdGlvbicsIGFjdGlvbj0nc3RvcmVfdHJ1ZScsIGhlbHA9J09ic2VydmUgbmF0aXZlIHN5bmMgY2FsbHMgYW5kIHByb3ZlIGF2YWlsYWJsZSByZXBseS13aXRoaG9sZGluZyBib3VuZGFyaWVzJykKICAgIGFyZ3MgPSBwYXJzZXIucGFyc2VfYXJncygpCiAgICBhc3NlcnQgbm90IGFyZ3MuYmFja2VuZF9yZXN0YXJ0IG9yIGFyZ3Mucm9sZSA9PSAnc291cmNlJywgJ2JhY2tlbmQgcmVzdGFydCByZXF1aXJlcyBzb3VyY2Ugcm9sZScKICAgIHJvb3QgPSBQYXRoKF9fZmlsZV9fKS5yZXNvbHZlKCkucGFyZW50c1sxXQogICAgY29uZmlnID0ganNvbi5sb2Fkcygocm9vdCAvICdzY3JpcHRzL3J1c3QtcGxhdGZvcm0uanNvbicpLnJlYWRfdGV4dChlbmNvZGluZz0ndXRmLTgnKSkKICAgIGxhYmVsID0gJ3JlcGx5LWNhcGFiaWxpdHktJyArIGRhdGV0aW1lLm5vdyh0aW1lem9uZS51dGMpLnN0cmZ0aW1lKCclWSVtJWRUJUglTSVTWicpICsgJy0nICsgdXVpZC51dWlkNCgpLmhleFs6OF0KICAgIG91dHB1dCA9IHJvb3QgLyAncnVzdC92YWxpZGF0aW9uJyAvIGxhYmVsCiAgICBvdXRwdXQubWtkaXIoKQogICAgZW5naW5lID0gWydwb2RtYW4nLCAnLS1jb25uZWN0aW9uJywgJ3BvZG1hbi1tYWNoaW5lLWRlZmF1bHQtcm9vdCddCiAgICBjb250YWluZXJzLCB2b2x1bWVzLCBtb3VudHMsIHNlcnZlcnMsIHRhc2tzID0gW10sIFtdLCBbXSwgW10sIFtdCiAgICBjbGllbnQgPSByZWxheSA9IE5vbmUKICAgIG5ldHdvcmsgPSAnYmZtLScgKyBsYWJlbC5sb3dlcigpCiAgICByZXBvcnQgPSBkaWN0KHN0YXR1cz0nRkFJTEVEJywgcnVuX2lkPWxhYmVsLCBvcGVyYXRpb249YXJncy5vcGVyYXRpb24sIHJvbGU9YXJncy5yb2xlLCBydXN0X2V4ZWN1dGVkPUZhbHNlLCBjbGVhbnVwX2Vycm9ycz1bXSwKICAgICAgICAgICAgICAgICAgY29uZmlnPWNvbmZpZywgZHJpdmVyX3NoYTI1Nj17bjogaGFzaGxpYi5zaGEyNTYoKHJvb3QgLyAnc2NyaXB0cycgLyBuKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpCiAgICAgICAgICAgICAgICAgICAgICBmb3IgbiBpbiAoJ2NoZWNrLW5mcy1yZXBseS1jYXBhYmlsaXR5LnB5JywgJ25mc19yZXBseV9yZWxheS5weScsICduZnNfcnBjLnB5JywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAnbmZzX3JlcGx5X3Byb3h5LnB5JywgJ25mc19lbmRwb2ludHMucHknLCAndGVzdF9uZnNfcnBjLnB5JywgJ25mc19yZWxheV9yZXN0YXJ0LnB5JywgKihbJ25mc19zeW5jX2NhcGFiaWxpdHkucHknLCAnbmZzX3N5bmNfc3VwcG9ydC5weScsICduZnNfc3lzY2FsbF90cmFjZS5weScsICduZnNfc3luY19wcm9iZS5jJ10gaWYgYXJncy5zeW5jaHJvbml6YXRpb24gZWxzZSBbXSkpfSkKCiAgICBkZWYgcnVuKGFyZ3MsIGNoZWNrPVRydWUpOgogICAgICAgIHZhbHVlID0gc3VicHJvY2Vzcy5ydW4oZW5naW5lICsgYXJncywgY2FwdHVyZV9vdXRwdXQ9VHJ1ZSwgdGV4dD1UcnVlLCBlbmNvZGluZz0ndXRmLTgnLCBlcnJvcnM9J3JlcGxhY2UnLCB0aW1lb3V0PTQ1KQogICAgICAgIGlmIGNoZWNrIGFuZCB2YWx1ZS5yZXR1cm5jb2RlOgogICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3Ioc3RyKGFyZ3MpICsgJzogJyArIHZhbHVlLnN0ZG91dCArIHZhbHVlLnN0ZGVycikKICAgICAgICByZXR1cm4gdmFsdWUKCiAgICBkZWYgZXhlY3V0ZShzY3JpcHQsIHVzZXI9Tm9uZSwgY2hlY2s9VHJ1ZSk6CiAgICAgICAgcmV0dXJuIHJ1bihbJ2V4ZWMnLCAqKFsnLS11c2VyJywgdXNlcl0gaWYgdXNlciBlbHNlIFtdKSwgY2xpZW50LCAnL2Jpbi9zaCcsICctZXUnLCAnLWMnLCBzY3JpcHRdLCBjaGVjaykKCiAgICBkZWYgc3Bhd24oc2NyaXB0LCBuYW1lKToKICAgICAgICBsb2cgPSAob3V0cHV0IC8gKG5hbWUgKyAnLmxvZycpKS5vcGVuKCd3JywgZW5jb2Rpbmc9J3V0Zi04JykKICAgICAgICBwcm9jZXNzID0gc3VicHJvY2Vzcy5Qb3BlbihlbmdpbmUgKyBbJ2V4ZWMnLCAnLS11c2VyJywgJzEwMDA6MTAwMCcsIGNsaWVudCwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICcvYmluL3NoJywgJy1ldScsICctYycsIHNjcmlwdF0sIHN0ZG91dD1sb2csIHN0ZGVycj1sb2cpCiAgICAgICAgdGFza3MuYXBwZW5kKChwcm9jZXNzLCBsb2cpKQogICAgICAgIHJldHVybiBwcm9jZXNzCgogICAgdHJ5OgogICAgICAgIHRlc3RzID0gc3VicHJvY2Vzcy5ydW4oW3N5cy5leGVjdXRhYmxlLCBzdHIocm9vdCAvICdzY3JpcHRzL3Rlc3RfbmZzX3JwYy5weScpLCAnLXYnXSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNhcHR1cmVfb3V0cHV0PVRydWUsIHRleHQ9VHJ1ZSwgdGltZW91dD0yMCkKICAgICAgICByZXBvcnRbJ2RlY29kZXJfdGVzdHMnXSA9IGRpY3QocGFzc2VkPXRlc3RzLnJldHVybmNvZGUgPT0gMCwgb3V0cHV0PXRlc3RzLnN0ZG91dCArIHRlc3RzLnN0ZGVycikKICAgICAgICBhc3NlcnQgdGVzdHMucmV0dXJuY29kZSA9PSAwCiAgICAgICAgaW1hZ2UgPSAnbG9jYWxob3N0L2JhY2tncm91bmQtZmlsZS1tb3Zlci1lMi1uZnMnCiAgICAgICAgcmVwb3J0WydzZXJ2ZXJfaW1hZ2UnXSA9IHJ1bihbJ2ltYWdlJywgJ2luc3BlY3QnLCBpbWFnZSwgJy0tZm9ybWF0JywgJ3t7LklkfX0nXSkuc3Rkb3V0LnN0cmlwKCkKICAgICAgICBydW4oWyduZXR3b3JrJywgJ2NyZWF0ZScsICctLWludGVybmFsJywgbmV0d29ya10pCiAgICAgICAgdm9sdW1lID0gbmV0d29yayArICctc291cmNlJwogICAgICAgIHJ1bihbJ3ZvbHVtZScsICdjcmVhdGUnLCB2b2x1bWVdKQogICAgICAgIHZvbHVtZXMuYXBwZW5kKHZvbHVtZSkKICAgICAgICBzZXJ2ZXIgPSBydW4oWydjcmVhdGUnLCAnLS1wcml2aWxlZ2VkJywgJy0tbmV0d29yaycsIG5ldHdvcmssICctLXZvbHVtZScsIHZvbHVtZSArICc6L2V4cG9ydHMnLCBpbWFnZV0pLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgY29udGFpbmVycy5hcHBlbmQoc2VydmVyKQogICAgICAgIHNlcnZlcnMuYXBwZW5kKHNlcnZlcikKICAgICAgICBydW4oWydzdGFydCcsIHNlcnZlcl0pCiAgICAgICAgZm9yIF8gaW4gcmFuZ2UoNDApOgogICAgICAgICAgICBpZiAnTkZTX1JFQURZJyBpbiBydW4oWydsb2dzJywgc2VydmVyXSkuc3Rkb3V0OgogICAgICAgICAgICAgICAgYnJlYWsKICAgICAgICAgICAgdGltZS5zbGVlcCguNSkKICAgICAgICBlbHNlOgogICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoJ3NvdXJjZSBzZXJ2ZXIgbm90IHJlYWR5JykKICAgICAgICBhZGRyZXNzID0ganNvbi5sb2FkcyhydW4oWydpbnNwZWN0Jywgc2VydmVyXSkuc3Rkb3V0KVswXVsnTmV0d29ya1NldHRpbmdzJ11bJ05ldHdvcmtzJ11bbmV0d29ya11bJ0lQQWRkcmVzcyddCiAgICAgICAgY2xpZW50ID0gcnVuKFsnY3JlYXRlJywgJy0tbmV0d29yaycsIG5ldHdvcmssICctLWNhcC1kcm9wJywgJ2FsbCcsICctLWNhcC1hZGQnLCAnU1lTX0FETUlOJywKICAgICAgICAgICAgICAgICAgICAgICooWyctLWNhcC1hZGQnLCdTWVNfUFRSQUNFJywnLS1jYXAtYWRkJywnREFDX1JFQURfU0VBUkNIJ10gaWYgYXJncy5zeW5jaHJvbml6YXRpb24gZWxzZSBbXSksCiAgICAgICAgICAgICAgICAgICAgICAnLS1zZWN1cml0eS1vcHQnLCAnbm8tbmV3LXByaXZpbGVnZXMnLCAnLS1lbnRyeXBvaW50JywgJy9iaW4vc2gnLCBjb25maWdbJ3J1bnRpbWUnXSwKICAgICAgICAgICAgICAgICAgICAgICctYycsICdleGVjIHNsZWVwIGluZmluaXR5J10pLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgY29udGFpbmVycy5hcHBlbmQoY2xpZW50KQogICAgICAgIHJ1bihbJ3N0YXJ0JywgY2xpZW50XSkKICAgICAgICByZXBvcnRbJ2tlcm5lbCddID0gZXhlY3V0ZSgndW5hbWUgLXInKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIGFzc2VydCBleGVjdXRlKCdnZXRjb25mIEdOVV9MSUJDX1ZFUlNJT04nKS5zdGRvdXQuc3RyaXAoKSA9PSAnZ2xpYmMgMi4yMicKCiAgICAgICAgZGVmIG1ha2VfcmVsYXkoYmFja2VuZCk6CiAgICAgICAgICAgIG5vbmxvY2FsIHJlbGF5CiAgICAgICAgICAgIHJlbGF5ID0gUmVwbHlSZWxheShydW4sIG5ldHdvcmssIGNvbmZpZ1snYnVpbGRlciddLCBiYWNrZW5kLCBjb250YWluZXJzLCBvdXRwdXQpCiAgICAgICAgICAgIHJldHVybiByZWxheQoKICAgICAgICByZXBvcnRbJ2VuZHBvaW50cyddID0gZGljdChwYXNzZWQ9RmFsc2UpCiAgICAgICAgZW5kcG9pbnRzID0gRW5kcG9pbnRzKHJ1biwgZXhlY3V0ZSwgc2VydmVyLCBjbGllbnQsIGFkZHJlc3MsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGYnYWRkcj17YWRkcmVzc30sdmVycz00LjEscHJvdG89dGNwLHBvcnQ9MjA0OSxoYXJkLHRpbWVvPTEwLHJldHJhbnM9MSxub2FjJywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbmV0d29yaywgaW1hZ2UsIGNvbnRhaW5lcnMsIHZvbHVtZXMsIHNlcnZlcnMsIG1vdW50cywgcmVwb3J0WydlbmRwb2ludHMnXSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZGVzdGluYXRpb25fcmVsYXk9bWFrZV9yZWxheSBpZiBhcmdzLnJvbGUgPT0gJ2Rlc3RpbmF0aW9uJyBlbHNlIE5vbmUsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNvdXJjZV9yZWxheT1tYWtlX3JlbGF5IGlmIGFyZ3Mucm9sZSA9PSAnc291cmNlJyBlbHNlIE5vbmUpCiAgICAgICAgcmVwb3J0WydyZWxheV9zZWN1cml0eSddID0gcnVuKFsnZXhlYycsIHJlbGF5LmNvbnRhaW5lciwgJ2NhdCcsICcvcHJvYy8xL3N0YXR1cyddKS5zdGRvdXQKICAgICAgICBvcGVyYXRpb25zID0gKDExLCAyOCkgaWYgYXJncy5vcGVyYXRpb24gPT0gJ2JvdGgnIGVsc2UgKDExIGlmIGFyZ3Mub3BlcmF0aW9uID09ICdsaW5rJyBlbHNlIDI4LCkKICAgICAgICBhc3NlcnQgYXJncy5vcGVyYXRpb24gIT0gJ2JvdGgnIG9yIGFyZ3Mucm9sZSA9PSAnc291cmNlJywgJ2NvbWJpbmVkIGNvbnRyb2xzIHJlcXVpcmUgZGlzdGluY3Qgc291cmNlIHByb2JlIHBhdGhzJwogICAgICAgIHJlcG9ydFsncHJlZmxpZ2h0cyddID0ge30KICAgICAgICBmb3Igb3BlcmF0aW9uIGluIG9wZXJhdGlvbnM6CiAgICAgICAgICAgIHByb29mID0gZGljdChwYXNzZWQ9RmFsc2UsIGNhc2VzPVtdKQogICAgICAgICAgICByZXBvcnRbJ3ByZWZsaWdodHMnXVtzdHIob3BlcmF0aW9uKV0gPSBwcm9vZgogICAgICAgICAgICBpZiBsZW4ob3BlcmF0aW9ucykgPT0gMToKICAgICAgICAgICAgICAgIHJlcG9ydFsncHJlZmxpZ2h0J10gPSBwcm9vZgogICAgICAgICAgICBwcmVmbGlnaHQocmVsYXksIGVuZHBvaW50cywgcnVuLCBleGVjdXRlLCBzcGF3biwgb3V0cHV0LCBwcm9vZiwgb3BlcmF0aW9uLCBhcmdzLnJvbGUpCiAgICAgICAgICAgIGFzc2VydCBwcm9vZlsncGFzc2VkJ10KICAgICAgICBpZiBhcmdzLmJhY2tlbmRfcmVzdGFydDoKICAgICAgICAgICAgZnJvbSBuZnNfcmVsYXlfcmVzdGFydCBpbXBvcnQgcXVhbGlmeQogICAgICAgICAgICByZXBvcnRbJ2JhY2tlbmRfcmVzdGFydCddID0gZGljdChwYXNzZWQ9RmFsc2UpCiAgICAgICAgICAgIHF1YWxpZnkocmVsYXksIGVuZHBvaW50cywgcnVuLCBleGVjdXRlLCBzcGF3biwgb3V0cHV0LCByZXBvcnRbJ2JhY2tlbmRfcmVzdGFydCddKQogICAgICAgICAgICBhc3NlcnQgcmVwb3J0WydiYWNrZW5kX3Jlc3RhcnQnXVsncGFzc2VkJ10KICAgICAgICBpZiBhcmdzLnN5bmNocm9uaXphdGlvbjoKICAgICAgICAgICAgYXNzZXJ0IGFyZ3Mucm9sZT09J2Rlc3RpbmF0aW9uJywgJ3N5bmMgY2FwYWJpbGl0eSB1c2VzIGRlc3RpbmF0aW9uIHJlbGF5JwogICAgICAgICAgICBmcm9tIG5mc19zeW5jX2NhcGFiaWxpdHkgaW1wb3J0IHF1YWxpZnkKICAgICAgICAgICAgcmVwb3J0WydzeW5jaHJvbml6YXRpb24nXSA9IGRpY3QocGFzc2VkPUZhbHNlKQogICAgICAgICAgICBxdWFsaWZ5KHJlbGF5LGVuZHBvaW50cyxydW4sZXhlY3V0ZSxzcGF3bixvdXRwdXQsY2xpZW50LGNvbnRhaW5lcnMsY29uZmlnLHJlcG9ydFsnc3luY2hyb25pemF0aW9uJ10pCiAgICAgICAgICAgIGFzc2VydCByZXBvcnRbJ3N5bmNocm9uaXphdGlvbiddWydwYXNzZWQnXQogICAgICAgIHJlcG9ydFsnc3RhdHVzJ10gPSAnUEFTU0VEJwogICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICByZXBvcnQudXBkYXRlKGVycm9yPWYne3R5cGUoZXJyb3IpLl9fbmFtZV9ffToge2Vycm9yfScsIHRyYWNlYmFjaz10cmFjZWJhY2suZm9ybWF0X2V4YygpKQogICAgZmluYWxseToKICAgICAgICBpZiByZWxheToKICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgcmVsYXkucmVsZWFzZSgpCiAgICAgICAgICAgICAgICByZXBvcnRbJ3JlbGF5X2ZpbmFsJ10gPSByZWxheS5zdGF0ZShzdHJpY3Q9RmFsc2UpCiAgICAgICAgICAgICAgICByZXBvcnRbJ3JlbGF5X2xvZyddID0gcnVuKFsnbG9ncycsIHJlbGF5LmNvbnRhaW5lcl0sIGNoZWNrPUZhbHNlKS5zdGRvdXQKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoc3RyKGVycm9yKSkKICAgICAgICBmb3IgcHJvY2VzcywgbG9nIGluIHRhc2tzOgogICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICBwcm9jZXNzLndhaXQodGltZW91dD0zMCkKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoc3RyKGVycm9yKSkKICAgICAgICAgICAgbG9nLmNsb3NlKCkKICAgICAgICBmb3IgdGFyZ2V0LCBwYXRoIGluIHJldmVyc2VkKG1vdW50cyk6CiAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgIHJ1bihbJ2V4ZWMnLCB0YXJnZXQsICd1bW91bnQnLCBwYXRoXSkKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHJlcG9ydFsnY2xlYW51cF9lcnJvcnMnXS5hcHBlbmQoc3RyKGVycm9yKSkKICAgICAgICBpZiBub3QgcmVwb3J0WydjbGVhbnVwX2Vycm9ycyddOgogICAgICAgICAgICBmb3Igc2VydmVyIGluIHNlcnZlcnM6CiAgICAgICAgICAgICAgICBydW4oWydleGVjJywgc2VydmVyLCAncnBjLm5mc2QnLCAnMCddLCBjaGVjaz1GYWxzZSkKICAgICAgICAgICAgICAgIHJ1bihbJ2V4ZWMnLCBzZXJ2ZXIsICdleHBvcnRmcycsICctYXUnXSwgY2hlY2s9RmFsc2UpCiAgICAgICAgICAgIGZvciB0YXJnZXQgaW4gcmV2ZXJzZWQoY29udGFpbmVycyk6CiAgICAgICAgICAgICAgICBpZiBydW4oWydybScsICctLWZvcmNlJywgdGFyZ2V0XSwgY2hlY2s9RmFsc2UpLnJldHVybmNvZGU6CiAgICAgICAgICAgICAgICAgICAgcmVwb3J0WydjbGVhbnVwX2Vycm9ycyddLmFwcGVuZCgnY29udGFpbmVyIHJlbW92YWwgZmFpbGVkOiAnICsgdGFyZ2V0KQogICAgICAgICAgICBmb3Igdm9sdW1lIGluIHZvbHVtZXM6CiAgICAgICAgICAgICAgICBpZiBydW4oWyd2b2x1bWUnLCAncm0nLCB2b2x1bWVdLCBjaGVjaz1GYWxzZSkucmV0dXJuY29kZToKICAgICAgICAgICAgICAgICAgICByZXBvcnRbJ2NsZWFudXBfZXJyb3JzJ10uYXBwZW5kKCd2b2x1bWUgcmVtb3ZhbCBmYWlsZWQ6ICcgKyB2b2x1bWUpCiAgICAgICAgICAgIGlmIHJ1bihbJ25ldHdvcmsnLCAncm0nLCBuZXR3b3JrXSwgY2hlY2s9RmFsc2UpLnJldHVybmNvZGU6CiAgICAgICAgICAgICAgICByZXBvcnRbJ2NsZWFudXBfZXJyb3JzJ10uYXBwZW5kKCduZXR3b3JrIHJlbW92YWwgZmFpbGVkOiAnICsgbmV0d29yaykKICAgICAgICBpZiByZXBvcnRbJ2NsZWFudXBfZXJyb3JzJ106CiAgICAgICAgICAgIHJlcG9ydFsnc3RhdHVzJ10gPSAnRkFJTEVEJwogICAgICAgICAgICByZXBvcnRbJ3JlY292ZXJ5X3Jlc291cmNlcyddID0gZGljdChjb250YWluZXJzPWNvbnRhaW5lcnMsIHZvbHVtZXM9dm9sdW1lcywgbmV0d29yaz1uZXR3b3JrLCBtb3VudHM9bW91bnRzKQogICAgICAgIChvdXRwdXQgLyAncmVwb3J0Lmpzb24nKS53cml0ZV90ZXh0KGpzb24uZHVtcHMocmVwb3J0LCBpbmRlbnQ9MikgKyAnXG4nLCBlbmNvZGluZz0ndXRmLTgnKQogICAgICAgIHByaW50KHJlcG9ydFsnc3RhdHVzJ10gKyAnOiAnICsgc3RyKG91dHB1dCksIGZsdXNoPVRydWUpCiAgICAgICAgaWYgJ2Vycm9yJyBpbiByZXBvcnQ6CiAgICAgICAgICAgIHByaW50KHJlcG9ydFsnZXJyb3InXSwgZmx1c2g9VHJ1ZSkKICAgIHJldHVybiAwIGlmIHJlcG9ydFsnc3RhdHVzJ10gPT0gJ1BBU1NFRCcgZWxzZSAxCgoKaWYgX19uYW1lX18gPT0gJ19fbWFpbl9fJzoKICAgIHJhaXNlIFN5c3RlbUV4aXQobWFpbigpKQo="
+    },
+    "nfs_reply_relay.py": {
+      "sha256": "9476fc81b4113679990ccf02b57c22740a5336999a4e596e717bf8de4ac144dc",
+      "content_base64": "IiIiT3duZWQgcmVsYXkgcHJvdmlzaW9uaW5nIGFuZCByZWFsLXNlcnZlciBwcm9vZiwgbm8gcHJvZHVjdGlvbiBuZXR3b3JrIGNoYW5nZXMuIiIiCmltcG9ydCBoYXNobGliCmltcG9ydCBqc29uCmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgc3VicHJvY2VzcwppbXBvcnQgdGltZQppbXBvcnQgdXVpZAoKCmNsYXNzIFJlcGx5UmVsYXk6CiAgICBkZWYgX19pbml0X18oc2VsZiwgcnVuLCBuZXR3b3JrLCBpbWFnZSwgYmFja2VuZCwgY29udGFpbmVycywgb3V0cHV0KToKICAgICAgICBzZWxmLnJ1biwgc2VsZi5vdXRwdXQgPSBydW4sIG91dHB1dAogICAgICAgIHNlbGYuY291bnRlciA9IDAKICAgICAgICBzZWxmLmNvbnRhaW5lciA9IHJ1bihbJ2NyZWF0ZScsICctLW5ldHdvcmsnLCBuZXR3b3JrLCAnLS1jYXAtZHJvcCcsICdhbGwnLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAnLS1zeXNjdGwnLCAnbmV0LmlwdjQuaXBfdW5wcml2aWxlZ2VkX3BvcnRfc3RhcnQ9MCcsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICctLXNlY3VyaXR5LW9wdCcsICduby1uZXctcHJpdmlsZWdlcycsICctLXVzZXInLCAnMTAwMDoxMDAwJywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJy0tZW50cnlwb2ludCcsICcvdXNyL2Jpbi9weXRob24zJywgaW1hZ2UsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICcvdG1wL25mc19yZXBseV9wcm94eS5weScsIGJhY2tlbmRdKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIGNvbnRhaW5lcnMuYXBwZW5kKHNlbGYuY29udGFpbmVyKQogICAgICAgIGZpbGVzID0gKCduZnNfcnBjLnB5JywgJ25mc19yZXBseV9wcm94eS5weScpCiAgICAgICAgZm9yIG5hbWUgaW4gZmlsZXM6CiAgICAgICAgICAgIHJ1bihbJ2NwJywgc3RyKFBhdGgoX19maWxlX18pLnBhcmVudCAvIG5hbWUpLCBzZWxmLmNvbnRhaW5lciArICc6L3RtcC8nICsgbmFtZV0pCiAgICAgICAgcnVuKFsnc3RhcnQnLCBzZWxmLmNvbnRhaW5lcl0pCiAgICAgICAgc2VsZi5hZGRyZXNzID0ganNvbi5sb2FkcyhydW4oWydpbnNwZWN0Jywgc2VsZi5jb250YWluZXJdKS5zdGRvdXQpWzBdWydOZXR3b3JrU2V0dGluZ3MnXVsnTmV0d29ya3MnXVtuZXR3b3JrXVsnSVBBZGRyZXNzJ10KICAgICAgICBmb3IgXyBpbiByYW5nZSgzMCk6CiAgICAgICAgICAgIHZhbHVlID0gcnVuKFsnZXhlYycsIHNlbGYuY29udGFpbmVyLCAnY2F0JywgJy90bXAvY29udHJvbC9zdGF0ZS5qc29uJ10sIGNoZWNrPUZhbHNlKQogICAgICAgICAgICBpZiB2YWx1ZS5yZXR1cm5jb2RlID09IDAgYW5kIGpzb24ubG9hZHModmFsdWUuc3Rkb3V0KS5nZXQoJ3JlYWR5Jyk6CiAgICAgICAgICAgICAgICBicmVhawogICAgICAgICAgICB0aW1lLnNsZWVwKC4xKQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigncmVwbHkgcmVsYXkgZGlkIG5vdCBiZWNvbWUgcmVhZHknKQogICAgICAgIHNlbGYuZXZpZGVuY2UgPSBkaWN0KGNvbnRhaW5lcj1zZWxmLmNvbnRhaW5lciwgaXA9c2VsZi5hZGRyZXNzLCBiYWNrZW5kPWJhY2tlbmQsIGltYWdlPWltYWdlLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhY2thZ2VzX2FkZGVkPUZhbHNlLCBwb3J0c19wdWJsaXNoZWQ9RmFsc2UsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJpdmF0ZV9uZXRuc191bnByaXZpbGVnZWRfcG9ydF9zdGFydD0wLCBiYWNrZW5kX3NvdXJjZV9wb3J0cz0nNjAxLTEwMDAnLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIG1heF9hY3RpdmVfY29ubmVjdGlvbnM9MTYsIG1heF9saWZldGltZV9jb25uZWN0aW9ucz00MDAsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgYmFja2VuZF9jb25uZWN0X2RlYWRsaW5lX3NlY29uZHM9NjAwLCBiYWNrZW5kX2Nvbm5lY3RfcmV0cnlfc2Vjb25kcz0xLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgIGRyaXZlcnM9e246IGhhc2hsaWIuc2hhMjU2KChQYXRoKF9fZmlsZV9fKS5wYXJlbnQgLyBuKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpIGZvciBuIGluIGZpbGVzfSkKCiAgICBkZWYgc3RhdGUoc2VsZiwgc3RyaWN0PVRydWUpOgogICAgICAgIHZhbHVlID0ganNvbi5sb2FkcyhzZWxmLnJ1bihbJ2V4ZWMnLCBzZWxmLmNvbnRhaW5lciwgJ2NhdCcsICcvdG1wL2NvbnRyb2wvc3RhdGUuanNvbiddKS5zdGRvdXQpCiAgICAgICAgaWYgc3RyaWN0IGFuZCB2YWx1ZVsnZXJyb3JzJ106CiAgICAgICAgICAgIHJhaXNlIEFzc2VydGlvbkVycm9yKHZhbHVlWydlcnJvcnMnXSkKICAgICAgICByZXR1cm4gdmFsdWUKCiAgICBkZWYgY29tbWFuZChzZWxmLCBhY3Rpb24sIG5hbWU9Tm9uZSwgb3BlcmF0aW9uPTI4KToKICAgICAgICB0b2tlbiA9IHV1aWQudXVpZDQoKS5oZXgKICAgICAgICBzZWxmLmNvdW50ZXIgKz0gMQogICAgICAgIGxvY2FsID0gc2VsZi5vdXRwdXQgLyAoJ3JlbGF5LWNvbW1hbmQtJyArIHN0cihzZWxmLmNvdW50ZXIpICsgJy5qc29uJykKICAgICAgICBsb2NhbC53cml0ZV90ZXh0KGpzb24uZHVtcHMoZGljdCh0b2tlbj10b2tlbiwgYWN0aW9uPWFjdGlvbiwgbmFtZT1uYW1lLCBvcGVyYXRpb249b3BlcmF0aW9uKSksIGVuY29kaW5nPSd1dGYtOCcpCiAgICAgICAgc2VsZi5ydW4oWydjcCcsIHN0cihsb2NhbCksIHNlbGYuY29udGFpbmVyICsgJzovdG1wL2NvbnRyb2wvY29tbWFuZC5uZXh0J10pCiAgICAgICAgc2VsZi5ydW4oWydleGVjJywgc2VsZi5jb250YWluZXIsICcvdXNyL2Jpbi9weXRob24zJywgJy1jJywKICAgICAgICAgICAgICAgICAgImltcG9ydCBvczsgb3MucmVwbGFjZSgnL3RtcC9jb250cm9sL2NvbW1hbmQubmV4dCcsJy90bXAvY29udHJvbC9jb21tYW5kLmpzb24nKSJdKQogICAgICAgIGZvciBfIGluIHJhbmdlKDIwKToKICAgICAgICAgICAgc3RhdGUgPSBzZWxmLnN0YXRlKHN0cmljdD1hY3Rpb24gIT0gJ3JlbGVhc2UnKQogICAgICAgICAgICBpZiBzdGF0ZS5nZXQoJ2NvbW1hbmRfdG9rZW4nKSA9PSB0b2tlbjoKICAgICAgICAgICAgICAgIHJldHVybiBzdGF0ZQogICAgICAgICAgICB0aW1lLnNsZWVwKC4xKQogICAgICAgIHJhaXNlIEFzc2VydGlvbkVycm9yKCdyZWxheSBjb21tYW5kIG5vdCBhY2tub3dsZWRnZWQnKQoKICAgIGRlZiByZWxlYXNlKHNlbGYpOgogICAgICAgIHN0YXRlID0gc2VsZi5zdGF0ZShzdHJpY3Q9RmFsc2UpCiAgICAgICAgcmV0dXJuIHNlbGYuY29tbWFuZCgncmVsZWFzZScpIGlmIHN0YXRlWydhcm1lZCddIGVsc2Ugc3RhdGUKCiAgICBkZWYgYXdhaXRfaGVsZChzZWxmKToKICAgICAgICBmb3IgXyBpbiByYW5nZSgyMCk6CiAgICAgICAgICAgIHZhbHVlID0gc2VsZi5zdGF0ZSgpCiAgICAgICAgICAgIGlmIHZhbHVlWydoZWxkJ106CiAgICAgICAgICAgICAgICBhc3NlcnQgdmFsdWVbJ2FybWVkJ10gYW5kIG5vdCB2YWx1ZVsncmVsZWFzZWQnXSBhbmQgbm90IHZhbHVlWydkcm9wcGVkJ10KICAgICAgICAgICAgICAgICMgTm8gc2VsZWN0ZWQgdGFyZ2V0IHN1Y2Nlc3Mgd2FzIGZvcndhcmRlZCBpbiB0aGlzIGFybWVkIHdpbmRvdy4KICAgICAgICAgICAgICAgIGFzc2VydCBub3QgdmFsdWVbJ2ZvcndhcmRlZCddLCB2YWx1ZQogICAgICAgICAgICAgICAgZm9yIHJvdyBpbiB2YWx1ZVsnaGVsZCddOgogICAgICAgICAgICAgICAgICAgIGFzc2VydCByb3dbJ3hpZCddID09IHJvd1sncmVxdWVzdCddWydkZWNvZGVkJ11bJ3hpZCddID09IHJvd1sncmVwbHknXVsneGlkJ10KICAgICAgICAgICAgICAgICAgICBhc3NlcnQgcm93WydyZXBseSddWydzdGF0dXMnXSA9PSAwCiAgICAgICAgICAgICAgICAgICAgYXNzZXJ0IGFueShvWydvcCddPT12YWx1ZVsnb3BlcmF0aW9uJ10gYW5kIG9bJ3N0YXR1cyddPT0wIGZvciBvIGluIHJvd1sncmVwbHknXVsnb3BlcmF0aW9ucyddKQogICAgICAgICAgICAgICAgcmV0dXJuIHZhbHVlCiAgICAgICAgICAgIHRpbWUuc2xlZXAoLjIpCiAgICAgICAgcmFpc2UgQXNzZXJ0aW9uRXJyb3IoJ25vIG1hdGNoZWQgc3VjY2Vzc2Z1bCBzZWxlY3RlZCByZXBseSB3YXMgd2l0aGhlbGQnKQoKCmRlZiBzZXJ2ZXJfb2JqZWN0cyhydW4sIHNlcnZlciwgb2xkLCBmaW5hbCk6CiAgICBhc3NlcnQgYWxsKGMuaXNhbG51bSgpIG9yIGMgaW4gJy8uXy0nIGZvciBjIGluIG9sZCArIGZpbmFsKQogICAgc2NyaXB0ID0gJycKICAgIGZvciBsYWJlbCwgcGF0aCBpbiAoKCdvbGQnLCBvbGQpLCAoJ2ZpbmFsJywgZmluYWwpKToKICAgICAgICBzY3JpcHQgKz0gKGYiaWYgdGVzdCAtZSB7cGF0aH07IHRoZW4gcHJpbnRmICd7bGFiZWx9ICc7IHN0YXQgLWMgJyVkOiVpOiVoOiVzJyB7cGF0aH07ICIKICAgICAgICAgICAgICAgICAgIGYic2hhMjU2c3VtIHtwYXRofTsgZWxzZSBwcmludGYgJ3tsYWJlbH0gYWJzZW50XFxuJzsgZmk7ICIpCiAgICBsaW5lcyA9IGl0ZXIocnVuKFsnZXhlYycsIHNlcnZlciwgJy9iaW4vc2gnLCAnLWV1JywgJy1jJywgc2NyaXB0XSkuc3Rkb3V0LnNwbGl0bGluZXMoKSkKICAgIHJlc3VsdCA9IHt9CiAgICBmb3IgbGluZSBpbiBsaW5lczoKICAgICAgICBsYWJlbCwgdmFsdWUgPSBsaW5lLnNwbGl0KCkKICAgICAgICBpZiB2YWx1ZSA9PSAnYWJzZW50JzoKICAgICAgICAgICAgcmVzdWx0W2xhYmVsXSA9IE5vbmUKICAgICAgICBlbHNlOgogICAgICAgICAgICBkZXZpY2UsIGlub2RlLCBsaW5rcywgc2l6ZSA9IG1hcChpbnQsIHZhbHVlLnNwbGl0KCc6JykpCiAgICAgICAgICAgIHJlc3VsdFtsYWJlbF0gPSBkaWN0KGRldmljZT1kZXZpY2UsIGlub2RlPWlub2RlLCBsaW5rcz1saW5rcywgc2l6ZT1zaXplLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzaGEyNTY9bmV4dChsaW5lcykuc3BsaXQoKVswXSkKICAgIGFzc2VydCBzZXQocmVzdWx0KSA9PSB7J29sZCcsICdmaW5hbCd9CiAgICByZXR1cm4gcmVzdWx0CgoKZGVmIHByZWZsaWdodChyZWxheSwgZW5kcG9pbnRzLCBydW4sIGV4ZWN1dGUsIHNwYXduLCBvdXRwdXQsIGV2aWRlbmNlLCBvcGVyYXRpb249MjgsIHJvbGU9J2Rlc3RpbmF0aW9uJyk6CiAgICByZXN1bHRzID0gZXZpZGVuY2VbJ2Nhc2VzJ10KICAgIGFzc2VydCByb2xlIGluICgnc291cmNlJywgJ2Rlc3RpbmF0aW9uJykgYW5kIG9wZXJhdGlvbiBpbiAoMTEsIDI4KQogICAgc2VydmVyID0gZW5kcG9pbnRzLnNlcnZlcnNbcm9sZV0KICAgIGZvciBtb2RlIGluICgncmVsZWFzZScsICdkcm9wJyk6CiAgICAgICAgc3VmZml4ID0gKCctJyArIHN0cihvcGVyYXRpb24pKSBpZiByb2xlID09ICdzb3VyY2UnIGVsc2UgJycKICAgICAgICBiYXNlID0gZW5kcG9pbnRzLm1vdW50c1tyb2xlXSArICcvcmVwbHktcHJlZmxpZ2h0LScgKyBtb2RlICsgc3VmZml4CiAgICAgICAgcmVtb3RlID0gJy9leHBvcnRzL2RlYXRoLScgKyByb2xlICsgJy9yZXBseS1wcmVmbGlnaHQtJyArIG1vZGUgKyBzdWZmaXgKICAgICAgICBleGVjdXRlKGYidW1hc2sgMDc3OyBta2RpciB7YmFzZX07IHByaW50ZiAnb3duZWQgcmVwbHkgc2VudGluZWwnID57YmFzZX0vc3RhZ2luZyIgKwogICAgICAgICAgICAgICAgKGYnOyBsbiB7YmFzZX0vc3RhZ2luZyB7YmFzZX0vZmluYWwnIGlmIG9wZXJhdGlvbiA9PSAyOCBlbHNlICcnKSwgJzEwMDA6MTAwMCcpCiAgICAgICAgYmVmb3JlID0gc2VydmVyX29iamVjdHMocnVuLCBzZXJ2ZXIsIHJlbW90ZSArICcvc3RhZ2luZycsIHJlbW90ZSArICcvZmluYWwnKQogICAgICAgIGFzc2VydCBiZWZvcmVbJ29sZCddWydsaW5rcyddID09ICgyIGlmIG9wZXJhdGlvbiA9PSAyOCBlbHNlIDEpCiAgICAgICAgYXNzZXJ0IGJlZm9yZVsnZmluYWwnXSA9PSAoYmVmb3JlWydvbGQnXSBpZiBvcGVyYXRpb24gPT0gMjggZWxzZSBOb25lKQogICAgICAgIGFybWVkID0gcmVsYXkuY29tbWFuZCgnYXJtJywgJ3N0YWdpbmcnIGlmIG9wZXJhdGlvbiA9PSAyOCBlbHNlICdmaW5hbCcsIG9wZXJhdGlvbikKICAgICAgICBwcm9iZSA9IGYndW5saW5rIHtiYXNlfS9zdGFnaW5nJyBpZiBvcGVyYXRpb24gPT0gMjggZWxzZSBmJ2xuIHtiYXNlfS9zdGFnaW5nIHtiYXNlfS9maW5hbCcKICAgICAgICBwaWRmaWxlID0gJy90bXAvcmVwbHktcHJlZmxpZ2h0LScgKyBtb2RlICsgJy5waWQnCiAgICAgICAgcHJvY2VzcyA9IHNwYXduKGYnZWNobyAkJCA+e3BpZGZpbGV9OyBleGVjIHtwcm9iZX0nLCAncmVwbHktcHJlZmxpZ2h0LScgKyBtb2RlKQogICAgICAgIHJvdyA9IGRpY3QobW9kZT1tb2RlLCByb2xlPXJvbGUsIG9wZXJhdGlvbj1vcGVyYXRpb24sIHBhc3NlZD1GYWxzZSwgYmVmb3JlPWJlZm9yZSwgYXJtZWQ9YXJtZWQpCiAgICAgICAgcmVzdWx0cy5hcHBlbmQocm93KQogICAgICAgIHRyeToKICAgICAgICAgICAgaGVsZCA9IHJlbGF5LmF3YWl0X2hlbGQoKQogICAgICAgICAgICByb3dbJ2hlbGQnXSA9IGhlbGQKICAgICAgICAgICAgYXNzZXJ0IHByb2Nlc3MucG9sbCgpIGlzIE5vbmUKICAgICAgICAgICAgcGlkID0gZXhlY3V0ZSgnY2F0ICcgKyBwaWRmaWxlLCAnMTAwMDoxMDAwJykuc3Rkb3V0LnN0cmlwKCkKICAgICAgICAgICAgYXNzZXJ0IHBpZC5pc2RpZ2l0KCkKICAgICAgICAgICAgcHJvY2Vzc19zdGF0ZSA9IGV4ZWN1dGUoZidjYXQgL3Byb2Mve3BpZH0vc3RhdCcsICcxMDAwOjEwMDAnKS5zdGRvdXQucnNwbGl0KCcpICcsIDEpWzFdLnNwbGl0KClbMF0KICAgICAgICAgICAgY29tbWFuZCA9IGV4ZWN1dGUoZiJ0ciAnXFwwMDAnICcgJyA8L3Byb2Mve3BpZH0vY21kbGluZSIsICcxMDAwOjEwMDAnKS5zdGRvdXQuc3RyaXAoKQogICAgICAgICAgICBhc3NlcnQgcHJvY2Vzc19zdGF0ZSA9PSAnRCcgYW5kIGNvbW1hbmQgPT0gcHJvYmUKICAgICAgICAgICAgcm93WydwZW5kaW5nX2NsaWVudCddID0gZGljdChwaWQ9cGlkLCBzdGF0ZT1wcm9jZXNzX3N0YXRlLCBjb21tYW5kPWNvbW1hbmQpCiAgICAgICAgICAgIGFmdGVyID0gc2VydmVyX29iamVjdHMocnVuLCBzZXJ2ZXIsIHJlbW90ZSArICcvc3RhZ2luZycsIHJlbW90ZSArICcvZmluYWwnKQogICAgICAgICAgICByb3dbJ3NlcnZlcl9jb21wbGV0ZWRfd2hpbGVfd2l0aGhlbGQnXSA9IGFmdGVyCiAgICAgICAgICAgIGFzc2VydCBhZnRlclsnZmluYWwnXVsnbGlua3MnXSA9PSAoMSBpZiBvcGVyYXRpb24gPT0gMjggZWxzZSAyKQogICAgICAgICAgICBhc3NlcnQgYWZ0ZXJbJ29sZCddID09IChOb25lIGlmIG9wZXJhdGlvbiA9PSAyOCBlbHNlIGFmdGVyWydmaW5hbCddKQogICAgICAgICAgICBmb3Iga2V5IGluICgnZGV2aWNlJywgJ2lub2RlJywgJ3NpemUnLCAnc2hhMjU2Jyk6CiAgICAgICAgICAgICAgICBhc3NlcnQgYWZ0ZXJbJ2ZpbmFsJ11ba2V5XSA9PSBiZWZvcmVbJ29sZCddW2tleV0KICAgICAgICAgICAgb2JzZXJ2ZWQgPSByZWxheS5zdGF0ZSgpCiAgICAgICAgICAgIGFzc2VydCBvYnNlcnZlZFsnaGVsZCddIGFuZCBub3Qgb2JzZXJ2ZWRbJ2ZvcndhcmRlZCddIGFuZCBwcm9jZXNzLnBvbGwoKSBpcyBOb25lCiAgICAgICAgICAgIGFzc2VydCBleGVjdXRlKGYnY2F0IC9wcm9jL3twaWR9L3N0YXQnLCAnMTAwMDoxMDAwJykuc3Rkb3V0LnJzcGxpdCgnKSAnLCAxKVsxXS5zcGxpdCgpWzBdID09ICdEJwogICAgICAgICAgICBzZXR0bGVkID0gcmVsYXkuY29tbWFuZChtb2RlKQogICAgICAgICAgICByb3cudXBkYXRlKGJlZm9yZV9yZWxlYXNlX29yX2Ryb3A9b2JzZXJ2ZWQsIHNldHRsZWQ9c2V0dGxlZCkKICAgICAgICAgICAgYXNzZXJ0IHByb2Nlc3Mud2FpdCh0aW1lb3V0PTIwKSA9PSAwCiAgICAgICAgICAgIGZpbmFsID0gcmVsYXkuc3RhdGUoKQogICAgICAgICAgICBpZiBtb2RlID09ICdyZWxlYXNlJzoKICAgICAgICAgICAgICAgIGFzc2VydCBzZXR0bGVkWydyZWxlYXNlZCddIGFuZCBub3Qgc2V0dGxlZFsnZHJvcHBlZCddCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICBhc3NlcnQgc2V0dGxlZFsnZHJvcHBlZCddIGFuZCBub3Qgc2V0dGxlZFsncmVsZWFzZWQnXQogICAgICAgICAgICAgICAgYXNzZXJ0IHNldHRsZWRbJ2Nvbm5lY3Rpb25fcmVzZXRzJ10KICAgICAgICAgICAgICAgIGFzc2VydCBmaW5hbFsnZm9yd2FyZGVkJ10sICdkaXNjYXJkZWQgZmlyc3QgcmVwbHkgd2FzIG5vdCBmb2xsb3dlZCBieSBvYnNlcnZlZCBrZXJuZWwgcmVwbGF5JwogICAgICAgICAgICAgICAgaGVsZF9pZHMgPSB7clsncmVjZWl2ZV9pZCddIGZvciByIGluIHNldHRsZWRbJ2Ryb3BwZWQnXX0KICAgICAgICAgICAgICAgIGFzc2VydCBub3QgaGVsZF9pZHMgJiB7clsncmVjZWl2ZV9pZCddIGZvciByIGluIGZpbmFsWydmb3J3YXJkZWQnXX0KICAgICAgICAgICAgICAgIGlkZW50aXRpZXMgPSB7anNvbi5kdW1wcyhyWydyZXF1ZXN0J11bJ2RlY29kZWQnXVsnb3BlcmF0aW9ucyddLCBzb3J0X2tleXM9VHJ1ZSkgZm9yIHIgaW4gc2V0dGxlZFsnZHJvcHBlZCddfQogICAgICAgICAgICAgICAgYXNzZXJ0IHtqc29uLmR1bXBzKHJbJ3JlcXVlc3QnXVsnZGVjb2RlZCddWydvcGVyYXRpb25zJ10sIHNvcnRfa2V5cz1UcnVlKSBmb3IgciBpbiBmaW5hbFsnZm9yd2FyZGVkJ119IDw9IGlkZW50aXRpZXMKICAgICAgICAgICAgICAgIGFzc2VydCBub3Qge3JbJ2Nvbm5lY3Rpb24nXSBmb3IgciBpbiBzZXR0bGVkWydkcm9wcGVkJ119ICYge3JbJ2Nvbm5lY3Rpb24nXSBmb3IgciBpbiBmaW5hbFsnZm9yd2FyZGVkJ119CiAgICAgICAgICAgIHJvdy51cGRhdGUocGFzc2VkPVRydWUsIGJlZm9yZV9yZWxlYXNlX29yX2Ryb3A9b2JzZXJ2ZWQsIHNldHRsZWQ9c2V0dGxlZCwgZmluYWw9ZmluYWwpCiAgICAgICAgICAgIHByaW50KGYnTkZTIHJlcGx5IGZpeHR1cmUgb3A9e29wZXJhdGlvbn0ge21vZGV9OiBQQVNTIChzZXJ2ZXIgY29tcGxldGlvbiB3aGlsZSBjbGllbnQgd2FpdHMpJywgZmx1c2g9VHJ1ZSkKICAgICAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgogICAgICAgICAgICByb3dbJ2Vycm9yJ10gPSBmJ3t0eXBlKGVycm9yKS5fX25hbWVfX306IHtlcnJvcn0nCiAgICAgICAgICAgIHJhaXNlCiAgICAgICAgZmluYWxseToKICAgICAgICAgICAgcmVsYXkucmVsZWFzZSgpCiAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgIHByb2Nlc3Mud2FpdCh0aW1lb3V0PTEwKQogICAgICAgICAgICBleGNlcHQgc3VicHJvY2Vzcy5UaW1lb3V0RXhwaXJlZDoKICAgICAgICAgICAgICAgIHBpZCA9IGV4ZWN1dGUoJ2NhdCAnICsgcGlkZmlsZSwgJzEwMDA6MTAwMCcpLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgICAgICAgICBhc3NlcnQgcGlkLmlzZGlnaXQoKQogICAgICAgICAgICAgICAgY29tbWFuZCA9IGV4ZWN1dGUoZiJ0ciAnXFwwMDAnICcgJyA8L3Byb2Mve3BpZH0vY21kbGluZSIsICcxMDAwOjEwMDAnKS5zdGRvdXQuc3RyaXAoKQogICAgICAgICAgICAgICAgYXNzZXJ0IGNvbW1hbmQgPT0gcHJvYmUKICAgICAgICAgICAgICAgIGV4ZWN1dGUoZidraWxsIC1LSUxMIHtwaWR9JywgJzEwMDA6MTAwMCcpCiAgICAgICAgICAgICAgICBwcm9jZXNzLndhaXQodGltZW91dD0xMCkKICAgICAgICAgICAgICAgIHJvd1snY2xlYW51cF9wcm9iZV90ZXJtaW5hdGVkJ10gPSBUcnVlCiAgICBldmlkZW5jZVsncGFzc2VkJ10gPSBsZW4ocmVzdWx0cykgPT0gMiBhbmQgYWxsKHJbJ3Bhc3NlZCddIGZvciByIGluIHJlc3VsdHMpCiAgICByZXR1cm4gZXZpZGVuY2UK"
+    },
+    "nfs_rpc.py": {
+      "sha256": "cd81c5efb7289b9047070e895d07db337f2d25a3db4852f7917870872e61d5eb",
+      "content_base64": "IiIiQm91bmRlZCwgZml4dHVyZS1vbmx5IFJQQy9ORlN2NC4xIG9ic2VydmF0aW9uLCBuZXZlciBhIHByb2R1Y3Rpb24gZGVjb2Rlci4KClJGQyA1NTMxIHNlY3Rpb25zIDkvMTEgYW5kIFJGQyA4ODgxIG9wZXJhdGlvbi9YRFIgZGVmaW5pdGlvbnMuIFVuc3VwcG9ydGVkCmNvbXBvdW5kcyBjYW5ub3QgcHJvdmlkZSBwb3NpdGl2ZSBldmlkZW5jZS4gTmV2ZXIgc2VhcmNoIGFyYml0cmFyeSBieXRlcyBmb3Igb3Bjb2Rlcy4KIiIiCmltcG9ydCBoYXNobGliCmltcG9ydCBzdHJ1Y3QKCkxJTUlUID0gOCAqIDEwMjQgKiAxMDI0CgoKY2xhc3MgWGRyOgogICAgZGVmIF9faW5pdF9fKHNlbGYsIGRhdGEpOgogICAgICAgIGlmIGxlbihkYXRhKSA+IExJTUlUOgogICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yKCdvdmVyc2l6ZSBYRFInKQogICAgICAgIHNlbGYuZGF0YSwgc2VsZi5vZmZzZXQgPSBkYXRhLCAwCgogICAgZGVmIHRha2Uoc2VsZiwgc2l6ZSk6CiAgICAgICAgaWYgc2l6ZSA8IDAgb3Igc2VsZi5vZmZzZXQgKyBzaXplID4gbGVuKHNlbGYuZGF0YSk6CiAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ3RydW5jYXRlZCBYRFInKQogICAgICAgIHN0YXJ0ID0gc2VsZi5vZmZzZXQKICAgICAgICBzZWxmLm9mZnNldCArPSBzaXplCiAgICAgICAgcmV0dXJuIHNlbGYuZGF0YVtzdGFydDpzZWxmLm9mZnNldF0KCiAgICBkZWYgdWludChzZWxmKToKICAgICAgICByZXR1cm4gc3RydWN0LnVucGFjaygnIUknLCBzZWxmLnRha2UoNCkpWzBdCgogICAgZGVmIG9wYXF1ZShzZWxmKToKICAgICAgICBzaXplID0gc2VsZi51aW50KCkKICAgICAgICB2YWx1ZSA9IHNlbGYudGFrZShzaXplKQogICAgICAgIGlmIGFueShzZWxmLnRha2UoKC1zaXplKSAlIDQpKToKICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignbm9uemVybyBYRFIgcGFkZGluZycpCiAgICAgICAgcmV0dXJuIHZhbHVlCgogICAgZGVmIGJpdG1hcChzZWxmKToKICAgICAgICBzaXplID0gc2VsZi51aW50KCkKICAgICAgICBpZiBzaXplID4gNjQ6CiAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ292ZXJzaXplIGJpdG1hcCcpCiAgICAgICAgc2VsZi50YWtlKDQgKiBzaXplKQoKICAgIGRlZiBkb25lKHNlbGYpOgogICAgICAgIGlmIHNlbGYub2Zmc2V0ICE9IGxlbihzZWxmLmRhdGEpOgogICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yKCd0cmFpbGluZyBYRFInKQoKCmRlZiBjYWxsKGRhdGEpOgogICAgeCA9IFhkcihkYXRhKQogICAgeGlkID0geC51aW50KCkKICAgIGlmIFt4LnVpbnQoKSBmb3IgXyBpbiByYW5nZSg1KV0gIT0gWzAsIDIsIDEwMDAwMywgNCwgMV06CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignbm90IGFuIE5GUyBDT01QT1VORCBjYWxsJykKICAgIGZvciBfIGluIHJhbmdlKDIpOgogICAgICAgIHgudWludCgpICAjIGF1dGggZmxhdm9yCiAgICAgICAgeC5vcGFxdWUoKQogICAgeC5vcGFxdWUoKSAgIyB0YWcKICAgIGlmIHgudWludCgpICE9IDE6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignbm90IE5GUyBtaW5vciB2ZXJzaW9uIDEnKQogICAgc2l6ZSA9IHgudWludCgpCiAgICBpZiBub3QgMSA8PSBzaXplIDw9IDEyODoKICAgICAgICByYWlzZSBWYWx1ZUVycm9yKCdjb21wb3VuZCBvcGVyYXRpb24gY291bnQnKQogICAgb3BlcmF0aW9ucyA9IFtdCiAgICBmb3IgXyBpbiByYW5nZShzaXplKToKICAgICAgICBvcCA9IHgudWludCgpCiAgICAgICAgcm93ID0gZGljdChvcD1vcCkKICAgICAgICBpZiBvcCA9PSA1MzogICMgU0VRVUVOQ0UgYXJncwogICAgICAgICAgICByb3dbJ3NlcXVlbmNlX2hleCddID0geC50YWtlKDMyKS5oZXgoKQogICAgICAgIGVsaWYgb3AgaW4gKDIyLCAxNSwgMjgsIDExKTogICMgUFVURkggLyBMT09LVVAgLyBSRU1PVkUgLyBMSU5LCiAgICAgICAgICAgIHZhbHVlID0geC5vcGFxdWUoKQogICAgICAgICAgICBpZiBvcCA9PSAyMjoKICAgICAgICAgICAgICAgIHJvd1snZmlsZWhhbmRsZV9zaGEyNTYnXSA9IGhhc2hsaWIuc2hhMjU2KHZhbHVlKS5oZXhkaWdlc3QoKQogICAgICAgICAgICBpZiBvcCBpbiAoMjgsIDExKToKICAgICAgICAgICAgICAgIHJvd1snbmFtZSddID0gdmFsdWUuZGVjb2RlKCdhc2NpaScpCiAgICAgICAgZWxpZiBvcCA9PSA1OiAgIyBDT01NSVQ0YXJncyAoUkZDIDg4ODEgc2VjdGlvbiAxOC4zKQogICAgICAgICAgICByb3dbJ29mZnNldCddID0gc3RydWN0LnVucGFjaygnIVEnLCB4LnRha2UoOCkpWzBdCiAgICAgICAgICAgIHJvd1snY291bnQnXSA9IHgudWludCgpCiAgICAgICAgZWxpZiBvcCA9PSAzODogICMgV1JJVEU0YXJncyAoc2VjdGlvbiAxOC4zMikKICAgICAgICAgICAgcm93WydzdGF0ZWlkX2hleCddID0geC50YWtlKDE2KS5oZXgoKQogICAgICAgICAgICByb3dbJ29mZnNldCddID0gc3RydWN0LnVucGFjaygnIVEnLCB4LnRha2UoOCkpWzBdCiAgICAgICAgICAgIHJvd1snc3RhYmxlJ10gPSB4LnVpbnQoKQogICAgICAgICAgICBpZiByb3dbJ3N0YWJsZSddID4gMjoKICAgICAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ2ludmFsaWQgV1JJVEUgc3RhYmlsaXR5JykKICAgICAgICAgICAgdmFsdWUgPSB4Lm9wYXF1ZSgpCiAgICAgICAgICAgIHJvd1snY291bnQnXSA9IGxlbih2YWx1ZSkKICAgICAgICAgICAgcm93WydkYXRhX3NoYTI1NiddID0gaGFzaGxpYi5zaGEyNTYodmFsdWUpLmhleGRpZ2VzdCgpCiAgICAgICAgZWxpZiBvcCA9PSA5OiAgIyBHRVRBVFRSCiAgICAgICAgICAgIHguYml0bWFwKCkKICAgICAgICBlbGlmIG9wIG5vdCBpbiAoMTAsIDE2LCAyNCwgMzEsIDMyKToKICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcihmJ3Vuc3VwcG9ydGVkIHJlcXVlc3Qgb3BlcmF0aW9uIHtvcH0nKQogICAgICAgIG9wZXJhdGlvbnMuYXBwZW5kKHJvdykKICAgIHguZG9uZSgpCiAgICByZXR1cm4gZGljdCh4aWQ9eGlkLCBvcGVyYXRpb25zPW9wZXJhdGlvbnMpCgoKZGVmIHJlcGx5KGRhdGEpOgogICAgeCA9IFhkcihkYXRhKQogICAgeGlkID0geC51aW50KCkKICAgIGlmIFt4LnVpbnQoKSBmb3IgXyBpbiByYW5nZSgyKV0gIT0gWzEsIDBdOgogICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ25vdCBhY2NlcHRlZCBSUEMgcmVwbHknKQogICAgeC51aW50KCkKICAgIHgub3BhcXVlKCkKICAgIGlmIHgudWludCgpICE9IDA6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignbm90IFJQQyBzdWNjZXNzJykKICAgIHN0YXR1cyA9IHgudWludCgpCiAgICB4Lm9wYXF1ZSgpCiAgICBzaXplID0geC51aW50KCkKICAgIGlmIG5vdCAxIDw9IHNpemUgPD0gMTI4OgogICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ2NvbXBvdW5kIHJlcGx5IGNvdW50JykKICAgIG9wZXJhdGlvbnMgPSBbXQogICAgZm9yIF8gaW4gcmFuZ2Uoc2l6ZSk6CiAgICAgICAgb3AsIGNvZGUgPSB4LnVpbnQoKSwgeC51aW50KCkKICAgICAgICBvcGVyYXRpb25zLmFwcGVuZChkaWN0KG9wPW9wLCBzdGF0dXM9Y29kZSkpCiAgICAgICAgaWYgY29kZToKICAgICAgICAgICAgaWYgbGVuKG9wZXJhdGlvbnMpICE9IHNpemU6CiAgICAgICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yKCdvcGVyYXRpb25zIGFmdGVyIE5GUyBlcnJvcicpCiAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgaWYgb3AgPT0gNTM6CiAgICAgICAgICAgIHgudGFrZSgzNikKICAgICAgICBlbGlmIG9wIGluICgyOCwgMTEpOgogICAgICAgICAgICB4LnRha2UoMjApICAjIGNoYW5nZV9pbmZvNAogICAgICAgIGVsaWYgb3AgPT0gNToKICAgICAgICAgICAgb3BlcmF0aW9uc1stMV1bJ3ZlcmlmaWVyX2hleCddID0geC50YWtlKDgpLmhleCgpCiAgICAgICAgZWxpZiBvcCA9PSAzODoKICAgICAgICAgICAgb3BlcmF0aW9uc1stMV1bJ2NvdW50J10gPSB4LnVpbnQoKQogICAgICAgICAgICBvcGVyYXRpb25zWy0xXVsnY29tbWl0dGVkJ10gPSB4LnVpbnQoKQogICAgICAgICAgICBpZiBvcGVyYXRpb25zWy0xXVsnY29tbWl0dGVkJ10gPiAyOgogICAgICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignaW52YWxpZCBXUklURSBjb21taXR0ZWQgc3RhYmlsaXR5JykKICAgICAgICAgICAgb3BlcmF0aW9uc1stMV1bJ3ZlcmlmaWVyX2hleCddID0geC50YWtlKDgpLmhleCgpCiAgICAgICAgZWxpZiBvcCA9PSA5OgogICAgICAgICAgICB4LmJpdG1hcCgpCiAgICAgICAgICAgIHgub3BhcXVlKCkKICAgICAgICBlbGlmIG9wID09IDEwOgogICAgICAgICAgICB4Lm9wYXF1ZSgpCiAgICAgICAgZWxpZiBvcCBub3QgaW4gKDIyLCAxNSwgMTYsIDI0LCAzMSwgMzIpOgogICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yKGYndW5zdXBwb3J0ZWQgcmVwbHkgb3BlcmF0aW9uIHtvcH0nKQogICAgeC5kb25lKCkKICAgIHJldHVybiBkaWN0KHhpZD14aWQsIHN0YXR1cz1zdGF0dXMsIG9wZXJhdGlvbnM9b3BlcmF0aW9ucykKCgpkZWYgcmVhZF9yZWNvcmQoc3RyZWFtKToKICAgICIiIlByZXNlcnZlIG9yaWdpbmFsIHJlY29yZCBmcmFnbWVudHMsIGJvdW5kZWQgYWNyb3NzIGFsbCBmcmFnbWVudHMuIiIiCiAgICB3aXJlLCBwYXlsb2FkID0gYnl0ZWFycmF5KCksIGJ5dGVhcnJheSgpCgogICAgZGVmIGV4YWN0KHNpemUpOgogICAgICAgIGNodW5rcyA9IGJ5dGVhcnJheSgpCiAgICAgICAgd2hpbGUgbGVuKGNodW5rcykgPCBzaXplOgogICAgICAgICAgICBkYXRhID0gc3RyZWFtLnJlY3Yoc2l6ZSAtIGxlbihjaHVua3MpKQogICAgICAgICAgICBpZiBub3QgZGF0YToKICAgICAgICAgICAgICAgIGlmIG5vdCBjaHVua3MgYW5kIG5vdCB3aXJlIGFuZCBzaXplID09IDQ6CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuIE5vbmUKICAgICAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ3RydW5jYXRlZCBSUEMgcmVjb3JkJykKICAgICAgICAgICAgY2h1bmtzLmV4dGVuZChkYXRhKQogICAgICAgIHJldHVybiBieXRlcyhjaHVua3MpCgogICAgZm9yIF8gaW4gcmFuZ2UoMTAyNCk6CiAgICAgICAgaGVhZGVyID0gZXhhY3QoNCkKICAgICAgICBpZiBoZWFkZXIgaXMgTm9uZToKICAgICAgICAgICAgcmV0dXJuIE5vbmUKICAgICAgICBtYXJrZXIgPSBzdHJ1Y3QudW5wYWNrKCchSScsIGhlYWRlcilbMF0KICAgICAgICBzaXplID0gbWFya2VyICYgMHg3ZmZmZmZmZgogICAgICAgIGlmIGxlbihwYXlsb2FkKSArIHNpemUgPiBMSU1JVDoKICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignb3ZlcnNpemUgUlBDIHJlY29yZCcpCiAgICAgICAgZGF0YSA9IGV4YWN0KHNpemUpCiAgICAgICAgd2lyZS5leHRlbmQoaGVhZGVyICsgZGF0YSkKICAgICAgICBwYXlsb2FkLmV4dGVuZChkYXRhKQogICAgICAgIGlmIG1hcmtlciAmIDB4ODAwMDAwMDA6CiAgICAgICAgICAgIHJldHVybiBieXRlcyh3aXJlKSwgYnl0ZXMocGF5bG9hZCkKICAgIHJhaXNlIFZhbHVlRXJyb3IoJ3RvbyBtYW55IFJQQyBmcmFnbWVudHMnKQo="
+    },
+    "nfs_reply_proxy.py": {
+      "sha256": "b707f485fe5e3b16a7d00f11c555a6be5d0834fb2403f598b43b10ebf362495a",
+      "content_base64": "IiIiUHJpdmF0ZSBkaXNwb3NhYmxlIFRDUCBvYnNlcnZlcjsgaG9sZCBtYXRjaGVkIHN1Y2Nlc3NmdWwgUkVNT1ZFIG9yIExJTksgcmVwbGllcy4iIiIKaW1wb3J0IGJhc2U2NAppbXBvcnQgemxpYgppbXBvcnQgaGFzaGxpYgppbXBvcnQganNvbgppbXBvcnQgb3MKaW1wb3J0IHNvY2tldAppbXBvcnQgc3RydWN0CmltcG9ydCBzeXMKaW1wb3J0IHRocmVhZGluZwppbXBvcnQgdGltZQpmcm9tIG5mc19ycGMgaW1wb3J0IGNhbGwsIHJlcGx5LCByZWFkX3JlY29yZAoKCmRlZiBzZXJ2ZShiYWNrZW5kKToKICAgIHJvb3QgPSAnL3RtcC9jb250cm9sJwogICAgb3MubWtkaXIocm9vdCwgMG83MDApCiAgICBsb2NrID0gdGhyZWFkaW5nLlJMb2NrKCkKICAgIHN0YXRlID0gZGljdChyZWFkeT1GYWxzZSwgdG9rZW49Tm9uZSwgYXJtZWQ9RmFsc2UsIG5hbWU9Tm9uZSwgb3BlcmF0aW9uPTI4LCBoZWxkPVtdLCByZWxlYXNlZD1bXSwKICAgICAgICAgICAgICAgICBkcm9wcGVkPVtdLCBmb3J3YXJkZWQ9W10sIGVycm9ycz1bXSwgY29ubmVjdGlvbnM9MCwgYWN0aXZlPTAsIHJlY2VpdmVkPTAsCiAgICAgICAgICAgICAgICAgY29ubmVjdGlvbl9yZXNldHM9W10sIHRyYW5zcG9ydF9ldmVudHM9W10sIG9ic2VydmluZz1GYWxzZSwgdHJhY2U9W10sIHRyYWNlX2J5dGVzPTAsIHRyYWNlX292ZXJmbG93PUZhbHNlKQogICAgcGVuZGluZyA9IFtdCiAgICBleHBlY3RlZF9kaXNjb25uZWN0ID0gc2V0KCkKCiAgICBkZWYgc2F2ZSgpOgogICAgICAgIHdpdGggb3Blbihyb290ICsgJy9zdGF0ZS5uZXh0JywgJ3cnLCBlbmNvZGluZz0ndXRmLTgnKSBhcyBmaWxlOgogICAgICAgICAgICBqc29uLmR1bXAoc3RhdGUsIGZpbGUpCiAgICAgICAgb3MucmVwbGFjZShyb290ICsgJy9zdGF0ZS5uZXh0Jywgcm9vdCArICcvc3RhdGUuanNvbicpCgogICAgZGVmIGNvbnRyb2xzKCk6CiAgICAgICAgbGFzdCA9IE5vbmUKICAgICAgICB3aGlsZSBUcnVlOgogICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICB3aXRoIG9wZW4ocm9vdCArICcvY29tbWFuZC5qc29uJywgZW5jb2Rpbmc9J3V0Zi04JykgYXMgZmlsZToKICAgICAgICAgICAgICAgICAgICBjb21tYW5kID0ganNvbi5sb2FkKGZpbGUpCiAgICAgICAgICAgICAgICBpZiBjb21tYW5kWyd0b2tlbiddICE9IGxhc3Q6CiAgICAgICAgICAgICAgICAgICAgd2l0aCBsb2NrOgogICAgICAgICAgICAgICAgICAgICAgICBhY3Rpb24gPSBjb21tYW5kWydhY3Rpb24nXQogICAgICAgICAgICAgICAgICAgICAgICBpZiBhY3Rpb24gPT0gJ29ic2VydmUnOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGUudXBkYXRlKG9ic2VydmluZz1UcnVlLCB0cmFjZT1bXSwgdHJhY2VfYnl0ZXM9MCwgdHJhY2Vfb3ZlcmZsb3c9RmFsc2UpCiAgICAgICAgICAgICAgICAgICAgICAgIGVsaWYgYWN0aW9uID09ICdzdG9wX29ic2VydmUnOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ29ic2VydmluZyddID0gRmFsc2UKICAgICAgICAgICAgICAgICAgICAgICAgZWxpZiBhY3Rpb24gPT0gJ2FybSc6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiBjb21tYW5kLmdldCgnb3BlcmF0aW9uJywgMjgpIG5vdCBpbiAoNSwgMTEsIDI4LCAzOCk6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcigndW5zdXBwb3J0ZWQgc2VsZWN0ZWQgb3BlcmF0aW9uJykKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIHBlbmRpbmcgb3Igc3RhdGVbJ2FybWVkJ106CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignYWxyZWFkeSBhcm1lZCcpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGF0ZS51cGRhdGUodG9rZW49Y29tbWFuZFsndG9rZW4nXSwgYXJtZWQ9VHJ1ZSwgbmFtZT1jb21tYW5kWyduYW1lJ10sIG9wZXJhdGlvbj1jb21tYW5kLmdldCgnb3BlcmF0aW9uJywgMjgpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGhlbGQ9W10sIHJlbGVhc2VkPVtdLCBkcm9wcGVkPVtdLCBmb3J3YXJkZWQ9W10sIGVycm9ycz1bXSwgY29ubmVjdGlvbl9yZXNldHM9W10sIHRyYW5zcG9ydF9ldmVudHM9W10pCiAgICAgICAgICAgICAgICAgICAgICAgIGVsaWYgYWN0aW9uIGluICgncmVsZWFzZScsICdkcm9wJyk6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjbG9zZSA9IHNldCgpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb3Igc3RyZWFtLCB3aXJlLCByb3cgaW4gcGVuZGluZzoKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiBhY3Rpb24gPT0gJ3JlbGVhc2UnOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdHJlYW0uc2VuZGFsbCh3aXJlKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBleGNlcHQgT1NFcnJvcjoKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN0YXRlWydkcm9wcGVkJ10uYXBwZW5kKGRpY3Qocm93LCBjbGVhbnVwX3BlZXJfY2xvc2VkPVRydWUpKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY29udGludWUKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGF0ZVsncmVsZWFzZWQnIGlmIGFjdGlvbiA9PSAncmVsZWFzZScgZWxzZSAnZHJvcHBlZCddLmFwcGVuZChyb3cpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgYWN0aW9uID09ICdkcm9wJzoKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY2xvc2UuYWRkKHN0cmVhbSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgcm93Wydjb25uZWN0aW9uJ10gbm90IGluIHN0YXRlWydjb25uZWN0aW9uX3Jlc2V0cyddOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2Nvbm5lY3Rpb25fcmVzZXRzJ10uYXBwZW5kKHJvd1snY29ubmVjdGlvbiddKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgcGVuZGluZy5jbGVhcigpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGF0ZVsnYXJtZWQnXSA9IEZhbHNlCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAjIEV4cGxpY2l0IHJlcGx5IGxvc3MgcGx1cyBjb25uZWN0aW9uIGludGVycnVwdGlvbjsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICMgbmV2ZXIgYXNzdW1lIGEgYm91bmRlZCByZXRyeSBvbiBhIGhlYWx0aHkgVENQIHN0cmVhbS4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZvciBzdHJlYW0gaW4gY2xvc2U6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZXhwZWN0ZWRfZGlzY29ubmVjdC5hZGQoc3RyZWFtKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RyZWFtLnNodXRkb3duKHNvY2tldC5TSFVUX1JEV1IpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZXhjZXB0IE9TRXJyb3I6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhc3MKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdHJlYW0uY2xvc2UoKQogICAgICAgICAgICAgICAgICAgICAgICBlbHNlOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgcmFpc2UgVmFsdWVFcnJvcigndW5rbm93biByZWxheSBjb21tYW5kJykKICAgICAgICAgICAgICAgICAgICAgICAgbGFzdCA9IGNvbW1hbmRbJ3Rva2VuJ10KICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2NvbW1hbmRfdG9rZW4nXSA9IGxhc3QKICAgICAgICAgICAgICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgICAgIGV4Y2VwdCBGaWxlTm90Rm91bmRFcnJvcjoKICAgICAgICAgICAgICAgIHBhc3MKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgICAgICAgICAgICAgIHdpdGggbG9jazoKICAgICAgICAgICAgICAgICAgICBzdGF0ZVsnZXJyb3JzJ10uYXBwZW5kKHN0cihlcnJvcikpCiAgICAgICAgICAgICAgICAgICAgbGFzdCA9IGNvbW1hbmQuZ2V0KCd0b2tlbicpCiAgICAgICAgICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgICAgIHRpbWUuc2xlZXAoLjAyKQoKICAgIGRlZiBvYnNlcnZlKGRpcmVjdGlvbiwgbnVtYmVyLCBkYXRhLCBkZWNvZGVkKToKICAgICAgICBpZiBub3Qgc3RhdGVbJ29ic2VydmluZyddOgogICAgICAgICAgICByZXR1cm4KICAgICAgICBpZiBsZW4oc3RhdGVbJ3RyYWNlJ10pID49IDEwMjQgb3Igc3RhdGVbJ3RyYWNlX2J5dGVzJ10gKyBsZW4oZGF0YSkgPiAxNiAqIDEwNDg1NzY6CiAgICAgICAgICAgIHN0YXRlWyd0cmFjZV9vdmVyZmxvdyddID0gVHJ1ZQogICAgICAgICAgICByZXR1cm4KICAgICAgICBzdGF0ZVsndHJhY2VfYnl0ZXMnXSArPSBsZW4oZGF0YSkKICAgICAgICBzdGF0ZVsndHJhY2UnXS5hcHBlbmQoZGljdChkaXJlY3Rpb249ZGlyZWN0aW9uLCBjb25uZWN0aW9uPW51bWJlciwKICAgICAgICAgICAgbW9ub3RvbmljX25zPXRpbWUubW9ub3RvbmljX25zKCksIHhpZD1zdHJ1Y3QudW5wYWNrKCchSScsIGRhdGFbOjRdKVswXSwKICAgICAgICAgICAgc2hhMjU2PWhhc2hsaWIuc2hhMjU2KGRhdGEpLmhleGRpZ2VzdCgpLCBkZWNvZGVkPWRlY29kZWQsCiAgICAgICAgICAgIHBheWxvYWRfemxpYl9iYXNlNjQ9YmFzZTY0LmI2NGVuY29kZSh6bGliLmNvbXByZXNzKGRhdGEpKS5kZWNvZGUoJ2FzY2lpJykpKQogICAgICAgIHNhdmUoKQoKICAgIGRlZiBjb25uZWN0aW9uKGNsaWVudCwgbnVtYmVyKToKICAgICAgICAjIFByZXNlcnZlIHRoZSBjb250cm9sbGVkIGV4cG9ydCdzIGV4aXN0aW5nIHJlc2VydmVkLXBvcnQgcmVxdWlyZW1lbnQuCiAgICAgICAgIyBUaGUgcnVubmVyIHNldHMgdW5wcml2aWxlZ2VkX3BvcnRfc3RhcnQ9MCBvbmx5IGluIHRoaXMgb3duZWQgbmV0bnMuCiAgICAgICAgc2VydmVyID0gc29ja2V0LnNvY2tldCgpCiAgICAgICAgY2xvc2VkID0gdGhyZWFkaW5nLkV2ZW50KCkKCiAgICAgICAgZGVmIGV2ZW50KGtpbmQsIGVycm9yPU5vbmUpOgogICAgICAgICAgICB3aXRoIGxvY2s6CiAgICAgICAgICAgICAgICBzdGF0ZVsndHJhbnNwb3J0X2V2ZW50cyddLmFwcGVuZChkaWN0KGNvbm5lY3Rpb249bnVtYmVyLCBraW5kPWtpbmQsIGVycm9yPWVycm9yKSkKICAgICAgICAgICAgICAgIHN0YXRlWyd0cmFuc3BvcnRfZXZlbnRzJ10gPSBzdGF0ZVsndHJhbnNwb3J0X2V2ZW50cyddWy0xMjg6XQogICAgICAgICAgICAgICAgc2F2ZSgpCgogICAgICAgIGRlZiBjbG9zZV9zdHJlYW1zKGtpbmQpOgogICAgICAgICAgICB3aXRoIGxvY2s6CiAgICAgICAgICAgICAgICBpZiBjbG9zZWQuaXNfc2V0KCk6CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgICAgICAgICBjbG9zZWQuc2V0KCkKICAgICAgICAgICAgICAgIGV4cGVjdGVkX2Rpc2Nvbm5lY3QuYWRkKGNsaWVudCkKICAgICAgICAgICAgICAgICMgY2xvc2UoKSBhbG9uZSBjYW5ub3Qgd2FrZSBhIHJlY3YgaW4gdGhlIG90aGVyIGZvcndhcmRpbmcKICAgICAgICAgICAgICAgICMgdGhyZWFkLiBTaHV0IGRvd24gQk9USCBkaXJlY3Rpb25zIGJlZm9yZSByZWxlYXNpbmcgZGVzY3JpcHRvcnMuCiAgICAgICAgICAgICAgICBmb3Igc3RyZWFtIGluIChjbGllbnQsIHNlcnZlcik6CiAgICAgICAgICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgICAgICAgICBzdHJlYW0uc2h1dGRvd24oc29ja2V0LlNIVVRfUkRXUikKICAgICAgICAgICAgICAgICAgICBleGNlcHQgT1NFcnJvcjoKICAgICAgICAgICAgICAgICAgICAgICAgcGFzcwogICAgICAgICAgICAgICAgICAgIHN0cmVhbS5jbG9zZSgpCiAgICAgICAgICAgICAgICBzdGF0ZVsnYWN0aXZlJ10gLT0gMQogICAgICAgICAgICAgICAgZXZlbnQoa2luZCkKCiAgICAgICAgIyBLZWVwIHRoZSBhY2NlcHRlZCBmcm9udGVuZCB3aGlsZSB0aGUgYmFja2VuZCBpcyB1bmF2YWlsYWJsZS4gTm8gUlBDCiAgICAgICAgIyBieXRlcyBoYXZlIGJlZW4gZm9yd2FyZGVkIHlldCwgc28gcmV0cnlpbmcgY29ubmVjdCBjYW5ub3QgZHVwbGljYXRlIFJQQ3MuCiAgICAgICAgZGVhZGxpbmUgPSB0aW1lLm1vbm90b25pYygpICsgNjAwCiAgICAgICAgd2hpbGUgVHJ1ZToKICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgc2VydmVyLnNldHNvY2tvcHQoc29ja2V0LlNPTF9TT0NLRVQsIHNvY2tldC5TT19SRVVTRUFERFIsIDEpCiAgICAgICAgICAgICAgICBzZXJ2ZXIuc2V0dGltZW91dCgxKQogICAgICAgICAgICAgICAgc2VydmVyLmJpbmQoKCcnLCA2MDAgKyBudW1iZXIpKQogICAgICAgICAgICAgICAgc2VydmVyLmNvbm5lY3QoKGJhY2tlbmQsIDIwNDkpKQogICAgICAgICAgICAgICAgc2VydmVyLnNldHRpbWVvdXQoTm9uZSkKICAgICAgICAgICAgICAgIGJyZWFrCiAgICAgICAgICAgIGV4Y2VwdCBPU0Vycm9yIGFzIGVycm9yOgogICAgICAgICAgICAgICAgZXZlbnQoJ2JhY2tlbmRfY29ubmVjdF9mYWlsZWQnLCBzdHIoZXJyb3IpKQogICAgICAgICAgICAgICAgc2VydmVyLmNsb3NlKCkKICAgICAgICAgICAgICAgIGlmIHRpbWUubW9ub3RvbmljKCkgPj0gZGVhZGxpbmU6CiAgICAgICAgICAgICAgICAgICAgd2l0aCBsb2NrOgogICAgICAgICAgICAgICAgICAgICAgICBzdGF0ZVsnZXJyb3JzJ10uYXBwZW5kKCdiYWNrZW5kIGNvbm5lY3QgZGVhZGxpbmUnKQogICAgICAgICAgICAgICAgICAgIGNsb3NlX3N0cmVhbXMoJ2Nvbm5lY3RfZGVhZGxpbmVfY2xvc2VkJykKICAgICAgICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgICAgIHRpbWUuc2xlZXAoMSkKICAgICAgICAgICAgICAgIHNlcnZlciA9IHNvY2tldC5zb2NrZXQoKQogICAgICAgIGNhbGxzID0ge30KCiAgICAgICAgZGVmIHJlcXVlc3RzKCk6CiAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgIHdoaWxlIChyZWNvcmQgOj0gcmVhZF9yZWNvcmQoY2xpZW50KSkgaXMgbm90IE5vbmU6CiAgICAgICAgICAgICAgICAgICAgd2lyZSwgZGF0YSA9IHJlY29yZAogICAgICAgICAgICAgICAgICAgIHhpZCA9IHN0cnVjdC51bnBhY2soJyFJJywgZGF0YVs6NF0pWzBdCiAgICAgICAgICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgICAgICAgICBkZWNvZGVkID0gY2FsbChkYXRhKQogICAgICAgICAgICAgICAgICAgIGV4Y2VwdCAoVmFsdWVFcnJvciwgVW5pY29kZUVycm9yKToKICAgICAgICAgICAgICAgICAgICAgICAgZGVjb2RlZCA9IE5vbmUKICAgICAgICAgICAgICAgICAgICB3aXRoIGxvY2s6CiAgICAgICAgICAgICAgICAgICAgICAgIG9ic2VydmUoJ2NhbGwnLCBudW1iZXIsIGRhdGEsIGRlY29kZWQpCiAgICAgICAgICAgICAgICAgICAgICAgIGlmIGxlbihjYWxscykgPj0gNDA5NiBhbmQgeGlkIG5vdCBpbiBjYWxsczoKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoJ3JlcXVlc3QgbWFwIGJvdW5kJykKICAgICAgICAgICAgICAgICAgICAgICAgY2FsbHNbeGlkXSA9IGRpY3QoZGVjb2RlZD1kZWNvZGVkLCBzaGEyNTY9aGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCkpCiAgICAgICAgICAgICAgICAgICAgICAgIGlmIGRlY29kZWQgYW5kIGFueShvcC5nZXQoJ29wJykgaW4gKDUsIDExLCAyOCwgMzgpIGZvciBvcCBpbiBkZWNvZGVkWydvcGVyYXRpb25zJ10pOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgY2FsbHNbeGlkXVsncGF5bG9hZF9oZXgnXSA9IGRhdGEuaGV4KCkKICAgICAgICAgICAgICAgICAgICBzZXJ2ZXIuc2VuZGFsbCh3aXJlKQogICAgICAgICAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgogICAgICAgICAgICAgICAgd2l0aCBsb2NrOgogICAgICAgICAgICAgICAgICAgIGlmIGlzaW5zdGFuY2UoZXJyb3IsIE9TRXJyb3IpIGFuZCBjbGllbnQgbm90IGluIGV4cGVjdGVkX2Rpc2Nvbm5lY3Q6CiAgICAgICAgICAgICAgICAgICAgICAgIGV2ZW50KCdyZXF1ZXN0X3RyYW5zcG9ydF9lcnJvcicsIHN0cihlcnJvcikpCiAgICAgICAgICAgICAgICAgICAgZWxpZiBjbGllbnQgbm90IGluIGV4cGVjdGVkX2Rpc2Nvbm5lY3Q6CiAgICAgICAgICAgICAgICAgICAgICAgIHN0YXRlWydlcnJvcnMnXS5hcHBlbmQoJ3JlcXVlc3Q6ICcgKyBzdHIoZXJyb3IpKQogICAgICAgICAgICAgICAgICAgIHNhdmUoKQogICAgICAgICAgICBmaW5hbGx5OgogICAgICAgICAgICAgICAgY2xvc2Vfc3RyZWFtcygnZnJvbnRlbmRfY2xvc2VkJykKCiAgICAgICAgdGhyZWFkaW5nLlRocmVhZCh0YXJnZXQ9cmVxdWVzdHMsIGRhZW1vbj1UcnVlKS5zdGFydCgpCiAgICAgICAgdHJ5OgogICAgICAgICAgICB3aGlsZSAocmVjb3JkIDo9IHJlYWRfcmVjb3JkKHNlcnZlcikpIGlzIG5vdCBOb25lOgogICAgICAgICAgICAgICAgd2lyZSwgZGF0YSA9IHJlY29yZAogICAgICAgICAgICAgICAgeGlkID0gc3RydWN0LnVucGFjaygnIUknLCBkYXRhWzo0XSlbMF0KICAgICAgICAgICAgICAgIHdpdGggbG9jazoKICAgICAgICAgICAgICAgICAgICByZXF1ZXN0ID0gY2FsbHMuZ2V0KHhpZCwge30pCiAgICAgICAgICAgICAgICAgICAgZGVjb2RlZCA9IHJlcXVlc3QuZ2V0KCdkZWNvZGVkJykKICAgICAgICAgICAgICAgICAgICBzdGF0ZVsncmVjZWl2ZWQnXSArPSAxCiAgICAgICAgICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgICAgICAgICBvYnNlcnZlZF9yZXBseSA9IHJlcGx5KGRhdGEpCiAgICAgICAgICAgICAgICAgICAgZXhjZXB0IFZhbHVlRXJyb3I6CiAgICAgICAgICAgICAgICAgICAgICAgIG9ic2VydmVkX3JlcGx5ID0gTm9uZQogICAgICAgICAgICAgICAgICAgIG9ic2VydmUoJ3JlcGx5JywgbnVtYmVyLCBkYXRhLCBvYnNlcnZlZF9yZXBseSkKICAgICAgICAgICAgICAgICAgICBzZWxlY3RlZCA9IHN0YXRlWydhcm1lZCddIGFuZCBkZWNvZGVkIGFuZCBhbnkoCiAgICAgICAgICAgICAgICAgICAgICAgIG9wLmdldCgnb3AnKSA9PSBzdGF0ZVsnb3BlcmF0aW9uJ10gYW5kIChzdGF0ZVsnbmFtZSddIGlzIE5vbmUgb3Igb3AuZ2V0KCduYW1lJykgPT0gc3RhdGVbJ25hbWUnXSkgZm9yIG9wIGluIGRlY29kZWRbJ29wZXJhdGlvbnMnXSkKICAgICAgICAgICAgICAgICAgICByb3cgPSBkaWN0KGNvbm5lY3Rpb249bnVtYmVyLCB4aWQ9eGlkLCByZXF1ZXN0PXJlcXVlc3QsIHJlY2VpdmVfaWQ9c3RhdGVbJ3JlY2VpdmVkJ10sCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICByZXBseV9zaGEyNTY9aGFzaGxpYi5zaGEyNTYoZGF0YSkuaGV4ZGlnZXN0KCksIHdpcmVfYnl0ZXM9bGVuKHdpcmUpKQogICAgICAgICAgICAgICAgICAgIGlmIHNlbGVjdGVkOgogICAgICAgICAgICAgICAgICAgICAgICByb3dbJ3BheWxvYWRfaGV4J10gPSBkYXRhLmhleCgpCiAgICAgICAgICAgICAgICAgICAgICAgIG9ic2VydmVkID0gcmVwbHkoZGF0YSkKICAgICAgICAgICAgICAgICAgICAgICAgcm93WydyZXBseSddID0gb2JzZXJ2ZWQKICAgICAgICAgICAgICAgICAgICAgICAgaWYgb2JzZXJ2ZWRbJ3N0YXR1cyddID09IDAgYW5kIGFueShvcFsnb3AnXSA9PSBzdGF0ZVsnb3BlcmF0aW9uJ10gYW5kIG9wWydzdGF0dXMnXSA9PSAwIGZvciBvcCBpbiBvYnNlcnZlZFsnb3BlcmF0aW9ucyddKToKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIGxlbihwZW5kaW5nKSA+PSAxMjggb3Igc3VtKGxlbih2WzFdKSBmb3IgdiBpbiBwZW5kaW5nKSArIGxlbih3aXJlKSA+IDE2ICogMTA0ODU3NjoKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICByYWlzZSBWYWx1ZUVycm9yKCd3aXRoaGVsZCByZXBseSBib3VuZCcpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBwZW5kaW5nLmFwcGVuZCgoY2xpZW50LCB3aXJlLCByb3cpKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2hlbGQnXS5hcHBlbmQocm93KQogICAgICAgICAgICAgICAgICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjb250aW51ZQogICAgICAgICAgICAgICAgICAgIGNsaWVudC5zZW5kYWxsKHdpcmUpCiAgICAgICAgICAgICAgICAgICAgaWYgcmVxdWVzdC5nZXQoJ2RlY29kZWQnKSBhbmQgYW55KG9wLmdldCgnb3AnKSA9PSBzdGF0ZVsnb3BlcmF0aW9uJ10gYW5kIChzdGF0ZVsnbmFtZSddIGlzIE5vbmUgb3Igb3AuZ2V0KCduYW1lJykgPT0gc3RhdGVbJ25hbWUnXSkgZm9yIG9wIGluIGRlY29kZWRbJ29wZXJhdGlvbnMnXSk6CiAgICAgICAgICAgICAgICAgICAgICAgIHJvd1sncGF5bG9hZF9oZXgnXSA9IGRhdGEuaGV4KCkKICAgICAgICAgICAgICAgICAgICAgICAgcm93WydyZXBseSddID0gcmVwbHkoZGF0YSkKICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2ZvcndhcmRlZCddLmFwcGVuZChyb3cpCiAgICAgICAgICAgICAgICAgICAgICAgIHN0YXRlWydmb3J3YXJkZWQnXSA9IHN0YXRlWydmb3J3YXJkZWQnXVstMTI4Ol0KICAgICAgICAgICAgICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgICAgICAgICAgICAgY2FsbHMucG9wKHhpZCwgTm9uZSkKICAgICAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgogICAgICAgICAgICB3aXRoIGxvY2s6CiAgICAgICAgICAgICAgICBpZiBpc2luc3RhbmNlKGVycm9yLCBPU0Vycm9yKSBhbmQgY2xpZW50IG5vdCBpbiBleHBlY3RlZF9kaXNjb25uZWN0OgogICAgICAgICAgICAgICAgICAgIGV2ZW50KCdyZXNwb25zZV90cmFuc3BvcnRfZXJyb3InLCBzdHIoZXJyb3IpKQogICAgICAgICAgICAgICAgZWxpZiBjbGllbnQgbm90IGluIGV4cGVjdGVkX2Rpc2Nvbm5lY3Q6CiAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2Vycm9ycyddLmFwcGVuZCgncmVzcG9uc2U6ICcgKyBzdHIoZXJyb3IpKQogICAgICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgZmluYWxseToKICAgICAgICAgICAgY2xvc2Vfc3RyZWFtcygnYmFja2VuZF9jbG9zZWQnKQoKICAgIGxpc3RlbmVyID0gc29ja2V0LmNyZWF0ZV9zZXJ2ZXIoKCcwLjAuMC4wJywgMjA0OSksIGJhY2tsb2c9MTYpCiAgICB3aXRoIGxvY2s6CiAgICAgICAgc3RhdGVbJ3JlYWR5J10gPSBUcnVlCiAgICAgICAgc2F2ZSgpCiAgICB0aHJlYWRpbmcuVGhyZWFkKHRhcmdldD1jb250cm9scywgZGFlbW9uPVRydWUpLnN0YXJ0KCkKICAgIHdoaWxlIFRydWU6CiAgICAgICAgY2xpZW50LCBfID0gbGlzdGVuZXIuYWNjZXB0KCkKICAgICAgICB3aXRoIGxvY2s6CiAgICAgICAgICAgIGlmIHN0YXRlWydhY3RpdmUnXSA+PSAxNiBvciBzdGF0ZVsnY29ubmVjdGlvbnMnXSA+PSA0MDA6CiAgICAgICAgICAgICAgICBjbGllbnQuY2xvc2UoKQogICAgICAgICAgICAgICAgaWYgJ2Nvbm5lY3Rpb24gYm91bmQnIG5vdCBpbiBzdGF0ZVsnZXJyb3JzJ106CiAgICAgICAgICAgICAgICAgICAgc3RhdGVbJ2Vycm9ycyddLmFwcGVuZCgnY29ubmVjdGlvbiBib3VuZCcpCiAgICAgICAgICAgICAgICBzYXZlKCkKICAgICAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgICAgIHN0YXRlWydjb25uZWN0aW9ucyddICs9IDEKICAgICAgICAgICAgc3RhdGVbJ2FjdGl2ZSddICs9IDEKICAgICAgICAgICAgbnVtYmVyID0gc3RhdGVbJ2Nvbm5lY3Rpb25zJ10KICAgICAgICAgICAgc2F2ZSgpCiAgICAgICAgdGhyZWFkaW5nLlRocmVhZCh0YXJnZXQ9Y29ubmVjdGlvbiwgYXJncz0oY2xpZW50LCBudW1iZXIpLCBkYWVtb249VHJ1ZSkuc3RhcnQoKQoKCmlmIF9fbmFtZV9fID09ICdfX21haW5fXyc6CiAgICBzZXJ2ZShzeXMuYXJndlsxXSkK"
+    },
+    "nfs_endpoints.py": {
+      "sha256": "47d9a28d1da68331bdde74b44d0d66b513c978776b81c5091914ec8a14d4ed8b",
+      "content_base64": "IiIiSW5kZXBlbmRlbnRseSBzdG9wIHR3byBvd25lZCBORlMgc2VydmVyczsgbm8gcGh5c2ljYWwgTkFTL3Bvd2VyLWxvc3MgY2xhaW0uIiIiCmltcG9ydCBoYXNobGliCmltcG9ydCBqc29uCmltcG9ydCB0aW1lCgoKY2xhc3MgRW5kcG9pbnRzOgogICAgZGVmIF9faW5pdF9fKHNlbGYsIHJ1biwgZXhlY3V0ZSwgc2VydmVyLCBjbGllbnQsIGlwLCBvcHRpb25zLCBuZXR3b3JrLCBpbWFnZSwKICAgICAgICAgICAgICAgICBjb250YWluZXJzLCB2b2x1bWVzLCBzZXJ2ZXJzLCBleHRyYV9tb3VudHMsIHJlcG9ydCwgZGVzdGluYXRpb25fcmVsYXk9Tm9uZSwgc291cmNlX3JlbGF5PU5vbmUpOgogICAgICAgIHNlbGYucnVuLCBzZWxmLmV4ZWN1dGUsIHNlbGYuY2xpZW50ID0gcnVuLCBleGVjdXRlLCBjbGllbnQKICAgICAgICBzZWxmLnJlcG9ydCA9IHJlcG9ydAogICAgICAgIHNlbGYuY291bnRlciA9IDAKICAgICAgICB2b2x1bWUgPSBuZXR3b3JrICsgIi1kZXN0aW5hdGlvbiIKICAgICAgICBydW4oWyJ2b2x1bWUiLCAiY3JlYXRlIiwgdm9sdW1lXSkKICAgICAgICB2b2x1bWVzLmFwcGVuZCh2b2x1bWUpCiAgICAgICAgZGVzdGluYXRpb24gPSBydW4oWyJjcmVhdGUiLCAiLS1wcml2aWxlZ2VkIiwgIi0tbmV0d29yayIsIG5ldHdvcmssCiAgICAgICAgICAgICAgICAgICAgICAgICAgICItLXZvbHVtZSIsIHZvbHVtZSArICI6L2V4cG9ydHMiLCBpbWFnZV0pLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgY29udGFpbmVycy5hcHBlbmQoZGVzdGluYXRpb24pCiAgICAgICAgcnVuKFsic3RhcnQiLCBkZXN0aW5hdGlvbl0pCiAgICAgICAgZm9yIF8gaW4gcmFuZ2UoNDApOgogICAgICAgICAgICBpZiAiTkZTX1JFQURZIiBpbiBydW4oWyJsb2dzIiwgZGVzdGluYXRpb25dKS5zdGRvdXQ6CiAgICAgICAgICAgICAgICBicmVhawogICAgICAgICAgICB0aW1lLnNsZWVwKDAuNSkKICAgICAgICBlbHNlOgogICAgICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoImluZGVwZW5kZW50IGRlc3RpbmF0aW9uIE5GUyBzZXJ2ZXIgbm90IHJlYWR5IikKICAgICAgICBzZXJ2ZXJzLmFwcGVuZChkZXN0aW5hdGlvbikKICAgICAgICBkZXN0aW5hdGlvbl9pcCA9IGpzb24ubG9hZHMocnVuKFsiaW5zcGVjdCIsIGRlc3RpbmF0aW9uXSkuc3Rkb3V0KVswXVsiTmV0d29ya1NldHRpbmdzIl1bIk5ldHdvcmtzIl1bbmV0d29ya11bIklQQWRkcmVzcyJdCiAgICAgICAgYXNzZXJ0IGRlc3RpbmF0aW9uX2lwICE9IGlwCiAgICAgICAgc2VsZi5yZWxheSA9IGRlc3RpbmF0aW9uX3JlbGF5KGRlc3RpbmF0aW9uX2lwKSBpZiBkZXN0aW5hdGlvbl9yZWxheSBlbHNlIE5vbmUKICAgICAgICBkZXN0aW5hdGlvbl9tb3VudF9pcCA9IHNlbGYucmVsYXkuYWRkcmVzcyBpZiBzZWxmLnJlbGF5IGVsc2UgZGVzdGluYXRpb25faXAKICAgICAgICBzb3VyY2Vfb2JzZXJ2ZXIgPSBzb3VyY2VfcmVsYXkoaXApIGlmIHNvdXJjZV9yZWxheSBlbHNlIE5vbmUKICAgICAgICBzb3VyY2VfbW91bnRfaXAgPSBzb3VyY2Vfb2JzZXJ2ZXIuYWRkcmVzcyBpZiBzb3VyY2Vfb2JzZXJ2ZXIgZWxzZSBpcAogICAgICAgIHNlbGYuc2VydmVycyA9IHsic291cmNlIjogc2VydmVyLCAiZGVzdGluYXRpb24iOiBkZXN0aW5hdGlvbn0KICAgICAgICBzZWxmLm1vdW50cyA9IHsic291cmNlIjogIi90bXAvbmZzLXNvdXJjZSIsICJkZXN0aW5hdGlvbiI6ICIvdG1wL25mcy1kZXN0aW5hdGlvbiJ9CiAgICAgICAgcmVwb3J0WyJzZXJ2ZXJzIl0gPSB7fQogICAgICAgIGZvciByb2xlLCBhZGRyZXNzLCBmc2lkIGluICgoInNvdXJjZSIsIHNvdXJjZV9tb3VudF9pcCwgNTUpLCAoImRlc3RpbmF0aW9uIiwgZGVzdGluYXRpb25fbW91bnRfaXAsIDU2KSk6CiAgICAgICAgICAgIHRhcmdldCwgbW91bnQgPSBzZWxmLnNlcnZlcnNbcm9sZV0sIHNlbGYubW91bnRzW3JvbGVdCiAgICAgICAgICAgIGV4cG9ydCA9ICIvZXhwb3J0cy9kZWF0aC0iICsgcm9sZQogICAgICAgICAgICBydW4oWyJleGVjIiwgdGFyZ2V0LCAiL2Jpbi9zaCIsICItZXUiLCAiLWMiLAogICAgICAgICAgICAgICAgIGYibWtkaXIge2V4cG9ydH07IG1vdW50IC10IHRtcGZzIC1vIHNpemU9MTI4bSxucl9pbm9kZXM9NDA5Nixtb2RlPTE3NzcgdG1wZnMge2V4cG9ydH07ICIKICAgICAgICAgICAgICAgICBmImV4cG9ydGZzIC1pIC1vIHJ3LHN5bmMsbm9fc3VidHJlZV9jaGVjayxub19yb290X3NxdWFzaCxmc2lkPXtmc2lkfSAnKjp7ZXhwb3J0fSciXSkKICAgICAgICAgICAgZXhlY3V0ZSgibWtkaXIgIiArIG1vdW50KQogICAgICAgICAgICBtb3VudF9vcHRpb25zID0gb3B0aW9ucy5yZXBsYWNlKCJhZGRyPSIgKyBpcCArICIsIiwgImFkZHI9IiArIGFkZHJlc3MgKyAiLCIpCiAgICAgICAgICAgIHJ1bihbImV4ZWMiLCBjbGllbnQsICJtb3VudCIsICItaSIsICItdCIsICJuZnM0IiwgIi1vIiwgbW91bnRfb3B0aW9ucywKICAgICAgICAgICAgICAgICBhZGRyZXNzICsgIjovZGVhdGgtIiArIHJvbGUsIG1vdW50XSkKICAgICAgICAgICAgZXh0cmFfbW91bnRzLmFwcGVuZCgoY2xpZW50LCBtb3VudCkpCiAgICAgICAgICAgIHJlcG9ydFsic2VydmVycyJdW3JvbGVdID0gZGljdChjb250YWluZXI9dGFyZ2V0LCBpcD1hZGRyZXNzLCBleHBvcnQ9ZXhwb3J0LCBtb3VudD1tb3VudCwKICAgICAgICAgICAgICAgIG5ldHdvcmtfbmFtZXNwYWNlPXJ1bihbImV4ZWMiLCB0YXJnZXQsICJyZWFkbGluayIsICIvcHJvYy9zZWxmL25zL25ldCJdKS5zdGRvdXQuc3RyaXAoKSwKICAgICAgICAgICAgICAgIGZpbGVzeXN0ZW1fZGV2aWNlPXJ1bihbImV4ZWMiLCB0YXJnZXQsICJzdGF0IiwgIi1jIiwgIiVkIiwgZXhwb3J0XSkuc3Rkb3V0LnN0cmlwKCksCiAgICAgICAgICAgICAgICBzZXJ2ZXJfbW91bnRzPXJ1bihbImV4ZWMiLCB0YXJnZXQsICJjYXQiLCAiL3Byb2MvbW91bnRzIl0pLnN0ZG91dC5zcGxpdGxpbmVzKCkpCiAgICAgICAgICAgIGlmIHJvbGUgPT0gImRlc3RpbmF0aW9uIiBhbmQgc2VsZi5yZWxheToKICAgICAgICAgICAgICAgIHJlcG9ydFsic2VydmVycyJdW3JvbGVdWyJiYWNrZW5kX2lwIl0gPSBkZXN0aW5hdGlvbl9pcAogICAgICAgICAgICAgICAgcmVwb3J0WyJyZXBseV9yZWxheSJdID0gc2VsZi5yZWxheS5ldmlkZW5jZQogICAgICAgICAgICBpZiByb2xlID09ICJzb3VyY2UiIGFuZCBzb3VyY2Vfb2JzZXJ2ZXI6CiAgICAgICAgICAgICAgICByZXBvcnRbInNlcnZlcnMiXVtyb2xlXVsiYmFja2VuZF9pcCJdID0gaXAKICAgICAgICAgICAgICAgIHJlcG9ydFsicmVwbHlfcmVsYXkiXSA9IHNvdXJjZV9vYnNlcnZlci5ldmlkZW5jZQogICAgICAgICAgICAgICAgcmVwb3J0WyJyZXBseV9yZWxheV9yb2xlIl0gPSAic291cmNlIgogICAgICAgICAgICBhc3NlcnQgYW55KGYiIHtleHBvcnR9IHRtcGZzICIgaW4gbSBhbmQgInNpemU9MTMxMDcyayIgaW4gbSBhbmQgIm5yX2lub2Rlcz00MDk2IiBpbiBtCiAgICAgICAgICAgICAgICAgICAgICAgZm9yIG0gaW4gcmVwb3J0WyJzZXJ2ZXJzIl1bcm9sZV1bInNlcnZlcl9tb3VudHMiXSkKICAgICAgICAgICAgc2VsZi5oZWFsdGh5KHJvbGUpCiAgICAgICAgYXNzZXJ0IGxlbih7dlsibmV0d29ya19uYW1lc3BhY2UiXSBmb3IgdiBpbiByZXBvcnRbInNlcnZlcnMiXS52YWx1ZXMoKX0pID09IDIKICAgICAgICBhc3NlcnQgbGVuKHt2WyJmaWxlc3lzdGVtX2RldmljZSJdIGZvciB2IGluIHJlcG9ydFsic2VydmVycyJdLnZhbHVlcygpfSkgPT0gMgogICAgICAgIHJlcG9ydFsibW91bnRzIl0gPSBleGVjdXRlKCJjYXQgL3Byb2MvbW91bnRzIikuc3Rkb3V0LnNwbGl0bGluZXMoKQogICAgICAgIHJlcG9ydFsibW91bnRpbmZvIl0gPSBleGVjdXRlKCJjYXQgL3Byb2Mvc2VsZi9tb3VudGluZm8iKS5zdGRvdXQuc3BsaXRsaW5lcygpCiAgICAgICAgcmVwb3J0WyJjbGllbnRfZGV2aWNlcyJdID0gZXhlY3V0ZSgic3RhdCAtYyAlZCAvdG1wL25mcy1zb3VyY2UgL3RtcC9uZnMtZGVzdGluYXRpb24iKS5zdGRvdXQuc3BsaXRsaW5lcygpCiAgICAgICAgcmVwb3J0WyJjbGllbnRfZmlsZXN5c3RlbXMiXSA9IGV4ZWN1dGUoInN0YXQgLWYgLWMgJXQgL3RtcC9uZnMtc291cmNlIC90bXAvbmZzLWRlc3RpbmF0aW9uIikuc3Rkb3V0LnNwbGl0bGluZXMoKQogICAgICAgIGFzc2VydCBsZW4oc2V0KHJlcG9ydFsiY2xpZW50X2RldmljZXMiXSkpID09IDIgYW5kIHJlcG9ydFsiY2xpZW50X2ZpbGVzeXN0ZW1zIl0gPT0gWyI2OTY5IiwgIjY5NjkiXQogICAgICAgIGlkcyA9IFtdCiAgICAgICAgZm9yIHZhbHVlIGluIHJlcG9ydFsic2VydmVycyJdLnZhbHVlcygpOgogICAgICAgICAgICBhc3NlcnQgYW55KHZhbHVlWyJpcCJdICsgIjovZGVhdGgtIiBpbiBtIGFuZCBmIiB7dmFsdWVbJ21vdW50J119IG5mczQgIiBpbiBtCiAgICAgICAgICAgICAgICAgICAgICAgYW5kICJoYXJkIiBpbiBtIGFuZCAidmVycz00LjEiIGluIG0gZm9yIG0gaW4gcmVwb3J0WyJtb3VudHMiXSkKICAgICAgICAgICAgcm93cyA9IFttLnNwbGl0KCkgZm9yIG0gaW4gcmVwb3J0WyJtb3VudGluZm8iXSBpZiBtLnNwbGl0KClbNF0gPT0gdmFsdWVbIm1vdW50Il1dCiAgICAgICAgICAgIGFzc2VydCBsZW4ocm93cykgPT0gMQogICAgICAgICAgICBpZHMuYXBwZW5kKHJvd3NbMF1bMF0pCiAgICAgICAgYXNzZXJ0IGxlbihzZXQoaWRzKSkgPT0gMgogICAgICAgIHJlcG9ydFsiY2xpZW50X21vdW50X2lkcyJdID0gaWRzCiAgICAgICAgcmVwb3J0WyJwYXNzZWQiXSA9IFRydWUKICAgICAgICByZXBvcnRbInNjb3BlIl0gPSAiVHdvIGNvbnRyb2xsZWQgTkZTdjQuMSBzZXJ2ZXIgY29udGFpbmVycy9uZXQgbmFtZXNwYWNlcy9JUHMgYW5kIHRtcGZzIGV4cG9ydHMgb24gb25lIG1vZGVybiBrZXJuZWw7IGluZGVwZW5kZW50IE5GU0QgdGhyZWFkIG91dGFnZXMsIG5vdCBwaHlzaWNhbCBOQVMgZmFpbHVyZXMgb3IgcmVib290L3Bvd2VyIGR1cmFiaWxpdHkuIgoKICAgIGRlZiBoZWFsdGh5KHNlbGYsIHJvbGUpOgogICAgICAgIHNlbGYuY291bnRlciArPSAxCiAgICAgICAgcGF0aCA9IHNlbGYubW91bnRzW3JvbGVdICsgIi9oZWFsdGh5LSIgKyBzdHIoc2VsZi5jb3VudGVyKQogICAgICAgIGJlZ2FuID0gdGltZS5tb25vdG9uaWMoKQogICAgICAgIHJlc3BvbnNlID0gc2VsZi5leGVjdXRlKGYidW1hc2sgMDc3OyAoc2V0IC1DOyBwcmludGYgJ2hlYWx0aHkgZW5kcG9pbnQnID57cGF0aH0pOyAiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZiJzdGF0IC1jICclZDolaTolcycge3BhdGh9OyBzaGEyNTZzdW0ge3BhdGh9IiwgIjEwMDA6MTAwMCIpCiAgICAgICAgZWxhcHNlZCA9IHRpbWUubW9ub3RvbmljKCkgLSBiZWdhbgogICAgICAgIGFzc2VydCBlbGFwc2VkIDwgNQogICAgICAgIGxpbmVzID0gcmVzcG9uc2Uuc3Rkb3V0LnNwbGl0bGluZXMoKQogICAgICAgIGFzc2VydCBsaW5lc1swXS5zcGxpdCgiOiIpWy0xXSA9PSAiMTYiIGFuZCBsaW5lc1sxXS5zcGxpdCgpWzBdID09IGhhc2hsaWIuc2hhMjU2KGIiaGVhbHRoeSBlbmRwb2ludCIpLmhleGRpZ2VzdCgpCiAgICAgICAgcmV0dXJuIGRpY3Qocm9sZT1yb2xlLCBlbGFwc2VkX3NlY29uZHM9cm91bmQoZWxhcHNlZCwgMyksIGZyZXNoX3dyaXRlX3JlYWRfbWV0YWRhdGE9bGluZXMpCgogICAgZGVmIHN0b3Aoc2VsZiwgcm9sZSk6CiAgICAgICAgc2VsZi5ydW4oWyJleGVjIiwgc2VsZi5zZXJ2ZXJzW3JvbGVdLCAicnBjLm5mc2QiLCAiMCJdKQogICAgICAgIHRocmVhZHMgPSB7bmFtZTogc2VsZi5ydW4oWyJleGVjIiwgdGFyZ2V0LCAiY2F0IiwgIi9wcm9jL2ZzL25mc2QvdGhyZWFkcyJdKS5zdGRvdXQuc3RyaXAoKQogICAgICAgICAgICAgICAgICAgZm9yIG5hbWUsIHRhcmdldCBpbiBzZWxmLnNlcnZlcnMuaXRlbXMoKX0KICAgICAgICBvdGhlciA9ICJkZXN0aW5hdGlvbiIgaWYgcm9sZSA9PSAic291cmNlIiBlbHNlICJzb3VyY2UiCiAgICAgICAgYXNzZXJ0IHRocmVhZHNbcm9sZV0gPT0gIjAiIGFuZCB0aHJlYWRzW290aGVyXSA9PSAiMiIsIHRocmVhZHMKICAgICAgICByZXR1cm4gZGljdChmYWlsZWRfZW5kcG9pbnQ9cm9sZSwgbmZzZF90aHJlYWRzPXRocmVhZHMsIGhlYWx0aHk9c2VsZi5oZWFsdGh5KG90aGVyKSkKCiAgICBkZWYgZHVyaW5nKHNlbGYsIHJvbGUpOgogICAgICAgIHJldHVybiBzZWxmLmhlYWx0aHkoImRlc3RpbmF0aW9uIiBpZiByb2xlID09ICJzb3VyY2UiIGVsc2UgInNvdXJjZSIpCg=="
+    },
+    "test_nfs_rpc.py": {
+      "sha256": "2c32a0b973f6d63257acc11660187f70d087b71e5abbcfc454c85c1e5d5841cd",
+      "content_base64": "IiIiRml4dHVyZSBldmlkZW5jZSBkZWNvZGVyIHJlamVjdGlvbiB0ZXN0czsgbm8gUnVzdCBidWlsZCBvciBhcHBsaWNhdGlvbiB0ZXN0LiIiIgppbXBvcnQgaW8KaW1wb3J0IHN0cnVjdAppbXBvcnQgdW5pdHRlc3QKZnJvbSBuZnNfcnBjIGltcG9ydCBMSU1JVCwgY2FsbCwgcmVwbHksIHJlYWRfcmVjb3JkCgoKZGVmIHUoKnZhbHVlcyk6CiAgICByZXR1cm4gc3RydWN0LnBhY2soJyEnICsgJ0knICogbGVuKHZhbHVlcyksICp2YWx1ZXMpCgoKZGVmIG9wYXF1ZSh2YWx1ZSk6CiAgICByZXR1cm4gdShsZW4odmFsdWUpKSArIHZhbHVlICsgYnl0ZXMoKC1sZW4odmFsdWUpKSAlIDQpCgoKQ0FMTCA9ICh1KDEyMywgMCwgMiwgMTAwMDAzLCA0LCAxLCAwLCAwLCAwLCAwKSArIG9wYXF1ZShiJycpICsgdSgxLCA0LCA1MykKICAgICAgICArIGJ5dGVzKDMyKSArIHUoMjIpICsgb3BhcXVlKGInZmlsZSBoYW5kbGUnKSArIHUoMjgpICsgb3BhcXVlKGInMS5wYXJ0JykgKyB1KDksIDEsIDIpKQpSRVBMWSA9ICh1KDEyMywgMSwgMCwgMCwgMCwgMCwgMCkgKyBvcGFxdWUoYicnKSArIHUoNCwgNTMsIDApICsgYnl0ZXMoMzYpCiAgICAgICAgICsgdSgyMiwgMCwgMjgsIDAsIDEpICsgYnl0ZXMoMTYpICsgdSg5LCAwLCAxLCAyKSArIG9wYXF1ZShiJ2F0dHJpYnV0ZXMnKSkKCgpjbGFzcyBTdHJlYW06CiAgICBkZWYgX19pbml0X18oc2VsZiwgdmFsdWUpOgogICAgICAgIHNlbGYuZGF0YSA9IGlvLkJ5dGVzSU8odmFsdWUpCgogICAgZGVmIHJlY3Yoc2VsZiwgc2l6ZSk6CiAgICAgICAgcmV0dXJuIHNlbGYuZGF0YS5yZWFkKG1pbihzaXplLCAyKSkKCgpjbGFzcyBFdmlkZW5jZURlY29kZXIodW5pdHRlc3QuVGVzdENhc2UpOgogICAgZGVmIHRlc3RfbWF0Y2hpbmdfcmVtb3ZlX2FuZF9zdWNjZXNzKHNlbGYpOgogICAgICAgIHJlcXVlc3QsIHJlc3VsdCA9IGNhbGwoQ0FMTCksIHJlcGx5KFJFUExZKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwocmVxdWVzdFsneGlkJ10sIHJlc3VsdFsneGlkJ10pCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChyZXF1ZXN0WydvcGVyYXRpb25zJ11bMl0sIGRpY3Qob3A9MjgsIG5hbWU9JzEucGFydCcpKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwocmVxdWVzdFsnb3BlcmF0aW9ucyddWzBdWydzZXF1ZW5jZV9oZXgnXSwgYnl0ZXMoMzIpLmhleCgpKQogICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwocmVzdWx0WydvcGVyYXRpb25zJ11bMl0sIGRpY3Qob3A9MjgsIHN0YXR1cz0wKSkKICAgICAgICBzZWxmLmFzc2VydEVxdWFsKHJlc3VsdFsnc3RhdHVzJ10sIDApCgogICAgZGVmIHRlc3Rfd3JpdGVfY29tbWl0X2ZpZWxkc19hbmRfdHJ1bmNhdGlvbihzZWxmKToKICAgICAgICBwcmVmaXggPSB1KDEyMywwLDIsMTAwMDAzLDQsMSwwLDAsMCwwKStvcGFxdWUoYicnKSt1KDEsMiwyMikrb3BhcXVlKGInaGFuZGxlJykKICAgICAgICByZXNwb25zZSA9IHUoMTIzLDEsMCwwLDAsMCwwKStvcGFxdWUoYicnKSt1KDIsMjIsMCkKICAgICAgICBmb3IgcmVxdWVzdCxyZXN1bHQsb3AgaW4gKChwcmVmaXgrdSg1KStieXRlcyg4KSt1KDQwOTYpLHJlc3BvbnNlK3UoNSwwKStiJ3ZlcmlmaWVyJyw1KSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIChwcmVmaXgrdSgzOCkrYnl0ZXMoMTYpK2J5dGVzKDgpK3UoMikrb3BhcXVlKGInZGF0YScpLHJlc3BvbnNlK3UoMzgsMCw0LDIpK2IndmVyaWZpZXInLDM4KSk6CiAgICAgICAgICAgIHNlbGYuYXNzZXJ0RXF1YWwoY2FsbChyZXF1ZXN0KVsnb3BlcmF0aW9ucyddWy0xXVsnb3AnXSxvcCkKICAgICAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChyZXBseShyZXN1bHQpWydvcGVyYXRpb25zJ11bLTFdWyd2ZXJpZmllcl9oZXgnXSxiJ3ZlcmlmaWVyJy5oZXgoKSkKICAgICAgICAgICAgZm9yIGRlY29kZXIsdmFsdWUgaW4gKChjYWxsLHJlcXVlc3QpLChyZXBseSxyZXN1bHQpKToKICAgICAgICAgICAgICAgIGZvciBlbmQgaW4gcmFuZ2UobGVuKHZhbHVlKSk6CiAgICAgICAgICAgICAgICAgICAgd2l0aCBzZWxmLmFzc2VydFJhaXNlcyhWYWx1ZUVycm9yKTpkZWNvZGVyKHZhbHVlWzplbmRdKQogICAgICAgICAgICAgICAgd2l0aCBzZWxmLmFzc2VydFJhaXNlcyhWYWx1ZUVycm9yKTpkZWNvZGVyKHZhbHVlK2J5dGVzKDQpKQogICAgICAgIHdpdGggc2VsZi5hc3NlcnRSYWlzZXMoVmFsdWVFcnJvcik6Y2FsbChwcmVmaXgrdSgzOCkrYnl0ZXMoMjQpK3UoMykrb3BhcXVlKGInZGF0YScpKQogICAgICAgIHdpdGggc2VsZi5hc3NlcnRSYWlzZXMoVmFsdWVFcnJvcik6cmVwbHkocmVzcG9uc2UrdSgzOCwwLDQsMykrYid2ZXJpZmllcicpCgogICAgZGVmIHRlc3RfZXZlcnlfdHJ1bmNhdGlvbl9hbmRfdHJhaWxpbmdfYnl0ZXNfcmVmdXNlZChzZWxmKToKICAgICAgICBmb3IgZGVjb2RlciwgdmFsdWUgaW4gKChjYWxsLCBDQUxMKSwgKHJlcGx5LCBSRVBMWSkpOgogICAgICAgICAgICBmb3IgZW5kIGluIHJhbmdlKGxlbih2YWx1ZSkpOgogICAgICAgICAgICAgICAgd2l0aCBzZWxmLnN1YlRlc3QoZGVjb2Rlcj1kZWNvZGVyLl9fbmFtZV9fLCBlbmQ9ZW5kKSwgc2VsZi5hc3NlcnRSYWlzZXMoVmFsdWVFcnJvcik6CiAgICAgICAgICAgICAgICAgICAgZGVjb2Rlcih2YWx1ZVs6ZW5kXSkKICAgICAgICAgICAgd2l0aCBzZWxmLmFzc2VydFJhaXNlcyhWYWx1ZUVycm9yKToKICAgICAgICAgICAgICAgIGRlY29kZXIodmFsdWUgKyBieXRlcyg0KSkKCiAgICBkZWYgdGVzdF91bmtub3duX29wY29kZV9hbmRfb3Bjb2RlX2luc2lkZV9oYW5kbGVfYXJlX25vdF9ldmlkZW5jZShzZWxmKToKICAgICAgICBwcmVmaXggPSB1KDEsIDAsIDIsIDEwMDAwMywgNCwgMSwgMCwgMCwgMCwgMCkgKyBvcGFxdWUoYicnKSArIHUoMSwgMSkKICAgICAgICB3aXRoIHNlbGYuYXNzZXJ0UmFpc2VzKFZhbHVlRXJyb3IpOgogICAgICAgICAgICBjYWxsKHByZWZpeCArIHUoOTk5KSArIG9wYXF1ZSh1KDI4KSArIG9wYXF1ZShiJzEucGFydCcpKSkKICAgICAgICB2YWx1ZSA9IGNhbGwocHJlZml4ICsgdSgyMikgKyBvcGFxdWUodSgyOCkgKyBvcGFxdWUoYicxLnBhcnQnKSkpCiAgICAgICAgc2VsZi5hc3NlcnRGYWxzZShhbnkob3AuZ2V0KCdvcCcpID09IDI4IGZvciBvcCBpbiB2YWx1ZVsnb3BlcmF0aW9ucyddKSkKCiAgICBkZWYgdGVzdF93cm9uZ19wcm90b2NvbF9hdXRoX2xlbmd0aHNfbWlub3JfYW5kX2NvdW50c19yZWZ1c2VkKHNlbGYpOgogICAgICAgIGZvciBvZmZzZXQsIHZhbHVlIGluICgoNCwgMSksICg4LCAzKSwgKDEyLCAxNyksICgxNiwgMyksICgyMCwgMCksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICgyOCwgTElNSVQpLCAoNDQsIDIpLCAoNDgsIDApLCAoNDgsIDEyOSkpOgogICAgICAgICAgICBkYXRhID0gQ0FMTFs6b2Zmc2V0XSArIHUodmFsdWUpICsgQ0FMTFtvZmZzZXQgKyA0Ol0KICAgICAgICAgICAgd2l0aCBzZWxmLnN1YlRlc3Qob2Zmc2V0PW9mZnNldCksIHNlbGYuYXNzZXJ0UmFpc2VzKFZhbHVlRXJyb3IpOgogICAgICAgICAgICAgICAgY2FsbChkYXRhKQoKICAgIGRlZiB0ZXN0X2ZyYWdtZW50ZWRfcmVjb3Jkc19wcmVzZXJ2ZWRfZXhhY3RseShzZWxmKToKICAgICAgICB3aXJlID0gdSg3KSArIENBTExbOjddICsgdSgweDgwMDAwMDAwIHwgKGxlbihDQUxMKSAtIDcpKSArIENBTExbNzpdCiAgICAgICAgc3RyZWFtID0gU3RyZWFtKHdpcmUpCiAgICAgICAgc2VsZi5hc3NlcnRFcXVhbChyZWFkX3JlY29yZChzdHJlYW0pLCAod2lyZSwgQ0FMTCkpCiAgICAgICAgc2VsZi5hc3NlcnRJc05vbmUocmVhZF9yZWNvcmQoc3RyZWFtKSkKCiAgICBkZWYgdGVzdF9yZWNvcmRfYm91bmRzX2FuZF90cnVuY2F0aW9uKHNlbGYpOgogICAgICAgIGZvciB3aXJlIGluICh1KDB4ODAwMDAwMDAgfCAoTElNSVQgKyAxKSksIHUoMHg4MDAwMDAwNCkgKyBiJ2EnLCBieXRlcyg0MDk2KSk6CiAgICAgICAgICAgIHdpdGggc2VsZi5hc3NlcnRSYWlzZXMoVmFsdWVFcnJvcik6CiAgICAgICAgICAgICAgICByZWFkX3JlY29yZChTdHJlYW0od2lyZSkpCgoKaWYgX19uYW1lX18gPT0gJ19fbWFpbl9fJzoKICAgIHVuaXR0ZXN0Lm1haW4oKQo="
+    },
+    "nfs_relay_restart.py": {
+      "sha256": "5149c87e490e811898d1ce0bdc7184e9192f84306ad1231488bcd5a02fc14700",
+      "content_base64": "IiIiRml4dHVyZSB0cmFuc3BvcnQgcmVjb3Zlcnkgd2l0aCBhbiBPUyBwcm9iZTsgbm8gbGl2ZSBtb3ZlciBvciBOQVMgZHVyYWJpbGl0eSBjbGFpbS4iIiIKaW1wb3J0IHRpbWUKaW1wb3J0IHN1YnByb2Nlc3MKCgpkZWYgcXVhbGlmeShyZWxheSwgZW5kcG9pbnRzLCBydW4sIGV4ZWN1dGUsIHNwYXduLCBvdXRwdXQsIHJlc3VsdCk6CiAgICByZXN1bHQudXBkYXRlKHBhc3NlZD1GYWxzZSwgc2NvcGU9J09TLW9ubHkgc291cmNlIE5GU0QgdGhyZWFkIHN0b3AvcmVzdGFydCB0aHJvdWdoIHRoZSByZWxheSwgbm90IHNlcnZlciByZWJvb3Qgb3IgbGl2ZS1tb3ZlciByZWNvdmVyeScpCiAgICBzZXJ2ZXIgPSBlbmRwb2ludHMuc2VydmVyc1snc291cmNlJ10KICAgIHBhdGggPSBlbmRwb2ludHMubW91bnRzWydzb3VyY2UnXSArICcvcmVsYXktcmVzdGFydC1zZW50aW5lbCcKICAgIHBpZGZpbGUgPSAnL3RtcC9yZWxheS1yZXN0YXJ0LXByb2JlLnBpZCcKICAgIGNvbW1hbmQgPSAnc2hhMjU2c3VtICcgKyBwYXRoCiAgICBwcm9jZXNzID0gTm9uZQoKICAgIGRlZiByZXN0b3JlKCk6CiAgICAgICAgcnVuKFsnZXhlYycsIHNlcnZlciwgJ3JwYy5uZnNkJywgJy1HJywgJzEwJywgJy1MJywgJzEwJywgJy1WJywgJzQnLCAnLXAnLCAnMjA0OScsICcyJ10pCgogICAgdHJ5OgogICAgICAgIGV4ZWN1dGUoZiJ1bWFzayAwNzc7IHByaW50ZiAncmVsYXkgcmVzdGFydCBzZW50aW5lbCcgPntwYXRofSIsICcxMDAwOjEwMDAnKQogICAgICAgIGV4cGVjdGVkID0gZXhlY3V0ZShjb21tYW5kLCAnMTAwMDoxMDAwJykuc3Rkb3V0LnNwbGl0KClbMF0KICAgICAgICByZXN1bHRbJ2V4cGVjdGVkX3NoYTI1NiddID0gZXhwZWN0ZWQKICAgICAgICBydW4oWydleGVjJywgc2VydmVyLCAncnBjLm5mc2QnLCAnMCddKQogICAgICAgIHJlc3VsdFsndGhyZWFkc19kdXJpbmdfb3V0YWdlJ10gPSB7cm9sZTpydW4oWydleGVjJyx0YXJnZXQsJ2NhdCcsJy9wcm9jL2ZzL25mc2QvdGhyZWFkcyddKS5zdGRvdXQuc3RyaXAoKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZvciByb2xlLHRhcmdldCBpbiBlbmRwb2ludHMuc2VydmVycy5pdGVtcygpfQogICAgICAgIGFzc2VydCByZXN1bHRbJ3RocmVhZHNfZHVyaW5nX291dGFnZSddID09IGRpY3Qoc291cmNlPScwJywgZGVzdGluYXRpb249JzInKQogICAgICAgIHByb2Nlc3MgPSBzcGF3bihmJ2VjaG8gJCQgPntwaWRmaWxlfTsgZXhlYyB7Y29tbWFuZH0nLCAncmVsYXktcmVzdGFydC1wcm9iZScpCiAgICAgICAgZm9yIF8gaW4gcmFuZ2UoMzApOgogICAgICAgICAgICB2YWx1ZSA9IGV4ZWN1dGUoJ2NhdCAnICsgcGlkZmlsZSwgJzEwMDA6MTAwMCcsIGNoZWNrPUZhbHNlKQogICAgICAgICAgICBpZiB2YWx1ZS5yZXR1cm5jb2RlID09IDAgYW5kIHZhbHVlLnN0ZG91dC5zdHJpcCgpLmlzZGlnaXQoKToKICAgICAgICAgICAgICAgIHBpZCA9IHZhbHVlLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgICAgICAgICBzdGF0ID0gZXhlY3V0ZShmJ2NhdCAvcHJvYy97cGlkfS9zdGF0JywgJzEwMDA6MTAwMCcsIGNoZWNrPUZhbHNlKQogICAgICAgICAgICAgICAgaWYgc3RhdC5yZXR1cm5jb2RlID09IDAgYW5kIHN0YXQuc3Rkb3V0LnJzcGxpdCgnKSAnLDEpWzFdLnNwbGl0KClbMF0gPT0gJ0QnOgogICAgICAgICAgICAgICAgICAgIGJyZWFrCiAgICAgICAgICAgIGFzc2VydCBwcm9jZXNzLnBvbGwoKSBpcyBOb25lLCAncHJvYmUgZGlkIG5vdCBibG9jayBpbiByZWFsIE5GUycKICAgICAgICAgICAgdGltZS5zbGVlcCguMSkKICAgICAgICBlbHNlOgogICAgICAgICAgICByYWlzZSBBc3NlcnRpb25FcnJvcignYWN0dWFsIEQtc3RhdGUgcHJvYmUgbm90IG9ic2VydmVkJykKICAgICAgICBvYnNlcnZlZCA9IGV4ZWN1dGUoZiJ0ciAnXFwwMDAnICcgJyA8L3Byb2Mve3BpZH0vY21kbGluZSIsICcxMDAwOjEwMDAnKS5zdGRvdXQuc3RyaXAoKQogICAgICAgIGFzc2VydCBvYnNlcnZlZCA9PSBjb21tYW5kIGFuZCBwcm9jZXNzLnBvbGwoKSBpcyBOb25lCiAgICAgICAgcmVzdWx0WydwZW5kaW5nX2NsaWVudCddID0gZGljdChwaWQ9cGlkLCBjb21tYW5kPW9ic2VydmVkLCBzdGF0ZT0nRCcpCiAgICAgICAgcmVzdWx0WydyZWxheV9kdXJpbmdfb3V0YWdlJ10gPSByZWxheS5zdGF0ZSgpCiAgICAgICAgYXNzZXJ0IGFueShlWydraW5kJ10gaW4geydiYWNrZW5kX2Nsb3NlZCcsJ2JhY2tlbmRfY29ubmVjdF9mYWlsZWQnfQogICAgICAgICAgICAgICAgICAgZm9yIGUgaW4gcmVzdWx0WydyZWxheV9kdXJpbmdfb3V0YWdlJ11bJ3RyYW5zcG9ydF9ldmVudHMnXSksICdiYWNrZW5kIGRpc2Nvbm5lY3QgcGF0aCBub3QgZXhlcmNpc2VkJwogICAgICAgIHJlc3VsdFsnaGVhbHRoeV9kZXN0aW5hdGlvbiddID0gZW5kcG9pbnRzLmhlYWx0aHkoJ2Rlc3RpbmF0aW9uJykKICAgICAgICByZXN0b3JlKCkKICAgICAgICBiZWdhbiA9IHRpbWUubW9ub3RvbmljKCkKICAgICAgICBhc3NlcnQgcHJvY2Vzcy53YWl0KHRpbWVvdXQ9NjApID09IDAKICAgICAgICByZXN1bHRbJ2NvbXBsZXRpb25fc2Vjb25kc19hZnRlcl9yZXN0b3JlJ10gPSByb3VuZCh0aW1lLm1vbm90b25pYygpLWJlZ2FuLDMpCiAgICAgICAgdGV4dCA9IChvdXRwdXQvJ3JlbGF5LXJlc3RhcnQtcHJvYmUubG9nJykucmVhZF90ZXh0KGVuY29kaW5nPSd1dGYtOCcpCiAgICAgICAgYXNzZXJ0IHRleHQuc3BsaXQoKSA9PSBbZXhwZWN0ZWQscGF0aF0KICAgICAgICByZXN1bHRbJ3Byb2JlX3Jlc3VsdCddID0gdGV4dAogICAgICAgIHJlc3VsdFsnaGVhbHRoeV9zb3VyY2VfYWZ0ZXJfcmVzdG9yZSddID0gZW5kcG9pbnRzLmhlYWx0aHkoJ3NvdXJjZScpCiAgICAgICAgcmVzdWx0WydyZWxheV9hZnRlcl9yZXN0b3JlJ10gPSByZWxheS5zdGF0ZSgpCiAgICAgICAgYXNzZXJ0IDAgPD0gcmVzdWx0WydyZWxheV9hZnRlcl9yZXN0b3JlJ11bJ2FjdGl2ZSddIDw9IDE2CiAgICAgICAgYXNzZXJ0IHJlc3VsdFsncmVsYXlfYWZ0ZXJfcmVzdG9yZSddWydjb25uZWN0aW9ucyddIDw9IDQwMAogICAgICAgIHJlc3VsdFsncGFzc2VkJ10gPSBUcnVlCiAgICAgICAgcHJpbnQoJ05GUyByZWxheSBiYWNrZW5kIHN0b3AvcmVzdGFydDogUEFTUyAoYWN0dWFsIHBlbmRpbmcgc291cmNlIHByb2JlIHJlc3VtZWQpJyxmbHVzaD1UcnVlKQogICAgICAgIHJldHVybiByZXN1bHQKICAgIGZpbmFsbHk6CiAgICAgICAgcmVzdG9yZSgpCiAgICAgICAgcmVsYXkucmVsZWFzZSgpCiAgICAgICAgaWYgcHJvY2VzcyBpcyBub3QgTm9uZToKICAgICAgICAgICAgdHJ5OgogICAgICAgICAgICAgICAgcHJvY2Vzcy53YWl0KHRpbWVvdXQ9MTApCiAgICAgICAgICAgIGV4Y2VwdCBzdWJwcm9jZXNzLlRpbWVvdXRFeHBpcmVkOgogICAgICAgICAgICAgICAgcGlkID0gZXhlY3V0ZSgnY2F0ICcrcGlkZmlsZSwnMTAwMDoxMDAwJykuc3Rkb3V0LnN0cmlwKCkKICAgICAgICAgICAgICAgIGFzc2VydCBwaWQuaXNkaWdpdCgpCiAgICAgICAgICAgICAgICBvYnNlcnZlZCA9IGV4ZWN1dGUoZiJ0ciAnXFwwMDAnICcgJyA8L3Byb2Mve3BpZH0vY21kbGluZSIsJzEwMDA6MTAwMCcpLnN0ZG91dC5zdHJpcCgpCiAgICAgICAgICAgICAgICBhc3NlcnQgb2JzZXJ2ZWQgPT0gY29tbWFuZAogICAgICAgICAgICAgICAgZXhlY3V0ZShmJ2tpbGwgLUtJTEwge3BpZH0nLCcxMDAwOjEwMDAnKQogICAgICAgICAgICAgICAgcHJvY2Vzcy53YWl0KHRpbWVvdXQ9MTApCg=="
+    },
+    "nfs_sync_capability.py": {
+      "sha256": "bd911c8835bc09b91d89f39c1639f0d840cd89219c7b05c43757829a440a9b61",
+      "content_base64": "IiIiSW5kZXBlbmRlbnQgYWN0dWFsLWZzeW5jIFJQQyBkaXNjb3ZlcnkgYW5kIGNvbmRpdGlvbmFsIHdpdGhob2xkaW5nIGNvbnRyb2xzLiIiIgppbXBvcnQgaGFzaGxpYixqc29uLHRpbWUsdHJhY2ViYWNrCmZyb20gbmZzX3N5bmNfc3VwcG9ydCBpbXBvcnQgYnVpbGRfcHJvYmUsc3RhcnRfdHJhY2UsZmluaXNoX3RyYWNlLGNvcnJlbGF0ZQoKCmRlZiBxdWFsaWZ5KHJlbGF5LGVuZHBvaW50cyxydW4sZXhlY3V0ZSxzcGF3bixvdXRwdXQsY2xpZW50LGNvbnRhaW5lcnMsY29uZmlnLHJlc3VsdCk6CiByZXN1bHQudXBkYXRlKHBhc3NlZD1GYWxzZSxvYnNlcnZhdGlvbnM9W10sd2l0aGhvbGRpbmc9W10sc2NvcGU9J09TLW9ubHkgc3luYyBkaXNjb3Zlcnk7IGJ1ZmZlcmVkIGNvbnRyb2xzIGRvIG5vdCBxdWFsaWZ5IG5vYWMgbW92ZXIgYmVoYXZpb3InKQogcmVzdWx0Wydwcm9iZSddPWJ1aWxkX3Byb2JlKHJ1bixvdXRwdXQsY2xpZW50LGNvbnRhaW5lcnMsY29uZmlnKQogbW91bnQ9ZW5kcG9pbnRzLm1vdW50c1snZGVzdGluYXRpb24nXTtzZXJ2ZXI9ZW5kcG9pbnRzLnNlcnZlcnNbJ2Rlc3RpbmF0aW9uJ10KIHJlc3VsdFsnb3JpZ2luYWxfbW91bnRzJ109ZXhlY3V0ZSgnY2F0IC9wcm9jL21vdW50cycpLnN0ZG91dC5zcGxpdGxpbmVzKCkKIGV4ZWN1dGUoJ21rZGlyIC1tIDcwMCAvdG1wL3N5bmMtcHJvYmVzJywnMTAwMDoxMDAwJykKIGNvdW50PTAKIGRlZiBwcm9iZShtb2RlLGxhYmVsLGhvbGQ9Tm9uZSk6CiAgbm9ubG9jYWwgY291bnQKICBjb3VudCs9MTtiYXNlPScvdG1wL3N5bmMtcHJvYmVzLycrc3RyKGNvdW50KTt0YXJnZXQ9bW91bnQrJy9zeW5jLScrc3RyKGNvdW50KQogIGlmIG1vZGU9PSdkaXJlY3RvcnknOmV4ZWN1dGUoJ21rZGlyIC1tIDcwMCAnK3RhcmdldCwnMTAwMDoxMDAwJykKICBjb21tYW5kPWYnL3RtcC9uZnMtc3luYy1wcm9iZSB7bW9kZX0ge3RhcmdldH0ge2Jhc2V9LnJlYWR5IHtiYXNlfS5nbycKICBwcm9jZXNzPXNwYXduKCdleGVjICcrY29tbWFuZCwnc3luYy0nK2xhYmVsKQogIG9ic2VydmVyPU5vbmU7cm93PWRpY3QobGFiZWw9bGFiZWwsbW9kZT1tb2RlLHBhc3NlZD1GYWxzZSx0YXJnZXQ9dGFyZ2V0KQogIHRyeToKICAgZm9yIF8gaW4gcmFuZ2UoMzApOgogICAgcmVhZHk9ZXhlY3V0ZSgnY2F0ICcrYmFzZSsnLnJlYWR5JywnMTAwMDoxMDAwJyxjaGVjaz1GYWxzZSkKICAgIGlmIHJlYWR5LnJldHVybmNvZGU9PTA6YnJlYWsKICAgIGFzc2VydCBwcm9jZXNzLnBvbGwoKSBpcyBOb25lO3RpbWUuc2xlZXAoLjEpCiAgIGVsc2U6cmFpc2UgQXNzZXJ0aW9uRXJyb3IoJ3N5bmMgcHJvYmUgbm90IHJlYWR5JykKICAgcGlkLGZkPW1hcChpbnQscmVhZHkuc3Rkb3V0LnNwbGl0KCkpO3Jvdy51cGRhdGUocGlkPXBpZCxmZD1mZCkKICAgb2JzZXJ2ZXI9c3RhcnRfdHJhY2UocnVuLGNsaWVudCxwaWQsY29udGFpbmVycyxjb25maWcpIGlmIGhvbGQgaXMgTm9uZSBlbHNlIE5vbmUKICAgcmVsYXkuY29tbWFuZCgnb2JzZXJ2ZScpCiAgIGlmIGhvbGQgaXMgbm90IE5vbmU6cmVsYXkuY29tbWFuZCgnYXJtJyxOb25lLGhvbGQpCiAgIGV4ZWN1dGUoJ3RvdWNoICcrYmFzZSsnLmdvJywnMTAwMDoxMDAwJykKICAgaWYgaG9sZCBpcyBub3QgTm9uZToKICAgIGhlbGQ9cmVsYXkuYXdhaXRfaGVsZCgpO3Jvd1snaGVsZCddPWhlbGQKICAgIHJhdz1leGVjdXRlKGYnY2F0IC9wcm9jL3twaWR9L3N5c2NhbGwnKS5zdGRvdXQuc3RyaXAoKTtyb3dbJ25hdGl2ZV9zeXNjYWxsJ109cmF3CiAgICBhc3NlcnQgcmF3LnNwbGl0KClbMF09PSc3NCcgYW5kIGludChyYXcuc3BsaXQoKVsxXSwxNik9PWZkLHJhdwogICAgYXNzZXJ0IGV4ZWN1dGUoZidjYXQgL3Byb2Mve3BpZH0vc3RhdCcpLnN0ZG91dC5yc3BsaXQoJykgJywxKVsxXS5zcGxpdCgpWzBdPT0nRCcKICAgIHJvd1sncGVuZGluZ19mZF9wYXRoJ109ZXhlY3V0ZShmJ3JlYWRsaW5rIC9wcm9jL3twaWR9L2ZkL3tmZH0nKS5zdGRvdXQuc3RyaXAoKTthc3NlcnQgcm93WydwZW5kaW5nX2ZkX3BhdGgnXT09dGFyZ2V0CiAgICByZW1vdGU9dGFyZ2V0LnJlcGxhY2UobW91bnQsJy9leHBvcnRzL2RlYXRoLWRlc3RpbmF0aW9uJywxKQogICAgY29udGVudD1ydW4oWydleGVjJyxzZXJ2ZXIsJ3NoYTI1NnN1bScscmVtb3RlXSkuc3Rkb3V0LnNwbGl0KClbMF0KICAgIGFzc2VydCBjb250ZW50PT1oYXNobGliLnNoYTI1NihiJ1MnKjQwOTYpLmhleGRpZ2VzdCgpO3Jvd1snc2VydmVyX3NoYTI1Nl93aGlsZV93aXRoaGVsZCddPWNvbnRlbnQKICAgIHJvd1snc2VydmVyX2lkZW50aXR5X3doaWxlX3dpdGhoZWxkJ109cnVuKFsnZXhlYycsc2VydmVyLCdzdGF0JywnLWMnLCclZDolaTolaDolcycscmVtb3RlXSkuc3Rkb3V0LnN0cmlwKCkKICAgIHJvd1snc2VydmVyX3RocmVhZHMnXT17cm9sZTpydW4oWydleGVjJyx2YWx1ZSwnY2F0JywnL3Byb2MvZnMvbmZzZC90aHJlYWRzJ10pLnN0ZG91dC5zdHJpcCgpIGZvciByb2xlLHZhbHVlIGluIGVuZHBvaW50cy5zZXJ2ZXJzLml0ZW1zKCl9O2Fzc2VydCBzZXQocm93WydzZXJ2ZXJfdGhyZWFkcyddLnZhbHVlcygpKT09eycyJ30KICAgIHJvd1snYmVmb3JlX3JlbGVhc2Vfb3JfZHJvcCddPXJlbGF5LmF3YWl0X2hlbGQoKQogICAgcm93WydzZXR0bGVkJ109cmVsYXkuY29tbWFuZCgnZHJvcCcgaWYgbGFiZWwuZW5kc3dpdGgoJ2Ryb3AnKSBlbHNlICdyZWxlYXNlJykKICAgYXNzZXJ0IHByb2Nlc3Mud2FpdCh0aW1lb3V0PTMwKT09MAogICByb3dbJ3dpcmUnXT1yZWxheS5jb21tYW5kKCdzdG9wX29ic2VydmUnKQogICBpZiBvYnNlcnZlcjpyb3dbJ3N5c2NhbGxzJ109Y29ycmVsYXRlKGZpbmlzaF90cmFjZShydW4sb2JzZXJ2ZXIpLHJvd1snd2lyZSddKQogICB0ZXh0PShvdXRwdXQvKCdzeW5jLScrbGFiZWwrJy5sb2cnKSkucmVhZF90ZXh0KGVuY29kaW5nPSd1dGYtOCcpO2Fzc2VydCAnZnN5bmMgcmV0dXJuZWQgMCcgaW4gdGV4dDtyb3dbJ3Byb2JlX291dHB1dCddPXRleHQKICAgaWYgaG9sZCBpcyBub3QgTm9uZSBhbmQgbGFiZWwuZW5kc3dpdGgoJ2Ryb3AnKToKICAgIGFzc2VydCByb3dbJ3NldHRsZWQnXVsnZHJvcHBlZCddIGFuZCByb3dbJ3NldHRsZWQnXVsnY29ubmVjdGlvbl9yZXNldHMnXSBhbmQgbm90IHJvd1snc2V0dGxlZCddWydyZWxlYXNlZCddCiAgICBhc3NlcnQgcm93Wyd3aXJlJ11bJ2ZvcndhcmRlZCddCiAgICBvbGQ9e3JbJ2Nvbm5lY3Rpb24nXSBmb3IgciBpbiByb3dbJ3NldHRsZWQnXVsnZHJvcHBlZCddfTthc3NlcnQgbm90IG9sZCZ7clsnY29ubmVjdGlvbiddIGZvciByIGluIHJvd1snd2lyZSddWydmb3J3YXJkZWQnXX0KICAgIGlkZW50aXRpZXM9e2pzb24uZHVtcHMoclsncmVxdWVzdCddWydkZWNvZGVkJ11bJ29wZXJhdGlvbnMnXSxzb3J0X2tleXM9VHJ1ZSkgZm9yIHIgaW4gcm93WydzZXR0bGVkJ11bJ2Ryb3BwZWQnXX0KICAgIGFzc2VydCB7anNvbi5kdW1wcyhyWydyZXF1ZXN0J11bJ2RlY29kZWQnXVsnb3BlcmF0aW9ucyddLHNvcnRfa2V5cz1UcnVlKSBmb3IgciBpbiByb3dbJ3dpcmUnXVsnZm9yd2FyZGVkJ119PD1pZGVudGl0aWVzCiAgIHJvd1sncGFzc2VkJ109VHJ1ZTtwcmludCgnTkZTIHN5bmNocm9uaXphdGlvbiBjYXBhYmlsaXR5ICcrbGFiZWwrJzogUEFTUycsZmx1c2g9VHJ1ZSkKICAgcmV0dXJuIHJvdwogIGV4Y2VwdCBFeGNlcHRpb24gYXMgZXJyb3I6CiAgIHJvdy51cGRhdGUoZXJyb3I9c3RyKGVycm9yKSx0cmFjZWJhY2s9dHJhY2ViYWNrLmZvcm1hdF9leGMoKSk7cmVzdWx0LnNldGRlZmF1bHQoJ2ZhaWxlZF9wcm9iZXMnLFtdKS5hcHBlbmQocm93KTtyYWlzZQogIGZpbmFsbHk6CiAgIHJlbGF5LnJlbGVhc2UoKQogICBpZiBwcm9jZXNzLnBvbGwoKSBpcyBOb25lOgogICAgZXhlY3V0ZSgndG91Y2ggJytiYXNlKycuZ28nLCcxMDAwOjEwMDAnLGNoZWNrPUZhbHNlKQogICAgcHJvY2Vzcy53YWl0KHRpbWVvdXQ9MzApCiBmb3IgbW9kZSBpbiAoJ2NsZWFuJywnZGlydHknLCdkaXJlY3RvcnknKTpyZXN1bHRbJ29ic2VydmF0aW9ucyddLmFwcGVuZChwcm9iZShtb2RlLCdub2FjLScrbW9kZSkpCiAjIERpZmZlcmVudCBwcm9maWxlLCBleHBsaWNpdGx5IHNlcGFyYXRlZCBmcm9tIHRoZSBleGlzdGluZyBtb3ZlciBmaXh0dXJlLgogcnVuKFsnZXhlYycsY2xpZW50LCd1bW91bnQnLG1vdW50XSkKIGFkZHJlc3M9ZW5kcG9pbnRzLnJlcG9ydFsnc2VydmVycyddWydkZXN0aW5hdGlvbiddWydpcCddCiBvcHRpb25zPWYnYWRkcj17YWRkcmVzc30sdmVycz00LjEscHJvdG89dGNwLHBvcnQ9MjA0OSxoYXJkLHRpbWVvPTEwLHJldHJhbnM9MSxhYyxhc3luYycKIHJ1bihbJ2V4ZWMnLGNsaWVudCwnbW91bnQnLCctaScsJy10JywnbmZzNCcsJy1vJyxvcHRpb25zLGFkZHJlc3MrJzovZGVhdGgtZGVzdGluYXRpb24nLG1vdW50XSkKIHJlc3VsdFsnYnVmZmVyZWRfbW91bnRzJ109ZXhlY3V0ZSgnY2F0IC9wcm9jL21vdW50cycpLnN0ZG91dC5zcGxpdGxpbmVzKCkKIGxpbmVzPVtsaW5lIGZvciBsaW5lIGluIHJlc3VsdFsnYnVmZmVyZWRfbW91bnRzJ10gaWYgbGluZS5zcGxpdCgpWzFdPT1tb3VudF07YXNzZXJ0IGxlbihsaW5lcyk9PTEKIGZsYWdzPWxpbmVzWzBdLnNwbGl0KClbM10uc3BsaXQoJywnKTthc3NlcnQgJ3N5bmMnIG5vdCBpbiBmbGFncyBhbmQgJ25vYWMnIG5vdCBpbiBmbGFncwogZGlzY292ZXJlZD1wcm9iZSgnZGlydHknLCdidWZmZXJlZC1kaXJ0eScpO3Jlc3VsdFsnb2JzZXJ2YXRpb25zJ10uYXBwZW5kKGRpc2NvdmVyZWQpCiBjYW5kaWRhdGVzPVtvcFsnb3AnXSBmb3Igc3luYyBpbiBkaXNjb3ZlcmVkWydzeXNjYWxscyddWydzeW5jcyddIGZvciBjYWxsIGluIHN5bmNbJ3JwY19jYWxscyddIGlmIGNhbGxbJ2RlY29kZWQnXSBmb3Igb3AgaW4gY2FsbFsnZGVjb2RlZCddWydvcGVyYXRpb25zJ10gaWYgb3BbJ29wJ10gaW4gKDUsMzgpXQogcmVzdWx0WydvYnNlcnZlZF9zeW5jX29wZXJhdGlvbnMnXT1zb3J0ZWQoc2V0KGNhbmRpZGF0ZXMpKQogaWYgY2FuZGlkYXRlczoKICBvcGVyYXRpb249NSBpZiA1IGluIGNhbmRpZGF0ZXMgZWxzZSAzOAogIGZvciBtb2RlIGluICgncmVsZWFzZScsJ2Ryb3AnKTpyZXN1bHRbJ3dpdGhob2xkaW5nJ10uYXBwZW5kKHByb2JlKCdkaXJ0eScsJ2J1ZmZlcmVkLScrbW9kZSxvcGVyYXRpb24pKQogIHJlc3VsdFsnd2l0aGhvbGRpbmdfYXZhaWxhYmxlJ109VHJ1ZQogZWxzZToKICByZXN1bHRbJ3dpdGhob2xkaW5nX2F2YWlsYWJsZSddPUZhbHNlO3Jlc3VsdFsnbGltaXRhdGlvbiddPSdObyBkZWNvZGFibGUgQ09NTUlUL1dSSVRFIGluc2lkZSB0aGUgb2JzZXJ2ZWQgYnVmZmVyZWQgZnN5bmM7IG5vIHJlcGx5LXdpdGhob2xkaW5nIHF1YWxpZmljYXRpb24gY2xhaW1lZC4nCiByZXN1bHRbJ3Bhc3NlZCddPVRydWUK"
+    },
+    "nfs_sync_support.py": {
+      "sha256": "1149023a228a5183667dd648a9125d0c4cb8959e7fb7f4f2c04bddf0d6359b18",
+      "content_base64": "IiIiUHJpdmF0ZSBmaXh0dXJlIEMgcHJvYmUgYW5kIGV4dGVybmFsIHB0cmFjZSBvYnNlcnZlciBwcm92aXNpb25pbmcuIiIiCmltcG9ydCBoYXNobGliLGltcG9ydGxpYi51dGlsLGpzb24sdGltZQpmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCgpkZWYgYnVpbGRfcHJvYmUocnVuLG91dHB1dCxjbGllbnQsY29udGFpbmVycyxjb25maWcpOgogc291cmNlPVBhdGgoX19maWxlX18pLndpdGhfbmFtZSgnbmZzX3N5bmNfcHJvYmUuYycpCiBidWlsZGVyPXJ1bihbJ2NyZWF0ZScsJy0tbmV0d29yaycsJ25vbmUnLCctLWNhcC1kcm9wJywnYWxsJywnLS1lbnRyeXBvaW50JywnL2Jpbi9zaCcsY29uZmlnWydidWlsZGVyJ10sJy1jJywnZXhlYyBzbGVlcCBpbmZpbml0eSddKS5zdGRvdXQuc3RyaXAoKTtjb250YWluZXJzLmFwcGVuZChidWlsZGVyKQogcnVuKFsnc3RhcnQnLGJ1aWxkZXJdKTtydW4oWydjcCcsc3RyKHNvdXJjZSksYnVpbGRlcisnOi90bXAvbmZzX3N5bmNfcHJvYmUuYyddKQogcnVuKFsnZXhlYycsJy0tdXNlcicsJzEwMDA6MTAwMCcsYnVpbGRlciwnemlnJywnY2MnLCctdGFyZ2V0JywneDg2XzY0LWxpbnV4LWdudS4yLjIyJywnLU8yJywnLVdhbGwnLCctV2V4dHJhJywnLVdlcnJvcicsJy90bXAvbmZzX3N5bmNfcHJvYmUuYycsJy1vJywnL3RtcC9uZnMtc3luYy1wcm9iZSddKQogZWxmPXJ1bihbJ2V4ZWMnLGJ1aWxkZXIsJ3JlYWRlbGYnLCctVycsJy1oJywnLWwnLCctZCcsJy0tZHluLXN5bXMnLCcvdG1wL25mcy1zeW5jLXByb2JlJ10pLnN0ZG91dAogc3BlYz1pbXBvcnRsaWIudXRpbC5zcGVjX2Zyb21fZmlsZV9sb2NhdGlvbignc2xlc19nYXRlJyxzb3VyY2Uud2l0aF9uYW1lKCdjaGVjay1ydXN0LXNsZXMucHknKSk7bW9kdWxlPWltcG9ydGxpYi51dGlsLm1vZHVsZV9mcm9tX3NwZWMoc3BlYyk7c3BlYy5sb2FkZXIuZXhlY19tb2R1bGUobW9kdWxlKQogYXVkaXQ9bW9kdWxlLmF1ZGl0KGVsZik7cGF0aD1vdXRwdXQvJ25mcy1zeW5jLXByb2JlJztydW4oWydjcCcsYnVpbGRlcisnOi90bXAvbmZzLXN5bmMtcHJvYmUnLHN0cihwYXRoKV0pO3J1bihbJ2NwJyxzdHIocGF0aCksY2xpZW50Kyc6L3RtcC9uZnMtc3luYy1wcm9iZSddKQogcnVuKFsnZXhlYycsY2xpZW50LCdjaG1vZCcsJzc1NScsJy90bXAvbmZzLXN5bmMtcHJvYmUnXSkKIHJldHVybiBkaWN0KHNoYTI1Nj1oYXNobGliLnNoYTI1NihwYXRoLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCksc291cmNlX3NoYTI1Nj1oYXNobGliLnNoYTI1Nihzb3VyY2UucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKSxlbGY9YXVkaXQsY29tcGlsZXI9cnVuKFsnZXhlYycsYnVpbGRlciwnemlnJywndmVyc2lvbiddKS5zdGRvdXQuc3RyaXAoKSxzY29wZT0nZml4dHVyZS1vbmx5IG5vbi1SdXN0IE9TIHByb2JlLCBub3QgYSBtb3ZlciBleGVjdXRhYmxlJykKCgpkZWYgc3RhcnRfdHJhY2UocnVuLGNsaWVudCxwaWQsY29udGFpbmVycyxjb25maWcpOgogb2JzZXJ2ZXI9cnVuKFsnY3JlYXRlJywnLS1uZXR3b3JrJywnbm9uZScsJy0tcGlkJywnY29udGFpbmVyOicrY2xpZW50LCctLWNhcC1kcm9wJywnYWxsJywnLS1jYXAtYWRkJywnU1lTX1BUUkFDRScsJy0tY2FwLWFkZCcsJ0RBQ19SRUFEX1NFQVJDSCcsJy0tc2VjdXJpdHktb3B0Jywnbm8tbmV3LXByaXZpbGVnZXMnLCctLWVudHJ5cG9pbnQnLCcvdXNyL2Jpbi9weXRob24zJyxjb25maWdbJ2J1aWxkZXInXSwnL3RtcC9uZnNfc3lzY2FsbF90cmFjZS5weScsc3RyKHBpZCldKS5zdGRvdXQuc3RyaXAoKTtjb250YWluZXJzLmFwcGVuZChvYnNlcnZlcikKIHJ1bihbJ2NwJyxzdHIoUGF0aChfX2ZpbGVfXykud2l0aF9uYW1lKCduZnNfc3lzY2FsbF90cmFjZS5weScpKSxvYnNlcnZlcisnOi90bXAvbmZzX3N5c2NhbGxfdHJhY2UucHknXSk7cnVuKFsnc3RhcnQnLG9ic2VydmVyXSkKIGZvciBfIGluIHJhbmdlKDMwKToKICBpZiBydW4oWydleGVjJyxvYnNlcnZlciwndGVzdCcsJy1mJywnL3RtcC90cmFjZS1yZWFkeSddLGNoZWNrPUZhbHNlKS5yZXR1cm5jb2RlPT0wOnJldHVybiBvYnNlcnZlcgogIHN0YXRlPWpzb24ubG9hZHMocnVuKFsnaW5zcGVjdCcsb2JzZXJ2ZXJdKS5zdGRvdXQpWzBdWydTdGF0ZSddCiAgaWYgbm90IHN0YXRlWydSdW5uaW5nJ106cmFpc2UgQXNzZXJ0aW9uRXJyb3IocnVuKFsnbG9ncycsb2JzZXJ2ZXJdKS5zdGRvdXQpCiAgdGltZS5zbGVlcCguMSkKIHJhaXNlIEFzc2VydGlvbkVycm9yKCdleHRlcm5hbCBzeXNjYWxsIG9ic2VydmVyIGRpZCBub3QgYXR0YWNoJykKCgpkZWYgZmluaXNoX3RyYWNlKHJ1bixvYnNlcnZlcik6CiBmb3IgXyBpbiByYW5nZSg5MCk6CiAgaWYgbm90IGpzb24ubG9hZHMocnVuKFsnaW5zcGVjdCcsb2JzZXJ2ZXJdKS5zdGRvdXQpWzBdWydTdGF0ZSddWydSdW5uaW5nJ106YnJlYWsKICB0aW1lLnNsZWVwKC4xKQogZWxzZTpyYWlzZSBBc3NlcnRpb25FcnJvcignZXh0ZXJuYWwgc3lzY2FsbCBvYnNlcnZlciBub3QgY29tcGxldGUnKQogdGV4dD1ydW4oWydsb2dzJyxvYnNlcnZlcl0pLnN0ZG91dDtyZXN1bHQ9anNvbi5sb2Fkcyh0ZXh0KTthc3NlcnQgcmVzdWx0WydwYXNzZWQnXSxyZXN1bHQKIGFzc2VydCBub3QgcmVzdWx0LmdldCgnY2xlYW51cF9lcnJvcicpO3JldHVybiByZXN1bHQKCgpkZWYgY29ycmVsYXRlKHRyYWNlLHdpcmUpOgogYXNzZXJ0IG5vdCB3aXJlWyd0cmFjZV9vdmVyZmxvdyddIGFuZCBub3Qgd2lyZVsnZXJyb3JzJ10KIGNhbGxzPVtyIGZvciByIGluIHdpcmVbJ3RyYWNlJ10gaWYgclsnZGlyZWN0aW9uJ109PSdjYWxsJ10KIGZvciBzeW5jIGluIHRyYWNlWydzeW5jcyddOgogIHN5bmNbJ3JwY19jYWxscyddPVtyIGZvciByIGluIGNhbGxzIGlmIHN5bmNbJ2VudGVyX25zJ108PXJbJ21vbm90b25pY19ucyddPD1zeW5jWydleGl0X25zJ11dCiByZXR1cm4gdHJhY2UK"
+    },
+    "nfs_syscall_trace.py": {
+      "sha256": "6ba6ef02a6d8a910a20b349d4c6c2e21310fe3a071a18b674aa77d59a1cd9172",
+      "content_base64": "IiIiQm91bmRlZCBleHRlcm5hbCBmaXh0dXJlIHRyYWNlcjsgbm8gc2VydmljZSBjb2RlIG9yIHBhY2thZ2UgZGVwZW5kZW5jeS4iIiIKaW1wb3J0IGN0eXBlcyxqc29uLG9zLHNpZ25hbCxzdHJ1Y3Qsc3lzLHRpbWUsdHJhY2ViYWNrCnBpZD1pbnQoc3lzLmFyZ3ZbMV0pO2xpYmM9Y3R5cGVzLkNETEwoTm9uZSx1c2VfZXJybm89VHJ1ZSkKbGliYy5wdHJhY2UucmVzdHlwZT1jdHlwZXMuY19sb25nCnJlc3VsdD1kaWN0KHBhc3NlZD1GYWxzZSxwaWQ9cGlkLHN5bmNzPVtdLHNpZ25hbHM9W10sc3lzY2FsbF9zdG9wcz0wLHNjb3BlPSdtb2Rlcm4ta2VybmVsIGV4dGVybmFsIHB0cmFjZSBvYnNlcnZlcicpCmF0dGFjaGVkPUZhbHNlO3N0b3BwZWQ9RmFsc2U7Y3VycmVudD1Ob25lO2RlYWRsaW5lPXRpbWUubW9ub3RvbmljKCkrMTgwCgpkZWYgcHRyYWNlKHJlcXVlc3QsYWRkcj0wLGRhdGE9MCk6CiB2YWx1ZT1saWJjLnB0cmFjZShyZXF1ZXN0LHBpZCxjdHlwZXMuY192b2lkX3AoYWRkciksY3R5cGVzLmNfdm9pZF9wKGRhdGEpKQogaWYgdmFsdWU9PS0xOnJhaXNlIE9TRXJyb3IoY3R5cGVzLmdldF9lcnJubygpLG9zLnN0cmVycm9yKGN0eXBlcy5nZXRfZXJybm8oKSkpCiByZXR1cm4gdmFsdWUKCmRlZiB3YWl0KCk6CiBnbG9iYWwgc3RvcHBlZAogd2hpbGUgdGltZS5tb25vdG9uaWMoKTxkZWFkbGluZToKICB0YXJnZXQsc3RhdHVzPW9zLndhaXRwaWQocGlkLG9zLldOT0hBTkcpCiAgaWYgdGFyZ2V0OgogICBzdG9wcGVkPW9zLldJRlNUT1BQRUQoc3RhdHVzKTtyZXR1cm4gc3RhdHVzCiAgdGltZS5zbGVlcCguMDAxKQogcmFpc2UgVGltZW91dEVycm9yKCdib3VuZGVkIHN5c2NhbGwgb2JzZXJ2ZXIgZGVhZGxpbmUnKQoKdHJ5OgogcHRyYWNlKDE2KTthdHRhY2hlZD1UcnVlO3N0YXR1cz13YWl0KCk7YXNzZXJ0IG9zLldJRlNUT1BQRUQoc3RhdHVzKQogcHRyYWNlKDB4NDIwMCwwLDEpICAjIFBUUkFDRV9PX1RSQUNFU1lTR09PRAogb3BlbignL3RtcC90cmFjZS1yZWFkeScsJ3gnKS5jbG9zZSgpCiBwdHJhY2UoMjQpO3N0b3BwZWQ9RmFsc2UKIHdoaWxlIFRydWU6CiAgc3RhdHVzPXdhaXQoKQogIGlmIG9zLldJRkVYSVRFRChzdGF0dXMpIG9yIG9zLldJRlNJR05BTEVEKHN0YXR1cyk6CiAgIHJlc3VsdFsnZXhpdF9zdGF0dXMnXT1zdGF0dXM7YXR0YWNoZWQ9RmFsc2U7YnJlYWsKICBzaWc9b3MuV1NUT1BTSUcoc3RhdHVzKTtkZWxpdmVyPTAKICBpZiBzaWc9PShzaWduYWwuU0lHVFJBUHwweDgwKToKICAgZGF0YT1jdHlwZXMuY3JlYXRlX3N0cmluZ19idWZmZXIoMTI4KTtzaXplPXB0cmFjZSgweDQyMGUsMTI4LGN0eXBlcy5hZGRyZXNzb2YoZGF0YSkpCiAgIGFzc2VydCBzaXplPj0yNAogICBraW5kPWRhdGEucmF3WzBdO3Jlc3VsdFsnc3lzY2FsbF9zdG9wcyddKz0xCiAgIGlmIGtpbmQ9PTE6CiAgICBucixmZD1zdHJ1Y3QudW5wYWNrX2Zyb20oJzxRUScsZGF0YS5yYXcsMjQpCiAgICBjdXJyZW50PU5vbmUKICAgIGlmIG5yIGluICg3NCw3NSk6CiAgICAgcGF0aD0nL3Byb2MvJytzdHIocGlkKSsnL2ZkLycrc3RyKGZkKTtzdD1vcy5zdGF0KHBhdGgpCiAgICAgY3VycmVudD1kaWN0KHN5c2NhbGw9bnIsZmQ9ZmQscGF0aD1vcy5yZWFkbGluayhwYXRoKSxkZXZpY2U9c3Quc3RfZGV2LGlub2RlPXN0LnN0X2lubywKICAgICAgICAgICAgICAgICAgZW50ZXJfbnM9dGltZS5tb25vdG9uaWNfbnMoKSkKICAgICByZXN1bHRbJ3N5bmNzJ10uYXBwZW5kKGN1cnJlbnQpCiAgIGVsaWYga2luZD09MiBhbmQgY3VycmVudCBpcyBub3QgTm9uZToKICAgIGN1cnJlbnQudXBkYXRlKGV4aXRfbnM9dGltZS5tb25vdG9uaWNfbnMoKSxyZXN1bHQ9c3RydWN0LnVucGFja19mcm9tKCc8cScsZGF0YS5yYXcsMjQpWzBdKTtjdXJyZW50PU5vbmUKICBlbGlmIHNpZyBub3QgaW4gKHNpZ25hbC5TSUdTVE9QLHNpZ25hbC5TSUdUUkFQKToKICAgcmVzdWx0WydzaWduYWxzJ10uYXBwZW5kKHNpZyk7ZGVsaXZlcj1zaWcKICBwdHJhY2UoMjQsMCxkZWxpdmVyKTtzdG9wcGVkPUZhbHNlCiBhc3NlcnQgcmVzdWx0WydleGl0X3N0YXR1cyddPT0wIGFuZCByZXN1bHRbJ3N5bmNzJ10KIGFzc2VydCBhbGwocy5nZXQoJ3Jlc3VsdCcpPT0wIGZvciBzIGluIHJlc3VsdFsnc3luY3MnXSkKIHJlc3VsdFsncGFzc2VkJ109VHJ1ZQpleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgogcmVzdWx0LnVwZGF0ZShlcnJvcj1zdHIoZXJyb3IpLHRyYWNlYmFjaz10cmFjZWJhY2suZm9ybWF0X2V4YygpKQpmaW5hbGx5OgogaWYgYXR0YWNoZWQ6CiAgdHJ5OgogICBpZiBub3Qgc3RvcHBlZDoKICAgIG9zLmtpbGwocGlkLHNpZ25hbC5TSUdTVE9QKTtkZWFkbGluZT10aW1lLm1vbm90b25pYygpKzU7d2FpdCgpCiAgIHB0cmFjZSgxNykKICBleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOnJlc3VsdFsnY2xlYW51cF9lcnJvciddPXN0cihlcnJvcikKIHByaW50KGpzb24uZHVtcHMocmVzdWx0KSxmbHVzaD1UcnVlKQogc3lzLmV4aXQoMCBpZiByZXN1bHRbJ3Bhc3NlZCddIGVsc2UgMSkK"
+    },
+    "nfs_sync_probe.c": {
+      "sha256": "8566e2644b002a37af7c6646bfe26aed7bde7f82400c924c0364f86c502cd60f",
+      "content_base64": "LyogRGlzcG9zYWJsZSBPUyBmaXh0dXJlIG9ubHk7IG5ldmVyIGxpbmtlZCBpbnRvIG9yIHNoaXBwZWQgd2l0aCB0aGUgbW92ZXIuICovCiNpbmNsdWRlIDxlcnJuby5oPgojaW5jbHVkZSA8ZmNudGwuaD4KI2luY2x1ZGUgPHN0ZGlvLmg+CiNpbmNsdWRlIDxzdGRsaWIuaD4KI2luY2x1ZGUgPHN0cmluZy5oPgojaW5jbHVkZSA8c3lzL3N0YXQuaD4KI2luY2x1ZGUgPHRpbWUuaD4KI2luY2x1ZGUgPHVuaXN0ZC5oPgpzdGF0aWMgdm9pZCBmYWlsKGNvbnN0IGNoYXIgKndoYXQpIHsgcGVycm9yKHdoYXQpOyBleGl0KDEpOyB9CmludCBtYWluKGludCBhcmdjLCBjaGFyICoqYXJndikgewogICAgaWYgKGFyZ2MgIT0gNSkgcmV0dXJuIDI7CiAgICBjb25zdCBpbnQgZGlyZWN0b3J5ID0gc3RyY21wKGFyZ3ZbMV0sICJkaXJlY3RvcnkiKSA9PSAwOwogICAgaW50IGZkID0gb3Blbihhcmd2WzJdLCBkaXJlY3RvcnkgPyBPX1JET05MWXxPX0RJUkVDVE9SWSA6IE9fUkRXUnxPX0NSRUFUfE9fRVhDTCwgMDYwMCk7CiAgICBpZiAoZmQgPCAwKSBmYWlsKCJvcGVuIik7CiAgICBGSUxFICpyZWFkeSA9IGZvcGVuKGFyZ3ZbM10sICJ3eCIpOwogICAgaWYgKCFyZWFkeSkgZmFpbCgicmVhZHkiKTsKICAgIGZwcmludGYocmVhZHksICIlbGQgJWRcbiIsIChsb25nKWdldHBpZCgpLCBmZCk7CiAgICBpZiAoZmNsb3NlKHJlYWR5KSkgZmFpbCgicmVhZHkgY2xvc2UiKTsKICAgIHN0cnVjdCB0aW1lc3BlYyBwYXVzZSA9IHswLCAxMDAwMDAwfTsKICAgIHVuc2lnbmVkIGJ1ZGdldCA9IDEyMDAwMDsKICAgIHdoaWxlIChhY2Nlc3MoYXJndls0XSwgRl9PSykpIHsKICAgICAgICBpZiAoZXJybm8gIT0gRU5PRU5UIHx8ICFidWRnZXQtLSkgZmFpbCgiZ28vZGVhZGxpbmUiKTsKICAgICAgICBuYW5vc2xlZXAoJnBhdXNlLCBOVUxMKTsKICAgIH0KICAgIGlmICghZGlyZWN0b3J5ICYmIHN0cmNtcChhcmd2WzFdLCAiY2xlYW4iKSAhPSAwKSB7CiAgICAgICAgY2hhciBkYXRhWzQwOTZdOyBtZW1zZXQoZGF0YSwgJ1MnLCBzaXplb2YoZGF0YSkpOwogICAgICAgIGlmICh3cml0ZShmZCwgZGF0YSwgc2l6ZW9mKGRhdGEpKSAhPSBzaXplb2YoZGF0YSkpIGZhaWwoIndyaXRlIik7CiAgICB9CiAgICBwcmludGYoImZzeW5jIGVudGVyICVkXG4iLCBmZCk7IGZmbHVzaChzdGRvdXQpOwogICAgaWYgKGZzeW5jKGZkKSkgZmFpbCgiZnN5bmMiKTsKICAgIHByaW50ZigiZnN5bmMgcmV0dXJuZWQgMFxuIik7IGZmbHVzaChzdGRvdXQpOwogICAgaWYgKGNsb3NlKGZkKSkgZmFpbCgiY2xvc2UiKTsKICAgIHJldHVybiAwOwp9Cg=="
+    }
+  }
+}

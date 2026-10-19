@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--operation', choices=('remove', 'link', 'both'), default='remove')
     parser.add_argument('--role', choices=('source', 'destination'), default='destination')
     parser.add_argument('--backend-restart', action='store_true', help='After source controls, prove real backend stop/restart transport recovery')
+    parser.add_argument('--synchronization', action='store_true', help='Observe native sync calls and prove available reply-withholding boundaries')
     args = parser.parse_args()
     assert not args.backend_restart or args.role == 'source', 'backend restart requires source role'
     root = Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ def main():
     report = dict(status='FAILED', run_id=label, operation=args.operation, role=args.role, rust_executed=False, cleanup_errors=[],
                   config=config, driver_sha256={n: hashlib.sha256((root / 'scripts' / n).read_bytes()).hexdigest()
                       for n in ('check-nfs-reply-capability.py', 'nfs_reply_relay.py', 'nfs_rpc.py',
-                                'nfs_reply_proxy.py', 'nfs_endpoints.py', 'test_nfs_rpc.py', 'nfs_relay_restart.py')})
+                                'nfs_reply_proxy.py', 'nfs_endpoints.py', 'test_nfs_rpc.py', 'nfs_relay_restart.py', *(['nfs_sync_capability.py', 'nfs_sync_support.py', 'nfs_syscall_trace.py', 'nfs_sync_probe.c'] if args.synchronization else []))})
 
     def run(args, check=True):
         value = subprocess.run(engine + args, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=45)
@@ -74,6 +75,7 @@ def main():
             raise RuntimeError('source server not ready')
         address = json.loads(run(['inspect', server]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
         client = run(['create', '--network', network, '--cap-drop', 'all', '--cap-add', 'SYS_ADMIN',
+                      *(['--cap-add','SYS_PTRACE','--cap-add','DAC_READ_SEARCH'] if args.synchronization else []),
                       '--security-opt', 'no-new-privileges', '--entrypoint', '/bin/sh', config['runtime'],
                       '-c', 'exec sleep infinity']).stdout.strip()
         containers.append(client)
@@ -108,6 +110,12 @@ def main():
             report['backend_restart'] = dict(passed=False)
             qualify(relay, endpoints, run, execute, spawn, output, report['backend_restart'])
             assert report['backend_restart']['passed']
+        if args.synchronization:
+            assert args.role=='destination', 'sync capability uses destination relay'
+            from nfs_sync_capability import qualify
+            report['synchronization'] = dict(passed=False)
+            qualify(relay,endpoints,run,execute,spawn,output,client,containers,config,report['synchronization'])
+            assert report['synchronization']['passed']
         report['status'] = 'PASSED'
     except Exception as error:
         report.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())

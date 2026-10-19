@@ -369,3 +369,7 @@ rootless Podman, only the two pre-existing rootful Rust cache volumes and defaul
 network, and VM cgroup `0::/`. The final worker run normally unmounted all NFS
 mounts before owned-resource removal and needed no manual cleanup. Retain the
 earlier failed runs and their separate recoveries described in increment 66.
+
+## 10. Synchronization is a separate capability
+
+Use [the synchronization lab](NFS-SYNC-LAB.md) and [increment 67](RUST-INCREMENT-67.md) before claiming fsync/COMMIT reply loss. Actual service syscall/RPC observations and a separate buffered WRITE control have different scopes. WRITE uncached-reply recovery must not inherit the namespace tests' byte-identical successful-replay assumption. Production NFS/deletion remain disabled.

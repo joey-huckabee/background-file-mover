@@ -49,7 +49,12 @@ def main():
                         help="Qualify destination-full payload copying and audited recovery, including original-state restart")
     parser.add_argument("--source-storage", action="store_true",
                         help="Qualify source-space admission and unchanged-policy recovery on a bounded export")
+    parser.add_argument('--sync-observe', action='store_true', help='Correlate actual worker synchronization syscalls and RPC traffic; no invented reply-loss cases')
+    parser.add_argument('--sync-capability', help='Passing independent synchronization capability report.json')
     args = parser.parse_args()
+    assert not args.sync_observe or (args.qualification_gate and args.sync_capability)
+    assert not args.sync_observe or not any((args.coordinator_death,args.shutdown,args.runtime))
+
     assert not args.death_scope or args.coordinator_death, "death-scope requires --coordinator-death"
     assert not args.coordinator_death or args.qualification_gate, "coordinator-death checks require qualification artifacts"
     assert sum((args.coordinator_death, args.shutdown, args.runtime)) <= 1, "select one runtime matrix"
@@ -99,19 +104,22 @@ def main():
     label = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     output = ROOT / "rust/validation" / ("nfs-" + label)
     output.mkdir()
+    if args.sync_observe:
+        print('NFS sync observation output: ' + str(output), flush=True)
     report = {"status": "FAILED", "run_id": "nfs-" + label,
               "isolated_startup_required": args.isolated_startup,
               "gate": gate.name, "runtime": CONFIG["runtime"],
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["coordinator_death_requested"] = args.coordinator_death
-    report["coordinator_death_scope"] = args.death_scope or "claim-copy-verify"
+    report["coordinator_death_scope"] = None if args.sync_observe else args.death_scope or "claim-copy-verify"
     report["shutdown_requested"] = args.shutdown
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
     report["enrollment_storage_requested"] = args.enrollment_storage
     report["delivery_storage_requested"] = args.delivery_storage
     report["source_storage_requested"] = args.source_storage
-    report["runtime_scope"] = "coordinator-death" if args.coordinator_death else "shutdown" if args.shutdown else "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
+    report["sync_observation_requested"] = args.sync_observe
+    report["runtime_scope"] = "sync-observe" if args.sync_observe else "coordinator-death" if args.coordinator_death else "shutdown" if args.shutdown else "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
     report["limitations"] = [
         "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
         "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
@@ -147,6 +155,15 @@ def main():
         report["limitations"][2] = "Independent and repeated successful LINK-withheld controls precede four debug/release file/manifest LINK cases. Server-local original inode/two aliases, matched RPC success and pending native linkat establish completion before reply release. Discard plus connection interruption is a fixture intervention, not universal cancellation or sync/power durability. Keep production NFS/source deletion disabled."
     if args.coordinator_death and args.death_scope == "claim-lost-reply":
         report["limitations"][2] = "Independent source LINK/REMOVE release/drop capability precedes four debug/release real-claim cases, repeated controls in this fixture. All source mounts route through the relay from first mount. Require server completion with success withheld and native D-state syscall, Accepted/no premature 202, same-ID retry and surviving-worker exclusion through actual exit. Discard includes explicit connection interruption, not universal cancellation, sync/power/server-reboot/old-kernel or full NFS support. Production NFS/source deletion disabled."
+    if args.sync_observe:
+        proof_path = Path(args.sync_capability).resolve()
+        proof = json.loads(proof_path.read_text(encoding='utf-8'))
+        assert proof['status']=='PASSED' and not proof['cleanup_errors'] and proof['synchronization']['passed']
+        for name in ('nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_sync_support.py','nfs_syscall_trace.py'):
+            assert hashlib.sha256((ROOT/'scripts'/name).read_bytes()).hexdigest()==proof['driver_sha256'][name], name
+        report['sync_capability'] = dict(run_id=proof['run_id'],sha256=hashlib.sha256(proof_path.read_bytes()).hexdigest())
+        report['limitations'][1] = 'Two controlled NFSv4.1 server containers and one client share a modern VM kernel; external ptrace is fixture infrastructure, not a deployed dependency or physical NAS/old-kernel evidence.'
+        report['limitations'][2] = 'Four healthy debug/release claim/delivery worker sync traces on hard/noac NFSv4.1, bounded raw RPC correlation and actual syscall/descriptor evidence. External modern-kernel ptrace changes scheduling; no sync-loss, cancellation, durability, server reboot, old-kernel or production NFS/deletion approval.'
     if args.shutdown:
         report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
     if args.runtime:
@@ -156,6 +173,7 @@ def main():
     if args.ownership:
         report["limitations"][1] = "Two container clients with distinct network/mount namespaces on one shared modern kernel. Ownership probes diagnose exclusion/missing-mount gaps; they do not prove physical-host fencing, partition/reclaim or safe takeover."
     reply_relay = None
+    sync_relays = {}
     containers = []
     tasks = []
     network = volume = server = client = None
@@ -232,9 +250,11 @@ def main():
         execute("mkdir -p /tmp/local/state /tmp/local/destination; chmod 700 /tmp/local /tmp/local/state /tmp/local/destination", "1000:1000")
         options = f"addr={ip},vers=4.1,proto=tcp,port=2049,hard,timeo=10,retrans=1,noac"
         mount_ip = ip
-        if args.death_scope == "claim-lost-reply":
+        if args.death_scope == "claim-lost-reply" or args.sync_observe:
             from nfs_reply_relay import ReplyRelay
             reply_relay = ReplyRelay(run, network, CONFIG["builder"], ip, containers, output)
+            if args.sync_observe:
+                sync_relays["source"] = reply_relay
             mount_ip = reply_relay.address
             report["source_mount_route"] = dict(backend_ip=ip, mount_ip=mount_ip,
                 direct_source_mount_created=False, relay=reply_relay.evidence)
@@ -280,6 +300,28 @@ def main():
             report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
             if not report["baseline"]["passed"]:
                 raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
+            if args.sync_observe:
+                from nfs_endpoints import Endpoints
+                from nfs_reply_relay import ReplyRelay
+                from nfs_sync_workers import qualify as observe_sync
+                from nfs_runtime import run_runtime
+                def destination_observer(address):
+                    sync_relays['destination'] = ReplyRelay(run,network,CONFIG['builder'],address,containers,output)
+                    return sync_relays['destination']
+                report['independent_endpoints'] = dict(passed=False)
+                endpoints = Endpoints(run,execute,server,client,ip,options,network,SERVER,
+                    containers,extra_volumes,extra_servers,extra_mounts,report['independent_endpoints'],
+                    destination_relay=destination_observer,source_relay=lambda address:sync_relays['source'])
+                report['sync_relays'] = {role:relay.evidence for role,relay in sync_relays.items()}
+                names=('check-nfs-boundaries.py','nfs_sync_workers.py','nfs_sync_support.py','nfs_syscall_trace.py',
+                    'nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_runtime.py','nfs_endpoints.py','nfs_binding.py','nfs_bootstrap_state.py')
+                report['synchronization'] = dict(passed=False,cases=[],driver_sha256={name:hashlib.sha256((ROOT/'scripts'/name).read_bytes()).hexdigest() for name in names})
+                hashes=dict(report['artifacts']);hashes.update({'qualification-'+c['profile']:c['binary_sha256'] for c in report['baseline']['cases']})
+                completed=run_runtime(run,execute,spawn,restore,server,output,client,hashes,report['synchronization']['cases'],
+                    endpoints=endpoints,case_runner=lambda Case:observe_sync(Case,run,execute,spawn,restore,output,client,
+                        report['synchronization']['cases'],endpoints,sync_relays,containers,CONFIG))
+                report['synchronization'].update(completed)
+                assert report['synchronization']['passed'] and len(report['synchronization']['cases'])==4
             if args.enrollment_storage:
                 from nfs_storage import qualify_enrollment_storage
                 report["enrollment_storage"] = {"passed": False, "cases": [],
@@ -559,6 +601,15 @@ def main():
                     execute(f"if test -f /tmp/local/{name}.pid; then kill -KILL $(cat /tmp/local/{name}.pid) 2>/dev/null || true; fi", "1000:1000")
                 except Exception as error:
                     report["cleanup_errors"].append(str(error))
+        if sync_relays:
+            report['sync_relays_final'] = {}
+            for role,relay in sync_relays.items():
+                try:
+                    relay.release()
+                    report['sync_relays_final'][role] = relay.state(strict=False)
+                    assert not report['sync_relays_final'][role]['errors']
+                except Exception as error:
+                    report['cleanup_errors'].append(str(error))
         if reply_relay is not None:
             try:
                 report["reply_relay_final"] = reply_relay.state(strict=False)

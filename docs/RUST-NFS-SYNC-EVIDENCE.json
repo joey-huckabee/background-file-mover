@@ -1,0 +1,28 @@
+{
+  "status": "PASSED",
+  "run_id": "nfs-20261019T000329Z-385f192f",
+  "report_encoding": "zlib-base64-json-parts",
+  "report_sha256": "634b5b4cb97591a9a78eb34e69bcc7fd60290fc705ac82cdc4a3634530c31581",
+  "report_parts": [
+    {
+      "file": "RUST-NFS-SYNC-EVIDENCE.part-01.json",
+      "sha256": "c9bd21e9dcde4ab992cd55de1ed6d272e84588bfa2d7477e35077ac353c3c7ff"
+    },
+    {
+      "file": "RUST-NFS-SYNC-EVIDENCE.part-02.json",
+      "sha256": "49c231b2982c441c86e3db16e1b78d3cca661de77192686b960aa7abf86f1bcc"
+    },
+    {
+      "file": "RUST-NFS-SYNC-EVIDENCE.part-03.json",
+      "sha256": "1cd149b95dc4865e1fefec24ee9ad6210d4513c81d33a0adb4e3aaab65f625b7"
+    },
+    {
+      "file": "RUST-NFS-SYNC-EVIDENCE.part-04.json",
+      "sha256": "676e93ba18f52bf3dd7657907de127c7b0632df41b06aa80fa4d3d7ed665728f"
+    },
+    {
+      "file": "RUST-NFS-SYNC-EVIDENCE.part-05.json",
+      "sha256": "c7a20e500e38b570a04b7c67a89bcfcb467385569a7faddfc9d553169589be4f"
+    }
+  ]
+}

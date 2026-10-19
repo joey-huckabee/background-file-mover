@@ -69,6 +69,18 @@ def call(data):
                 row['filehandle_sha256'] = hashlib.sha256(value).hexdigest()
             if op in (28, 11):
                 row['name'] = value.decode('ascii')
+        elif op == 5:  # COMMIT4args (RFC 8881 section 18.3)
+            row['offset'] = struct.unpack('!Q', x.take(8))[0]
+            row['count'] = x.uint()
+        elif op == 38:  # WRITE4args (section 18.32)
+            row['stateid_hex'] = x.take(16).hex()
+            row['offset'] = struct.unpack('!Q', x.take(8))[0]
+            row['stable'] = x.uint()
+            if row['stable'] > 2:
+                raise ValueError('invalid WRITE stability')
+            value = x.opaque()
+            row['count'] = len(value)
+            row['data_sha256'] = hashlib.sha256(value).hexdigest()
         elif op == 9:  # GETATTR
             x.bitmap()
         elif op not in (10, 16, 24, 31, 32):
@@ -104,6 +116,14 @@ def reply(data):
             x.take(36)
         elif op in (28, 11):
             x.take(20)  # change_info4
+        elif op == 5:
+            operations[-1]['verifier_hex'] = x.take(8).hex()
+        elif op == 38:
+            operations[-1]['count'] = x.uint()
+            operations[-1]['committed'] = x.uint()
+            if operations[-1]['committed'] > 2:
+                raise ValueError('invalid WRITE committed stability')
+            operations[-1]['verifier_hex'] = x.take(8).hex()
         elif op == 9:
             x.bitmap()
             x.opaque()

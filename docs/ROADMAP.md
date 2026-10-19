@@ -48,8 +48,9 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify remaining claim/namespace and COMMIT/sync RPC reply-loss boundaries
-  beyond the selected source-claim and publication LINK/REMOVE cases,
+- [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
+  in the declared shipping mount/export profile; do not substitute buffered OS
+  controls for unobserved service COMMIT/fsync boundaries. Cover
   server recovery and delayed-effect settlement, remaining
   synchronization boundaries, outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.

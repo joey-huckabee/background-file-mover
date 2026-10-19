@@ -226,3 +226,5 @@ Apache-2.0 — see `LICENSE`.
 Increment 65 adds server-completed publication LINK reply-loss qualification; see [results](docs/RUST-INCREMENT-65.md). Keep production NFS/deletion disabled and maintain SC-099, the step-by-step lab and remaining reply-loss/durability limits.
 
 Increment 66 adds source-claim LINK/REMOVE success-reply-loss qualification; see [results](docs/RUST-INCREMENT-66.md). Keep production NFS/source deletion disabled, preserve SC-100 and the simple same-ID JSON-until-202 producer workflow, and maintain the step-by-step source lab and testing limits.
+
+Increment 67 records synchronization RPC capability and actual worker observations; see [results](docs/RUST-INCREMENT-67.md) and [lab](docs/NFS-SYNC-LAB.md). No COMMIT/mover sync-loss support follows from buffered OS controls. Preserve SC-101/102, GNU/glibc-2.22 checks and production NFS/source deletion disabled.
