@@ -261,3 +261,13 @@ private mount still present, preserve the named resources and stop all known
 services through their bounded controller first. Restore the owned server and
 use the same scoped traversal gate for a normal unmount; never bypass custody or
 force/lazy-unmount to report clean cleanup.
+
+## Buffered same-share service extension
+
+Use --same-share with both passing gates to select the six-case service matrix
+instead of the four separate-export mount-authorization cases. Independent model
+controls still run. Follow [the complete same-share procedure](NFS-SAME-SHARE-LAB.md)
+for private layout, 64 MiB export capacity, actual durable-link pauses, worker and
+coordinator exit, original-state recovery, replay and normal cleanup. See
+[increment 70](RUST-INCREMENT-70.md) for results; remaining buffered outage and
+synchronization reply-loss boundaries are separate work.

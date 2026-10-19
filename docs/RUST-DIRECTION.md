@@ -592,5 +592,12 @@ and fingerprints in existing enrollment/worker observations. Local encodings sta
 unchanged; legacy NFS bindings without profiles refuse without automatic migration.
 The [extended lab](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
 records selected real B/B/N/N refusal/recovery/replay scope alongside the model.
-Next qualify remaining buffered worker interruption/synchronization boundaries and
-same-share workers. Production NFS and source deletion remain disabled.
+Increment 70 below adds selected same-share workers. Next qualify remaining
+buffered interruption/synchronization boundaries. Production NFS and source deletion remain disabled.
+
+[Increment 70](RUST-INCREMENT-70.md) qualifies selected buffered NMP-41B same-share
+baselines and durable claim/file LINK process-crash recovery in debug/release.
+Maintain SC-104, the [step-by-step lab](NFS-SAME-SHARE-LAB.md), original local
+state/enrollment and the producer JSON-until-202 contract. Remaining buffered
+bootstrap/copy/verify/manifest, outage and synchronization/RPC boundaries stay
+open. Production NFS/source deletion remain disabled.

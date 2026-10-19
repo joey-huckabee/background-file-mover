@@ -49,8 +49,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 before implementation.
 
 - [ ] Qualify remaining buffered NMP-41B service interruption/death/RPC boundaries
-  across bootstrap/claim/copy/verification/publication/manifest, and real worker
-  behavior on disjoint same-share roots;
+  across bootstrap/claim/copy/verification/publication/manifest, including
+  untested same-share phases, endpoint outages and synchronization;
   retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
   in the declared shipping mount/export profile; do not substitute buffered OS

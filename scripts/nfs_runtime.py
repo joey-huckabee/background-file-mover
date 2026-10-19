@@ -9,7 +9,7 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None, nfs_root="/tmp/nfs"):
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link", "claim_link_rpc", "claim_unlink_rpc"}
     link_points = {"claim_link", "file_link"}
@@ -33,8 +33,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if local_only:
                 assert not both_nfs
                 source_nfs = destination_nfs = False
-            self.source = ("/tmp/nfs/" + self.label + "/source" if source_nfs else self.base + "/source")
-            self.destination = ("/tmp/nfs/" + self.label + "/destination" if destination_nfs else self.base + "/destination")
+            self.source = (nfs_root + "/" + self.label + "/source" if source_nfs else self.base + "/source")
+            self.destination = (nfs_root + "/" + self.label + "/destination" if destination_nfs else self.base + "/destination")
             if separate_exports:
                 self.source = "/tmp/nfs-source/" + self.label + "/source"
                 self.destination = "/tmp/nfs-destination/" + self.label + "/destination"

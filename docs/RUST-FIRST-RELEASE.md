@@ -288,9 +288,9 @@ production NFS and source deletion remain disabled.
 [Increment 68](RUST-INCREMENT-68.md) selects the buffered NMP-41B qualification
 candidate and retains NMP-41N as a distinct noac diagnostic. The
 [mount contract](NFS-MOUNT-PROFILE.md) and [lab](NFS-MOUNT-PROFILE-LAB.md) validate
-read-only model decisions for selected SH-10/12/13 inventory cases. New Rust
-startup/effect enforcement, descriptor/enrollment rechecks and real buffered
-service fault tests remain pending. Reused mount IDs show that matching pins do
+read-only model decisions for selected SH-10/12/13 inventory cases. That increment did not include Rust
+startup/effect enforcement; increments 69-70 below add supervised checks and
+selected worker cases. Remaining buffered fault coverage stays open. Reused mount IDs show that matching pins do
 not prove continuity. FR-03/05 remain open; production NFS/deletion stay disabled.
 
 [Increment 69](RUST-INCREMENT-69.md) integrates explicit nfs_mount declarations and
@@ -298,5 +298,13 @@ proc-to-root-descriptor/profile fingerprints into supervised bootstrap and worke
 authorization. Selected live mismatch/refusal/restoration/replay cases and both
 SLES gates complement the independent model; they do not close FR-03/05. Legacy
 NFS profile-less bindings refuse without automatic migration. Production NFS and
-source deletion remain disabled; remaining B/B interruption and same-share worker
-qualification precede general synchronization/recovery support.
+source deletion remain disabled; increment 70 below adds selected same-share
+worker cases. Remaining B/B interruption and synchronization/recovery work stays open.
+
+[Increment 70](RUST-INCREMENT-70.md) adds selected actual same-share buffered
+worker evidence: debug/release baselines and durable claim/file LINK crash
+recovery, original-state replay and unchanged producer-reused bytes. See the
+[same-share lab](NFS-SAME-SHARE-LAB.md). SH-10 gains finite same-mount coverage;
+remaining buffered outage, RPC/sync and bootstrap/copy/verify/manifest boundaries
+stay open. FR-03/05 and all eight release gates remain open; production NFS and
+source deletion remain disabled.

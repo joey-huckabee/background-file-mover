@@ -509,8 +509,9 @@ Increment 67 records synchronization RPC capability and actual worker observatio
 
 Increment 68 defines docs/NFS-MOUNT-PROFILE.md and its step-by-step lab. NMP-41B
 is the buffered first-release qualification candidate; NMP-41N retains earlier
-noac diagnostic scope. scripts/check-nfs-mount-profile.py validates a read-only
-Python inventory model, not shipping Rust startup enforcement. Matching pins can
+noac diagnostic scope. In model-only mode, scripts/check-nfs-mount-profile.py
+validates inventory decisions; explicit gate arguments enable the supervised
+worker extensions described below. Matching pins can
 survive remount with reused IDs and cannot prove server availability/settlement.
 Increment 69 below adds supervised descriptor/enrollment-aware checks and selected
 buffered worker evidence; keep production NFS/deletion disabled and maintain SC-103-105.
@@ -523,4 +524,13 @@ without profiles refuse; do not auto-migrate markers/jobs/receipts or re-enroll.
 Claims/enrollment/statistics/delivery check bound source before payload traversal;
 legacy unbound payload workers refuse NFS. Keep production NFS/deletion off.
 See docs/RUST-INCREMENT-69.md and the authorization extension in the mount lab;
-continue remaining buffered worker interruption/sync and same-share qualification.
+increment 70 below adds selected same-share coverage; remaining buffered worker
+interruption/sync qualification stays open.
+
+Increment 70 adds scripts/nfs_same_share.py and --same-share in the retained
+mount-profile runner: six buffered NMP-41B debug/release baseline and durable
+claim/file LINK process-crash/recovery cases on disjoint roots of one mount.
+See docs/RUST-INCREMENT-70.md and docs/NFS-SAME-SHARE-LAB.md. Maintain SC-104 and
+DOC-03/04/05, original-state recovery and the distinction between returned
+operations and pending/withheld RPCs. Keep production NFS/source deletion off;
+remaining buffered fault/sync/deployment qualification stays open.

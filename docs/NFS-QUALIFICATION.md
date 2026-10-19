@@ -767,3 +767,12 @@ local bindings omit it. See the [current contract](NFS-MOUNT-PROFILE.md) and
 Legacy NFS profile-less states refuse rather than auto-rebind. Production NFS
 and source deletion remain disabled; selected buffered worker evidence does not
 promote the full first-release or synchronization/recovery matrix.
+
+[Increment 70](RUST-INCREMENT-70.md) adds six real buffered NMP-41B worker cases
+on disjoint private roots of one mount/export, with local state. Debug/release
+each cover baseline and original-state recovery after durable claim/file LINK
+process crashes. Source custody/original inode, destination copy/manifest and
+post-202 producer-path reuse survive recovery and committed replay. See the
+[step-by-step same-share lab](NFS-SAME-SHARE-LAB.md). These returned-operation
+pauses do not qualify pending RPCs, outages, server/power recovery or the full
+worker matrix; production NFS/source deletion remain disabled.

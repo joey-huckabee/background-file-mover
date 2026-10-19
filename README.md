@@ -243,3 +243,8 @@ The [extended lab](docs/NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-e
 checks real worker refusal/restoration/replay without enabling production NFS or
 source deletion. Matching mount observations still prove neither continuity nor
 remote settlement; remaining buffered interruption/synchronization gates stay open.
+
+[Increment 70](docs/RUST-INCREMENT-70.md) adds selected buffered same-share transfer
+and process-crash recovery qualification; the [lab](docs/NFS-SAME-SHARE-LAB.md)
+documents exact steps and limits. Production NFS and source deletion remain
+disabled; the remaining fault/synchronization and first-release gates stay open.

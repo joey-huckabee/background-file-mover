@@ -30,7 +30,7 @@ def control_traversal(execute, target):
 
 
 def qualify(root, production_gate, qualification_gate, run, execute, client,
-            output, mount, unmount_all, mounts, report):
+            output, mount, unmount_all, mounts, report, same_share=False):
     report['gates'] = {}
     engine = ['podman', '--connection', 'podman-machine-default-root']
     binaries = {}
@@ -66,6 +66,9 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
             report['gates'][mode]['artifacts'][profile] = artifact
     execute('umask 077; mkdir /tmp/mount-auth', '1000:1000')
     unmount_all()
+    if same_share:
+        from nfs_same_share import qualify_same_share
+        return qualify_same_share(run, execute, client, output, mount, unmount_all, report, binaries)
     counter = 0
 
     def config_file(config, name):
