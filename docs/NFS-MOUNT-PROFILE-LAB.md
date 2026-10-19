@@ -362,3 +362,12 @@ service release/death-drop cases on NMP-41B same/separate layouts. Preserve
 actual syscall-91 FD and server-object proof; a returned fsync, noac history,
 4 KiB FILE_SYNC WRITE or assumed destination transport is insufficient.
 Production NFS/deletion and all existing deadlines remain unchanged.
+
+## Buffered UNSTABLE WRITE reply withholding
+
+Use --buffered-unstable for the separate NMP-41B payload WRITE matrix.
+The [step-by-step lab](NFS-BUFFERED-UNSTABLE-LAB.md) specifies six native controls
+before eight selected release/death-drop service cases, both layouts/profiles.
+Distinguish full-count UNSTABLE success held from FILE_SYNC, exact operation replay
+from session-slot retries with a changed highest-slot hint, and new WRITEs from
+later COMMIT. See [actual outcomes](RUST-INCREMENT-79.md); production NFS/deletion stay off.

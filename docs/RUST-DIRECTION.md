@@ -682,3 +682,12 @@ attempt 2. Both shares can use the source relay. Maintain SC-112/DOC-01–05.
 Next qualify actual UNSTABLE-WRITE withholding; keep live COMMIT loss without
 death and unobserved source sync open. No Rust/retry/review/deadline or production
 NFS/source-deletion change.
+
+[Increment 79](RUST-INCREMENT-79.md) passes six native and eight selected
+UNSTABLE WRITE release/death-drop cases on both buffered layouts/profiles. The
+[complete lab](NFS-BUFFERED-UNSTABLE-LAB.md) preserves initial failed validation,
+corrected highest-slot-hint comparison and every-range/new-WRITE/later-COMMIT
+proof. Four live releases commit attempt 1; four death/drop cases preserve first
+partial/original state and commit attempt 2. Maintain SC-113/DOC-01–05. Next
+qualify live-coordinator WRITE/COMMIT loss without death. No Rust, dependency,
+retry/review/deadline or production NFS/source-deletion change.

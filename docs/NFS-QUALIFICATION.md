@@ -871,3 +871,16 @@ transport even for separate shares. Original state/custody and local orphan guar
 are preserved. This adds no live-COMMIT-loss-without-death, UNSTABLE-WRITE-loss,
 physical durability, original-kernel or general NAS qualification. Production
 NFS/deletion and existing retry/review/deadline policy remain unchanged.
+
+[Increment 79](RUST-INCREMENT-79.md) retains --buffered-unstable and its
+[complete lab](NFS-BUFFERED-UNSTABLE-LAB.md). Six native controls and eight mover
+release/death-drop cases pass on both profiles/layouts. Full-count successful
+UNSTABLE replies remain held while actual target fchmod is D-state; full server
+inode/size/hash and every-range/verifier evidence are required. Native drops
+produce three uncached retries, three new UNSTABLE WRITEs and one later matching
+COMMIT per layout. Highest-slot usage hints can change on retries; preserve the
+initial failed strict validator and identity counterexamples. Four release cases
+commit attempt 1; four death/drop recoveries preserve original partial/state and
+commit attempt 2. All selected traffic uses source relay, even on separate shares.
+Live loss without death, other phases/ranges/workloads, original kernel, NAS and
+physical durability remain open. Production NFS/deletion and all policy/deadlines stay unchanged.

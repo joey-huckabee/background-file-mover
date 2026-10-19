@@ -440,3 +440,33 @@ kernel/maintenance-package behavior, independent NAS failover or NetApp/Isilon
 interoperability. Larger files/load/endurance, other phases/ranges/outages and
 delayed effects remain open. Local exit/guard availability alone is not remote
 settlement. Production NFS/deletion remain disabled; all eight release gates remain open.
+
+## Buffered UNSTABLE WRITE reply-loss qualification
+
+[Increment 79](RUST-INCREMENT-79.md) and the
+[complete procedure](NFS-BUFFERED-UNSTABLE-LAB.md) retain six native controls and
+eight mover cases. All three full-count WRITE requests/replies are decoded
+stable=0/committed=0 and held before forwarding. Actual fchmod syscall 91, mode
+0400, target FD/D state, matching controlled server inode and full payload hash
+corroborate the boundary. Native drop includes explicit connection interruption:
+every range receives uncached-reply error, is resent UNSTABLE and gets matching
+later successful COMMIT. The highest-slot hint changes for two retries on each
+layout; initial over-strict validation remains a separately retained failure,
+with no service cases run before its correction and full rerun.
+
+Four mover cases release replies with a live coordinator; four combine coordinator
+death, original orphan-guard retention, worker kill and reply drop. Actual exit
+precedes original-state restart/attempt 2, preserving the first partial, original
+source/database/enrollment, newer producer bytes and validated manifest. This does
+not qualify live loss without death, different sizes/cache/load/phases, server
+restart/changed verifier or general delayed effects. Stronger-resend regression
+models are not claimed as observed native behavior.
+
+Host kernel NFS performs the I/O; relays only inject controlled faults. One
+controlled server with two volatile tmpfs exports on modern WSL2 6.18.33.2 is not
+independent NAS failure domains or original SLES kernel/maintenance packages.
+Pinned SLES/glibc 2.22 ABI tests do not close those gaps. UNSTABLE success is not
+durable persistence, and COMMIT on tmpfs is not power-loss proof. Controlled
+protocol/FD/server correlations are not unique kernel causality or authenticated
+NAS identity; local worker exit/guard availability is not remote settlement.
+Production NFS/deletion stay disabled and all eight release gates remain open.

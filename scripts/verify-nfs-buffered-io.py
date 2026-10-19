@@ -129,7 +129,7 @@ def main():
     client = dict(line.split(':', 1) for line in live['client_security'].splitlines() if ':' in line)
     assert all(int(client[k], 16) == ((1 << 21) | (1 << 19) | (1 << 2)) for k in ('CapPrm', 'CapEff', 'CapBnd'))
     assert int(client['CapInh'], 16) == int(client['CapAmb'], 16) == 0 and client['NoNewPrivs'].strip() == '1'
-    assert len(live['sources']) in (24,25)
+    assert len(live['sources']) in (24,25,26)
     assert len(live['checks']) == 43 and all(c['passed'] for c in live['checks'])
     assert live['authorization']['passed']
     for name, item in live['sources'].items():

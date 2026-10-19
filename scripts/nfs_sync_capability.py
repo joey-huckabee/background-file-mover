@@ -3,6 +3,95 @@ import hashlib,json,time,traceback
 from nfs_sync_support import build_probe,start_trace,finish_trace,correlate
 
 
+def write_range(row):
+ ops=row['request']['decoded']['operations']
+ assert [o['op'] for o in ops]==[53,22,38]
+ op=ops[-1]
+ return (ops[1]['filehandle_sha256'],op['offset'],op['count'],op['data_sha256'])
+
+
+def validate_unstable_held(state):
+ assert state['armed'] and state['operation']==38 and state['held']
+ assert not state['forwarded'] and not state['released'] and not state['dropped'] and not state['errors']
+ for row in state['held']:
+  write_range(row)
+  assert row['xid']==row['request']['decoded']['xid']==row['reply']['xid']
+  assert row['request']['decoded']['operations'][-1]['stable']==0 and row['reply']['status']==0
+  result=next(o for o in row['reply']['operations'] if o['op']==38)
+  assert result['status']==0 and result['committed']==0 and result['count']==write_range(row)[2]
+
+
+def validate_unstable_resend(row):
+ """All lost UNSTABLE ranges need witnessed success on a new connection.
+
+ Preserve exact session replay versus uncached retry/new WRITE distinction.
+ If a successful resend is still UNSTABLE, require its subsequent successful
+ same-handle/verifier COMMIT. Never treat the old 4 KiB FILE_SYNC control as this.
+ """
+ dropped=row['settled']['dropped'];forwarded=row['wire']['forwarded']
+ assert dropped and forwarded and row['settled']['connection_resets'] and not row['settled']['released']
+ assert not {r['connection'] for r in dropped}&{r['connection'] for r in forwarded}
+ assert not {r['receive_id'] for r in dropped}&{r['receive_id'] for r in forwarded}
+ def exact(r):return json.dumps(r['request']['decoded']['operations'],sort_keys=True)
+ def retry_key(r):
+  # RFC 8881 section 2.10.6.1: session/slot/sequence identify retries;
+  # highest_slotid is a current resource-usage hint, not that identity.
+  ops=[dict(o) for o in r['request']['decoded']['operations']]
+  sequence=ops[0]['sequence_hex'];raw=bytes.fromhex(sequence)
+  assert len(raw)==32 and int.from_bytes(raw[24:28],'big')>=int.from_bytes(raw[20:24],'big')
+  ops[0]['sequence_hex']=sequence[:48]+'00000000'+sequence[56:]
+  return json.dumps(ops,sort_keys=True)
+ originals={exact(r):r for r in dropped}
+ sessions={retry_key(r):r for r in dropped}
+ ranges={write_range(r) for r in dropped}
+ retries=[r for r in forwarded if retry_key(r) in sessions and r['reply']['status']==10068]
+ successes=[r for r in forwarded if r['reply']['status']==0]
+ assert successes and all(r['reply']['status'] in (0,10068) for r in forwarded)
+ retry_ranges={write_range(r) for r in retries}
+ assert {write_range(r) for r in successes}==ranges
+ commits=[];resends=[]
+ wire=row['wires'][row['relay_role']]['trace']
+ def received(item):
+  times=[r['monotonic_ns'] for r in wire if r['direction']=='reply' and r['connection']==item['connection']
+         and r['xid']==item['xid'] and r['decoded']==item['reply']]
+  assert times,'forwarded reply missing from captured wire'
+  return min(times)
+ for item in successes:
+  key=write_range(item);op=item['request']['decoded']['operations'][-1]
+  result=next(o for o in item['reply']['operations'] if o['op']==38)
+  assert result['status']==0 and result['count']==key[2] and 0<=op['stable']<=result['committed']<=2
+  for original in dropped:
+   assert original['request']['decoded']['operations'][-1]['stable']==0
+   original_result=next(o for o in original['reply']['operations'] if o['op']==38)
+   assert original_result['committed']==0
+   if write_range(original)==key:assert original_result['verifier_hex']==result['verifier_hex']
+  cached=exact(item) in originals
+  session_replay=retry_key(item) in sessions
+  if not session_replay:
+   assert key in retry_ranges and item['xid'] not in {r['xid'] for r in dropped}
+   assert any(received(r)<received(item) for r in retries if write_range(r)==key)
+  if result['committed']==0:
+   matches=[]
+   for call in wire:
+    if call['direction']!='call' or not call['decoded']:continue
+    ops=call['decoded']['operations']
+    if [o['op'] for o in ops]!=[53,22,5] or ops[1]['filehandle_sha256']!=key[0] or call['monotonic_ns']<received(item):continue
+    commit=ops[-1]
+    if commit['offset']>key[1] or (commit['count'] and commit['offset']+commit['count']<key[1]+key[2]):continue
+    for reply in wire:
+     if reply['direction']!='reply' or reply['connection']!=call['connection'] or reply['xid']!=call['xid'] or not reply['decoded']:continue
+     if reply['monotonic_ns']<call['monotonic_ns'] or reply['decoded']['status']!=0:continue
+     if any(o['op']==5 and o['status']==0 and o['verifier_hex']==result['verifier_hex'] for o in reply['decoded']['operations']):
+      matches.append(dict(connection=call['connection'],xid=call['xid'],verifier_hex=result['verifier_hex']))
+   assert matches,'UNSTABLE resend lacks matched successful COMMIT'
+   commits.extend(matches)
+  resends.append(dict(range=list(key),receive_id=item['receive_id'],cached_exact=cached,session_replay=session_replay,
+                      requested_stable=op['stable'],committed=result['committed']))
+ return dict(kind='unstable_ranges_recovered',uncached_retry_receive_ids=[r['receive_id'] for r in retries],
+             retry_hint_changed_receive_ids=[r['receive_id'] for r in retries if exact(r) not in originals],
+             successful_ranges=resends,commit_evidence=commits)
+
+
 def validate_resend(row,operation):
  dropped=row['settled']['dropped'];forwarded=row['wire']['forwarded']
  assert dropped and forwarded and row['settled']['connection_resets'] and not row['settled']['released']

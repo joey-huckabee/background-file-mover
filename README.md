@@ -300,3 +300,9 @@ reply-withholding and recovery matrix. The [step-by-step lab](docs/NFS-BUFFERED-
 documents native capability prerequisites, actual pending descriptor/server proof,
 release/coordinator-death cases, original-state recovery, audit and cleanup.
 Production NFS and source deletion remain disabled.
+
+[Increment 79](docs/RUST-INCREMENT-79.md) adds the separate buffered
+UNSTABLE WRITE reply-withholding matrix. The
+[complete lab procedure](docs/NFS-BUFFERED-UNSTABLE-LAB.md) documents native
+capability, every-range retransmission and COMMIT proof, selected service recovery,
+initial validator failure and cleanup. Production NFS/source deletion stay off.

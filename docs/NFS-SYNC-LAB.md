@@ -197,3 +197,9 @@ matrix at the observed fchmod boundary. Independent large-payload native
 withholding controls must pass before selected service release/death recovery.
 Keep COMMIT success/reply loss separate from UNSTABLE WRITE reply loss, physical
 durability and unobserved pending source synchronization. Production NFS/deletion stay off.
+
+The separate [UNSTABLE WRITE lab](NFS-BUFFERED-UNSTABLE-LAB.md) and
+[increment 79](RUST-INCREMENT-79.md) use --buffered-unstable for operation 38 at
+the observed payload fchmod boundary. Full-count UNSTABLE replies, every-range
+retransmission and later matching COMMIT must be proven; successful sync or a
+4 KiB FILE_SYNC control cannot substitute. Production NFS/deletion stay disabled.

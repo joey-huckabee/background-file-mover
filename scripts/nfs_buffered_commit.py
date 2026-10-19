@@ -1,25 +1,37 @@
-"""Finite private COMMIT capability and payload-fchmod recovery qualification.
+"""Finite private COMMIT/UNSTABLE capability and fchmod recovery qualification.
 
 No production enablement, deadline changes or claims of physical durability.
 """
 import hashlib
 import json
 import subprocess
+import sys
 import time
+from pathlib import Path
 from nfs_bootstrap_state import receipt_evidence
 from nfs_mount_profile import covering, parse
 from nfs_reply_relay import ReplyRelay
 from nfs_runtime import run_runtime
-from nfs_sync_capability import validate_resend
+from nfs_sync_capability import validate_resend, validate_unstable_resend
 from nfs_sync_support import build_probe, start_trace, finish_trace
 from nfs_io_analysis import analyze
+from nfs_sync_capability import validate_unstable_held
 
 
-def qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture):
+def qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture, unstable=False):
     config, containers = fixture['config'], fixture['containers']
+    operation=38 if unstable else 5
+    label='UNSTABLE WRITE' if unstable else 'COMMIT'
+    slug='unstable' if unstable else 'commit'
+    scenario='SC-113' if unstable else 'SC-112'
     expected = hashlib.sha256(bytes(2*1048576)+b'0123456789abcdefg').hexdigest()
-    report.update(matrix='buffered-commit', capabilities=[], relays={},
+    report.update(matrix='buffered-'+slug, capabilities=[], relays={},
                   declared_cases='Two layouts: native discovery/release/drop first, then debug/release live-release and coordinator-death/drop; eight service cases.')
+    if unstable:
+        tested=subprocess.run([sys.executable,str(Path(__file__).with_name('test_nfs_write_resend.py')),'-v'],
+                              capture_output=True,text=True,timeout=20)
+        report['write_resend_tests']=dict(passed=tested.returncode==0,output=tested.stdout+tested.stderr)
+        assert tested.returncode==0
     engine = ['podman', '--connection', 'podman-machine-default-root']
     execute('umask 077; mkdir /tmp/local /tmp/sync-probes', '1000:1000')
     artifacts = {}
@@ -44,7 +56,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
     report['probe'] = build_probe(run,output,client,containers,config)
 
     def windows(active,action):
-        return {role: relay.command(action,operation=5) for role,relay in active.items()}
+        return {role: relay.command(action,operation=operation) for role,relay in active.items()}
 
     def arm(active):
         windows(active,'observe')
@@ -56,9 +68,11 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
             if found:
                 assert len(found)==1, found
                 role=found[0]
-                return role, active[role].await_held()
+                value=active[role].await_held()
+                if unstable: validate_unstable_held(value)
+                return role, value
             time.sleep(.1)
-        raise AssertionError('no successful COMMIT reply withheld on either transport')
+        raise AssertionError('no successful '+label+' reply withheld on either transport')
 
     def pending(pid,target):
         raw=execute(f'cat /proc/{pid}/syscall').strip()
@@ -87,9 +101,9 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
         report['capabilities'].append(result)
         for action in ('discovery','release','drop'):
             base='/tmp/sync-probes/'+layout+'-'+action
-            target=('/tmp/profile-source' if layout=='same-share' else '/tmp/profile-destination')+'/commit-'+layout+'-'+action
+            target=('/tmp/profile-source' if layout=='same-share' else '/tmp/profile-destination')+'/'+slug+'-'+layout+'-'+action
             row=dict(action=action,target=target,passed=False);result['probes'].append(row)
-            process=spawn(f'exec /tmp/nfs-sync-probe chmod {target} {base}.ready {base}.go','commit-'+layout+'-'+action)
+            process=spawn(f'exec /tmp/nfs-sync-probe chmod {target} {base}.ready {base}.go',slug+'-'+layout+'-'+action)
             try:
                 for _ in range(30):
                     ready=adapted('cat '+base+'.ready','1000:1000',False)
@@ -110,7 +124,8 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                     row['pending']=pending(pid,target);assert row['pending']['fd']==fd
                     row['server_while_withheld']=server_object(target)
                     row['before_release_or_drop']=active[role].await_held()
-                    row['settled']=active[role].command(action,operation=5)
+                    if unstable: validate_unstable_held(row['before_release_or_drop'])
+                    row['settled']=active[role].command(action,operation=operation)
                     for other,relay in active.items():
                         if other!=role:relay.release()
                 assert process.wait(timeout=30)==0
@@ -118,18 +133,18 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                 if action=='discovery':
                     row['trace']=finish_trace(run,observer)
                     row['analysis']=analyze(row['trace'],row['wires'])
-                    commits=[op for op in row['analysis']['rpc_operations'] if op['operation']['op']==5]
+                    commits=[op for op in row['analysis']['rpc_operations'] if op['operation']['op']==operation]
                     assert commits and all(any(row['trace']['events'][i]['syscall']==91 for i in op['overlapping_events']) for op in commits)
                     assert all(row['trace']['events'][i]['result']==0 for op in commits for i in op['overlapping_events'] if row['trace']['events'][i]['syscall']==91)
                 else:
                     row['wire']=dict(forwarded=row['wires'][role]['forwarded'])
-                    if action=='drop':row['resend_validation']=validate_resend(row,5)
+                    if action=='drop':row['resend_validation']=validate_unstable_resend(row) if unstable else validate_resend(row,5)
                     row['server_after']=server_object(target)
                     assert row['server_after']==row['server_while_withheld']
-                row['output']=(output/('commit-'+layout+'-'+action+'.log')).read_text(encoding='utf-8')
+                row['output']=(output/(slug+'-'+layout+'-'+action+'.log')).read_text(encoding='utf-8')
                 assert 'fchmod returned 0' in row['output'] and 'fsync returned 0' in row['output']
                 row['passed']=True
-                print('Native payload COMMIT '+layout+' '+action+': PASS',flush=True)
+                print('Native payload '+label+' '+layout+' '+action+': PASS',flush=True)
             finally:
                 for relay in active.values():relay.release()
                 if process.poll() is None:
@@ -139,10 +154,10 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
     def cases(Case):
         for profile in ('debug','release'):
             for action in ('live-release','death-drop'):
-                c=Case(profile,'copy_chunk',suffix='-commit-'+layout+'-'+action,both_nfs=True)
-                r=c.result;r.update(layout=layout,action=action,scenario_id='SC-112',config=c.config)
+                c=Case(profile,'copy_chunk',suffix='-'+slug+'-'+layout+'-'+action,both_nfs=True)
+                r=c.result;r.update(layout=layout,action=action,scenario_id=scenario,config=c.config)
                 report['cases'].append(r);report['rust_executed']=True
-                print('Payload COMMIT '+layout+' '+profile+' '+action,flush=True)
+                print('Payload '+label+' '+layout+' '+profile+' '+action,flush=True)
                 try:
                     r['inventory']=execute('cat /proc/self/mountinfo')
                     mounts=[covering(parse(r['inventory']),p) for p in (c.source,c.destination)]
@@ -173,8 +188,11 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                     assert r['during']['details']['files']==r['before']['details']['files'] and c.children()==[pid]
                     assert c.request('POST','/api/v2/jobs',c.body)[0]==202
                     r['before_release_or_drop']=active[role].await_held()
+                    if unstable: validate_unstable_held(r['before_release_or_drop'])
                     if action=='death-drop':
-                        c.signal(c.service_pid(),'KILL');assert c.service.wait(timeout=10)!=0
+                        r['coordinator_pid']=c.service_pid()
+                        c.signal(r['coordinator_pid'],'KILL');r['coordinator_exit']=c.service.wait(timeout=10)
+                        assert r['coordinator_exit']!=0
                         path=c.base+'/state/instance.lock'
                         before=execute(f"stat -c '%d:%i:%s:%u:%a' {path}",'1000:1000')
                         probe=adapted(f'test -f {path}; flock -n -E 73 {path} true','1000:1000',False)
@@ -183,7 +201,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                         r['orphan_guard_probe']=dict(exit_code=probe.returncode,identity=before,worker_state='D')
                         r['worker_fds']=execute(f'ls -l /proc/{pid}/fd')
                         c.signal(pid,'KILL')
-                    r['settled']=active[role].command('drop' if action=='death-drop' else 'release',operation=5)
+                    r['settled']=active[role].command('drop' if action=='death-drop' else 'release',operation=operation)
                     for other,relay in active.items():
                         if other!=role:relay.release()
                     if action=='death-drop':
@@ -210,7 +228,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                     stopped=adapted(c.binary+' --stop '+c.config_path,'1000:1000')
                     assert json.loads(stopped.stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0
                     c.worker=None;r['passed']=True
-                    print('Payload COMMIT '+layout+' '+profile+' '+action+': PASS',flush=True)
+                    print('Payload '+label+' '+layout+' '+profile+' '+action+': PASS',flush=True)
                 finally:
                     for relay in active.values():relay.release()
                     c.cleanup()
@@ -229,7 +247,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                         destination_nfs_root='/tmp/profile-destination' if layout=='separate-shares' else None)
             unmount_all()
         assert len(report['cases'])==8 and all(c['passed'] for c in report['cases'])
-        report.update(passed=True,scope='Matched payload fchmod COMMIT success withheld; six native controls and eight bounded service release/death-drop recoveries. No power durability or general NAS/kernel qualification.')
+        report.update(passed=True,scope='Matched payload fchmod '+label+' success withheld; six native controls and eight bounded service release/death-drop recoveries. No power durability or general NAS/kernel qualification.')
     finally:
         for role,relay in relays.items():
             relay.release();report['relays'][role]['final_state']=relay.state(strict=False)

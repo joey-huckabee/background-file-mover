@@ -628,3 +628,11 @@ Read docs/RUST-INCREMENT-78.md and docs/NFS-BUFFERED-COMMIT-LAB.md for actual
 results and proof limits. Preserve original state, orphan guard, uncertain
 partials and newer producer bytes. Keep Rust behavior, retry/review/deadlines,
 production NFS and source deletion unchanged; UNSTABLE WRITE loss is separate.
+
+Increment 79 retains --buffered-unstable using the shared payload-fchmod lab.
+Native matched WRITE stable=0 / committed=0 withholding must precede service
+faults. Verify all lost handle/range/hash sets and later COMMIT for UNSTABLE
+resends; highest_slotid may change without changing session/slot/sequence identity.
+Preserve the initial failed validator run, exact sources and counterexamples.
+See docs/RUST-INCREMENT-79.md and docs/NFS-BUFFERED-UNSTABLE-LAB.md. Maintain
+SC-113/DOC-01–05; keep production NFS/deletion and all existing policy/deadlines unchanged.

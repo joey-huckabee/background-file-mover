@@ -385,3 +385,13 @@ This supplies selected FR-03/05 evidence, not full gate closure. UNSTABLE WRITE
 loss, live COMMIT loss without death, unobserved sync phases, workload/NAS/kernel
 and remaining deployment qualification stay open. Keep all eight gates open and
 production NFS/source deletion disabled.
+
+[Increment 79](RUST-INCREMENT-79.md)/SC-113 qualifies six native UNSTABLE
+WRITE controls and eight finite service release/death-drop cases, preserving
+original state/source/partial and producer reuse after 202. Its
+[complete lab](NFS-BUFFERED-UNSTABLE-LAB.md) includes initial validator failure,
+corrected slot-hint identity checks, actual all-range retransmission/COMMIT proof,
+cleanup and testing limits. This adds selected FR-03/05 evidence; all eight gates
+stay open. Live-coordinator reply loss without death and broader kernel/NAS/
+workload/durability/deployment obligations remain future work. Production NFS and
+source deletion stay disabled.

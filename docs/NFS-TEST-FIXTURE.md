@@ -220,3 +220,11 @@ actual pending target FD, server-local inode/size/hash, live NFSD and actual
 exit before recovery. Capture both transports and 25 exact driver sources;
 retain the audited native probe separately from the single shipping executable.
 Production NFS/deletion stay off; old-kernel/NAS/power durability remains unproved.
+
+The --buffered-unstable matrix uses the same owned infrastructure and native
+large-payload probe; follow [the complete procedure](NFS-BUFFERED-UNSTABLE-LAB.md)
+and [increment 79](RUST-INCREMENT-79.md). Capture 26 exact drivers/test sources.
+Require WRITE request stable=0 and reply committed=0, full range/byte coverage,
+actual pending FD/server evidence and all-range replay with subsequent COMMIT
+where needed. Preserve initial failed acquisitions; service faults are conditional
+on native capability. No new shipping executable or production enablement follows.

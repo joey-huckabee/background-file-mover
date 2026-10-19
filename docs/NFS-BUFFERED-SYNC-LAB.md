@@ -226,3 +226,12 @@ write/COMMIT path and proves matched success withheld at fchmod before selected
 service faults. The original 4 KiB probe modes and --buffered-sync/--buffered-io
 remain available. Their historical absence-of-sync-traffic observations do not
 replace this actual syscall-91 proof. No production NFS/deletion or deadline change.
+
+## Separate UNSTABLE WRITE matrix
+
+Use --buffered-unstable and [the complete procedure](NFS-BUFFERED-UNSTABLE-LAB.md)
+for request stable=0/reply committed=0 withholding. The retained --buffered-sync,
+--buffered-io and --buffered-commit modes keep their separate scopes. Require
+all lost ranges, actual retransmission stability and a later matching COMMIT for
+resends still UNSTABLE. Read [increment 79](RUST-INCREMENT-79.md), including the
+initial refused validator evidence. No production NFS/deletion or deadline change.
