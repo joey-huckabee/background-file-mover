@@ -306,3 +306,16 @@ capabilities. Follow the [step-by-step lab](NFS-BUFFERED-POST-UNLINK-LAB.md) and
 [increment 73](RUST-INCREMENT-73.md) for absent-staging/original-allocation
 evidence, ownership, actual old-thread exit, recovery/replay, cleanup and limits.
 This is a returned-effect process crash, not pending sync/RPC or physical durability.
+
+## Buffered pre-202 source claims
+
+Select --buffered-claims with both passing gates for eight source claim
+interruption/recovery cases on NMP-41B, debug/release and same/separate shares.
+It is mutually exclusive with the other worker matrices. Actual linkat/unlinkat
+observation requires both isolated root observer capabilities SYS_PTRACE and
+DAC_READ_SEARCH; mover privileges stay unchanged. Follow
+[the dedicated lab](NFS-BUFFERED-CLAIM-LAB.md) and
+[increment 74](RUST-INCREMENT-74.md) for finite acceptance/results, immutable
+producer paths before confirmed 202, actual-exit ownership, original-inode
+custody recovery and separate evidence auditing. No new production authorization
+or post-delivery source deletion is enabled.

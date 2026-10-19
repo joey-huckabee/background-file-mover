@@ -268,3 +268,10 @@ The [lab](docs/NFS-BUFFERED-POST-UNLINK-LAB.md) documents absent-staging/origina
 allocation evidence, old-worker exclusion, original-state recovery and replay.
 Production NFS and source deletion remain disabled; pending sync/RPC and physical
 durability qualification remain separate.
+
+[Increment 74](docs/RUST-INCREMENT-74.md) adds eight buffered source-claim
+interruption/recovery cases before HTTP 202, across both share layouts and
+profiles. The [lab](docs/NFS-BUFFERED-CLAIM-LAB.md) specifies actual blocked
+linkat/unlinkat proof, unreleased-path/503 behavior, surviving-worker exclusion
+and original-state custody/delivery/replay. Production NFS and source deletion
+remain disabled; full release qualification stays open.

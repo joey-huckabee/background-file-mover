@@ -628,3 +628,11 @@ old-thread exit before original-state attempt-1 recovery and stable replay. See
 [the lab](NFS-BUFFERED-POST-UNLINK-LAB.md); maintain SC-108 and DOC-01/02/03/04/05.
 This pause-only mode adds no syscall-observer capabilities. Keep production
 NFS/deletion disabled and actual pending-sync/RPC/durability gates open.
+
+[Increment 74](RUST-INCREMENT-74.md) adds --buffered-claims with a dedicated
+helper/verifier: eight pre-202 buffered source custody LINK/producer-name REMOVE
+cases across both share layouts and profiles. Keep original source paths/parents
+unchanged until confirmed 202, actual blocked syscall/descriptor/flag evidence,
+surviving-worker exclusion and original-state/inode recovery. See
+[the lab](NFS-BUFFERED-CLAIM-LAB.md); maintain SC-109 and DOC-01–05. No Rust,
+retry/review or deadline changes; production NFS/source deletion remain off.

@@ -570,3 +570,13 @@ off and remaining bootstrap/claim/actual-sync/RPC/deployment qualification.
 Health/status requests each retain a five-second observation bound; combined
 host copy/Podman launch cost is diagnostic. Preserve increment 73's failed initial
 aggregate-timer report separately from the corrected eight-case qualification.
+
+Increment 74 retains --buffered-claims and its helper/verifier for eight buffered
+pre-202 source claim LINK/REMOVE cases; see docs/RUST-INCREMENT-74.md and
+NFS-BUFFERED-CLAIM-LAB.md. Preserve original source files/parents until confirmed
+202. Require actual D-state syscall/descriptor/flag evidence, retryable 503 with
+paths unreleased, surviving-worker exclusion and original-state/inode recovery.
+Claim producer-name removal is not post-delivery source deletion. Root syscall
+observation needs both SYS_PTRACE and DAC_READ_SEARCH; worker privileges, retry/
+review and shutdown deadlines stay unchanged. Maintain SC-109 and DOC-01–05;
+production NFS and source deletion remain disabled.

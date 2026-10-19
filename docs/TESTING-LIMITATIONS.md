@@ -336,3 +336,19 @@ passing cases; zero cases exhibit early raw-guard closure. The buffered evidence
 therefore establishes held-guard exclusion. Earlier closed-guard regression
 evidence remains separate; do not infer that specific buffered branch or remote
 settlement from these samples.
+
+## Buffered source-claim interruption evidence
+
+[Increment 74](RUST-INCREMENT-74.md) and [the claim lab](NFS-BUFFERED-CLAIM-LAB.md)
+cover eight buffered same/separate-share debug/release claim interruptions before
+202. Actual D-state linkat/unlinkat numbers, directory descriptors and flags
+identify pending client operations; this does not prove server completion with
+a reply withheld or pending fsync/COMMIT. The recorder keeps files/parents
+unchanged until confirmed 202; retryable 503 leaves paths unreleased. Original
+state and source inode survive recovery to custody/202, delivery and committed
+replay. Namespace removal during claiming is distinct from disabled post-delivery
+source cleanup. One modern shared-kernel client/server, joint outage and volatile
+tmpfs establish no physical NAS/power persistence, independent cache/failure,
+old-kernel, scale/endurance or universal timing guarantee. Contender probes precede
+worker SIGKILL; afterwards actual exit is confirmed, adding no terminating/free-
+raw-guard contender scope. Full FR-03/05 and production NFS/deletion stay gated.

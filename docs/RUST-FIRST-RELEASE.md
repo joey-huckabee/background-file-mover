@@ -62,8 +62,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-Next qualify remaining buffered NMP-41B bootstrap/claim and actual pending
-synchronization/RPC boundaries, plus untested copy/verification failure directions,
+Next qualify remaining buffered NMP-41B bootstrap, untested claim boundaries and actual
+pending synchronization/RPC operations, plus untested copy/verification failure directions,
 under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
@@ -335,3 +335,13 @@ recovery, replay and measured limits. Earlier failed aggregate-timer evidence
 remains failed; corrected requests have separate timing checks. Actual pending
 sync/RPC, remote settlement, workload and deployment qualification remain open.
 All eight release gates stay open; production NFS and source deletion remain off.
+
+## Buffered pre-202 source-claim evidence
+
+[Increment 74](RUST-INCREMENT-74.md)/SC-109 adds eight buffered source-claim
+LINK/REMOVE interruption/recovery cases across both layouts and profiles; see
+[the step-by-step lab](NFS-BUFFERED-CLAIM-LAB.md). Keep actual client syscall
+proof separate from server completion/reply-loss proof. Preserve immutable
+producer files/parents until confirmed custody/202 and original-state/inode
+recovery after actual old-worker exit. No full release gate is closed by this
+finite matrix; production NFS and source deletion remain disabled.

@@ -800,3 +800,14 @@ and original one-link final allocation evidence, coordinator-death exclusion,
 old-thread exit before attempt-1 recovery and committed replay. This adds no
 pending sync/RPC, power durability or terminating/free-raw-guard branch.
 Production NFS/source deletion and full-release support remain disabled/gated.
+
+## Buffered source claims before HTTP 202
+
+Use --buffered-claims for eight NMP-41B claim_link_rpc/claim_unlink_rpc cases,
+same/separate shares and debug/release. [Increment 74](RUST-INCREMENT-74.md)
+records actual syscall/parent/flag blocking, Accepted/unreleased and 503 behavior,
+old-worker exclusion and original-inode custody recovery/delivery/replay. The
+[step-by-step lab](NFS-BUFFERED-CLAIM-LAB.md) records observer privileges, exact
+commands, audit and cleanup. Claim name removal is not post-delivery source
+cleanup. No withheld-success-RPC or power durability conclusion follows;
+production NFS/source deletion stay disabled and all release gates stay open.

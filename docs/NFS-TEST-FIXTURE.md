@@ -172,3 +172,13 @@ syscall-observer capabilities are added, and ordinary processes remain UID/GID
 documents exact commands, original one-link allocation recovery, normal cleanup
 and the distinction from actual pending sync/RPC or persistent-media qualification.
 Production NFS and source deletion remain disabled.
+
+## Buffered source-claim matrix
+
+[Increment 74](RUST-INCREMENT-74.md) reuses the fixture with --buffered-claims:
+eight pre-202 custody LINK/producer-name REMOVE interruptions on both buffered
+share layouts and profiles. Root observation needs SYS_PTRACE and DAC_READ_SEARCH
+alongside mount-setup SYS_ADMIN; ordinary workers retain UID/GID 1000, zero
+active capabilities and NoNewPrivs. See [the lab](NFS-BUFFERED-CLAIM-LAB.md) for
+mounts, pending-syscall proof, original-state recovery, artifact audit and normal
+cleanup. One server means joint outage; production NFS/deletion stay off.
