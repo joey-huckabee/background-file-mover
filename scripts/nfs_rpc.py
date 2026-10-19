@@ -36,7 +36,7 @@ class Xdr:
         size = self.uint()
         if size > 64:
             raise ValueError('oversize bitmap')
-        self.take(4 * size)
+        return [self.uint() for _ in range(size)]
 
     def done(self):
         if self.offset != len(self.data):
@@ -90,7 +90,7 @@ def call(data):
     return dict(xid=xid, operations=operations)
 
 
-def reply(data):
+def reply(data, *, attributes=False):
     x = Xdr(data)
     xid = x.uint()
     if [x.uint() for _ in range(2)] != [1, 0]:
@@ -125,10 +125,13 @@ def reply(data):
                 raise ValueError('invalid WRITE committed stability')
             operations[-1]['verifier_hex'] = x.take(8).hex()
         elif op == 9:
-            x.bitmap()
-            x.opaque()
+            bitmap, values = x.bitmap(), x.opaque()
+            if attributes:
+                operations[-1].update(attribute_bitmap=bitmap, attribute_values_hex=values.hex())
         elif op == 10:
-            x.opaque()
+            value = x.opaque()
+            if attributes:
+                operations[-1]['filehandle_sha256'] = hashlib.sha256(value).hexdigest()
         elif op not in (22, 15, 16, 24, 31, 32):
             raise ValueError(f'unsupported reply operation {op}')
     x.done()

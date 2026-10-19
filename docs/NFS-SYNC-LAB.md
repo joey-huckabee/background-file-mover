@@ -183,3 +183,10 @@ the worker; an independently started clock monitor cannot replace it. Consult
 the actual RPC/unknown counts rather than carrying forward the old noac totals.
 Neither native FILE_SYNC WRITE nor a returned fsync proves service COMMIT-loss
 recovery or physical durability. Production NFS/deletion remain off.
+
+[Increment 77](RUST-INCREMENT-77.md) extends observation to worker file I/O,
+retaining --buffered-sync and its default decoder output. Use the separate
+[I/O attribution lab](NFS-BUFFERED-IO-LAB.md) to connect descriptors, bounded write
+bytes and protocol identities where evidence permits. Neither timing alone nor
+a decoded COMMIT in another worker's window proves the selected worker issued it.
+Keep initial failed analysis, unknown compounds and remaining fault scope explicit.

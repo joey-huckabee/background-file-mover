@@ -841,3 +841,21 @@ windows contain WRITE/COMMIT. Both native discoveries observe WRITE, but there
 is no service-matching operation and no new withholding/service fault case.
 The initial native transport observation is retained as rejected scope; the full
 corrected matrix captures both relays before any positive capability selection.
+
+## Buffered worker I/O attribution extension
+
+Use --buffered-io with both passing gates for the eight healthy claim/delivery,
+debug/release, same/separate-share traces described by
+[increment 77](RUST-INCREMENT-77.md) and [the lab](NFS-BUFFERED-IO-LAB.md).
+Retain actual descriptor metadata/flags/offsets, bounded NFS write-buffer bytes,
+all-relay wire evidence and actual clock identity. GETATTR identity and matching
+write range/bytes must be distinguished from plain overlap. Track saved/current
+filehandles correctly; unknown compounds and unmatched operations stay explicit.
+No native withholding control, service fault or production NFS/deletion is added.
+
+Actual increment-77 result: eight extended traces pass; four delivery traces
+match 16 WRITE/four COMMIT requests to payload/manifest fchmod before fsync,
+including twelve earlier-buffer range/hash matches. Claim traffic is not
+attributed to the selected claim worker. All 112 observed syncs still succeed
+without captured interval traffic. First prove matched COMMIT success withheld
+at payload fchmod before its service loss/death/recovery matrix; none runs here.

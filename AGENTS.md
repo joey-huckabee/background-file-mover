@@ -605,3 +605,18 @@ WRITE/COMMIT; both native probes observe WRITE, but no service-matching operatio
 means zero new withholding controls. Capture both relays: actual separate-export
 traffic can use the source relay. Next locate real worker I/O/RPC boundaries
 before service sync-loss cases; preserve the initial rejected-scope evidence.
+
+Increment 77 retains --buffered-io, scripts/nfs_io_trace.py and
+scripts/nfs_io_analysis.py with an independent verifier. Observe eight healthy
+buffered claim/delivery workers and capture bounded descriptor/memory evidence,
+actual clock identity and both relays. Keep metadata/filehandle matches, byte/
+range matches and plain overlap distinct; correctly track SAVEFH/RESTOREFH and
+preserve the initial failed analysis. See docs/RUST-INCREMENT-77.md and
+docs/NFS-BUFFERED-IO-LAB.md. Maintain SC-111 and DOC-01–05; production NFS/deletion,
+Rust/retry/review behavior and deadlines remain unchanged.
+
+Increment-77 result: all eight traces/112 syncs pass. All 20 delivery WRITE/COMMIT
+requests match fchmod on the payload/manifest before fsync; 12 WRITE ranges match
+earlier captured buffers. Claim-window traffic remains unattributed. Next prove
+server-success COMMIT reply withholding at payload fchmod before service fault/
+death/recovery tests; old 4 KiB FILE_SYNC controls are not this UNSTABLE path.

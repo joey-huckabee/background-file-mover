@@ -342,3 +342,13 @@ clock-namespace proof, complete mount-ID sync accounting and conditional native
 probe withholding. [Increment 76](RUST-INCREMENT-76.md) records actual results;
 unknown traffic is retained uncertainty and OS controls are not service failure
 recovery. No Rust policy/deadline or production NFS/deletion change is introduced.
+
+## Buffered worker I/O attribution
+
+Use --buffered-io instead of --buffered-sync for eight healthy worker traces
+including descriptor-based file operations and captured NFS write buffers.
+Follow [the I/O procedure](NFS-BUFFERED-IO-LAB.md) and
+[increment 77](RUST-INCREMENT-77.md) for actual results and the initial failed
+handle-state analysis. Capture both active relays and actual clocks; retain
+unknown traffic and distinguish positive identity/range matches from timing.
+The earlier sync mode stays available. No production NFS/deletion change follows.

@@ -203,3 +203,11 @@ probe controls select only an actually observed operation. Follow the
 [complete procedure](NFS-BUFFERED-SYNC-LAB.md), including raw-payload audit, exact
 inputs, privileges and normal cleanup. This adds no service fault qualification
 or production NFS/deletion.
+
+[Increment 77](RUST-INCREMENT-77.md) adds --buffered-io and the
+[complete I/O lab](NFS-BUFFERED-IO-LAB.md) on the same owned server/client/relay
+infrastructure. A separate opt-in external tracer records file I/O and local
+proc descriptor/memory observations, with bounded payloads and zero target
+observation I/O. Services remain unprivileged; observers retain their explicit
+fixture capabilities. Preserve exact 24-driver provenance, initial failed
+analysis and normal cleanup. No production NFS/source deletion is enabled.

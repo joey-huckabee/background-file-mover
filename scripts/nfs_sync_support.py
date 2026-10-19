@@ -15,9 +15,10 @@ def build_probe(run,output,client,containers,config):
  return dict(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),elf=audit,compiler=run(['exec',builder,'zig','version']).stdout.strip(),scope='fixture-only non-Rust OS probe, not a mover executable')
 
 
-def start_trace(run,client,pid,containers,config,expected_exit='zero'):
- observer=run(['create','--network','none','--pid','container:'+client,'--cap-drop','all','--cap-add','SYS_PTRACE','--cap-add','DAC_READ_SEARCH','--security-opt','no-new-privileges','--entrypoint','/usr/bin/python3',config['builder'],'/tmp/nfs_syscall_trace.py',str(pid),expected_exit]).stdout.strip();containers.append(observer)
- run(['cp',str(Path(__file__).with_name('nfs_syscall_trace.py')),observer+':/tmp/nfs_syscall_trace.py']);run(['start',observer])
+def start_trace(run,client,pid,containers,config,expected_exit='zero',io=False):
+ name='nfs_io_trace.py' if io else 'nfs_syscall_trace.py'
+ observer=run(['create','--network','none','--pid','container:'+client,'--cap-drop','all','--cap-add','SYS_PTRACE','--cap-add','DAC_READ_SEARCH','--security-opt','no-new-privileges','--entrypoint','/usr/bin/python3',config['builder'],'/tmp/'+name,str(pid),expected_exit]).stdout.strip();containers.append(observer)
+ run(['cp',str(Path(__file__).with_name(name)),observer+':/tmp/'+name]);run(['start',observer])
  for _ in range(30):
   if run(['exec',observer,'test','-f','/tmp/trace-ready'],check=False).returncode==0:return observer
   state=json.loads(run(['inspect',observer]).stdout)[0]['State']

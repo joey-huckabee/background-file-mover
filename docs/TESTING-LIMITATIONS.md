@@ -396,3 +396,23 @@ zero new withholding/service fault cases run. Initial separate-share native
 capture watched an idle destination relay; corrected discovery captures both,
 observing actual source-relay traffic. Preserve the rejected-scope initial report
 and do not infer a transport from a mount address.
+
+[Increment 77](RUST-INCREMENT-77.md) and the [I/O lab](NFS-BUFFERED-IO-LAB.md)
+add bounded external open/read/write/close/stat/chmod/sync observations. Local
+proc descriptor snapshots and worker-memory reads avoid target observation I/O;
+ptrace still changes scheduling and permits independent kernel writeback. NFS
+fsid/fileid and byte/range matching are fixture-local identity correlations,
+not authenticated NAS authority or unique causal proof. Correct SAVEFH/RESTOREFH
+state is necessary; the initial conflicting-identity failure remains preserved.
+Unknown attributes, unmatched operations, pre-checkpoint I/O and unsupported
+vectored cases are not promoted to supported fault boundaries. No reply loss,
+death, production NFS/deletion, old kernel or physical durability is qualified.
+
+Actual increment-77 evidence matches twenty delivery requests to payload/manifest
+fchmod before fsync, with twelve WRITE ranges matching earlier completed writes.
+The first 1 MiB predates attachment; claim-window WRITE/COMMIT remains unattributed
+to the selected claim worker. All 112 syncs return zero without captured traffic
+inside them. This selects a COMMIT candidate, not tested reply-withholding or
+fault recovery. Fixture preparation precedes the checkpoint; pending producer/
+source synchronization remains unqualified. Server FILE_SYNC/COMMIT success on
+volatile tmpfs does not establish physical-media/power durability.

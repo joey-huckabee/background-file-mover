@@ -16,13 +16,17 @@ from nfs_sync_capability import validate_resend
 from nfs_sync_support import build_probe, start_trace, finish_trace, correlate
 
 
-def qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture):
+def qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=False):
     root = Path(__file__).resolve().parent
     config, containers = fixture['config'], fixture['containers']
-    report.update(matrix='buffered-sync', capabilities=[], relays={})
+    report.update(matrix='buffered-io' if io_trace else 'buffered-sync', capabilities=[], relays={})
     tests = subprocess.run([sys.executable, str(root/'test_nfs_rpc.py'), '-v'], capture_output=True, text=True, timeout=20)
     report['decoder_tests'] = dict(passed=tests.returncode == 0, output=tests.stdout+tests.stderr)
     assert tests.returncode == 0
+    if io_trace:
+        tests = subprocess.run([sys.executable, str(root/'test_nfs_io_analysis.py'), '-v'], capture_output=True, text=True, timeout=20)
+        report['io_analysis_tests'] = dict(passed=tests.returncode == 0, output=tests.stdout+tests.stderr)
+        assert tests.returncode == 0
     engine = ['podman', '--connection', 'podman-machine-default-root']
     execute('umask 077; mkdir /tmp/local /tmp/sync-probes', '1000:1000')
     artifacts = {}
@@ -44,7 +48,7 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
               for role in ('source', 'destination')}
     for role, relay in relays.items():
         report['relays'][role] = dict(relay.evidence, security=run(['exec', relay.container, 'cat', '/proc/1/status']).stdout)
-    report['probe'] = build_probe(run, output, client, containers, config)
+    if not io_trace: report['probe'] = build_probe(run, output, client, containers, config)
 
     def clocks(observer, active):
         actors = [client, observer, *{v.container for v in active.values()}]
@@ -102,7 +106,7 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
                     r['database_before'] = execute(f"stat -c '%d:%i' {c.base}/state/jobs.sqlite", '1000:1000')
                     r['enrollment_before'] = receipt_evidence(c, adapted)
                     observer = start_trace(run, client, int(pid), containers, config,
-                                           expected_exit='supervised-delivery' if point == 'copy_chunk' else 'zero')
+                                           expected_exit='supervised-delivery' if point == 'copy_chunk' else 'zero', io=io_trace)
                     r['clock_namespaces'] = clocks(observer, active)
                     windows(active, 'observe')
                     execute('touch '+c.rendezvous+'/go', '1000:1000')
@@ -111,6 +115,9 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
                     wires = windows(active, 'stop_observe')
                     r['wire'] = wires
                     r['trace'] = correlate(trace, join_wire(wires))
+                    if io_trace:
+                        from nfs_io_analysis import analyze
+                        r['io_analysis'] = analyze(trace, wires)
                     if point == 'copy_chunk':
                         code, receipt = c.request('GET', '/api/v2/jobs/1')
                         assert code == 200 and receipt['state'] == 'Committed' and receipt['details']['files'][0]['attempt'] == 1
@@ -238,11 +245,11 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
                         case_runner=cases, nfs_root='/tmp/profile-source',
                         destination_nfs_root='/tmp/profile-destination' if layout == 'separate-shares' else None)
             observed = sorted({op for c in report['cases'] if c['layout'] == layout for op in c['full_nfs_sync_operations']})
-            capability(layout, observed)
+            if not io_trace: capability(layout, observed)
             unmount_all()
         assert len(report['cases']) == 8 and all(c['passed'] for c in report['cases'])
-        assert len(report['capabilities']) == 2 and all(c['passed'] for c in report['capabilities'])
-        report.update(passed=True, scope='Eight healthy buffered worker traces with actual clock identity and bounded syscall/RPC correlation; conditional native OS sync release/drop proof, not service sync-loss or physical durability.')
+        assert len(report['capabilities']) == (0 if io_trace else 2) and all(c['passed'] for c in report['capabilities'])
+        report.update(passed=True, scope=('Eight healthy buffered worker I/O traces with descriptor/filehandle/payload attribution; no native controls, service faults or physical durability.' if io_trace else 'Eight healthy buffered worker traces with actual clock identity and bounded syscall/RPC correlation; conditional native OS sync release/drop proof, not service sync-loss or physical durability.'))
     finally:
         for role, relay in relays.items():
             relay.release()

@@ -69,9 +69,10 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Select the next service synchronization fault cases from actual buffered worker
-RPC observations, including mount-root syncs. Native withholding capability
-alone does not qualify service recovery; leave unobserved COMMIT pending.
+Use the observed payload `fchmod` COMMIT boundary to select the next finite
+service fault cases, first proving matched server-success reply withholding.
+Native 4 KiB FILE_SYNC WRITE controls do not cover the observed UNSTABLE-WRITE/
+COMMIT path. Keep pending source sync and other unobserved boundaries open.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
@@ -368,3 +369,10 @@ defining a service fault matrix; neither successful fsync nor OS controls close
 FR-03/05 or physical durability. The [lab](NFS-BUFFERED-SYNC-LAB.md) documents
 clock/process privileges, exact wire evidence and limits. All eight gates remain
 open, with production NFS/deletion disabled.
+
+[Increment 77](RUST-INCREMENT-77.md) extends SC-111 with actual buffered worker
+file-operation observations and descriptor/filehandle/payload attribution.
+Its [lab](NFS-BUFFERED-IO-LAB.md) distinguishes supported identity matches,
+plain timing, unmatched/unknown operations and the initially refused fixture
+analysis. This selects future finite RPC fault cases; it adds none itself and
+closes no full FR-03/05 gate. Production NFS/deletion remain disabled.

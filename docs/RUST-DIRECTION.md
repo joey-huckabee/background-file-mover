@@ -658,3 +658,17 @@ observe WRITE. No service-matching operation means zero new withholding cases.
 Next locate actual worker I/O/RPC boundaries with both relays and descriptor/
 filehandle attribution before defining service fault cases. Preserve initial
 rejected-scope native transport evidence separately.
+
+[Increment 77](RUST-INCREMENT-77.md) retains --buffered-io and a dedicated
+external observer/analysis/verifier, preserving the earlier synchronization mode.
+Use actual descriptor flags/offsets/inodes, bounded write bytes, both relays and
+GETATTR fsid/fileid evidence before selecting reply-loss cases. SAVEFH/RESTOREFH
+must update current/saved handle state; preserve initial failed evidence. Consult
+[the lab](NFS-BUFFERED-IO-LAB.md) and actual attribution limits. Maintain SC-111 and
+DOC-01–05; no Rust, retry/review, deadline or production NFS/deletion change.
+
+Actual increment-77 result: four delivery traces associate 16 WRITE and four
+COMMIT requests with payload/manifest fchmod before fsync; twelve WRITE ranges
+match earlier captured buffers. Claim-window requests stay unattributed. Next
+prove server completion/reply withholding for the payload fchmod COMMIT path
+before selected service loss/death/recovery cases. Keep production NFS/deletion off.

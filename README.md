@@ -288,3 +288,9 @@ synchronization on both share layouts and profiles. The
 [step-by-step lab](docs/NFS-BUFFERED-SYNC-LAB.md) retains raw syscall/RPC evidence
 and conditional native withholding controls. These observations do not qualify
 service reply-loss recovery or physical durability. Production NFS/deletion stay off.
+
+[Increment 77](docs/RUST-INCREMENT-77.md) adds retained buffered worker I/O
+observation, matching descriptor metadata and captured write bytes to NFS
+filehandle evidence where proven. The [step-by-step lab](docs/NFS-BUFFERED-IO-LAB.md)
+separates identity/interval matches from unknown traffic and future fault tests.
+Production NFS and source deletion remain disabled.
