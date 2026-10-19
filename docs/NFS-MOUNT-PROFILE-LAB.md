@@ -319,3 +319,16 @@ DAC_READ_SEARCH; mover privileges stay unchanged. Follow
 producer paths before confirmed 202, actual-exit ownership, original-inode
 custody recovery and separate evidence auditing. No new production authorization
 or post-delivery source deletion is enabled.
+
+## Buffered enrolled/populated bootstrap
+
+Select --buffered-bootstrap with both passing gates for eight NMP-41B startup
+cases, enrolled-empty/populated, same/separate shares and debug/release. It is
+mutually exclusive with other worker matrices. Fresh fixture mounts explicitly
+use ordinary 60-second attribute maxima; cache aging of at least 65 seconds
+precedes actual launch, without global cache flushing or changing service
+settings. Root syscall/kernel-wait observation adds SYS_PTRACE and DAC_READ_SEARCH;
+mover privileges remain unchanged. [The dedicated lab](NFS-BUFFERED-BOOTSTRAP-LAB.md)
+and [increment 75](RUST-INCREMENT-75.md) define acceptance/results, no false-ready
+response, original-state/WAL/partial recovery, exact input auditing and cleanup.
+Do not infer arbitrary warm-cache/fresh-enrollment or production NFS support.

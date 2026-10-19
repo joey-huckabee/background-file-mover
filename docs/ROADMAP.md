@@ -48,8 +48,9 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify remaining buffered NMP-41B bootstrap, untested claim boundaries and
-  actual pending synchronization/RPC operations, plus untested
+- [ ] Qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
+  untested claim boundaries and actual pending synchronization/RPC operations,
+  plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries

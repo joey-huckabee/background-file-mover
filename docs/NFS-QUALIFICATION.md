@@ -811,3 +811,16 @@ old-worker exclusion and original-inode custody recovery/delivery/replay. The
 commands, audit and cleanup. Claim name removal is not post-delivery source
 cleanup. No withheld-success-RPC or power durability conclusion follows;
 production NFS/source deletion stay disabled and all release gates stay open.
+
+## Buffered enrolled/populated startup recovery
+
+Use --buffered-bootstrap for eight NMP-41B enrolled-empty/populated startup
+cases, same/separate shares and debug/release. [Increment 75](RUST-INCREMENT-75.md)
+records actual pending bootstrap, aged cache setup, Starting/no false-ready reply,
+old-worker exclusion and original-state/source/partial recovery/replay. The
+[step-by-step lab](NFS-BUFFERED-BOOTSTRAP-LAB.md) documents infrastructure,
+observer privileges, exact commands, auditing and normal cleanup. Populated jobs
+retain their old 1 MiB partial and finish on attempt 2; enrolled-empty starts its
+first job on attempt 1. No arbitrary warm-cache/fresh-enrollment, RPC reply-loss
+or power-durability inference. Production NFS/deletion remain disabled and all
+release gates stay open.

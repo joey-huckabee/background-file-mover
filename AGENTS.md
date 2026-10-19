@@ -580,3 +580,13 @@ Claim producer-name removal is not post-delivery source deletion. Root syscall
 observation needs both SYS_PTRACE and DAC_READ_SEARCH; worker privileges, retry/
 review and shutdown deadlines stay unchanged. Maintain SC-109 and DOC-01–05;
 production NFS and source deletion remain disabled.
+
+Increment 75 retains --buffered-bootstrap and its helper/verifier for eight
+buffered enrolled-empty/populated startup cases; see docs/RUST-INCREMENT-75.md
+and docs/NFS-BUFFERED-BOOTSTRAP-LAB.md. Require ordinary 60-second attribute
+maxima, fixture cache aging, actual D-state bootstrap with syscall/NFS-RPC wait
+evidence, Starting/no false-ready response and surviving-worker exclusion.
+Preserve original database/WAL/configuration/enrollment/source/partials through
+old-thread exit and recovery; populated jobs retain the old partial and finish
+attempt 2. Maintain SC-110 and DOC-01–05. No Rust, retry/review or service deadline
+changes; production NFS and source deletion remain disabled.

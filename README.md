@@ -275,3 +275,10 @@ profiles. The [lab](docs/NFS-BUFFERED-CLAIM-LAB.md) specifies actual blocked
 linkat/unlinkat proof, unreleased-path/503 behavior, surviving-worker exclusion
 and original-state custody/delivery/replay. Production NFS and source deletion
 remain disabled; full release qualification stays open.
+
+[Increment 75](docs/RUST-INCREMENT-75.md) adds eight buffered enrolled/populated
+startup interruption/recovery cases across both share layouts and profiles.
+The [lab](docs/NFS-BUFFERED-BOOTSTRAP-LAB.md) documents cache aging, actual blocked
+bootstrap, Starting/readiness, surviving-worker exclusion and preserved original
+state/WAL/source/partial recovery. Production NFS and source deletion remain
+disabled; the finite matrix does not close full release qualification.

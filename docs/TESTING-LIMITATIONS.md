@@ -352,3 +352,26 @@ tmpfs establish no physical NAS/power persistence, independent cache/failure,
 old-kernel, scale/endurance or universal timing guarantee. Contender probes precede
 worker SIGKILL; afterwards actual exit is confirmed, adding no terminating/free-
 raw-guard contender scope. Full FR-03/05 and production NFS/deletion stay gated.
+
+## Buffered enrolled/populated bootstrap evidence
+
+[Increment 75](RUST-INCREMENT-75.md) and [the bootstrap lab](NFS-BUFFERED-BOOTSTRAP-LAB.md)
+cover eight aged-buffered enrolled-empty/populated startup cases on both share
+layouts and profiles. Actual D state, pending syscall and NFS/RPC stack or wait
+channel evidence distinguish blocked bootstrap from a userspace pause. Starting
+and a connected unanswered health request must not become a false-ready reply.
+Original database/WAL/configuration, source/enrollment/bindings and partials are
+compared while closed before recovery; these are not live backup instructions.
+Populated recovery preserves its old partial and finishes attempt 2; enrolled-empty
+finishes its first job on attempt 1. Original source inode and producer-reused
+bytes survive. The existing bootstrap budget may request termination while a
+worker stays blocked; no explicit stop/deadline matrix or runtime timeout change
+is added. Probe contenders before SIGKILL, then confirm actual old-thread exit.
+
+These cache-aged source-bootstrap cases do not qualify every warm-cache, fresh-
+enrollment or later destination phase, terminating/free-guard contender interval,
+server-completed RPC/reply loss, pending sync/COMMIT, reboot/failover, independent
+NAS/cache, disk/power durability, old SLES kernel or production-scale workload.
+Readiness still describes the control plane, not destination health. The fixture
+uses one shared modern kernel/server, joint outage and volatile tmpfs. All full
+release gates stay open; production NFS and source deletion remain disabled.

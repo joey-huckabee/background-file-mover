@@ -62,7 +62,8 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-Next qualify remaining buffered NMP-41B bootstrap, untested claim boundaries and actual
+Next qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
+untested claim boundaries and actual
 pending synchronization/RPC operations, plus untested copy/verification failure directions,
 under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
 original-state recovery. Selected basic B/B cases do not close the full worker or
@@ -345,3 +346,13 @@ proof separate from server completion/reply-loss proof. Preserve immutable
 producer files/parents until confirmed custody/202 and original-state/inode
 recovery after actual old-worker exit. No full release gate is closed by this
 finite matrix; production NFS and source deletion remain disabled.
+
+## Buffered enrolled/populated bootstrap evidence
+
+[Increment 75](RUST-INCREMENT-75.md)/SC-110 adds eight buffered startup
+interruption/recovery cases, enrolled-empty/populated across both layouts and
+profiles. See [the step-by-step lab](NFS-BUFFERED-BOOTSTRAP-LAB.md) for cache aging,
+actual blocked bootstrap, Starting/no false-ready response, surviving-worker
+exclusion and original-state/WAL/partial/inode recovery. Preserve remaining fresh/
+warm-cache/later startup, synchronization, workload and deployment qualification.
+All eight release gates stay open; production NFS and source deletion stay off.

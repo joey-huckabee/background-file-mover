@@ -636,3 +636,11 @@ unchanged until confirmed 202, actual blocked syscall/descriptor/flag evidence,
 surviving-worker exclusion and original-state/inode recovery. See
 [the lab](NFS-BUFFERED-CLAIM-LAB.md); maintain SC-109 and DOC-01–05. No Rust,
 retry/review or deadline changes; production NFS/source deletion remain off.
+
+[Increment 75](RUST-INCREMENT-75.md) adds --buffered-bootstrap with a retained
+helper/verifier: eight buffered enrolled-empty/populated startup death/recovery
+cases on both layouts/profiles. Require aged attributes, actual kernel-blocked
+bootstrap, Starting/no false-ready reply, surviving-worker exclusion and original
+state/inode/partial recovery. See [the lab](NFS-BUFFERED-BOOTSTRAP-LAB.md);
+maintain SC-110 and DOC-01–05. Existing Rust, retry/review and all deadlines remain
+unchanged; production NFS and source deletion stay disabled.

@@ -182,3 +182,15 @@ alongside mount-setup SYS_ADMIN; ordinary workers retain UID/GID 1000, zero
 active capabilities and NoNewPrivs. See [the lab](NFS-BUFFERED-CLAIM-LAB.md) for
 mounts, pending-syscall proof, original-state recovery, artifact audit and normal
 cleanup. One server means joint outage; production NFS/deletion stay off.
+
+## Buffered enrolled/populated bootstrap matrix
+
+[Increment 75](RUST-INCREMENT-75.md) reuses the fixture with --buffered-bootstrap:
+eight buffered enrolled-empty/populated startup death/recovery cases on both
+layouts/profiles. Explicit ordinary 60-second attribute maxima and at least
+65 seconds of fixture cache aging precede actual bootstrap launch into outage;
+no host cache flushing, remounting or service deadline change is used. Isolated
+root observation needs SYS_PTRACE and DAC_READ_SEARCH with mount-setup SYS_ADMIN;
+ordinary movers remain unprivileged. Follow [the lab](NFS-BUFFERED-BOOTSTRAP-LAB.md)
+for pending-worker/readiness, original state/WAL/partial/inode recovery and cleanup.
+One server means joint outage; production NFS/deletion remain disabled.
