@@ -28,6 +28,8 @@ pub struct SourceBinding {
     pub endpoint_id: String,
     pub marker_id: String,
     pub filesystem: SourceFilesystem,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nfs_mount: Option<super::NfsMountProfile>,
     pub role: SourceRole,
 }
 impl SourceBinding {
@@ -52,7 +54,7 @@ impl SourceBinding {
         {
             return Err(ClaimError::Blocked("invalid source binding"));
         }
-        Ok(())
+        super::mount_profile::declaration(&self.filesystem, self.nfs_mount.as_ref())
     }
     pub fn encode(&self) -> String {
         serde_json::to_string(self).expect("source binding serialization")
@@ -79,15 +81,27 @@ impl SourceAuthorization {
 }
 fn observe(path: &str, expected: &SourceBinding) -> Result<String> {
     expected.validate()?;
-    observe_marker(path, expected, &expected.filesystem, SOURCE_MARKER)
+    observe_marker(
+        path,
+        expected,
+        &expected.filesystem,
+        expected.nfs_mount.as_ref(),
+        SOURCE_MARKER,
+    )
 }
 fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
     path: &str,
     expected: &T,
     expected_filesystem: &SourceFilesystem,
+    profile: Option<&super::NfsMountProfile>,
     marker_name: &str,
 ) -> Result<String> {
+    super::mount_profile::declaration(expected_filesystem, profile)?;
+    let mount = profile.map(|p| p.observe(path)).transpose()?;
     let root = root(path)?;
+    if let Some(mount) = &mount {
+        mount.validate_descriptor(&root)?;
+    }
     let filesystem = fs::fstatfs(&root)?.f_type;
     if (filesystem == 0x6969) != (*expected_filesystem == SourceFilesystem::Nfs) {
         return Err(ClaimError::Blocked("endpoint filesystem binding mismatch"));
@@ -128,7 +142,7 @@ fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
     }
     let r = owned_directory(&root, false)?;
     let n = owned_directory(&area, true)?;
-    Ok(format!(
+    let mut result = format!(
         "3:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
         filesystem,
         fs::fstatvfs(&root)?.f_fsid,
@@ -140,7 +154,24 @@ fn observe_marker<T: serde::de::DeserializeOwned + PartialEq>(
         n.uid,
         observation(&before).encode(),
         super::custody::named_identity(&area)?.encode()
-    ))
+    );
+    if let Some(before) = &mount {
+        before.validate_descriptor(&root)?;
+        if Some(
+            profile
+                .ok_or(ClaimError::Blocked("missing mount declaration"))?
+                .observe(path)?,
+        ) != mount
+        {
+            return Err(ClaimError::Blocked(
+                "NFS mount changed during authorization",
+            ));
+        }
+    }
+    if let Some(mount) = mount {
+        result.push_str(&format!(":nmp:{}", mount.pin));
+    }
+    Ok(result)
 }
 impl LocalClaimLock {
     pub fn acquire_bound(path: &str, binding: &SourceBinding) -> Result<Self> {
@@ -177,6 +208,8 @@ pub struct DestinationBinding {
     pub endpoint_id: String,
     pub marker_id: String,
     pub filesystem: SourceFilesystem,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nfs_mount: Option<super::NfsMountProfile>,
     pub role: DestinationRole,
 }
 impl DestinationBinding {
@@ -184,6 +217,9 @@ impl DestinationBinding {
     /// is a binding refusal even when its namespace has not been provisioned.
     pub fn unavailable(&self, path: &str) -> Result<bool> {
         self.validate()?;
+        if let Some(profile) = &self.nfs_mount {
+            profile.observe(path)?;
+        }
         let result = (|| {
             let root = root(path)?;
             if (fs::fstatfs(&root)?.f_type == 0x6969) != (self.filesystem == SourceFilesystem::Nfs)
@@ -208,6 +244,7 @@ impl DestinationBinding {
             endpoint_id: self.endpoint_id.clone(),
             marker_id: self.marker_id.clone(),
             filesystem: self.filesystem.clone(),
+            nfs_mount: self.nfs_mount.clone(),
             role: SourceRole::Source,
         }
         .validate()
@@ -228,7 +265,13 @@ impl DestinationAuthorization {
         binding.validate()?;
         Ok(Self {
             binding: binding.clone(),
-            observation: observe_marker(path, binding, &binding.filesystem, DESTINATION_MARKER)?,
+            observation: observe_marker(
+                path,
+                binding,
+                &binding.filesystem,
+                binding.nfs_mount.as_ref(),
+                DESTINATION_MARKER,
+            )?,
         })
     }
     pub fn validate(&self, path: &str) -> Result<()> {
@@ -238,6 +281,7 @@ impl DestinationAuthorization {
                 path,
                 &self.binding,
                 &self.binding.filesystem,
+                self.binding.nfs_mount.as_ref(),
                 DESTINATION_MARKER,
             )? != self.observation
         {
@@ -255,7 +299,13 @@ impl LocalClaimLock {
         expected: Option<&str>,
     ) -> Result<Self> {
         binding.validate()?;
-        let observation = observe_marker(path, binding, &binding.filesystem, DESTINATION_MARKER)?;
+        let observation = observe_marker(
+            path,
+            binding,
+            &binding.filesystem,
+            binding.nfs_mount.as_ref(),
+            DESTINATION_MARKER,
+        )?;
         if expected.is_some_and(|pin| pin != observation) {
             return Err(ClaimError::Blocked(
                 "destination binding observation changed",

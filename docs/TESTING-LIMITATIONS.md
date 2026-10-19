@@ -218,3 +218,40 @@ UID/GID access. Controlled sync exports/tmpfs and local overlay state establish 
 NAS policy, physical durability, persistent state, firmware or old-kernel behavior.
 No real SLES host, NAS administration or host mount changes are prerequisites for
 this lab. The pinned userspace still shares the modern Podman/WSL2 kernel.
+
+## Supervised mount-profile enforcement (increment 69)
+
+[Increment 69](RUST-INCREMENT-69.md) implements explicit per-binding nfs_mount
+configuration and supervised source/destination worker checks. The
+[contract](NFS-MOUNT-PROFILE.md) and [extended lab](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+separate live Rust refusals/replay from the earlier Python model decisions.
+A local proc fingerprint is checked against the opened root fdinfo mnt_id and
+rechecked after marker/custody observations. Existing private root, marker,
+enrollment and inherited-lock checks remain necessary. Namespace/option changes
+can intentionally refuse original-state restart. No matching pin proves mount
+continuity, remote cancellation/settlement, authenticated server or durability.
+
+The qualification feature alone permits NFS. Production NFS and source deletion
+remain disabled; no new dependency/executable, daemon mount management, source
+cleanup, registration or takeover is added. Local binding encodings stay unchanged.
+Legacy NFS bindings without a declared profile refuse; there is no automatic
+marker/pin/receipt rewrite or job-policy migration. Keep original legacy state
+and binary for a separately qualified migration; do not delete state to bypass it.
+
+Finite B/B and N/N worker cases use private root-squashed tmpfs exports and a
+pinned SLES client on the modern shared kernel. Source nested-mount refusal must
+withhold 202; restored original scope permits same-ID retry. Destination refusal
+keeps prior valid custody 202 and requires the existing audited resume after
+restoration. These cases do not qualify every phase/race, cache visibility across
+producer clients, old SLES kernels, actual NAS/security/server failover or power
+loss. Additional buffered synchronization/death qualification remains open.
+
+Increment 69's retained broad run remains FAILED at an obsolete production-startup
+outage assertion despite its individually passed 6/12/184 transfer/state scopes.
+The new early production refusal is expected. A separate qualification-binary
+startup-only run passes the corrected blocked-child/status/stop/restoration case;
+its other scopes are explicitly NOT_RUN. Initial cleanup EBUSY required a later
+normal unmount and exact-resource teardown, preserved separately. Neither failed
+run is promoted to passing overall evidence. The live authorization run passes
+all four B/B/N/N cases with normal cleanup; two earlier fixture setup attempts and
+their exact sources are retained as failed findings.

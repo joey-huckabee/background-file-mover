@@ -29,6 +29,8 @@ def main():
     parser.add_argument("--connection", default="podman-machine-default-root")
     parser.add_argument("--isolated-startup", action="store_true",
                         help="Require startup termination and child exit before NFS restoration")
+    parser.add_argument("--startup-only", action="store_true",
+                        help="Only inherited-lock/OS-outage and isolated qualification startup; transfer/state-layout scopes NOT_RUN")
     parser.add_argument("--qualification-gate", type=Path,
                         help="Also run normal REST transfers with audited NFS qualification artifacts")
     parser.add_argument("--runtime", action="store_true",
@@ -52,6 +54,8 @@ def main():
     parser.add_argument('--sync-observe', action='store_true', help='Correlate actual worker synchronization syscalls and RPC traffic; no invented reply-loss cases')
     parser.add_argument('--sync-capability', help='Passing independent synchronization capability report.json')
     args = parser.parse_args()
+    assert not args.isolated_startup or args.qualification_gate, "isolated NFS startup requires the qualification gate"
+    assert not args.startup_only or (args.isolated_startup and not any((args.runtime,args.shutdown,args.coordinator_death,args.ownership,args.enrollment_storage,args.delivery_storage,args.source_storage,args.sync_observe))), "startup-only requires isolated-startup and no other matrix"
     assert not args.sync_observe or (args.qualification_gate and args.sync_capability)
     assert not args.sync_observe or not any((args.coordinator_death,args.shutdown,args.runtime))
 
@@ -112,6 +116,7 @@ def main():
               "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
     report["coordinator_death_requested"] = args.coordinator_death
     report["coordinator_death_scope"] = None if args.sync_observe else args.death_scope or "claim-copy-verify"
+    report["startup_only"] = args.startup_only
     report["shutdown_requested"] = args.shutdown
     report["runtime_requested"] = args.runtime
     report["ownership_requested"] = args.ownership
@@ -291,10 +296,10 @@ def main():
             loaded = execute("ldd -r /tmp/" + profile).stdout
             assert "not found" not in loaded and "undefined symbol" not in loaded
             result = execute("LD_BIND_NOW=1 /tmp/" + profile + " /tmp/local/config.json", "1000:1000", check=False)
-            assert result.returncode != 0 and "filesystem not qualified" in result.stderr
+            assert result.returncode != 0 and any(reason in result.stderr for reason in ("filesystem not qualified", "production NFS disabled"))
             assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
             report["checks"][profile + "_startup_rejected"] = result.stderr.strip()
-        if qualification:
+        if qualification and not args.startup_only:
             from nfs_baseline import run_baseline
             report["qualification_gate"] = qualification_gate.name
             report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
@@ -470,44 +475,58 @@ def main():
                 report["runtime"]["passed"] = completed["passed"]
                 if not report["runtime"]["passed"]:
                     raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
-        # Local instance state must refuse NFS in BOTH builds, before source/SQLite.
-        # All paths below belong to this disposable fixture, not user storage.
-        execute("mkdir /tmp/nfs/instance-state; chmod 700 /tmp/nfs/instance-state", "1000:1000")
-        assert execute("stat -f -c %t /tmp/nfs/instance-state").stdout.strip() == "6969"
-        bad_state = dict(config, source_root="/tmp/instance-source-must-not-be-opened",
-                         state_database="/tmp/nfs/instance-state/jobs.sqlite")
-        path = output / "nfs-state-config.json"
-        path.write_text(json.dumps(bad_state), encoding="utf-8")
-        run(["cp", str(path), client + ":/tmp/nfs-state-config.json"])
-        report["local_ownership"] = {"passed": False, "cases": [],
-            "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                              for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py")}}
-        builds = [("production", evidence, "/tmp/")]
-        if qualification:
-            builds.append(("nfs-qualification", qualification, "/tmp/qualification-"))
-        for mode, build_evidence, prefix in builds:
-            for profile in ("debug", "release"):
-                artifact = next(a for a in build_evidence["profiles"][profile]["artifacts"] if not a["test"])
-                assert execute("sha256sum " + prefix + profile).stdout.split()[0] == artifact["sha256"]
-                for command in ("", "--initialize-source ", "--transfer-one "):
-                    started = time.monotonic()
-                    suffix = " 1" if command.startswith("--transfer-one") else ""
-                    result = execute("LD_BIND_NOW=1 " + prefix + profile + " " + command +
-                                     "/tmp/nfs-state-config.json" + suffix, "1000:1000", check=False)
-                    elapsed = time.monotonic() - started
-                    assert result.returncode != 0 and elapsed < 10
-                    expected = "instance state filesystem" if mode == "nfs-qualification" else "filesystem not qualified"
-                    assert expected in result.stderr, result.stderr
-                    assert execute("test -z \"$(ls -A /tmp/nfs/instance-state)\" && test ! -e /tmp/instance-source-must-not-be-opened",
-                                   "1000:1000", check=False).returncode == 0
-                    report["local_ownership"]["cases"].append({"build": mode, "profile": profile,
-                        "command": command.strip() or "service", "binary_sha256": artifact["sha256"],
-                        "elapsed_seconds": round(elapsed, 3), "stderr": result.stderr.strip(),
-                        "passed": True, "state_empty": True, "source_absent": True})
-        report["local_ownership"]["passed"] = True
-        from nfs_state_layout import qualify as qualify_state_layout
-        report["sqlite_state_layout"] = qualify_state_layout(
-            run, execute, spawn, restore, server, client, output, config, builds, extra_mounts)
+        if not args.startup_only:
+            # Local instance state must refuse NFS in BOTH builds, before source/SQLite.
+            # All paths below belong to this disposable fixture, not user storage.
+            execute("mkdir /tmp/nfs/instance-state; chmod 700 /tmp/nfs/instance-state", "1000:1000")
+            assert execute("stat -f -c %t /tmp/nfs/instance-state").stdout.strip() == "6969"
+            bad_state = dict(config, source_root="/tmp/instance-source-must-not-be-opened",
+                             state_database="/tmp/nfs/instance-state/jobs.sqlite")
+            path = output / "nfs-state-config.json"
+            path.write_text(json.dumps(bad_state), encoding="utf-8")
+            run(["cp", str(path), client + ":/tmp/nfs-state-config.json"])
+            report["local_ownership"] = {"passed": False, "cases": [],
+                "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                  for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py")}}
+            builds = [("production", evidence, "/tmp/")]
+            if qualification:
+                builds.append(("nfs-qualification", qualification, "/tmp/qualification-"))
+            for mode, build_evidence, prefix in builds:
+                for profile in ("debug", "release"):
+                    artifact = next(a for a in build_evidence["profiles"][profile]["artifacts"] if not a["test"])
+                    assert execute("sha256sum " + prefix + profile).stdout.split()[0] == artifact["sha256"]
+                    for command in ("", "--initialize-source ", "--transfer-one "):
+                        started = time.monotonic()
+                        suffix = " 1" if command.startswith("--transfer-one") else ""
+                        result = execute("LD_BIND_NOW=1 " + prefix + profile + " " + command +
+                                         "/tmp/nfs-state-config.json" + suffix, "1000:1000", check=False)
+                        elapsed = time.monotonic() - started
+                        assert result.returncode != 0 and elapsed < 10
+                        expected = "instance state filesystem" if mode == "nfs-qualification" else "filesystem not qualified"
+                        assert expected in result.stderr, result.stderr
+                        assert execute("test -z \"$(ls -A /tmp/nfs/instance-state)\" && test ! -e /tmp/instance-source-must-not-be-opened",
+                                       "1000:1000", check=False).returncode == 0
+                        report["local_ownership"]["cases"].append({"build": mode, "profile": profile,
+                            "command": command.strip() or "service", "binary_sha256": artifact["sha256"],
+                            "elapsed_seconds": round(elapsed, 3), "stderr": result.stderr.strip(),
+                            "passed": True, "state_empty": True, "source_absent": True})
+            report["local_ownership"]["passed"] = True
+            from nfs_state_layout import qualify as qualify_state_layout
+            report["sqlite_state_layout"] = qualify_state_layout(
+                run, execute, spawn, restore, server, client, output, config, builds, extra_mounts)
+        else:
+            for scope in ("baseline", "local_ownership", "sqlite_state_layout"):
+                report[scope] = {"status":"NOT_RUN", "scope":"startup-only mode"}
+        startup_binary = "/tmp/release"
+        if args.isolated_startup:
+            artifact = next(a for a in qualification["profiles"]["release"]["artifacts"] if not a["test"])
+            path = qualification_gate / artifact["name"]
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == artifact["sha256"]
+            startup_binary = "/tmp/qualification-release"
+            run(["cp", str(path), client + ":" + startup_binary])
+            execute("chmod 555 " + startup_binary)
+            assert execute("sha256sum " + startup_binary).stdout.split()[0] == artifact["sha256"]
+            report["startup_artifact"] = {"build":"nfs-qualification","sha256":artifact["sha256"],"source_sha256":qualification["source_sha256"]}
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")
@@ -532,17 +551,21 @@ def main():
         await_file("/tmp/local/probe.pid")
         time.sleep(3)
         assert probe.poll() is None, "hard mount unexpectedly returned during outage"
-        startup = spawn("echo $$ >/tmp/local/startup.pid; exec /tmp/release /tmp/local/config.json", "outage-startup")
+        startup = spawn("echo $$ >/tmp/local/startup.pid; exec " + startup_binary + " /tmp/local/config.json", "outage-startup")
         await_file("/tmp/local/startup.pid")
         time.sleep(3)
-        assert startup.poll() is None, "startup unexpectedly returned during outage"
+        if args.isolated_startup:
+            assert startup.poll() is None, "qualification startup unexpectedly returned during outage"
+        else:
+            assert startup.wait(timeout=5) != 0, "production must refuse NFS before remote metadata"
+            report["checks"]["production_early_refusal_during_outage"] = True
         assert interrupted.poll() is None, "assigned hard-mount operation unexpectedly returned"
         if args.isolated_startup:
             children = execute("pid=$(cat /tmp/local/startup.pid); for task in /proc/$pid/task/*/children; do cat $task; done", "1000:1000").stdout.split()
             assert len(children) == 1, "startup must have exactly one bounded bootstrap child"
             report["checks"]["bootstrap_children_before_signal"] = len(children)
             observed_at = time.monotonic()
-            lifecycle = execute("LD_BIND_NOW=1 /tmp/release --status /tmp/local/config.json", "1000:1000")
+            lifecycle = execute("LD_BIND_NOW=1 " + startup_binary + " --status /tmp/local/config.json", "1000:1000")
             local_status = json.loads(lifecycle.stdout)
             assert local_status["phase"] == "Starting" and len(local_status["workers"]) == 1
             elapsed = time.monotonic() - observed_at
@@ -554,7 +577,8 @@ def main():
             health = spawn("exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19876; printf \"GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3; cat <&3'", "startup-health")
             time.sleep(1)
             assert health.poll() is None, "startup served an HTTP response before custody"
-        execute("kill -TERM $(cat /tmp/local/startup.pid)", "1000:1000")
+        if startup.poll() is None:
+            execute("kill -TERM $(cat /tmp/local/startup.pid)", "1000:1000")
         time.sleep(1)
         if args.isolated_startup:
             assert startup.wait(timeout=5) == 0
@@ -566,7 +590,7 @@ def main():
         execute("kill -KILL $(cat /tmp/local/interrupted.pid)", "1000:1000")
         time.sleep(1)
         report["checks"]["kill_during_outage"] = {"exit_observed_before_restore": interrupted.poll() is not None}
-        report["checks"]["outage"] = "Metadata and source startup remained pending at 3-second observations"
+        report["checks"]["outage"] = "OS metadata remained pending; qualification bootstrap pending or production refused before remote I/O, as requested"
         restore()
         assert probe.wait(timeout=45) == 0
         assert (startup.wait(timeout=45) == 0) == args.isolated_startup
@@ -581,7 +605,7 @@ def main():
         if args.isolated_startup:
             assert "Source bootstrap termination requested" in startup_log
         else:
-            assert "filesystem not qualified" in startup_log
+            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled"))
         report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
         assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect case outcomes and required closed-guard coverage"
         report["status"] = "PASSED"

@@ -512,5 +512,15 @@ is the buffered first-release qualification candidate; NMP-41N retains earlier
 noac diagnostic scope. scripts/check-nfs-mount-profile.py validates a read-only
 Python inventory model, not shipping Rust startup enforcement. Matching pins can
 survive remount with reused IDs and cannot prove server availability/settlement.
-Integrate supervised descriptor/enrollment-aware checks before buffered worker
-qualification; keep production NFS/deletion disabled and update SC-103-105.
+Increment 69 below adds supervised descriptor/enrollment-aware checks and selected
+buffered worker evidence; keep production NFS/deletion disabled and maintain SC-103-105.
+
+Increment 69 implements explicit per-binding nfs_mount declarations in mover-fs,
+with bounded local mountinfo, actual opened-root fdinfo mnt_id cross-check and
+before/after profile pins inside supervised authorization. Bindings/markers must
+agree; local bindings omit the field and keep existing encodings. Old NFS bindings
+without profiles refuse; do not auto-migrate markers/jobs/receipts or re-enroll.
+Claims/enrollment/statistics/delivery check bound source before payload traversal;
+legacy unbound payload workers refuse NFS. Keep production NFS/deletion off.
+See docs/RUST-INCREMENT-69.md and the authorization extension in the mount lab;
+continue remaining buffered worker interruption/sync and same-share qualification.

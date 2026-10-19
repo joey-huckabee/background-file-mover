@@ -62,12 +62,11 @@ Selected FR-02 source-capacity cases have evidence in
 [increment 38](RUST-INCREMENT-38.md); the eight release gates remain open.
 Do not repeat that bounded tmpfs case as unfinished implementation work.
 
-The next bounded increment is supervised Rust integration of the
-[mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12, preserving original
-descriptor/enrollment authority and existing-job recovery. Its inventory model
-is qualified separately; new service enforcement is pending. Keep production
-NFS/deletion off, then qualify actual buffered NMP-41B worker behavior before
-using that profile for remaining synchronization reply-loss cases.
+The next bounded increment is qualification of remaining real buffered NMP-41B
+worker interruption/recovery boundaries under the [mount-profile contract](NFS-MOUNT-PROFILE.md),
+MP-01-12. Preserve supervised authorization, descriptor/enrollment authority and
+original-state recovery. Selected basic B/B cases do not close the full worker or
+synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
@@ -293,3 +292,11 @@ read-only model decisions for selected SH-10/12/13 inventory cases. New Rust
 startup/effect enforcement, descriptor/enrollment rechecks and real buffered
 service fault tests remain pending. Reused mount IDs show that matching pins do
 not prove continuity. FR-03/05 remain open; production NFS/deletion stay disabled.
+
+[Increment 69](RUST-INCREMENT-69.md) integrates explicit nfs_mount declarations and
+proc-to-root-descriptor/profile fingerprints into supervised bootstrap and worker
+authorization. Selected live mismatch/refusal/restoration/replay cases and both
+SLES gates complement the independent model; they do not close FR-03/05. Legacy
+NFS profile-less bindings refuse without automatic migration. Production NFS and
+source deletion remain disabled; remaining B/B interruption and same-share worker
+qualification precede general synchronization/recovery support.

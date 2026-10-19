@@ -267,10 +267,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut boundary = "custody_before";
     let result: Result<ClaimIntent, ClaimError> = (|| {
+        mover_fs::validate_worker_source(&path, request.source_authorization.as_ref())?;
         mover_fs::validate_payload_locks(&path, &path)?;
-        if let Some(auth) = &request.source_authorization {
-            auth.validate(&path)?;
-        }
         boundary = operation;
         let result = match assignment {
             Assignment::Observe {
@@ -297,10 +295,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         };
         let c = result?;
         boundary = "custody_after";
+        mover_fs::validate_worker_source(&path, request.source_authorization.as_ref())?;
         mover_fs::validate_payload_locks(&path, &path)?;
-        if let Some(auth) = &request.source_authorization {
-            auth.validate(&path)?;
-        }
         Ok(c)
     })();
     let reply = match result {

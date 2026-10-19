@@ -592,10 +592,11 @@ pub fn worker() -> Result<()> {
                     if context.is_some() || job_id <= 0 {
                         return Err("invalid open assignment".into());
                     }
+                    mover_fs::validate_worker_source(
+                        &source_root,
+                        request.source_authorization.as_ref(),
+                    )?;
                     mover_fs::validate_payload_locks(&source_root, &source_root)?;
-                    if let Some(auth) = &request.source_authorization {
-                        auth.validate(&source_root)?;
-                    }
                     checking_destination = destination_binding.is_some();
                     if let (Some(source), Some(destination)) =
                         (&request.source_authorization, &destination_binding)
@@ -634,10 +635,11 @@ pub fn worker() -> Result<()> {
                 command => {
                     let (id, source, destination) =
                         context.as_ref().ok_or("delivery not opened")?;
+                    mover_fs::validate_worker_source(
+                        source,
+                        request.source_authorization.as_ref(),
+                    )?;
                     mover_fs::validate_payload_locks(source, source)?;
-                    if let Some(auth) = &request.source_authorization {
-                        auth.validate(source)?;
-                    }
                     checking_destination = true;
                     destination.validate()?;
                     checking_destination = false;
@@ -684,10 +686,11 @@ pub fn worker() -> Result<()> {
                         };
                         reply.transfer = Some(Assignment::new(&next, &c));
                     }
+                    mover_fs::validate_worker_source(
+                        source,
+                        request.source_authorization.as_ref(),
+                    )?;
                     mover_fs::validate_payload_locks(source, source)?;
-                    if let Some(auth) = &request.source_authorization {
-                        auth.validate(source)?;
-                    }
                     checking_destination = true;
                     destination.validate()?;
                 }

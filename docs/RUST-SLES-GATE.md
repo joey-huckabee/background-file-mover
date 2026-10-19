@@ -151,3 +151,9 @@ The increment 68 [mount-profile lab](NFS-MOUNT-PROFILE-LAB.md) executes no Rust.
 Its pinned-client proc inventory decisions complement, and do not replace, both
 production and qualification gates. New buffered service behavior is not qualified
 by old noac worker runs or matching mount snapshots.
+
+Increment 69's [profile authorization extension](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+requires both complete passing final-source gates before using exact audited
+executables. It rejects stale Rust archives/inventories and verifies copied binary
+hashes. Newly added parser/configuration/descriptor tests also run only through
+these gates. Preserve initial failed fixture evidence separately from final passes.

@@ -581,6 +581,16 @@ Increment 67 records synchronization RPC capability and actual worker observatio
 [Increment 68](RUST-INCREMENT-68.md) defines the [mount-profile contract](NFS-MOUNT-PROFILE.md)
 and [step-by-step lab](NFS-MOUNT-PROFILE-LAB.md). Buffered NMP-41B is the bounded
 first-release qualification candidate; noac NMP-41N retains its earlier diagnostic
-scope. Read-only model decisions are validated; new Rust startup/effect enforcement
-and real buffered worker fault qualification remain pending. Matching proc pins
+scope. Read-only model decisions were validated there; increment 69 below adds Rust
+startup/effect enforcement and selected real worker evidence. Remaining buffered
+fault qualification stays pending. Matching proc pins
 cannot prove continuity or NAS availability. Production NFS/deletion remain off.
+
+[Increment 69](RUST-INCREMENT-69.md) implements supervised NFS mount-profile
+checks using strict per-binding declarations, root-descriptor mount ID correlation
+and fingerprints in existing enrollment/worker observations. Local encodings stay
+unchanged; legacy NFS bindings without profiles refuse without automatic migration.
+The [extended lab](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+records selected real B/B/N/N refusal/recovery/replay scope alongside the model.
+Next qualify remaining buffered worker interruption/synchronization boundaries and
+same-share workers. Production NFS and source deletion remain disabled.

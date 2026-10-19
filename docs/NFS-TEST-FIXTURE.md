@@ -138,3 +138,10 @@ kernel-NFS server and pinned SLES client, with separate root-squashed child expo
 UID/GID 1000 controls and normal-unmount cleanup. It validates model decisions,
 not Rust startup or transfer support. Keep B/B candidate and N/N legacy evidence
 separate. A matching proc inventory is neither NAS availability nor mount continuity.
+
+Increment 69 adds [supervised Rust authorization checks](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+to the profile lab, using exact passing production/qualification artifacts and
+fresh declared root-squashed B/B and N/N fixtures. The shared nfs_binding helper
+adds declarations only when provisioning new disposable markers; it never updates
+them automatically at service restart. Retained noac boundary checks remain scoped
+separately. Production NFS and source deletion remain disabled.

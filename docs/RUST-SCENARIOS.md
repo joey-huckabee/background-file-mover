@@ -132,13 +132,13 @@ deployment instructions. Scenario IDs are documentation keys, not requirement ID
 | SC-079 | New/replayed submissions race with capacity sampling | Final serialized acceptance resolves existing duplicates before guard refusal. Expired permits cannot insert new jobs; probes coalesce and existing transactional limits remain. | Local store/cache: replay-first refusal and actual SQLite-lock wait expiring a sufficient permit, eight concurrent store requests, 100 coalesced demands and bounded async waiters. [36](RUST-INCREMENT-36.md), SA-10/11. Broader concurrent queue flooding/multiple generators remain pending; no distributed admission lock claimed. |
 | SC-080 | Restart, threshold change or disabling follows acceptance | Discard samples on restart, preserve jobs/reservations/review and apply current policy only to new keys. Off requires confirmed prior-worker exit, not takeover. | Local API: original-state restart preserves replay, empty cache, threshold change/new sampling, explicit off; store restart preserves accepted identity under unavailable gate. [36](RUST-INCREMENT-36.md), SA-12/13. Fixture debug/release also restores native capacity without changing policy/configuration or restarting the coordinator; [38](RUST-INCREMENT-38.md). Crash-at-every-instruction and hard-NFS old-child exit remain separate qualification. |
 
-## Mount-profile contract scenarios (qualification model only)
+## Mount-profile scenarios (controlled qualification)
 
 | ID | User situation | Behavior and user action | Actual scope |
 |---|---|---|---|
-| SC-103 | A source/destination share is absent, mounted differently, or has a nested mount | Planned startup/effect checks must withhold unproven new work, preserve original state and explain the mismatch for operator review. The recorder keeps the same submission ID and leaves paths untouched until 202. Do not remount or create new state to bypass custody. | [68](RUST-INCREMENT-68.md), [profile contract](NFS-MOUNT-PROFILE.md) MP-01-07: read-only model decisions over live/synthetic inventories. New service enforcement and buffered worker qualification remain pending; production NFS/deletion stay off. |
-| SC-104 | Source and destination are on the same share or different shares | Declare disjoint approved roots and private work areas for each role. Keep normal source-copy/hash/destination-reread and manifest rules; one share does not authorize a shortcut. | [68](RUST-INCREMENT-68.md) matches same-share disjoint and separate-export inventories, with UID/GID 1000 I/O controls. B/B, N/N and mixed inventory matches do not establish actual mover support for those combinations. |
-| SC-105 | Mount settings look unchanged after an outage or remount | A matching inventory is only an observation. Restore storage and preserve original state; descriptor/enrollment checks and owned reconciliation must establish authority before effects. Do not interpret a matching pin as readiness or uninterrupted custody. | [68](RUST-INCREMENT-68.md) observes a matching pin with NFSD stopped and retains the initial failed remount-ID assumption. Mount IDs/pins can be reused. No pending-RPC settlement or mover server-recovery claim. |
+| SC-103 | A source/destination share is absent, mounted differently, or has a nested mount | Supervised startup/effect checks withhold unproven new effects and 202 on mismatched scope; preserve original state and inspect the refusal before retry. The recorder keeps the same submission ID and leaves paths untouched until 202. Do not remount or create new state to bypass custody. | [68](RUST-INCREMENT-68.md), [profile contract](NFS-MOUNT-PROFILE.md) MP-01-07: read-only model decisions over live/synthetic inventories. [69](RUST-INCREMENT-69.md) adds supervised Rust enforcement and selected B/B/N/N refusal/restoration/replay evidence; remaining fault qualification is pending. Production NFS/deletion stay off. |
+| SC-104 | Source and destination are on the same share or different shares | Declare disjoint approved roots and private work areas for each role. Keep normal source-copy/hash/destination-reread and manifest rules; one share does not authorize a shortcut. | [68](RUST-INCREMENT-68.md) matches same-share disjoint and separate-export inventories, with UID/GID 1000 I/O controls. B/B, N/N and mixed inventory matches alone do not establish mover support. [69](RUST-INCREMENT-69.md) adds selected real B/B/N/N refusal/restoration/replay on separate exports; same-share worker qualification remains pending. |
+| SC-105 | Mount settings look unchanged after an outage or remount | A matching inventory is only an observation. Restore storage and preserve original state; descriptor/enrollment checks and owned reconciliation must establish authority before effects. Do not interpret a matching pin as readiness or uninterrupted custody. | [68](RUST-INCREMENT-68.md) observes a matching pin with NFSD stopped and retains the initial failed remount-ID assumption. Mount IDs/pins can be reused. [69](RUST-INCREMENT-69.md) adds selected VFS-flag change/refusal/restoration with original roots/receipts and same-job replay. No pending-RPC settlement or mover server-recovery claim. |
 
 ## Planned situations without implementation/qualification promises
 
@@ -422,3 +422,13 @@ DOC-03/04/05 now have the [mount-profile contract](NFS-MOUNT-PROFILE.md) and
 matching from service startup enforcement, noac evidence from buffered service
 qualification, and observed pins from mount continuity. Full deployment/account,
 worker-recovery and persistent-storage walkthroughs remain pending.
+
+[Increment 69](RUST-INCREMENT-69.md) updates SC-001/005/007/018/020/034/046/054/103/104/105
+and DOC-03/04/05 without adding or renumbering IDs: 105 SC and six DOC IDs.
+Explicit profile-less/mismatched NFS bindings now refuse in supervised Rust;
+source refusal withholds unproven 202, destination review retains valid custody,
+and original-scope restoration preserves the existing retry/audited resume paths.
+The [extended lab](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+separates actual program decisions from model-only cases and documents legacy
+refusal, namespace/pin limits and remaining buffered/same-share/death qualification.
+No production NFS/source deletion or full-release support is promoted.

@@ -1,10 +1,10 @@
 # First-release NFS mount profile contract
 
-Increment 68 defines a **candidate**, not production NFS support. Production NFS
-and source deletion remain disabled. The read-only Python qualification model
-and container lab validate inventory decisions; service startup does not yet
-enforce this contract. Existing Rust descriptor/root/enrollment guards remain in
-place. Registration, cross-host takeover and automatic re-enrollment stay deferred.
+Increment 68 defines a **candidate**, not production NFS support. Increment 69
+adds supervised Rust enforcement alongside the existing descriptor/root/enrollment
+guards. Production NFS and source deletion remain disabled. The earlier Python
+model remains independent qualification infrastructure. Registration, cross-host
+takeover and automatic re-enrollment stay deferred.
 
 ## Candidate and diagnostic profiles
 
@@ -44,12 +44,28 @@ for the real account remains necessary.
 
 ## Explicit declaration and observations
 
-The lab declaration contains `state_path` and, for source and destination,
-`path`, `mountpoint`, expected `source` (server/export string), effective `addr`
-and profile ID. These are **model inputs, not new service configuration keys**.
-Use exact expected values; do not discover an arbitrary mount and approve it
-merely by copying its identity into a new declaration. Initial operator approval
-and protected enrollment remain independent prerequisites.
+The independent model still uses `state_path` and per-role `path`, `mountpoint`,
+`source`, `addr` and profile ID. The Rust service instead uses its existing
+`source_root`, `destination_root` and local `state_database`, with an optional
+`nfs_mount` object **inside each endpoint binding**. It is required for NFS and
+forbidden for local bindings:
+
+```json
+"nfs_mount": {
+  "profile": "NMP-41B",
+  "mountpoint": "/mnt/recordings",
+  "source": "192.0.2.10:/recordings",
+  "addr": "192.0.2.10"
+}
+```
+
+The example is a field fragment, not a complete runnable configuration. Profile
+ID is exactly NMP-41B or NMP-41N; mountpoint is canonical absolute, source is the
+expected kernel server/export string and addr is an explicit IP address. The
+same object belongs in the provisioned endpoint marker; destination binding
+policy is pinned with each job. Do not infer production authorization from an
+arbitrary reachable mount. Initial operator approval and protected enrollment
+remain independent prerequisites.
 
 Read bounded `/proc/self/mountinfo` in the same mount namespace as the worker.
 The model consumes at most 1 MiB, checks structure/escapes/unique mount IDs and
@@ -79,35 +95,37 @@ No fixed delay, force flag or fresh database overrides a detected mismatch.
 
 ## Acceptance and refusal obligations
 
-| ID | Required behavior | Increment 68 evidence / remaining work |
+| ID | Required behavior | Increment 68 model evidence / follow-up scope |
 |---|---|---|
 | MP-01 | Explicit per-root profile, version, transport, security and endpoint/export match | Read-only model; live B/B, N/N and mixed observations. Mixed matches are diagnostic, not shipping authorization. |
 | MP-02 | Require writable hard mounts; refuse soft/fallback/coherence overrides | Live soft, ro and nocto refusals for each endpoint; other incompatible settings are synthetic inventory controls. |
-| MP-03 | Missing NFS mount must not fall back to an ordinary local directory | Live missing-both and missing-destination inventories refuse. Production guard integration pending. |
+| MP-03 | Missing NFS mount must not fall back to an ordinary local directory | Live missing-both and missing-destination inventories refuse. Rust integration is described below; broader failure qualification remains open. |
 | MP-04 | Disjoint approved roots on the same share or separate shares | Live same-share disjoint roots and separate tmpfs export devices match; overlap refuses. Full service buffered same/separate-share fault matrix pending. |
 | MP-05 | No unexpected nested/stacked/subtree-bind mount in an approved root | Live source/destination nested tmpfs and subtree bind alias refuse. Whole-root bind aliases and concurrent mount replacement require descriptor identity/alias checks. |
 | MP-06 | Database, guard/control/worker evidence and sidecars stay on protected persistent local disk | Model rejects NFS state and nested state mounts. Overlay/tmpfs accepted only as lab-local observation; persistence is never certified. Existing Rust checks remain authoritative; deployment/account qualification pending. |
 | MP-07 | Recheck original selected pins, never auto-rebind after observed change | Stable pin matches; a changed effective retry option refuses. Same-options remount can reproduce the pin: matching observations do not establish continuity. |
 | MP-08 | Inventory match must never imply server availability, root custody or RPC settlement | Server NFSD threads verified zero; local inventory still matches. This is deliberately a match, not readiness. |
-| MP-09 | Validate real root descriptors, inode/device, filesystem, UID/mode/ACL, private directories and enrollment receipts before effects | Existing selected Rust guards; this model adds no such implementation or new evidence. Missing/inaccessible roots and symlink/alias races still need supervised service qualification. |
-| MP-10 | No coordinator payload traversal; mount/root work is bounded/supervised and revalidated around effects | Intended integration contract; inventory is local-only. Snapshot-to-use races are not closed by this increment. |
+| MP-09 | Validate real root descriptors, inode/device, filesystem, UID/mode/ACL, private directories and enrollment receipts before effects | Existing selected Rust guards; the independent model adds no such implementation or evidence; Rust integration below preserves those guards. Missing/inaccessible roots and symlink/alias races still need supervised service qualification. |
+| MP-10 | No coordinator payload traversal; mount/root work is bounded/supervised and revalidated around effects | Rust enforcement below; inventory is local-only. Snapshot-to-use races are not closed by this increment. |
 | MP-11 | Reconcile uncertain owned NFS effects using original state; do not redispatch on timeout or guard release | Existing retained cases remain scoped to their actual mounts. Buffered service sync/lost-reply and server recovery remain open. |
-| MP-12 | Preserve producer 202 custody, 3N copy/verification, no-clobber manifest and retained sources | Unchanged. No Rust transfer is executed by this new lab; prior evidence cannot be promoted to NMP-41B. |
+| MP-12 | Preserve producer 202 custody, 3N copy/verification, no-clobber manifest and retained sources | Unchanged. Increment 68 executes no Rust; increment 69 adds selected real worker cases. No general promotion of earlier evidence to NMP-41B. |
 
-For later startup integration, a profile mismatch must withhold new effects and
-unproven 202; preserve original state/claims and report the reason for operator
-review. A previously valid 202 remains valid for producer path reuse. A destination
+In supervised startup and bound workers, a profile mismatch withholds new effects
+and unproven 202; preserve original state/claims and inspect the reported reason. A previously valid 202 remains valid for producer path reuse. A destination
 outage alone need not prevent source claiming where original source authority is
 established; a local inventory match alone establishes neither endpoint's authority.
-Existing-job retries must not bypass profile/custody checks. Do not advertise these
-new refusal decisions as current service errors before integration lands.
+Existing-job retries do not bypass profile/custody checks. Source profile refusal
+uses the existing recording_blocked response. Destination refusal uses the existing
+review/resume behavior; restoring original scope does not bypass operator review.
+Missing/incompatible declarations refuse configuration. Production still refuses
+NFS even when a declaration matches. No new recorder workflow is introduced.
 
 ## Qualification order and limits
 
-1. Integrate the profile declaration/observations into supervised Rust startup and
-   effect authorization, with local-only coordinator reads and original pin checks.
-   Keep the production NFS gate closed.
-2. Qualify actual service bootstrap/claim/copy/verify/publication/manifest on B/B
+1. Preserve increment 69's supervised enforcement, proc-to-open-root descriptor
+   check, before/after inventory checks and persisted authorization fingerprint.
+   Keep the production NFS gate closed; expand interruption/death/race evidence.
+2. Qualify remaining actual service bootstrap/claim/copy/verify/publication/manifest on B/B
    and disjoint same-share roots. Preserve earlier N/N evidence separately.
 3. Trace actual B/B service sync RPCs. Withhold only observed operations after
    proving server completion and pending callers; absence of COMMIT is not failure
@@ -130,3 +148,39 @@ defines the namespace-specific mount inventory fields and escaping.
 [exports(5)](https://man7.org/linux/man-pages/man5/exports.5.html) distinguishes
 server sync semantics and UID squashing. Consulted 2026-10-18; current manuals
 are semantics references, not evidence that new options exist on an old kernel.
+
+## Rust enforcement and compatibility boundary (increment 69)
+
+The source bootstrap child checks its explicit declaration before opening the
+NFS root. `mover-fs` reads bounded local proc metadata, matches the selected mount,
+then compares its mount ID with the actual opened root's `/proc/self/fdinfo`
+`mnt_id`. Existing root/namespace/marker ownership and enrollment checks continue.
+After all remote marker/custody observations it rechecks descriptor and inventory.
+The SHA-256 mount observation (including namespace, declaration and selected
+record) is appended to the existing authorization string and therefore participates
+in original SQLite/enrollment comparisons and worker assignment checks. This uses
+existing Serde/sha2/rustix dependencies and no new syscall/library requirement.
+Unavailable or malformed proc metadata refuses; fdinfo observation still requires
+kernel qualification. No filesystem probe is moved onto the async coordinator.
+
+Claims, delivery sessions, source statistics and enrollment children validate
+bound source authorization before payload-lock/path traversal and around effects;
+destination workers retain per-command destination validation. The unused legacy
+unbound payload-worker mode refuses NFS. These guards do not make a check and a
+later filesystem operation atomic against administrator mount replacement. The
+cooperative/private-root assumptions and delayed-effect reconciliation remain.
+
+Local bindings omit nfs_mount when encoded and preserve their existing marker,
+policy and authorization representation. Old NFS bindings without an explicit
+profile refuse; there is no automatic marker rewrite, observation refresh,
+re-enrollment or in-flight job policy migration. Do not edit original receipts or
+create fresh state to upgrade them. Preserve the old binary/state for inspection;
+a separately designed migration is required for retained legacy qualification
+state. Older binaries reject new binding fields. Production NFS was never enabled.
+
+The namespace and full selected record are conservative pins. A different service
+mount namespace, changed options/address or changed declaration can intentionally
+refuse original-state restart. Supported packaging must preserve/qualify that
+namespace relationship. Matching pins still prove neither continuity nor remote
+settlement, as increment 68 demonstrated. See [increment 69](RUST-INCREMENT-69.md)
+for exact scope and the [lab extension](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension).

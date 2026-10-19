@@ -448,3 +448,13 @@ continuity (IDs were reused after remount), availability or delayed-effect
 settlement. Supervised Rust integration, root/descriptor/enrollment authority and
 buffered worker recovery remain open. See the [lab](NFS-MOUNT-PROFILE-LAB.md).
 Production NFS and source deletion remain disabled; FR-03/05 stay open.
+
+[Increment 69](RUST-INCREMENT-69.md) integrates MP-01-12's declared mount checks
+with supervised source bootstrap and bound worker authorization. The profile
+fingerprint joins the existing descriptor/marker/enrollment observation; the
+opened root's fdinfo mount ID must match local inventory before/after validation.
+This supplements cooperative custody, not an atomic replacement/fencing facility.
+Source profile refusal withholds unproven 202, while destination review preserves
+valid source custody. Original scope restoration retains same-ID retry and the
+existing audited resume path. Legacy NFS profile-less bindings refuse without
+migration. Full SH-10/11/12 remain open; production NFS/deletion remain disabled.

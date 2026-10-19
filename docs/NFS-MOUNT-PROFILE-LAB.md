@@ -1,8 +1,9 @@
 # NFS mount-profile lab: procedure and limits
 
-This lab validates the [candidate mount contract](NFS-MOUNT-PROFILE.md) and its
-read-only Python decision model. It executes **no Rust mover**, enables no production
-NFS and deletes no claimed source. See [increment 68](RUST-INCREMENT-68.md) for
+Without gate arguments this lab validates the [candidate mount contract](NFS-MOUNT-PROFILE.md)
+and its read-only Python decision model, executing no Rust. The optional supervised
+Rust extension is described below. Neither mode enables production NFS or deletes
+claimed source. See [increment 68](RUST-INCREMENT-68.md) for
 actual run IDs, failed assumptions and fresh SLES compatibility results.
 
 ## Infrastructure
@@ -140,3 +141,123 @@ Service integration and the buffered worker fault matrix remain open under
 FR-03/05 and MP-09–12. Earlier noac workers and buffered OS-only WRITE controls
 retain their original scope. Keep production NFS and source deletion disabled;
 see [testing limitations](TESTING-LIMITATIONS.md).
+
+## Supervised Rust authorization extension
+
+Increment 69 adds real service checks after the independent model checks and
+server restoration. Build/test both final source configurations first:
+
+```powershell
+python scripts/check-rust-sles.py
+python scripts/check-rust-sles.py --qualification
+python scripts/check-nfs-mount-profile.py --production-gate rust/validation/<passing-production-run> --qualification-gate rust/validation/<passing-qualification-run>
+```
+
+The extension rejects stale/failed gates, waits at most 180 seconds for a supplied
+active gate's final report, and executes no Rust before both reports pass. It verifies
+every current archived Rust input, then checks the exact service ELF hashes before copying them into the
+same pinned SLES client. It installs no Python/package in that image. The driver
+runs the service and HTTP probe shell as UID/GID 1000; only its private mount setup
+uses client SYS_ADMIN. Database/config/rendezvous files remain on client-local
+storage under a private /tmp/mount-auth directory. Source and destination private
+roots remain under their separate root-squashed child exports.
+
+For each debug/release build and B/B or N/N layout:
+
+1. Mount the explicit profile and provision fresh protected endpoint markers and
+   the coordinator lock with the same nfs_mount declaration used in configuration.
+   No prior enrollment is upgraded. Record actual inventory and source identity.
+2. Require initialization refusal before SQLite creation for wrong source address,
+   absent declaration, incompatible cache profile, absent declared mountpoint and
+   the production build with an otherwise valid NFS declaration. Record errors
+   and exits. These are real program decisions, distinct from synthetic inventories.
+3. Initialize with the qualification build, then start the service and wait for
+   successful health. Add unrelated nested tmpfs mounts inside each private root.
+   For these fixed fixture-only control paths, the UID-1000 setup helper temporarily
+   changes the label/approved-root ancestors from mode 0700 to 0701 so root-squashed
+   setup can look up the empty mountpoint. It restores 0700 in a finally block
+   before any service request; no file listing/write permission is granted and
+   the private .file-mover and payload folders remain 0700. Unmount uses the same
+   reversible traversal gate. No client capability is added.
+   Submit the recording: require recording_blocked/409, paths not released and
+   original source inode/hash intact. Remove only the owned source nested mount.
+4. Retry the same submission ID: require job 1/202 and confirmed source custody.
+   Only now reuse the original producer filename. Keep the destination nested
+   mount until the worker reports destination_binding_requires_review; no manifest
+   may exist. The source and original state remain retained.
+5. Remove the owned destination nested mount, obtain the current review epoch and
+   invoke the existing audited resume endpoint. Require committed manifest,
+   destination hash, original claimed source inode/hash and attempt one. This does
+   not introduce an automatic review bypass or change retry classification.
+6. Stop through the existing bounded controller and wait for actual service exit.
+   Restart with original configuration/database/enrollment, replay the original
+   submission, require the same job/202/commitment and untouched newer producer
+   bytes. Stop again; compare the database inode and enrollment hash.
+7. With the service stopped, use a fixture-only remount/Bind flag operation to
+   add nosuid to the existing source mount, keeping root/namespace/receipt
+   device/inode/UID/mode unchanged. Require original-state startup refusal with
+   SourceRootChanged. Restore the exact original VFS flags, verify the selected
+   mount record matches, then require same-job restart/replay/commitment without
+   re-enrollment. This checks persisted mount fingerprints rather than a newly
+   substituted inode. The [mount(2) semantics](https://man7.org/linux/man-pages/man2/mount.2.html)
+   describe per-mount MS_REMOUNT plus MS_BIND flags; this is a lab action only.
+8. Only after all services and their children exit, normally unmount and proceed
+   to the next layout. Final runner cleanup follows the same restore/unmount-first
+   procedure above. A cleanup failure makes the run failed; preserve named resources
+   for recovery rather than force-unmounting them.
+
+Require report.rust_executed=true and authorization.passed=true, four passing
+service cases and twenty failed-before-SQLite initialization controls. The report
+captures exact model/driver sources, both gate IDs and binary hashes, configs,
+actual responses, source/manifest/state evidence and final cleanup status. Logs
+remain in its validation directory. Permanent result evidence is linked from
+[increment 69](RUST-INCREMENT-69.md).
+
+The retained broad boundary runner also uses explicit declarations for newly
+provisioned fixture bindings:
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/<passing-production-run> --qualification-gate rust/validation/<passing-qualification-run> --isolated-startup
+```
+
+It preserves earlier noac baseline/state/OS checks; it does not convert those
+records into buffered service synchronization qualification. The shared fixture
+provisioner caches only the declarations of newly created disposable markers and
+never refreshes them at restart. It must not be reused as a production migration
+or automatic profile-discovery tool.
+
+This extension gives finite live worker refusal/restoration/replay evidence. It
+still does not qualify arbitrary mount replacement races, every interrupted
+bootstrap/copy/verify/publication/manifest boundary, pending sync/COMMIT reply loss,
+server grace/reclaim, other-client caches, NAS firmware, disk/power durability or
+old-kernel behavior. The new fdinfo mount-ID cross-check is an old-interface design
+used on a modern kernel here; missing/invalid fields refuse. Maintain the original
+state and the single-host/cooperative/private-root assumptions.
+
+### Startup regression scope after the new production refusal
+
+Production now refuses a declared NFS source before remote metadata, including
+when NFSD is stopped. The older outage test incorrectly expected it to block.
+Use the qualification binary for actual blocked-bootstrap/shutdown observations.
+`--isolated-startup` therefore requires `--qualification-gate`. For a focused
+repeat of only inherited lock, OS metadata outage and isolated startup:
+
+```powershell
+python scripts/check-nfs-boundaries.py rust/validation/<passing-production-run> --qualification-gate rust/validation/<passing-qualification-run> --isolated-startup --startup-only
+```
+
+This mode marks transfer/local-state/state-file scopes NOT_RUN; it does not imply
+the full matrix ran. Increment 69 retains the broad run's individually passed
+6/12/184 subcases and overall failure separately, then records the corrected
+focused startup pass. Its initial cleanup EBUSY and later successful normal
+unmount have a separate recovery record. No forced/lazy unmount was used. See
+[increment 69](RUST-INCREMENT-69.md) for all failed/pass IDs and exact source bytes.
+
+The live-lab setup failures are also preserved: missing CHOWN capability was
+resolved by creating files as UID 1000; root-squashed traversal was resolved by
+reversible execute-only gates on the owned fixture ancestors. Private modes are
+restored before every service request. On an unexpected failure with a nested
+private mount still present, preserve the named resources and stop all known
+services through their bounded controller first. Restore the owned server and
+use the same scoped traversal gate for a normal unmount; never bypass custody or
+force/lazy-unmount to report clean cleanup.

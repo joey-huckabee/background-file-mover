@@ -2,6 +2,7 @@
 """Qualify a read-only NFS mount-profile model in disposable SLES containers."""
 from datetime import datetime, timezone
 import base64
+import argparse
 import copy
 import hashlib
 import json
@@ -15,6 +16,11 @@ from nfs_mount_profile import Refused, parse, validate
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--production-gate', type=Path)
+    parser.add_argument('--qualification-gate', type=Path)
+    args = parser.parse_args()
+    assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'mount-profile-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -33,6 +39,10 @@ def main():
     for name in ('nfs_mount_profile.py', 'check-nfs-mount-profile.py'):
         data = (root / 'scripts' / name).read_bytes()
         report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
+    if args.production_gate:
+        for name in ('nfs_mount_authorization.py', 'nfs_binding.py'):
+            data = (root / 'scripts' / name).read_bytes()
+            report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 
     def run(args, check=True):
         value = subprocess.run(engine + args, capture_output=True, text=True,
@@ -229,6 +239,33 @@ def main():
         server_stopped = False
         time.sleep(11)
         report['restored_io'] = execute('sha256sum /tmp/profile-source/probe /tmp/profile-destination/probe', '1000:1000')
+        # Independent capability before Rust: change only VFS flags, preserving
+        # the actual mounted NFS root. This must not require unmount/ID changes.
+        from nfs_mount_profile import covering
+        before = covering(parse(inventory()), '/tmp/profile-source')
+        identity = execute("stat -c '%d:%i:%u:%a' /tmp/profile-source", '1000:1000')
+        before_pin = validate(inventory(), declaration())['pin']
+        run(['exec',client,'mount','-i','-o','remount,bind,nosuid','/tmp/profile-source','/tmp/profile-source'])
+        after = covering(parse(inventory()), '/tmp/profile-source')
+        assert 'nosuid' in after['vfs'] and {k:v for k,v in before.items() if k!='vfs'} == {k:v for k,v in after.items() if k!='vfs'}
+        assert identity == execute("stat -c '%d:%i:%u:%a' /tmp/profile-source", '1000:1000')
+        try:
+            validate(inventory(), declaration(), previous=before_pin)
+        except Refused:
+            pass
+        else:
+            raise AssertionError('changed VFS flag did not refuse original pin')
+        restore_flags = ','.join(['remount','bind',*before['vfs']])
+        run(['exec',client,'mount','-i','-o',restore_flags,'/tmp/profile-source','/tmp/profile-source'])
+        assert covering(parse(inventory()), '/tmp/profile-source') == before
+        assert validate(inventory(),declaration(),previous=before_pin)['pin'] == before_pin
+        report['vfs_flag_capability'] = dict(passed=True,before=before,changed=after,
+                                           root_identity=identity,restored_exact_pin=True)
+        if args.production_gate:
+            from nfs_mount_authorization import qualify
+            report['authorization'] = dict(passed=False, cases=[])
+            qualify(root, args.production_gate, args.qualification_gate, run, execute,
+                    client, output, mount, unmount_all, mounts, report['authorization'])
         report['status'] = 'PASSED'
     except Exception as error:
         report.update(error=f'{type(error).__name__}: {error}', traceback=traceback.format_exc())
@@ -259,6 +296,7 @@ def main():
         if report['cleanup_errors']:
             report['status'] = 'FAILED'
             report['recovery_resources'] = dict(containers=containers, mounts=mounts, volumes=volumes, network=network)
+        report['rust_executed'] = report.get('authorization',{}).get('rust_executed',False)
         (output / 'report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
         print(report['status'] + ': ' + str(output), flush=True)
         if 'error' in report:

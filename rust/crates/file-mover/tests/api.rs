@@ -3116,6 +3116,12 @@ fn destination_declared_nfs_refuses_matching_marker_on_local_filesystem() {
     provision_destination(&f);
     let mut b = destination_binding();
     b.filesystem = mover_fs::SourceFilesystem::Nfs;
+    b.nfs_mount = Some(mover_fs::NfsMountProfile {
+        profile: mover_fs::MountProfile::Buffered,
+        mountpoint: f.root.join("destination").to_str().unwrap().into(),
+        source: "192.0.2.1:/expected".into(),
+        addr: "192.0.2.1".into(),
+    });
     let path = f.root.join("config.json");
     let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     config["destination_binding"] = json!(b);
@@ -4080,4 +4086,39 @@ fn private_sqlite_files_recover_original_wal_after_coordinator_death() {
         std::fs::metadata(&database).unwrap().permissions().mode() & 0o777,
         0o644
     );
+}
+
+#[test]
+fn nfs_profile_configuration_is_explicit_and_cannot_downgrade_to_local() {
+    let base = json!({"bind":"127.0.0.1:0","generator_id":"g","source_root":"/source",
+        "destination_root":"/destination","state_database":"/state/jobs.sqlite",
+        "source_binding":binding(),"destination_binding":destination_binding()});
+    for role in ["source_binding", "destination_binding"] {
+        let mut value = base.clone();
+        value[role]["filesystem"] = json!("nfs");
+        assert!(
+            serde_json::from_value::<file_mover::Config>(value.clone())
+                .unwrap()
+                .validate()
+                .is_err()
+        );
+        value[role]["nfs_mount"] = json!({"profile":"NMP-41B","mountpoint":"/share",
+            "source":"192.0.2.1:/export","addr":"192.0.2.1"});
+        assert!(
+            serde_json::from_value::<file_mover::Config>(value.clone())
+                .unwrap()
+                .validate()
+                .is_ok()
+        );
+        value[role]["filesystem"] = json!("local");
+        assert!(
+            serde_json::from_value::<file_mover::Config>(value.clone())
+                .unwrap()
+                .validate()
+                .is_err()
+        );
+        value[role]["filesystem"] = json!("nfs");
+        value[role]["nfs_mount"]["profile"] = json!("unknown");
+        assert!(serde_json::from_value::<file_mover::Config>(value).is_err());
+    }
 }

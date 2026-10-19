@@ -9,8 +9,8 @@ The [NFS mount-profile contract](docs/NFS-MOUNT-PROFILE.md) selects a buffered
 first-release qualification candidate and preserves noac diagnostics separately.
 [Increment 68](docs/RUST-INCREMENT-68.md) and its
 [lab procedure](docs/NFS-MOUNT-PROFILE-LAB.md) validate read-only model decisions;
-new Rust startup enforcement remains pending. Matching mount pins cannot prove
-continuity or server availability. Production NFS and source deletion stay off.
+increment 69 adds Rust enforcement as described below. Matching mount pins cannot
+prove continuity or server availability. Production NFS and source deletion stay off.
 
 [Increment 64](docs/RUST-INCREMENT-64.md) proves selected server-completed NFS
 REMOVE replies can be withheld, then tests file/manifest recovery after reply loss
@@ -235,3 +235,11 @@ Increment 65 adds server-completed publication LINK reply-loss qualification; se
 Increment 66 adds source-claim LINK/REMOVE success-reply-loss qualification; see [results](docs/RUST-INCREMENT-66.md). Keep production NFS/source deletion disabled, preserve SC-100 and the simple same-ID JSON-until-202 producer workflow, and maintain the step-by-step source lab and testing limits.
 
 Increment 67 records synchronization RPC capability and actual worker observations; see [results](docs/RUST-INCREMENT-67.md) and [lab](docs/NFS-SYNC-LAB.md). No COMMIT/mover sync-loss support follows from buffered OS controls. Preserve SC-101/102, GNU/glibc-2.22 checks and production NFS/source deletion disabled.
+
+[Increment 69](docs/RUST-INCREMENT-69.md) adds supervised Rust mount-profile
+enforcement alongside existing descriptor/enrollment custody. NFS qualification
+bindings require explicit nfs_mount declarations; local bindings remain unchanged.
+The [extended lab](docs/NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+checks real worker refusal/restoration/replay without enabling production NFS or
+source deletion. Matching mount observations still prove neither continuity nor
+remote settlement; remaining buffered interruption/synchronization gates stay open.

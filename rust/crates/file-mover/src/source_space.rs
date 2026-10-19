@@ -356,8 +356,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         return Err("invalid source-space assignment".into());
     }
     let result: Result<SpaceStatistics, mover_fs::ClaimError> = (|| {
-        mover_fs::validate_payload_locks(&r.root_path, &r.root_path)?;
         r.authorization.validate(&r.root_path)?;
+        mover_fs::validate_payload_locks(&r.root_path, &r.root_path)?;
         mover_fs::qualification_pause("source_space_statistics")?;
         #[cfg(feature = "nfs-qualification")]
         if std::env::var("FILE_MOVER_QUALIFICATION_SOURCE_SPACE_FAULT")

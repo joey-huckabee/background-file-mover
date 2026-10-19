@@ -86,6 +86,8 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 mod binding;
+mod mount_profile;
+pub use mount_profile::{MountProfile, NfsMountProfile};
 mod bootstrap;
 mod custody;
 mod instance;
@@ -263,6 +265,25 @@ pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Resu
         custody::validate(&expected, &held)?;
         custody::exclusive(&held)?;
         custody::validate(&expected, &held)?;
+    }
+    Ok(())
+}
+/// Bound workers check profile/custody before any payload traversal. Unbound
+/// legacy local workers must never become an NFS authorization bypass.
+pub fn validate_worker_source(
+    path: &str,
+    authorization: Option<&SourceAuthorization>,
+) -> Result<()> {
+    match authorization {
+        Some(a) => a.validate(path),
+        None => refuse_unbound_nfs(path),
+    }
+}
+pub fn refuse_unbound_nfs(path: &str) -> Result<()> {
+    if fs::fstatfs(&root(path)?)?.f_type == 0x6969 {
+        return Err(ClaimError::Blocked(
+            "bound NFS worker authorization required",
+        ));
     }
     Ok(())
 }

@@ -961,7 +961,24 @@ Production NFS and source deletion remain disabled.
 
 The [candidate contract](NFS-MOUNT-PROFILE.md) and [lab procedure](NFS-MOUNT-PROFILE-LAB.md)
 explain SC-103-105 and the distinction between buffered NMP-41B and noac NMP-41N.
-Do not change existing host mounts to fit the candidate or use these model inputs
-as service configuration options: new startup enforcement is not implemented.
+Do not change existing host mounts to fit the candidate. Increment 68's model
+inputs differ from the service binding fields added in increment 69 below.
 Production NFS/source deletion remain disabled. Preserve original state on scope
 uncertainty; matching mount IDs/settings do not prove availability or continuity.
+
+## Explicit profiles in NFS qualification bindings
+
+Increment 69 replaces the earlier model-only limitation for supervised checks:
+[nfs_mount](NFS-MOUNT-PROFILE.md#explicit-declaration-and-observations) is now a
+strict per-endpoint binding field, required for NFS and forbidden for local.
+This remains a controlled qualification capability; the production binary still
+refuses NFS. Use the [extended lab procedure](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension),
+not a new host mount command. No production source cleanup is enabled.
+
+Source scope mismatch withholds unproven 202 using recording_blocked; preserve
+source paths/state and restore the approved scope before retry. A previously
+confirmed 202 still permits producer path reuse. Destination scope refusal uses
+existing review/resume behavior: restore the original scope, inspect job status
+and use the current review epoch for an audited resume. Neither matching mount
+pins nor a free local lock prove continuity or remote settlement. There is no
+force-rebind or automatic upgrade for older NFS bindings/receipts.

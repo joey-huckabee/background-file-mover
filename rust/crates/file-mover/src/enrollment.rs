@@ -140,8 +140,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut stage = "custody_before";
     let result = (|| -> Result<EnrollmentAuthorization, Box<dyn std::error::Error>> {
-        mover_fs::validate_payload_locks(&request.path, &request.path)?;
         request.source.validate(&request.path)?;
+        mover_fs::validate_payload_locks(&request.path, &request.path)?;
         stage = if request.create {
             "create_receipt"
         } else {
@@ -158,8 +158,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
             authorization
         };
         stage = "custody_after";
-        mover_fs::validate_payload_locks(&request.path, &request.path)?;
         request.source.validate(&request.path)?;
+        mover_fs::validate_payload_locks(&request.path, &request.path)?;
         Ok(authorization)
     })();
     let reply = match result {

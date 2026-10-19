@@ -756,5 +756,14 @@ production NFS and source deletion remain disabled.
 B is a buffered first-release qualification candidate; N retains prior noac
 fixture observations. The new [lab](NFS-MOUNT-PROFILE-LAB.md) executes no Rust and
 checks inventory decisions only. Do not relabel earlier noac worker runs or
-buffered OS controls as buffered mover qualification. Profile enforcement and
-service fault coverage remain pending; production NFS/source deletion stay off.
+buffered OS controls as buffered mover qualification. Increment 69 below adds
+supervised enforcement; remaining service fault coverage stays pending and
+production NFS/source deletion stay off.
+
+[Increment 69](RUST-INCREMENT-69.md) adds supervised Rust mount-profile checks.
+The NFS bindings must explicitly carry nfs_mount and matching provisioned markers;
+local bindings omit it. See the [current contract](NFS-MOUNT-PROFILE.md) and
+[extended lab](NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension).
+Legacy NFS profile-less states refuse rather than auto-rebind. Production NFS
+and source deletion remain disabled; selected buffered worker evidence does not
+promote the full first-release or synchronization/recovery matrix.

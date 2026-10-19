@@ -250,6 +250,8 @@ pub fn worker() -> Result<()> {
         return Err("payload assignment too large".into());
     }
     let (t, c, manifest) = assignment.decode()?;
+    mover_fs::refuse_unbound_nfs(&c.root_path)?;
+    mover_fs::refuse_unbound_nfs(&t.destination_root)?;
     mover_fs::validate_payload_locks(&c.root_path, &t.destination_root)?;
     let reply = if let Some(m) = manifest {
         let next = mover_fs::publish_manifest_effect(&t, &m)?;
