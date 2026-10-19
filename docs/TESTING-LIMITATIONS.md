@@ -375,3 +375,24 @@ NAS/cache, disk/power durability, old SLES kernel or production-scale workload.
 Readiness still describes the control plane, not destination health. The fixture
 uses one shared modern kernel/server, joint outage and volatile tmpfs. All full
 release gates stay open; production NFS and source deletion remain disabled.
+
+[Increment 76](RUST-INCREMENT-76.md) and the
+[buffered synchronization lab](NFS-BUFFERED-SYNC-LAB.md) observe eight healthy
+NMP-41B claim/delivery workers and conditional native capability controls. Actual
+client/observer/relay clock identity precedes correlation; full mount-ID counts
+include exact roots excluded by the helper descendant convenience list. Raw
+payloads, unknown compounds and capture limits remain explicit. Timing overlap
+is correlation, not unique causal attribution; ptrace changes scheduling. Native
+withholding is not service fault/recovery evidence and no unobserved COMMIT is
+assumed. One modern shared kernel, one client/server, logical exports and volatile
+tmpfs do not qualify actual NAS failover, SLES kernel or disk/power durability.
+Production NFS/deletion remain disabled; all eight release gates remain open.
+
+Actual increment-76 results: all 112 service NFS syncs return zero, with no captured
+call/reply inside or captured pair spanning entry. Broader windows contain WRITE/
+COMMIT and undecoded compounds; this is not universal RPC absence. Native WRITE
+is observed on both layouts, but the service-matching intersection is empty, so
+zero new withholding/service fault cases run. Initial separate-share native
+capture watched an idle destination relay; corrected discovery captures both,
+observing actual source-relay traffic. Preserve the rejected-scope initial report
+and do not infer a transport from a mount address.

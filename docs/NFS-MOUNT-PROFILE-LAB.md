@@ -332,3 +332,13 @@ mover privileges remain unchanged. [The dedicated lab](NFS-BUFFERED-BOOTSTRAP-LA
 and [increment 75](RUST-INCREMENT-75.md) define acceptance/results, no false-ready
 response, original-state/WAL/partial recovery, exact input auditing and cleanup.
 Do not infer arbitrary warm-cache/fresh-enrollment or production NFS support.
+
+## Buffered synchronization observations
+
+Select --buffered-sync with both passing gates for eight healthy NMP-41B
+claim/delivery observations in debug/release on same/separate shares. The
+[dedicated lab](NFS-BUFFERED-SYNC-LAB.md) describes relay mounts, actual live
+clock-namespace proof, complete mount-ID sync accounting and conditional native
+probe withholding. [Increment 76](RUST-INCREMENT-76.md) records actual results;
+unknown traffic is retained uncertainty and OS controls are not service failure
+recovery. No Rust policy/deadline or production NFS/deletion change is introduced.

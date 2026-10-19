@@ -282,3 +282,9 @@ The [lab](docs/NFS-BUFFERED-BOOTSTRAP-LAB.md) documents cache aging, actual bloc
 bootstrap, Starting/readiness, surviving-worker exclusion and preserved original
 state/WAL/source/partial recovery. Production NFS and source deletion remain
 disabled; the finite matrix does not close full release qualification.
+
+[Increment 76](docs/RUST-INCREMENT-76.md) observes buffered claim/delivery
+synchronization on both share layouts and profiles. The
+[step-by-step lab](docs/NFS-BUFFERED-SYNC-LAB.md) retains raw syscall/RPC evidence
+and conditional native withholding controls. These observations do not qualify
+service reply-loss recovery or physical durability. Production NFS/deletion stay off.

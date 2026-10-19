@@ -69,6 +69,10 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
+Select the next service synchronization fault cases from actual buffered worker
+RPC observations, including mount-root syncs. Native withholding capability
+alone does not qualify service recovery; leave unobserved COMMIT pending.
+
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
    interruptions, remaining fresh/later source bootstrap and destination recovery
@@ -356,3 +360,11 @@ actual blocked bootstrap, Starting/no false-ready response, surviving-worker
 exclusion and original-state/WAL/partial/inode recovery. Preserve remaining fresh/
 warm-cache/later startup, synchronization, workload and deployment qualification.
 All eight release gates stay open; production NFS and source deletion stay off.
+
+[Increment 76](RUST-INCREMENT-76.md)/SC-111 adds eight healthy buffered
+claim/delivery synchronization observations and conditional native capability
+discovery. Read the actual observed operations and unknown traffic before
+defining a service fault matrix; neither successful fsync nor OS controls close
+FR-03/05 or physical durability. The [lab](NFS-BUFFERED-SYNC-LAB.md) documents
+clock/process privileges, exact wire evidence and limits. All eight gates remain
+open, with production NFS/deletion disabled.

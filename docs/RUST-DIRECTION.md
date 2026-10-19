@@ -644,3 +644,17 @@ bootstrap, Starting/no false-ready reply, surviving-worker exclusion and origina
 state/inode/partial recovery. See [the lab](NFS-BUFFERED-BOOTSTRAP-LAB.md);
 maintain SC-110 and DOC-01–05. Existing Rust, retry/review and all deadlines remain
 unchanged; production NFS and source deletion stay disabled.
+
+[Increment 76](RUST-INCREMENT-76.md) retains --buffered-sync with a dedicated
+helper/verifier and [lab procedure](NFS-BUFFERED-SYNC-LAB.md). Observe eight
+healthy claim/delivery workers, actual clock identity and complete mount-ID sync
+intervals before selecting service fault cases. Conditional native controls are
+OS capability evidence only. Maintain SC-111 and DOC-01–05, no new recorder duty,
+unchanged Rust/retry/review/deadlines and production NFS/deletion off.
+
+Increment-76 observations find no captured calls/replies inside 112 successful
+service syncs; broader windows contain WRITE/COMMIT and both native discoveries
+observe WRITE. No service-matching operation means zero new withholding cases.
+Next locate actual worker I/O/RPC boundaries with both relays and descriptor/
+filehandle attribution before defining service fault cases. Preserve initial
+rejected-scope native transport evidence separately.

@@ -590,3 +590,18 @@ Preserve original database/WAL/configuration/enrollment/source/partials through
 old-thread exit and recovery; populated jobs retain the old partial and finish
 attempt 2. Maintain SC-110 and DOC-01–05. No Rust, retry/review or service deadline
 changes; production NFS and source deletion remain disabled.
+
+Increment 76 retains --buffered-sync, scripts/nfs_buffered_sync.py and its
+independent verifier: eight healthy NMP-41B claim/delivery traces on both share
+layouts and profiles, actual live clock identity, raw RPCs and full mount-ID
+synchronization accounting. See docs/RUST-INCREMENT-76.md and
+docs/NFS-BUFFERED-SYNC-LAB.md. Withhold only an observed operation after native
+capability proof; OS controls do not qualify service sync-loss recovery. Maintain
+SC-111 and DOC-01–05; keep production NFS/deletion disabled.
+
+Increment-76 results: 112 successful service NFS syncs contain no captured outgoing
+call/incoming reply or captured pair spanning entry. Broader windows decode
+WRITE/COMMIT; both native probes observe WRITE, but no service-matching operation
+means zero new withholding controls. Capture both relays: actual separate-export
+traffic can use the source relay. Next locate real worker I/O/RPC boundaries
+before service sync-loss cases; preserve the initial rejected-scope evidence.

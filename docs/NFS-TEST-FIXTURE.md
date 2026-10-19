@@ -194,3 +194,12 @@ root observation needs SYS_PTRACE and DAC_READ_SEARCH with mount-setup SYS_ADMIN
 ordinary movers remain unprivileged. Follow [the lab](NFS-BUFFERED-BOOTSTRAP-LAB.md)
 for pending-worker/readiness, original state/WAL/partial/inode recovery and cleanup.
 One server means joint outage; production NFS/deletion remain disabled.
+
+[Increment 76](RUST-INCREMENT-76.md) adds --buffered-sync: eight healthy buffered
+claim/delivery worker traces through unprivileged relays to the same controlled
+server. An external networkless ptrace observer records actual sync intervals;
+all active actors must share the observed clock namespace. Conditional native
+probe controls select only an actually observed operation. Follow the
+[complete procedure](NFS-BUFFERED-SYNC-LAB.md), including raw-payload audit, exact
+inputs, privileges and normal cleanup. This adds no service fault qualification
+or production NFS/deletion.

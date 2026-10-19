@@ -824,3 +824,20 @@ retain their old 1 MiB partial and finish on attempt 2; enrolled-empty starts it
 first job on attempt 1. No arbitrary warm-cache/fresh-enrollment, RPC reply-loss
 or power-durability inference. Production NFS/deletion remain disabled and all
 release gates stay open.
+
+## Buffered synchronization observation extension
+
+Use --buffered-sync with both passing gates for eight healthy claim/delivery
+traces in debug/release on same/separate shares. [Increment 76](RUST-INCREMENT-76.md)
+and the [lab](NFS-BUFFERED-SYNC-LAB.md) retain actual clock identities, descriptor
+mount IDs, raw RPCs, decoding uncertainty and conditional native withholding
+controls. Native controls do not qualify service failure recovery; do not infer
+COMMIT from FILE_SYNC WRITE or storage persistence from tmpfs. Retain noac history
+separately. Production NFS/source deletion and FR-03/05 remain unapproved.
+
+Actual increment-76 results are eight passing traces/112 successful service NFS
+syncs with no captured outgoing calls/incoming replies in their intervals; broader
+windows contain WRITE/COMMIT. Both native discoveries observe WRITE, but there
+is no service-matching operation and no new withholding/service fault case.
+The initial native transport observation is retained as rejected scope; the full
+corrected matrix captures both relays before any positive capability selection.

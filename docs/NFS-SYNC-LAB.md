@@ -171,3 +171,15 @@ Independent final inventory confirms zero containers on rootful and default
 rootless engines, only the two pre-existing rootful Rust caches and default
 network, and VM cgroup `0::/`. Every fixture used normal-unmount-first cleanup;
 no manual, forced/lazy unmount or VM reboot was needed.
+
+## Buffered service observation follow-up
+
+The historical noac matrix above remains separate. Use the
+[buffered synchronization lab](NFS-BUFFERED-SYNC-LAB.md) and
+[increment 76](RUST-INCREMENT-76.md) for eight actual buffered NMP-41B worker
+traces, complete mount-ID interval accounting and conditional native controls.
+That runner measures clock identity inside each live observer before releasing
+the worker; an independently started clock monitor cannot replace it. Consult
+the actual RPC/unknown counts rather than carrying forward the old noac totals.
+Neither native FILE_SYNC WRITE nor a returned fsync proves service COMMIT-loss
+recovery or physical durability. Production NFS/deletion remain off.
