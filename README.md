@@ -318,3 +318,9 @@ This supplies selected FR-03/05 evidence; all eight release gates remain open.
 Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
 Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
 physical-durability qualification remain open.
+
+[Increment 81](docs/RUST-INCREMENT-81.md) establishes manifest-specific successful-
+reply withholding through eight actual-worker cases. Read the
+[complete procedure](docs/NFS-MANIFEST-CAPABILITY-LAB.md) for identity/byte/RPC
+proof, discrete API checks, cleanup and limits. Production NFS/deletion remain off;
+manifest reply-loss/death recovery is still future work.

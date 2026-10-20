@@ -647,3 +647,14 @@ docs/RUST-INCREMENT-80.md and docs/NFS-BUFFERED-LIVE-LOSS-LAB.md. Maintain
 SC-114/DOC-01–05; keep all existing policy/deadlines and production NFS/deletion
 unchanged. Qualify actual manifest-side RPC capability before defining its fault
 matrix; do not assume a tiny manifest emits payload-style UNSTABLE/COMMIT.
+
+Increment 81 retains --manifest-capability: four healthy manifest traces and
+four matched successful-WRITE hold/release controls across both buffered layouts/
+profiles. Reuse the existing publish checkpoint; add no Rust pause or native
+fixture executable. Require exact manifest bytes, scoped descriptor/fsid/fileid,
+raw RPC success and actual pending FD/D state, absent final manifest/uncommitted
+status while held, then original-inode attempt-1 commitment after release.
+See docs/RUST-INCREMENT-81.md and docs/NFS-MANIFEST-CAPABILITY-LAB.md; maintain
+SC-115/DOC-01–05 and testing limits. Keep retry/review/deadlines, production NFS
+and source deletion unchanged. Manifest reply loss/replay/death remains future
+work; never infer manifest COMMIT capability from payload COMMIT observations.

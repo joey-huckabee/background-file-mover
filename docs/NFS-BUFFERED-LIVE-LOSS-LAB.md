@@ -105,3 +105,16 @@ Increment 80's actual post-drop status is already Committed in the first sample
 for all eight cases. Health/status also pass at the proven held-reply/D-worker
 boundary. These are discrete responsiveness observations, not continuous API
 availability measurements across reconnection or exact recovery-time bounds.
+
+## Actual manifest capability extension
+
+[Increment 81](RUST-INCREMENT-81.md)/SC-115 establishes actual manifest-side
+successful-reply withholding: four healthy worker traces, then four hold/release
+controls across both buffered layouts/profiles. The
+[step-by-step lab](NFS-MANIFEST-CAPABILITY-LAB.md) separates actual manifest
+WRITE stability and pending permission change from earlier payload COMMIT/
+UNSTABLE evidence. Complete private bytes do not imply public commitment.
+All cases preserve original source/state/enrollment and commit attempt 1 after
+release. Reply loss, replay and coordinator-death recovery at this boundary
+remain future work; all eight release gates and production NFS/deletion remain
+unchanged. Maintain DOC-01–05; DOC-06 stays deferred.

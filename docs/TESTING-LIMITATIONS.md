@@ -507,3 +507,36 @@ Increment 80's actual post-drop status is already Committed in the first sample
 for all eight cases. Health/status also pass at the proven held-reply/D-worker
 boundary. These are discrete responsiveness observations, not continuous API
 availability measurements across reconnection or exact recovery-time bounds.
+
+## Manifest-specific withholding capability
+
+[Increment 81](RUST-INCREMENT-81.md)/SC-115 establishes actual manifest-side
+successful-reply withholding: four healthy worker traces, then four hold/release
+controls across both buffered layouts/profiles. The
+[step-by-step lab](NFS-MANIFEST-CAPABILITY-LAB.md) separates actual manifest
+WRITE stability and pending permission change from earlier payload COMMIT/
+UNSTABLE evidence. Complete private bytes do not imply public commitment.
+All cases preserve original source/state/enrollment and commit attempt 1 after
+release. Reply loss, replay and coordinator-death recovery at this boundary
+remain future work; all eight release gates and production NFS/deletion remain
+unchanged. Maintain DOC-01–05; DOC-06 stays deferred.
+
+The existing publish checkpoint starts observation after payload verification;
+pre-checkpoint/source synchronization remains outside capture. Healthy discovery
+uses ptrace and actual common time namespaces; it changes scheduling. Holding
+controls use local proc plus server-local inspection, with UID/GID-1000 movers/
+workers/relays, no capabilities and NoNewPrivs. Extra privileges belong only to
+owned fixture setup/observation. Original manifest bytes/inode are followed from
+private staging to public publication; mount-address inference and plain timing
+are insufficient proof. Full raw/unknown traffic is retained.
+
+This tests successful reply release, not a dropped reply, server reset, uncached
+replay, changed verifier, coordinator death or worker replacement. Health/status
+checks while held are discrete observations, not continuous availability or a
+recovery-time bound. FILE_SYNC protocol success on volatile NFSD tmpfs is not
+physical-media/power-loss proof, old SLES kernel/maintenance-package behavior,
+independent NAS failure or NetApp/Isilon interoperability. Pinned SLES/glibc 2.22
+userspace shares modern WSL2; local exit/guard availability is not NAS settlement.
+All remaining ranges/sizes/cache/load, synchronization/deployment and release
+obligations stay open. The native C fixture probe is unused in this increment;
+no shipping executable, Rust crate, API, retry/review or deadline changes.
