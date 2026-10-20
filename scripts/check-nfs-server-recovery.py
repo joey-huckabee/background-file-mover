@@ -21,17 +21,21 @@ def main():
     parser.add_argument('--mover',action='store_true',help='Also run four actual source-copy recovery cases after native controls')
     parser.add_argument('--production-gate',type=Path)
     parser.add_argument('--qualification-gate',type=Path)
+    parser.add_argument('--distinct-filesystems',action='store_true',help='Retain two bounded filesystems in a separate storage keeper')
     args=parser.parse_args()
+    if args.distinct_filesystems and not args.mover:parser.error('--distinct-filesystems requires --mover for controlled NFSD-quiesced restart')
     if args.mover and not (args.production_gate and args.qualification_gate):parser.error('both SLES gate directories are required')
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root/'scripts/rust-platform.json').read_text(encoding='utf-8'))
-    label = ('server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+    label = ('distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
     output = root/'rust/validation'/label; output.mkdir()
     print('Server recovery: '+str(output), flush=True)
     engine = ['podman','--connection','podman-machine-default-root']
     network = 'bfm-'+label; volume = network+'-export'
     containers, mounts, tasks = [], [], []
     server = client = reader = relay = None
+    keeper=None
+    role_volumes=[]
     network_created = volume_created = False
     report = dict(status='FAILED',run_id=label,config=config,rust_executed=False,
                   production_nfs_enabled=False,source_deletion_enabled=False,
@@ -42,6 +46,11 @@ def main():
                  *(('nfs_server_mover.py','nfs_runtime.py','nfs_binding.py','nfs_mount_profile.py','check-rust-sles.py') if args.mover else ())):
         data=(root/'scripts'/name).read_bytes()
         report['sources'][name]=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
+    if args.distinct_filesystems:
+        for name in ('nfs_distinct_storage.py','nfs_recovery_storage.sh'):
+            data=(root/'scripts'/name).read_bytes()
+            report['sources'][name]=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
+    report['distinct_filesystems']=args.distinct_filesystems
 
     def run(args, check=True):
         value=subprocess.run(engine+args,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=45)
@@ -53,13 +62,19 @@ def main():
 
     def state():
         info=json.loads(run(['inspect',server]).stdout)[0]
-        return dict(container=info['Id'],started_at=info['State']['StartedAt'],pid=info['State']['Pid'],
+        result=dict(container=info['Id'],started_at=info['State']['StartedAt'],pid=info['State']['Pid'],
                     image=info['Image'],mounts=info['Mounts'],
                     address=info['NetworkSettings']['Networks'][network]['IPAddress'],
                     threads=run(['exec',server,'cat','/proc/fs/nfsd/threads']).stdout.strip(),
                     boot_id=run(['exec',server,'cat','/proc/sys/kernel/random/boot_id']).stdout.strip(),
                     netns=run(['exec',server,'readlink','/proc/self/ns/net']).stdout.strip(),
                     exports=run(['exec',server,'exportfs','-v']).stdout)
+        if keeper:
+            from nfs_distinct_storage import storage_state,verify_binds
+            result['storage']=storage_state(run,keeper)
+            assert result['storage']==report['storage']['before'],'storage keeper identity or mounts changed'
+            result['backing_inventory']=verify_binds(run,server,'/exports',result['storage']['devices'])
+        return result
 
     def snapshot(path):
         text=run(['exec','--user','1000:1000',reader,'/bin/sh','-eu','-c',
@@ -94,10 +109,16 @@ def main():
         report['static_server_address']=server_address
         run(['volume','create',volume]);volume_created=True
         report['volume']=json.loads(run(['volume','inspect',volume]).stdout)[0]
+        server_binds=[];reader_binds=[]
+        if args.distinct_filesystems:
+            from nfs_distinct_storage import create_storage,role_binds
+            keeper=create_storage(run,root,volume,'localhost/background-file-mover-e2-nfs',containers,report,role_volumes)
+            server_binds=role_binds(role_volumes,'/exports')
+            reader_binds=role_binds(role_volumes,'/e',readonly=True)
         report['server_cgroup_setting']='default'
         report['server_termination_profile']='nfsd-quiesce-then-sigkill-wait-start' if args.mover else 'abrupt-sigkill-wait-start'
         server=run(['create',
-                    '--privileged','--network',network,'--ip',server_address,'--volume',volume+':/exports',
+                    '--privileged','--network',network,'--ip',server_address,'--volume',volume+':/exports',*server_binds,
                     '--entrypoint','/bin/sh','localhost/background-file-mover-e2-nfs','/tmp/nfs_recovery_server.sh']).stdout.strip()
         containers.append(server)
         report['server_host_config']=json.loads(run(['inspect',server]).stdout)[0]['HostConfig']
@@ -117,8 +138,11 @@ def main():
         report['client_security']=execute('cat /proc/1/status').stdout
         execute('mkdir /tmp/recovery-source /tmp/recovery-destination /tmp/control; chmod 777 /tmp/control')
         reader=run(['create','--network','none','--cap-drop','all','--security-opt','no-new-privileges',
-                    '--volume',volume+':/e:ro','--entrypoint','/bin/sh',config['builder'],'-c','exec sleep infinity']).stdout.strip()
+                    '--volume',volume+':/e:ro',*reader_binds,'--entrypoint','/bin/sh',config['builder'],'-c','exec sleep infinity']).stdout.strip()
         containers.append(reader);run(['start',reader])
+        if keeper:
+            from nfs_distinct_storage import verify_binds
+            report['storage']['reader_inventory']=verify_binds(run,reader,'/e',report['storage']['before']['devices'],readonly=True)
         builder=run(['create','--network','none','--cap-drop','all','--entrypoint','/bin/sh',config['builder'],'-c','exec sleep infinity']).stdout.strip()
         containers.append(builder);run(['start',builder])
         run(['cp',str(root/'scripts/nfs_recovery_probe.c'),builder+':/tmp/probe.c'])
@@ -137,6 +161,11 @@ def main():
                  'addr='+relay.address+',vers=4.1,proto=tcp,port=2049,sec=sys,hard,ac,async,timeo=10,retrans=1',
                  relay.address+':/profile-'+role,point]);mounts.append(point)
         report['inventory']=execute('cat /proc/self/mountinfo').stdout
+        if keeper:
+            from nfs_mount_profile import covering,parse
+            observed=[covering(parse(report['inventory']),'/tmp/recovery-'+role) for role in ('source','destination')]
+            assert observed[0]['device']!=observed[1]['device'],'NFS mounts coalesced onto one client filesystem'
+            report['storage']['client_devices']=[m['device'] for m in observed]
         for kind in ('nfsd','container'):
             for role in ('source','destination'):
                 name=kind+'-'+role;path='/tmp/recovery-'+role+'/'+name
@@ -207,7 +236,7 @@ def main():
     except Exception as error:
         report.update(error=str(error),traceback=traceback.format_exc())
     finally:
-        if server:
+        if server and mounts:
             try:
                 info=json.loads(run(['inspect',server]).stdout)[0]
                 if not info['State']['Running']:restore('container')
@@ -229,11 +258,17 @@ def main():
         if not report['cleanup_errors']:
             if server:run(['exec',server,'rpc.nfsd','0'],False);run(['exec',server,'exportfs','-au'],False)
             for target in reversed(containers):
+                if target==keeper:
+                    from nfs_distinct_storage import storage_state
+                    report['storage']['after']=storage_state(run,keeper)
+                    assert report['storage']['after']==report['storage']['before']
                 if run(['rm','--force',target],False).returncode:report['cleanup_errors'].append('remove '+target)
+            for name in reversed(role_volumes):
+                if run(['volume','rm',name],False).returncode:report['cleanup_errors'].append('volume '+name)
             if volume_created and run(['volume','rm',volume],False).returncode:report['cleanup_errors'].append('volume '+volume)
             if network_created and run(['network','rm',network],False).returncode:report['cleanup_errors'].append('network '+network)
         if report['cleanup_errors']:report['status']='FAILED'
-        report['resources']=dict(containers=containers,mounts=mounts,volume=volume,network=network)
+        report['resources']=dict(containers=containers,mounts=mounts,volume=volume,role_volumes=role_volumes,network=network)
         (output/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
         print(report['status']+': '+str(output),flush=True)
         if report.get('error'):print(report['error'],flush=True)

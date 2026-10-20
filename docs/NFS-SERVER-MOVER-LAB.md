@@ -4,6 +4,10 @@ This extension tests one finite payload-copy boundary using the infrastructure
 proved in [the native capability lab](NFS-SERVER-RECOVERY-LAB.md). Keep production
 NFS and post-delivery source deletion disabled. Registration remains deferred.
 
+The [increment 88 extension](NFS-DISTINCT-RECOVERY-LAB.md) separately qualifies
+the selected cases with two distinct retained tmpfs/client filesystems. Preserve
+this original lab's observed shared-client-device scope and failed evidence.
+
 ## Acceptance and infrastructure
 
 Run four native retained-FD controls first, then four actual mover cases:

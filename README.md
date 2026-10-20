@@ -1,9 +1,10 @@
 # Background File Mover
 
-The [actual mover server-recovery lab](docs/NFS-SERVER-MOVER-LAB.md) documents
-the native prerequisites, source-copy restart matrix, exact build/audit commands,
-cleanup and remaining limits. Read [increment 87](docs/RUST-INCREMENT-87.md) for
-actual results. Production NFS and source deletion remain disabled.
+The [distinct-filesystem recovery lab](docs/NFS-DISTINCT-RECOVERY-LAB.md)
+documents the retained storage fixture, native prerequisites, four source-copy
+recovery cases, exact build/audit commands, cleanup and remaining limits.
+Read [increment 88](docs/RUST-INCREMENT-88.md) for results. Production NFS and
+source deletion remain disabled.
 
 For what the current tests prove and what remains unqualified, read
 [testing limitations](docs/TESTING-LIMITATIONS.md). The

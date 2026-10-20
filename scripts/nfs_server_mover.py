@@ -59,7 +59,8 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                 print('Mover server recovery '+profile+' '+kind,flush=True)
                 c=Case(profile,'source_copy',suffix='-server-'+kind,both_nfs=True)
                 r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
-                r.update(kind=kind,scenario_id='SC-121',layout='two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
+                distinct=report.get('distinct_filesystems',False)
+                r.update(kind=kind,scenario_id='SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
                 observer=None
                 try:
                     original=c.source+'/current/nested/data.bin';private=c.source+'/.file-mover/1-0/data'
@@ -80,6 +81,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     stage=c.destination+'/1/.staging/1.part'
                     r['staging_before']=execute("stat -c '%d:%i:%s' "+stage,'1000:1000').stdout.strip()
                     assert r['staging_before'].split(':')[-1]=='1048576'
+                    if distinct:
+                        assert r['original_source'][0].split(':')[0]!=r['staging_before'].split(':')[0]
+                        assert r['original_local_state'].splitlines()[0].split(':')[0] not in (r['original_source'][0].split(':')[0],r['staging_before'].split(':')[0])
                     r['epoch_before']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
                     assert r['epoch_before']['group']==int(r['coordinator_pid'])
                     backing='/e/profile-source/'+c.label+'/source/.file-mover/1-0/data'

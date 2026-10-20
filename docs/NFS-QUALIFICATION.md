@@ -6,6 +6,12 @@ native prerequisites before the actual live-coordinator source-copy matrix.
 Read [increment 87](RUST-INCREMENT-87.md) for results and limitations; native
 success alone does not qualify service recovery or production NFS/deletion.
 
+The runner also retains --distinct-filesystems with --mover. Read the
+[distinct-filesystem lab](NFS-DISTINCT-RECOVERY-LAB.md) and
+[increment 88](RUST-INCREMENT-88.md) for its storage keeper, two bounded tmpfs
+volumes and independently checked client devices. Keep the earlier shared-client
+filesystem evidence separate; neither profile qualifies independent NAS or power loss.
+
 Increment 25 requires version-2 source/destination bindings and an exclusively
 preprovisioned empty service-owned mode-0600 `.file-mover/coordinator.lock` at
 each root. Do not reuse version-1 observed state or mix directory-lock and
@@ -971,3 +977,17 @@ records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
 raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
 36-control proof audit pass. Production NFS/source deletion and runtime policy
 remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.
+
+
+[Increment 88](RUST-INCREMENT-88.md)/SC-122 extends the controlled source-copy
+recovery matrix to two genuinely distinct client NFS filesystems, backed by two
+bounded tmpfs superblocks held by a separate storage container. Four native
+controls precede four debug/release actual mover cases. Original-worker attempt-1
+completion, staging inode, private source, local state/enrollment and committed
+replay are preserved. The [step-by-step lab](NFS-DISTINCT-RECOVERY-LAB.md) documents
+volume bounds, keeper/backend/reader/client identity checks, initial OCI setup
+failure, normal cleanup and independent audit. This adds selected cross-filesystem
+copy evidence; it does not qualify independent NAS, persistent disks, abrupt live
+server termination, power loss, other phases or worker replacement. Both SLES
+gates remain mandatory; production NFS/source deletion and all eight release
+gates stay unchanged. Maintain DOC-01-05 and defer DOC-06.

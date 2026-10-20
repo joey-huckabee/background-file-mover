@@ -407,6 +407,16 @@ or production support. Maintain SC-121/DOC-01–05, audit the exact captured inp
 and run both SLES gates. Keep runtime policy unchanged and production NFS/source
 deletion off.
 
+Increment 88 retains --distinct-filesystems with --mover, two bounded tmpfs
+local-driver volumes and a separate storage keeper through controlled backend
+restart. See docs/RUST-INCREMENT-88.md and docs/NFS-DISTINCT-RECOVERY-LAB.md.
+Require actual distinct keeper/backend/client devices, read-only observation and
+keeper identity continuity; mount IDs alone do not prove separate filesystems.
+Retain the initial proc-bind OCI failure and its exact normal cleanup evidence.
+This is memory retained across controlled restart, not persistent disk/NAS/power
+or abrupt live-NFSD failure. Maintain SC-122/DOC-01-05, both SLES gates and exact
+input/raw-proof auditing. Keep runtime policy and production NFS/deletion unchanged.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

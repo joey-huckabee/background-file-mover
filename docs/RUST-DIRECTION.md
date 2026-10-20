@@ -796,3 +796,17 @@ Read the [complete lab](NFS-SERVER-MOVER-LAB.md), raw/input evidence and rejecte
 audit assumption. Both SLES gates, 50 proof controls and final inventory pass.
 Rust/dependencies, retry/review/deadlines, production NFS/source deletion and
 all eight release gates remain unchanged. Maintain DOC-01–05; defer DOC-06.
+
+
+[Increment 88](RUST-INCREMENT-88.md)/SC-122 extends the controlled source-copy
+recovery matrix to two genuinely distinct client NFS filesystems, backed by two
+bounded tmpfs superblocks held by a separate storage container. Four native
+controls precede four debug/release actual mover cases. Original-worker attempt-1
+completion, staging inode, private source, local state/enrollment and committed
+replay are preserved. The [step-by-step lab](NFS-DISTINCT-RECOVERY-LAB.md) documents
+volume bounds, keeper/backend/reader/client identity checks, initial OCI setup
+failure, normal cleanup and independent audit. This adds selected cross-filesystem
+copy evidence; it does not qualify independent NAS, persistent disks, abrupt live
+server termination, power loss, other phases or worker replacement. Both SLES
+gates remain mandatory; production NFS/source deletion and all eight release
+gates stay unchanged. Maintain DOC-01-05 and defer DOC-06.

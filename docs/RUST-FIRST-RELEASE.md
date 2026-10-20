@@ -70,14 +70,19 @@ original-state recovery. Selected basic B/B cases do not close the full worker o
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
 Next qualify remaining server-recovery phases and worker death/replacement,
-distinct client filesystems/independent shares, outstanding UNSTABLE data and
-delayed settlement. Establish repeatable bounded abrupt live-server termination
+independent servers/shares and broader filesystem profiles, outstanding UNSTABLE
+data and delayed settlement. Establish repeatable bounded abrupt live-server termination
 before selecting its mover cases. Preserve original state and actual-exit
 exclusion, and cover joint-outage replay/backpressure under the declared profile.
 [Increment 87](RUST-INCREMENT-87.md)/SC-121 qualifies only selected live source-copy
 continuation with NFSD restart or NFSD-quiesced container restart, on two mounts
-sharing one client filesystem. It does not close FR-03/05 or qualify abrupt recovery. Additional source synchronization reply-loss
-cases require a positively observed actual service RPC in the selected workload. Selected
+sharing one client filesystem. [Increment 88](RUST-INCREMENT-88.md)/SC-122
+adds the same finite source-copy cases on two distinct client NFS filesystems
+backed by retained bounded tmpfs volumes. Next qualify destination staging
+verification across these controlled restart facilities, then remaining phases
+and worker-death boundaries. Neither increment closes FR-03/05 or qualifies
+abrupt recovery, persistent disk/NAS or power loss. Additional source
+synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
 outage duration, workload or deployment profile.
 
