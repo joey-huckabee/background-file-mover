@@ -69,8 +69,9 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Next qualify remaining source synchronization, server recovery/delayed settlement
-and joint-outage replay/backpressure under the declared mount profile. Selected
+Next qualify server recovery/delayed settlement and joint-outage replay/backpressure
+under the declared mount profile. Additional source synchronization reply-loss
+cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
 outage duration, workload or deployment profile.
 
@@ -459,3 +460,16 @@ and limits. Rust/dependencies, retry/review/deadlines and production NFS/deletio
 stay unchanged. All eight release gates remain open; maintain DOC-01–05 and
 defer DOC-06. Server recovery, delayed effects, pending source synchronization,
 other workloads and NAS/kernel/power/deployment qualification remain future work.
+
+
+[Increment 85](RUST-INCREMENT-85.md)/SC-119 isolates source synchronization:
+four actual buffered claim workers pass 32 source fsync calls, with no captured
+request/reply inside those intervals or captured pair spanning entry. Separate
+source-export native probes prove FILE_SYNC WRITE success withholding, release
+and drop/reconnect recovery on both share layouts. The actual-service/native
+operation intersection is empty, so zero mover source-sync reply-loss/death
+cases are qualified. Read the [step-by-step lab](NFS-SOURCE-SYNC-LAB.md) and raw
+scope/limitations; broader-window traffic is not source-sync attribution.
+Server recovery/delayed settlement and other workloads remain open. Production
+NFS/source deletion, Rust behavior/dependencies, retry/review and deadlines stay
+unchanged. Maintain DOC-01–05 and defer DOC-06; all eight release gates stay open.

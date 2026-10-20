@@ -31,7 +31,7 @@ def control_traversal(execute, target):
 
 def qualify(root, production_gate, qualification_gate, run, execute, client,
             output, mount, unmount_all, mounts, report, same_share=False, buffered_reads=False,
-            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False, buffered_commit=False, buffered_unstable=False, live_loss=False, manifest_capability=False, manifest_loss=False, claim_capability=False, claim_loss=False):
+            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False, buffered_commit=False, buffered_unstable=False, live_loss=False, manifest_capability=False, manifest_loss=False, claim_capability=False, claim_loss=False, source_sync=False):
     report['gates'] = {}
     engine = ['podman', '--connection', 'podman-machine-default-root']
     binaries = {}
@@ -76,9 +76,9 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
     if buffered_commit or buffered_unstable:
         from nfs_buffered_commit import qualify_buffered_commit
         return qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture, unstable=buffered_unstable, live_loss=live_loss)
-    if buffered_sync or buffered_io:
+    if source_sync or buffered_sync or buffered_io:
         from nfs_buffered_sync import qualify_buffered_sync
-        return qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=buffered_io)
+        return qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=buffered_io, source_sync=source_sync)
     if buffered_bootstrap:
         from nfs_buffered_bootstrap import qualify_buffered_bootstrap
         return qualify_buffered_bootstrap(run, execute, client, server, output, mount, unmount_all, report, binaries)

@@ -16,10 +16,10 @@ from nfs_sync_capability import validate_resend
 from nfs_sync_support import build_probe, start_trace, finish_trace, correlate
 
 
-def qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=False):
+def qualify_buffered_sync(run, execute, client, server, output, unmount_all, report, binaries, fixture, io_trace=False, source_sync=False):
     root = Path(__file__).resolve().parent
     config, containers = fixture['config'], fixture['containers']
-    report.update(matrix='buffered-io' if io_trace else 'buffered-sync', capabilities=[], relays={})
+    report.update(matrix='source-sync' if source_sync else 'buffered-io' if io_trace else 'buffered-sync', capabilities=[], relays={})
     tests = subprocess.run([sys.executable, str(root/'test_nfs_rpc.py'), '-v'], capture_output=True, text=True, timeout=20)
     report['decoder_tests'] = dict(passed=tests.returncode == 0, output=tests.stdout+tests.stderr)
     assert tests.returncode == 0
@@ -78,11 +78,11 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
 
     def cases(Case):
         for profile in ('debug', 'release'):
-            for point, role in (('claim_apply', 'source'), ('copy_chunk', 'destination')):
+            for point, role in ((('claim_apply', 'source'),) if source_sync else (('claim_apply', 'source'), ('copy_chunk', 'destination'))):
                 print('Buffered sync '+layout+' '+profile+' '+point, flush=True)
                 c = Case(profile, point, suffix='-sy-'+layout, both_nfs=True)
                 r = c.result
-                r.update(layout=layout, config=c.config, role=role, scenario_id='SC-111')
+                r.update(layout=layout, config=c.config, role=role, scenario_id='SC-119' if source_sync else 'SC-111')
                 report['cases'].append(r); report['rust_executed'] = True
                 active = {'source': relays['source']} if layout == 'same-share' else relays
                 try:
@@ -158,8 +158,8 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
         # One client may send both exports' traffic through one established
         # transport. Observe every active relay, never infer it from mount addr.
         active = {'source': relays['source']} if layout == 'same-share' else relays
-        mountpoint = '/tmp/profile-source' if layout == 'same-share' else '/tmp/profile-destination'
-        export = '/exports/profile-source' if layout == 'same-share' else '/exports/profile-destination'
+        mountpoint = '/tmp/profile-source' if source_sync or layout == 'same-share' else '/tmp/profile-destination'
+        export = '/exports/profile-source' if source_sync or layout == 'same-share' else '/exports/profile-destination'
         result = dict(layout=layout, service_observed_operations=observed, observations=[], withholding=[], passed=False)
         report['capabilities'].append(result)
         counter = 0
@@ -224,7 +224,12 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
             print('Buffered native sync '+layout+' '+label+': PASS', flush=True)
             return row
         discovery = probe('discovery')
-        candidates = sorted(set(observed)&set(discovery['observed_sync_operations']))
+        service_matching = sorted(set(observed)&set(discovery['observed_sync_operations']))
+        # Source-export OS controls prove transport capability independently.
+        # They never substitute for an unobserved service synchronization RPC.
+        candidates = sorted(set(discovery['observed_sync_operations'])) if source_sync else service_matching
+        result['service_matching_operations'] = service_matching
+        result['scope'] = 'source-export native fsync controls; not service reply-loss recovery' if source_sync else 'conditional service-matching native controls'
         result['available_operations'] = candidates
         if candidates:
             selected = 5 if 5 in candidates else 38
@@ -247,9 +252,9 @@ def qualify_buffered_sync(run, execute, client, server, output, unmount_all, rep
             observed = sorted({op for c in report['cases'] if c['layout'] == layout for op in c['full_nfs_sync_operations']})
             if not io_trace: capability(layout, observed)
             unmount_all()
-        assert len(report['cases']) == 8 and all(c['passed'] for c in report['cases'])
+        assert len(report['cases']) == (4 if source_sync else 8) and all(c['passed'] for c in report['cases'])
         assert len(report['capabilities']) == (0 if io_trace else 2) and all(c['passed'] for c in report['capabilities'])
-        report.update(passed=True, scope=('Eight healthy buffered worker I/O traces with descriptor/filehandle/payload attribution; no native controls, service faults or physical durability.' if io_trace else 'Eight healthy buffered worker traces with actual clock identity and bounded syscall/RPC correlation; conditional native OS sync release/drop proof, not service sync-loss or physical durability.'))
+        report.update(passed=True, scope=('Four actual claim-worker sync traces and independent source-export native withholding controls; no service sync-loss or physical durability claim.' if source_sync else 'Eight healthy buffered worker I/O traces with descriptor/filehandle/payload attribution; no native controls, service faults or physical durability.' if io_trace else 'Eight healthy buffered worker traces with actual clock identity and bounded syscall/RPC correlation; conditional native OS sync release/drop proof, not service sync-loss or physical durability.'))
     finally:
         for role, relay in relays.items():
             relay.release()

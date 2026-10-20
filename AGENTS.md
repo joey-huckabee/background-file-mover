@@ -382,6 +382,13 @@ see docs/RUST-INCREMENT-84.md and docs/NFS-CLAIM-LOSS-LAB.md. Keep full raw
 replay proof distinct from original-state reconciliation and remote settlement.
 Maintain SC-118/DOC-01–05, unchanged runtime policy and production NFS/deletion off.
 
+Increment 85 isolates source-sync discovery and source-export native withholding;
+see docs/RUST-INCREMENT-85.md and docs/NFS-SOURCE-SYNC-LAB.md. Thirty-two actual
+source fsync intervals contain no captured RPC; native FILE_SYNC WRITE controls
+do not qualify mover source-sync reply loss. Require a positive actual service
+RPC before adding those fault cases. Maintain SC-119/DOC-01–05, remaining server
+recovery/delayed settlement and production NFS/source deletion disabled.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

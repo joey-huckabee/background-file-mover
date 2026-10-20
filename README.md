@@ -365,3 +365,16 @@ and limits. Rust/dependencies, retry/review/deadlines and production NFS/deletio
 stay unchanged. All eight release gates remain open; maintain DOC-01–05 and
 defer DOC-06. Server recovery, delayed effects, pending source synchronization,
 other workloads and NAS/kernel/power/deployment qualification remain future work.
+
+
+[Increment 85](docs/RUST-INCREMENT-85.md)/SC-119 isolates source synchronization:
+four actual buffered claim workers pass 32 source fsync calls, with no captured
+request/reply inside those intervals or captured pair spanning entry. Separate
+source-export native probes prove FILE_SYNC WRITE success withholding, release
+and drop/reconnect recovery on both share layouts. The actual-service/native
+operation intersection is empty, so zero mover source-sync reply-loss/death
+cases are qualified. Read the [step-by-step lab](docs/NFS-SOURCE-SYNC-LAB.md) and raw
+scope/limitations; broader-window traffic is not source-sync attribution.
+Server recovery/delayed settlement and other workloads remain open. Production
+NFS/source deletion, Rust behavior/dependencies, retry/review and deadlines stay
+unchanged. Maintain DOC-01–05 and defer DOC-06; all eight release gates stay open.

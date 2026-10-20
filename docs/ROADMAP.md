@@ -49,7 +49,8 @@ Work on `feature/rust-transfer-coordinator`. Read
 before implementation.
 
 - [ ] Qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
-  untested claim boundaries and actual pending synchronization/RPC operations,
+  untested claim boundaries and positively observed pending
+  synchronization/RPC operations,
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
@@ -57,7 +58,8 @@ before implementation.
   in the declared shipping mount/export profile; do not substitute buffered OS
   controls for unobserved service COMMIT/fsync boundaries. Cover
   server recovery and delayed-effect settlement, remaining
-  synchronization boundaries, outages beyond the selected three-minute cases,
+  synchronization boundaries with positive actual service-RPC evidence,
+  outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.
 - [ ] Qualify claimed same-ID replay/source revalidation and bounded backpressure
   during joint source/destination outage without changing recorder handoff rules.
