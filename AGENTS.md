@@ -389,6 +389,14 @@ do not qualify mover source-sync reply loss. Require a positive actual service
 RPC before adding those fault cases. Maintain SC-119/DOC-01–05, remaining server
 recovery/delayed settlement and production NFS/source deletion disabled.
 
+Increment 86 establishes native NFSD/same-container recovery capability in
+scripts/check-nfs-server-recovery.py; see docs/RUST-INCREMENT-86.md and
+docs/NFS-SERVER-RECOVERY-LAB.md. Preserve two failed acquisitions, pinned private
+IP, confirmed exit, live checkpoint and common-clock proof. Changed session/
+write verifier with retained FD/handle is not fresh-netns/VM/NAS reboot or Rust
+mover recovery qualification. Maintain SC-120/DOC-01–05 and production NFS/source
+deletion disabled; next select actual worker cases under measured facilities.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

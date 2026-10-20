@@ -54,6 +54,11 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
+- [ ] Select and qualify actual supervised mover recovery under measured NFSD
+  and same-container termination/start facilities. Preserve original state,
+  custody and worker-exit exclusion. Cover outstanding UNSTABLE data, delayed
+  effects and remaining worker phases; native retained-FD success does not close
+  the service matrix. Qualify fresh-network-namespace/VM/NAS reboot separately.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
   in the declared shipping mount/export profile; do not substitute buffered OS
   controls for unobserved service COMMIT/fsync boundaries. Cover

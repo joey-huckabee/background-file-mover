@@ -768,3 +768,16 @@ scope/limitations; broader-window traffic is not source-sync attribution.
 Server recovery/delayed settlement and other workloads remain open. Production
 NFS/source deletion, Rust behavior/dependencies, retry/review and deadlines stay
 unchanged. Maintain DOC-01–05 and defer DOC-06; all eight release gates stay open.
+
+
+[Increment 86](RUST-INCREMENT-86.md)/SC-120 establishes native server-recovery
+fixture capability after two retained failed acquisitions. Four original-FD
+probes pass NFSD stop/start and confirmed same-container SIGKILL/exit/start on
+source/destination exports, preserving opaque handles/backing inodes while
+observing BADSESSION, new sessions and changed write verifiers. Network namespace
+and VM kernel boot ID remain unchanged; this is not VM/NAS reboot or Rust mover
+recovery qualification. The [step-by-step lab](NFS-SERVER-RECOVERY-LAB.md)
+records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
+raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
+36-control proof audit pass. Production NFS/source deletion and runtime policy
+remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.

@@ -69,8 +69,10 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Next qualify server recovery/delayed settlement and joint-outage replay/backpressure
-under the declared mount profile. Additional source synchronization reply-loss
+Next qualify actual supervised mover recovery under the measured NFSD and
+same-container termination/start facilities, preserving original state and
+worker-exit exclusion. Cover delayed settlement and joint-outage replay/backpressure
+under the declared mount profile. Native capability does not close service recovery. Additional source synchronization reply-loss
 cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
 outage duration, workload or deployment profile.
@@ -473,3 +475,16 @@ scope/limitations; broader-window traffic is not source-sync attribution.
 Server recovery/delayed settlement and other workloads remain open. Production
 NFS/source deletion, Rust behavior/dependencies, retry/review and deadlines stay
 unchanged. Maintain DOC-01–05 and defer DOC-06; all eight release gates stay open.
+
+
+[Increment 86](RUST-INCREMENT-86.md)/SC-120 establishes native server-recovery
+fixture capability after two retained failed acquisitions. Four original-FD
+probes pass NFSD stop/start and confirmed same-container SIGKILL/exit/start on
+source/destination exports, preserving opaque handles/backing inodes while
+observing BADSESSION, new sessions and changed write verifiers. Network namespace
+and VM kernel boot ID remain unchanged; this is not VM/NAS reboot or Rust mover
+recovery qualification. The [step-by-step lab](NFS-SERVER-RECOVERY-LAB.md)
+records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
+raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
+36-control proof audit pass. Production NFS/source deletion and runtime policy
+remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.

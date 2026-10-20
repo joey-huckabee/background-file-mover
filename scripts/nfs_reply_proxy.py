@@ -40,6 +40,8 @@ def serve(backend):
                             state.update(observing=True, trace=[], trace_bytes=0, trace_overflow=False)
                         elif action == 'stop_observe':
                             state['observing'] = False
+                        elif action == 'checkpoint':
+                            pass  # Persist the complete live trace without resetting its window.
                         elif action == 'arm':
                             if command.get('operation', 28) not in (5, 11, 28, 38):
                                 raise ValueError('unsupported selected operation')
