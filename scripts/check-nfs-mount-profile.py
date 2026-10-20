@@ -31,7 +31,9 @@ def main():
     parser.add_argument('--buffered-unstable', action='store_true', help='Prove UNSTABLE WRITE success withheld before eight buffered recovery cases')
     parser.add_argument('--live-loss', action='store_true', help='Keep the coordinator alive during buffered COMMIT or UNSTABLE reply drop')
     parser.add_argument('--manifest-capability', action='store_true', help='Trace four actual manifest workers, then prove four successful-reply hold/release controls')
+    parser.add_argument('--manifest-loss', action='store_true', help='Repeat manifest controls, then live and coordinator-death WRITE reply-loss recovery')
     args = parser.parse_args()
+    assert not args.manifest_loss or args.production_gate, 'manifest-loss requires both gates'
     assert not args.manifest_capability or args.production_gate, 'manifest-capability requires both gates'
     assert not args.live_loss or (args.buffered_commit or args.buffered_unstable), 'live-loss requires a payload reply matrix'
     assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
@@ -45,7 +47,7 @@ def main():
     assert not args.buffered_io or args.production_gate, 'buffered-io requires both gates'
     assert not args.buffered_commit or args.production_gate, 'buffered-commit requires both gates'
     assert not args.buffered_unstable or args.production_gate, 'buffered-unstable requires both gates'
-    assert sum((args.same_share, args.buffered_reads, args.buffered_publication, args.buffered_post_unlink, args.buffered_claims, args.buffered_bootstrap, args.buffered_sync, args.buffered_io, args.buffered_commit, args.buffered_unstable, args.manifest_capability)) <= 1, 'select one worker matrix'
+    assert sum((args.same_share, args.buffered_reads, args.buffered_publication, args.buffered_post_unlink, args.buffered_claims, args.buffered_bootstrap, args.buffered_sync, args.buffered_io, args.buffered_commit, args.buffered_unstable, args.manifest_capability, args.manifest_loss)) <= 1, 'select one worker matrix'
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root / 'scripts/rust-platform.json').read_text(encoding='utf-8'))
     label = 'mount-profile-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
@@ -69,8 +71,13 @@ def main():
             data = (root / 'scripts' / name).read_bytes()
             report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 
-    if args.manifest_capability:
+    if args.manifest_capability or args.manifest_loss:
         for name in ('nfs_manifest_capability.py', 'test_nfs_manifest_capability.py'):
+            data = (root / 'scripts' / name).read_bytes()
+            report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
+
+    if args.manifest_loss:
+        for name in ('nfs_manifest_recovery.py', 'test_nfs_manifest_recovery.py'):
             data = (root / 'scripts' / name).read_bytes()
             report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 
@@ -141,12 +148,12 @@ def main():
         address = json.loads(run(['inspect', server]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
         report['server_packages'] = run(['exec', server, 'dpkg-query', '-W', 'nfs-common', 'nfs-kernel-server', 'rpcbind']).stdout
         for role, fsid in (('source', 68), ('destination', 69)):
-            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication or args.buffered_post_unlink or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit or args.buffered_unstable or args.manifest_capability else '16m'
+            size = '64m' if args.same_share or args.buffered_reads or args.buffered_publication or args.buffered_post_unlink or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit or args.buffered_unstable or args.manifest_capability or args.manifest_loss else '16m'
             run(['exec', server, '/bin/sh', '-eu', '-c',
                  f'mkdir /exports/profile-{role}; mount -t tmpfs -o size={size},mode=1777 tmpfs /exports/profile-{role}; '
                  f"exportfs -i -o rw,sync,no_subtree_check,root_squash,fsid={fsid} '*:/exports/profile-{role}'"])
         report['server_exports'] = run(['exec', server, 'exportfs', '-v']).stdout
-        observer = ['--cap-add', 'SYS_PTRACE', '--cap-add', 'DAC_READ_SEARCH'] if args.buffered_reads or args.buffered_publication or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit or args.buffered_unstable or args.manifest_capability else []
+        observer = ['--cap-add', 'SYS_PTRACE', '--cap-add', 'DAC_READ_SEARCH'] if args.buffered_reads or args.buffered_publication or args.buffered_claims or args.buffered_bootstrap or args.buffered_sync or args.buffered_io or args.buffered_commit or args.buffered_unstable or args.manifest_capability or args.manifest_loss else []
         report['observer_capabilities'] = ['SYS_PTRACE', 'DAC_READ_SEARCH'] if observer else []
         client = run(['create', '--network', network, '--cap-drop', 'all', '--cap-add', 'SYS_ADMIN', *observer,
                       '--security-opt', 'no-new-privileges', '--entrypoint', '/bin/sh',
@@ -301,7 +308,7 @@ def main():
                     client, output, mount, unmount_all, mounts, report['authorization'],
                     same_share=args.same_share, buffered_reads=args.buffered_reads,
                     buffered_publication=args.buffered_publication, server=server,
-                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io, buffered_commit=args.buffered_commit, buffered_unstable=args.buffered_unstable, live_loss=args.live_loss, manifest_capability=args.manifest_capability,
+                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io, buffered_commit=args.buffered_commit, buffered_unstable=args.buffered_unstable, live_loss=args.live_loss, manifest_capability=args.manifest_capability, manifest_loss=args.manifest_loss,
                     fixture=dict(network=network, containers=containers, mounts=mounts, address=address, config=config))
         report['status'] = 'PASSED'
     except Exception as error:

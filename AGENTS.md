@@ -658,3 +658,13 @@ See docs/RUST-INCREMENT-81.md and docs/NFS-MANIFEST-CAPABILITY-LAB.md; maintain
 SC-115/DOC-01–05 and testing limits. Keep retry/review/deadlines, production NFS
 and source deletion unchanged. Manifest reply loss/replay/death remains future
 work; never infer manifest COMMIT capability from payload COMMIT observations.
+
+Increment 82 retains --manifest-loss: eight repeated healthy/release controls,
+then eight finite live/death manifest FILE_SYNC WRITE reply-loss recoveries on
+both buffered layouts/profiles. See docs/RUST-INCREMENT-82.md and
+docs/NFS-MANIFEST-LOSS-LAB.md. Preserve separate native live replay and
+post-restart application recovery evidence, immutable DB/WAL intent copies acquired
+only after confirmed coordinator exit, orphan guard exclusion until actual worker
+exit, original state/inode/bytes, and payload attempt 1. Maintain SC-116/DOC-01–05,
+testing limits and future-only roadmap; all eight release gates stay open.
+Keep production NFS/source deletion, retry/review and deadlines unchanged.

@@ -228,3 +228,8 @@ Require WRITE request stable=0 and reply committed=0, full range/byte coverage,
 actual pending FD/server evidence and all-range replay with subsequent COMMIT
 where needed. Preserve initial failed acquisitions; service faults are conditional
 on native capability. No new shipping executable or production enablement follows.
+
+The finite manifest WRITE reply-loss/recovery extension is documented in
+[the manifest loss lab](NFS-MANIFEST-LOSS-LAB.md) and
+[increment 82](RUST-INCREMENT-82.md). Keep its live replay and post-restart
+application recovery evidence distinct from these capability/release controls.

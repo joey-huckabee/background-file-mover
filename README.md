@@ -323,4 +323,20 @@ physical-durability qualification remain open.
 reply withholding through eight actual-worker cases. Read the
 [complete procedure](docs/NFS-MANIFEST-CAPABILITY-LAB.md) for identity/byte/RPC
 proof, discrete API checks, cleanup and limits. Production NFS/deletion remain off;
-manifest reply-loss/death recovery is still future work.
+selected manifest reply-loss/death recovery is covered by increment 82.
+
+
+[Increment 82](docs/RUST-INCREMENT-82.md)/SC-116 qualifies eight finite manifest WRITE
+reply-loss recoveries after eight repeated discovery/release controls, across both
+buffered NMP-41B layouts and debug/release profiles. Live-coordinator replay and
+post-death application recovery from immutable SQLite intent are checked
+separately. The latter confirms coordinator exit, orphan guard retention, actual
+old-worker exit before restart, original staging inode/bytes before republication
+and phase-1 to phase-4 durable intent preservation. All cases commit with payload
+attempt 1 and preserve source/state/enrollment and producer-path reuse.
+Read [the complete loss/recovery procedure](docs/NFS-MANIFEST-LOSS-LAB.md) and retained
+raw/audit evidence. This supplies selected FR-03/05 evidence; all eight release
+gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
+retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
+recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
+remain open. Maintain DOC-01–05; DOC-06 stays deferred.

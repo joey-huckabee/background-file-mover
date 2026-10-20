@@ -415,6 +415,22 @@ controls across both buffered layouts/profiles. The
 WRITE stability and pending permission change from earlier payload COMMIT/
 UNSTABLE evidence. Complete private bytes do not imply public commitment.
 All cases preserve original source/state/enrollment and commit attempt 1 after
-release. Reply loss, replay and coordinator-death recovery at this boundary
-remain future work; all eight release gates and production NFS/deletion remain
+release. Selected reply loss, replay and coordinator-death recovery are covered
+separately by increment 82; all eight release gates and production NFS/deletion remain
 unchanged. Maintain DOC-01–05; DOC-06 stays deferred.
+
+
+[Increment 82](RUST-INCREMENT-82.md)/SC-116 qualifies eight finite manifest WRITE
+reply-loss recoveries after eight repeated discovery/release controls, across both
+buffered NMP-41B layouts and debug/release profiles. Live-coordinator replay and
+post-death application recovery from immutable SQLite intent are checked
+separately. The latter confirms coordinator exit, orphan guard retention, actual
+old-worker exit before restart, original staging inode/bytes before republication
+and phase-1 to phase-4 durable intent preservation. All cases commit with payload
+attempt 1 and preserve source/state/enrollment and producer-path reuse.
+Read [the complete loss/recovery procedure](NFS-MANIFEST-LOSS-LAB.md) and retained
+raw/audit evidence. This supplies selected FR-03/05 evidence; all eight release
+gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
+retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
+recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
+remain open. Maintain DOC-01–05; DOC-06 stays deferred.

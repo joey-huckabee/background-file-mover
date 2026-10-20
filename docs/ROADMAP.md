@@ -48,13 +48,6 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Define and qualify the finite manifest WRITE reply-loss/recovery matrix using
-  proven manifest-specific success withholding, both buffered layouts/profiles.
-  Distinguish live-coordinator reconnect from coordinator-death/original-state
-  recovery; require actual replay/stability/byte/handle evidence and retain original
-  manifest intent/custody/state. Keep unchanged retry/review and assignment/stop
-  deadlines. Do not infer COMMIT, other ranges/phases or remote settlement from
-  the selected FILE_SYNC control or a free local guard.
 - [ ] Qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
   untested claim boundaries and actual pending synchronization/RPC operations,
   plus untested

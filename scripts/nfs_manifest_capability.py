@@ -1,4 +1,4 @@
-"""Actual manifest RPC discovery and positive withholding controls only."""
+"""Actual manifest RPC discovery, positive controls and optional finite reply-loss recovery."""
 import base64
 import hashlib
 import json
@@ -91,13 +91,18 @@ def held_manifest(state,obj):
                 count=op['count'],sha256=op['data_sha256'],verifier_hex=result['verifier_hex'])
 
 
-def qualify_manifest(run,execute,client,server,output,unmount_all,report,binaries,fixture):
+def qualify_manifest(run,execute,client,server,output,unmount_all,report,binaries,fixture,loss=False):
     config,containers=fixture['config'],fixture['containers']
-    report.update(matrix='manifest-capability',relays={},discoveries=[],
-                  declared_cases='Four healthy manifest traces, then four successful WRITE hold/release controls; no reply drop or coordinator death.')
+    report.update(matrix='manifest-loss' if loss else 'manifest-capability',relays={},discoveries=[],
+                  declared_cases=('Four healthy traces, four hold/release controls, four live-drop and four coordinator-death/drop recoveries.' if loss else 'Four healthy manifest traces, then four successful WRITE hold/release controls; no reply drop or coordinator death.'))
     tested=subprocess.run([sys.executable,str(Path(__file__).with_name('test_nfs_manifest_capability.py')),'-v'],capture_output=True,text=True,timeout=20)
     report['proof_tests']=dict(passed=tested.returncode==0,output=tested.stdout+tested.stderr)
     assert tested.returncode==0
+    if loss:
+        from nfs_manifest_recovery import snapshot_intent, validate_intent, validate_manifest_resend
+        tested=subprocess.run([sys.executable,str(Path(__file__).with_name('test_nfs_manifest_recovery.py')),'-v'],capture_output=True,text=True,timeout=20)
+        report['recovery_proof_tests']=dict(passed=tested.returncode==0,output=tested.stdout+tested.stderr)
+        assert tested.returncode==0
     execute('umask 077; mkdir /tmp/local','1000:1000')
     artifacts={}
     for profile in ('debug','release'):
@@ -124,10 +129,10 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
             nfsd_threads=run(['exec',server,'cat','/proc/fs/nfsd/threads']).stdout.strip())
     def cases(Case):
         discovered={}
-        for action in ('discovery','hold-release'):
+        for action in (('discovery','hold-release','live-drop','death-drop') if loss else ('discovery','hold-release')):
             for profile in ('debug','release'):
                 c=Case(profile,'publish',suffix='-manifest-'+layout+'-'+action,both_nfs=True)
-                r=c.result;r.update(layout=layout,action=action,scenario_id='SC-115',config=c.config)
+                r=c.result;r.update(layout=layout,action=action,scenario_id='SC-116' if action.endswith('drop') else 'SC-115',config=c.config)
                 report['cases'].append(r);report['rust_executed']=True
                 print('Manifest '+layout+' '+profile+' '+action,flush=True)
                 try:
@@ -157,7 +162,7 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                         assert profile in discovered
                         windows('observe');windows('arm')
                     execute('touch '+c.rendezvous+'/go','1000:1000')
-                    if action=='hold-release':
+                    if action!='discovery':
                         for _ in range(40):
                             roles=[role for role,relay in active.items() if relay.state()['held']]
                             if roles:break
@@ -191,14 +196,73 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                         r['final_absent_while_withheld']=run(['exec',server,'test','!','-e',remote]).returncode==0
                         assert r['final_absent_while_withheld']
                         r['before_release']=active[role].await_held();held_manifest(r['before_release'],r['server_while_withheld'])
-                        r['settled']=active[role].command('release',operation=38)
+                        if action=='death-drop':
+                            c.signal(r['coordinator_pid'],'KILL');r['coordinator_exit']=c.service.wait(timeout=10)
+                            assert r['coordinator_exit']!=0
+                            r['coordinator_exit_state']=c.await_exit(r['coordinator_pid'])
+                            path=c.base+'/state/instance.lock'
+                            before=execute(f"stat -c '%d:%i:%s:%u:%a' {path}",'1000:1000')
+                            probe=adapted(f'test -f {path}; flock -n -E 73 {path} true','1000:1000',False)
+                            assert probe.returncode==73 and c.state(pid)=='D'
+                            assert before==execute(f"stat -c '%d:%i:%s:%u:%a' {path}",'1000:1000')
+                            r['orphan_guard_probe']=dict(exit_code=73,identity=before,worker_state='D')
+                            r['worker_fds']=execute(f'ls -l /proc/{pid}/fd')
+                            assert 'instance.lock' in r['worker_fds'] and 'jobs.sqlite' not in r['worker_fds']
+                            r['intent_before_restart']=snapshot_intent(run,client,c.base,output,c.label+'-before')
+                            validate_intent(r['intent_before_restart'],r['server_while_withheld'],1)
+                            r['before_drop']=active[role].await_held();held_manifest(r['before_drop'],r['server_while_withheld'])
+                            c.signal(pid,'KILL')
+                        r['settled']=active[role].command('drop' if action.endswith('drop') else 'release',operation=38)
                         for other,relay in active.items():
                             if other!=role:relay.release()
+                        if action=='death-drop':
+                            r['worker_exit']=c.await_exit(pid);c.worker=None
+                            r['server_after_exit']=obj(target)
+                            assert r['server_after_exit']==r['server_while_withheld']
+                            r['pre_restart_wires']=windows('stop_observe')
+                            r['pre_restart_receive_ids']=[v['receive_id'] for v in r['pre_restart_wires'][role]['forwarded']]
+                            windows('observe')
+                            execute('rm '+c.rendezvous+'/ready '+c.rendezvous+'/go','1000:1000')
+                            r['original_paused_worker']=dict(r['paused_worker'])
+                            r['restart_pause_point']='manifest_link_rpc'
+                            c.start(True,pause_point='manifest_link_rpc');r['restart_coordinator_pid']=c.service_pid()
+                            assert r['restart_coordinator_pid']!=r['coordinator_pid']
+                            c.await_pause(point='manifest_link_rpc')
+                            r['restart_paused_worker']=dict(r['paused_worker']);r['paused_worker']=r['original_paused_worker']
+                            r['restart_worker_security']=execute(f'cat /proc/{c.worker}/status','1000:1000')
+                            r['server_before_republication']=obj(target)
+                            assert r['server_before_republication']==r['server_while_withheld']
+                            r['restart_status']=c.request('GET','/api/v2/jobs/1')[1]
+                            assert r['restart_status']['state']!='Committed' and r['restart_status']['details']['manifest_phase']==3
+                            assert run(['exec',server,'test','!','-e',remote]).returncode==0
+                            execute('touch '+c.rendezvous+'/go','1000:1000')
                     if action=='discovery':
                         r['worker_exit']=c.await_exit(pid);c.worker=None
                         r['trace']=finish_trace(run,observer)
-                    final=c.recover(restart=False);c.verify()
+                    if action=='live-drop':
+                        samples=[];r['live_recovery_samples']=samples;began=time.monotonic()
+                        for _ in range(180):
+                            assert c.service.poll() is None and c.service_pid()==r['coordinator_pid']
+                            started=time.monotonic();health=c.request('GET','/healthz');health_seconds=time.monotonic()-started
+                            started=time.monotonic();code,status=c.request('GET','/api/v2/jobs/1');status_seconds=time.monotonic()-started
+                            replay=c.request('POST','/api/v2/jobs',c.body)
+                            sample=dict(elapsed_seconds=time.monotonic()-began,health_code=health[0],health_seconds=health_seconds,
+                                status_code=code,status_seconds=status_seconds,status=status,replay=replay,
+                                coordinator_pid=c.service_pid(),children=c.children(),original_worker_state=c.state(pid))
+                            samples.append(sample)
+                            assert health[0]==code==200 and health_seconds<5 and status_seconds<5
+                            assert sample['coordinator_pid']==r['coordinator_pid'] and replay[0]==202 and replay[1]['job_id']=='1'
+                            assert status['details']['condition']!='ReviewRequired' and status['details']['files'][0]['attempt']==1
+                            assert set(sample['children'])<={pid}
+                            if status['state']=='Committed':final=status;break
+                            time.sleep(1)
+                        else:raise AssertionError('manifest live recovery did not finish within 180 samples')
+                    else:final=c.recover(restart=False)
+                    c.verify()
                     r['wires']=windows('stop_observe')
+                    if action.endswith('drop'):
+                        r['wire']=dict(forwarded=r['wires'][role]['forwarded'])
+                        r['resend_validation']=validate_manifest_resend(r,restarted=action=='death-drop')
                     r['server_final']=obj(c.destination+'/1/COMMITTED.json')
                     data=manifest_data(r['server_final'],c.label)
                     assert json.loads(data)==r['manifest']
@@ -219,10 +283,15 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                     assert execute(f'cat {c.source}/current/nested/data.bin','1000:1000')=='next recording'
                     r['replay']=c.request('POST','/api/v2/jobs',c.body)
                     assert r['replay'][0]==202 and r['replay'][1]['job_id']=='1' and c.request('GET','/api/v2/jobs/2')[0]==404
-                    assert c.service.poll() is None and c.service_pid()==r['coordinator_pid']
+                    assert c.service.poll() is None and c.service_pid()==r.get('restart_coordinator_pid',r['coordinator_pid'])
                     stopped=adapted(c.binary+' --stop '+c.config_path,'1000:1000')
                     assert json.loads(stopped.stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0
-                    c.worker=None;r.update(committed=final,source_and_state_preserved=True,passed=True,service_reply_loss_tested=False)
+                    r['final_coordinator_exit_state']=c.await_exit(c.service_pid())
+                    if action=='death-drop':
+                        r['intent_after_stop']=snapshot_intent(run,client,c.base,output,c.label+'-after')
+                        before=r['intent_before_restart']['intent'];after=validate_intent(r['intent_after_stop'],r['server_final'],4)
+                        assert all(before[k]==after[k] for k in ('job_id','bytes_base64','sha256','instance_id'))
+                    c.worker=None;r.update(committed=final,source_and_state_preserved=True,passed=True,service_reply_loss_tested=action.endswith('drop'))
                     print('Manifest '+layout+' '+profile+' '+action+': PASS',flush=True)
                 finally:
                     for relay in active.values():relay.release()
@@ -237,8 +306,8 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
             run_runtime(run,adapted,spawn,lambda:None,server,output,client,artifacts,report,case_runner=cases,
                 nfs_root='/tmp/profile-source',destination_nfs_root='/tmp/profile-destination' if layout=='separate-shares' else None)
             unmount_all()
-        assert len(report['cases'])==8 and all(c['passed'] for c in report['cases'])
-        report.update(passed=True,scope='Four actual manifest discovery traces and four matched-success hold/release controls. No reply drop, coordinator death, NAS/kernel or power durability qualification.')
+        assert len(report['cases'])==(16 if loss else 8) and all(c['passed'] for c in report['cases'])
+        report.update(passed=True,scope=('Four manifest discoveries, four successful-reply hold/release controls and eight finite live/death WRITE loss recoveries; no general NAS/kernel, power durability or remote settlement qualification.' if loss else 'Four actual manifest discovery traces and four matched-success hold/release controls. No reply drop, coordinator death, NAS/kernel or power durability qualification.'))
     finally:
         for role,relay in relays.items():
             relay.release();report['relays'][role]['final_state']=relay.state(strict=False)

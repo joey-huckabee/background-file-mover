@@ -909,3 +909,8 @@ All cases preserve original source/state/enrollment and commit attempt 1 after
 release. Reply loss, replay and coordinator-death recovery at this boundary
 remain future work; all eight release gates and production NFS/deletion remain
 unchanged. Maintain DOC-01–05; DOC-06 stays deferred.
+
+The finite manifest WRITE reply-loss/recovery extension is documented in
+[the manifest loss lab](NFS-MANIFEST-LOSS-LAB.md) and
+[increment 82](RUST-INCREMENT-82.md). Keep its live replay and post-restart
+application recovery evidence distinct from these capability/release controls.

@@ -117,3 +117,8 @@ or guard availability is not remote settlement or authenticated NAS authority.
 Health/status checks are discrete observations, not continuous availability.
 All eight first-release gates remain open; DOC-06 and other deferred work stay
 parked. Define the next finite loss/recovery matrix only from proven capability.
+
+The finite manifest WRITE reply-loss/recovery extension is documented in
+[the manifest loss lab](NFS-MANIFEST-LOSS-LAB.md) and
+[increment 82](RUST-INCREMENT-82.md). Keep its live replay and post-restart
+application recovery evidence distinct from these capability/release controls.

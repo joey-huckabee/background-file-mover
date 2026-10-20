@@ -517,8 +517,8 @@ controls across both buffered layouts/profiles. The
 WRITE stability and pending permission change from earlier payload COMMIT/
 UNSTABLE evidence. Complete private bytes do not imply public commitment.
 All cases preserve original source/state/enrollment and commit attempt 1 after
-release. Reply loss, replay and coordinator-death recovery at this boundary
-remain future work; all eight release gates and production NFS/deletion remain
+release. Selected reply loss, replay and coordinator-death recovery are covered
+separately by increment 82; all eight release gates and production NFS/deletion remain
 unchanged. Maintain DOC-01–05; DOC-06 stays deferred.
 
 The existing publish checkpoint starts observation after payload verification;
@@ -530,8 +530,9 @@ owned fixture setup/observation. Original manifest bytes/inode are followed from
 private staging to public publication; mount-address inference and plain timing
 are insufficient proof. Full raw/unknown traffic is retained.
 
-This tests successful reply release, not a dropped reply, server reset, uncached
-replay, changed verifier, coordinator death or worker replacement. Health/status
+The increment 81 acquisition tests successful reply release. Increment 82
+separately qualifies selected live/death drops; server reset, changed verifier
+and general worker-replacement/remote-settlement safety remain unqualified. Health/status
 checks while held are discrete observations, not continuous availability or a
 recovery-time bound. FILE_SYNC protocol success on volatile NFSD tmpfs is not
 physical-media/power-loss proof, old SLES kernel/maintenance-package behavior,
@@ -540,3 +541,36 @@ userspace shares modern WSL2; local exit/guard availability is not NAS settlemen
 All remaining ranges/sizes/cache/load, synchronization/deployment and release
 obligations stay open. The native C fixture probe is unused in this increment;
 no shipping executable, Rust crate, API, retry/review or deadline changes.
+
+## Manifest reply-loss and immutable-intent recovery
+
+
+[Increment 82](RUST-INCREMENT-82.md)/SC-116 qualifies eight finite manifest WRITE
+reply-loss recoveries after eight repeated discovery/release controls, across both
+buffered NMP-41B layouts and debug/release profiles. Live-coordinator replay and
+post-death application recovery from immutable SQLite intent are checked
+separately. The latter confirms coordinator exit, orphan guard retention, actual
+old-worker exit before restart, original staging inode/bytes before republication
+and phase-1 to phase-4 durable intent preservation. All cases commit with payload
+attempt 1 and preserve source/state/enrollment and producer-path reuse.
+Read [the complete loss/recovery procedure](NFS-MANIFEST-LOSS-LAB.md) and retained
+raw/audit evidence. This supplies selected FR-03/05 evidence; all eight release
+gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
+retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
+recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
+remain open. Maintain DOC-01–05; DOC-06 stays deferred.
+
+The post-restart observation window and original handle/range/bytes prove a
+successful write during original-state recovery; timing alone does not uniquely
+attribute every kernel request to a new process or prove native session replay.
+A cached/session replay or uncached-retry response is checked separately in live
+cases. The old worker's local exit and free guard do not establish NAS settlement.
+Exact DB/WAL copies are acquired only after confirmed coordinator exit; read-only
+queries operate on disposable copies with hash/quick_check checks. This verifies
+saved intent consistency in the controlled crash, not every SQLite/storage/power
+failure or a new supported offline repair workflow. Restart reuses the recorded
+manifest allocation; already published payload attempt 1 is distinct from repeated
+manifest writes. The fixture uses one modern shared kernel and volatile exports.
+Discrete health/status/replay samples do not prove continuous availability or
+exact reconnection latency. No physical media, independent NASes, original SLES
+kernel/maintenance packages, endurance or all manifest sizes/cache/load are covered.
