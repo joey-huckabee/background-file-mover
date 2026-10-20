@@ -470,3 +470,40 @@ durable persistence, and COMMIT on tmpfs is not power-loss proof. Controlled
 protocol/FD/server correlations are not unique kernel causality or authenticated
 NAS identity; local worker exit/guard availability is not remote settlement.
 Production NFS/deletion stay disabled and all eight release gates remain open.
+
+## Live-coordinator payload reply loss
+
+[Increment 80](RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.
+
+The preliminary COMMIT acquisition is retained separately with its exact sources;
+the complete matrix is repeated after adding explicit original-handle versus
+other-handle accounting. Only the final two common-source matrices support this
+increment's acceptance. No unrelated manifest traffic is discarded from raw
+reports. The handle selector never filters same-handle ranges/bytes/stability or
+retry identity; missing or mismatched payload evidence still fails validation.
+
+Reply drop deliberately interrupts the connection. The actual pending call is
+payload fchmod (syscall 91/mode 0400), not an assumed fsync call. Shared clock,
+server-local inode/hash and protocol correlations are controlled evidence, not
+unique kernel causality, authenticated NAS identity or physical-media proof.
+These SLES/glibc 2.22 userspace tests share the modern WSL2 kernel and volatile
+NFSD tmpfs. They do not qualify the original SLES kernel/maintenance patches,
+independent NetApp/Isilon failures, server reboot/verifier change, power loss,
+all sizes/cache/load, longer delays, replacement scheduling or unobserved source
+sync/pre-checkpoint phases. Local exit or guard availability is not remote
+settlement. Producer/consumer behavior and all deferred capabilities stay unchanged.
+
+Increment 80's actual post-drop status is already Committed in the first sample
+for all eight cases. Health/status also pass at the proven held-reply/D-worker
+boundary. These are discrete responsiveness observations, not continuous API
+availability measurements across reconnection or exact recovery-time bounds.

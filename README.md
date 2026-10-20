@@ -306,3 +306,15 @@ UNSTABLE WRITE reply-withholding matrix. The
 [complete lab procedure](docs/NFS-BUFFERED-UNSTABLE-LAB.md) documents native
 capability, every-range retransmission and COMMIT proof, selected service recovery,
 initial validator failure and cleanup. Production NFS/source deletion stay off.
+
+[Increment 80](docs/RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](docs/NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.

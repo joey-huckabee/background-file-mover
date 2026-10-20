@@ -29,7 +29,9 @@ def main():
     parser.add_argument('--buffered-io', action='store_true', help='Trace eight buffered workers with descriptor/payload/filehandle I/O attribution')
     parser.add_argument('--buffered-commit', action='store_true', help='Prove payload fchmod COMMIT withholding before eight release/death recovery cases')
     parser.add_argument('--buffered-unstable', action='store_true', help='Prove UNSTABLE WRITE success withheld before eight buffered recovery cases')
+    parser.add_argument('--live-loss', action='store_true', help='Keep the coordinator alive during buffered COMMIT or UNSTABLE reply drop')
     args = parser.parse_args()
+    assert not args.live_loss or (args.buffered_commit or args.buffered_unstable), 'live-loss requires a payload reply matrix'
     assert bool(args.production_gate) == bool(args.qualification_gate), 'both gates required'
     assert not args.same_share or args.production_gate, 'same-share requires both gates'
     assert not args.buffered_reads or args.production_gate, 'buffered-reads requires both gates'
@@ -292,7 +294,7 @@ def main():
                     client, output, mount, unmount_all, mounts, report['authorization'],
                     same_share=args.same_share, buffered_reads=args.buffered_reads,
                     buffered_publication=args.buffered_publication, server=server,
-                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io, buffered_commit=args.buffered_commit, buffered_unstable=args.buffered_unstable,
+                    buffered_post_unlink=args.buffered_post_unlink, buffered_claims=args.buffered_claims, buffered_bootstrap=args.buffered_bootstrap, buffered_sync=args.buffered_sync, buffered_io=args.buffered_io, buffered_commit=args.buffered_commit, buffered_unstable=args.buffered_unstable, live_loss=args.live_loss,
                     fixture=dict(network=network, containers=containers, mounts=mounts, address=address, config=config))
         report['status'] = 'PASSED'
     except Exception as error:

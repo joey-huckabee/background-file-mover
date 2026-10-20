@@ -48,14 +48,11 @@ Work on `feature/rust-transfer-coordinator`. Read
 [RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
 before implementation.
 
-- [ ] Qualify live-coordinator COMMIT and UNSTABLE WRITE reply loss without
-  coordinator death on buffered same/separate-share layouts and both profiles.
-  Reuse matched-success withholding controls and require actual per-range replay,
-  stability and later COMMIT evidence as applicable. Keep unchanged retry/review
-  and assignment/shutdown deadlines. Extend remaining ranges/phases only through
-  explicitly finite cases. Preserve unobserved source sync/pre-checkpoint gaps,
-  both-relay/identity/unknown-traffic evidence and original state/uncertain partials;
-  mount addresses and a free local guard are not transport/remote-settlement proof.
+- [ ] Discover and prove matched successful-reply withholding for actual buffered
+  manifest creation/permission-change operations on both layouts/profiles before
+  defining finite manifest reply-loss/recovery cases. Record actual stability and
+  COMMIT presence; do not substitute payload-fchmod observations. Preserve both
+  transports, full raw/unknown traffic, original state and unchanged policy/deadlines.
 - [ ] Qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
   untested claim boundaries and actual pending synchronization/RPC operations,
   plus untested

@@ -235,3 +235,17 @@ for request stable=0/reply committed=0 withholding. The retained --buffered-sync
 all lost ranges, actual retransmission stability and a later matching COMMIT for
 resends still UNSTABLE. Read [increment 79](RUST-INCREMENT-79.md), including the
 initial refused validator evidence. No production NFS/deletion or deadline change.
+
+## Live-coordinator payload reply-loss matrix
+
+[Increment 80](RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.

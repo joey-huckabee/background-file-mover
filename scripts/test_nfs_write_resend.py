@@ -2,7 +2,7 @@
 import copy
 import struct
 import unittest
-from nfs_sync_capability import validate_unstable_held, validate_unstable_resend
+from nfs_sync_capability import validate_unstable_held, validate_unstable_resend, payload_resends
 
 
 def request(xid, sequence=1, offset=0, stable=0):
@@ -35,6 +35,31 @@ def fixture(stable=0):
 
 
 class Evidence(unittest.TestCase):
+    def test_later_manifest_traffic_is_retained_and_accounted_separately(self):
+        for operation in (5,38):
+            value=fixture();other=copy.deepcopy(value['wire']['forwarded'][-1])
+            other['request']['decoded']['operations'][1]['filehandle_sha256']='manifest'
+            other['receive_id']=99;value['wire']['forwarded'].append(other)
+            if operation==5:
+                for item in [*value['settled']['dropped'],*value['wire']['forwarded']]:
+                    item['request']['decoded']['operations'][-1]=dict(op=5,offset=0,count=0)
+            selected,scope=payload_resends(value,operation)
+            self.assertEqual(scope['other_handle_receive_ids'],[99])
+            self.assertEqual(scope['selected_receive_ids'],[2,3])
+            self.assertEqual(len(value['wire']['forwarded']),3)
+            self.assertEqual(len(selected['wire']['forwarded']),2)
+            if operation==38:validate_unstable_resend(selected)
+
+    def test_scope_cannot_hide_same_handle_mismatch_or_missing_payload(self):
+        value=fixture();value['wire']['forwarded'][-1]['request']['decoded']['operations'][-1]['data_sha256']='wrong'
+        selected,_=payload_resends(value,38)
+        with self.assertRaises(AssertionError):validate_unstable_resend(selected)
+        for item in value['wire']['forwarded']:
+            item['request']['decoded']['operations'][1]['filehandle_sha256']='foreign'
+        with self.assertRaises(AssertionError):payload_resends(value,38)
+        value=fixture();value['wire']['forwarded'][0]['request']['decoded']['operations'].pop(1)
+        with self.assertRaises(AssertionError):payload_resends(value,38)
+
     def test_unstable_resend_needs_later_successful_commit(self):
         result=validate_unstable_resend(fixture())
         self.assertTrue(result['commit_evidence'])

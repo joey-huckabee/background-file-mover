@@ -95,3 +95,17 @@ interoperability, all delayed-effect settlement, longer outages or independent
 endpoint failure domains. Drop includes connection interruption. UNSTABLE WRITE
 reply-loss qualification remains separate. See [testing limits](TESTING-LIMITATIONS.md)
 and the actual [increment results](RUST-INCREMENT-78.md).
+
+## Later live-loss qualification
+
+[Increment 80](RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.

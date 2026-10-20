@@ -395,3 +395,15 @@ cleanup and testing limits. This adds selected FR-03/05 evidence; all eight gate
 stay open. Live-coordinator reply loss without death and broader kernel/NAS/
 workload/durability/deployment obligations remain future work. Production NFS and
 source deletion stay disabled.
+
+[Increment 80](RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.

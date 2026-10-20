@@ -15,19 +15,22 @@ from nfs_runtime import run_runtime
 from nfs_sync_capability import validate_resend, validate_unstable_resend
 from nfs_sync_support import build_probe, start_trace, finish_trace
 from nfs_io_analysis import analyze
-from nfs_sync_capability import validate_unstable_held
+from nfs_sync_capability import validate_unstable_held, payload_resends
 
 
-def qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture, unstable=False):
+def qualify_buffered_commit(run, execute, client, server, output, unmount_all, report, binaries, fixture, unstable=False, live_loss=False):
     config, containers = fixture['config'], fixture['containers']
     operation=38 if unstable else 5
     label='UNSTABLE WRITE' if unstable else 'COMMIT'
     slug='unstable' if unstable else 'commit'
-    scenario='SC-113' if unstable else 'SC-112'
+    scenario='SC-114' if live_loss else ('SC-113' if unstable else 'SC-112')
+    matrix='buffered-'+slug+('-live-loss' if live_loss else '')
+    actions=('live-drop',) if live_loss else ('live-release','death-drop')
+    case_count=4 if live_loss else 8
     expected = hashlib.sha256(bytes(2*1048576)+b'0123456789abcdefg').hexdigest()
-    report.update(matrix='buffered-'+slug, capabilities=[], relays={},
-                  declared_cases='Two layouts: native discovery/release/drop first, then debug/release live-release and coordinator-death/drop; eight service cases.')
-    if unstable:
+    report.update(matrix=matrix, capabilities=[], relays={},
+                  declared_cases=('Two layouts: native discovery/release/drop first, then debug/release live-drop; four service cases.' if live_loss else 'Two layouts: native discovery/release/drop first, then debug/release live-release and coordinator-death/drop; eight service cases.'))
+    if unstable or live_loss:
         tested=subprocess.run([sys.executable,str(Path(__file__).with_name('test_nfs_write_resend.py')),'-v'],
                               capture_output=True,text=True,timeout=20)
         report['write_resend_tests']=dict(passed=tested.returncode==0,output=tested.stdout+tested.stderr)
@@ -153,7 +156,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
 
     def cases(Case):
         for profile in ('debug','release'):
-            for action in ('live-release','death-drop'):
+            for action in actions:
                 c=Case(profile,'copy_chunk',suffix='-'+slug+'-'+layout+'-'+action,both_nfs=True)
                 r=c.result;r.update(layout=layout,action=action,scenario_id=scenario,config=c.config)
                 report['cases'].append(r);report['rust_executed']=True
@@ -201,15 +204,48 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                         r['orphan_guard_probe']=dict(exit_code=probe.returncode,identity=before,worker_state='D')
                         r['worker_fds']=execute(f'ls -l /proc/{pid}/fd')
                         c.signal(pid,'KILL')
-                    r['settled']=active[role].command('drop' if action=='death-drop' else 'release',operation=operation)
+                    if live_loss:
+                        r['coordinator_pid']=c.service_pid()
+                    r['settled']=active[role].command('drop' if action.endswith('drop') else 'release',operation=operation)
                     for other,relay in active.items():
                         if other!=role:relay.release()
                     if action=='death-drop':
                         r['worker_exit']=c.await_exit(pid);c.worker=None
                         r['server_after_exit']=server_object(target)
                         assert r['server_after_exit']==r['server_while_withheld']
-                    final=c.recover(restart=action=='death-drop');c.verify()
+                    if live_loss:
+                        samples=[];r['live_recovery_samples']=samples
+                        began=time.monotonic()
+                        for _ in range(180):
+                            assert c.service.poll() is None and c.service_pid()==r['coordinator_pid']
+                            started=time.monotonic();health=c.request('GET','/healthz')
+                            health_seconds=time.monotonic()-started
+                            started=time.monotonic();code,status=c.request('GET','/api/v2/jobs/1')
+                            status_seconds=time.monotonic()-started
+                            replay=c.request('POST','/api/v2/jobs',c.body)
+                            sample=dict(elapsed_seconds=time.monotonic()-began,health_code=health[0],health_seconds=health_seconds,
+                                        status_seconds=status_seconds,status_code=code,status=status,replay=replay,
+                                        coordinator_pid=c.service_pid(),children=c.children(),original_worker_state=c.state(pid))
+                            samples.append(sample)
+                            assert health[0]==code==200 and health_seconds<5 and status_seconds<5
+                            assert sample['coordinator_pid']==r['coordinator_pid'] and c.service.poll() is None
+                            assert replay[0]==202 and replay[1]['job_id']=='1' and replay[1]['source_paths_released']
+                            assert status['details']['condition']!='ReviewRequired',status
+                            # This finite short-loss case must complete on its original assignment.
+                            assert status['details']['files'][0]['attempt']==1
+                            assert set(sample['children'])<=set([pid])
+                            if status['state']=='Committed':
+                                final=status;r['recovered_status']=status;break
+                            time.sleep(1)
+                        else:raise AssertionError('live coordinator did not recover within 180 samples')
+                    else:
+                        final=c.recover(restart=action=='death-drop')
+                    c.verify()
                     r['wires']=windows(active,'stop_observe')
+                    if live_loss:
+                        r['wire']=dict(forwarded=r['wires'][role]['forwarded'])
+                        selected,r['resend_scope']=payload_resends(r,operation)
+                        r['resend_validation']=validate_unstable_resend(selected) if unstable else validate_resend(selected,5)
                     attempt=2 if action=='death-drop' else 1
                     assert final['details']['files'][0]['attempt']==attempt and not final['details']['source_cleanup_enabled']
                     if action=='death-drop':
@@ -246,8 +282,8 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                         case_runner=cases,nfs_root='/tmp/profile-source',
                         destination_nfs_root='/tmp/profile-destination' if layout=='separate-shares' else None)
             unmount_all()
-        assert len(report['cases'])==8 and all(c['passed'] for c in report['cases'])
-        report.update(passed=True,scope='Matched payload fchmod '+label+' success withheld; six native controls and eight bounded service release/death-drop recoveries. No power durability or general NAS/kernel qualification.')
+        assert len(report['cases'])==case_count and all(c['passed'] for c in report['cases'])
+        report.update(passed=True,scope='Matched payload fchmod '+label+' success withheld; six native controls and '+str(case_count)+' bounded service '+('live-drop' if live_loss else 'release/death-drop')+' recoveries. No power durability or general NAS/kernel qualification.')
     finally:
         for role,relay in relays.items():
             relay.release();report['relays'][role]['final_state']=relay.state(strict=False)

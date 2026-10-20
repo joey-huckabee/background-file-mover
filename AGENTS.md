@@ -636,3 +636,14 @@ resends; highest_slotid may change without changing session/slot/sequence identi
 Preserve the initial failed validator run, exact sources and counterexamples.
 See docs/RUST-INCREMENT-79.md and docs/NFS-BUFFERED-UNSTABLE-LAB.md. Maintain
 SC-113/DOC-01–05; keep production NFS/deletion and all existing policy/deadlines unchanged.
+
+Increment 80 retains --live-loss for the separate --buffered-commit and
+--buffered-unstable matrices: twelve native controls and eight short-loss service
+cases across both layouts/profiles. Require the same live coordinator, bounded
+local API/replay, original assignment/attempt 1 and actual payload RPC recovery.
+Account for later other-handle traffic separately while retaining every raw
+record; never filter mismatches on the original handle. See
+docs/RUST-INCREMENT-80.md and docs/NFS-BUFFERED-LIVE-LOSS-LAB.md. Maintain
+SC-114/DOC-01–05; keep all existing policy/deadlines and production NFS/deletion
+unchanged. Qualify actual manifest-side RPC capability before defining its fault
+matrix; do not assume a tiny manifest emits payload-style UNSTABLE/COMMIT.

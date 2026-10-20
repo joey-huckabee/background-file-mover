@@ -92,6 +92,31 @@ def validate_unstable_resend(row):
              successful_ranges=resends,commit_evidence=commits)
 
 
+def payload_resends(row, operation):
+ """Select the lost object's replies without hiding other captured traffic.
+
+ A live worker continues into manifest creation after reconnecting. Those are
+ different handles, not retransmissions of the dropped payload operation.
+ Keep all forwarded records in the report and account for their receive IDs.
+ Never filter by offset, bytes, stability or retry identity: validators must
+ reject mismatches on the original handle and require complete lost ranges.
+ """
+ def handle(item):
+  ops=item['request']['decoded']['operations']
+  assert [o['op'] for o in ops]==[53,22,operation]
+  return ops[1]['filehandle_sha256']
+ handles={handle(r) for r in row['settled']['dropped']}
+ assert len(handles)==1
+ selected=[];other=[]
+ for item in row['wire']['forwarded']:
+  (selected if handle(item) in handles else other).append(item)
+ assert selected
+ scope=dict(filehandle_sha256=next(iter(handles)),
+            selected_receive_ids=[r['receive_id'] for r in selected],
+            other_handle_receive_ids=[r['receive_id'] for r in other])
+ return dict(row,wire=dict(forwarded=selected)),scope
+
+
 def validate_resend(row,operation):
  dropped=row['settled']['dropped'];forwarded=row['wire']['forwarded']
  assert dropped and forwarded and row['settled']['connection_resets'] and not row['settled']['released']

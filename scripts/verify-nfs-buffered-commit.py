@@ -11,7 +11,7 @@ import sys
 import tarfile
 import zlib
 from nfs_rpc import call as decode_call, reply as decode_reply
-from nfs_sync_capability import validate_resend, validate_unstable_resend
+from nfs_sync_capability import validate_resend, validate_unstable_resend, payload_resends
 from nfs_io_analysis import analyze
 from nfs_mount_profile import parse, covering
 
@@ -107,17 +107,43 @@ def held_writes(row):
                 held_unstable_ranges=[dict(offset=o,count=n,data_sha256=h) for o,n,h in sorted(ranges)])
 
 
+def complete_unstable_ranges(protocol):
+    data=bytes(2*1048576)+b'0123456789abcdefg'
+    actual={(r['offset'],r['count'],r['data_sha256']) for r in protocol['unstable_ranges']}
+    expected={(o,n,sha(data[o:o+n])) for o,n in ((0,1048576),(1048576,1048576),(2097152,17))}
+    assert actual==expected
+
+
+def live_recovery(c):
+    samples=c['live_recovery_samples'];assert samples and c['coordinator_pid'].isdigit()
+    assert samples[-1]['status']['state']=='Committed'
+    elapsed=-1
+    for sample in samples:
+        assert sample['elapsed_seconds']>=elapsed;elapsed=sample['elapsed_seconds']
+        assert sample['health_code']==sample['status_code']==200
+        assert sample['health_seconds']<5 and sample['status_seconds']<5
+        assert sample['coordinator_pid']==c['coordinator_pid']
+        assert set(sample['children'])<=set([c['paused_worker']['pid']])
+        assert sample['status']['details']['files'][0]['attempt']==1
+        assert sample['status']['details']['condition']!='ReviewRequired'
+        replay=sample['replay'];assert replay[0]==202 and replay[1]['job_id']=='1' and replay[1]['source_paths_released']
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('live',type=Path)
     parser.add_argument('--production-gate',required=True,type=Path)
     parser.add_argument('--qualification-gate',required=True,type=Path)
     parser.add_argument('--unstable',action='store_true',help='Audit the separate UNSTABLE WRITE matrix')
+    parser.add_argument('--live-loss',action='store_true',help='Audit live coordinator recovery without death')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1]
     operation=38 if args.unstable else 5
     slug='unstable' if args.unstable else 'commit'
-    scenario='SC-113' if args.unstable else 'SC-112'
-    prefix='RUST-NFS-BUFFERED-'+slug.upper()
+    scenario='SC-114' if args.live_loss else ('SC-113' if args.unstable else 'SC-112')
+    matrix='buffered-'+slug+('-live-loss' if args.live_loss else '')
+    case_count=4 if args.live_loss else 8
+    actions=('live-drop',) if args.live_loss else ('live-release','death-drop')
+    prefix='RUST-NFS-BUFFERED-'+slug.upper()+('-LIVE-LOSS' if args.live_loss else '')
     def read(path):return json.loads(path.read_text(encoding='utf-8'))
     def save(name,value):(root/'docs'/name).write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8',newline='\n')
     current={p.relative_to(root/'rust').as_posix():p.read_bytes()
@@ -131,11 +157,11 @@ def main():
     client=dict(line.split(':',1) for line in live['client_security'].splitlines() if ':' in line)
     assert all(int(client[k],16)==((1<<21)|(1<<19)|(1<<2)) for k in ('CapPrm','CapEff','CapBnd'))
     assert int(client['CapInh'],16)==int(client['CapAmb'],16)==0 and client['NoNewPrivs'].strip()=='1'
-    assert auth['passed'] and auth['matrix']=='buffered-'+slug
+    assert auth['passed'] and auth['matrix']==matrix
     assert len(live['checks'])==43 and all(c['passed'] for c in live['checks'])
     if args.unstable:assert len(live['sources'])==26
     assert len(live['sources']) in (25,26)
-    if args.unstable:assert auth['write_resend_tests']['passed']
+    if args.unstable or args.live_loss:assert auth['write_resend_tests']['passed']
     for name,item in live['sources'].items():
         data=base64.b64decode(item['base64'])
         assert sha(data)==item['sha256'] and data==(root/'scripts'/name).read_bytes()
@@ -143,7 +169,7 @@ def main():
         sec=dict(line.split(':',1) for line in relay['security'].splitlines() if ':' in line)
         assert sec['Uid'].split()==sec['Gid'].split()==['1000']*4 and sec['NoNewPrivs'].strip()=='1'
         assert all(int(sec[k],16)==0 for k in ('CapInh','CapPrm','CapEff'))
-        assert not relay['final_state']['errors'] and not relay['ports_published']
+        assert not relay['final_state']['errors'] and not relay['final_state']['armed'] and not relay['ports_published']
     assert tuple(map(int,auth['probe']['elf']['maximum_glibc'][6:].split('.'))) <= (2,22)
     assert auth['probe']['elf']['interpreter']==live['config']['interpreter']
     assert set(auth['probe']['elf']['libraries'])<=set(live['config']['allowed_libraries'])
@@ -158,14 +184,16 @@ def main():
         assert int(obj['identity'].split(':')[3])==2*1048576+17
         fdinfo=dict(line.split(':',1) for line in pending['fdinfo'].splitlines() if ':' in line)
         assert int(fdinfo['ino'])==int(obj['identity'].split(':')[1])
-        settled=row['settled'];action='drop' if row['action'] in ('drop','death-drop') else 'release'
+        settled=row['settled'];action='drop' if row['action'] in ('drop','death-drop','live-drop') else 'release'
         assert not settled['armed'] and not settled['errors']
         actual=settled['dropped' if action=='drop' else 'released']
         assert actual and all(item in actual for item in row['before_release_or_drop']['held'])
         assert not settled['released' if action=='drop' else 'dropped']
         if action=='drop':assert settled['connection_resets']
         for wire in row['wires'].values():wire_check(wire)
-        return held_writes(row) if args.unstable else unstable_before_commit(row)
+        protocol=held_writes(row) if args.unstable else unstable_before_commit(row)
+        if args.live_loss and not args.unstable:complete_unstable_ranges(protocol)
+        return protocol
     caps=auth['capabilities'];assert len(caps)==2
     assert {c['layout'] for c in caps}=={'same-share','separate-shares'}
     for cap in caps:
@@ -203,10 +231,10 @@ def main():
                         assert sha(request)==forwarded['request']['sha256'] and decode_call(request)==forwarded['request']['decoded']
                         assert any(r['direction']=='call' and r['connection']==forwarded['connection'] and r['sha256']==sha(request) for r in wire['trace'])
                         assert any(r['direction']=='reply' and r['connection']==forwarded['connection'] and r['sha256']==sha(raw) for r in wire['trace'])
-    cases=auth['cases'];assert len(cases)==8
+    cases=auth['cases'];assert len(cases)==case_count
     assert {(c['layout'],c['profile'],c['action']) for c in cases}=={
         (layout,profile,action) for layout in ('same-share','separate-shares') for profile in ('debug','release')
-        for action in ('live-release','death-drop')}
+        for action in actions}
     summaries=[]
     for c in cases:
         assert c['passed'] and c['source_and_state_preserved'] and c['source_retained']
@@ -234,6 +262,19 @@ def main():
         assert [line.split()[0] for line in c['hashes']]==[expected,expected]
         death=c['action']=='death-drop'
         assert c['committed']['details']['files'][0]['attempt']==(2 if death else 1)
+        if args.live_loss:
+            live_recovery(c)
+            selected,scope=payload_resends(c,operation)
+            assert scope==c['resend_scope']
+            assert (validate_unstable_resend(selected) if args.unstable else validate_resend(selected,5))==c['resend_validation']
+            wire=c['wires'][c['relay_role']]
+            for forwarded in c['wire']['forwarded']:
+                raw=bytes.fromhex(forwarded['payload_hex']);request=bytes.fromhex(forwarded['request']['payload_hex'])
+                assert sha(raw)==forwarded['reply_sha256'] and decode_reply(raw)==forwarded['reply']
+                assert sha(request)==forwarded['request']['sha256'] and decode_call(request)==forwarded['request']['decoded']
+                assert any(r['direction']=='call' and r['connection']==forwarded['connection'] and r['sha256']==sha(request) for r in wire['trace'])
+                assert any(r['direction']=='reply' and r['connection']==forwarded['connection'] and r['sha256']==sha(raw) for r in wire['trace'])
+            protocol['resend_validation']=c['resend_validation']
         if death:
             if args.unstable:assert c['coordinator_exit']!=0 and c['coordinator_pid'].isdigit()
             assert c['worker_exit'] in ('gone','Z')
@@ -273,9 +314,44 @@ def main():
             try:held_writes(value)
             except AssertionError:controls.append(dict(name=label,passed=True))
             else:raise AssertionError('negative range control accepted: '+label)
-    inputs=dict(live_run_id=live['run_id'],matrix='buffered-'+slug,rust_input_count=len(current),
+    if args.live_loss and not args.unstable:
+        original=unstable_before_commit(caps[0]['probes'][1])
+        for label in ('missing_precommit_range','overlapping_precommit_range'):
+            value=copy.deepcopy(original)
+            if label=='missing_precommit_range':value['unstable_ranges'].pop()
+            else:value['unstable_ranges'][-1]['offset']=0
+            try:complete_unstable_ranges(value)
+            except AssertionError:controls.append(dict(name=label,passed=True))
+            else:raise AssertionError('incomplete pre-COMMIT coverage accepted: '+label)
+    if args.live_loss:
+        for label in ('changed_coordinator','replacement_worker','second_attempt','review_required',
+                      'lost_202','slow_health','not_committed','no_samples'):
+            value=copy.deepcopy(cases[0]);sample=value['live_recovery_samples'][-1]
+            if label=='changed_coordinator':sample['coordinator_pid']='different'
+            elif label=='replacement_worker':sample['children']=['different']
+            elif label=='second_attempt':sample['status']['details']['files'][0]['attempt']=2
+            elif label=='review_required':sample['status']['details']['condition']='ReviewRequired'
+            elif label=='lost_202':sample['replay'][0]=503
+            elif label=='slow_health':sample['health_seconds']=5
+            elif label=='not_committed':sample['status']['state']='Pending'
+            else:value['live_recovery_samples']=[]
+            try:live_recovery(value)
+            except AssertionError:controls.append(dict(name=label,passed=True))
+            else:raise AssertionError('negative live control accepted: '+label)
+    inputs=dict(live_run_id=live['run_id'],matrix=matrix,rust_input_count=len(current),
                 rust_inputs={name:sha(data) for name,data in current.items()},gates={},case_analysis=summaries,
                 withholding_negative_controls=controls)
+    if args.live_loss:
+        inputs['selector_negative_controls']=[]
+        for flags,reason in ((['--live-loss'],'live-loss requires a payload reply matrix'),
+                             (['--same-share','--live-loss'],'live-loss requires a payload reply matrix'),
+                             (['--buffered-commit','--live-loss'],'buffered-commit requires both gates'),
+                             (['--buffered-unstable','--live-loss'],'buffered-unstable requires both gates')):
+            checked=subprocess.run([sys.executable,str(root/'scripts/check-nfs-mount-profile.py'),*flags],
+                                   capture_output=True,text=True,timeout=20)
+            output=checked.stdout+checked.stderr
+            assert checked.returncode!=0 and reason in output and 'Mount-profile validation:' not in output
+            inputs['selector_negative_controls'].append(dict(flags=flags,exit_code=checked.returncode,output=output,passed=True))
     probe=auth['probe'];binary=(args.live/'nfs-sync-probe').read_bytes()
     assert sha(binary)==probe['sha256'] and binary.startswith(b'\x7fELF')
     assert probe['source_sha256']==sha((root/'scripts/nfs_sync_probe.c').read_bytes())
@@ -283,7 +359,7 @@ def main():
     auditor=(root/'scripts/check-rust-sles.py').read_bytes()
     inputs['probe_auditor']=dict(path='scripts/check-rust-sles.py',sha256=sha(auditor),base64=base64.b64encode(auditor).decode())
     inputs['python_regressions']={}
-    for name in ('test_nfs_rpc.py','test_nfs_io_analysis.py',*(['test_nfs_write_resend.py'] if args.unstable else [])):
+    for name in ('test_nfs_rpc.py','test_nfs_io_analysis.py',*(['test_nfs_write_resend.py'] if args.unstable or args.live_loss else [])):
         tested=subprocess.run([sys.executable,str(root/'scripts'/name),'-v'],capture_output=True,text=True,timeout=20)
         assert tested.returncode==0
         inputs['python_regressions'][name]=dict(passed=True,output=tested.stdout+tested.stderr)
@@ -326,7 +402,38 @@ def main():
     assert set(inventory['rootful']['volumes']) == {'file-mover-rustup-1-99','file-mover-cargo-registry'}
     assert inventory['rootful']['networks'] == ['podman']
     inputs['post_run_inventory'] = inventory
-    if args.unstable:
+    if args.live_loss:
+        preliminary_path=root/'docs/RUST-NFS-BUFFERED-LIVE-LOSS-PRELIMINARY-EVIDENCE.json'
+        preliminary=read(preliminary_path)
+        raw=zlib.decompress(base64.b64decode(preliminary['report_zlib_base64']))
+        assert sha(raw)==preliminary['report_sha256'] and preliminary['qualification_status']=='PASSED'
+        prior=json.loads(raw)
+        assert prior['status']=='PASSED' and not prior['cleanup_errors'] and prior['run_id']!=live['run_id']
+        assert prior['authorization']['matrix']=='buffered-commit-live-loss'
+        assert len(prior['authorization']['cases'])==4 and all(c['passed'] for c in prior['authorization']['cases'])
+        assert len(prior['sources'])==26 and set(prior['sources'])==set(live['sources'])
+        changed=[]
+        for name,item in prior['sources'].items():
+            assert sha(base64.b64decode(item['base64']))==item['sha256']
+            if item['sha256']!=live['sources'][name]['sha256']:changed.append(name)
+        assert set(changed)=={'nfs_buffered_commit.py','nfs_sync_capability.py','test_nfs_write_resend.py'}
+        inputs['preliminary_acquisition']=dict(run_id=prior['run_id'],status='PASSED',
+            retained_file=preliminary_path.name,report_sha256=preliminary['report_sha256'],
+            final_common_source_changes=changed,reason=preliminary['reason'],primary_acceptance=False)
+        del raw,prior
+        cancelled_path=root/'docs/RUST-NFS-BUFFERED-LIVE-LOSS-CANCELLED-EVIDENCE.json'
+        cancelled=read(cancelled_path);raw=zlib.decompress(base64.b64decode(cancelled['report_zlib_base64']))
+        assert sha(raw)==cancelled['report_sha256'] and cancelled['qualification_status']=='FAILED'
+        stopped=json.loads(raw)
+        assert stopped['status']=='FAILED' and not stopped['cleanup_errors'] and not stopped['rust_executed']
+        assert not stopped.get('authorization',{}).get('cases',[]) and len(stopped['sources'])==26
+        assert 'mkdir /tmp/mount-auth' in stopped['error'] and 'File exists' in stopped['error']
+        for item in stopped['sources'].values():assert sha(base64.b64decode(item['base64']))==item['sha256']
+        inputs['cancelled_duplicate']=dict(run_id=stopped['run_id'],status='FAILED',
+            retained_file=cancelled_path.name,report_sha256=cancelled['report_sha256'],
+            reason=cancelled['reason'],rust_executed=False,primary_acceptance=False)
+        del raw,stopped
+    if args.unstable and not args.live_loss:
         initial_path=root/'docs/RUST-NFS-BUFFERED-UNSTABLE-INITIAL-EVIDENCE.json'
         initial=read(initial_path);raw=zlib.decompress(base64.b64decode(initial['report_zlib_base64']))
         assert sha(raw)==initial['report_sha256'] and initial['qualification_status']=='FAILED'
@@ -350,7 +457,7 @@ def main():
     save(prefix+'-INPUT-EVIDENCE.json',inputs)
     save('RUST-SLES-EVIDENCE.json',gates['production'])
     save('RUST-SLES-QUALIFICATION-EVIDENCE.json',gates['qualification'])
-    print(json.dumps(dict(run_id=live['run_id'],native_probes=6,service_cases=8,verified_elf_count=count,driver_snapshots=len(live['sources']),cleanup_errors=[])))
+    print(json.dumps(dict(run_id=live['run_id'],native_probes=6,service_cases=case_count,verified_elf_count=count,driver_snapshots=len(live['sources']),cleanup_errors=[])))
 
 
 if __name__=='__main__':main()

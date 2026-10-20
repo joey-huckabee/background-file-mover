@@ -97,3 +97,17 @@ storage proof; later COMMIT success on volatile tmpfs is not power-loss proof.
 Local worker exit/guard availability is not remote settlement. Keep all remaining
 [first-release gates](RUST-FIRST-RELEASE.md) and [testing limits](TESTING-LIMITATIONS.md)
 explicit; producer/consumer contracts remain unchanged.
+
+## Later live-loss qualification
+
+[Increment 80](RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.
