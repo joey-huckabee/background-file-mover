@@ -371,6 +371,12 @@ wholesale as the corresponding C++ lands.
 - `docs/12-FACTOR.md` is **partly** superseded: factor VII inverted when the `AF_UNIX`
   socket became a REST port. Its banner says which parts still hold.
 
+Increment 83 retains buffered actual source-claim LINK/REMOVE successful-reply
+hold/release capability and its step-by-step lab in docs/NFS-CLAIM-CAPABILITY-LAB.md.
+Keep this capability separate from future buffered discarded-reply/death recovery.
+Maintain SC-117 and DOC-01–05; preserve pre-202 custody and production NFS/deletion
+refusal. See docs/RUST-INCREMENT-83.md for finite acceptance and actual evidence.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

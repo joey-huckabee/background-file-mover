@@ -53,6 +53,9 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
+- [ ] Use the buffered source-claim LINK/REMOVE hold/release capability to select
+  finite reply-discard/live-replay and coordinator-death recovery cases, proving
+  actual server completion before loss and preserving pre-202 recorder custody.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
   in the declared shipping mount/export profile; do not substitute buffered OS
   controls for unobserved service COMMIT/fsync boundaries. Cover

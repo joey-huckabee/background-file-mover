@@ -914,3 +914,14 @@ The finite manifest WRITE reply-loss/recovery extension is documented in
 [the manifest loss lab](NFS-MANIFEST-LOSS-LAB.md) and
 [increment 82](RUST-INCREMENT-82.md). Keep its live replay and post-restart
 application recovery evidence distinct from these capability/release controls.
+
+
+[Increment 83](RUST-INCREMENT-83.md)/SC-117 adds buffered actual source-claim LINK
+and REMOVE successful-reply hold/release controls, with the
+[step-by-step procedure](NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
+completion does not authorize recorder path reuse before confirmed 202. Keep
+selected capability/release evidence separate from future buffered reply-discard,
+replay and coordinator-death recovery. Production NFS/source deletion stay off;
+Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
+All eight release gates and DOC-01/02/04/05 completion remain open; maintain
+DOC-03 and defer DOC-06.

@@ -574,3 +574,24 @@ manifest writes. The fixture uses one modern shared kernel and volatile exports.
 Discrete health/status/replay samples do not prove continuous availability or
 exact reconnection latency. No physical media, independent NASes, original SLES
 kernel/maintenance packages, endurance or all manifest sizes/cache/load are covered.
+
+
+[Increment 83](RUST-INCREMENT-83.md)/SC-117 adds buffered actual source-claim LINK
+and REMOVE successful-reply hold/release controls, with the
+[step-by-step procedure](NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
+completion does not authorize recorder path reuse before confirmed 202. Keep
+selected capability/release evidence separate from future buffered reply-discard,
+replay and coordinator-death recovery. Production NFS/source deletion stay off;
+Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
+All eight release gates and DOC-01/02/04/05 completion remain open; maintain
+DOC-03 and defer DOC-06.
+
+These claim controls sample the pending syscall and directory descriptors and
+trace full wire compounds; they do not capture every syscall entry/exit or
+uniquely map every unrelated session request to a process. Independent server
+aliases and matched status-zero replies establish the selected namespace effect,
+not later directory-sync acknowledgement or physical durability. A producer
+path absent after server REMOVE is still unavailable for reuse until 202.
+No discarded reply, reconnection, native replay, crash recovery or server restart
+is inferred from releasing the saved success. Keep pending source synchronization
+and delayed-effect reconciliation as separate qualification obligations.

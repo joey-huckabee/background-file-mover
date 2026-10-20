@@ -340,3 +340,14 @@ gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
 retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
 recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
 remain open. Maintain DOC-01–05; DOC-06 stays deferred.
+
+
+[Increment 83](docs/RUST-INCREMENT-83.md)/SC-117 adds buffered actual source-claim LINK
+and REMOVE successful-reply hold/release controls, with the
+[step-by-step procedure](docs/NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
+completion does not authorize recorder path reuse before confirmed 202. Keep
+selected capability/release evidence separate from future buffered reply-discard,
+replay and coordinator-death recovery. Production NFS/source deletion stay off;
+Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
+All eight release gates and DOC-01/02/04/05 completion remain open; maintain
+DOC-03 and defer DOC-06.

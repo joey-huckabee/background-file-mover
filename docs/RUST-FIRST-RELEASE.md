@@ -69,10 +69,11 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Use the observed payload `fchmod` COMMIT boundary to select the next finite
-service fault cases, first proving matched server-success reply withholding.
-Native 4 KiB FILE_SYNC WRITE controls do not cover the observed UNSTABLE-WRITE/
-COMMIT path. Keep pending source sync and other unobserved boundaries open.
+Next select finite buffered source-claim LINK/REMOVE reply-discard and recovery
+cases only after their actual-worker server-success hold/release controls pass.
+Keep pending source synchronization, server recovery/delayed settlement and other
+unobserved boundaries open; selected payload and manifest loss evidence does not
+qualify the entire namespace/synchronization matrix.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
@@ -434,3 +435,14 @@ gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
 retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
 recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
 remain open. Maintain DOC-01–05; DOC-06 stays deferred.
+
+
+[Increment 83](RUST-INCREMENT-83.md)/SC-117 adds buffered actual source-claim LINK
+and REMOVE successful-reply hold/release controls, with the
+[step-by-step procedure](NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
+completion does not authorize recorder path reuse before confirmed 202. Keep
+selected capability/release evidence separate from future buffered reply-discard,
+replay and coordinator-death recovery. Production NFS/source deletion stay off;
+Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
+All eight release gates and DOC-01/02/04/05 completion remain open; maintain
+DOC-03 and defer DOC-06.
