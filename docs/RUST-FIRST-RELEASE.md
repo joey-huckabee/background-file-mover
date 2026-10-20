@@ -69,11 +69,10 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Next select finite buffered source-claim LINK/REMOVE reply-discard and recovery
-cases only after their actual-worker server-success hold/release controls pass.
-Keep pending source synchronization, server recovery/delayed settlement and other
-unobserved boundaries open; selected payload and manifest loss evidence does not
-qualify the entire namespace/synchronization matrix.
+Next qualify remaining source synchronization, server recovery/delayed settlement
+and joint-outage replay/backpressure under the declared mount profile. Selected
+claim, payload and manifest reply-loss evidence does not qualify every operation,
+outage duration, workload or deployment profile.
 
 1. Qualify remaining NFS operation/synchronization and shutdown boundaries,
    remaining endpoint-failure directions/phases beyond selected source-copy
@@ -441,8 +440,22 @@ remain open. Maintain DOC-01–05; DOC-06 stays deferred.
 and REMOVE successful-reply hold/release controls, with the
 [step-by-step procedure](NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
 completion does not authorize recorder path reuse before confirmed 202. Keep
-selected capability/release evidence separate from future buffered reply-discard,
-replay and coordinator-death recovery. Production NFS/source deletion stay off;
+selected capability/release evidence separate from increment 84's selected
+reply-discard/replay/death evidence. Production NFS/source deletion stay off;
 Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
 All eight release gates and DOC-01/02/04/05 completion remain open; maintain
 DOC-03 and defer DOC-06.
+
+
+[Increment 84](RUST-INCREMENT-84.md)/SC-118 qualifies sixteen finite buffered
+source-claim LINK/REMOVE reply-loss recoveries after eight repeated release
+controls across both share layouts and build profiles. Live cases prove successful
+cached namespace session replay with full raw request-byte checks and the same
+coordinator. Death cases prove orphan exclusion, actual exit and unchanged server
+aliases before original-state restart. Every case commits attempt 1 while
+preserving source/state/enrollment and newer producer bytes. The
+[step-by-step lab](NFS-CLAIM-LOSS-LAB.md) documents infrastructure, proof, cleanup
+and limits. Rust/dependencies, retry/review/deadlines and production NFS/deletion
+stay unchanged. All eight release gates remain open; maintain DOC-01–05 and
+defer DOC-06. Server recovery, delayed effects, pending source synchronization,
+other workloads and NAS/kernel/power/deployment qualification remain future work.

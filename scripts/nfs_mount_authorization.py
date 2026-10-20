@@ -31,7 +31,7 @@ def control_traversal(execute, target):
 
 def qualify(root, production_gate, qualification_gate, run, execute, client,
             output, mount, unmount_all, mounts, report, same_share=False, buffered_reads=False,
-            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False, buffered_commit=False, buffered_unstable=False, live_loss=False, manifest_capability=False, manifest_loss=False, claim_capability=False):
+            buffered_publication=False, server=None, buffered_post_unlink=False, buffered_claims=False, buffered_bootstrap=False, buffered_sync=False, fixture=None, buffered_io=False, buffered_commit=False, buffered_unstable=False, live_loss=False, manifest_capability=False, manifest_loss=False, claim_capability=False, claim_loss=False):
     report['gates'] = {}
     engine = ['podman', '--connection', 'podman-machine-default-root']
     binaries = {}
@@ -67,9 +67,9 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
             report['gates'][mode]['artifacts'][profile] = artifact
     execute('umask 077; mkdir /tmp/mount-auth', '1000:1000')
     unmount_all()
-    if claim_capability:
+    if claim_capability or claim_loss:
         from nfs_claim_capability import qualify_claims
-        return qualify_claims(run, execute, client, server, output, unmount_all, report, binaries, fixture)
+        return qualify_claims(run, execute, client, server, output, unmount_all, report, binaries, fixture, loss=claim_loss)
     if manifest_capability or manifest_loss:
         from nfs_manifest_capability import qualify_manifest
         return qualify_manifest(run, execute, client, server, output, unmount_all, report, binaries, fixture, loss=manifest_loss)

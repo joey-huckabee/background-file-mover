@@ -580,8 +580,8 @@ kernel/maintenance packages, endurance or all manifest sizes/cache/load are cove
 and REMOVE successful-reply hold/release controls, with the
 [step-by-step procedure](NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
 completion does not authorize recorder path reuse before confirmed 202. Keep
-selected capability/release evidence separate from future buffered reply-discard,
-replay and coordinator-death recovery. Production NFS/source deletion stay off;
+selected capability/release evidence separate from increment 84's selected
+reply-discard/replay/death evidence. Production NFS/source deletion stay off;
 Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
 All eight release gates and DOC-01/02/04/05 completion remain open; maintain
 DOC-03 and defer DOC-06.
@@ -595,3 +595,17 @@ path absent after server REMOVE is still unavailable for reuse until 202.
 No discarded reply, reconnection, native replay, crash recovery or server restart
 is inferred from releasing the saved success. Keep pending source synchronization
 and delayed-effect reconciliation as separate qualification obligations.
+
+
+[Increment 84](RUST-INCREMENT-84.md)/SC-118 qualifies sixteen finite buffered
+source-claim LINK/REMOVE reply-loss recoveries after eight repeated release
+controls across both share layouts and build profiles. Live cases prove successful
+cached namespace session replay with full raw request-byte checks and the same
+coordinator. Death cases prove orphan exclusion, actual exit and unchanged server
+aliases before original-state restart. Every case commits attempt 1 while
+preserving source/state/enrollment and newer producer bytes. The
+[step-by-step lab](NFS-CLAIM-LOSS-LAB.md) documents infrastructure, proof, cleanup
+and limits. Rust/dependencies, retry/review/deadlines and production NFS/deletion
+stay unchanged. All eight release gates remain open; maintain DOC-01–05 and
+defer DOC-06. Server recovery, delayed effects, pending source synchronization,
+other workloads and NAS/kernel/power/deployment qualification remain future work.

@@ -112,3 +112,7 @@ exports cannot prove original SLES kernel/maintenance-RPM compatibility, NetApp/
 Isilon interoperability, independent NAS failure domains or physical power
 durability. Other sizes/file counts/cache states/load and endurance remain open.
 Discrete API samples are not continuous-availability or latency guarantees.
+
+Selected buffered live/death reply-loss recovery is covered separately by the
+[claim loss lab](NFS-CLAIM-LOSS-LAB.md) and [increment 84](RUST-INCREMENT-84.md).
+Keep its replay/reconciliation proof distinct from the capability controls here.

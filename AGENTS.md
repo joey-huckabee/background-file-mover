@@ -373,9 +373,14 @@ wholesale as the corresponding C++ lands.
 
 Increment 83 retains buffered actual source-claim LINK/REMOVE successful-reply
 hold/release capability and its step-by-step lab in docs/NFS-CLAIM-CAPABILITY-LAB.md.
-Keep this capability separate from future buffered discarded-reply/death recovery.
+Keep this capability separate from increment 84 buffered discarded-reply/death recovery.
 Maintain SC-117 and DOC-01–05; preserve pre-202 custody and production NFS/deletion
 refusal. See docs/RUST-INCREMENT-83.md for finite acceptance and actual evidence.
+
+Increment 84 qualifies selected buffered claim live/death reply-loss recovery;
+see docs/RUST-INCREMENT-84.md and docs/NFS-CLAIM-LOSS-LAB.md. Keep full raw
+replay proof distinct from original-state reconciliation and remote settlement.
+Maintain SC-118/DOC-01–05, unchanged runtime policy and production NFS/deletion off.
 
 ## Git conventions
 
