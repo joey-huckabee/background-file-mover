@@ -69,10 +69,14 @@ under the [mount-profile contract](NFS-MOUNT-PROFILE.md), MP-01-12. Preserve sup
 original-state recovery. Selected basic B/B cases do not close the full worker or
 synchronization reply-loss matrix. Keep production NFS and source deletion off.
 
-Next qualify actual supervised mover recovery under the measured NFSD and
-same-container termination/start facilities, preserving original state and
-worker-exit exclusion. Cover delayed settlement and joint-outage replay/backpressure
-under the declared mount profile. Native capability does not close service recovery. Additional source synchronization reply-loss
+Next qualify remaining server-recovery phases and worker death/replacement,
+distinct client filesystems/independent shares, outstanding UNSTABLE data and
+delayed settlement. Establish repeatable bounded abrupt live-server termination
+before selecting its mover cases. Preserve original state and actual-exit
+exclusion, and cover joint-outage replay/backpressure under the declared profile.
+[Increment 87](RUST-INCREMENT-87.md)/SC-121 qualifies only selected live source-copy
+continuation with NFSD restart or NFSD-quiesced container restart, on two mounts
+sharing one client filesystem. It does not close FR-03/05 or qualify abrupt recovery. Additional source synchronization reply-loss
 cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
 outage duration, workload or deployment profile.
@@ -488,3 +492,18 @@ records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
 raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
 36-control proof audit pass. Production NFS/source deletion and runtime policy
 remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.
+
+
+[Increment 87](RUST-INCREMENT-87.md)/SC-121 qualifies four actual live-coordinator
+source-copy recoveries after four native controls: debug/release with NFSD restart
+or NFSD quiescence followed by same-container SIGKILL/confirmed exit/start.
+Each retains the original worker/attempt 1, custody/local state, staging inode,
+payload/manifest integrity and clean-restart committed replay. Two mounts/export
+paths share one client NFS filesystem and backing volume; distinct client
+filesystems/independent shares remain unqualified. Repeated abrupt termination
+controls failed and are retained with rescue evidence; the final controlled
+sequence does not qualify abrupt failure, other phases, NAS or power loss.
+Read the [complete lab](NFS-SERVER-MOVER-LAB.md), raw/input evidence and rejected
+audit assumption. Both SLES gates, 50 proof controls and final inventory pass.
+Rust/dependencies, retry/review/deadlines, production NFS/source deletion and
+all eight release gates remain unchanged. Maintain DOC-01–05; defer DOC-06.

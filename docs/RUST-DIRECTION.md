@@ -781,3 +781,18 @@ records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
 raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
 36-control proof audit pass. Production NFS/source deletion and runtime policy
 remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.
+
+
+[Increment 87](RUST-INCREMENT-87.md)/SC-121 qualifies four actual live-coordinator
+source-copy recoveries after four native controls: debug/release with NFSD restart
+or NFSD quiescence followed by same-container SIGKILL/confirmed exit/start.
+Each retains the original worker/attempt 1, custody/local state, staging inode,
+payload/manifest integrity and clean-restart committed replay. Two mounts/export
+paths share one client NFS filesystem and backing volume; distinct client
+filesystems/independent shares remain unqualified. Repeated abrupt termination
+controls failed and are retained with rescue evidence; the final controlled
+sequence does not qualify abrupt failure, other phases, NAS or power loss.
+Read the [complete lab](NFS-SERVER-MOVER-LAB.md), raw/input evidence and rejected
+audit assumption. Both SLES gates, 50 proof controls and final inventory pass.
+Rust/dependencies, retry/review/deadlines, production NFS/source deletion and
+all eight release gates remain unchanged. Maintain DOC-01–05; defer DOC-06.

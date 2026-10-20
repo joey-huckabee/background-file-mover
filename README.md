@@ -1,5 +1,10 @@
 # Background File Mover
 
+The [actual mover server-recovery lab](docs/NFS-SERVER-MOVER-LAB.md) documents
+the native prerequisites, source-copy restart matrix, exact build/audit commands,
+cleanup and remaining limits. Read [increment 87](docs/RUST-INCREMENT-87.md) for
+actual results. Production NFS and source deletion remain disabled.
+
 For what the current tests prove and what remains unqualified, read
 [testing limitations](docs/TESTING-LIMITATIONS.md). The
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled

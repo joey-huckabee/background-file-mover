@@ -395,7 +395,17 @@ docs/NFS-SERVER-RECOVERY-LAB.md. Preserve two failed acquisitions, pinned privat
 IP, confirmed exit, live checkpoint and common-clock proof. Changed session/
 write verifier with retained FD/handle is not fresh-netns/VM/NAS reboot or Rust
 mover recovery qualification. Maintain SC-120/DOC-01–05 and production NFS/source
-deletion disabled; next select actual worker cases under measured facilities.
+deletion disabled; actual worker results are recorded separately below.
+
+Increment 87 extends that runner with --mover; read docs/RUST-INCREMENT-87.md and
+docs/NFS-SERVER-MOVER-LAB.md for actual results. Its container sequence first
+confirms NFSD threads zero, then SIGKILL/exit-137/start of the same container.
+Keep this controlled sequence distinct from abrupt live-NFSD termination, whose
+repeated failures and normal-unmount rescues are retained in four FAILED packs.
+Do not promote native success, local exclusion or a quiesced restart to NAS/power
+or production support. Maintain SC-121/DOC-01–05, audit the exact captured inputs
+and run both SLES gates. Keep runtime policy unchanged and production NFS/source
+deletion off.
 
 ## Git conventions
 

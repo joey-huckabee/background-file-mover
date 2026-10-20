@@ -1,5 +1,11 @@
 # Retained NFS qualification capability
 
+The retained server-recovery runner accepts `--mover` with both passing SLES
+gate directories. Its [step-by-step extension](NFS-SERVER-MOVER-LAB.md) runs
+native prerequisites before the actual live-coordinator source-copy matrix.
+Read [increment 87](RUST-INCREMENT-87.md) for results and limitations; native
+success alone does not qualify service recovery or production NFS/deletion.
+
 Increment 25 requires version-2 source/destination bindings and an exclusively
 preprovisioned empty service-owned mode-0600 `.file-mover/coordinator.lock` at
 each root. Do not reuse version-1 observed state or mix directory-lock and

@@ -1,5 +1,16 @@
 # Rust operator status and recovery guide
 
+For the controlled server-recovery test procedure, use the
+[actual mover lab](NFS-SERVER-MOVER-LAB.md). Preserve the original local state,
+enrollment, claimed source and uncertain staging when NFS is unavailable. A
+responsive health endpoint does not mean delivery has completed. Do not remove
+state or start a competing mover to force progress; wait for storage recovery
+and confirmed old-worker exit before any replacement. The finite fixture keeps
+its coordinator alive and tests continued copying separately from clean later
+restart. It does not authorize production NFS or source cleanup, or establish
+NAS reboot/power-loss behavior. The recorder has no post-202 monitoring duty;
+consumers continue to require a validated completion manifest.
+
 This guide describes the implemented Rust prototype and its qualification evidence. It
 delivers DOC-03 from the [scenario catalog](RUST-SCENARIOS.md). Use it with an
 already provisioned, initialized service on trusted loopback and protected local

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prove owned NFSD/container recovery capability; not a NAS/VM reboot test."""
 import base64
+import argparse
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
@@ -16,9 +17,15 @@ from nfs_sync_support import start_trace, finish_trace
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--mover',action='store_true',help='Also run four actual source-copy recovery cases after native controls')
+    parser.add_argument('--production-gate',type=Path)
+    parser.add_argument('--qualification-gate',type=Path)
+    args=parser.parse_args()
+    if args.mover and not (args.production_gate and args.qualification_gate):parser.error('both SLES gate directories are required')
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root/'scripts/rust-platform.json').read_text(encoding='utf-8'))
-    label = 'server-recovery-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+    label = ('server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
     output = root/'rust/validation'/label; output.mkdir()
     print('Server recovery: '+str(output), flush=True)
     engine = ['podman','--connection','podman-machine-default-root']
@@ -31,7 +38,8 @@ def main():
                   cases=[],cleanup_errors=[],sources={})
     for name in ('check-nfs-server-recovery.py','nfs_recovery_server.sh','nfs_recovery_probe.c',
                  'nfs_reply_relay.py','nfs_reply_proxy.py','nfs_rpc.py','test_nfs_rpc.py',
-                 'nfs_sync_support.py','nfs_syscall_trace.py'):
+                 'nfs_sync_support.py','nfs_syscall_trace.py',
+                 *(('nfs_server_mover.py','nfs_runtime.py','nfs_binding.py','nfs_mount_profile.py','check-rust-sles.py') if args.mover else ())):
         data=(root/'scripts'/name).read_bytes()
         report['sources'][name]=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
 
@@ -86,9 +94,13 @@ def main():
         report['static_server_address']=server_address
         run(['volume','create',volume]);volume_created=True
         report['volume']=json.loads(run(['volume','inspect',volume]).stdout)[0]
-        server=run(['create','--privileged','--network',network,'--ip',server_address,'--volume',volume+':/exports',
+        report['server_cgroup_setting']='default'
+        report['server_termination_profile']='nfsd-quiesce-then-sigkill-wait-start' if args.mover else 'abrupt-sigkill-wait-start'
+        server=run(['create',
+                    '--privileged','--network',network,'--ip',server_address,'--volume',volume+':/exports',
                     '--entrypoint','/bin/sh','localhost/background-file-mover-e2-nfs','/tmp/nfs_recovery_server.sh']).stdout.strip()
         containers.append(server)
+        report['server_host_config']=json.loads(run(['inspect',server]).stdout)[0]['HostConfig']
         run(['cp',str(root/'scripts/nfs_recovery_server.sh'),server+':/tmp/nfs_recovery_server.sh'])
         run(['start',server])
         for _ in range(45):
@@ -157,6 +169,9 @@ def main():
                     run(['exec',server,'rpc.nfsd','0'])
                     row['stopped_server']=state();assert row['stopped_server']['threads']=='0'
                 else:
+                    if args.mover:
+                        run(['exec',server,'rpc.nfsd','0'])
+                        row['quiesced_server']=state();assert row['quiesced_server']['threads']=='0'
                     run(['kill','--signal','KILL',server])
                     row['stop_exit_code']=int(run(['wait',server]).stdout.strip())
                     row['stopped_container']=json.loads(run(['inspect',server]).stdout)[0]['State']
@@ -170,7 +185,7 @@ def main():
                     assert process.poll() is None;time.sleep(.1)
                 else:raise AssertionError('no actual blocked native probe')
                 row['blocked_stat']=raw.stdout;row['blocked_syscall']=execute(f'cat /proc/{pid}/syscall').stdout.strip()
-                args=row['blocked_syscall'].split();assert args[0] in ('18','74') and int(args[1],16)==fd
+                fields=row['blocked_syscall'].split();assert fields[0] in ('18','74') and int(fields[1],16)==fd
                 row['blocked_fd_path']=execute(f'readlink /proc/{pid}/fd/{fd}').stdout.strip();assert row['blocked_fd_path']==path
                 row['blocked_relay']=relay.state();assert process.poll() is None
                 row['restore_started_ns']=int(run(['exec',relay.container,'python3','-c','import time; print(time.monotonic_ns())']).stdout)
@@ -184,6 +199,10 @@ def main():
                 assert row['before_server']['boot_id']==row['after_server']['boot_id']
                 assert row['before_server']['address']==row['after_server']['address']==address
                 row['passed']=True;print('Recovery capability '+name+': PASS',flush=True)
+        if args.mover:
+            from nfs_server_mover import qualify_mover
+            qualify_mover(root,args.production_gate,args.qualification_gate,run,execute,client,server,
+                          output,containers,config,relay,state,restore,snapshot,report)
         report['status']='PASSED'
     except Exception as error:
         report.update(error=str(error),traceback=traceback.format_exc())

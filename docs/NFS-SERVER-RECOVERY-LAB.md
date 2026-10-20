@@ -5,6 +5,19 @@ can reproduce before selecting mover recovery cases. Production NFS and
 post-delivery source deletion remain disabled. This is not a NAS/VM reboot,
 physical-media durability or Rust worker-recovery qualification.
 
+The optional `--mover` extension is documented separately in the
+[actual mover lab](NFS-SERVER-MOVER-LAB.md). The native-only invocation below
+remains available. Native controls are prerequisites, not substitutes for the
+extension's service cases and independent audit.
+
+The original native-only invocation terminates a live kernel NFS server.
+Repeated acquisitions in [increment 87](RUST-INCREMENT-87.md) encountered delayed
+exit-file completion and a stale Podman scope. Its earlier four finite passes
+do not establish reliable abrupt termination. The `--mover` extension explicitly
+stops NFSD before container termination and qualifies that narrower sequence.
+Keep abrupt recovery unqualified; preserve failures and restore users before
+normal unmount/cleanup as described in the extension's rescue procedure.
+
 ## Infrastructure and exact steps
 
 1. Work on `feature/rust-transfer-coordinator` in the existing approved Podman
