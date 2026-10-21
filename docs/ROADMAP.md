@@ -55,8 +55,9 @@ before implementation.
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
 - [ ] Qualify remaining server-recovery phases beyond selected live source-copy
-  and destination-verification reads and payload staging-alias removal: bootstrap/claim,
-  initial publication LINK/other sync boundaries, manifest and worker death/replacement.
+  and destination-verification reads and payload/manifest staging-alias removal:
+  bootstrap/claim, initial publication LINK and other payload/manifest sync boundaries,
+  and worker death/replacement.
   Cover independent servers/shares and broader filesystem profiles, outstanding UNSTABLE data and delayed effects while preserving original state,
   custody and exclusion through actual exit. Establish a repeatable bounded
   abrupt live-server termination facility before selecting its mover cases;

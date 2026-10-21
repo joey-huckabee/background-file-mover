@@ -24,14 +24,16 @@ def main():
     parser.add_argument('--distinct-filesystems',action='store_true',help='Retain two bounded filesystems in a separate storage keeper')
     parser.add_argument('--verify-recovery',action='store_true',help='Test destination staging reread across controlled restart')
     parser.add_argument('--publication-recovery',action='store_true',help='Test removal of the staging alias during file publication')
+    parser.add_argument('--manifest-recovery',action='store_true',help='Test removal of the staging alias during manifest commitment')
     args=parser.parse_args()
+    if args.manifest_recovery and (args.verify_recovery or args.publication_recovery or not (args.mover and args.distinct_filesystems)):parser.error('--manifest-recovery requires --mover --distinct-filesystems and excludes other recovery phases')
     if args.publication_recovery and (args.verify_recovery or not (args.mover and args.distinct_filesystems)):parser.error('--publication-recovery requires --mover --distinct-filesystems and excludes --verify-recovery')
     if args.verify_recovery and not (args.mover and args.distinct_filesystems):parser.error('--verify-recovery requires --mover --distinct-filesystems')
     if args.distinct_filesystems and not args.mover:parser.error('--distinct-filesystems requires --mover for controlled NFSD-quiesced restart')
     if args.mover and not (args.production_gate and args.qualification_gate):parser.error('both SLES gate directories are required')
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root/'scripts/rust-platform.json').read_text(encoding='utf-8'))
-    label = ('publication-server-recovery-' if args.publication_recovery else 'verify-server-recovery-' if args.verify_recovery else 'distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+    label = ('manifest-server-recovery-' if args.manifest_recovery else 'publication-server-recovery-' if args.publication_recovery else 'verify-server-recovery-' if args.verify_recovery else 'distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
     output = root/'rust/validation'/label; output.mkdir()
     print('Server recovery: '+str(output), flush=True)
     engine = ['podman','--connection','podman-machine-default-root']
@@ -57,7 +59,8 @@ def main():
     report['distinct_filesystems']=args.distinct_filesystems
     report['verification_recovery']=args.verify_recovery
     report['publication_recovery']=args.publication_recovery
-    if args.verify_recovery or args.publication_recovery:
+    report['manifest_recovery']=args.manifest_recovery
+    if args.verify_recovery or args.publication_recovery or args.manifest_recovery:
         data=(root/'scripts/nfs_io_trace.py').read_bytes()
         report['sources']['nfs_io_trace.py']=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
 

@@ -1,9 +1,9 @@
 # Background File Mover
 
-The [payload publication recovery lab](docs/NFS-PUBLICATION-RECOVERY-LAB.md)
+The [manifest commitment recovery lab](docs/NFS-MANIFEST-RECOVERY-LAB.md)
 documents retained storage, native prerequisites, controlled recovery during
 staging-alias removal, exact build/audit commands and testing limits. Read
-[increment 90](docs/RUST-INCREMENT-90.md) for results. Production NFS and source
+[increment 91](docs/RUST-INCREMENT-91.md) for results. Production NFS and source
 deletion remain disabled.
 
 For what the current tests prove and what remains unqualified, read

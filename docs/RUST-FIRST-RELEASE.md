@@ -83,9 +83,12 @@ adds selected destination-staging verification recovery on that fixture, with fu
 reread/EOF before payload and manifest publication.
 [Increment 90](RUST-INCREMENT-90.md)/SC-124 adds the selected two-name payload
 staging-removal boundary, preserving PublishIntent and the original inode/attempt
-through controlled recovery. Next qualify controlled recovery during manifest
-commitment; retain remaining initial payload LINK/other sync, bootstrap/claim
-and worker-death cases. These increments do not close FR-03/05 or qualify
+through controlled recovery. [Increment 91](RUST-INCREMENT-91.md)/SC-125 adds
+manifest staging-alias removal with an already Published payload and complete
+visible manifest, remaining successful syncs before the local receipt, and
+original-manifest inode/attempt/state preservation. Next qualify initial payload
+LINK during controlled server recovery; retain remaining initial manifest LINK,
+other payload/manifest sync, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,

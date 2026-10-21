@@ -736,3 +736,16 @@ only after confirmed coordinator exit, orphan guard exclusion until actual worke
 exit, original state/inode/bytes, and payload attempt 1. Maintain SC-116/DOC-01–05,
 testing limits and future-only roadmap; all eight release gates stay open.
 Keep production NFS/source deletion, retry/review and deadlines unchanged.
+
+Increment 91 retains --manifest-recovery with --mover --distinct-filesystems,
+excluding other selected recovery phases. See docs/RUST-INCREMENT-91.md and
+docs/NFS-MANIFEST-RECOVERY-LAB.md. At manifest_unlink require payload Published,
+manifest_phase 3, complete same-inode manifest aliases/two links and unchanged
+one-link published payload with payload staging absent. Require actual D-state
+unlinkat named COMMITTED.part, original-call continuation, correlated raw REMOVE,
+remaining sync order and original manifest inode/hash with one link before the
+local Committed receipt and original-state replay. Initial manifest LINK/file/
+new-parent sync precede tracing. Preserve the consumer's valid-manifest contract;
+do not add recorder monitoring or consumer API-polling duties. Maintain SC-125/
+DOC-01-05, seventeen frozen acquisition sources, both SLES gates and all existing
+production/policy, retained-memory and controlled-termination limitations.

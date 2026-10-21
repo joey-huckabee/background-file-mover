@@ -13,6 +13,11 @@ Preserve this original source-copy scope and its retained setup failure.
 [payload publication recovery](NFS-PUBLICATION-RECOVERY-LAB.md), specifically
 removal of the staging alias after establishing the final payload link.
 
+[Increment 91](RUST-INCREMENT-91.md) extends this retained infrastructure to
+[manifest staging-name removal](NFS-MANIFEST-RECOVERY-LAB.md), with complete
+manifest aliases and an already Published payload. It retains the same finite
+controlled-restart and physical-durability limits.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two

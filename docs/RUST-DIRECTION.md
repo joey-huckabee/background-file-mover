@@ -846,3 +846,20 @@ sync/manifest/death boundaries remain separate. Retained memory, controlled NFSD
 quiescence and modern-kernel evidence do not establish NAS/power durability or a
 full lease/reclaim matrix. Maintain DOC-01-05, defer DOC-06 and keep runtime policy,
 production NFS/source deletion and all eight release gates unchanged.
+
+
+[Increment 91](RUST-INCREMENT-91.md)/SC-125 extends the same finite controlled
+server-recovery matrix to manifest staging-name removal. The
+[step-by-step lab](NFS-MANIFEST-RECOVERY-LAB.md) requires an already Published
+one-link verified payload with no payload staging, manifest_phase 3, and complete
+same-inode manifest aliases with two links. Actual D-state unlinkat named
+COMMITTED.part, unchanged source/payload/manifest/state/ownership and correlated
+successful raw REMOVE precede original-worker attempt-1 commitment. The original
+manifest inode/hash survives with one link after the remaining syncs. Clean
+original-state replay preserves recorder reuse. A valid COMMITTED.json remains
+the consumer signal; this boundary precedes the local Committed receipt and adds
+no consumer API-polling or recorder monitoring duty. Initial manifest LINK/file/
+new-parent sync precede tracing. Other sync/death/reconciliation boundaries,
+retained-memory versus physical durability, controlled quiescence, independent
+NAS/power and modern-kernel limits remain explicit. Maintain DOC-01-05 and defer
+DOC-06; production NFS/source deletion and all eight release gates stay unchanged.
