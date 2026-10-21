@@ -417,6 +417,17 @@ This is memory retained across controlled restart, not persistent disk/NAS/power
 or abrupt live-NFSD failure. Maintain SC-122/DOC-01-05, both SLES gates and exact
 input/raw-proof auditing. Keep runtime policy and production NFS/deletion unchanged.
 
+Increment 89 retains --verify-recovery with --mover --distinct-filesystems for
+actual destination staging reread across the same controlled facilities. See
+docs/RUST-INCREMENT-89.md and docs/NFS-VERIFICATION-RECOVERY-LAB.md. Require
+Copied/full staging, actual D-state destination read at offset zero, preserved
+source/staging/state and absent publication during outage, full original-FD
+reread through EOF, then payload/manifest publication and attempt-1 replay.
+Use the bounded I/O observer; earlier copy sync precedes attachment. Preserve
+unknown READ RPC records without claiming READ session replay, initial caller
+artifact-path failure and seventeen exact acquisition sources. Maintain
+SC-123/DOC-01-05, both SLES gates and all existing production/policy limits.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

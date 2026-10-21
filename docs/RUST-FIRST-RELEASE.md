@@ -78,10 +78,12 @@ exclusion, and cover joint-outage replay/backpressure under the declared profile
 continuation with NFSD restart or NFSD-quiesced container restart, on two mounts
 sharing one client filesystem. [Increment 88](RUST-INCREMENT-88.md)/SC-122
 adds the same finite source-copy cases on two distinct client NFS filesystems
-backed by retained bounded tmpfs volumes. Next qualify destination staging
-verification across these controlled restart facilities, then remaining phases
-and worker-death boundaries. Neither increment closes FR-03/05 or qualifies
-abrupt recovery, persistent disk/NAS or power loss. Additional source
+backed by retained bounded tmpfs volumes. [Increment 89](RUST-INCREMENT-89.md)/SC-123
+adds selected destination-staging verification recovery on that fixture, with full
+reread/EOF before payload and manifest publication. Next qualify controlled
+server recovery at file-publication boundaries, then remaining bootstrap/claim,
+manifest and worker-death cases. These increments do not close FR-03/05 or qualify
+abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
 outage duration, workload or deployment profile.

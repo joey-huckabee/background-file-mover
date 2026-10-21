@@ -5,6 +5,10 @@ It tests four native controls, followed by four actual mover source-copy cases:
 debug/release × NFSD stop/start or NFSD quiescence followed by confirmed same-container
 SIGKILL/exit/start. Production NFS and post-delivery source deletion stay disabled.
 
+[Increment 89](RUST-INCREMENT-89.md) reuses this infrastructure for the separate
+[destination-verification recovery procedure](NFS-VERIFICATION-RECOVERY-LAB.md).
+Preserve this original source-copy scope and its retained setup failure.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two

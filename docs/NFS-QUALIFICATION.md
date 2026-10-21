@@ -12,6 +12,12 @@ The runner also retains --distinct-filesystems with --mover. Read the
 volumes and independently checked client devices. Keep the earlier shared-client
 filesystem evidence separate; neither profile qualifies independent NAS or power loss.
 
+Use --verify-recovery alongside --mover --distinct-filesystems for the separate
+destination-verification recovery matrix; see
+[its procedure](NFS-VERIFICATION-RECOVERY-LAB.md) and
+[increment 89](RUST-INCREMENT-89.md). Keep source-copy and staging-reread evidence
+separate, and preserve the original bounded fixture/qualification capability.
+
 Increment 25 requires version-2 source/destination bindings and an exclusively
 preprovisioned empty service-owned mode-0600 `.file-mover/coordinator.lock` at
 each root. Do not reuse version-1 observed state or mix directory-lock and
@@ -991,3 +997,19 @@ copy evidence; it does not qualify independent NAS, persistent disks, abrupt liv
 server termination, power loss, other phases or worker replacement. Both SLES
 gates remain mandatory; production NFS/source deletion and all eight release
 gates stay unchanged. Maintain DOC-01-05 and defer DOC-06.
+
+
+[Increment 89](RUST-INCREMENT-89.md)/SC-123 extends the retained two-filesystem
+fixture to live destination-staging verification across controlled NFS server
+restart. Four native prerequisites precede four debug/release mover cases using
+NFSD restart or NFSD-quiesced same-container termination/start. The
+[complete lab](NFS-VERIFICATION-RECOVERY-LAB.md) distinguishes durable Copied
+status and a full staging file from completed verification: require actual
+D-state staging read/FD/offset proof, unchanged staging/source/state and no final
+payload or manifest during the outage, then original-worker attempt-1 commitment
+and original-state replay. I/O tracing checks full reread through EOF and later
+publication; it starts after earlier copy synchronization. READ RPC compounds
+remain unknown in the retained decoder, so this is not READ session-replay proof.
+Keep retained-memory/modern-kernel, independent NAS/power and other-phase limits
+explicit. Maintain DOC-01-05 and defer DOC-06; runtime policy, production NFS/source
+deletion and all eight release gates remain unchanged.

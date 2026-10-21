@@ -12,8 +12,8 @@ are not all prerequisites for the first release. Do not use increment counts as
 release progress. Deferred capabilities remain deferred unless explicitly added.
 
 Next qualify remaining NFS operation/synchronization and shutdown boundaries,
-remaining endpoint-failure directions/phases beyond selected source-copy
-interruptions, remaining fresh/later source bootstrap and destination recovery
+remaining endpoint-failure directions/phases beyond selected live copy and
+verification reads, remaining fresh/later source bootstrap and destination recovery
 phases, native SLES manager/cgroup compatibility, actual account control/persistent
 deployment and remaining hard-NFS/systemd operation/deadline behavior (SH-01–04/06–14). Preserve independently retained
 exclusion through actual worker exit; local ownership observations alone cannot
@@ -54,14 +54,14 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify remaining server-recovery phases beyond the selected live source
-  read: staging verification, bootstrap/claim, publication/manifest and worker
+- [ ] Qualify remaining server-recovery phases beyond selected live source-copy
+  and destination-verification reads: bootstrap/claim, publication/manifest and worker
   death/replacement. Cover independent servers/shares and broader filesystem
   profiles, outstanding UNSTABLE data and delayed effects while preserving original state,
   custody and exclusion through actual exit. Establish a repeatable bounded
   abrupt live-server termination facility before selecting its mover cases;
   NFSD-quiesced container restart does not qualify abrupt recovery. Qualify
-  fresh-network-namespace/VM/NAS reboot separately.
+  broader fresh-network-namespace recovery and VM/NAS reboot separately.
 - [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
   in the declared shipping mount/export profile; do not substitute buffered OS
   controls for unobserved service COMMIT/fsync boundaries. Cover

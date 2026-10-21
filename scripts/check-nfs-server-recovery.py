@@ -22,12 +22,14 @@ def main():
     parser.add_argument('--production-gate',type=Path)
     parser.add_argument('--qualification-gate',type=Path)
     parser.add_argument('--distinct-filesystems',action='store_true',help='Retain two bounded filesystems in a separate storage keeper')
+    parser.add_argument('--verify-recovery',action='store_true',help='Test destination staging reread across controlled restart')
     args=parser.parse_args()
+    if args.verify_recovery and not (args.mover and args.distinct_filesystems):parser.error('--verify-recovery requires --mover --distinct-filesystems')
     if args.distinct_filesystems and not args.mover:parser.error('--distinct-filesystems requires --mover for controlled NFSD-quiesced restart')
     if args.mover and not (args.production_gate and args.qualification_gate):parser.error('both SLES gate directories are required')
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root/'scripts/rust-platform.json').read_text(encoding='utf-8'))
-    label = ('distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+    label = ('verify-server-recovery-' if args.verify_recovery else 'distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
     output = root/'rust/validation'/label; output.mkdir()
     print('Server recovery: '+str(output), flush=True)
     engine = ['podman','--connection','podman-machine-default-root']
@@ -51,6 +53,10 @@ def main():
             data=(root/'scripts'/name).read_bytes()
             report['sources'][name]=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
     report['distinct_filesystems']=args.distinct_filesystems
+    report['verification_recovery']=args.verify_recovery
+    if args.verify_recovery:
+        data=(root/'scripts/nfs_io_trace.py').read_bytes()
+        report['sources']['nfs_io_trace.py']=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
 
     def run(args, check=True):
         value=subprocess.run(engine+args,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=45)
@@ -139,7 +145,7 @@ def main():
         execute('mkdir /tmp/recovery-source /tmp/recovery-destination /tmp/control; chmod 777 /tmp/control')
         reader=run(['create','--network','none','--cap-drop','all','--security-opt','no-new-privileges',
                     '--volume',volume+':/e:ro',*reader_binds,'--entrypoint','/bin/sh',config['builder'],'-c','exec sleep infinity']).stdout.strip()
-        containers.append(reader);run(['start',reader])
+        containers.append(reader);run(['start',reader]);report['storage_reader']=reader
         if keeper:
             from nfs_distinct_storage import verify_binds
             report['storage']['reader_inventory']=verify_binds(run,reader,'/e',report['storage']['before']['devices'],readonly=True)

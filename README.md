@@ -1,10 +1,10 @@
 # Background File Mover
 
-The [distinct-filesystem recovery lab](docs/NFS-DISTINCT-RECOVERY-LAB.md)
-documents the retained storage fixture, native prerequisites, four source-copy
-recovery cases, exact build/audit commands, cleanup and remaining limits.
-Read [increment 88](docs/RUST-INCREMENT-88.md) for results. Production NFS and
-source deletion remain disabled.
+The [destination verification recovery lab](docs/NFS-VERIFICATION-RECOVERY-LAB.md)
+documents retained storage, native prerequisites, the verification restart matrix,
+exact build/audit commands, cleanup and testing limits. Read
+[increment 89](docs/RUST-INCREMENT-89.md) for results. Production NFS and source
+deletion remain disabled.
 
 For what the current tests prove and what remains unqualified, read
 [testing limitations](docs/TESTING-LIMITATIONS.md). The

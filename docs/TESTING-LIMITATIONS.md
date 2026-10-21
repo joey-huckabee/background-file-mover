@@ -667,3 +667,24 @@ copy evidence; it does not qualify independent NAS, persistent disks, abrupt liv
 server termination, power loss, other phases or worker replacement. Both SLES
 gates remain mandatory; production NFS/source deletion and all eight release
 gates stay unchanged. Maintain DOC-01-05 and defer DOC-06.
+
+
+[Increment 89](RUST-INCREMENT-89.md)/SC-123 extends the retained two-filesystem
+fixture to live destination-staging verification across controlled NFS server
+restart. Four native prerequisites precede four debug/release mover cases using
+NFSD restart or NFSD-quiesced same-container termination/start. The
+[complete lab](NFS-VERIFICATION-RECOVERY-LAB.md) distinguishes durable Copied
+status and a full staging file from completed verification: require actual
+D-state staging read/FD/offset proof, unchanged staging/source/state and no final
+payload or manifest during the outage, then original-worker attempt-1 commitment
+and original-state replay. I/O tracing checks full reread through EOF and later
+publication; it starts after earlier copy synchronization. READ RPC compounds
+remain unknown in the retained decoder, so this is not READ session-replay proof.
+Keep retained-memory/modern-kernel, independent NAS/power and other-phase limits
+explicit. Maintain DOC-01-05 and defer DOC-06; runtime policy, production NFS/source
+deletion and all eight release gates remain unchanged.
+
+The release container-restart case in increment 89 continues across an observed
+backend network-namespace change while keeper/storage and VM boot identity remain
+stable. This selected actual continuation does not close broader namespace,
+lease/reclaim, VM/NAS reboot or physical-durability qualification.
