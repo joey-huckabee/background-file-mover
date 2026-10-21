@@ -90,8 +90,13 @@ original-manifest inode/attempt/state preservation.
 [Increment 92](RUST-INCREMENT-92.md)/SC-126 adds initial payload LINK continuation,
 with one-link verified staging and no final payload/manifest before interruption,
 actual two-directory linkat/raw LINK, sync-before-removal ordering and preserved
-original inode/attempt/state. Next qualify initial manifest LINK during controlled
-server recovery; retain other payload/manifest sync, bootstrap/claim and
+original inode/attempt/state. [Increment 93](RUST-INCREMENT-93.md)/SC-127
+adds initial manifest LINK continuation with already Published payload, complete
+one-link manifest staging, actual two-directory linkat/raw LINK, sync-before-
+removal ordering and original manifest inode/bytes/attempt/state. Next establish
+and qualify actual pending publication synchronization during controlled server
+recovery; first prove the selected syscall/RPC boundary rather than inferring it
+from a pause name. Retain remaining payload/manifest sync, bootstrap/claim and
 worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

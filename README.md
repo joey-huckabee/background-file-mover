@@ -1,9 +1,9 @@
 # Background File Mover
 
-The [initial payload LINK recovery lab](docs/NFS-PAYLOAD-LINK-RECOVERY-LAB.md)
+The [initial manifest LINK recovery lab](docs/NFS-MANIFEST-LINK-RECOVERY-LAB.md)
 documents retained storage, native prerequisites, controlled recovery during
 initial LINK, exact build/audit commands and testing limits. Read
-[increment 92](docs/RUST-INCREMENT-92.md) for results. Production NFS and source
+[increment 93](docs/RUST-INCREMENT-93.md) for results. Production NFS and source
 deletion remain disabled.
 
 For what the current tests prove and what remains unqualified, read

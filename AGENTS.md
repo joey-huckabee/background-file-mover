@@ -762,3 +762,17 @@ Earlier copying/verification/original-file sync precede tracing. Maintain SC-126
 DOC-01-05, seventeen frozen acquisition sources, both SLES gates and existing
 producer/consumer/policy, retained-memory and controlled-termination limits.
 Keep production NFS and private-source deletion disabled.
+
+Increment 93 retains --manifest-link-recovery with --mover --distinct-filesystems,
+excluding other selected recovery phases. See docs/RUST-INCREMENT-93.md and
+docs/NFS-MANIFEST-LINK-RECOVERY-LAB.md. At manifest_link_rpc require Published
+payload, manifest_phase 3, one-link complete manifest staging and absent final
+manifest, with unchanged one-link verified payload/no payload staging. Require
+actual D-state linkat from COMMITTED.part to COMMITTED.json, both directory
+FD/path/mount/inode observations, original-call continuation and successful raw
+LINK in its interval. Require manifest-file/new-parent sync before staging removal,
+remaining syncs, original manifest inode/hash as one-link final and attempt-1
+original-state replay. Earlier payload effects/manifest write/original-file sync
+precede tracing. Maintain SC-127/DOC-01-05, seventeen frozen acquisition sources,
+both SLES gates and existing producer/consumer/policy, retained-memory and
+controlled-termination limits. Keep production NFS/private-source deletion off.

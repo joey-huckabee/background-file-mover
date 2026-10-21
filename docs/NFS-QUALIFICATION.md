@@ -1067,3 +1067,20 @@ copy/verification/original-file sync precede tracing; remaining initial manifest
 LINK, other sync/death/reconciliation, NAS/power, full session/reclaim and modern-
 kernel limits remain explicit. Maintain DOC-01-05 and defer DOC-06; production
 NFS/source deletion and all eight release gates stay unchanged.
+
+
+[Increment 93](RUST-INCREMENT-93.md)/SC-127 extends controlled server-recovery
+qualification to initial manifest LINK at manifest_link_rpc. The
+[step-by-step lab](NFS-MANIFEST-LINK-RECOVERY-LAB.md) starts with payload
+Published, manifest_phase 3, complete one-link manifest staging, absent final
+manifest and unchanged one-link verified payload with no payload staging.
+Require actual D-state linkat with both directory FD/path/mount/inode observations,
+successful raw LINK named COMMITTED.json inside its original pending interval,
+manifest-file/new-parent sync before staging removal and remaining successful
+syncs before the local receipt. Original manifest inode/hash, payload, source,
+state/epoch and attempt-1 committed replay preserve recorder reuse. Producer and
+valid-manifest consumer duties stay unchanged. Earlier payload effects/manifest
+write/original-file sync precede tracing; remaining sync/death/reconciliation,
+retained-memory versus physical NAS/power durability, full session/reclaim and
+modern-kernel limits remain explicit. Maintain DOC-01-05 and defer DOC-06;
+production NFS/source deletion and all eight release gates stay unchanged.

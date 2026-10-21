@@ -23,6 +23,11 @@ controlled-restart and physical-durability limits.
 payload visibility. Retain the distinction between separate client filesystems
 and independent NAS, and controlled restart versus physical durability.
 
+[Increment 93](RUST-INCREMENT-93.md) reuses this infrastructure for
+[initial manifest LINK recovery](NFS-MANIFEST-LINK-RECOVERY-LAB.md), with payload
+already Published and complete manifest staging before final-name visibility.
+Preserve the same retained-memory/controlled-restart limitations.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two

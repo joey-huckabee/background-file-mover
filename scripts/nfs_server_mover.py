@@ -85,6 +85,16 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     final=dict(identity=result[1],sha256=result[3].split()[0]),
                     bytes=raw,payload_staging_absent=True)
 
+    def manifest_staging(c):
+        parent='/e/profile-destination/'+c.label+'/destination/1'
+        result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
+                    'test ! -e '+parent+'/COMMITTED.json; test ! -e '+parent+'/.staging/1.part; '+
+                    "stat -c '%d:%i:%h:%s' "+parent+'/.staging/COMMITTED.part; '+
+                    'sha256sum '+parent+'/.staging/COMMITTED.part; cat '+parent+'/.staging/COMMITTED.part']).stdout.splitlines()
+        assert len(result)>=3 and result[0].split(':')[2]=='1'
+        raw='\n'.join(result[2:]);assert hashlib.sha256(raw.encode()).hexdigest()==result[1].split()[0]
+        return dict(identity=result[0],sha256=result[1].split()[0],bytes=raw,manifest_absent=True,payload_staging_absent=True)
+
     def cases(Case):
         nonlocal stopped
         for profile in ('debug','release'):
@@ -94,10 +104,11 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                 publication=report.get('publication_recovery',False)
                 manifest=report.get('manifest_recovery',False)
                 payload_link=report.get('payload_link_recovery',False)
-                c=Case(profile,'file_link_rpc' if payload_link else 'manifest_unlink' if manifest else 'file_unlink' if publication else 'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
+                manifest_link=report.get('manifest_link_recovery',False)
+                c=Case(profile,'manifest_link_rpc' if manifest_link else 'file_link_rpc' if payload_link else 'manifest_unlink' if manifest else 'file_unlink' if publication else 'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
                 r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
                 distinct=report.get('distinct_filesystems',False)
-                r.update(kind=kind,scenario_id='SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
+                r.update(kind=kind,scenario_id='SC-127' if manifest_link else 'SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
                 observer=None
                 try:
                     original=c.source+'/current/nested/data.bin';private=c.source+'/.file-mover/1-0/data'
@@ -114,12 +125,12 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     c.await_pause();r['coordinator_pid']=c.service_pid();r['worker_pid']=c.worker
                     execute("printf 'next recording' >"+original,'1000:1000')
                     r['status_before']=c.request('GET','/api/v2/jobs/1')[1]
-                    assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']==('Published' if manifest else 'PublishIntent' if publication or payload_link else 'Copied' if verification else 'Intent')
-                    if manifest:assert r['status_before']['details']['manifest_phase']==3
+                    assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']==('Published' if manifest or manifest_link else 'PublishIntent' if publication or payload_link else 'Copied' if verification else 'Intent')
+                    if manifest or manifest_link:assert r['status_before']['details']['manifest_phase']==3
                     stage=c.destination+'/1/.staging/1.part'
                     # For manifest cases the payload has already left staging; retain its final identity.
-                    r['staging_before']=execute("stat -c '%d:%i:%s' "+(c.destination+'/1/nested/data.bin' if manifest else stage),'1000:1000').stdout.strip()
-                    assert r['staging_before'].split(':')[-1]==('2097169' if verification or publication or manifest or payload_link else '1048576')
+                    r['staging_before']=execute("stat -c '%d:%i:%s' "+(c.destination+'/1/nested/data.bin' if manifest or manifest_link else stage),'1000:1000').stdout.strip()
+                    assert r['staging_before'].split(':')[-1]==('2097169' if verification or publication or manifest or payload_link or manifest_link else '1048576')
                     if distinct:
                         assert r['original_source'][0].split(':')[0]!=r['staging_before'].split(':')[0]
                         assert r['original_local_state'].splitlines()[0].split(':')[0] not in (r['original_source'][0].split(':')[0],r['staging_before'].split(':')[0])
@@ -141,7 +152,11 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['aliases_before']=manifest_aliases(c)
                         r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
-                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=verification or publication or manifest or payload_link)
+                    if manifest_link:
+                        r['manifest_staging_before']=manifest_staging(c)
+                        r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
+                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=verification or publication or manifest or payload_link or manifest_link)
                     r['clock_namespaces']={actor:run(['exec',actor,'readlink','/proc/self/ns/time']).stdout.strip()
                                            for actor in (client,observer,relay.container)}
                     assert len(set(r['clock_namespaces'].values()))==1
@@ -170,17 +185,21 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['aliases_stopped']=manifest_aliases(c)
                         r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['aliases_stopped']==r['aliases_before'] and r['payload_stopped']==r['payload_before']
+                    if manifest_link:
+                        r['manifest_staging_stopped']=manifest_staging(c)
+                        r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        assert r['manifest_staging_stopped']==r['manifest_staging_before'] and r['payload_stopped']==r['payload_before']
                     execute(': >'+c.rendezvous+'/go','1000:1000')
                     for _ in range(50):
                         if c.state(c.worker)=='D':break
                         assert c.service.poll() is None;time.sleep(.1)
                     else:raise AssertionError('no actual blocked payload reader')
-                    if payload_link:
+                    if payload_link or manifest_link:
                         raw=execute(f'cat /proc/{c.worker}/syscall').stdout.strip();fields=raw.split()
                         assert len(fields)==9 and fields[0]=='265' and int(fields[5],16)==0,raw
                         fd=int(fields[1],16);newfd=int(fields[3],16)
                         paths=execute(f'readlink /proc/{c.worker}/fd/{fd}; readlink /proc/{c.worker}/fd/{newfd}').stdout.splitlines()
-                        assert paths==[c.destination+'/1/.staging',c.destination+'/1/nested'] and c.children()==[c.worker]
+                        assert paths==[c.destination+'/1/.staging',c.destination+('/1' if manifest_link else '/1/nested')] and c.children()==[c.worker]
                         r['blocked_link']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=paths[0],newfd=newfd,newpath=paths[1],
                             fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout,
                             newfdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{newfd}').stdout)
@@ -231,7 +250,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     r['worker_exit']=c.await_exit(c.worker)
                     r['trace']=finish_trace(run,observer);observer=None
                     assert r['trace']['pid']==int(r['worker_pid'])
-                    if not (publication or manifest or payload_link):execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
+                    if not (publication or manifest or payload_link or manifest_link):execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
                     c.verify()
                     r['source_backing_after']=snapshot(backing);assert r['source_backing_after']==r['source_backing_before']
                     r['final_identity']=execute("stat -c '%d:%i' "+c.destination+'/1/nested/data.bin','1000:1000').stdout.strip()
@@ -252,6 +271,13 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/COMMITTED.json')
                         expected=r['aliases_before']['final'];old=expected['identity'].split(':')
                         assert r['final_backing_after']==dict(identity=':'.join(old[:2]+['1',old[3]]),sha256=expected['sha256'])
+                        r['staging_absent_after']=execute('test ! -e '+c.destination+'/1/.staging/COMMITTED.part','1000:1000',False).returncode==0
+                        r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        assert r['staging_absent_after'] and r['payload_after']==r['payload_before']
+                    if manifest_link:
+                        r['manifest_final_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/COMMITTED.json')
+                        before=r['manifest_staging_before']
+                        assert r['manifest_final_after']==dict(identity=before['identity'],sha256=before['sha256'])
                         r['staging_absent_after']=execute('test ! -e '+c.destination+'/1/.staging/COMMITTED.part','1000:1000',False).returncode==0
                         r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['staging_absent_after'] and r['payload_after']==r['payload_before']
