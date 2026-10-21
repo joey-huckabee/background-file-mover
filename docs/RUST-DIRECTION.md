@@ -863,3 +863,19 @@ new-parent sync precede tracing. Other sync/death/reconciliation boundaries,
 retained-memory versus physical durability, controlled quiescence, independent
 NAS/power and modern-kernel limits remain explicit. Maintain DOC-01-05 and defer
 DOC-06; production NFS/source deletion and all eight release gates stay unchanged.
+
+
+[Increment 92](RUST-INCREMENT-92.md)/SC-126 extends controlled server-recovery
+qualification to the initial payload LINK at file_link_rpc. The
+[step-by-step lab](NFS-PAYLOAD-LINK-RECOVERY-LAB.md) starts with verified one-link
+staging, PublishIntent and absent final payload/manifest. Require actual D-state
+linkat with both directory FD/path/mount/inode observations, successful raw LINK
+inside its original pending interval, final-file/new-parent sync before staging
+removal and later manifest publication. The original staging inode/hash becomes
+the one-link final payload; original-worker attempt-1 commitment and clean
+original-state replay preserve recorder reuse and private source/state/enrollment.
+The recorder and valid-manifest consumer contracts stay unchanged. Earlier
+copy/verification/original-file sync precede tracing; remaining initial manifest
+LINK, other sync/death/reconciliation, NAS/power, full session/reclaim and modern-
+kernel limits remain explicit. Maintain DOC-01-05 and defer DOC-06; production
+NFS/source deletion and all eight release gates stay unchanged.

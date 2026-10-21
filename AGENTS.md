@@ -749,3 +749,16 @@ new-parent sync precede tracing. Preserve the consumer's valid-manifest contract
 do not add recorder monitoring or consumer API-polling duties. Maintain SC-125/
 DOC-01-05, seventeen frozen acquisition sources, both SLES gates and all existing
 production/policy, retained-memory and controlled-termination limitations.
+
+Increment 92 retains --payload-link-recovery with --mover --distinct-filesystems,
+excluding other selected recovery phases. See docs/RUST-INCREMENT-92.md and
+docs/NFS-PAYLOAD-LINK-RECOVERY-LAB.md. At file_link_rpc require PublishIntent,
+complete verified one-link staging and absent final payload/manifest. Require
+actual D-state linkat from 1.part to data.bin, both directory FD/path/mount/inode
+observations, original-call continuation and successful raw LINK in its interval.
+Require final-file/new-parent sync before staging removal, original staging inode/
+hash as one-link final, later manifest and attempt-1 original-state replay.
+Earlier copying/verification/original-file sync precede tracing. Maintain SC-126/
+DOC-01-05, seventeen frozen acquisition sources, both SLES gates and existing
+producer/consumer/policy, retained-memory and controlled-termination limits.
+Keep production NFS and private-source deletion disabled.

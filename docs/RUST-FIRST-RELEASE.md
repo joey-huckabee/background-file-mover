@@ -86,9 +86,13 @@ staging-removal boundary, preserving PublishIntent and the original inode/attemp
 through controlled recovery. [Increment 91](RUST-INCREMENT-91.md)/SC-125 adds
 manifest staging-alias removal with an already Published payload and complete
 visible manifest, remaining successful syncs before the local receipt, and
-original-manifest inode/attempt/state preservation. Next qualify initial payload
-LINK during controlled server recovery; retain remaining initial manifest LINK,
-other payload/manifest sync, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
+original-manifest inode/attempt/state preservation.
+[Increment 92](RUST-INCREMENT-92.md)/SC-126 adds initial payload LINK continuation,
+with one-link verified staging and no final payload/manifest before interruption,
+actual two-directory linkat/raw LINK, sync-before-removal ordering and preserved
+original inode/attempt/state. Next qualify initial manifest LINK during controlled
+server recovery; retain other payload/manifest sync, bootstrap/claim and
+worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,

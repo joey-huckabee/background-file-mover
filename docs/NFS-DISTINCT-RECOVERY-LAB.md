@@ -18,6 +18,11 @@ removal of the staging alias after establishing the final payload link.
 manifest aliases and an already Published payload. It retains the same finite
 controlled-restart and physical-durability limits.
 
+[Increment 92](RUST-INCREMENT-92.md) reuses this infrastructure for
+[initial payload LINK recovery](NFS-PAYLOAD-LINK-RECOVERY-LAB.md), before final
+payload visibility. Retain the distinction between separate client filesystems
+and independent NAS, and controlled restart versus physical durability.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two
