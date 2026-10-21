@@ -1,4 +1,4 @@
-"""Four actual source-copy restart recoveries, following independent native controls."""
+"""Selected actual mover restart recoveries, following independent native controls."""
 import hashlib
 import json
 import subprocess
@@ -60,16 +60,28 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
         assert result=='absent'
         return dict(final_absent=True,manifest_absent=True,observation='independent read-only backing filesystem')
 
+    def aliases(c):
+        parent='/e/profile-destination/'+c.label+'/destination/1'
+        result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
+                    'test -d '+parent+'; test ! -e '+parent+'/COMMITTED.json; '+
+                    "stat -c '%d:%i:%h:%s' "+parent+'/.staging/1.part '+parent+'/nested/data.bin; '+
+                    'sha256sum '+parent+'/.staging/1.part '+parent+'/nested/data.bin']).stdout.splitlines()
+        assert len(result)==4 and result[0]==result[1] and result[0].split(':')[-2:]==['2','2097169']
+        assert result[2].split()[0]==result[3].split()[0]
+        return dict(staging=dict(identity=result[0],sha256=result[2].split()[0]),
+                    final=dict(identity=result[1],sha256=result[3].split()[0]),manifest_absent=True)
+
     def cases(Case):
         nonlocal stopped
         for profile in ('debug','release'):
             for kind in ('nfsd','container'):
                 print('Mover server recovery '+profile+' '+kind,flush=True)
                 verification=report.get('verification_recovery',False)
-                c=Case(profile,'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
+                publication=report.get('publication_recovery',False)
+                c=Case(profile,'file_unlink' if publication else 'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
                 r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
                 distinct=report.get('distinct_filesystems',False)
-                r.update(kind=kind,scenario_id='SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
+                r.update(kind=kind,scenario_id='SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
                 observer=None
                 try:
                     original=c.source+'/current/nested/data.bin';private=c.source+'/.file-mover/1-0/data'
@@ -86,10 +98,10 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     c.await_pause();r['coordinator_pid']=c.service_pid();r['worker_pid']=c.worker
                     execute("printf 'next recording' >"+original,'1000:1000')
                     r['status_before']=c.request('GET','/api/v2/jobs/1')[1]
-                    assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']==('Copied' if verification else 'Intent')
+                    assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']==('PublishIntent' if publication else 'Copied' if verification else 'Intent')
                     stage=c.destination+'/1/.staging/1.part'
                     r['staging_before']=execute("stat -c '%d:%i:%s' "+stage,'1000:1000').stdout.strip()
-                    assert r['staging_before'].split(':')[-1]==('2097169' if verification else '1048576')
+                    assert r['staging_before'].split(':')[-1]==('2097169' if verification or publication else '1048576')
                     if distinct:
                         assert r['original_source'][0].split(':')[0]!=r['staging_before'].split(':')[0]
                         assert r['original_local_state'].splitlines()[0].split(':')[0] not in (r['original_source'][0].split(':')[0],r['staging_before'].split(':')[0])
@@ -103,7 +115,10 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['destination_backing_before']=snapshot(stage_backing)
                         assert r['destination_backing_before']['sha256']==r['source_backing_before']['sha256']
                         r['publication_before']=unpublished(c)
-                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=verification)
+                    if publication:
+                        r['aliases_before']=aliases(c)
+                        assert r['aliases_before']['staging']['sha256']==r['source_backing_before']['sha256']
+                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=verification or publication)
                     r['clock_namespaces']={actor:run(['exec',actor,'readlink','/proc/self/ns/time']).stdout.strip()
                                            for actor in (client,observer,relay.container)}
                     assert len(set(r['clock_namespaces'].values()))==1
@@ -125,18 +140,30 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['destination_backing_stopped']=snapshot(stage_backing)
                         assert r['destination_backing_stopped']==r['destination_backing_before']
                         r['publication_during']=unpublished(c)
+                    if publication:
+                        r['aliases_stopped']=aliases(c)
+                        assert r['aliases_stopped']==r['aliases_before']
                     execute(': >'+c.rendezvous+'/go','1000:1000')
                     for _ in range(50):
                         if c.state(c.worker)=='D':break
                         assert c.service.poll() is None;time.sleep(.1)
                     else:raise AssertionError('no actual blocked payload reader')
-                    raw=execute(f'cat /proc/{c.worker}/syscall').stdout.strip();fields=raw.split()
-                    assert len(fields)==9 and fields[0]=='0' and int(fields[3],16)==1048576,raw
-                    fd=int(fields[1],16);path=execute(f'readlink /proc/{c.worker}/fd/{fd}').stdout.strip()
-                    assert path==(stage if verification else private) and c.children()==[c.worker]
-                    execute('test ! -e '+c.rendezvous+'/read-completed','1000:1000')
-                    r['blocked_read']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=path,read_completed=False,fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout)
-                    assert r['blocked_read']['state']=='D'
+                    if publication:
+                        raw=execute(f'cat /proc/{c.worker}/syscall').stdout.strip();fields=raw.split()
+                        assert len(fields)==9 and fields[0]=='263',raw
+                        fd=int(fields[1],16);path=execute(f'readlink /proc/{c.worker}/fd/{fd}').stdout.strip()
+                        assert path==c.destination+'/1/.staging' and c.children()==[c.worker]
+                        r['blocked_unlink']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=path,
+                            fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout)
+                        assert r['blocked_unlink']['state']=='D'
+                    else:
+                        raw=execute(f'cat /proc/{c.worker}/syscall').stdout.strip();fields=raw.split()
+                        assert len(fields)==9 and fields[0]=='0' and int(fields[3],16)==1048576,raw
+                        fd=int(fields[1],16);path=execute(f'readlink /proc/{c.worker}/fd/{fd}').stdout.strip()
+                        assert path==(stage if verification else private) and c.children()==[c.worker]
+                        execute('test ! -e '+c.rendezvous+'/read-completed','1000:1000')
+                        r['blocked_read']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=path,read_completed=False,fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout)
+                        assert r['blocked_read']['state']=='D'
                     r['worker_security']=execute(f'cat /proc/{c.worker}/status').stdout
                     began=time.monotonic();assert c.request('GET','/healthz')[0]==200
                     r['health_seconds']=time.monotonic()-began;assert r['health_seconds']<5
@@ -167,7 +194,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     r['worker_exit']=c.await_exit(c.worker)
                     r['trace']=finish_trace(run,observer);observer=None
                     assert r['trace']['pid']==int(r['worker_pid'])
-                    execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
+                    if not publication:execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
                     c.verify()
                     r['source_backing_after']=snapshot(backing);assert r['source_backing_after']==r['source_backing_before']
                     r['final_identity']=execute("stat -c '%d:%i' "+c.destination+'/1/nested/data.bin','1000:1000').stdout.strip()
@@ -175,6 +202,12 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     if verification:
                         r['destination_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['destination_backing_after']==r['destination_backing_before']
+                    if publication:
+                        r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        expected=r['aliases_before']['final'];old=expected['identity'].split(':')
+                        assert r['final_backing_after']==dict(identity=':'.join(old[:2]+['1',old[3]]),sha256=expected['sha256'])
+                        r['staging_absent_after']=execute('test ! -e '+stage,'1000:1000',False).returncode==0
+                        assert r['staging_absent_after']
                     r['local_state_after']=execute(local_command,'1000:1000').stdout
                     r['enrollment_after']=execute(enrollment_command,'1000:1000').stdout
                     assert r['local_state_after']==r['original_local_state']

@@ -428,6 +428,17 @@ unknown READ RPC records without claiming READ session replay, initial caller
 artifact-path failure and seventeen exact acquisition sources. Maintain
 SC-123/DOC-01-05, both SLES gates and all existing production/policy limits.
 
+Increment 90 retains --publication-recovery with --mover --distinct-filesystems,
+excluding --verify-recovery. See docs/RUST-INCREMENT-90.md and
+docs/NFS-PUBLICATION-RECOVERY-LAB.md. At file_unlink require PublishIntent,
+two complete same-inode payload aliases/two links and absent manifest, then actual
+D-state unlinkat on staging FD/name 1.part. Preserve original worker/state/source;
+correlate raw REMOVE success within that call, original final inode/one link,
+staging absence, later manifest and committed replay. Earlier LINK/file/new-parent
+sync precede attachment; no lost-reply, full reclaim or physical durability claim.
+Maintain SC-124/DOC-01-05, seventeen frozen sources, both SLES gates and existing
+runtime/production NFS/source-deletion limits.
+
 ## Git conventions
 
 Do **not** add `Co-Authored-By: Codex ...` trailers to commit messages on this repo, even if the harness's default instructions suggest it. Commit messages are the human-authored record of intent; tool attribution belongs in tool logs, not history. This overrides the default trailer behavior.

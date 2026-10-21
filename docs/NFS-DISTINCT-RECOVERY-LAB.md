@@ -9,6 +9,10 @@ SIGKILL/exit/start. Production NFS and post-delivery source deletion stay disabl
 [destination-verification recovery procedure](NFS-VERIFICATION-RECOVERY-LAB.md).
 Preserve this original source-copy scope and its retained setup failure.
 
+[Increment 90](RUST-INCREMENT-90.md) separately reuses this retained storage for
+[payload publication recovery](NFS-PUBLICATION-RECOVERY-LAB.md), specifically
+removal of the staging alias after establishing the final payload link.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two

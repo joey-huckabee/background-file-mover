@@ -18,6 +18,12 @@ destination-verification recovery matrix; see
 [increment 89](RUST-INCREMENT-89.md). Keep source-copy and staging-reread evidence
 separate, and preserve the original bounded fixture/qualification capability.
 
+Use --publication-recovery with --mover --distinct-filesystems for selected
+file-publication staging-alias removal across controlled restart; it excludes
+--verify-recovery. Read [the lab](NFS-PUBLICATION-RECOVERY-LAB.md) and
+[increment 90](RUST-INCREMENT-90.md). Keep the established source-copy and
+verification matrices and their qualification capability available.
+
 Increment 25 requires version-2 source/destination bindings and an exclusively
 preprovisioned empty service-owned mode-0600 `.file-mover/coordinator.lock` at
 each root. Do not reuse version-1 observed state or mix directory-lock and
@@ -1013,3 +1019,18 @@ remain unknown in the retained decoder, so this is not READ session-replay proof
 Keep retained-memory/modern-kernel, independent NAS/power and other-phase limits
 explicit. Maintain DOC-01-05 and defer DOC-06; runtime policy, production NFS/source
 deletion and all eight release gates remain unchanged.
+
+
+[Increment 90](RUST-INCREMENT-90.md)/SC-124 tests controlled server recovery at
+payload publication's two-name staging-removal boundary. Four native controls
+precede four debug/release live-worker cases on the retained two-filesystem
+fixture. The [complete lab](NFS-PUBLICATION-RECOVERY-LAB.md) requires complete
+same-inode staging/final aliases with two links, PublishIntent and no manifest,
+actual pending unlinkat on the staging directory, unchanged custody/state/ownership,
+then original-call removal, one-link original final inode, later manifest and
+attempt-1 committed replay. Staging removal is not postcommit source cleanup.
+The initial final LINK/file/new-parent sync precede tracing; initial LINK and other
+sync/manifest/death boundaries remain separate. Retained memory, controlled NFSD
+quiescence and modern-kernel evidence do not establish NAS/power durability or a
+full lease/reclaim matrix. Maintain DOC-01-05, defer DOC-06 and keep runtime policy,
+production NFS/source deletion and all eight release gates unchanged.

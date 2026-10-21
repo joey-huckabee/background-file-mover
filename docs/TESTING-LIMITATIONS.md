@@ -688,3 +688,18 @@ The release container-restart case in increment 89 continues across an observed
 backend network-namespace change while keeper/storage and VM boot identity remain
 stable. This selected actual continuation does not close broader namespace,
 lease/reclaim, VM/NAS reboot or physical-durability qualification.
+
+
+[Increment 90](RUST-INCREMENT-90.md)/SC-124 tests controlled server recovery at
+payload publication's two-name staging-removal boundary. Four native controls
+precede four debug/release live-worker cases on the retained two-filesystem
+fixture. The [complete lab](NFS-PUBLICATION-RECOVERY-LAB.md) requires complete
+same-inode staging/final aliases with two links, PublishIntent and no manifest,
+actual pending unlinkat on the staging directory, unchanged custody/state/ownership,
+then original-call removal, one-link original final inode, later manifest and
+attempt-1 committed replay. Staging removal is not postcommit source cleanup.
+The initial final LINK/file/new-parent sync precede tracing; initial LINK and other
+sync/manifest/death boundaries remain separate. Retained memory, controlled NFSD
+quiescence and modern-kernel evidence do not establish NAS/power durability or a
+full lease/reclaim matrix. Maintain DOC-01-05, defer DOC-06 and keep runtime policy,
+production NFS/source deletion and all eight release gates unchanged.

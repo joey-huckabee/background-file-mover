@@ -80,9 +80,12 @@ sharing one client filesystem. [Increment 88](RUST-INCREMENT-88.md)/SC-122
 adds the same finite source-copy cases on two distinct client NFS filesystems
 backed by retained bounded tmpfs volumes. [Increment 89](RUST-INCREMENT-89.md)/SC-123
 adds selected destination-staging verification recovery on that fixture, with full
-reread/EOF before payload and manifest publication. Next qualify controlled
-server recovery at file-publication boundaries, then remaining bootstrap/claim,
-manifest and worker-death cases. These increments do not close FR-03/05 or qualify
+reread/EOF before payload and manifest publication.
+[Increment 90](RUST-INCREMENT-90.md)/SC-124 adds the selected two-name payload
+staging-removal boundary, preserving PublishIntent and the original inode/attempt
+through controlled recovery. Next qualify controlled recovery during manifest
+commitment; retain remaining initial payload LINK/other sync, bootstrap/claim
+and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,
