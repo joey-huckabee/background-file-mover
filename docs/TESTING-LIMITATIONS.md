@@ -753,3 +753,21 @@ write/original-file sync precede tracing; remaining sync/death/reconciliation,
 retained-memory versus physical NAS/power durability, full session/reclaim and
 modern-kernel limits remain explicit. Maintain DOC-01-05 and defer DOC-06;
 production NFS/source deletion and all eight release gates stay unchanged.
+
+
+[Increment 94](RUST-INCREMENT-94.md)/SC-128 establishes exact publication file-
+fsync capability before selecting more sync recovery. The
+[step-by-step lab](NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md) repeats native controls
+and eight actual debug/release payload/manifest healthy/stopped-NFSD observations.
+An external exact-path observer holds at entry/exit without changing shipping
+Rust or substituting syscalls; artificial ptrace stops are excluded from syscall/
+RPC timing and are not D-state. Require complete aliases/source/payload, original
+state/epoch/guard, actual outcome before/after restoration, attempt-1 commitment
+and clean committed replay. Independently decode raw interval traffic and captured
+pairs spanning entry, keeping broader/unknown activity separate. Successful local
+completion while NFSD is stopped supplies no blocked-sync recovery qualification;
+native dirty-write recovery cannot substitute for actual service evidence.
+Producer/consumer duties, runtime policy and deadlines remain unchanged. Maintain
+DOC-01-05, defer DOC-06, keep production NFS/private-source deletion disabled and
+all eight release gates open. Other sync/directory/workload/cache, death/recovery,
+physical NAS/power and old-kernel profiles remain separate.

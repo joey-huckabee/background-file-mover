@@ -7,6 +7,22 @@ expected_exit=sys.argv[2] if len(sys.argv)>2 else 'zero'
 assert expected_exit in ('zero','supervised-delivery')
 result['expected_exit']=expected_exit
 attached=False;stopped=False;current=None;deadline=time.monotonic()+180
+gate=json.loads(sys.argv[3]) if len(sys.argv)>3 else None
+gated=None
+if gate:
+ assert set(gate)=={'path'} and gate['path'].startswith('/tmp/recovery-destination/')
+ os.mkdir('/tmp/sync-gate');result['gate']=dict(path=gate['path'],entry=None,exit=None)
+
+def gate_wait(stage,row):
+ # Local observer rendezvous only. No worker NFS access or syscall substitution.
+ value=dict(row);value['observed_ns']=time.monotonic_ns()
+ with open('/tmp/sync-gate/'+stage+'.next','w') as f:json.dump(value,f)
+ os.rename('/tmp/sync-gate/'+stage+'.next','/tmp/sync-gate/'+stage+'.json')
+ until=min(deadline,time.monotonic()+60)
+ while time.monotonic()<until:
+  if os.path.exists('/tmp/sync-gate/'+stage+'-go'):return value
+  time.sleep(.01)
+ raise TimeoutError('external sync gate '+stage+' deadline')
 
 def ptrace(request,addr=0,data=0):
  value=libc.ptrace(request,pid,ctypes.c_void_p(addr),ctypes.c_void_p(data))
@@ -89,12 +105,17 @@ try:
       fd=current['descriptor'];assert fd is not None
       current.update(fd=fd['fd'],path=fd['path'],inode=fd['inode'],mount_id=fd['mount_id'])
       result['syncs'].append(current)
+      if gate and gated is None and nr==74 and fd['path']==gate['path']:
+       gated=current;result['gate']['entry']=gate_wait('entry',current)
+       # Exclude the artificial ptrace hold from the actual syscall/RPC interval.
+       current['enter_ns']=time.monotonic_ns()
    elif kind==2 and current is not None:
     current.update(exit_ns=time.monotonic_ns(),result=struct.unpack_from('<q',data.raw,24)[0])
     if current['syscall'] in (2,32,33,257,292,437) and current['result']>=0:
      current['returned_descriptor']=descriptor(current['result'])
     if current['descriptor'] and current['syscall']!=3:
      current['descriptor_after']=descriptor(current['descriptor']['fd'])
+    if gate and current is gated:result['gate']['exit']=gate_wait('exit',current)
     current=None
   elif sig not in (signal.SIGSTOP,signal.SIGTRAP):
    result['signals'].append(sig);deliver=sig
@@ -103,6 +124,7 @@ try:
  assert result['exit_status']==0 or (expected_exit=='supervised-delivery' and result['exit_status']==9)
  result['completion']='normal_exit' if result['exit_status']==0 else 'supervised_retirement_requires_committed_receipt'
  assert all(s.get('result')==0 for s in result['syncs'])
+ if gate:assert result['gate']['entry'] and result['gate']['exit']
  result['passed']=True
 except Exception as error:
  result.update(error=str(error),traceback=traceback.format_exc())

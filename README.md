@@ -1,10 +1,10 @@
 # Background File Mover
 
-The [initial manifest LINK recovery lab](docs/NFS-MANIFEST-LINK-RECOVERY-LAB.md)
-documents retained storage, native prerequisites, controlled recovery during
-initial LINK, exact build/audit commands and testing limits. Read
-[increment 93](docs/RUST-INCREMENT-93.md) for results. Production NFS and source
-deletion remain disabled.
+The [publication sync discovery lab](docs/NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md)
+documents exact actual-worker fsync entry/exit controls, RPC attribution,
+retained storage, build/audit commands and testing limits. Read
+[increment 94](docs/RUST-INCREMENT-94.md) for measured outcomes. Production NFS
+and source deletion remain disabled.
 
 For what the current tests prove and what remains unqualified, read
 [testing limitations](docs/TESTING-LIMITATIONS.md). The

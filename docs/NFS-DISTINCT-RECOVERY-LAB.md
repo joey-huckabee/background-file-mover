@@ -28,6 +28,11 @@ and independent NAS, and controlled restart versus physical durability.
 already Published and complete manifest staging before final-name visibility.
 Preserve the same retained-memory/controlled-restart limitations.
 
+[Increment 94](RUST-INCREMENT-94.md) adds [exact publication file-fsync
+capability controls](NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md). Distinguish artificial
+entry/exit ptrace holds, actual syscall execution, stopped-NFSD completion and
+positive blocked-sync recovery; native recovery is not a substitute.
+
 ## Infrastructure and prerequisites
 
 Use the feature/rust-transfer-coordinator branch, cached pinned images and the two

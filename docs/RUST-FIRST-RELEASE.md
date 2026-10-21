@@ -93,11 +93,16 @@ actual two-directory linkat/raw LINK, sync-before-removal ordering and preserved
 original inode/attempt/state. [Increment 93](RUST-INCREMENT-93.md)/SC-127
 adds initial manifest LINK continuation with already Published payload, complete
 one-link manifest staging, actual two-directory linkat/raw LINK, sync-before-
-removal ordering and original manifest inode/bytes/attempt/state. Next establish
-and qualify actual pending publication synchronization during controlled server
-recovery; first prove the selected syscall/RPC boundary rather than inferring it
-from a pause name. Retain remaining payload/manifest sync, bootstrap/claim and
-worker-death cases. These increments do not close FR-03/05 or qualify
+removal ordering and original manifest inode/bytes/attempt/state.
+[Increment 94](RUST-INCREMENT-94.md)/SC-128 adds exact actual-worker publication
+file-fsync observations with healthy/stopped NFSD. Selected clean-file calls
+complete before restoration and do not qualify blocked-sync recovery. Further
+sync-failure cases require a positively observed actual RPC-bearing boundary in
+another workload/cache/operation; native dirty-write controls cannot substitute.
+Next qualify coordinator-death/original-state recovery while a payload LINK is
+pending across controlled server recovery. Preserve original workers through
+actual exit and resolve uncertain effects independently of local lock release.
+Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
 claim, payload and manifest reply-loss evidence does not qualify every operation,

@@ -54,6 +54,13 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
+- [ ] Qualify coordinator-death/original-state recovery while payload LINK is
+  pending across controlled NFSD/quiesced-container recovery. Preserve original
+  workers through actual exit; local lock release is not remote-effect settlement.
+- [ ] Select positively observed RPC-bearing publication sync boundaries in other
+  workloads/caches/operations before further sync-failure cases. Do not substitute
+  native dirty-write controls or successful local clean-file completion for actual
+  blocked service-sync recovery. Directory sync remains separately scoped.
 - [ ] Qualify remaining server-recovery phases beyond selected live source-copy
   and destination-verification reads, initial payload/manifest LINK and
   payload/manifest staging-alias removal:

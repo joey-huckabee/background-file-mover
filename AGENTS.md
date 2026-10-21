@@ -776,3 +776,18 @@ original-state replay. Earlier payload effects/manifest write/original-file sync
 precede tracing. Maintain SC-127/DOC-01-05, seventeen frozen acquisition sources,
 both SLES gates and existing producer/consumer/policy, retained-memory and
 controlled-termination limits. Keep production NFS/private-source deletion off.
+
+Increment 94 retains --publication-sync-discovery with --mover
+--distinct-filesystems, excluding other selected recovery phases. See
+docs/RUST-INCREMENT-94.md and docs/NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md.
+Use the external I/O observer's optional exact-path fsync entry/exit gate; do
+not change shipping Rust or substitute syscalls. Exclude artificial ptrace holds
+from syscall/RPC intervals. Record actual stopped-NFSD completion versus D-state
+syscall 74/expected FD before claiming recovery. Preserve two-name custody,
+source/state/epoch, guard exclusion, attempt-1 commit and original-state replay.
+Decode raw traffic, interval requests/replies and pairs spanning entry; wider or
+unknown traffic/native controls do not establish service-sync capability.
+Maintain SC-128/DOC-01-05, eighteen frozen acquisition sources, both SLES gates,
+normal cleanup and existing producer/consumer/policy/durability limits. Production
+NFS and private-source deletion remain off; directory sync and other profiles
+remain separate.
