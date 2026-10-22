@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [source-claim LINK coordinator-death lab](docs/NFS-CLAIM-LINK-DEATH-RECOVERY-LAB.md)
+documents recovery before HTTP 202, retained custody and safe recorder retry/reuse.
+Read [increment 97](docs/RUST-INCREMENT-97.md) for the four selected cases and limits.
+
 The [manifest LINK coordinator-death lab](docs/NFS-MANIFEST-LINK-DEATH-RECOVERY-LAB.md)
 documents original-manifest custody, surviving-worker exclusion and read-only
 local receipt evidence. Read [increment 96](docs/RUST-INCREMENT-96.md) for the

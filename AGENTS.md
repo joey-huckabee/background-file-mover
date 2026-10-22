@@ -818,3 +818,16 @@ add recorder post-202 monitoring or consumer API polling. Maintain SC-130/DOC-01
 seventeen frozen sources, both SLES gates and normal cleanup. Next qualify
 source-claim LINK coordinator-death before 202. Keep production NFS/private-source
 deletion off; local exit is not remote-settlement proof and all eight gates stay open.
+
+Increment 97 retains --claim-link-death-recovery with --mover
+--distinct-filesystems; see docs/RUST-INCREMENT-97.md and
+docs/NFS-CLAIM-LINK-DEATH-RECOVERY-LAB.md. The fixture module uses actual
+source claim_link_rpc, coordinator-only death and exclusion through actual exit.
+Require non-202/connection-loss original HTTP evidence, no producer changes until
+confirmed same-ID retry 202, independent original/private custody and exact copied
+SQLite/WAL pending claim done=0/no transfer or manifest before replacement. Verify
+original-state attempt-1 delivery/replay and preserve producer reuse. Maintain
+SC-131/DOC-01-05, eighteen frozen acquisition sources, both SLES gates and normal
+cleanup. Next qualify pending claim REMOVE before 202. Production NFS/postcommit
+private-source cleanup stay off; claim-name removal is a separate operation and
+local exit never proves globally settled delayed effects. Eight gates remain open.

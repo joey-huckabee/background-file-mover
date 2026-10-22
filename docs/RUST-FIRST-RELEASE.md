@@ -103,8 +103,10 @@ another workload/cache/operation; native dirty-write controls cannot substitute.
 coordinator-death/original-state recovery with old-worker exclusion, actual exit
 and independent remote custody observations. [Increment 96](RUST-INCREMENT-96.md)/
 SC-130 adds equivalent manifest-LINK cases with raw local phase-3 evidence kept
-separate from manifest visibility. Next qualify source-claim LINK coordinator-
-death before 202; do not infer remote settlement from local lock/exit.
+separate from manifest visibility. [Increment 97](RUST-INCREMENT-97.md)/SC-131
+adds selected source-claim LINK coordinator-death recovery before 202, pending
+local receipt/custody evidence and reuse only after confirmed retry 202. Next
+qualify source-claim REMOVE; do not infer remote settlement from local lock/exit.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

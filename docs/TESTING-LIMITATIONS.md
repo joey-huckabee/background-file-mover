@@ -806,3 +806,17 @@ location. The first default-temp permission denial is retained in the
 The corrected audit reconstructs the same raw acquisition under resolved,
 workspace-contained scratch paths, inherits the workspace ACL and closes SQLite
 before owned scratch cleanup; it changes no global permissions or service policy.
+
+[Increment 97](RUST-INCREMENT-97.md)/SC-131 qualifies four selected source-claim
+LINK coordinator-death recoveries before HTTP 202 across NFSD/quiesced-container
+restart, after four native prerequisites. Require actual D-state linkat, logical
+old-worker exclusion/three contender refusals through actual exit, preserved
+original/private source custody and copied SQLite/WAL proof of pending done=0
+with no transfer/manifest before replacement. The original request must have no
+202/path release; only confirmed identical-ID retry 202 permits producer reuse.
+Original-state attempt-1 delivery and replay preserve newer producer bytes. See
+the [step-by-step lab](NFS-CLAIM-LINK-DEATH-RECOVERY-LAB.md) and exact raw/audit
+results. Both SLES gates and normal cleanup pass. Claim source-name removal is
+separate from disabled private-source cleanup; local exit is not global remote
+settlement. Unselected REMOVE/sync/termination, NAS/power and old-kernel behavior
+remain open; eight release gates stay open and production NFS/deletion stay off.

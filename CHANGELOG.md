@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Qualify source-claim LINK coordinator-death recovery before HTTP 202, retaining pending local claim evidence, old-worker exclusion and original custody; require confirmed identical-ID retry before producer reuse. Document SC-131, raw proof and step-by-step infrastructure. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
+
 - Qualify selected manifest-LINK coordinator-death recovery across controlled NFS restart, retaining original custody and old-worker exclusion; preserve and independently audit local SQLite/WAL phase evidence. Document SC-130 and the step-by-step lab. Both SLES/glibc-2.22 gates pass; production NFS/source deletion remain disabled.
 
 - Qualify selected payload-LINK coordinator-death recovery across controlled NFS server restart, retaining old-worker exclusion and original-state custody; document SC-129, step-by-step fixture procedure and testing limitations. Both GNU/glibc-2.22 SLES gates pass; production NFS/source deletion remain disabled.
