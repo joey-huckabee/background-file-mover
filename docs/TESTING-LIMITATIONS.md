@@ -865,3 +865,17 @@ reply-loss, physical durability or broader cache/workloads. Prioritize joint-out
 replay/revalidation/admission next; require positive RPC evidence before further
 sync recovery. All eight release gates stay open; production NFS/private-source
 cleanup stay disabled.
+
+[Increment 101](RUST-INCREMENT-101.md)/SC-135 adds four debug/release x source-space
+admission off/on joint-outage cases after four native prerequisites. Actual
+D-state destination verification and source revalidation preserve acknowledged
+custody, original state and producer replacement bytes. The initial replay plus
+six-request burst returns bounded retryable non-release 503s with queue refusal;
+timed-out HTTP waiters do not cancel queued commands. Enabled policy permits at most one
+probe; probes may already have exited. The two blocked data workers stay stable. One-job retention prevents
+new durable acceptance, while original attempt-1 delivery and clean restart/replay
+recover after restoration. Both SLES gates, exact-artifact/raw/corruption audits
+and normal cleanup pass. See [step-by-step infrastructure](NFS-JOINT-OUTAGE-LAB.md).
+This finite shared-backend test does not qualify independent outages, pre-202/
+partial claims, source substitution, throughput/endurance or physical durability.
+Keep all eight release gates open and production NFS/private-source cleanup off.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Qualify claimed replay, source revalidation and a six-request burst during joint NFS outage with source-space admission off/on. Preserve original custody/recovery and bounded non-release queue refusals; document SC-135, infrastructure and timeout/queued-work limits. Both SLES gates pass; production NFS/private-source cleanup remain disabled.
+
 - Qualify original-file claim sync discovery before LINK/HTTP 202 in four healthy/stopped-NFSD cases, preserving one-link custody and confirmed retry before reuse. Document SC-134, raw RPC limits, infrastructure and retained setup failure. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
 
 - Discover exact source-claim private-file/directory synchronization behavior before HTTP 202 in eight healthy/stopped-NFSD cases; audit raw RPC intervals separately from artificial holds and preserve confirmed retry before recorder reuse. Document SC-133 and step-by-step infrastructure/testing limits. Both SLES/glibc-2.22 gates pass; production NFS/postcommit private-source cleanup remain disabled.

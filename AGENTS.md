@@ -875,3 +875,18 @@ prioritize remaining joint-outage replay/revalidation/admission. Positive actual
 service RPC evidence remains required before further synchronization recovery.
 Production NFS/private-source cleanup stay off; all eight release gates stay open.
 Registration/S3/offline repair/DOC-06 remain deferred.
+
+Increment 101 retains --joint-outage with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-101.md and docs/NFS-JOINT-OUTAGE-LAB.md. Four native
+prerequisites plus four debug/release x source-space admission off/on cases test
+claimed replay and bounded requests on distinct source/destination NFS mounts
+sharing one backend. Require actual blocked destination read and source validation,
+complete original custody and confirmed initial 202 before producer reuse, bounded
+non-release 503 queue refusals, two stable data workers and zero/off or at most
+one/on observed probe, allowing actual probe exit.
+One-job retention preserves new-ID refusal; original attempt-1 delivery/restart
+replay, both SLES gates and normal cleanup pass. HTTP waiter timeout never proves
+queued-command cancellation. Maintain SC-135/DOC-01-05 and seventeen frozen sources.
+Next qualify pre-202/partial-claim replay, source-change refusal and independent/
+longer outage or broader capacity cases. All eight release gates remain open;
+production NFS/private-source cleanup stay off. Registration/S3/repair/DOC-06 defer.

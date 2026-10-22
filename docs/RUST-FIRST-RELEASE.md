@@ -113,9 +113,14 @@ source private-file/private-parent fsync discovery before 202 under healthy/stop
 NFSD, with artificial holds excluded from raw RPC intervals. Successful local
 completion is not blocked-sync recovery. [Increment 100](RUST-INCREMENT-100.md)/SC-134
 observes original-file sync before LINK: both stopped-NFSD calls complete locally,
-without selected RPC evidence. Prioritize joint-outage replay/revalidation/admission;
-require positive service RPC evidence for further sync recovery. Local lock/exit is
+without selected RPC evidence. Require positive service RPC evidence for further
+sync recovery. Local lock/exit is
 not remote settlement.
+[Increment 101](RUST-INCREMENT-101.md)/SC-135 adds claimed replay/source revalidation
+and a finite queue burst during shared-backend joint outage with admission off/on.
+Acknowledged custody and original attempt-1 recovery remain safe under bounded
+non-release 503s; this does not close pre-202/partial-claim, independent-endpoint,
+source-change, larger-load or capacity gates.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

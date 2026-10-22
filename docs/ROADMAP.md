@@ -54,9 +54,10 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify same-ID replay, source revalidation and bounded admission during a
-  joint source/destination outage. Preserve existing-job retries, recorder handoff,
-  local responsiveness, original state/custody and exclusion through actual exit.
+- [ ] Qualify pre-202/partial-claim replay, source-change refusal and independent
+  source/destination outage recovery; expand capacity/concurrent-load duration and
+  queue-size coverage. Preserve existing-job retries, original state/custody,
+  recorder handoff and old-worker exclusion through actual exit.
 - [ ] Select positively observed source workload/cache RPC-bearing boundaries
   before further sync/death/recovery cases. Clean-file local sync completion is
   not blocked RPC or remote-settlement proof.
@@ -81,8 +82,6 @@ before implementation.
   synchronization boundaries with positive actual service-RPC evidence,
   outages beyond the selected three-minute cases,
   concurrent queue flooding and export changes.
-- [ ] Qualify claimed same-ID replay/source revalidation and bounded backpressure
-  during joint source/destination outage without changing recorder handoff rules.
 - [ ] Complete the producer/consumer guides, restart/shutdown troubleshooting and
   deployment matrix tracked by [RUST-SCENARIOS.md](RUST-SCENARIOS.md)
   (DOC-01/02/04/05); keep future adapter/repair guides (DOC-06) deferred. Maintain

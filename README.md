@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [joint-outage lab](docs/NFS-JOINT-OUTAGE-LAB.md) documents same-ID replay,
+source revalidation and finite queue refusal while both NFS shares are unavailable.
+Read [increment 101](docs/RUST-INCREMENT-101.md) for results and testing limits.
+
 The [original-file claim sync lab](docs/NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-LAB.md)
 documents synchronization before LINK/HTTP 202 and its measured RPC limits.
 Read [increment 100](docs/RUST-INCREMENT-100.md) for results and retained evidence.
