@@ -1116,3 +1116,17 @@ remote-settlement proof follows from local exit. See the
 results. Both SLES gates and normal cleanup pass. Other phases, actual blocked
 syncs, NAS/persistent-storage/power and old-kernel behavior remain unqualified;
 production NFS/private-source deletion stay off and all eight release gates open.
+
+[Increment 96](RUST-INCREMENT-96.md)/SC-130 adds four selected manifest-LINK
+coordinator-death recoveries across NFSD/quiesced-container restart after four
+native prerequisites. Require actual D-state linkat, old-group exclusion and all
+three contender modes refused until actual worker exit. Independent read-only
+backing observations retain original manifest/payload/source custody; exact raw
+SQLite/WAL copies prove phase 3 remains pending after old-worker exit, separately
+from a visible valid completion manifest. Original-state attempt-1 commitment and
+replay preserve producer reuse. Recorder/consumer duties remain unchanged. See
+the [step-by-step lab](NFS-MANIFEST-LINK-DEATH-RECOVERY-LAB.md), raw/audit evidence
+and both SLES gates. Normal cleanup passes. Local ownership/exit is not global
+remote-settlement proof; unselected phases/syncs, NAS/power and old-kernel behavior
+remain unqualified. Production NFS/private-source deletion stay off; eight release
+gates remain open.

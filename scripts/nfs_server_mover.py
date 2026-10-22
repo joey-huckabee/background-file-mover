@@ -1,9 +1,12 @@
 """Selected actual mover restart recoveries, following independent native controls."""
+import base64
 import hashlib
 import json
+import sqlite3
 import subprocess
 import tarfile
 import time
+import zlib
 from nfs_runtime import run_runtime
 from nfs_sync_support import start_trace, finish_trace
 
@@ -95,6 +98,27 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
         raw='\n'.join(result[2:]);assert hashlib.sha256(raw.encode()).hexdigest()==result[1].split()[0]
         return dict(identity=result[0],sha256=result[1].split()[0],bytes=raw,manifest_absent=True,payload_staging_absent=True)
 
+    def frozen_local_database(c,tag):
+        # Coordinator has exited; workers never write SQLite. Inspect copies only.
+        folder=output/(c.label+'-'+tag);folder.mkdir()
+        files={}
+        for name in ('jobs.sqlite','jobs.sqlite-wal'):
+            remote=c.base+'/state/'+name
+            if execute('test -f '+remote,'1000:1000',False).returncode:
+                assert name!='jobs.sqlite';continue
+            before=execute('sha256sum '+remote,'1000:1000').stdout.split()[0]
+            local=folder/name;run(['cp',client+':'+remote,str(local)])
+            data=local.read_bytes();after=execute('sha256sum '+remote,'1000:1000').stdout.split()[0]
+            assert before==after==hashlib.sha256(data).hexdigest()
+            files[name]=dict(sha256=before,zlib_base64=base64.b64encode(zlib.compress(data,9)).decode())
+        with sqlite3.connect((folder/'jobs.sqlite').resolve().as_uri()+'?mode=ro',uri=True) as db:
+            db.execute('PRAGMA query_only=ON')
+            manifest=db.execute('SELECT phase,bytes,sha256 FROM manifests WHERE job_id=1').fetchone()
+            transfers=db.execute('SELECT file_index,attempt,phase FROM transfers WHERE job_id=1 ORDER BY file_index,attempt').fetchall()
+        assert manifest[0]==3 and manifest[1]==c.result['manifest_staging_before']['bytes'] and manifest[2]==c.result['manifest_staging_before']['sha256']
+        assert transfers==[(0,1,4)]
+        return dict(files=files,manifest=list(manifest),transfers=[list(row) for row in transfers],observation='copied local database and existing WAL; no original SQLite opened')
+
     def cases(Case):
         nonlocal stopped
         if report.get('publication_sync_discovery'):
@@ -108,12 +132,13 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                 publication=report.get('publication_recovery',False)
                 manifest=report.get('manifest_recovery',False)
                 payload_link=report.get('payload_link_recovery',False)
-                death=report.get('payload_link_death_recovery',False)
+                manifest_death=report.get('manifest_link_death_recovery',False)
+                death=report.get('payload_link_death_recovery',False) or manifest_death
                 manifest_link=report.get('manifest_link_recovery',False)
                 c=Case(profile,'manifest_link_rpc' if manifest_link else 'file_link_rpc' if payload_link else 'manifest_unlink' if manifest else 'file_unlink' if publication else 'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
                 r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
                 distinct=report.get('distinct_filesystems',False)
-                r.update(kind=kind,scenario_id='SC-129' if death else 'SC-127' if manifest_link else 'SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
+                r.update(kind=kind,scenario_id='SC-130' if manifest_death else 'SC-129' if death else 'SC-127' if manifest_link else 'SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
                 observer=None
                 try:
                     original=c.source+'/current/nested/data.bin';private=c.source+'/.file-mover/1-0/data'
@@ -161,6 +186,10 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['manifest_staging_before']=manifest_staging(c)
                         r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
+                        if manifest_death:
+                            stage_backing='/e/profile-destination/'+c.label+'/destination/1/.staging/COMMITTED.part'
+                            before=r['manifest_staging_before']
+                            r['destination_backing_before']=dict(identity=before['identity'],sha256=before['sha256'])
                     observer=start_trace(run,client,c.worker,containers,config,expected_exit='coordinator-death' if death else 'supervised-delivery',io=verification or publication or manifest or payload_link or manifest_link)
                     r['clock_namespaces']={actor:run(['exec',actor,'readlink','/proc/self/ns/time']).stdout.strip()
                                            for actor in (client,observer,relay.container)}
@@ -194,6 +223,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['manifest_staging_stopped']=manifest_staging(c)
                         r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['manifest_staging_stopped']==r['manifest_staging_before'] and r['payload_stopped']==r['payload_before']
+                        if manifest_death:r['destination_backing_stopped']=snapshot(stage_backing)
                     execute(': >'+c.rendezvous+'/go','1000:1000')
                     for _ in range(50):
                         if c.state(c.worker)=='D':break
@@ -270,8 +300,12 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                             assert c.state(c.worker)=='D';r['orphan_contenders'].append(item)
                         r['orphan_epoch']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
                         assert r['orphan_epoch']==r['epoch_before']
-                        r['orphan_source']=snapshot(backing);r['orphan_staging']=snapshot(stage_backing);r['orphan_publication']=unpublished(c)
+                        r['orphan_source']=snapshot(backing);r['orphan_staging']=snapshot(stage_backing);r['orphan_publication']=manifest_staging(c) if manifest_death else unpublished(c)
+                        if manifest_death:
+                            r['orphan_payload']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                            assert r['orphan_payload']==r['payload_before'] and r['orphan_publication']==r['manifest_staging_before']
                         assert r['orphan_source']==r['source_backing_before'] and r['orphan_staging']==r['destination_backing_before']
+                    if manifest_death:r['database_before_restore']=frozen_local_database(c,'before-restore')
                     r['restore_started_ns']=clock();resume();r['after_server']=state()
                     if death:
                         r['worker_exit']=c.await_exit(c.worker);r['worker_exit_observed_ns']=clock()
@@ -284,18 +318,32 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                             return dict(identity=lines[0],sha256=lines[1].split()[0]) if lines else None
                         r['settlement_stage']=optional_snapshot(stage_backing)
                         parent='/e/profile-destination/'+c.label+'/destination/1'
-                        r['settlement_final']=optional_snapshot(parent+'/nested/data.bin')
-                        run(['exec','--user','1000:1000',report['storage_reader'],'test','!','-e',parent+'/COMMITTED.json'])
-                        r['settlement_manifest_absent']=True
+                        r['settlement_final']=optional_snapshot(parent+('/COMMITTED.json' if manifest_death else '/nested/data.bin'))
+                        if manifest_death:
+                            r['settlement_manifest_absent']=r['settlement_final'] is None
+                            r['settlement_payload']=snapshot(parent+'/nested/data.bin')
+                            assert r['settlement_payload']==r['payload_before']
+                            run(['exec','--user','1000:1000',report['storage_reader'],'test','!','-e',parent+'/.staging/1.part'])
+                            r['settlement_payload_staging_absent']=True
+                            if r['settlement_final']:
+                                r['settlement_manifest_bytes']=run(['exec','--user','1000:1000',report['storage_reader'],'cat',parent+'/COMMITTED.json']).stdout
+                                assert r['settlement_manifest_bytes']==r['manifest_staging_before']['bytes']
+                        else:
+                            run(['exec','--user','1000:1000',report['storage_reader'],'test','!','-e',parent+'/COMMITTED.json'])
+                            r['settlement_manifest_absent']=True
                         assert r['settlement_source']==r['source_backing_before']
                         stage_observed,final_observed=r['settlement_stage'],r['settlement_final']
                         assert stage_observed or final_observed
+                        expected=r['destination_backing_before'];expected_size=expected['identity'].split(':')[3]
                         for observed in (stage_observed,final_observed):
                             if observed:
-                                assert observed['sha256']==r['destination_backing_before']['sha256']
-                                assert observed['identity'].split(':')[:2]==r['destination_backing_before']['identity'].split(':')[:2]
-                                assert observed['identity'].split(':')[2:]==(['2','2097169'] if stage_observed and final_observed else ['1','2097169'])
+                                assert observed['sha256']==expected['sha256']
+                                assert observed['identity'].split(':')[:2]==expected['identity'].split(':')[:2]
+                                assert observed['identity'].split(':')[2:]==(['2',expected_size] if stage_observed and final_observed else ['1',expected_size])
                         if stage_observed and final_observed:assert stage_observed==final_observed
+                        if manifest_death:
+                            r['database_after_exit']=frozen_local_database(c,'after-exit')
+                            assert r['database_after_exit']==r['database_before_restore']
                         r['status_after_exit']=json.loads(execute(c.binary+' --status '+c.config_path,'1000:1000',False).stdout)
                         assert r['status_after_exit']['phase']=='NoActiveOwner'
                         r['restart_started_ns']=clock();committed=c.recover();r['committed']=committed

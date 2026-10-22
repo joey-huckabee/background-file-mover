@@ -1,5 +1,10 @@
 # Background File Mover
 
+The [manifest LINK coordinator-death lab](docs/NFS-MANIFEST-LINK-DEATH-RECOVERY-LAB.md)
+documents original-manifest custody, surviving-worker exclusion and read-only
+local receipt evidence. Read [increment 96](docs/RUST-INCREMENT-96.md) for the
+four selected recoveries and remaining limits.
+
 The [publication sync discovery lab](docs/NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md)
 documents exact actual-worker fsync entry/exit controls, RPC attribution,
 retained storage, build/audit commands and testing limits. Read

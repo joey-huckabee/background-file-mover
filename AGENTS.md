@@ -805,3 +805,16 @@ exit. Maintain SC-129/DOC-01-05, seventeen frozen sources, both SLES gates,
 normal cleanup and explicit retained-memory/controlled-restart limits. Next
 qualify manifest-LINK coordinator-death cases. Production NFS/source deletion
 off; blocked sync discovery and remaining phases/deployment remain open.
+
+Increment 96 retains --manifest-link-death-recovery with --mover
+--distinct-filesystems, excluding other phases; see docs/RUST-INCREMENT-96.md
+and docs/NFS-MANIFEST-LINK-DEATH-RECOVERY-LAB.md. Require actual pending
+COMMITTED.part-to-COMMITTED.json linkat, old-group exclusion/three contender
+refusals through actual exit, independent original manifest/payload/source custody,
+and original-state attempt-1 recovery/replay. Preserve exact local DB/WAL copies
+after coordinator death and after old-worker exit; independently query copies
+only. Manifest phase 3 is distinct from visible valid completion bytes; do not
+add recorder post-202 monitoring or consumer API polling. Maintain SC-130/DOC-01-05,
+seventeen frozen sources, both SLES gates and normal cleanup. Next qualify
+source-claim LINK coordinator-death before 202. Keep production NFS/private-source
+deletion off; local exit is not remote-settlement proof and all eight gates stay open.
