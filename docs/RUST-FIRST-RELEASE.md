@@ -111,8 +111,11 @@ coordinator-death recovery before 202, retained two-name/private custody and
 pending local receipt proof. [Increment 99](RUST-INCREMENT-99.md)/SC-133 adds exact
 source private-file/private-parent fsync discovery before 202 under healthy/stopped
 NFSD, with artificial holds excluded from raw RPC intervals. Successful local
-completion is not blocked-sync recovery. Next measure original-file sync before
-LINK and remaining workload/cache RPC boundaries; local lock/exit is not remote settlement.
+completion is not blocked-sync recovery. [Increment 100](RUST-INCREMENT-100.md)/SC-134
+observes original-file sync before LINK: both stopped-NFSD calls complete locally,
+without selected RPC evidence. Prioritize joint-outage replay/revalidation/admission;
+require positive service RPC evidence for further sync recovery. Local lock/exit is
+not remote settlement.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

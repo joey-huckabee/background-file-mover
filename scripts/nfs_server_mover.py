@@ -121,6 +121,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
 
     def cases(Case):
         nonlocal stopped
+        if report.get('original_claim_sync_discovery'):
+            from nfs_original_claim_sync_discovery import qualify
+            return qualify(Case,run,execute,client,server,output,containers,config,relay,state,restore,snapshot,report)
         if report.get('claim_sync_discovery'):
             from nfs_claim_sync_discovery import qualify
             return qualify(Case,run,execute,client,server,output,containers,config,relay,state,restore,snapshot,report)

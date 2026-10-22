@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [original-file claim sync lab](docs/NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-LAB.md)
+documents synchronization before LINK/HTTP 202 and its measured RPC limits.
+Read [increment 100](docs/RUST-INCREMENT-100.md) for results and retained evidence.
+
 The [source-claim sync discovery lab](docs/NFS-CLAIM-SYNC-DISCOVERY-LAB.md)
 documents exact file/directory sync observations before HTTP 202 and their RPC
 limits. Read [increment 99](docs/RUST-INCREMENT-99.md) for the eight cases and results.

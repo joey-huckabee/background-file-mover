@@ -861,3 +861,17 @@ inference; successful local sync with stopped NFSD is not blocked-sync recovery.
 Next discover original-file sync before LINK and remaining cache/workload RPC
 boundaries. Production NFS/postcommit private-source cleanup stay off; all eight
 release gates remain open. Registration/S3/offline repair/DOC-06 stay deferred.
+
+Increment 100 retains --original-claim-sync-discovery with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-100.md and docs/NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-LAB.md.
+Four native prerequisites and four original-file fsync observations before LINK
+pass; eighteen frozen acquisition files, exact observer intervals, complete one-link
+original/private absence and no 202 while held are independently audited. Both
+stopped-NFSD calls complete locally with no selected RPC; following successful LINK
+pairs calibrate capture. Eight syncs per worker, confirmed same-ID 202 before reuse,
+attempt-1 delivery/replay, both SLES gates and normal cleanup pass. Retain the initial
+SSH setup failure and exact unchanged-source retry. Maintain SC-134/DOC-01-05;
+prioritize remaining joint-outage replay/revalidation/admission. Positive actual
+service RPC evidence remains required before further synchronization recovery.
+Production NFS/private-source cleanup stay off; all eight release gates stay open.
+Registration/S3/offline repair/DOC-06 remain deferred.

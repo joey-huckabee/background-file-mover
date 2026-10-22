@@ -242,3 +242,18 @@ sync before LINK and other workloads/caches/termination remain separate. Both
 SLES gates and normal cleanup pass after correcting and retaining an initial
 shared case-count assertion failure and rerunning the full matrix. Keep all eight release gates open and
 production NFS/postcommit private-source cleanup disabled.
+
+[Increment 100](RUST-INCREMENT-100.md)/SC-134 adds four debug/release x healthy/
+stopped-NFSD original-file fsync observations before claim LINK after four native
+prerequisites. Exact actual entry/exit excludes artificial holds; require complete
+one-link original, private data absent, Accepted state and no premature 202.
+Both stopped-NFSD calls return locally: no selected raw RPC or captured pair
+spanning entry is observed. All eight syncs per worker return zero; successful
+following LINK pairs calibrate capture. Same-ID 202 before reuse, attempt-1
+commitment, original-state replay, both SLES gates and normal cleanup pass.
+See the [step-by-step lab](NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-LAB.md), retained setup
+connection failure and raw/input evidence. This does not qualify blocked-sync,
+reply-loss, physical durability or broader cache/workloads. Prioritize joint-outage
+replay/revalidation/admission next; require positive RPC evidence before further
+sync recovery. All eight release gates stay open; production NFS/private-source
+cleanup stay disabled.
