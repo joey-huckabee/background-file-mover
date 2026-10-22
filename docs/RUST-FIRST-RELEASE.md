@@ -131,6 +131,10 @@ handoff replay with first claim complete and second LINK/REMOVE pending. One
 confirmed claim never releases the set; same-ID 202 precedes both path reuses.
 Original-state recovery preserves both payloads and newer bytes. Remaining file
 counts/boundaries, source changes and independent outages stay open.
+[Increment 104](RUST-INCREMENT-104.md)/SC-138 qualifies pre-effect second-file inode/
+size refusal with first claim complete on healthy NFS. Two unpaused restarts retain
+existing 409, original immutable claims and no delivery, without changing review
+policy. Other producer/parent/timing violations and outage/death cases remain open.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

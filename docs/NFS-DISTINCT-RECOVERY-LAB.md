@@ -298,3 +298,17 @@ corrupted-proof audits and normal cleanup pass. See the [step-by-step lab](NFS-P
 Source changes, other multi-file boundaries, independent outages, death and load/
 physical durability remain open. Production NFS/private-source cleanup stay off;
 eight gates remain open; registration/S3/repair/DOC-06 stay deferred.
+
+[Increment 104](RUST-INCREMENT-104.md)/SC-138 qualifies selected second-file
+pre-effect inode replacement and size-change refusal after the first claim completes.
+Four native controls precede four debug/release cases on healthy NMP-41B NFS.
+Existing non-retryable 409 recording_blocked persists across two unpaused restarts,
+with original intent, first/private custody, changed/saved files, Accepted/AwaitingClaims,
+one confirmed claim and zero delivery/review-epoch changes. Sixteen copied SQLite/
+WAL snapshots, raw RPC/corruption/forty-ELF audits and both SLES gates pass; normal
+cleanup restores baseline. See the [step-by-step lab](NFS-SOURCE-CHANGE-LAB.md).
+No Rust/dependency/API/retry/review/deadline changes or automatic repair. These are
+intentional producer contract violations, not permission to modify before 202.
+Other source/parent/timing changes, hostile tampering, outages/death and physical
+NAS/durability/load remain open. Eight release gates stay open, production NFS/
+private-source cleanup stay off; registration/S3/repair/DOC-06 stay deferred.

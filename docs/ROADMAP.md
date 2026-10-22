@@ -54,8 +54,8 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify source-change refusal, remaining multi-file boundaries and independent
-  source/destination outage recovery; expand capacity/concurrent-load duration and
+- [ ] Qualify remaining source/parent-change timing boundaries and multi-file cases,
+  plus independent source/destination outage recovery; expand capacity/concurrent-load duration and
   queue-size coverage. Preserve existing-job retries, original state/custody,
   recorder handoff and old-worker exclusion through actual exit.
 - [ ] Select positively observed source workload/cache RPC-bearing boundaries

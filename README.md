@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
+producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
+for the finite results and preserved-state/operator implications.
+
 The [partial-handoff lab](docs/NFS-PARTIAL-HANDOFF-LAB.md) explains two-file
 retries when one claim is complete but the whole set still has no 202. See
 [increment 103](docs/RUST-INCREMENT-103.md) for results and testing limits.

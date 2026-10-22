@@ -919,3 +919,20 @@ failures; wait for both passing gate reports before the complete fixture run. Ma
 DOC-01-05. Next qualify source-change refusal, remaining multi-file boundaries and
 independent-endpoint/load cases. Eight gates stay open; production NFS/private-source
 cleanup stay off; registration/S3/repair/DOC-06 defer.
+
+Increment 104 retains --source-change-refusal with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-104.md and docs/NFS-SOURCE-CHANGE-LAB.md. Four native controls
+and four debug/release x second-file inode/size change cases on healthy NMP-41B NFS
+retain first/private custody and original pending intent. Existing 409 recording_blocked
+is non-retryable across two unpaused restarts; no whole-set 202 or delivery. Durable
+status stays Accepted/AwaitingClaims, one confirmed claim and unchanged review epochs.
+Retain the initial Windows temporary-directory audit failure and exact verifier/raw
+report; corrected extraction stays in rust/validation and closes SQLite handles.
+Independent audit reopens sixteen quiescent/stopped SQLite/WAL copies; original claims
+remain [done,pending] with no transfers/manifests. No Rust/dependency/API/retry/review/
+deadline changes or automatic repair. Both SLES gates (211/213 per profile), forty
+ELFs, raw/corruption audit and normal cleanup pass. Maintain SC-138/DOC-01-05.
+Other source/parent/timing boundaries and independent-outage/load cases remain open.
+Keep production NFS/private-source cleanup off and eight release gates open;
+registration/S3/offline repair/DOC-06 defer. Preserve original state/custody on refusal;
+never bypass an old intent by recreating the database or using a new ID.
