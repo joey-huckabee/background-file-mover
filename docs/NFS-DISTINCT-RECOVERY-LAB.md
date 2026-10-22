@@ -170,3 +170,17 @@ other phases/workloads/outage durations or worker death/replacement. Tests use
 small prepared payloads and deliberate cache advice; no 100 GB performance or
 endurance claim follows. Registration, S3 and offline repair remain deferred.
 All eight release gates stay open and production NFS/source deletion stay off.
+
+[Increment 95](RUST-INCREMENT-95.md)/SC-129 adds four selected debug/release
+payload-LINK coordinator-death recoveries across NFSD/quiesced-container restart,
+after four native prerequisites. Actual pending linkat and old-worker D-state
+are distinguished from artificial pauses and successful syscall returns. Logical
+ownership refuses all three contenders through actual old-worker exit; physical
+flock closure is recorded separately. After restoration, independent read-only
+namespace/custody observations precede original-state attempt-1 commitment and
+replay preserving producer reuse. No arbitrary uncertain-effect redispatch or
+remote-settlement proof follows from local exit. See the
+[step-by-step lab](NFS-PAYLOAD-LINK-DEATH-RECOVERY-LAB.md) and exact raw/audit
+results. Both SLES gates and normal cleanup pass. Other phases, actual blocked
+syncs, NAS/persistent-storage/power and old-kernel behavior remain unqualified;
+production NFS/private-source deletion stay off and all eight release gates open.

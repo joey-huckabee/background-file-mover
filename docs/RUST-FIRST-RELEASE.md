@@ -99,9 +99,10 @@ file-fsync observations with healthy/stopped NFSD. Selected clean-file calls
 complete before restoration and do not qualify blocked-sync recovery. Further
 sync-failure cases require a positively observed actual RPC-bearing boundary in
 another workload/cache/operation; native dirty-write controls cannot substitute.
-Next qualify coordinator-death/original-state recovery while a payload LINK is
-pending across controlled server recovery. Preserve original workers through
-actual exit and resolve uncertain effects independently of local lock release.
+[Increment 95](RUST-INCREMENT-95.md)/SC-129 adds selected payload-LINK
+coordinator-death/original-state recovery with old-worker exclusion, actual exit
+and independent remote custody observations. Next qualify the equivalent
+manifest-LINK cases; do not infer remote settlement from local lock/exit.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

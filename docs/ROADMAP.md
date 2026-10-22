@@ -54,7 +54,7 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify coordinator-death/original-state recovery while payload LINK is
+- [ ] Qualify coordinator-death/original-state recovery while manifest LINK is
   pending across controlled NFSD/quiesced-container recovery. Preserve original
   workers through actual exit; local lock release is not remote-effect settlement.
 - [ ] Select positively observed RPC-bearing publication sync boundaries in other

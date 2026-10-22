@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Qualify selected payload-LINK coordinator-death recovery across controlled NFS server restart, retaining old-worker exclusion and original-state custody; document SC-129, step-by-step fixture procedure and testing limitations. Both GNU/glibc-2.22 SLES gates pass; production NFS/source deletion remain disabled.
+
 Work toward the C++11 / REST **v1.0.0**, on one branch per milestone off `main`
 (currently `c4-job-manager`). The `v2-cpp` branch these entries were originally written
 against merged into `main` at the C0 boundary and was retired.

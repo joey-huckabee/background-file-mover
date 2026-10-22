@@ -4,7 +4,7 @@ pid=int(sys.argv[1]);libc=ctypes.CDLL(None,use_errno=True)
 libc.ptrace.restype=ctypes.c_long
 result=dict(passed=False,pid=pid,syncs=[],signals=[],syscall_stops=0,scope='modern-kernel external ptrace I/O observer',events=[],payload_bytes=0,event_limit=8192,payload_limit=8*1048576)
 expected_exit=sys.argv[2] if len(sys.argv)>2 else 'zero'
-assert expected_exit in ('zero','supervised-delivery')
+assert expected_exit in ('zero','supervised-delivery','coordinator-death')
 result['expected_exit']=expected_exit
 attached=False;stopped=False;current=None;deadline=time.monotonic()+180
 gate=json.loads(sys.argv[3]) if len(sys.argv)>3 else None
@@ -120,9 +120,10 @@ try:
   elif sig not in (signal.SIGSTOP,signal.SIGTRAP):
    result['signals'].append(sig);deliver=sig
   ptrace(24,0,deliver);stopped=False
- assert result['syncs']
- assert result['exit_status']==0 or (expected_exit=='supervised-delivery' and result['exit_status']==9)
- result['completion']='normal_exit' if result['exit_status']==0 else 'supervised_retirement_requires_committed_receipt'
+ assert result['syncs'] or expected_exit=='coordinator-death'
+ if expected_exit=='coordinator-death':assert result['exit_status'] in (9,256)
+ else:assert result['exit_status']==0 or (expected_exit=='supervised-delivery' and result['exit_status']==9)
+ result['completion']='orphan_exit_requires_independent_remote_reconciliation' if expected_exit=='coordinator-death' else 'normal_exit' if result['exit_status']==0 else 'supervised_retirement_requires_committed_receipt'
  assert all(s.get('result')==0 for s in result['syncs'])
  if gate:assert result['gate']['entry'] and result['gate']['exit']
  result['passed']=True

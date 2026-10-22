@@ -1102,3 +1102,17 @@ Producer/consumer duties, runtime policy and deadlines remain unchanged. Maintai
 DOC-01-05, defer DOC-06, keep production NFS/private-source deletion disabled and
 all eight release gates open. Other sync/directory/workload/cache, death/recovery,
 physical NAS/power and old-kernel profiles remain separate.
+
+[Increment 95](RUST-INCREMENT-95.md)/SC-129 adds four selected debug/release
+payload-LINK coordinator-death recoveries across NFSD/quiesced-container restart,
+after four native prerequisites. Actual pending linkat and old-worker D-state
+are distinguished from artificial pauses and successful syscall returns. Logical
+ownership refuses all three contenders through actual old-worker exit; physical
+flock closure is recorded separately. After restoration, independent read-only
+namespace/custody observations precede original-state attempt-1 commitment and
+replay preserving producer reuse. No arbitrary uncertain-effect redispatch or
+remote-settlement proof follows from local exit. See the
+[step-by-step lab](NFS-PAYLOAD-LINK-DEATH-RECOVERY-LAB.md) and exact raw/audit
+results. Both SLES gates and normal cleanup pass. Other phases, actual blocked
+syncs, NAS/persistent-storage/power and old-kernel behavior remain unqualified;
+production NFS/private-source deletion stay off and all eight release gates open.

@@ -108,11 +108,12 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                 publication=report.get('publication_recovery',False)
                 manifest=report.get('manifest_recovery',False)
                 payload_link=report.get('payload_link_recovery',False)
+                death=report.get('payload_link_death_recovery',False)
                 manifest_link=report.get('manifest_link_recovery',False)
                 c=Case(profile,'manifest_link_rpc' if manifest_link else 'file_link_rpc' if payload_link else 'manifest_unlink' if manifest else 'file_unlink' if publication else 'verify_read' if verification else 'source_copy',suffix='-server-'+kind,both_nfs=True)
                 r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
                 distinct=report.get('distinct_filesystems',False)
-                r.update(kind=kind,scenario_id='SC-127' if manifest_link else 'SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
+                r.update(kind=kind,scenario_id='SC-129' if death else 'SC-127' if manifest_link else 'SC-126' if payload_link else 'SC-125' if manifest else 'SC-124' if publication else 'SC-123' if verification else 'SC-122' if distinct else 'SC-121',layout='two distinct retained tmpfs/client NFS filesystems, one server, local state' if distinct else 'two buffered NFS exports, one persistent backing volume/server, local state',config=c.config)
                 observer=None
                 try:
                     original=c.source+'/current/nested/data.bin';private=c.source+'/.file-mover/1-0/data'
@@ -160,7 +161,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         r['manifest_staging_before']=manifest_staging(c)
                         r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
                         assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
-                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=verification or publication or manifest or payload_link or manifest_link)
+                    observer=start_trace(run,client,c.worker,containers,config,expected_exit='coordinator-death' if death else 'supervised-delivery',io=verification or publication or manifest or payload_link or manifest_link)
                     r['clock_namespaces']={actor:run(['exec',actor,'readlink','/proc/self/ns/time']).stdout.strip()
                                            for actor in (client,observer,relay.container)}
                     assert len(set(r['clock_namespaces'].values()))==1
@@ -246,13 +247,68 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     assert c.children()==[c.worker] and c.state(c.worker)=='D'
                     r['epoch_during']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
                     assert r['epoch_during']==r['epoch_before']
+                    if death:
+                        # Kill the coordinator only; never its group or a replacement.
+                        r['coordinator_kill_ns']=clock();c.signal(r['coordinator_pid'],'KILL')
+                        r['coordinator_exit_code']=c.service.wait(timeout=10)
+                        assert r['coordinator_exit_code']!=0 and c.state(r['coordinator_pid']) in ('','Z')
+                        r['orphan_samples']=[]
+                        for _ in range(3):
+                            sample=dict(worker_state=c.state(c.worker))
+                            sample['guard_exit']=execute('flock -n -E 73 '+c.base+'/state/instance.lock true','1000:1000',False).returncode
+                            status=execute(c.binary+' --status '+c.config_path,'1000:1000',False)
+                            sample['status_exit']=status.returncode;sample['status']=json.loads(status.stdout)
+                            sample['worker_after']=c.state(c.worker)
+                            assert sample['worker_state']==sample['worker_after']=='D'
+                            assert sample['guard_exit'] in (0,73) and sample['status_exit']==2 and sample['status']['phase']=='OwnerUnavailable'
+                            r['orphan_samples'].append(sample)
+                        r['orphan_contenders']=[]
+                        for command,tail in (('', ''),('--initialize-source ',''),('--transfer-one ',' 1')):
+                            began=time.monotonic();reply=execute(c.binary+' '+command+remote_contender+tail,'1000:1000',False)
+                            item=dict(command=command.strip() or 'service',exit_code=reply.returncode,stderr=reply.stderr,seconds=time.monotonic()-began)
+                            assert item['seconds']<6 and item['exit_code']!=0 and 'local instance or surviving worker already owns state' in item['stderr']
+                            assert c.state(c.worker)=='D';r['orphan_contenders'].append(item)
+                        r['orphan_epoch']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
+                        assert r['orphan_epoch']==r['epoch_before']
+                        r['orphan_source']=snapshot(backing);r['orphan_staging']=snapshot(stage_backing);r['orphan_publication']=unpublished(c)
+                        assert r['orphan_source']==r['source_backing_before'] and r['orphan_staging']==r['destination_backing_before']
                     r['restore_started_ns']=clock();resume();r['after_server']=state()
-                    committed=c.recover(restart=False);r['committed']=committed
-                    assert c.service_pid()==r['coordinator_pid'] and c.service.poll() is None
+                    if death:
+                        r['worker_exit']=c.await_exit(c.worker);r['worker_exit_observed_ns']=clock()
+                        r['trace']=finish_trace(run,observer);observer=None;c.worker=None
+                        # Independently observe the remote namespace after restoration and actual exit.
+                        r['settlement_source']=snapshot(backing)
+                        def optional_snapshot(path):
+                            lines=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
+                                'if test -e '+path+'; then stat -c %d:%i:%h:%s '+path+'; sha256sum '+path+'; fi']).stdout.splitlines()
+                            return dict(identity=lines[0],sha256=lines[1].split()[0]) if lines else None
+                        r['settlement_stage']=optional_snapshot(stage_backing)
+                        parent='/e/profile-destination/'+c.label+'/destination/1'
+                        r['settlement_final']=optional_snapshot(parent+'/nested/data.bin')
+                        run(['exec','--user','1000:1000',report['storage_reader'],'test','!','-e',parent+'/COMMITTED.json'])
+                        r['settlement_manifest_absent']=True
+                        assert r['settlement_source']==r['source_backing_before']
+                        stage_observed,final_observed=r['settlement_stage'],r['settlement_final']
+                        assert stage_observed or final_observed
+                        for observed in (stage_observed,final_observed):
+                            if observed:
+                                assert observed['sha256']==r['destination_backing_before']['sha256']
+                                assert observed['identity'].split(':')[:2]==r['destination_backing_before']['identity'].split(':')[:2]
+                                assert observed['identity'].split(':')[2:]==(['2','2097169'] if stage_observed and final_observed else ['1','2097169'])
+                        if stage_observed and final_observed:assert stage_observed==final_observed
+                        r['status_after_exit']=json.loads(execute(c.binary+' --status '+c.config_path,'1000:1000',False).stdout)
+                        assert r['status_after_exit']['phase']=='NoActiveOwner'
+                        r['restart_started_ns']=clock();committed=c.recover();r['committed']=committed
+                        r['replacement_epoch']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
+                        assert r['replacement_epoch']['group']==int(c.service_pid())!=r['epoch_before']['group']
+                        assert all(r['replacement_epoch'][k]==r['epoch_before'][k] for k in ('version','boot','namespace','guard'))
+                    else:
+                        committed=c.recover(restart=False);r['committed']=committed
+                        assert c.service_pid()==r['coordinator_pid'] and c.service.poll() is None
+                        r['worker_exit']=c.await_exit(c.worker)
+                        r['trace']=finish_trace(run,observer);observer=None
                     r['coordinator_after']=c.service_pid()
                     assert committed['details']['files'][0]['attempt']==1 and not committed['details']['source_cleanup_enabled']
-                    r['worker_exit']=c.await_exit(c.worker)
-                    r['trace']=finish_trace(run,observer);observer=None
                     assert r['trace']['pid']==int(r['worker_pid'])
                     if not (publication or manifest or payload_link or manifest_link):execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
                     c.verify()

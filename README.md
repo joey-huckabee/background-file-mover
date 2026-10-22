@@ -6,6 +6,11 @@ retained storage, build/audit commands and testing limits. Read
 [increment 94](docs/RUST-INCREMENT-94.md) for measured outcomes. Production NFS
 and source deletion remain disabled.
 
+The [payload LINK coordinator-death lab](docs/NFS-PAYLOAD-LINK-DEATH-RECOVERY-LAB.md)
+documents surviving-worker exclusion, independent custody observations, controlled
+server restoration and original-state recovery. Read
+[increment 95](docs/RUST-INCREMENT-95.md) for the four selected cases and limits.
+
 For what the current tests prove and what remains unqualified, read
 [testing limitations](docs/TESTING-LIMITATIONS.md). The
 [systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled

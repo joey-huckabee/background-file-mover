@@ -791,3 +791,17 @@ Maintain SC-128/DOC-01-05, eighteen frozen acquisition sources, both SLES gates,
 normal cleanup and existing producer/consumer/policy/durability limits. Production
 NFS and private-source deletion remain off; directory sync and other profiles
 remain separate.
+
+Increment 95 retains --payload-link-death-recovery with --mover
+--distinct-filesystems, excluding other phases; see docs/RUST-INCREMENT-95.md
+and docs/NFS-PAYLOAD-LINK-DEATH-RECOVERY-LAB.md. Kill only the coordinator
+while payload linkat is actually D. Require old-group logical ownership and
+specific service/initialize/transfer contender refusal through actual worker exit;
+physical flock closure is separate. Restore before draining, retain unfinished
+old syscall traces as such, independently observe remote namespace/custody, then
+recover original state/attempt/inode and preserve producer reuse. No automatic
+uncertain-effect redispatch or remote settlement inference follows from local
+exit. Maintain SC-129/DOC-01-05, seventeen frozen sources, both SLES gates,
+normal cleanup and explicit retained-memory/controlled-restart limits. Next
+qualify manifest-LINK coordinator-death cases. Production NFS/source deletion
+off; blocked sync discovery and remaining phases/deployment remain open.
