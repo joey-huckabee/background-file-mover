@@ -904,3 +904,18 @@ initial gate/fixture SSH failures and unchanged-code retries. Maintain SC-136/
 DOC-01-05; multi-file partial handoffs and source-change/independent-endpoint/load
 cases remain next work. All eight release gates remain open; production NFS/
 private-source cleanup stay off. Registration/S3/repair/DOC-06 remain deferred.
+
+Increment 103 retains --partial-handoff-replay with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-103.md and docs/NFS-PARTIAL-HANDOFF-LAB.md. Qualification-only
+FILE_MOVER_QUALIFICATION_CLAIM_INDEX=1 scopes existing LINK/REMOVE pause to second
+file after first claim completes. Four native controls/four debug-release cases
+preserve one confirmed claim, Accepted/non-release, no delivery, complete custody
+and same actual D-state worker/epoch through retries. Confirm whole-set 202 before
+any reuse; require original/private payloads, attempt-1 delivery, exact two-file
+manifest and original-state restart with newer bytes preserved. Both SLES gates
+(211 production/213 qualification per profile), forty ELFs, raw/corruption audits
+and normal cleanup pass. Retain initial rustfmt and premature artifact-loading
+failures; wait for both passing gate reports before the complete fixture run. Maintain SC-137/
+DOC-01-05. Next qualify source-change refusal, remaining multi-file boundaries and
+independent-endpoint/load cases. Eight gates stay open; production NFS/private-source
+cleanup stay off; registration/S3/repair/DOC-06 defer.

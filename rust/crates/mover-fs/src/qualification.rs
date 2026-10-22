@@ -50,12 +50,55 @@ pub fn pause(_: &'static str) -> Result<()> {
 }
 
 #[cfg(feature = "nfs-qualification")]
+thread_local! {
+    static CLAIM_INDEX: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+/// Scope the fixture's optional zero-based file selector to this claim effect.
+#[cfg(feature = "nfs-qualification")]
+pub struct ClaimScope(Option<usize>);
+#[cfg(feature = "nfs-qualification")]
+impl ClaimScope {
+    pub fn enter(index: usize) -> Self {
+        Self(CLAIM_INDEX.replace(Some(index)))
+    }
+}
+#[cfg(feature = "nfs-qualification")]
+impl Drop for ClaimScope {
+    fn drop(&mut self) {
+        CLAIM_INDEX.set(self.0);
+    }
+}
+#[cfg(feature = "nfs-qualification")]
+fn selected_claim(selector: Option<&str>, index: Option<usize>) -> Result<bool> {
+    match selector {
+        None => Ok(true),
+        Some(value) => {
+            let selected = value
+                .parse::<usize>()
+                .ok()
+                .filter(|n| *n < 256)
+                .ok_or(ClaimError::Blocked("invalid qualification claim index"))?;
+            Ok(index == Some(selected))
+        }
+    }
+}
+
+#[cfg(feature = "nfs-qualification")]
 pub fn pause(operation: &'static str) -> Result<()> {
     if std::env::var("FILE_MOVER_QUALIFICATION_PAUSE")
         .ok()
         .as_deref()
         != Some(operation)
     {
+        return Ok(());
+    }
+    if !selected_claim(
+        std::env::var("FILE_MOVER_QUALIFICATION_CLAIM_INDEX")
+            .ok()
+            .as_deref(),
+        CLAIM_INDEX.get(),
+    )? {
         return Ok(());
     }
     let path = std::env::var("FILE_MOVER_QUALIFICATION_RENDEZVOUS")
@@ -111,6 +154,27 @@ fn pause_at(path: &str, operation: &str, budget: std::time::Duration) -> Result<
 mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+    #[test]
+    fn claim_selector_is_scoped_and_rejects_invalid_indices() {
+        assert!(selected_claim(None, None).unwrap());
+        assert!(!selected_claim(Some("1"), None).unwrap());
+        assert!(!selected_claim(Some("1"), Some(0)).unwrap());
+        assert!(selected_claim(Some("1"), Some(1)).unwrap());
+        for value in ["", "-1", "256", "no"] {
+            assert!(selected_claim(Some(value), Some(1)).is_err());
+        }
+        assert_eq!(CLAIM_INDEX.get(), None);
+        {
+            let _scope = ClaimScope::enter(1);
+            assert_eq!(CLAIM_INDEX.get(), Some(1));
+            {
+                let _nested = ClaimScope::enter(2);
+                assert_eq!(CLAIM_INDEX.get(), Some(2));
+            }
+            assert_eq!(CLAIM_INDEX.get(), Some(1));
+        }
+        assert_eq!(CLAIM_INDEX.get(), None);
+    }
     #[test]
     fn local_rendezvous_is_bounded_exclusive_and_rejects_symlink_release() {
         let path = std::env::temp_dir().join(format!("qualification-pause-{}", std::process::id()));

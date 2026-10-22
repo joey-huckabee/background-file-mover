@@ -54,7 +54,7 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify multi-file partial-handoff replay, source-change refusal and independent
+- [ ] Qualify source-change refusal, remaining multi-file boundaries and independent
   source/destination outage recovery; expand capacity/concurrent-load duration and
   queue-size coverage. Preserve existing-job retries, original state/custody,
   recorder handoff and old-worker exclusion through actual exit.

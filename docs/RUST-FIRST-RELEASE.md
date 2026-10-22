@@ -126,6 +126,11 @@ LINK/REMOVE replay and finite queue refusal before confirmed 202. Original custo
 worker/epoch exclusion and confirmed handoff before reuse recover without a runtime
 policy change. Multi-file partial handoffs, source substitution and broader failure/
 load cases remain open.
+[Increment 103](RUST-INCREMENT-103.md)/SC-137 qualifies selected two-file partial
+handoff replay with first claim complete and second LINK/REMOVE pending. One
+confirmed claim never releases the set; same-ID 202 precedes both path reuses.
+Original-state recovery preserves both payloads and newer bytes. Remaining file
+counts/boundaries, source changes and independent outages stay open.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

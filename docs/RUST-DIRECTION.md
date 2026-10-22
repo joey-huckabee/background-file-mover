@@ -1029,3 +1029,16 @@ exact raw/ELF/corrupted-proof audits and normal cleanup pass. See the
 failures with unchanged-source retries. Multi-file partial handoffs, source changes,
 independent outages, death, physical durability and load/endurance remain open.
 Keep all eight gates open and production NFS/private-source cleanup disabled.
+
+[Increment 103](RUST-INCREMENT-103.md)/SC-137 qualifies selected two-file partial
+handoffs: first privately claimed, second LINK/REMOVE pending, Accepted/non-release,
+one confirmed claim and no delivery. Four native controls precede four debug/release
+cases. Same D-state worker/epoch and complete custody survive finite retry/queue
+refusals. Only confirmed whole-set 202 permits producer reuse; attempt-1 delivery,
+exact two-file manifest and original-state restart preserve originals/private and
+newer producer bytes. A qualification-only claim-index selector enables the fixture;
+production API/retry/review/deadlines stay unchanged. Both SLES gates, raw/ELF/
+corrupted-proof audits and normal cleanup pass. See the [step-by-step lab](NFS-PARTIAL-HANDOFF-LAB.md).
+Source changes, other multi-file boundaries, independent outages, death and load/
+physical durability remain open. Production NFS/private-source cleanup stay off;
+eight gates remain open; registration/S3/repair/DOC-06 stay deferred.

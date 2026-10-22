@@ -121,6 +121,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
 
     def cases(Case):
         nonlocal stopped
+        if report.get('partial_handoff_replay'):
+            from nfs_partial_handoff_replay import qualify
+            return qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,report)
         if report.get('pre202_replay'):
             from nfs_pre202_replay import qualify
             return qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,report)

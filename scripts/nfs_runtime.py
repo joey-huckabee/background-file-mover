@@ -118,6 +118,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.counter += 1
             name = self.label + "-service-" + str(self.counter)
             environment = (f"FILE_MOVER_QUALIFICATION_PAUSE={pause_point or self.point} FILE_MOVER_QUALIFICATION_RENDEZVOUS={self.rendezvous} " if paused else "")
+            if paused and hasattr(self, 'qualification_claim_index'):
+                assert isinstance(self.qualification_claim_index, int) and 0 <= self.qualification_claim_index < 256
+                environment += f"FILE_MOVER_QUALIFICATION_CLAIM_INDEX={self.qualification_claim_index} "
             self.service = spawn(f"echo $$ >{self.marker}; exec env {environment}{self.binary} {self.config_path}", name)
             self.service_logs.append(name + ".log")
             self.processes.append(self.service)

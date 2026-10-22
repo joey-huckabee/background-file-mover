@@ -475,6 +475,8 @@ pub fn apply(store: &Store, intent: &ClaimIntent) -> Result<()> {
 }
 /// Caller must persist the exact unfinished intent before assigning this effect.
 pub fn apply_claim_effect(intent: &ClaimIntent) -> Result<()> {
+    #[cfg(feature = "nfs-qualification")]
+    let _scope = qualification::ClaimScope::enter(intent.file_index);
     qualification_pause("claim_apply")?;
     if intent.private_name != format!("{}-{}", intent.job_id, intent.file_index) {
         return Err(ClaimError::Blocked("invalid operation name"));

@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [partial-handoff lab](docs/NFS-PARTIAL-HANDOFF-LAB.md) explains two-file
+retries when one claim is complete but the whole set still has no 202. See
+[increment 103](docs/RUST-INCREMENT-103.md) for results and testing limits.
+
 The [pre-202 replay lab](docs/NFS-PRE202-REPLAY-LAB.md) documents retries and queue
 refusal during incomplete source LINK/REMOVE, before producer paths may be reused.
 Read [increment 102](docs/RUST-INCREMENT-102.md) for results and testing limits.
