@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [pre-202 replay lab](docs/NFS-PRE202-REPLAY-LAB.md) documents retries and queue
+refusal during incomplete source LINK/REMOVE, before producer paths may be reused.
+Read [increment 102](docs/RUST-INCREMENT-102.md) for results and testing limits.
+
 The [joint-outage lab](docs/NFS-JOINT-OUTAGE-LAB.md) documents same-ID replay,
 source revalidation and finite queue refusal while both NFS shares are unavailable.
 Read [increment 101](docs/RUST-INCREMENT-101.md) for results and testing limits.

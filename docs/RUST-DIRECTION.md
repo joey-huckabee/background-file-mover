@@ -1015,3 +1015,17 @@ and normal cleanup pass. See [step-by-step infrastructure](NFS-JOINT-OUTAGE-LAB.
 This finite shared-backend test does not qualify independent outages, pre-202/
 partial claims, source substitution, throughput/endurance or physical durability.
 Keep all eight release gates open and production NFS/private-source cleanup off.
+
+[Increment 102](RUST-INCREMENT-102.md)/SC-136 adds four debug/release x pending
+source LINK/REMOVE replay cases before HTTP 202 after four native prerequisites.
+One-file Accepted/non-release state, complete one-/two-name original custody,
+zero confirmed claims/destination attempts and the same D-state worker/epoch
+survive a six-request burst. Initial request and burst return retryable non-release
+503s with queue refusal; HTTP timeout is not cancellation. Confirmed same-ID 202
+precedes producer reuse; original private inode/attempt-1 delivery, complete
+manifest and original-state restart/replay preserve newer bytes. Both SLES gates,
+exact raw/ELF/corrupted-proof audits and normal cleanup pass. See the
+[step-by-step lab](NFS-PRE202-REPLAY-LAB.md) and retained pre-provisioning/gate SSH
+failures with unchanged-source retries. Multi-file partial handoffs, source changes,
+independent outages, death, physical durability and load/endurance remain open.
+Keep all eight gates open and production NFS/private-source cleanup disabled.

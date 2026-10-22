@@ -890,3 +890,17 @@ queued-command cancellation. Maintain SC-135/DOC-01-05 and seventeen frozen sour
 Next qualify pre-202/partial-claim replay, source-change refusal and independent/
 longer outage or broader capacity cases. All eight release gates remain open;
 production NFS/private-source cleanup stay off. Registration/S3/repair/DOC-06 defer.
+
+Increment 102 retains --pre202-replay with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-102.md and docs/NFS-PRE202-REPLAY-LAB.md. Four native
+prerequisites plus four debug/release x pending source LINK/REMOVE one-file cases
+qualify replay and finite queue refusal before 202. Keep producer paths untouched,
+Accepted/non-release state, complete one-/two-name custody, no delivery and the same
+actual D-state claim worker/epoch through retries. Require confirmed same-ID 202
+before producer reuse, original private inode/attempt-1 delivery, valid manifest
+and original-state restart/replay. Both SLES gates, seventeen frozen sources,
+raw successful LINK/REMOVE/corruption/ELF audits and normal cleanup pass. Preserve
+initial gate/fixture SSH failures and unchanged-code retries. Maintain SC-136/
+DOC-01-05; multi-file partial handoffs and source-change/independent-endpoint/load
+cases remain next work. All eight release gates remain open; production NFS/
+private-source cleanup stay off. Registration/S3/repair/DOC-06 remain deferred.

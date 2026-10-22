@@ -121,6 +121,11 @@ and a finite queue burst during shared-backend joint outage with admission off/o
 Acknowledged custody and original attempt-1 recovery remain safe under bounded
 non-release 503s; this does not close pre-202/partial-claim, independent-endpoint,
 source-change, larger-load or capacity gates.
+[Increment 102](RUST-INCREMENT-102.md)/SC-136 adds selected one-file pending source
+LINK/REMOVE replay and finite queue refusal before confirmed 202. Original custody,
+worker/epoch exclusion and confirmed handoff before reuse recover without a runtime
+policy change. Multi-file partial handoffs, source substitution and broader failure/
+load cases remain open.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected
