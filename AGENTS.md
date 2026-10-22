@@ -831,3 +831,18 @@ SC-131/DOC-01-05, eighteen frozen acquisition sources, both SLES gates and norma
 cleanup. Next qualify pending claim REMOVE before 202. Production NFS/postcommit
 private-source cleanup stay off; claim-name removal is a separate operation and
 local exit never proves globally settled delayed effects. Eight gates remain open.
+
+Increment 98 retains --claim-remove-death-recovery with --mover
+--distinct-filesystems; see docs/RUST-INCREMENT-98.md and
+docs/NFS-CLAIM-REMOVE-DEATH-RECOVERY-LAB.md. Require same-inode two-name source
+custody at claim_unlink_rpc, actual D-state unlinkat, coordinator-only death,
+old-worker exclusion/three contender refusals through actual exit and independently
+decoded preceding LINK/resumed REMOVE. Preserve original non-202 HTTP outcome,
+raw local DB/WAL pending done=0/no transfer or manifest, original-state custody,
+identical-ID retry 202 before producer reuse and attempt-1 commitment/replay.
+Maintain SC-132/DOC-01-05, eighteen frozen sources, initial pre-mount SSH failure,
+both SLES gates and normal cleanup. The observer attaches at REMOVE, excluding
+earlier file/new-parent syncs. Next discover positively observed source-claim sync
+RPC boundaries before selecting more synchronization cases. Keep production NFS/
+postcommit private-source cleanup off; claim-name removal is separate and local
+exit is not global delayed-effect settlement. Eight release gates remain open.

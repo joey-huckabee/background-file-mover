@@ -54,10 +54,10 @@ before implementation.
   plus untested
   copy/verification endpoint directions, cache/size/load and outage-duration cases.
   Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify source-claim REMOVE coordinator-death/original-state recovery before
-  HTTP 202 across controlled NFSD/quiesced-container recovery. Preserve recorder
-  handoff rules and original workers through actual exit; local lock release is
-  not remote-effect settlement.
+- [ ] Discover positively observed source-claim synchronization RPC boundaries
+  before selecting remaining sync/death/recovery cases. Preserve recorder handoff
+  rules and original workers through actual exit; do not substitute clean-file
+  local sync completion for blocked RPC evidence or remote-effect settlement.
 - [ ] Select positively observed RPC-bearing publication sync boundaries in other
   workloads/caches/operations before further sync-failure cases. Do not substitute
   native dirty-write controls or successful local clean-file completion for actual

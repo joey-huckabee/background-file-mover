@@ -105,8 +105,11 @@ and independent remote custody observations. [Increment 96](RUST-INCREMENT-96.md
 SC-130 adds equivalent manifest-LINK cases with raw local phase-3 evidence kept
 separate from manifest visibility. [Increment 97](RUST-INCREMENT-97.md)/SC-131
 adds selected source-claim LINK coordinator-death recovery before 202, pending
-local receipt/custody evidence and reuse only after confirmed retry 202. Next
-qualify source-claim REMOVE; do not infer remote settlement from local lock/exit.
+local receipt/custody evidence and reuse only after confirmed retry 202.
+[Increment 98](RUST-INCREMENT-98.md)/SC-132 adds selected source-claim REMOVE
+coordinator-death recovery before 202, retained two-name/private custody and
+pending local receipt proof. Next discover positively observed source-claim sync
+RPC boundaries before selecting sync/death cases; local lock/exit is not remote settlement.
 Retain other sync/directory, bootstrap/claim and worker-death cases. These increments do not close FR-03/05 or qualify
 abrupt recovery, independent NAS, persistent disk or power loss. Additional source
 synchronization reply-loss cases require a positively observed actual service RPC in the selected workload. Selected

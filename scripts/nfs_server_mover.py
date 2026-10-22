@@ -121,6 +121,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
 
     def cases(Case):
         nonlocal stopped
+        if report.get('claim_remove_death_recovery'):
+            from nfs_claim_remove_death_recovery import qualify
+            return qualify(Case,run,execute,spawn,client,server,output,containers,config,relay,state,restore,snapshot,report)
         if report.get('claim_link_death_recovery'):
             from nfs_claim_death_recovery import qualify
             return qualify(Case,run,execute,spawn,client,server,output,containers,config,relay,state,restore,snapshot,report)

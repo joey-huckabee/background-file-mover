@@ -31,7 +31,9 @@ def main():
     parser.add_argument('--payload-link-death-recovery',action='store_true',help='Kill the coordinator during pending payload LINK and recover only after old worker exit')
     parser.add_argument('--manifest-link-death-recovery',action='store_true',help='Kill the coordinator during pending manifest LINK and recover after actual old worker exit')
     parser.add_argument('--claim-link-death-recovery',action='store_true',help='Test source-claim LINK coordinator death before confirmed HTTP 202')
+    parser.add_argument('--claim-remove-death-recovery',action='store_true',help='Test source-claim REMOVE coordinator death before confirmed HTTP 202')
     args=parser.parse_args()
+    if args.claim_remove_death_recovery and (args.claim_link_death_recovery or args.manifest_link_death_recovery or args.payload_link_death_recovery or args.verify_recovery or args.publication_recovery or args.manifest_recovery or args.payload_link_recovery or args.manifest_link_recovery or args.publication_sync_discovery or not (args.mover and args.distinct_filesystems)):parser.error('--claim-remove-death-recovery requires --mover --distinct-filesystems and excludes other phases')
     if args.claim_link_death_recovery and (args.manifest_link_death_recovery or args.payload_link_death_recovery or args.verify_recovery or args.publication_recovery or args.manifest_recovery or args.payload_link_recovery or args.manifest_link_recovery or args.publication_sync_discovery or not (args.mover and args.distinct_filesystems)):parser.error('--claim-link-death-recovery requires --mover --distinct-filesystems and excludes other phases')
     if args.manifest_link_death_recovery:
         if args.payload_link_death_recovery or args.verify_recovery or args.publication_recovery or args.manifest_recovery or args.payload_link_recovery or args.manifest_link_recovery or args.publication_sync_discovery or not (args.mover and args.distinct_filesystems):parser.error('--manifest-link-death-recovery requires --mover --distinct-filesystems and excludes other phases')
@@ -49,7 +51,7 @@ def main():
     if args.mover and not (args.production_gate and args.qualification_gate):parser.error('both SLES gate directories are required')
     root = Path(__file__).resolve().parents[1]
     config = json.loads((root/'scripts/rust-platform.json').read_text(encoding='utf-8'))
-    label = ('claim-link-death-recovery-' if args.claim_link_death_recovery else 'manifest-link-death-recovery-' if args.manifest_link_death_recovery else 'payload-link-death-recovery-' if args.payload_link_death_recovery else 'publication-sync-discovery-' if args.publication_sync_discovery else 'manifest-link-server-recovery-' if args.manifest_link_recovery else 'payload-link-server-recovery-' if args.payload_link_recovery else 'manifest-server-recovery-' if args.manifest_recovery else 'publication-server-recovery-' if args.publication_recovery else 'verify-server-recovery-' if args.verify_recovery else 'distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+    label = ('claim-remove-death-recovery-' if args.claim_remove_death_recovery else 'claim-link-death-recovery-' if args.claim_link_death_recovery else 'manifest-link-death-recovery-' if args.manifest_link_death_recovery else 'payload-link-death-recovery-' if args.payload_link_death_recovery else 'publication-sync-discovery-' if args.publication_sync_discovery else 'manifest-link-server-recovery-' if args.manifest_link_recovery else 'payload-link-server-recovery-' if args.payload_link_recovery else 'manifest-server-recovery-' if args.manifest_recovery else 'publication-server-recovery-' if args.publication_recovery else 'verify-server-recovery-' if args.verify_recovery else 'distinct-server-recovery-' if args.distinct_filesystems else 'server-mover-recovery-' if args.mover else 'server-recovery-')+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
     output = root/'rust/validation'/label; output.mkdir()
     print('Server recovery: '+str(output), flush=True)
     engine = ['podman','--connection','podman-machine-default-root']
@@ -80,6 +82,10 @@ def main():
     report['payload_link_death_recovery']=args.payload_link_death_recovery
     report['manifest_link_recovery']=args.manifest_link_recovery
     report['manifest_link_death_recovery']=args.manifest_link_death_recovery
+    report['claim_remove_death_recovery']=args.claim_remove_death_recovery
+    if args.claim_remove_death_recovery:
+        data=(root/'scripts/nfs_claim_remove_death_recovery.py').read_bytes()
+        report['sources']['nfs_claim_remove_death_recovery.py']=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
     report['claim_link_death_recovery']=args.claim_link_death_recovery
     if args.claim_link_death_recovery:
         data=(root/'scripts/nfs_claim_death_recovery.py').read_bytes()
@@ -88,7 +94,7 @@ def main():
     if args.publication_sync_discovery:
         data=(root/'scripts/nfs_publication_sync_discovery.py').read_bytes()
         report['sources']['nfs_publication_sync_discovery.py']=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
-    if args.verify_recovery or args.publication_recovery or args.manifest_recovery or args.payload_link_recovery or args.manifest_link_recovery or args.publication_sync_discovery or args.claim_link_death_recovery:
+    if args.verify_recovery or args.publication_recovery or args.manifest_recovery or args.payload_link_recovery or args.manifest_link_recovery or args.publication_sync_discovery or args.claim_link_death_recovery or args.claim_remove_death_recovery:
         data=(root/'scripts/nfs_io_trace.py').read_bytes()
         report['sources']['nfs_io_trace.py']=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
 

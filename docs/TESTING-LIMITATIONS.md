@@ -820,3 +820,18 @@ results. Both SLES gates and normal cleanup pass. Claim source-name removal is
 separate from disabled private-source cleanup; local exit is not global remote
 settlement. Unselected REMOVE/sync/termination, NAS/power and old-kernel behavior
 remain open; eight release gates stay open and production NFS/deletion stay off.
+
+[Increment 98](RUST-INCREMENT-98.md)/SC-132 qualifies four selected source-claim
+REMOVE coordinator-death recoveries before HTTP 202 across NFSD/quiesced-container
+restart after four native prerequisites. Require same-inode two-name custody at
+entry, actual D-state unlinkat, independently decoded preceding LINK/resumed REMOVE,
+logical exclusion/three contender refusals through actual exit and copied local
+SQLite/WAL claim done=0/no transfer or manifest before replacement. Confirmed
+identical-ID retry 202 precedes producer reuse; original-state attempt-1 commitment
+and replay preserve newer bytes. See the [step-by-step lab](NFS-CLAIM-REMOVE-DEATH-RECOVERY-LAB.md),
+raw/audit evidence and preserved initial pre-mount Podman connection failure.
+Both SLES gates and normal cleanup pass. Observer attachment at REMOVE excludes
+earlier file/new-parent syncs; this is not actual blocked-sync or NAS/power-loss
+qualification. Local exit is not global remote settlement. Other sync/termination,
+old-kernel/deployment and broader workloads remain open; all eight release gates
+stay open and production NFS/postcommit private-source cleanup stay off.

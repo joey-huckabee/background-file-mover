@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [source-claim REMOVE coordinator-death lab](docs/NFS-CLAIM-REMOVE-DEATH-RECOVERY-LAB.md)
+documents pending original-name removal before HTTP 202, retained private custody
+and safe retry/reuse. Read [increment 98](docs/RUST-INCREMENT-98.md) for results and limits.
+
 The [source-claim LINK coordinator-death lab](docs/NFS-CLAIM-LINK-DEATH-RECOVERY-LAB.md)
 documents recovery before HTTP 202, retained custody and safe recorder retry/reuse.
 Read [increment 97](docs/RUST-INCREMENT-97.md) for the four selected cases and limits.
