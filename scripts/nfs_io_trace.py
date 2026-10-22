@@ -10,7 +10,7 @@ attached=False;stopped=False;current=None;deadline=time.monotonic()+180
 gate=json.loads(sys.argv[3]) if len(sys.argv)>3 else None
 gated=None
 if gate:
- assert set(gate)=={'path'} and gate['path'].startswith('/tmp/recovery-destination/')
+ assert set(gate)=={'path'} and gate['path'].startswith(('/tmp/recovery-destination/','/tmp/recovery-source/'))
  os.mkdir('/tmp/sync-gate');result['gate']=dict(path=gate['path'],entry=None,exit=None)
 
 def gate_wait(stage,row):

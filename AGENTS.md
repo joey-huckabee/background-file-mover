@@ -846,3 +846,18 @@ earlier file/new-parent syncs. Next discover positively observed source-claim sy
 RPC boundaries before selecting more synchronization cases. Keep production NFS/
 postcommit private-source cleanup off; claim-name removal is separate and local
 exit is not global delayed-effect settlement. Eight release gates remain open.
+
+Increment 99 retains --claim-sync-discovery with --mover --distinct-filesystems;
+see docs/RUST-INCREMENT-99.md and docs/NFS-CLAIM-SYNC-DISCOVERY-LAB.md. Eight
+private-file/private-parent fsync debug/release x healthy/stopped-NFSD observations
+follow four native prerequisites. nfs_io_trace permits only fixture source or
+destination gate paths; actual syscall intervals exclude bounded artificial holds.
+Require complete two-name custody/Accepted state and no 202 while held, then
+confirmed same-ID 202 before producer reuse, attempt-1 delivery and original-state
+replay. Maintain SC-133/DOC-01-05, eighteen frozen acquisition sources, both SLES
+gates and normal cleanup. Retain the initial shared case-count assertion failure
+and exact count-only correction/full rerun. Classify raw interval/spanning RPCs without causal
+inference; successful local sync with stopped NFSD is not blocked-sync recovery.
+Next discover original-file sync before LINK and remaining cache/workload RPC
+boundaries. Production NFS/postcommit private-source cleanup stay off; all eight
+release gates remain open. Registration/S3/offline repair/DOC-06 stay deferred.

@@ -227,3 +227,18 @@ earlier file/new-parent syncs; this is not actual blocked-sync or NAS/power-loss
 qualification. Local exit is not global remote settlement. Other sync/termination,
 old-kernel/deployment and broader workloads remain open; all eight release gates
 stay open and production NFS/postcommit private-source cleanup stay off.
+
+[Increment 99](RUST-INCREMENT-99.md)/SC-133 adds eight selected source-claim
+private-file/private-parent synchronization observations before HTTP 202, across
+debug/release and healthy/stopped NFSD after four native prerequisites. External
+actual syscall entry/exit controls exclude artificial holds; independently audit
+raw interval traffic and captured pairs spanning entry, seven observed syncs per
+worker, complete two-name custody/Accepted state and no producer reuse until
+confirmed same-ID 202. Original-state attempt-1 delivery/replay preserves newer
+bytes. See the [step-by-step lab](NFS-CLAIM-SYNC-DISCOVERY-LAB.md) and measured
+raw/audit evidence. Successful local stopped-NFSD completion is discovery, not
+blocked-sync, reply-withholding or physical-durability qualification. Original-file
+sync before LINK and other workloads/caches/termination remain separate. Both
+SLES gates and normal cleanup pass after correcting and retaining an initial
+shared case-count assertion failure and rerunning the full matrix. Keep all eight release gates open and
+production NFS/postcommit private-source cleanup disabled.

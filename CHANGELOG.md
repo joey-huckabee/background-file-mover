@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Discover exact source-claim private-file/directory synchronization behavior before HTTP 202 in eight healthy/stopped-NFSD cases; audit raw RPC intervals separately from artificial holds and preserve confirmed retry before recorder reuse. Document SC-133 and step-by-step infrastructure/testing limits. Both SLES/glibc-2.22 gates pass; production NFS/postcommit private-source cleanup remain disabled.
+
 - Qualify source-claim REMOVE coordinator-death recovery before HTTP 202, with original two-name/private custody, pending raw SQLite/WAL receipt proof and confirmed same-ID retry before producer reuse. Retain the initial pre-mount Podman connection failure, SC-132 and step-by-step infrastructure/limits. Both SLES/glibc-2.22 gates pass; production NFS/postcommit private-source cleanup remain disabled.
 
 - Qualify source-claim LINK coordinator-death recovery before HTTP 202, retaining pending local claim evidence, old-worker exclusion and original custody; require confirmed identical-ID retry before producer reuse. Document SC-131, raw proof and step-by-step infrastructure. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.

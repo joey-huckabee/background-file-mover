@@ -1,5 +1,9 @@
 # Background File Mover
 
+The [source-claim sync discovery lab](docs/NFS-CLAIM-SYNC-DISCOVERY-LAB.md)
+documents exact file/directory sync observations before HTTP 202 and their RPC
+limits. Read [increment 99](docs/RUST-INCREMENT-99.md) for the eight cases and results.
+
 The [source-claim REMOVE coordinator-death lab](docs/NFS-CLAIM-REMOVE-DEATH-RECOVERY-LAB.md)
 documents pending original-name removal before HTTP 202, retained private custody
 and safe retry/reuse. Read [increment 98](docs/RUST-INCREMENT-98.md) for results and limits.

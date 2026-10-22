@@ -121,6 +121,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
 
     def cases(Case):
         nonlocal stopped
+        if report.get('claim_sync_discovery'):
+            from nfs_claim_sync_discovery import qualify
+            return qualify(Case,run,execute,client,server,output,containers,config,relay,state,restore,snapshot,report)
         if report.get('claim_remove_death_recovery'):
             from nfs_claim_remove_death_recovery import qualify
             return qualify(Case,run,execute,spawn,client,server,output,containers,config,relay,state,restore,snapshot,report)
@@ -420,4 +423,4 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     if observer:r['incomplete_trace']=run(['logs',observer],False).stdout
     run_runtime(run,adapted,spawn,resume,server,output,client,artifacts,report,
                 case_runner=cases,nfs_root='/tmp/recovery-source',destination_nfs_root='/tmp/recovery-destination')
-    assert len(report['mover_cases'])==(8 if report.get('publication_sync_discovery') else 4) and all(c['passed'] for c in report['mover_cases'])
+    assert len(report['mover_cases'])==(8 if report.get('publication_sync_discovery') or report.get('claim_sync_discovery') else 4) and all(c['passed'] for c in report['mover_cases'])
