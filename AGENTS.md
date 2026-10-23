@@ -34,8 +34,9 @@ History clear preserves files and separate ownership/accounting but forgets
 UUID recognition (group 21/SC-147/148/API-E87-91). Data deletion requires a
 separate explicitly confirmed admin action, limited to owned retained source
 and unfinished destination after safe stop; protect originals/committed output
-(group 22/SC-149/150/API-E92-98). Next settle partial-failure/retry and admin
-access/configuration; no physical delete or general repair tool is qualified yet;
+(group 22/SC-149/150/API-E92-98). Delete is best effort: leave failed files, attempt other safe confirmed files
+and report failures; no dedicated pause/resume or automatic retry workflow.
+Next settle admin access/configuration; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

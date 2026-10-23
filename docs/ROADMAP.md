@@ -16,7 +16,7 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-retained-data deletion partial-failure/retry and admin access/configuration, plus
+retained-data deletion admin access/configuration, plus
 API/bulk/concurrency and remaining
 schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
@@ -43,7 +43,7 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
   operational ownership/accounting, while forgetting UUIDs. Qualify that storage
   transition and implement only the approved owned-source/unfinished-destination
   disposal scope with safe stop and explicit confirmation. Protect originals and
-  committed output; settle partial-failure/retry and authorization before effects. Clear forgets UUIDs; later reuse is a new recording, with
+  committed output; use best-effort deletion with failures reported; settle authorization before effects. Clear forgets UUIDs; later reuse is a new recording, with
   normal no-clobber/authorization checks. Retain full
   detailed history until explicit clear; no automatic expiry/compaction. This
   specific requested workflow must be scoped rather than silently covered by the

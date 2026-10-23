@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Simplify confirmed retained-data deletion failure handling: best effort, leave failed files and report failures while attempting other safe selected files. No dedicated pause/resume or automatic retry workflow; existing ownership, safe-stop, confirmation and protected-file rules remain. Documentation only.
 - Approve confirmed retained-data disposal scope: owned retained source and unfinished destination after safe stop, protecting unclaimed originals and completed output. Add planned SC-149/150 and API-E92-98 for confirmation, ownership, protected data, workers, partial results and UUID reuse. Retry/failure and exact admin access/wire rules remain pending; no physical deletion enabled.
 
 - Approve file preservation on history clear, with separate retained-file ownership/accounting and forgotten UUID recognition. Require a separate explicit admin data-deletion action; add planned SC-147/148 and API-E87-91 for capacity, restart and transition safety. Deletion scope/authorization/recovery and runtime implementation remain pending.

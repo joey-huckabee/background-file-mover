@@ -19,7 +19,9 @@ History clear now also preserves files and separate ownership/accounting while
 forgetting UUID recognition (group 21, SC-147/148/API-E87-91). Physical retained-data deletion needs a separate explicit admin action. Its
 scope is now approved in group 22 (SC-149/150/API-E92-98): owned retained source
 and unfinished destination only, after safe stop and confirmation. Protect
-unclaimed originals and completed output. Next decide partial-failure/retry,
+unclaimed originals and completed output. Deletion failure is best effort: failed
+files remain, other safe selected files can still be attempted, and failures are
+reported. No dedicated pause/resume or automatic retry workflow. Next settle
 admin access/config interaction and exact wire/bulk/concurrency;
 do not ask file ordering or the UUID-versus-free-form question again.
 
@@ -79,12 +81,12 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide retained-data deletion partial-failure/retry behavior. Scope and
-   confirmation are resolved (group 22): only owned retained source/unfinished
-   destination after safe stop, protecting originals/committed output. Preserve
-   actual success/unknown outcomes; never promise rollback of deleted bytes.
-   Then settle admin access/configuration, exact endpoints/transactions/bulk,
-   confirmation details and bounded status/recovery. No destructive code yet.
+1. Settle admin access/configuration and exact endpoints/transactions/bulk
+   and confirmation details. Group 22 resolves deletion scope and simple failure
+   behavior: best effort, leave failed files and report them; no dedicated
+   pause/resume state or automatic retry machinery. Preserve safe-stop,
+   ownership, confirmation and original/committed-output protections. No
+   destructive code yet. Do not re-open failure-policy design.
 2. Finalize exact schema/config bounds, response validation/precedence and
    persisted global-ID/state handling. Size-policy snapshotting is resolved
    against; only its implementation/replay ordering remains. Review any remaining

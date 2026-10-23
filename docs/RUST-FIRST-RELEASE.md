@@ -63,7 +63,7 @@ Explicit clear forgets the UUID; late reuse is new recording work. Only complete
 or safely cancelled jobs may clear; cancel unfinished/errored jobs first.
 Cancellation and history clear preserve files; separate ownership/accounting
 survives clear without UUID replay recognition. Finalize the separate explicit
-retained-data deletion partial-failure/retry, admin wire/access and release placement
+retained-data deletion admin wire/access and release placement
 before freezing the contract; no automated compaction or
 blanket UI deferral should silently substitute for that decision.
 

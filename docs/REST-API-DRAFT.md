@@ -563,7 +563,10 @@ and history ineligible to clear. No automatic deletion/restoration; see
 Exact cancel response/deadline and separate retained-data deletion semantics
 remain open; history clear preserves files as approved in group 21.
 [Group 22](REST-ERROR-SCENARIOS.md#confirmed-retained-data-deletion-owned-leftovers-only-after-safe-stop-group-22)
-defines disposal scope/confirmation, with partial-failure/retry policy still open. Retry retains job ID, resolved names, claimed sources and ownership,
+defines disposal scope/confirmation and best-effort deletion: failed files remain,
+other safe selected files can be attempted and failures are reported. No dedicated
+delete pause/resume or automatic retry workflow is required. Delivery retry
+retains job ID, resolved names, claimed sources and ownership,
 allocating new internal operation attempts only when safe. This changes the old
 new-job retry behavior, which could reopen a newer recording at a reused path.
 

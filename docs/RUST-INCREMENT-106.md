@@ -311,3 +311,16 @@ Group-22 documentation checks passed: 98 API cases, 150 unique SC IDs and six
 DOC IDs; original identifiers preserved; policy links/anchors and handoff agree.
 Both retained SLES source archives match unchanged runtime inputs. No new Rust
 build/test, fixture run or compatibility qualification is claimed.
+
+## Group-22 clarification: keep deletion failure simple
+
+The user rejects a dedicated partial-deletion pause/retry workflow. Deletion is
+best effort: failed files stay behind, other independently safe confirmed files
+may be attempted and failures are reported. No automatic retry scheduler,
+dedicated paused state, resume protocol or deletion-receipt subsystem is required.
+An admin can request deletion again for remaining eligible files. Preserve the
+agreed ownership, confirmation, actual stopped-work and protected-file checks;
+unknown outcomes are not proof of removal. Refine API-E97/SC-150 in place,
+without new scenario IDs. This supersedes earlier next-step failure/retry
+questions. Next settle admin access/configuration and wire details.
+Documentation only; no runtime, build/test, fixture or production gate changes.

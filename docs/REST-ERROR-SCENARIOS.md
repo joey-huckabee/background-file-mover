@@ -666,7 +666,7 @@ clear, elapsed time and UUID reuse do not stand in for that action.
 |---|---|---|
 | Cancel | Preserve files in place; stop new work and reconcile authorized activity | Retain history/UUID; do not allow clear until safely cancelled. |
 | Clear history (eligible completed/safely cancelled jobs only) | Preserve unclaimed originals, private claimed source, staging, published payloads and completion manifests | Remove selected detailed history and forget UUID recognition; later UUID submission is new work. |
-| Delete retained data | Separate confirmed admin request limited to owned retained source/unfinished destination after safe stop (group 22); exact failure/auth/wire details pending | Not triggered by cancel or clear; do not invent its history/receipt behavior before design. |
+| Delete retained data | Separate confirmed admin request limited to owned retained source/unfinished destination after safe stop (group 22); best-effort failure handling below; exact auth/wire details pending | Not triggered by cancel or clear; do not invent its history/receipt behavior before design. |
 
 Keeping files after clear does not retain an old request for idempotent replay.
 Keep only operational facts needed for retained-file ownership, safe management
@@ -699,7 +699,7 @@ removed. Source/destination automatic cleanup policies keep their separately
 agreed gates; this manual action does not silently override them.
 
 Group 22 approves the separate delete action's scope and explicit confirmation.
-The next decision is how partial failure/retry works, followed by admin access,
+Deletion failure is best effort as agreed in group 22; next settle admin access,
 configuration interaction and exact bounded wire/transaction behavior. No
 physical delete, new endpoint, error code or orphan repair tool is implemented
 or authorized to run by these contract decisions. Production source deletion
@@ -711,7 +711,7 @@ and NFS remain disabled.
 | API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs. |
 | API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions. |
 | API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed. |
-| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; failure/retry, access/configuration and exact responses remain pending. |
+| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; Best-effort failure behavior is defined below; access/configuration and exact responses remain pending. |
 
 SC-147 records file-preserving history clear and retained ownership/accounting.
 SC-148 records separate explicit data deletion. DOC-01/02/03/04/05 must distinguish
@@ -766,13 +766,16 @@ revalidation and fresh confirmation as appropriate. Exact preview/token/revision
 and endpoint schemas remain implementation design, not a new agreed protocol.
 Do not turn one confirmation into blanket recursive deletion of unknown files.
 
-Files already successfully removed cannot be restored by rollback if another
-selected deletion fails. Persist actual progress/receipts, retain unresolved
-ownership and report truthful partial/unknown results; never report all data
-deleted based only on request acceptance. The **next question** is whether
-remaining safe deletions retry automatically or wait for another admin action.
-No new retry interval/budget or response vocabulary is approved yet. Account
-from verified outcomes; selection/history clear alone cannot release bytes.
+**Failure handling simplified by the user on 2026-10-23:** deletion is best
+effort. Attempt the eligible confirmed files; a failed deletion leaves that file
+behind and does not prevent attempts on other independently safe selected files.
+Report failures without claiming everything was deleted. No dedicated paused
+state, automatic retry schedule, resume protocol or deletion-receipt subsystem
+is required. The admin may request deletion again for remaining eligible files
+under the same confirmation and safety rules. Successfully deleted files stay
+deleted; there is no rollback. A failed or uncertain outcome is not proof of
+removal or permission to bypass ownership checks. Keep accounting for remaining
+or unresolved data; selection/history clear alone cannot release bytes.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -781,8 +784,8 @@ from verified outcomes; selection/history clear alone cannot release bytes.
 | API-E94 | Confirmation is absent, rejected or no longer matches selected retained-data identities | No deletion authorization; require explicit matching confirmation and revalidation | Exact request/preview wire contract pending; old confirmation must not target a different/new object. |
 | API-E95 | Root/path/object/parent ownership changes or cannot be proven before deletion | Refuse unsafe effects, preserve ownership/evidence and report review/uncertainty | Do not adopt objects or infer authority from names/UID; no recursive arbitrary-path cleanup. |
 | API-E96 | Worker still active/blocked/terminating, cancellation pending or publication outcome unresolved | Deletion remains unauthorized until safe stop/settlement; confirmation cannot bypass the blocker | Existing actual-exit and remote-settlement limits apply; no signal/timeout shortcut. |
-| API-E97 | Some selected deletion succeeds, then error, lost reply or restart occurs | Preserve verified progress and unresolved ownership; report partial/unknown honestly, no false all-done or claimed rollback. Reconcile original operation before further effects | Retry policy, budgets and exact API response remain next contract decision. |
-| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/retry/confirmation details still to qualify. |
+| API-E97 | Some selected deletion succeeds, then error, lost reply or restart occurs | Best effort: leave failed files behind, attempt other independently safe confirmed files and report failures/unknown outcomes truthfully. No rollback or dedicated pause/resume/retry workflow | Approved simplified behavior; exact response shape pending. Uncertainty never grants authority to delete a different object. |
+| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/confirmation details still to qualify; repeated requests use the same ownership safeguards. |
 
 SC-149 records the eligible/protected categories and SC-150 confirmed safe-stop/
 identity selection. DOC-01/02/03/04/05 must distinguish cancellation, history
