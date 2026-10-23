@@ -241,3 +241,26 @@ Group-19 documentation validation passed: eighty API IDs, previous 143 SC IDs
 plus SC-144/145 (145 total), six DOC IDs, five clear/cancel acceptance cases,
 policy links/anchors and unchanged source hashes/bytes from both retained SLES
 archives. No new Rust build/test, fixture run or qualification result.
+
+## Resumed review: preserve files on cancellation (group 20)
+
+The user approves preserving files on cancellation and asks to document scenarios
+before deciding what happens to them at history clear. Record unclaimed source,
+private claims, partial destination staging, published payloads and valid manifest
+preservation; no automatic restore/delete or withdrawal of a valid 202. Stop new
+work and reconcile authorized effects: pending manifest publication may complete,
+and blocked/live workers or uncertain storage effects prevent safe cancelled/
+clear status. Keep actual ownership/custody and space accounting. Existing data
+already removed by an earlier authorized effect cannot be restored by cancellation.
+
+Add planned SC-146/API-E81-86 and DOC-01-05 obligations, update transfer protocol
+and next-session handoff. Previous 145 SC/eighty API identifiers remain unchanged;
+totals are now 146 SC/86 API situations and six DOC IDs. File disposition and any
+operational records at history clear remain undecided; do not add a ledger, repair
+tool or physical deletion feature by implication. No runtime, dependency,
+production NFS/deletion or qualification changes.
+
+Group-20 documentation checks passed: six cancellation cases; all 86 API review
+IDs; previous 145 SC IDs plus SC-146 (146 total); six DOC IDs; policy links,
+transfer-protocol consistency and next-step handoff. Both retained SLES source
+archives match unchanged runtime inputs. No new Rust/fixture qualification.

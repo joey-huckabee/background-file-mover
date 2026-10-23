@@ -363,14 +363,27 @@ Keep desired execution (`Running`, `Paused`, `Cancelled`) separate from conditio
 (`Ready`, `Retrying`, `Blocked`, `ReconcileRequired`) and source-retention policy.
 
 Pause stops new authorizations and requests cooperative stopping; already
-authorized operations may finish and must be recorded. Before manifest
-authorization, cancellation stops further transfer work and preserves claimed
-sources/published files for explicit recovery or no-clobber restoration tooling.
+authorized operations may finish and must be recorded. Cancellation preserves
+files at their current locations: unclaimed originals, private claimed source,
+partial destination staging and already published payloads/manifests. Do not
+automatically restore original names or delete data. A valid 202 remains a
+monotonic handoff fact; cancellation before 202 does not fabricate one.
+
 Once manifest publication is authorized, cancellation is pending reconciliation:
-it cannot promise the set stayed uncommitted. After commitment, cancellation
-cannot retract visibility; it may request retaining remaining sources, subject
-to already authorized cleanup. No control command blindly deletes staged/final
-objects or restores claims over a producer's newer recording.
+it cannot promise the set stayed uncommitted. After valid manifest publication,
+cancellation cannot retract consumer visibility. Stop new transfer/cleanup
+authorizations; reconcile already authorized effects and record actual results,
+including an operation that completed despite the request. A blocked/live worker
+or unresolved old effect prevents safe terminal cancellation and history clear.
+Preserve ownership through actual worker exit and qualified reconciliation.
+
+File preservation is approved in group 20; cancellation is not implemented.
+[API-E81-86/SC-146](REST-ERROR-SCENARIOS.md#cancellation-preserves-files-in-place-group-20)
+track its cases. Retained files still consume capacity. File disposition and
+operational bookkeeping when history is explicitly cleared remain the next
+contract decision; preservation on cancel does not authorize their deletion or
+a new repair workflow. History-clear UUID forgetting is separate from file
+ownership and normal no-clobber protection.
 
 ## Recovery decisions
 

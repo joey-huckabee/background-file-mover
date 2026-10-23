@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-19, remaining schema decisions and
+current discussion, approved contract groups 1-20, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -546,9 +546,14 @@ same job, after which the recorder can retry the same ID to obtain its 202.
 Define exact backoff timing and restart-persistent pending/error records before
 implementation. A new submission ID must not be used to bypass a failed handoff.
 
-Control acknowledgements persist desired execution and return 202 when effects
-remain asynchronous. Pause/cancel do not promise syscall cancellation or automatic
-restoration. Retry retains job ID, resolved names, claimed sources and ownership,
+Proposed control acknowledgements persist desired execution and may return 202
+while asynchronous effects settle; this is not the producer handoff response.
+Group 20 approves preserving files on cancellation: originals, private claims,
+partial staging and published files stay in place; valid completion manifests
+are preserved. Blocked workers/uncertain publication keep cancellation pending
+and history ineligible to clear. No automatic deletion/restoration; see
+[group 20/API-E81-86](REST-ERROR-SCENARIOS.md#cancellation-preserves-files-in-place-group-20).
+Exact cancel response/deadline and history-clear file disposition remain open. Retry retains job ID, resolved names, claimed sources and ownership,
 allocating new internal operation attempts only when safe. This changes the old
 new-job retry behavior, which could reopen a newer recording at a reused path.
 

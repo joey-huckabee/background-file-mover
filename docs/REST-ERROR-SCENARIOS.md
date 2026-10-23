@@ -8,13 +8,13 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following nineteen groups in successive review replies.
+The user approved the following twenty groups in successive review replies.
 The fifty initial outcome mappings, group-12 error envelope, group-13 retry
 timing, group-14 expected-size policy, group-15 current-configuration behavior,
 group-16 order-independent replay, group-17 UUID requirement and group-18
-manual full-history retention and group-19 admin-clear/UUID-forgetting rules are
-contract decisions, not new runtime capabilities. Groups 14-19 add API-E61-80
-below.
+manual history retention, group-19 admin clear/UUID forgetting and group-20
+file-preserving cancellation are contract decisions, not new runtime capabilities.
+Groups 14-20 add API-E61-86 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -211,7 +211,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-80 are review keys, not replacement requirements or SC IDs.
+API-E01-86 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -506,7 +506,7 @@ history storage and custody/admission accounting interact.
 The user requests a dashboard clear-history workflow. Incorporate it into release
 planning rather than treating this requested workflow as covered by an unchanged
 blanket dashboard deferral. Group 19 defines eligibility and UUID forgetting.
-Release placement, administrative access, cancellation data disposition,
+Release placement, administrative access, file disposition when history is cleared,
 confirmation/audit and exact endpoint behavior still need agreement.
 No generic dashboard or new admin API is implemented by this documentation.
 
@@ -548,8 +548,9 @@ admission, ownership and whole-set claim requirements still apply.
 
 The admin's request to clear data concerns this history workflow; no physical
 source/destination deletion is authorized by it. Source deletion remains disabled.
-Define what cancellation does with claimed source, staging, publication and
-required custody records before implementing cancellation/clear. Such operational
+Group 20 resolves cancellation: preserve source/staging/published files in place.
+Define file disposition and required custody records when history is cleared
+before implementing clear. Such operational
 facts cannot simply be lost while retained files or uncertain effects need them;
 they must not be used as a hidden UUID deduplication tombstone after a clear.
 No offline repair or data-disposal tool is added implicitly.
@@ -582,11 +583,74 @@ still need contract work; do not publish invented response codes as approved.
 | API-E76 | Admin clears a completed job's history | Remove selected detailed history and UUID recognition together; a restart preserves the cleared state; no permanent dedup tombstone | Approved workflow, implementation/qualification pending; administrative wire response still to define. |
 | API-E77 | Admin attempts clear on unfinished, retrying, errored or review-required work | Refuse/skip that ineligible job without removing its history, UUID, custody or state; require explicit cancellation first | Test each state; exact single/bulk reply policy pending. Never use blanket history truncation. |
 | API-E78 | Cancellation has only been requested or workers/effects are still unresolved | Job remains ineligible to clear; retain required ownership and state until safe cancellation completes | Signal/timeout/process lock release alone is not cancellation/remote-settlement proof. |
-| API-E79 | Admin cancels an unfinished/errored job, cancellation safely completes, then clears it | Clear becomes eligible; explicit clear removes history/UUID recognition; current data-ownership rules remain protected | Cancellation/data disposition remains to design and qualify; no implemented cancel/clear route claimed. |
+| API-E79 | Admin cancels an unfinished/errored job, cancellation safely completes, then clears it | Clear becomes eligible; explicit clear removes history/UUID recognition; current data-ownership rules remain protected | File-preserving cancellation is defined in group 20; history-clear file disposition and runtime qualification remain pending. No implemented cancel/clear route claimed. |
 | API-E80 | Cleared UUID is submitted again, with same or different body, including after restart or around a concurrent clear | Treat it as a new recording with fresh internal identity and current checks; no old 202/conflict/route reuse from deleted history. Normal source/destination collision and no-clobber checks remain | Test new actual claim before 202, retained previous destination data and clear targeting the original job only. No new acceptance/overwrite shortcut. |
 
 SC-144 covers late reuse after clearing; SC-145 covers cancel-before-clear.
 DOC-01/03/04/05 must explain both, including the loss of old replay protection.
+
+## Cancellation preserves files in place (group 20)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Cancellation
+stops further transfer work and preserves existing files at their current
+locations. It is not automatic rollback, restoration or data deletion. This
+policy extends the current [transfer protocol](TRANSFER-PROTOCOL.md), not the
+prototype's implemented operator commands: cancel is not implemented yet.
+
+| File state when cancellation is requested | Required handling |
+|---|---|
+| Not yet claimed | Leave at the original source path. |
+| Claimed into private source custody | Preserve at that private path with its original identity/receipt; do not move it back automatically. |
+| Destination copy partially written | Preserve the private staging file and actual progress/effect facts. Do not mark it copied/verified/consumer-complete. |
+| Payload already published, without valid completion manifest | Preserve published files as an incomplete recording. Consumers still require valid COMMITTED.json. |
+| Valid completion manifest already published | Preserve delivered files and the manifest; cancellation cannot retract consumer visibility or undo handoff. |
+
+Do not restore claimed files over producer paths, which may have been reused
+following an earlier 202. A cancellation before 202 does not fabricate path
+release or restore missing originals. Preserve unclaimed originals and private
+claimed files; recovery/data disposition must be separately defined. An earlier
+confirmed 202 remains valid; the recorder does not have to restore old names or
+monitor delivery after that acknowledgement.
+
+Persist the stop/cancel intent before authorizing further work. Stop new claim,
+copy/publication and cleanup authorizations for the cancelled recording. Already
+authorized operations can complete; record and reconcile actual outcomes rather
+than claiming a signal reversed an NFS call. If manifest publication was already
+in flight, cancellation remains pending reconciliation and the set may become
+committed. Never delete a visible valid manifest to pretend cancellation won.
+Deletion already completed cannot be reversed; cancellation does not promise
+restoration of bytes removed before it took effect. Production deletion remains
+disabled in the current implementation.
+
+A blocked worker or unresolved old storage effect keeps cancellation pending.
+Do not mark safely cancelled or allow history clear merely because a cancel
+request was acknowledged, a timeout expired, the coordinator exited or a local
+lock became free. Reconcile the old assignment and retain ownership through
+actual worker exit. The bounded API/control response may report pending without
+pretending the filesystem operation was cancelled; exact cancellation deadline/
+status/wire fields remain contract work, not inherited automatically from stop.
+
+Preserved source and destination bytes still consume capacity. Cancellation
+must keep their ownership/receipts/accounting; it is not a way to release an
+admission budget without actual disposition. The **next decision** is what
+happens to these files and their operational records when an admin clears
+history. Do not approve physical deletion, hidden UUID deduplication tombstones,
+a new retained-file ledger or an offline repair tool merely by documenting
+cancellation preservation. Retained-file tracking versus explicit data disposal
+at history clear must be agreed separately.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E81 | Cancel before any claim | Originals stay at source; stop new claim authorizations; preserve original request/history until explicit eligible clear | Approved policy; cancel endpoint and qualification pending. No automatic 202 or UUID forgetting. |
+| API-E82 | Cancel a partially claimed recording or a fully claimed recording | Retain each private claim and every unclaimed original in place; preserve actual identities/receipts; no automatic restore/delete or new path release | Include before/after 202; existing 202 remains valid, partial handoff does not become complete. |
+| API-E83 | Cancel during partial destination copy | Keep staging bytes and claimed source; stop further work once authorized activity safely settles; no false copied/verified/committed state | Test progress and restart preservation, not merely desired-cancel flag. |
+| API-E84 | Cancel after payload publication but before manifest authorization | Keep published payload/staging/source; authorize no new completion manifest; consumers continue to ignore incomplete recording | Cancellation doesn't remove final files or overwrite reused source paths. Previously authorized effects remain separately reconciled. |
+| API-E85 | Cancel while manifest publication is authorized/in flight or valid COMMITTED.json is already visible | Reconcile actual publication; preserve visible recording/manifest. Do not report that cancellation kept it uncommitted when publication actually completed | Include visibility before local result receipt; no retraction of delivered data or earlier 202. |
+| API-E86 | Cancel while a worker is blocked/terminating or storage effects are unresolved | Keep cancellation pending, files/ownership/state protected and history ineligible to clear until safe settlement and actual worker exit | No timeout/signal-as-proof or unsafe replacement; exact bounded cancel response remains to define. |
+
+SC-146 and DOC-01/02/03/04/05 must explain retained files, consumer commitment,
+cancel-pending/clear eligibility, producer-path reuse and unchanged space usage.
+These are planned contract cases; no new Rust/NFS/SLES result is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -612,10 +676,10 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-19 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-20 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
-full-history retention and eligible admin clear that forgets UUIDs. The unused Rust producer wire format may
+full-history retention, eligible admin clear that forgets UUIDs and file-preserving cancellation. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -629,12 +693,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-80 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-86 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the eighty situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the eighty-six situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.
