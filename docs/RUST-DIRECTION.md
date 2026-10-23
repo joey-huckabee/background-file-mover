@@ -105,6 +105,12 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
+before freezing P01. Missing-file 409 and new recording-ID wire compatibility
+remain proposals; the implemented missing-file response is still retryable 503.
+No implementation is authorized merely by listing a proposed scenario.
+
+
 Current next work follows the [release-closure review](RUST-RELEASE-CLOSURE.md): P01 freezes the versioned API/manifest and release behavior inventory.
 Use RC-01-24 and P01-12 to bound remaining work; do not automatically select
 another NFS experiment. All eight gates remain open. Keep production NFS and

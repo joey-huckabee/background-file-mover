@@ -15,6 +15,11 @@ another NFS experiment merely because more combinations are possible.
 
 ## Next work
 
+- [ ] Review and agree on [API-E01-60](REST-ERROR-SCENARIOS.md) in small groups
+  before freezing P01. Resolve ER-D01-07, including missing-file 409 versus
+  current 503, retry/envelope rules and new global recording-ID compatibility.
+  Keep unapproved proposals separate from implemented responses.
+
 - [ ] P01: Freeze versioned OpenAPI, manifest validation and supported route,
   retry/error, ID-retention, encoding/path and metadata contracts. Reconcile
   draft-only features against active requirements without silently dropping them.

@@ -1,0 +1,249 @@
+# REST error scenarios: review draft
+
+Recorded 2026-10-23. **For discussion, not an approved or implemented contract.**
+The user asked to review the scenarios and agree on codes before implementation.
+This document supports P01/RC-01-03 of the
+[release plan](RUST-RELEASE-CLOSURE.md); it does not add new release gates.
+No runtime, persistence, retry/review policy or NFS/deletion switch changes here.
+
+## Decisions carried forward from the discussion
+
+- Recorder submits generator identity, a globally unique recording ID, the full
+  source directory as the mover sees it, and every file explicitly. Preserve
+  subfolders; do not recursively discover files. Destination is configured.
+- Generate the recording ID once; reuse it and the same request on retries.
+  Same ID with a changed generator, source folder or file list conflicts.
+- Submission 202 confirms durable custody of every file and permission to reuse
+  original paths. A partial claim, saved request or timeout is not that permission.
+  The recorder has no delivery-monitoring duty after confirmed 202.
+- Identical successful replay returns 202, including after delivery finishes,
+  subject to the authorized replay boundary. Authentication revocation does not
+  reverse an already received valid 202.
+- One missing file can leave the submission pending while other claims remain
+  protected. Temporary conditions should be distinguishable from correction or
+  review conditions. The specific missing-file HTTP mapping is **not agreed yet**.
+
+The discussed minimal JSON uses `recording_id`, `source_directory` and string
+file names. The current implementation instead requires `submission_id`,
+`source_path` and file objects containing `name`, with optional `size_bytes`.
+Global recording-ID enforcement and recording-ID destination layout also differ
+from the implemented model. Do not describe the discussed JSON as usable today.
+Optional size assertions remain an existing capability; their representation in
+the new minimal form needs a compatibility decision, not silent removal.
+
+## Proposed response and recorder rules
+
+HTTP describes the broad outcome. `error` is a stable application code;
+`retryable` gives the recorder its action. Human diagnostic text is not parsed.
+A retryable result means repeat the **same ID and unchanged request**, not create
+a new recording. Review/correction means log/alert and preserve remaining source
+paths; never try a new ID to bypass a partial handoff.
+
+Recommended error shape, still pending agreement:
+
+```json
+{
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "error": "source_file_missing",
+  "retryable": true,
+  "retry_after_seconds": 5,
+  "source_paths_released": false
+}
+```
+
+`recording_id` may be null/omitted if unavailable, invalid or unsafe to disclose.
+The exact null/omission convention remains open. Relative offending file names
+can be included in bounded authorized diagnostics; no other generator's IDs,
+job existence, absolute private paths or credentials are disclosed.
+
+The proposed `source_paths_released:false` means **this response grants no new
+release**, not that no file was claimed or that a previous 202 is revoked. Only
+the submission's valid, matching 202 grants the recorder release. Operator status
+or command replies are not a substitute. Error responses cannot authorize
+putting previously claimed files back under their original names.
+
+For controlled retryable replies, propose a bounded positive
+`retry_after_seconds`; 5 is illustrative, not a frozen universal interval.
+For 429/503 also send `Retry-After` consistently. Do not rely on a proxy/client
+honoring that header on 409; the JSON field supplies its explicit contract.
+No retry delay cancels a running worker, extends a missing deadline, guarantees
+storage recovery or overrides persisted review. Application acceptance retries
+and background delivery retries are different mechanisms.
+
+Clients must also handle an absent/invalid body or no HTTP response. Proposed
+fallback: connection loss and 408/429/500/502/503/504 without a valid mover body
+permit an unchanged retry with capped backoff and alerting for persistent failure.
+No new path release; no assumption that effects did not happen. TLS validation or
+certificate rejection requires correction, not blind repeated submissions.
+Unexpected success codes, redirect responses, mismatched IDs and invalid 202
+bodies are protocol problems: preserve paths and alert, without following redirects
+or accepting success. Retry/alert budget and exact validation remain review items.
+
+`retryable:false` stops automatic recorder retries for that condition. It does
+not cancel retained work, authorize deletion, or declare the job unrecoverable.
+Operator recovery uses the original state and existing audited procedures.
+
+## Submission outcomes and source conditions
+
+Every row below is a proposed acceptance scenario, **not a new passing test**.
+`Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
+under `rust/crates/`, plus the linked operator/remote contracts. It does not
+assert that every listed variant has been separately qualified. Scenario IDs
+API-E01-60 are review keys, not replacement requirements or SC IDs.
+
+| ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E01 | First submission, every file durably claimed | 202; no error | Success; all original paths may be reused | Implemented, but current body uses numeric job ID and `Claimed`; discussed recording-ID response remains pending. |
+| API-E02 | Identical retry after lost 202, or after delivery completed | 202; no error | Same confirmation; never claim reused leaves | Existing replay uses generator/submission identity and custody validation. Global recording ID and exact post-delivery response need agreement/mapping. |
+| API-E03 | Same recording ID, changed source directory/file list/size assertion or other immutable request data | 409 `recording_id_conflict` | No; retain original body/custody, investigate | Current 409 `submission_conflict`; proposed naming/global key differs. File order currently matters; equivalence rules are open. |
+| API-E04 | Same recording ID submitted by another generator | 409 `recording_id_conflict` only after allowed authorization; otherwise 403 generic denial | No; no cross-generator job/detail disclosure | Global namespace change is not implemented. Authorization must precede existence disclosure; settle exact denial with the remote contract. |
+| API-E05 | One explicitly listed file is confirmed absent on an accessible authorized source | 409 `source_file_missing` | Yes, within the persisted missing-file window; preserve already claimed files | **Proposed change:** current 503 `handoff_pending`. A missing RPC reply/timeout is not absence proof. |
+| API-E06 | Several files already claimed, another listed file confirmed missing | 409 `source_file_missing` | Yes within window; whole-set release remains withheld | Same current 503 pending behavior; no change to partial-custody safety. No per-file permission for producer reuse. |
+| API-E07 | Missing-file deadline expires or persisted missing review block exists | 409 `recording_blocked` | No; operator reviews original job and, if appropriate, audited exact-file reset | Current 409 false. Restart/recorder retry never resets the deadline. Proposed dedicated code, if desired, needs evidence/schema discussion. |
+| API-E08 | A file appears after missing deadline expired | 409 `recording_blocked` | No automatic clearing; same operator workflow | Existing review boundary must remain; presence alone does not reset review. |
+| API-E09 | Expected size assertion differs from observed file size | 409 `source_size_mismatch` | No; inspect original request/object; no new ID bypass | Current 409 false; service measures actual size even when no assertion provided. |
+| API-E10 | Source inode/size/parent identity changes during a pending claim | 409 `recording_blocked` | No; review custody/producer immutability violation | Current generic false refusal; selected cases in SC-138. More specific codes require typed proven causes. |
+| API-E11 | Actual source leaf is symlink/nonregular or descriptor traversal/alias checks fail | 409 `recording_blocked` | No; inspect source and configured scope | Current claim refusal is broad; syntactically invalid paths are separate API-E25. No follow-links fallback. |
+| API-E12 | Submitted source is reserved by another accepted recording | 409 `source_reserved` | No blind retry/new ID; investigate original reservation | Current 409 false; never steal custody or disclose another generator's job. |
+| API-E13 | NFS access times out or claim worker has not returned before HTTP handoff budget | 503 `handoff_pending` | Yes with same request; retain original state and exclusion through actual worker exit | Current 10-second handoff timeout returns pending. This is uncertain progress, not failure/cancellation or confirmed missing input. |
+| API-E14 | Source mount/root/enrollment identity changes, private namespace is foreign/ambiguous, or ownership guard validation fails | 409 `recording_blocked` if serving; otherwise startup refusal/no HTTP | No; preserve state, inspect configuration/custody; never rebind automatically | Current broad refusal. Root/mount availability is distinct from authority; timeout alone cannot downgrade this to a safe retry. |
+| API-E15 | Source-space admission enabled and confirmed below configured margin | 503 `source_space_low` | Yes; restore capacity; no new-job admission or false 202 | Existing; default off. Existing accepted-key replay bypasses this new-job check, not custody checks. |
+| API-E16 | Enabled source-space probe unavailable/stale/blocked | 503 `source_space_unavailable` | Yes; no unknown-as-zero/positive guess | Existing; preserve current probe wait/admission behavior and existing-job retries. |
+| API-E17 | Source metadata allocation/write/sync fails with confirmed ENOSPC/EDQUOT | 503 `source_capacity_unavailable` only with safe typed evidence; otherwise 409 `recording_blocked` for ambiguity | Conditional; retry only owned reconciliation, never blindly repeat uncertain namespace effects | Proposed diagnostic refinement; generic claim errors currently return 409 false. Not the same as a low sampled admission margin. |
+| API-E18 | Service account cannot access source files/private areas | 409 `recording_blocked` | No blind retry; operator fixes approved permissions then reconciles | Current broad claim refusal; this is filesystem permissions, distinct from caller 403. No arbitrary-path disclosure. |
+| API-E19 | Retained job/byte accounting reaches configured admission bound | 503 `retention_capacity` | Yes; operator addresses retained capacity; preserve partial state | Existing; no cleanup is implied while deletion is disabled. |
+| API-E20 | Local SQLite transaction cannot complete; commit outcome may be unknown | 503 `storage_unavailable` | Yes with same ID; alert operator on persistent failure | Current broad retryable result. Does not prove rollback/no job; if DB is corrupt/ownership unsafe, stop effects and require review/startup refusal instead. |
+| API-E21 | Mover handoff queue is full | 503 `service_busy` | Yes with backoff; bounded queues remain | Existing. Separate from caller rate limiting (API-E39); no new 429 mapping here without review. |
+| API-E22 | Mover is draining/stopping | 503 `service_stopping` if response possible; otherwise lost connection | Yes against original owner/profile when available; no new effects after stop admission | Existing result; a stop timeout does not permit replacement while old workers/effects remain uncertain. |
+
+## Request validation, caller boundary and transport
+
+| ID | Situation | Proposed HTTP / code | Retry? / action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E23 | Invalid JSON, duplicate/unknown fields, wrong field types, missing required fields, invalid recording ID | 400 `invalid_json` for decoding failures; 400 `invalid_submission` for invalid structure/values | No; correct integration without bypassing any previously accepted ID | Existing decoder uses these codes. Exact UUID syntax/new field compatibility pending; do not require a specific UUID version yet. |
+| API-E24 | Empty file list, too many files, duplicate file paths, malformed/negative/overflow size assertions | 400 `invalid_submission` or `invalid_file_paths` according to frozen schema mapping | No; correct request; unchanged accepted request remains authoritative | Existing bounded validation, but detailed code precedence is not yet frozen for the new form. HTTP body size is API-E30. |
+| API-E25 | Relative source directory, invalid encoding, absolute file name, empty component, backslash, NUL, `.`/`..` or invalid normalized path | 400 `invalid_file_paths` for file paths; 400 `invalid_submission` for source-directory syntax | No; correct request | Existing input validation has these broad codes. No lexical string-prefix authorization. |
+| API-E26 | Well-formed source path outside configured generator scope | 403 `source_outside_scope` | No; operator-approved configuration/identity required | Existing 403; cannot grant access by changing JSON identity or supplying destination. |
+| API-E27 | Unknown generator or caller/body generator mismatch | 403 `unknown_generator` or generic `caller_not_authorized`, with non-disclosing mapping | No; fix identity/authorization | Unknown generator already 403. Remote caller binding and exact mismatch code not implemented. |
+| API-E28 | Client supplies destination or mixes old/advanced/new request forms | 400 `invalid_submission` | No; use approved form; destination is configured | Minimal generator form already rejects destination/unknown fields; explicit advanced form remains proposed. Compatibility/version choice pending. |
+| API-E29 | Missing/unsupported Content-Type for JSON endpoint | 415 `unsupported_media_type` | No; correct request | Existing exact application/json check. Charset/media parameter policy needs explicit freezing. |
+| API-E30 | Declared or actual request body exceeds bounded maximum | 413 `request_too_large` | No unchanged retry; correct request/approved limits, never split an accepted recording blindly | Current framing uses 413 `invalid_http`; more specific code proposed. Both proxy and backend must enforce bounds. |
+| API-E31 | Header bytes/count exceed bounded maximum | 431 `request_headers_too_large` | No unchanged retry; correct headers | Current oversized header bytes produce 431 `invalid_http`; header count parser failures can produce 400. Proposed precise mapping requires parser evidence. |
+| API-E32 | Malformed framing, contradictory/duplicate length, unsupported transfer encoding, duplicate header, pipelined extra bytes or bad HTTP syntax | 400 `invalid_http` | No automatic replay of malformed bytes; fix integration | Existing strict framing; no transfer-encoding fallback/request smuggling. Connection may close without a reply. |
+| API-E33 | Request read deadline expires | 408 `request_timeout` | Yes on a fresh connection with unchanged complete body | Existing five-second backend read timeout; distinguish proxy timeouts and stalled NFS handoff. |
+| API-E34 | EOF/incomplete body or connection reset during sending | 400 `incomplete_request` if obtainable; otherwise no reliable response | Correct persistent framing faults; if transport loss is uncertain, unchanged retry | Current EOF code false. Transport fallback must distinguish received valid rejection from absent/malformed response; no handoff release either way. |
+| API-E35 | Unknown API route or unknown local operator job | 404 `not_found` | No unchanged retry; correct endpoint/ID; do not reinterpret missing source files as endpoint 404 | Existing; producer remote ingress must not expose job existence. |
+| API-E36 | Wrong HTTP method on an allowed route | 405 `method_not_allowed` with required Allow header | No; correct method | Current status/code exist; required Allow header is not emitted by current response writer. |
+| API-E37 | Body on bodyless GET; conflicting optional Idempotency-Key header | 400 `unexpected_body` or `idempotency_key_conflict` | No; correct integration; header must match the authoritative request/command key | Existing. New recording-ID/header equivalence and canonicalization pending. |
+| API-E38 | Missing Host or unsupported Expect/Authorization headers on current endpoint | 400 `unsupported_headers` locally; remote auth/header-spoof mapping per RA contract | No; correct integration | Existing local behavior; bearer tokens/registration are deferred. Do not silently turn this into a new 401 challenge scheme. |
+| API-E39 | Authenticated producer exceeds per-caller/global remote connection/request budget | 429 `rate_limited` plus Retry-After when known | Yes with backoff; preserve local operator/control capacity | Remote contract RA-13 is pending; current local queue saturation uses 503, not 429. Exact rate/concurrency distinction needs package design. |
+| API-E40 | TLS server identity invalid or client certificate absent/untrusted/expired | TLS failure; no guaranteed HTTP status/body | No blind retry; correct provisioning/clock/trust, never bypass certificate verification | Remote profile design only. Do not promise JSON/401 for a TLS-handshake rejection. |
+| API-E41 | Verified client certificate unmapped/revoked, or injected identity/Authorization/reserved headers | 403 `caller_not_authorized` for caller denial; 400 `unsupported_headers` for rejected header syntax/policy | No; correct provisioning/header behavior; original work continues | Pending RA-03-06/09/10; exact non-disclosing split must be frozen with proxy selection. |
+| API-E42 | Wrong local proxy UID, missing/duplicate principal, foreign/replaced backend socket | OS/socket denial, or 403 `caller_not_authorized` if an HTTP reply is safe | No; operator fixes trusted proxy/socket boundary | Pending protected producer ingress; default unsafe configuration fails startup. No direct TCP/anonymous fallback. |
+| API-E43 | Remote producer tries status/retention/operator/registration route, path alias or query bypass | Generic 403 `producer_route_forbidden` recommended at both hops | No; producer ingress exposes exact POST only; no job existence disclosure | Pending RA-08/13; choose consistent deny status with proxy. Local authorized 404/405 behavior stays separate. |
+| API-E44 | Proxy cannot connect to backend or gets invalid upstream reply | Proxy 502, or 503 for known backend unavailability; body may be proxy-generated | Yes unchanged request with capped backoff/alert; no automatic proxy POST replay | Pending proxy qualification; preserve distinctions between transport and mover JSON. |
+| API-E45 | Proxy waits too long for backend | Proxy 504; body may not follow mover schema | Yes unchanged request; old claim work may still run | Not evidence of cancellation/no effects. Backend handoff deadline should be shorter than proxy/recorder budgets. |
+| API-E46 | Process/proxy dies, network disconnects or recorder times out after any claim phase or after 202 generation | No reliable HTTP outcome | Same-ID unchanged retry; preserve all remaining paths until confirmed 202 | Existing local durable replay; remote end-to-end qualification pending. |
+| API-E47 | Unexpected server bug returns 500 or a non-JSON failure | 500 if response possible | Proposed bounded same-ID retries and alerting; stop unsafe server effects if authoritative state is uncertain | No deliberate generic 500 contract in current handler; never expose stack traces/secrets or fabricate success. |
+| API-E48 | HTTP redirect, unexpected 2xx, wrong recording ID or malformed purported 202 | Protocol violation, no accepted handoff | Preserve paths; alert; do not follow POST redirects or accept a partial success indication | Proposed client contract validation/fallback; retry details need agreement. |
+
+## Local operator API and failures after handoff
+
+These routes are local operator operations; the recorder need not implement them.
+Their errors must not be exposed through the remote producer socket. Successful
+operator HTTP 200 does not grant a new recorder handoff. Background failures are
+reported in job state/diagnostics, not pushed back to a recorder that already left.
+
+| ID | Situation | Proposed HTTP / code | Retry? / action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E49 | Invalid numeric job ID, resume/reset body, epoch, reason, command ID or window | 400 `invalid_job_id`, `invalid_resume` or `invalid_missing_reset` | No; correct operator request | Existing codes and bounded command validation. |
+| API-E50 | Operator reads/resumes/resets an unknown job | 404 `not_found` | No; inspect correct original state/ID | Existing; do not restore a stale DB to make the lookup succeed. |
+| API-E51 | Resume/reset uses stale review epoch, ineligible job/file or unmet review prerequisites | 409 `review_conflict` | No blind retry; inspect current status before a new audited command | Existing; wrong epoch does not reset failure budget or missing deadline. |
+| API-E52 | Reuse command ID with changed parameters | 409 `command_conflict` | No; keep original command for uncertain retry | Existing. Exact command replay succeeds with original receipt, without changing later state. |
+| API-E53 | Operator audit-record capacity reached | 409 `operator_audit_capacity` | No blind retry; operator investigates supported retention | Existing; no unaudited bypass/deletion. |
+| API-E54 | Operator queue/status storage unavailable or timeout | 503 `service_busy` or `storage_unavailable` | Yes; read retries are safe, command retries preserve command ID/body | Existing. Timeout does not prove command transaction failed. |
+| API-E55 | Destination unavailable/full after valid 202 | Status GET 200 containing retry/review condition; no new submission error | Recorder does nothing after confirmed 202; operator follows retained delivery policy | Existing destination deferral and payload ENOSPC schedules; do not change those intervals/budgets through API mapping. |
+| API-E56 | Verification mismatch, collision, changed destination/custody or uncertain publication after 202 | Status GET 200 with blocked/retrying/review diagnostic | Recorder has no duty; operator investigates original receipts/state | Existing delivery policy/receipt rules; never translate failure into revoked path release or overwrite permission. |
+| API-E57 | Source cleanup disabled or later fails after committed manifest | Status GET 200 with retained/pending/review cleanup accounting when implemented | No recorder retry; independent operator cleanup workflow | Cleanup runtime currently hard-disabled. Future effect errors do not revoke delivery/202 or trigger recopy. |
+| API-E58 | Service not ready, bootstrap blocked or startup config/ownership/state refusal | No listening/served HTTP response; supervisor/startup diagnostic | Fix unsafe config/state; for temporary startup wait retry original submission with backoff | Existing startup readiness boundary; not a guaranteed 503/readiness endpoint. No second mover takeover on timeout. |
+| API-E59 | Stop/status controller times out, owner unavailable or worker survives coordinator death | Local lifecycle protocol/exit status, not REST HTTP code | Existing bounded incomplete/restart-blocked workflow | Do not invent REST status codes for the separate Unix operator controller; preserve actual-exit exclusion. |
+| API-E60 | Consumer sees payload/manifest absent or invalid, or only a staging/partial name | Consumer contract condition, not a new mover REST endpoint/status | Wait for valid COMMITTED.json; report invalid manifest/collision to operator | Filesystem destination has no implemented artifact HTTP endpoint. Never infer completion from a visible payload alone. |
+
+## Missing file: decision to review first
+
+Recommendation: API-E05/E06 use 409 with `source_file_missing` and
+`retryable:true`; API-E07/E08 use 409 with `recording_blocked` and
+`retryable:false`. Keep 503 for unavailable service/storage or uncertain pending
+handoff. These are **our API mappings**, not status choices mandated by HTTP.
+409 describes state conflict and does not inherently mean permanent failure.
+503 must not be used to pretend a confirmed missing input is a server outage.
+
+An alternative is to retain current 503 pending behavior for compatibility while
+adding the specific application cause. Decide before implementing; the earlier
+conversation's 503 and then 409 examples were recommendations, not two approved
+contracts. No HTTP code alone determines whether original files can be reused.
+
+## Decisions still needed before freezing OpenAPI
+
+| Decision | Question to settle | Affected scenarios |
+|---|---|---|
+| ER-D01 | Adopt proposed missing-file 409/true, retain 503/true, or choose another mapping? Preserve deadline/review semantics either way. | E05-08 |
+| ER-D02 | Confirm stable code names and specificity. Keep broad `recording_blocked` initially versus add proven typed causes? Do not promise diagnostics the adapter cannot establish. | E03/09-18/23-24/30-31 |
+| ER-D03 | Confirm minimal response fields, null/omission, bounded details, retry delay configuration/backoff/alert behavior and proxy/non-JSON fallback. | E01-02/33-34/39/44-48 |
+| ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
+| ER-D05 | Resolve compatibility/versioning for discussed field names/string files and existing optional size assertions/advanced proposal. No automatic silent wire change. | E03/09/23-25/28 |
+| ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
+| ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
+
+Review these in small groups: missing/pending/review first; ID conflicts and
+validation second; unavailable/capacity third; response/retry behavior fourth;
+remote and operator boundaries last. Agreement on one group does not freeze all
+remaining rows.
+
+## Implementation plan after agreement
+
+1. Record reviewed decisions and freeze an OpenAPI response/error registry with
+   request/success schemas. Give each application code one defined condition,
+   status, retry rule, permitted details and evidence needed to select it. Define
+   precedence: framing/size, authentication/route boundary, schema/source scope,
+   identity replay/admission, then claims. Retain stronger fail-closed checks.
+2. Design durable global recording-ID ownership and wire compatibility before
+   changing keys/paths. Qualify migration, concurrent duplicate submissions,
+   legacy replay and state preservation. Freeze recorder retry/retention rules.
+3. Add typed missing/pending/refusal facts through workers/store where needed;
+   select codes from proven facts, not message strings or inferred ENOENT after
+   a timeout. Keep existing missing deadlines, review, capacity and delivery
+   policies unless separately approved. No new filesystem effect authorization.
+4. Implement reviewed HTTP mapping/envelope, Allow and retry headers, and exact
+   local producer/authorized-operator route behavior. Do not expose remote TCP
+   as a shortcut; protected ingress and proxy remain P02/P03.
+5. For each approved API-E row, retain an exact fixture/input/outcome assertion
+   or explicit non-HTTP/manual disposition. Test conflicting and identical
+   concurrent requests, missing-before/after-deadline and partial claims, lost
+   response/continued work, replay after commit, malformed input and error-body
+   fallback. Assert no false 202, no new path release, original state preserved,
+   no duplicate unsafe effects, no cross-generator leakage and bounded load.
+6. Run every Rust build/test through the production and retained qualification
+   [SLES/glibc-2.22 gates](RUST-SLES-GATE.md). Execute required controlled NFS
+   cases for changed source/error boundaries, not a fresh unbounded fault suite.
+   Update SC evidence, DOC-01 retry instructions, DOC-03 operator explanations
+   and DOC-04/05 limits. Mark pending remote cases until P02/P03 qualify them.
+
+This is an error-mapping plan within P01 and dependent implementation packages,
+not authorization to implement all proposals before user review. All eight FR
+gates remain open. Production NFS and source deletion stay disabled.
+
+## Standards and review evidence
+
+The recommendations were checked against
+[HTTP semantics, RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-status-codes)
+and [429/431 definitions, RFC 6585](https://www.rfc-editor.org/rfc/rfc6585.html).
+These specify status meanings; application names, missing-file treatment and
+retry policy above are design decisions for this service, not RFC prescriptions.
+
+Current-code review covers `lib.rs`/`http.rs`,
+[missing reset](RUST-INCREMENT-09.md), [resume](RUST-INCREMENT-08.md),
+[delivery retry policy](DELIVERY-RETRY-POLICY.md),
+[remote contract](REMOTE-API-ACCESS-CONTRACT.md) and
+[scenario catalog](RUST-SCENARIOS.md). No runtime or fixture tests were run for
+this document. Existing scenario evidence remains scoped to its original inputs.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Draft sixty REST outcome/error scenarios for user review before implementation. Record current versus proposed codes, same-ID retry and partial-custody behavior, remote/transport/operator distinctions and a bounded implementation sequence. Missing-file 409 and global-ID wire changes remain pending review; no runtime, retry/review, production NFS or source-deletion changes.
+
 - Review all eight Rust release gates against implementation and retained evidence. Establish RC-01-24 acceptance families, P01-12 execution order and explicit profile/capability decisions; next freeze the versioned API/manifest contract. Preserve historical checklist evidence, keep the roadmap forward looking and clarify that default-off source cleanup is required for release. No new runtime behavior or qualification result; production NFS and deletion remain disabled.
 
 - Qualify pre-effect source inode/size refusal after a partial two-file handoff. Preserve existing non-retryable 409, original intent/private custody and no delivery through two unpaused restarts; independently audit sixteen SQLite/WAL snapshots. Document SC-138 and step-by-step testing limits. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.

@@ -21,6 +21,18 @@ required instructions. No runtime/fixture/SLES test was rerun for this review.
 
 ## Scope and reading rules
 
+The [error-scenario review](REST-ERROR-SCENARIOS.md) adds API-E01-60 as pending
+contract-review keys, not new tested SC situations. Its source/handoff cases
+map to SC-001-012; background delivery/consumer cases to SC-014-022; operator
+cases to SC-023-033; capacity to SC-071/074/081; remote access to
+SC-043/082-086. Exact scope remains in each original SC row. In particular,
+SC-008 still describes implemented 503 handoff_pending; the proposed 409
+source_file_missing is **not agreed or implemented**. DOC-01 needs the approved
+retry-versus-review table, delay and invalid/non-JSON response handling;
+DOC-03 needs operator-only errors; DOC-04/05 must separate transport, startup,
+post-202 delivery and custody uncertainty. Preserve 138 SC and six DOC IDs.
+
+
 The current service is a trusted **loopback, protected local-filesystem prototype**,
 with one configured generator/source and a destination selected at startup.
 NFS works only in the retained opt-in qualification build and controlled fixture.

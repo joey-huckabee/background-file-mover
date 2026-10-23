@@ -1,5 +1,13 @@
 # Rust REST API contract draft
 
+The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
+current discussion, proposed codes and implementation differences. Review and
+agree on that matrix before freezing OpenAPI or changing runtime responses.
+The discussed global recording ID/full source directory/string-file form is
+not the implemented wire format shown below. That document labels agreed
+workflow decisions separately from pending field compatibility/error mappings.
+
+
 This proposal extends the existing job-oriented REST interface to completed
 recording sets and makes source-path release explicit. Review it alongside
 [TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). It is a starting point for producer

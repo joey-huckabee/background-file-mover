@@ -58,6 +58,12 @@ A gate needs passing evidence and user instructions for its declared profile.
 
 ## Next work and release decisions
 
+Before freezing P01, review [the error scenarios](REST-ERROR-SCENARIOS.md)
+with the user and record agreement by group. API-E01-60 are proposed contract
+cases, not qualification passes. Do not implement the proposed missing-file
+409/global-ID wire changes as if they were existing behavior.
+
+
 Next: P01, freeze versioned OpenAPI, manifest validation and the supported route,
 error/retry, path/metadata and ID-retention inventory. Preserve existing behavior
 and identify design decisions before changing it. Remote access (P02-03), durable

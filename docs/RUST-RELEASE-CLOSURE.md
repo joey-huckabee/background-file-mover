@@ -132,6 +132,11 @@ derived merely from a successful process/container restart.
 
 ## Ordered work packages
 
+P01 input: [API-E01-60 and ER-D01-07](REST-ERROR-SCENARIOS.md) are under user
+review. Freeze their decisions before implementing response or identity changes;
+this draft refines RC-01-03 without adding a release gate or claiming evidence.
+
+
 | Package | Concrete deliverable | Dependencies |
 |---|---|---|
 | P01 | Freeze versioned OpenAPI, manifest and supported release behavior/error/retention inventory. Identify unresolved active requirements explicitly. This is the next increment. | Review baseline |

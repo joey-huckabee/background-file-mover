@@ -2,6 +2,11 @@
 
 ## Current direction (2026-10-13)
 
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-60 for user review
+before P01 is frozen. Separate agreed workflow from proposed status/code/body
+mappings and global-ID wire changes. No runtime error-policy change in this draft.
+
+
 Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.
 Use RC-01-24 and P01-12 to bound remaining work; do not automatically select
 another NFS experiment. All eight gates remain open. Keep production NFS and
