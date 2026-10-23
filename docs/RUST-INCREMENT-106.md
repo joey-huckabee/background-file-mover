@@ -288,3 +288,26 @@ Group-21 documentation checks passed: five new history-clear/retained-data cases
 links/anchors and transfer-protocol/handoff agreement. Both retained SLES source
 archives match current runtime bytes/hashes. No new Rust build/test, fixture run
 or qualification result is claimed.
+
+## Resumed review: confirmed owned retained-data disposal scope (group 22)
+
+The user approves deleting only mover-owned retained source and unfinished
+destination after work safely stops, with confirmation and protection for
+unclaimed originals/completed recordings. Record original identity/root evidence,
+current selection/ownership revalidation, blocked-worker/uncertain publication
+refusal and cleared/reused UUID isolation. Explicit disposal may remove a
+cancelled recording's only source copy; it is not successful delivery or a
+relaxation of automatic postcommit cleanup. Preserve completed-output protection
+independently of cleared history and keep production deletion/NFS disabled.
+
+Add planned SC-149/150 and API-E92-98 (seven cases). Preserve original 148 SC/91
+API identifiers; totals become 150 SC/98 API situations plus six DOC IDs. Update
+protocol/user obligations and advance the next question to partial-failure/retry,
+then admin access/configuration and exact wire/bulk/confirmation. No new deletion
+endpoint, retry budget, physical effect, orphan repair tool, Rust/fixture run or
+compatibility result is claimed.
+
+Group-22 documentation checks passed: 98 API cases, 150 unique SC IDs and six
+DOC IDs; original identifiers preserved; policy links/anchors and handoff agree.
+Both retained SLES source archives match unchanged runtime inputs. No new Rust
+build/test, fixture run or compatibility qualification is claimed.

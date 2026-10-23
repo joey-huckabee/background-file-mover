@@ -383,12 +383,24 @@ track its cases. Retained files still consume capacity. Group 21 approves
 preserving files on history clear, with separate operational ownership/accounting
 while detailed history and UUID recognition are removed. No hidden UUID replay
 tombstone or full-history copy is retained by that separation. A separate explicit
-admin action is required for retained-data deletion; scope and destructive-action
-safety/authorization remain to agree before implementation. No new general repair
+confirmed admin action is required for retained-data deletion. Group 22 limits
+it to owned retained source and unfinished destination after safe stop, protecting
+unclaimed originals and completed output. Its failure/retry, access/configuration
+and exact wire behavior remain to agree before destructive implementation. No new general repair
 workflow or physical deletion is approved merely by clearing history. See
 [API-E87-91/SC-147/148](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
 Normal no-clobber/ownership rules still apply to new submissions under forgotten
 UUIDs; the old files cannot be adopted or overwritten by UUID matching alone.
+
+
+Manual retained-data disposal may intentionally discard a cancelled recording's
+only source copy and must be explicit about that loss. It does not certify
+delivery or weaken automatic postcommit deletion requirements. Confirm and
+revalidate exact retained-data identity; refuse unknown ownership, live workers
+or unresolved publication. Never delete completed output to clear a budget.
+[Group 22/API-E92-98](REST-ERROR-SCENARIOS.md#confirmed-retained-data-deletion-owned-leftovers-only-after-safe-stop-group-22)
+records scope/confirmation and pending partial-failure/retry cases. No physical
+deletion is enabled by this contract text.
 
 ## Recovery decisions
 

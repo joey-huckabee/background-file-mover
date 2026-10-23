@@ -16,10 +16,11 @@ or safely cancelled jobs are eligible. Cancellation now preserves files in place
 (group 20, SC-146/API-E81-86), including source claims, partial staging and valid
 published recordings. Blocked workers/uncertain publication keep it pending.
 History clear now also preserves files and separate ownership/accounting while
-forgetting UUID recognition (group 21, SC-147/148/API-E87-91). Physical retained-data
-deletion needs a separate explicit admin action. Next define that action's file
-scope/eligibility, authorization/confirmation and safe recovery; then finalize
-admin wire/bulk/concurrency/schema;
+forgetting UUID recognition (group 21, SC-147/148/API-E87-91). Physical retained-data deletion needs a separate explicit admin action. Its
+scope is now approved in group 22 (SC-149/150/API-E92-98): owned retained source
+and unfinished destination only, after safe stop and confirmation. Protect
+unclaimed originals and completed output. Next decide partial-failure/retry,
+admin access/config interaction and exact wire/bulk/concurrency;
 do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
@@ -31,9 +32,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-one reviewed groups are recorded, including separate cancel/clear/delete: fifty initial outcome mappings, a shared
+Twenty-two reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 148 stable SC IDs and six DOC IDs; API-E01-91 are contract/acceptance
+now has 150 stable SC IDs and six DOC IDs; API-E01-98 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -78,13 +79,12 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Define the separate explicit retained-data delete action: eligible files/jobs,
-   protection of unclaimed originals/completed output, config/permission and
-   confirmation, qualified effects and restart/unknown-outcome handling. The
-   user already resolved cancel and history clear to preserve files; do not ask
-   those questions again. Separate operational file ownership/accounting survives
-   clear without retaining old UUID replay recognition or detailed job history.
-   Then finalize admin transaction/replay/bulk/concurrency and bounded responses.
+1. Decide retained-data deletion partial-failure/retry behavior. Scope and
+   confirmation are resolved (group 22): only owned retained source/unfinished
+   destination after safe stop, protecting originals/committed output. Preserve
+   actual success/unknown outcomes; never promise rollback of deleted bytes.
+   Then settle admin access/configuration, exact endpoints/transactions/bulk,
+   confirmation details and bounded status/recovery. No destructive code yet.
 2. Finalize exact schema/config bounds, response validation/precedence and
    persisted global-ID/state handling. Size-policy snapshotting is resolved
    against; only its implementation/replay ordering remains. Review any remaining

@@ -16,7 +16,7 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-the separate retained-data deletion scope/authorization/recovery, administrative
+retained-data deletion partial-failure/retry and admin access/configuration, plus
 API/bulk/concurrency and remaining
 schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
@@ -24,9 +24,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-21). Current missing-file
+  error mappings, envelope and retry timing (groups 1-22). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-91 disposition and preserve original custody.
+  support. Cover every API-E01-98 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.
@@ -41,7 +41,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
   must cancel first. Cancellation preserves files in place; blocked workers or
   uncertain publication keep it pending. Clear preserves files with separate
   operational ownership/accounting, while forgetting UUIDs. Qualify that storage
-  transition and define the separate delete action before effects. Clear forgets UUIDs; later reuse is a new recording, with
+  transition and implement only the approved owned-source/unfinished-destination
+  disposal scope with safe stop and explicit confirmation. Protect originals and
+  committed output; settle partial-failure/retry and authorization before effects. Clear forgets UUIDs; later reuse is a new recording, with
   normal no-clobber/authorization checks. Retain full
   detailed history until explicit clear; no automatic expiry/compaction. This
   specific requested workflow must be scoped rather than silently covered by the

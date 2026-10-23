@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-one groups in successive review replies.
+The user approved the following twenty-two groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-21 add API-E61-91 below.
+direction, not new runtime capabilities. Groups 14-22 add API-E61-98 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-91 are review keys, not replacement requirements or SC IDs.
+API-E01-98 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -633,8 +633,9 @@ must keep their ownership/receipts/accounting; it is not a way to release an
 admission budget without actual disposition. Group 21 now resolves subsequent
 history clear: keep the files with separate operational ownership/accounting,
 forget UUID recognition, and require a separate explicit admin action for data
-deletion. The scope/confirmation/authorization and failure semantics of that
-separate delete action remain the next decision. No general offline repair or
+deletion. Group 22 now defines its owned-file scope, protected categories, safe-stop and
+confirmation requirements. Partial-failure/retry, authorization/configuration
+and exact wire semantics still need agreement. No general offline repair or
 orphan adoption is introduced by tracking known retained files.
 
 | ID | Situation | Required outcome | Evidence/status |
@@ -665,7 +666,7 @@ clear, elapsed time and UUID reuse do not stand in for that action.
 |---|---|---|
 | Cancel | Preserve files in place; stop new work and reconcile authorized activity | Retain history/UUID; do not allow clear until safely cancelled. |
 | Clear history (eligible completed/safely cancelled jobs only) | Preserve unclaimed originals, private claimed source, staging, published payloads and completion manifests | Remove selected detailed history and forget UUID recognition; later UUID submission is new work. |
-| Delete retained data | Separate explicit admin request, with scope/authorization/safety rules still to agree and qualify | Not triggered by cancel or clear; do not invent its history/receipt behavior before design. |
+| Delete retained data | Separate confirmed admin request limited to owned retained source/unfinished destination after safe stop (group 22); exact failure/auth/wire details pending | Not triggered by cancel or clear; do not invent its history/receipt behavior before design. |
 
 Keeping files after clear does not retain an old request for idempotent replay.
 Keep only operational facts needed for retained-file ownership, safe management
@@ -697,13 +698,12 @@ row limits in capacity design; do not simply drop byte charges when job rows are
 removed. Source/destination automatic cleanup policies keep their separately
 agreed gates; this manual action does not silently override them.
 
-The next decision is the separate retained-data delete action: eligible file
-categories and jobs, protection of completed output/unclaimed originals,
-explicit data-loss authorization where applicable, ownership revalidation,
-config/permission interaction, bounded effects and restart/unknown-outcome
-handling. No deletion endpoint, new error code, physical effect or new orphan
-repair tool is implemented or authorized to run by this contract discussion.
-Production source deletion and NFS remain disabled.
+Group 22 approves the separate delete action's scope and explicit confirmation.
+The next decision is how partial failure/retry works, followed by admin access,
+configuration interaction and exact bounded wire/transaction behavior. No
+physical delete, new endpoint, error code or orphan repair tool is implemented
+or authorized to run by these contract decisions. Production source deletion
+and NFS remain disabled.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -711,12 +711,83 @@ Production source deletion and NFS remain disabled.
 | API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs. |
 | API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions. |
 | API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed. |
-| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | The separate destructive action's scope/authorization/results remain the next contract decision. |
+| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; failure/retry, access/configuration and exact responses remain pending. |
 
 SC-147 records file-preserving history clear and retained ownership/accounting.
 SC-148 records separate explicit data deletion. DOC-01/02/03/04/05 must distinguish
 these controls, UUID forgetting, storage occupancy and preservation of valid
 consumer output. These are pending acceptance cases, not new passing tests.
+
+## Confirmed retained-data deletion: owned leftovers only after safe stop (group 22)
+
+**Approved on 2026-10-23; implementation/qualification pending.** The separate
+admin action may delete only mover-owned retained source files and unfinished
+destination data after work has safely stopped. Protect unclaimed originals and
+completed destination recordings. Require explicit admin confirmation; cancel
+and clear history remain non-destructive and do not supply that confirmation.
+
+### Eligible versus protected data
+
+| Data category | Delete retained data action |
+|---|---|
+| Private retained source files, with original mover custody/identity evidence | Eligible after safe stop, explicit confirmation and ownership revalidation. |
+| Private unfinished destination staging and mover-owned uncommitted payload data | Eligible after safe stop and verified ownership/non-commitment; no blind directory removal. |
+| Unclaimed original source files | Protected; never part of this action. |
+| Completed destination recording, including its published files and valid COMMITTED.json | Protected; this action must not delete or retract it. |
+| Foreign/replaced/unattributable objects, unproven root scope or unknown publication outcome | Not authorized; preserve and report the uncertainty. |
+
+Deletion of private source is deliberately destructive: for cancelled work it
+may remove the only remaining copy. The admin confirmation must make that
+consequence clear. This is explicit retained-data disposal, not proof of a
+successful transfer. Automatic postcommit cleanup still requires its own
+verified-destination/authorization rules. Reconcile this distinction explicitly
+in requirements; do not weaken automatic cleanup guards to implement discard.
+Exact interaction with current source-cleanup/manual-delete configuration and
+admin permissions remains a contract decision. Production deletion stays off.
+
+A file path or the service UID alone does not establish mover ownership. Use
+separate retained-data identity, approved roots and original actual object/
+parent/custody evidence. Revalidate before effects and refuse traversal, mount,
+symlink/identity substitution or ownership ambiguity. A cleared/reused recording
+UUID cannot select or authorize deletion of a new recording's files.
+
+Safe stop requires no live work that can use those objects and reconciliation
+of authorized/uncertain effects. A paused/idle-looking job, cancellation request,
+timeout or free local lock alone is insufficient. The admin cannot override
+unresolved workers or publication merely by confirming. Keep completed-output
+protection independent of deleted history: absence/unavailability of a manifest
+alone is not proof that data is uncommitted, and an earlier confirmed commitment
+must not be forgotten just to make a file eligible.
+
+Show the admin the selected retained files and consequences before confirmation;
+bind the confirmed operation to those exact retained-data identities, rather
+than an arbitrary path or UUID search. Changed ownership/selection requires
+revalidation and fresh confirmation as appropriate. Exact preview/token/revision
+and endpoint schemas remain implementation design, not a new agreed protocol.
+Do not turn one confirmation into blanket recursive deletion of unknown files.
+
+Files already successfully removed cannot be restored by rollback if another
+selected deletion fails. Persist actual progress/receipts, retain unresolved
+ownership and report truthful partial/unknown results; never report all data
+deleted based only on request acceptance. The **next question** is whether
+remaining safe deletions retry automatically or wait for another admin action.
+No new retry interval/budget or response vocabulary is approved yet. Account
+from verified outcomes; selection/history clear alone cannot release bytes.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E92 | Admin confirms deletion of selected owned retained source/unfinished destination after safe stop | Delete only the qualified selected objects under original ownership/root evidence; record actual outcomes and update retained-data accounting | Approved scope; destructive implementation/qualification pending. No current source/NFS enablement. |
+| API-E93 | Selection reaches unclaimed originals, committed output/manifest or foreign data | Protect those objects; no deletion of ineligible data. Report/refuse the protected selection according to final single/bulk contract | Include cleared-history cases, earlier committed evidence and unavailable/missing manifest observations. |
+| API-E94 | Confirmation is absent, rejected or no longer matches selected retained-data identities | No deletion authorization; require explicit matching confirmation and revalidation | Exact request/preview wire contract pending; old confirmation must not target a different/new object. |
+| API-E95 | Root/path/object/parent ownership changes or cannot be proven before deletion | Refuse unsafe effects, preserve ownership/evidence and report review/uncertainty | Do not adopt objects or infer authority from names/UID; no recursive arbitrary-path cleanup. |
+| API-E96 | Worker still active/blocked/terminating, cancellation pending or publication outcome unresolved | Deletion remains unauthorized until safe stop/settlement; confirmation cannot bypass the blocker | Existing actual-exit and remote-settlement limits apply; no signal/timeout shortcut. |
+| API-E97 | Some selected deletion succeeds, then error, lost reply or restart occurs | Preserve verified progress and unresolved ownership; report partial/unknown honestly, no false all-done or claimed rollback. Reconcile original operation before further effects | Retry policy, budgets and exact API response remain next contract decision. |
+| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/retry/confirmation details still to qualify. |
+
+SC-149 records the eligible/protected categories and SC-150 confirmed safe-stop/
+identity selection. DOC-01/02/03/04/05 must distinguish cancellation, history
+clear, explicit disposal, potential data loss and truthful partial outcomes.
+These are acceptance obligations, not new passing Rust/NFS/SLES evidence.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -742,11 +813,11 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-21 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-22 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
-cancellation/history clear and separately requested retained-data deletion. The unused Rust producer wire format may
+cancellation/history clear and separately confirmed owned-data disposal after safe stop. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -760,12 +831,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-91 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-98 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the ninety-one situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the ninety-eight situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

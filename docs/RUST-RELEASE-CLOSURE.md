@@ -136,7 +136,7 @@ derived merely from a successful process/container restart.
 ## Ordered work packages
 
 P01 input: [the error review and API-I01-06](REST-ERROR-SCENARIOS.md) record
-approved groups 1-21 (including retention, UUID forgetting, file-preserving cancel/clear and separate data deletion). Resolve
+approved groups 1-22 (including retention, file-preserving controls and confirmed owned-data disposal scope). Resolve
 remaining request/schema/compatibility decisions before freezing OpenAPI and
 implementing identity changes. This refines RC-01-03 without adding a release
 gate or claiming new runtime/qualification evidence.

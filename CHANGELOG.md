@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve confirmed retained-data disposal scope: owned retained source and unfinished destination after safe stop, protecting unclaimed originals and completed output. Add planned SC-149/150 and API-E92-98 for confirmation, ownership, protected data, workers, partial results and UUID reuse. Retry/failure and exact admin access/wire rules remain pending; no physical deletion enabled.
+
 - Approve file preservation on history clear, with separate retained-file ownership/accounting and forgotten UUID recognition. Require a separate explicit admin data-deletion action; add planned SC-147/148 and API-E87-91 for capacity, restart and transition safety. Deletion scope/authorization/recovery and runtime implementation remain pending.
 
 - Approve file-preserving cancellation and document planned SC-146/API-E81-86: keep original/private source, partial staging and published files; reconcile in-flight publication and blocked workers before safe cancellation/clear. Preserve valid manifest/202 and retained capacity. File disposition at history clear remains undecided; no runtime changes.
