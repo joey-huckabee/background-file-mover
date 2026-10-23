@@ -8,8 +8,8 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following three groups in successive review replies.
-These fourteen mappings are contract decisions, not new runtime capabilities.
+The user approved the following six groups in successive review replies.
+These twenty-nine mappings are contract decisions, not new runtime capabilities.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -29,6 +29,21 @@ review. An approval here does not approve every variant of its broader API-E row
 | 3 | Retained-job/byte admission limit reached | 503 `retention_capacity` | Yes |
 | 3 | Mover request queue full | 503 `service_busy` | Yes |
 | 3 | Mover shutting down | 503 `service_stopping` | Yes |
+| 4 | Source already reserved by another recording | 409 `source_reserved` | No; review |
+| 4 | File identity/size changes during claim | 409 `recording_blocked` | No; review |
+| 4 | Source mount/root identity or ownership no longer matches | 409 `recording_blocked` if HTTP response possible | No; review |
+| 4 | Service lacks filesystem permission to claim a file | 409 `recording_blocked` | No; correct permissions and review |
+| 5 | Local database temporarily unavailable | 503 `storage_unavailable` | Yes; corruption/unsafe ownership remain stop/review |
+| 5 | Request receive deadline expires | 408 `request_timeout` | Yes; fresh connection |
+| 5 | Proxy cannot obtain valid backend response | 502; proxy code/body not guaranteed | Yes |
+| 5 | Proxy times out waiting for mover | 504; proxy code/body not guaranteed | Yes |
+| 5 | Connection drops or recorder times out | No reliable response/code | Yes |
+| 6 | Wrong API endpoint | 404 `not_found` | No |
+| 6 | Wrong HTTP method | 405 `method_not_allowed`, with Allow | No |
+| 6 | Missing/unsupported Content-Type | 415 `unsupported_media_type` | No |
+| 6 | Request body exceeds bound | 413 `request_too_large` | No |
+| 6 | Request headers exceed bound | 431 `request_headers_too_large` | No |
+| 6 | Malformed HTTP framing | 400 `invalid_http` | No |
 
 Retries retain the same recording ID/body and follow the supplied delay.
 No error response grants path reuse or reverses an earlier valid 202. Existing
@@ -226,8 +241,8 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-3 above are approved. Continue reviewing custody/refusal, remaining
-storage errors, response/retry behavior, then remote and operator boundaries.
+Groups 1-6 above are approved. Continue reviewing remaining application/response
+variants and retry rules, then remote and operator boundaries.
 Agreement on one group does not freeze remaining rows or their broader variants.
 
 ## Implementation plan after agreement

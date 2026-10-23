@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record REST review groups 4-6: custody/permission refusals, temporary database and transport failures, and HTTP request errors. Groups 1-6 now define 29 approved mappings; remaining scenarios/response details stay under review. No runtime or qualification changes.
+
 - Record approval of the first three REST error groups (fourteen mappings), including retryable missing-file 409, validation/source-scope failures and temporary capacity/service errors. Other mappings and wire compatibility remain under review; runtime responses and existing qualification evidence are unchanged.
 
 - Draft sixty REST outcome/error scenarios for user review before implementation. Record current versus proposed codes, same-ID retry and partial-custody behavior, remote/transport/operator distinctions and a bounded implementation sequence. Missing-file 409 and global-ID wire changes remain pending review; no runtime, retry/review, production NFS or source-deletion changes.

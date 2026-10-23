@@ -63,3 +63,15 @@ error-scenario document. ER-D01 is resolved: confirmed missing file is retryable
 409 within the existing window, not pending 503; current runtime is unchanged.
 Remaining scenarios and compatibility/envelope decisions still require review.
 No runtime builds/tests or new qualification results follow from this approval.
+
+## Subsequent contract review: groups 4-6 approved
+
+The user also approved four custody/permission refusals, five database/transport
+outcomes and six HTTP request errors: groups 1-6 now contain 29 approved
+mappings. Persistent transport failures require alerting as well as backed-off
+same-ID retries; exact retry parameters remain under review. Database corruption
+and unsafe ownership remain stop/review conditions. Record body/header-specific
+413/431 codes and the 405 Allow requirement as approved implementation work, not
+present functionality. Remaining remote, response/fallback and operator variants
+are not approved by implication. Runtime sources and all 138 SC/six DOC IDs stay
+unchanged; no Rust/fixture qualification is run for these documentation approvals.
