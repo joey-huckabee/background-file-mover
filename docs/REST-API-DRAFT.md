@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-20, remaining schema decisions and
+current discussion, approved contract groups 1-21, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -391,9 +391,14 @@ a later submission using it is new work, not old replay. Only completed or safel
 cancelled jobs may be cleared; unfinished and errored jobs require cancellation
 first. A cancellation request alone is insufficient. See
 [group 19/API-E76-80](REST-ERROR-SCENARIOS.md#admin-clear-forgets-uuids-cancel-unfinished-or-errored-jobs-first-group-19).
-The dashboard cancel/clear workflow still needs scoped auth, cancellation-data
-and transaction/wire design; it is not an implemented endpoint or physical
-file-deletion permission. Old destination content keeps no-clobber protection.
+Group 21 also approves preserving files on clear, with separate operational
+ownership/accounting and no old UUID replay record. Deleting retained data
+requires a separate explicit admin action; its scope/permissions/confirmation
+remain to agree. See
+[group 21/API-E87-91](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
+The dashboard cancel/clear workflow still needs auth and transaction/wire design;
+no endpoint or physical deletion is implemented. Old destination content keeps
+no-clobber protection.
 
 A different key submitting a source path reserved by an unreleased job receives
 `409 source_reserved`; it cannot create a competing claim. After all-files
@@ -553,7 +558,8 @@ partial staging and published files stay in place; valid completion manifests
 are preserved. Blocked workers/uncertain publication keep cancellation pending
 and history ineligible to clear. No automatic deletion/restoration; see
 [group 20/API-E81-86](REST-ERROR-SCENARIOS.md#cancellation-preserves-files-in-place-group-20).
-Exact cancel response/deadline and history-clear file disposition remain open. Retry retains job ID, resolved names, claimed sources and ownership,
+Exact cancel response/deadline and separate retained-data deletion semantics
+remain open; history clear preserves files as approved in group 21. Retry retains job ID, resolved names, claimed sources and ownership,
 allocating new internal operation attempts only when safe. This changes the old
 new-job retry behavior, which could reopen a newer recording at a reused path.
 

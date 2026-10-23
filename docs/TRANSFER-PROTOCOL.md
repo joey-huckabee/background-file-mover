@@ -379,11 +379,16 @@ Preserve ownership through actual worker exit and qualified reconciliation.
 
 File preservation is approved in group 20; cancellation is not implemented.
 [API-E81-86/SC-146](REST-ERROR-SCENARIOS.md#cancellation-preserves-files-in-place-group-20)
-track its cases. Retained files still consume capacity. File disposition and
-operational bookkeeping when history is explicitly cleared remain the next
-contract decision; preservation on cancel does not authorize their deletion or
-a new repair workflow. History-clear UUID forgetting is separate from file
-ownership and normal no-clobber protection.
+track its cases. Retained files still consume capacity. Group 21 approves
+preserving files on history clear, with separate operational ownership/accounting
+while detailed history and UUID recognition are removed. No hidden UUID replay
+tombstone or full-history copy is retained by that separation. A separate explicit
+admin action is required for retained-data deletion; scope and destructive-action
+safety/authorization remain to agree before implementation. No new general repair
+workflow or physical deletion is approved merely by clearing history. See
+[API-E87-91/SC-147/148](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
+Normal no-clobber/ownership rules still apply to new submissions under forgotten
+UUIDs; the old files cannot be adopted or overwritten by UUID matching alone.
 
 ## Recovery decisions
 

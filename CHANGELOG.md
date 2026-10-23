@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve file preservation on history clear, with separate retained-file ownership/accounting and forgotten UUID recognition. Require a separate explicit admin data-deletion action; add planned SC-147/148 and API-E87-91 for capacity, restart and transition safety. Deletion scope/authorization/recovery and runtime implementation remain pending.
+
 - Approve file-preserving cancellation and document planned SC-146/API-E81-86: keep original/private source, partial staging and published files; reconcile in-flight publication and blocked workers before safe cancellation/clear. Preserve valid manifest/202 and retained capacity. File disposition at history clear remains undecided; no runtime changes.
 
 - Define admin clear as removing detailed history and forgetting its UUID, so later reuse is a new recording. Protect unfinished/errored jobs until cancellation safely completes; only completed or cancelled jobs may clear. Add planned SC-144/145 and API-E76-80 with late-retry, worker and no-clobber cases. Administrative cancellation/data/wire design remains pending; no runtime changes.

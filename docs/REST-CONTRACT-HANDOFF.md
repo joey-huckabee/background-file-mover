@@ -15,8 +15,11 @@ and require cancellation before clearing unfinished/errored jobs. Only completed
 or safely cancelled jobs are eligible. Cancellation now preserves files in place
 (group 20, SC-146/API-E81-86), including source claims, partial staging and valid
 published recordings. Blocked workers/uncertain publication keep it pending.
-Next decide what happens to retained files and their operational ownership records
-when history is cleared; then finalize admin wire/bulk/concurrency/schema;
+History clear now also preserves files and separate ownership/accounting while
+forgetting UUID recognition (group 21, SC-147/148/API-E87-91). Physical retained-data
+deletion needs a separate explicit admin action. Next define that action's file
+scope/eligibility, authorization/confirmation and safe recovery; then finalize
+admin wire/bulk/concurrency/schema;
 do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
@@ -28,9 +31,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty reviewed groups are recorded, including preservation on cancellation: fifty initial outcome mappings, a shared
+Twenty-one reviewed groups are recorded, including separate cancel/clear/delete: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 146 stable SC IDs and six DOC IDs; API-E01-86 are contract/acceptance
+now has 148 stable SC IDs and six DOC IDs; API-E01-91 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -75,19 +78,13 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide file disposition when history is cleared. Preservation on cancellation
-   is resolved: do not ask that question again. Consider retained operational
-   ownership/accounting separately from forgotten UUID recognition; physical file
-   disposal or new tracking is not approved yet. Then define admin clear/replay
-   concurrency, exact endpoints/responses, bounded cancel behavior and bulk rules. Clear eligibility and UUID
-   forgetting are resolved: completed or safely cancelled only, error/unfinished
-   cancel first, cleared UUID later means a new recording. Keep full detailed
-   history until explicit clear; do not re-propose automatic expiry, permanent
-   tombstones or allowing errored/active jobs to be cleared without cancellation.
-   UUID recording_id is required; lexical canonicalization remains a schema detail. File-list ordering is resolved: the same paths/assertions in any order
-   are identical. JSON object member order is immaterial; duplicate paths and
-   changed file membership/assertions are not permitted by this decision.
-   Preserve actual durable file indices on reordered partial replay.
+1. Define the separate explicit retained-data delete action: eligible files/jobs,
+   protection of unclaimed originals/completed output, config/permission and
+   confirmation, qualified effects and restart/unknown-outcome handling. The
+   user already resolved cancel and history clear to preserve files; do not ask
+   those questions again. Separate operational file ownership/accounting survives
+   clear without retaining old UUID replay recognition or detailed job history.
+   Then finalize admin transaction/replay/bulk/concurrency and bounded responses.
 2. Finalize exact schema/config bounds, response validation/precedence and
    persisted global-ID/state handling. Size-policy snapshotting is resolved
    against; only its implementation/replay ordering remains. Review any remaining

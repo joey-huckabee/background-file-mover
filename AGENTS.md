@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-86 for user review
-before P01 is frozen. Groups 1-20 (errors, retry/size policy, replay, UUIDs and admin cancellation/clear) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-91 for user review
+before P01 is frozen. Groups 1-21 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -30,7 +30,10 @@ unfinished/errored jobs first (group 19/SC-144/145/API-E76-80). Next settle
 file disposition at history clear, admin wire/bulk/concurrency and release placement.
 Cancellation preserves all existing files in place (group 20/SC-146/API-E81-86);
 blocked workers/uncertain publication keep it pending. No automatic restore/delete.
-How retained files are handled when history is cleared is the next decision;
+History clear preserves files and separate ownership/accounting but forgets
+UUID recognition (group 21/SC-147/148/API-E87-91). Data deletion requires a
+separate explicit admin action; define its scope/authorization/recovery next;
+no physical delete or general repair tool is implemented/qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

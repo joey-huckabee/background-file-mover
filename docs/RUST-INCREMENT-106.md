@@ -264,3 +264,27 @@ Group-20 documentation checks passed: six cancellation cases; all 86 API review
 IDs; previous 145 SC IDs plus SC-146 (146 total); six DOC IDs; policy links,
 transfer-protocol consistency and next-step handoff. Both retained SLES source
 archives match unchanged runtime inputs. No new Rust/fixture qualification.
+
+## Resumed review: history clear preserves files; separate admin deletion (group 21)
+
+The user accepts file preservation on history clear and requires a separate
+explicit admin action to delete retained data. Keep necessary operational file
+ownership/accounting after clear, independently of detailed history and old UUID
+recognition. Do not hide full history/dedup tombstones in that tracking. Retained
+bytes remain occupied/charged; old files cannot be adopted or overwritten by a
+new job under a forgotten UUID. Plan atomic custody/history transitions and
+original internal operation targeting; exact storage/transaction design remains
+unimplemented. Separate deletion scope, eligibility, permissions/confirmation,
+config interaction and recovery are the next contract decisions; do not execute
+physical deletion or add a general orphan/repair tool by implication.
+
+Add planned SC-147/148 and API-E87-91. Preserve original 146 SC/86 API IDs;
+totals are now 148 SC/91 API situations and six DOC IDs. Update protocol, admin
+workflow, capacity/user documentation obligations and next-session pointers.
+No runtime, dependency, fixture, NFS/deletion enablement or qualification changes.
+
+Group-21 documentation checks passed: five new history-clear/retained-data cases;
+91 API IDs; original 146 SC IDs plus SC-147/148 (148 total); six DOC IDs; policy
+links/anchors and transfer-protocol/handoff agreement. Both retained SLES source
+archives match current runtime bytes/hashes. No new Rust build/test, fixture run
+or qualification result is claimed.
