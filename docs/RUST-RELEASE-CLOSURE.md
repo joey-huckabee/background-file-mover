@@ -22,7 +22,10 @@ local persistent state, bounded shutdown (default 60 seconds, configurable
 postcommit cleanup is a first-release deliverable, also off by default.
 
 Registration, S3, cross-host takeover, populated-state re-enrollment, offline
-repair and dashboards remain deferred. A new scheduler framework, new dependency
+repair and general dashboards remain deferred. The later user-requested admin
+dashboard history-clear workflow must be explicitly scoped in P01/release
+planning (group 18); it is not implemented or resolved by the earlier general UI
+deferral. A new scheduler framework, new dependency
 experiment or performance optimization is not a release prerequisite merely
 because an older design mentions it. Existing requirements must be reconciled
 explicitly in P01/P10; this review does not withdraw any of them.
@@ -133,7 +136,7 @@ derived merely from a successful process/container restart.
 ## Ordered work packages
 
 P01 input: [the error review and API-I01-06](REST-ERROR-SCENARIOS.md) record
-approved groups 1-17 (outcomes, envelope, timing, size policy, unordered files and UUID IDs). Resolve
+approved groups 1-18 (including manual full-history retention and dashboard-clear planning). Resolve
 remaining request/schema/compatibility decisions before freezing OpenAPI and
 implementing identity changes. This refines RC-01-03 without adding a release
 gate or claiming new runtime/qualification evidence.

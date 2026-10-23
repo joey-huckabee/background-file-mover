@@ -7,7 +7,10 @@ adds no runtime implementation, dependency or qualification result.
 Resumed 2026-10-23: file ordering is now resolved. Permuting the same file list
 is an identical retry (group 16, SC-141/API-E71-72), with all other values
 unchanged. UUID recording_id is also now required (group 17, SC-142/API-E73-74).
-Prototype behavior is unchanged. Next settle ID retention and concurrent replay;
+The user selects detailed history until admin dashboard clear (group 18,
+SC-143/API-E75), not automatic compaction/permanent compact receipts. Prototype
+behavior is unchanged. Next settle post-clear UUID/late-retry semantics, clear
+eligibility and concurrent replay;
 do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
@@ -19,9 +22,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Seventeen reviewed groups are recorded, including unordered replay and UUID IDs: fifty initial outcome mappings, a shared
+Eighteen reviewed groups are recorded, including manual full-history retention: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 142 stable SC IDs and six DOC IDs; API-E01-74 are contract/acceptance
+now has 143 stable SC IDs and six DOC IDs; API-E01-75 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -66,8 +69,10 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Continue ER-D04 with ID retention and concurrent replay. UUID recording_id
-   is required; lexical canonicalization remains a schema detail. File-list ordering is resolved: the same paths/assertions in any order
+1. Continue ER-D04 with post-admin-clear UUID/late-retry behavior, clear
+   eligibility and concurrent replay. Keep full detailed history until admin
+   dashboard clear; do not re-propose automated expiry/compact-only retention.
+   UUID recording_id is required; lexical canonicalization remains a schema detail. File-list ordering is resolved: the same paths/assertions in any order
    are identical. JSON object member order is immaterial; duplicate paths and
    changed file membership/assertions are not permitted by this decision.
    Preserve actual durable file indices on reordered partial replay.

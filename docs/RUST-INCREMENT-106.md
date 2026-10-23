@@ -206,3 +206,15 @@ this requirement. Add planned SC-142/API-E73-74; preserve previous 141 SC and 72
 API IDs, with totals now 142 SC and 74 API situations. Current free-form
 prototype is unchanged. Next discuss ID retention and concurrency; lexical
 canonicalization belongs in the precise schema. No new Rust/NFS/SLES result.
+
+## Resumed review: manual detailed-history retention (group 18)
+
+The user declines compact-record retention and selects detailed job history until
+an administrator explicitly clears it through the dashboard. Record no automatic
+expiry/pruning/compact-only replacement. Post-clear UUID recognition/late retries,
+clear eligibility, admin access/audit/capacity and dashboard release placement
+remain undecided; do not assume indefinite tombstones or forgetting is approved.
+The requested workflow needs scope planning, not blanket deferral or an immediate
+unapproved dashboard implementation. History clear does not grant file deletion
+or loss of ownership evidence. Add planned SC-143/API-E75; preserve previous 142
+SC/74 API IDs. Runtime/history-clear endpoints and qualification remain unchanged.

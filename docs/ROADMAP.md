@@ -16,20 +16,28 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-ID retention/concurrent replay and remaining schema details before OpenAPI.
+post-admin-clear UUID/retry behavior, clear eligibility, concurrent replay and
+remaining schema details before OpenAPI.
 Encode the required UUID recording_id; finalize lexical canonicalization. Preserve approved order-independent file replay.
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-17). Current missing-file
+  error mappings, envelope and retry timing (groups 1-18). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-74 disposition and preserve original custody.
+  support. Cover every API-E01-75 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.
   Use current configuration for existing unfinished size checks, without per-job
   setting snapshots. Finalize config/replay ordering without discarding custody
   evidence or confirmed handoff. Qualify API-E61-70 and document SC-139/140.
+
+- [ ] Define the requested admin dashboard clear-history workflow: authorization,
+  eligible jobs, confirmation/audit, file/custody separation, post-clear UUID and
+  late-retry behavior, capacity accounting and release placement. Retain full
+  detailed history until explicit clear; no automatic expiry/compaction. This
+  specific requested workflow must be scoped rather than silently covered by the
+  earlier general dashboard deferral. No dashboard implementation yet.
 
 - [ ] P01: Freeze versioned OpenAPI, manifest validation and supported route,
   retry/error, ID-retention, encoding/path and metadata contracts. Reconcile

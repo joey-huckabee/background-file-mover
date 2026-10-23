@@ -8,11 +8,12 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following seventeen groups in successive review replies.
+The user approved the following eighteen groups in successive review replies.
 The fifty initial outcome mappings, group-12 error envelope, group-13 retry
 timing, group-14 expected-size policy, group-15 current-configuration behavior,
-group-16 order-independent replay and group-17 UUID requirement are contract
-decisions, not new runtime capabilities. Groups 14-17 add API-E61-74 below.
+group-16 order-independent replay, group-17 UUID requirement and group-18
+manual full-history retention are contract decisions, not new runtime
+capabilities. Groups 14-18 add API-E61-75 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -209,7 +210,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-74 are review keys, not replacement requirements or SC IDs.
+API-E01-75 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -482,8 +483,46 @@ rejecting a new invalid ID does not authorize deleting legacy stored work.
 | API-E74 | New request uses a non-UUID label, number, missing ID or malformed UUID recording_id | 400 invalid_submission, retryable false, before new acceptance/effects; do not replace an already accepted ID to bypass a pending claim | Invalid-field mapping approved. Cover lexical forms in the final schema/case manifest; no automatic claim that existing prototype enforces UUID. |
 
 SC-142 and DOC-01/03 must show UUID generation once, retry preservation,
-non-UUID rejection and distinction from numeric internal job IDs. ID retention
-and concurrent replay remain the next contract decisions.
+non-UUID rejection and distinction from numeric internal job IDs. Administrative history-clear/UUID semantics and concurrent replay remain the
+next contract decisions.
+
+## Detailed job history retained until admin clears it (group 18)
+
+**User direction recorded 2026-10-23; dashboard workflow unimplemented.** Keep
+full detailed job history until an administrator explicitly clears history using
+the dashboard. There is no automatic expiry, pruning or replacement of full
+history with a small permanent completion receipt. The earlier suggestion of
+indefinite compact records after automatic history removal is not the selected
+policy. This does not silently mean UUID records must survive an explicit
+administrative clear; that question is still open.
+
+Keep ordinary replay/conflict behavior for all retained recordings. Completion,
+source cleanup, elapsed time and service restart do not automatically remove
+history or free a retained UUID for another recording. Do not bypass existing
+capacity/accounting limits to implement retention implicitly; finalize how
+history storage and custody/admission accounting interact.
+
+The user requests a dashboard clear-history workflow. Incorporate it into release
+planning rather than treating this requested workflow as covered by an unchanged
+blanket dashboard deferral. Its release placement, administrative access, clear
+eligibility, confirmation/audit and exact endpoint behavior still need agreement.
+No generic dashboard or new admin API is implemented by this documentation.
+
+**Still to decide:** after admin clear, whether the UUID is forgotten or retained,
+what happens to a late retry, which jobs may be cleared and what state is removed.
+Do not choose permanent ID tombstones, allow unsafe forgetting, or invent clear
+success/error codes before those decisions. Clearing user history is not source
+or destination file deletion authorization and cannot discard ownership evidence
+still required by existing work. Distinguish display/history data from live
+custody records in the design.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E75 | A job completes, time passes or service restarts, with no explicit admin dashboard clear | Preserve detailed history and retained recording-ID replay/conflict behavior; no automated expiry or compact-only replacement | User-directed retention contract; dashboard clear and its semantics remain pending. Existing store retention is not proof of a delivered dashboard feature. |
+
+SC-143 and DOC-01/03/05 must explain manual full-history retention, capacity,
+administrative clearing and late-retry behavior once its scope is agreed. Do not
+promise an implemented cleanup/history clear route or silently discard state.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -504,14 +543,15 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
-| ER-D04 | **UUID and file-order requirements resolved (groups 16-17):** require UUID recording_id; permutation alone is the same request. Finalize lexical canonicalization, global persistence/concurrent replay and ID retention; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-74 |
+| ER-D04 | **UUID and file-order requirements resolved (groups 16-17):** require UUID recording_id; permutation alone is the same request. Full detailed history is retained until admin dashboard clear (group 18); finalize post-clear UUID/late-retry semantics, lexical canonicalization and global concurrent replay; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-75 |
 | ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-70 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-17 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-18 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
-current-configuration behavior, order-independent file-list replay and UUID recording IDs. The unused Rust producer wire format may
+current-configuration behavior, unordered replay, UUID recording IDs and manual
+full-history retention. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -525,12 +565,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-74 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-75 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the seventy-four situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the seventy-five situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

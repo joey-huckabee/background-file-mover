@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-17, remaining schema decisions and
+current discussion, approved contract groups 1-18, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -383,8 +383,13 @@ order-independent rule is approved but not implemented in the prototype. See
 [group 16/API-E71-72](REST-ERROR-SCENARIOS.md#request-equivalence-file-order-group-16).
 UUID recording_id is required; exact lexical canonicalization, durable global
 persistence/concurrency and ID retention still need schema/implementation design.
-Keep durable key tombstones when archiving jobs so retries cannot create another
-transfer by silently reusing a pruned key.
+The user selects full detailed history retention until an admin explicitly
+clears it through the dashboard, with no automatic expiry or compact-only
+replacement. [Group 18/API-E75](REST-ERROR-SCENARIOS.md#detailed-job-history-retained-until-admin-clears-it-group-18)
+records this policy. UUID recognition and late retry after explicit clear still
+need agreement; do not assume permanent tombstones or automatic UUID forgetting.
+The requested clear-history workflow needs scoped deployment/auth/eligibility
+planning; it is not an implemented endpoint or file-deletion permission.
 
 A different key submitting a source path reserved by an unreleased job receives
 `409 source_reserved`; it cannot create a competing claim. After all-files

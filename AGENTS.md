@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-74 for user review
-before P01 is frozen. Groups 1-17 (errors, retry/size policy, unordered files and UUID IDs) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-75 for user review
+before P01 is frozen. Groups 1-18 (errors, size/retry policy, UUIDs, unordered replay and history) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -22,7 +22,10 @@ and qualification remain pending.
 File-list order is immaterial to same-ID replay (group 16/SC-141/API-E71-72).
 Preserve durable file/claim indices by path; duplicates and changed membership or
 assertions still fail. recording_id is now required to be a UUID (group 17,
-SC-142/API-E73-74), unimplemented. Next settle ID retention and concurrency;
+SC-142/API-E73-74), unimplemented. Detailed job history stays until admin
+clears it using the dashboard (group 18/SC-143/API-E75); no automatic expiry or
+compact-only replacement. Next settle post-clear UUID/retry semantics, safe clear
+eligibility, dashboard workflow release placement and concurrency;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 
