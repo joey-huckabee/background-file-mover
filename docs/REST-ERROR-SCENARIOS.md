@@ -8,8 +8,8 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following six groups in successive review replies.
-These twenty-nine mappings are contract decisions, not new runtime capabilities.
+The user approved the following nine groups in successive review replies.
+These forty-three mappings are contract decisions, not new runtime capabilities.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -44,6 +44,20 @@ review. An approval here does not approve every variant of its broader API-E row
 | 6 | Request body exceeds bound | 413 `request_too_large` | No |
 | 6 | Request headers exceed bound | 431 `request_headers_too_large` | No |
 | 6 | Malformed HTTP framing | 400 `invalid_http` | No |
+| 7 | Unknown generator | 403 `unknown_generator` | No |
+| 7 | Caller not authorized for supplied generator | 403 `caller_not_authorized` | No |
+| 7 | Producer attempts operator-only route | 403 `producer_route_forbidden` | No |
+| 7 | Producer exceeds request limit | 429 `rate_limited` | Yes; indicated delay |
+| 7 | TLS certificate validation fails | TLS failure; no guaranteed HTTP code/body | No; correct certificate/trust configuration |
+| 8 | Destination unavailable/full after confirmed 202 | Operator status 200 with delivery retry/review condition | No recorder action |
+| 8 | Verification fails/publication blocked after confirmed 202 | Operator status 200 with existing retry/review condition | No recorder action |
+| 8 | Source cleanup disabled/fails after commitment | Operator status 200 with retained/cleanup condition when implemented | No recorder action |
+| 9 | Invalid local operator job ID/command fields | 400 `invalid_job_id`, `invalid_resume` or `invalid_missing_reset` | No |
+| 9 | Unknown operator job | 404 `not_found` | No |
+| 9 | Stale review epoch or action ineligible | 409 `review_conflict` | No; inspect status |
+| 9 | Operator command ID reused with changed parameters | 409 `command_conflict` | No |
+| 9 | Operator audit capacity reached | 409 `operator_audit_capacity` | No; review |
+| 9 | Operator queue/database temporarily unavailable | 503 `service_busy` or `storage_unavailable` | Yes; same command ID/body |
 
 Retries retain the same recording ID/body and follow the supplied delay.
 No error response grants path reuse or reverses an earlier valid 202. Existing
@@ -241,8 +255,8 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-6 above are approved. Continue reviewing remaining application/response
-variants and retry rules, then remote and operator boundaries.
+Groups 1-9 above are approved. Remaining review covers request edge cases,
+uncertain source-allocation errors, response/envelope/fallback and retry details.
 Agreement on one group does not freeze remaining rows or their broader variants.
 
 ## Implementation plan after agreement

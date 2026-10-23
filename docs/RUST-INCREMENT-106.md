@@ -75,3 +75,15 @@ and unsafe ownership remain stop/review conditions. Record body/header-specific
 present functionality. Remaining remote, response/fallback and operator variants
 are not approved by implication. Runtime sources and all 138 SC/six DOC IDs stay
 unchanged; no Rust/fixture qualification is run for these documentation approvals.
+
+## Subsequent contract review: groups 7-9 approved
+
+The user approved five remote-access outcomes, three post-202 conditions and
+six local operator outcomes. The approval table now contains 43 mappings across
+nine groups. Remote authentication remains unimplemented; registration stays
+deferred. Successful operator status 200 is not delivery completion or a new
+producer release; existing retry/review policy and consumer manifest validation
+remain authoritative. Exact operator command replay preserves its original
+receipt and cannot reset later review. Request edge cases, response/fallback,
+source-allocation classification and exact retry rules remain under review.
+All runtime/qualification evidence and existing scenario IDs are unchanged.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record REST review groups 7-9: remote caller/rate/TLS failures, post-202 delivery/cleanup status, and local operator commands. Nine groups now contain 43 approved outcome mappings; remaining request/response details stay under review. No runtime, registration, NFS enablement or qualification changes.
+
 - Record REST review groups 4-6: custody/permission refusals, temporary database and transport failures, and HTTP request errors. Groups 1-6 now define 29 approved mappings; remaining scenarios/response details stay under review. No runtime or qualification changes.
 
 - Record approval of the first three REST error groups (fourteen mappings), including retryable missing-file 409, validation/source-scope failures and temporary capacity/service errors. Other mappings and wire compatibility remain under review; runtime responses and existing qualification evidence are unchanged.

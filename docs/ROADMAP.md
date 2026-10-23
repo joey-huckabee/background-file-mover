@@ -17,7 +17,7 @@ another NFS experiment merely because more combinations are possible.
 
 - [ ] Review and agree on [API-E01-60](REST-ERROR-SCENARIOS.md) in small groups
   before freezing P01. Complete remaining ER-D02-07 and unapproved scenarios;
-  preserve approved groups 1-6. Implement approved missing-file 409 only after
+  preserve approved groups 1-9. Implement approved missing-file 409 only after
   dependent contract/compatibility work; current code still returns 503. Resolve
   retry/envelope rules and new global recording-ID compatibility.
   Keep unapproved proposals separate from implemented responses.
