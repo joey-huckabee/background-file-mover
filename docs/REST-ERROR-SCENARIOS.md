@@ -8,11 +8,11 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following sixteen groups in successive review replies.
+The user approved the following seventeen groups in successive review replies.
 The fifty initial outcome mappings, group-12 error envelope, group-13 retry
-timing, group-14 expected-size policy, group-15 current-configuration behavior
-and group-16 order-independent replay are contract decisions, not new runtime
-capabilities. Groups 14-16 add API-E61-72 below.
+timing, group-14 expected-size policy, group-15 current-configuration behavior,
+group-16 order-independent replay and group-17 UUID requirement are contract
+decisions, not new runtime capabilities. Groups 14-17 add API-E61-74 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -209,7 +209,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-72 are review keys, not replacement requirements or SC IDs.
+API-E01-74 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -240,7 +240,7 @@ API-E01-72 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / action | Current behavior / difference |
 |---|---|---|---|---|
-| API-E23 | Invalid JSON, duplicate/unknown fields, wrong field types, missing required fields, invalid recording ID | 400 `invalid_json` for decoding failures; 400 `invalid_submission` for invalid structure/values | No; correct integration without bypassing any previously accepted ID | Existing decoder uses these codes. Exact UUID syntax/new field compatibility pending; do not require a specific UUID version yet. |
+| API-E23 | Invalid JSON, duplicate/unknown fields, wrong field types, missing required fields, invalid recording ID | 400 `invalid_json` for decoding failures; 400 `invalid_submission` for invalid structure/values | No; correct integration without bypassing any previously accepted ID | Existing decoder uses these codes. UUID requirement approved in group 17; current free-form prototype differs. Finalize lexical rules without silently requiring one UUID version. |
 | API-E24 | Empty file list, too many files, duplicate file paths, malformed/negative/overflow size assertions | 400 `invalid_submission` or `invalid_file_paths` according to frozen schema mapping | No; correct request; unchanged accepted request remains authoritative | Existing bounded validation, but detailed code precedence is not yet frozen for the new form. HTTP body size is API-E30. |
 | API-E25 | Relative source directory, invalid encoding, absolute file name, empty component, backslash, NUL, `.`/`..` or invalid normalized path | 400 `invalid_file_paths` for file paths; 400 `invalid_submission` for source-directory syntax | No; correct request | Existing input validation has these broad codes. No lexical string-prefix authorization. |
 | API-E26 | Well-formed source path outside configured generator scope | 403 `source_outside_scope` | No; operator-approved configuration/identity required | Existing 403; cannot grant access by changing JSON identity or supplying destination. |
@@ -453,6 +453,38 @@ SC-141 tracks this situation. DOC-01/03/04 need reordered-retry examples,
 partial-claim mapping, changed-request contrasts and original-state evidence.
 No new Rust/NFS/SLES result is claimed by recording this agreement.
 
+## Recording ID must be a UUID (group 17)
+
+**Approved on 2026-10-23; implementation pending.** recording_id is a required
+UUID string, generated once by the recorder and reused for every retry. The
+reviewed example is 550e8400-e29b-41d4-a716-446655440000. Arbitrary labels such as
+recording-0042 or a numeric counter are not accepted as recording_id.
+
+A syntactically valid UUID is not proof of uniqueness, caller authorization or
+custody. Enforce the global recording-ID namespace in durable storage: identical
+replay resolves to the original job; changed content remains a conflict; caller
+checks still prevent cross-generator disclosure. New input with a non-UUID
+recording_id is 400 invalid_submission, retryable false, before new acceptance
+or filesystem effects. Malformed JSON keeps its existing invalid_json mapping.
+
+This requirement concerns recording_id only; it does not silently change
+internal job IDs, operator command IDs or generator identity format. No specific
+UUID version has been required by the user. Finalize exact lexical validation
+and canonical identity in OpenAPI/schema work; do not reinterpret two accepted
+spellings of one UUID as two globally different recordings. No new Rust package
+or dependency experiment is authorized simply by choosing this ID format.
+Preserve existing stored jobs/claims under explicit migration/refusal rules;
+rejecting a new invalid ID does not authorize deleting legacy stored work.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E73 | Recorder supplies a valid UUID recording_id and retains it across submission retries | Normal authorization/admission/claim and same-original-job replay rules; 202 only after confirmed whole-set custody | Approved contract, implementation/qualification pending. Current prototype still uses free-form submission_id. |
+| API-E74 | New request uses a non-UUID label, number, missing ID or malformed UUID recording_id | 400 invalid_submission, retryable false, before new acceptance/effects; do not replace an already accepted ID to bypass a pending claim | Invalid-field mapping approved. Cover lexical forms in the final schema/case manifest; no automatic claim that existing prototype enforces UUID. |
+
+SC-142 and DOC-01/03 must show UUID generation once, retry preservation,
+non-UUID rejection and distinction from numeric internal job IDs. ID retention
+and concurrent replay remain the next contract decisions.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -472,14 +504,14 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
-| ER-D04 | **File ordering resolved (group 16):** permutation alone is the same request. Finalize exact recording-ID syntax, global persistence/concurrent replay and ID retention; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-72 |
+| ER-D04 | **UUID and file-order requirements resolved (groups 16-17):** require UUID recording_id; permutation alone is the same request. Finalize lexical canonicalization, global persistence/concurrent replay and ID retention; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-74 |
 | ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-70 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-16 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-17 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
-current-configuration behavior and order-independent file-list replay. The unused Rust producer wire format may
+current-configuration behavior, order-independent file-list replay and UUID recording IDs. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -493,12 +525,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-72 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-74 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the seventy-two situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the seventy-four situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

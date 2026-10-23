@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-16, remaining schema decisions and
+current discussion, approved contract groups 1-17, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -50,7 +50,11 @@ preservation or the separate legacy C++ cutover gate.
 ```
 
 The source directory is absolute as visible to the mover, inside the generator's
-approved scope. Recording IDs are globally unique; retry the same ID/request.
+approved scope. recording_id must be a UUID string generated once by the
+recorder; retry that same UUID/request. The mover enforces global uniqueness.
+Non-UUID new input returns 400 invalid_submission, retryable false. This
+requirement is approved but not implemented; see
+[group 17/API-E73-74](REST-ERROR-SCENARIOS.md#recording-id-must-be-a-uuid-group-17).
 Destination selection belongs to startup configuration and subfolders are
 preserved beneath the recording-ID destination folder. This minimal form does
 not require file sizes when checking is disabled (the default). The approved
@@ -377,7 +381,8 @@ permutation alone replays the original job. Duplicates remain invalid. Preserve
 existing durable file IDs/claim receipts and partial-claim state on replay; this
 order-independent rule is approved but not implemented in the prototype. See
 [group 16/API-E71-72](REST-ERROR-SCENARIOS.md#request-equivalence-file-order-group-16).
-Exact ID syntax, global persistence/concurrency and ID retention still need design.
+UUID recording_id is required; exact lexical canonicalization, durable global
+persistence/concurrency and ID retention still need schema/implementation design.
 Keep durable key tombstones when archiving jobs so retries cannot create another
 transfer by silently reusing a pruned key.
 

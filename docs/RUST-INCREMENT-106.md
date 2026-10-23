@@ -194,3 +194,15 @@ Group-16 documentation checks passed: all 72 API IDs, original 140 SC IDs plus
 SC-141 (141 total), six DOC IDs, policy links/anchors and next-step handoff.
 Both retained SLES source archive hashes and archived runtime inputs remain
 unchanged. No new Rust build/test, fixture run or qualification pass.
+
+## Resumed review: UUID recording_id required (group 17)
+
+The user approves required UUID recording_id. Recorder generates it once and
+retains it for every retry; mover still enforces global uniqueness, authorization
+and original request replay. Non-UUID new input maps to existing 400
+invalid_submission/false. No automatic UUID-version restriction, new package
+experiment, internal job-ID change or disposal of stored custody follows from
+this requirement. Add planned SC-142/API-E73-74; preserve previous 141 SC and 72
+API IDs, with totals now 142 SC and 74 API situations. Current free-form
+prototype is unchanged. Next discuss ID retention and concurrency; lexical
+canonicalization belongs in the precise schema. No new Rust/NFS/SLES result.

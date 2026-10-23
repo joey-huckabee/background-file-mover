@@ -133,7 +133,7 @@ derived merely from a successful process/container restart.
 ## Ordered work packages
 
 P01 input: [the error review and API-I01-06](REST-ERROR-SCENARIOS.md) record
-approved groups 1-16 (outcomes, envelope, timing, size policy and unordered files). Resolve
+approved groups 1-17 (outcomes, envelope, timing, size policy, unordered files and UUID IDs). Resolve
 remaining request/schema/compatibility decisions before freezing OpenAPI and
 implementing identity changes. This refines RC-01-03 without adding a release
 gate or claiming new runtime/qualification evidence.

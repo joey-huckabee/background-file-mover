@@ -6,8 +6,9 @@ adds no runtime implementation, dependency or qualification result.
 
 Resumed 2026-10-23: file ordering is now resolved. Permuting the same file list
 is an identical retry (group 16, SC-141/API-E71-72), with all other values
-unchanged. Prototype behavior is unchanged. Next settle recording-ID syntax,
-retention and concurrent replay; do not ask the file-order question again.
+unchanged. UUID recording_id is also now required (group 17, SC-142/API-E73-74).
+Prototype behavior is unchanged. Next settle ID retention and concurrent replay;
+do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
 
@@ -18,10 +19,10 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Sixteen reviewed groups are recorded, including order-independent replay: fifty initial outcome mappings, a shared
+Seventeen reviewed groups are recorded, including unordered replay and UUID IDs: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 141 stable SC IDs and six DOC IDs; API-E01-72 are contract/acceptance
-situations, not seventy new passing tests. All eight release gates remain open.
+now has 142 stable SC IDs and six DOC IDs; API-E01-74 are contract/acceptance
+situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
 
@@ -65,8 +66,8 @@ situations, not seventy new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Continue ER-D04 with recording-ID syntax, then ID retention and concurrent
-   replay. File-list ordering is resolved: the same paths/assertions in any order
+1. Continue ER-D04 with ID retention and concurrent replay. UUID recording_id
+   is required; lexical canonicalization remains a schema detail. File-list ordering is resolved: the same paths/assertions in any order
    are identical. JSON object member order is immaterial; duplicate paths and
    changed file membership/assertions are not permitted by this decision.
    Preserve actual durable file indices on reordered partial replay.

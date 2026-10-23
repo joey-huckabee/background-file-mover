@@ -16,14 +16,14 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-exact recording-ID syntax, retention/concurrent replay and remaining schema
-details before OpenAPI. Preserve approved order-independent file replay.
+ID retention/concurrent replay and remaining schema details before OpenAPI.
+Encode the required UUID recording_id; finalize lexical canonicalization. Preserve approved order-independent file replay.
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-16). Current missing-file
+  error mappings, envelope and retry timing (groups 1-17). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-72 disposition and preserve original custody.
+  support. Cover every API-E01-74 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.

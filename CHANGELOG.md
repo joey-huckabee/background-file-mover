@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve required UUID recording_id and document planned SC-142/API-E73-74, non-UUID 400 rejection and same-ID retry. Durable uniqueness and precise lexical/schema/state handling remain implementation work; runtime and qualification evidence unchanged. Next review ID retention/concurrency.
+
 - Approve order-independent file-list replay and document planned SC-141/API-E71-72. Preserve original path-to-file/claim mapping and changed-content conflicts; update the handoff to remaining ID syntax/retention/concurrency. No runtime or qualification changes.
 
 - Save the REST contract shutdown handoff with approved groups 1-15, current-size-policy correction, unresolved replay/schema decisions and exact next step. Documentation only; runtime and qualification evidence remain unchanged.
