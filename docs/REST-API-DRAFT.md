@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-18, remaining schema decisions and
+current discussion, approved contract groups 1-19, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -386,10 +386,14 @@ persistence/concurrency and ID retention still need schema/implementation design
 The user selects full detailed history retention until an admin explicitly
 clears it through the dashboard, with no automatic expiry or compact-only
 replacement. [Group 18/API-E75](REST-ERROR-SCENARIOS.md#detailed-job-history-retained-until-admin-clears-it-group-18)
-records this policy. UUID recognition and late retry after explicit clear still
-need agreement; do not assume permanent tombstones or automatic UUID forgetting.
-The requested clear-history workflow needs scoped deployment/auth/eligibility
-planning; it is not an implemented endpoint or file-deletion permission.
+records this policy. Explicit admin clear forgets the UUID as well as history:
+a later submission using it is new work, not old replay. Only completed or safely
+cancelled jobs may be cleared; unfinished and errored jobs require cancellation
+first. A cancellation request alone is insufficient. See
+[group 19/API-E76-80](REST-ERROR-SCENARIOS.md#admin-clear-forgets-uuids-cancel-unfinished-or-errored-jobs-first-group-19).
+The dashboard cancel/clear workflow still needs scoped auth, cancellation-data
+and transaction/wire design; it is not an implemented endpoint or physical
+file-deletion permission. Old destination content keeps no-clobber protection.
 
 A different key submitting a source path reserved by an unreleased job receives
 `409 source_reserved`; it cannot create a competing claim. After all-files

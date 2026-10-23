@@ -9,8 +9,11 @@ is an identical retry (group 16, SC-141/API-E71-72), with all other values
 unchanged. UUID recording_id is also now required (group 17, SC-142/API-E73-74).
 The user selects detailed history until admin dashboard clear (group 18,
 SC-143/API-E75), not automatic compaction/permanent compact receipts. Prototype
-behavior is unchanged. Next settle post-clear UUID/late-retry semantics, clear
-eligibility and concurrent replay;
+behavior is unchanged. The user now resolves clear semantics (group 19,
+SC-144/145/API-E76-80): forget cleared UUIDs, treat later submissions as new,
+and require cancellation before clearing unfinished/errored jobs. Only completed
+or safely cancelled jobs are eligible. Next settle cancellation data disposition,
+admin API/bulk/concurrency and remaining schema;
 do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
@@ -22,9 +25,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Eighteen reviewed groups are recorded, including manual full-history retention: fifty initial outcome mappings, a shared
+Nineteen reviewed groups are recorded, including manual retention and cancel/clear: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 143 stable SC IDs and six DOC IDs; API-E01-75 are contract/acceptance
+now has 145 stable SC IDs and six DOC IDs; API-E01-80 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -69,9 +72,12 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Continue ER-D04 with post-admin-clear UUID/late-retry behavior, clear
-   eligibility and concurrent replay. Keep full detailed history until admin
-   dashboard clear; do not re-propose automated expiry/compact-only retention.
+1. Continue with cancellation data disposition and admin clear/replay concurrency,
+   precise endpoints/responses and bulk behavior. Clear eligibility and UUID
+   forgetting are resolved: completed or safely cancelled only, error/unfinished
+   cancel first, cleared UUID later means a new recording. Keep full detailed
+   history until explicit clear; do not re-propose automatic expiry, permanent
+   tombstones or allowing errored/active jobs to be cleared without cancellation.
    UUID recording_id is required; lexical canonicalization remains a schema detail. File-list ordering is resolved: the same paths/assertions in any order
    are identical. JSON object member order is immaterial; duplicate paths and
    changed file membership/assertions are not permitted by this decision.

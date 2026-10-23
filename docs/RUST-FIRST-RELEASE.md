@@ -59,14 +59,16 @@ A gate needs passing evidence and user instructions for its declared profile.
 ## Next work and release decisions
 
 The user requests full detailed job history until explicit admin dashboard clear.
-Scope that workflow, release placement, eligibility/authorization and post-clear
-UUID/retry semantics before freezing the contract; no automated compaction or
+Explicit clear forgets the UUID; late reuse is new recording work. Only completed
+or safely cancelled jobs may clear; cancel unfinished/errored jobs first.
+Finalize cancellation data disposition, admin wire/access and release placement
+before freezing the contract; no automated compaction or
 blanket UI deferral should silently substitute for that decision.
 
-The [error review](REST-ERROR-SCENARIOS.md) records approved groups 1-18:
+The [error review](REST-ERROR-SCENARIOS.md) records approved groups 1-19:
 fifty initial outcome mappings, error envelope, configurable recorder retry
 timing and current-configuration expected-size policy. Follow API-I01-06 after remaining request/schema/compatibility decisions
-are resolved. API-E01-75 are acceptance situations, not new qualification passes;
+are resolved. API-E01-80 are acceptance situations, not new qualification passes;
 approved missing-file 409/global-ID behavior is not implemented yet. No Rust
 prototype API clients exist, so replace its old producer format directly without
 an adapter; stored-job/custody safeguards and separate C++ cutover remain.

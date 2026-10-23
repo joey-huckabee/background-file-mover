@@ -218,3 +218,26 @@ The requested workflow needs scope planning, not blanket deferral or an immediat
 unapproved dashboard implementation. History clear does not grant file deletion
 or loss of ownership evidence. Add planned SC-143/API-E75; preserve previous 142
 SC/74 API IDs. Runtime/history-clear endpoints and qualification remain unchanged.
+
+## Resumed review: forget cleared UUIDs; cancel first (group 19)
+
+The user explicitly approves forgetting recording UUIDs with an admin history
+clear; a later submission under one is new work, not replay of an old 202.
+No deduplication tombstone/compact completion receipt survives for that UUID.
+Only completed or safely cancelled jobs may be cleared. Unfinished and errored/
+review jobs require cancellation first; a mere request, signal, timeout or blocked
+worker is not completed cancellation. Preserve required ownership/actual data
+facts and normal source/destination no-clobber rules; clear is not a file-delete
+or overwrite grant. Design cancellation data disposition and exact admin wire,
+transaction/bulk/concurrency/audit before implementing these requested controls.
+
+Add planned SC-144/145 and API-E76-80. Preserve original 143 SC/75 API IDs;
+totals are now 145 SC/eighty API situations and six DOC rows. Remove superseded
+statements that clear eligibility and UUID forgetting are still undecided, and
+advance handoff/roadmap to remaining cancellation/admin contract work. No runtime,
+dependency, source-deletion, NFS enablement or qualification result changes.
+
+Group-19 documentation validation passed: eighty API IDs, previous 143 SC IDs
+plus SC-144/145 (145 total), six DOC IDs, five clear/cancel acceptance cases,
+policy links/anchors and unchanged source hashes/bytes from both retained SLES
+archives. No new Rust build/test, fixture run or qualification result.

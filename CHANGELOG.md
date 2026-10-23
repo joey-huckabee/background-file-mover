@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Define admin clear as removing detailed history and forgetting its UUID, so later reuse is a new recording. Protect unfinished/errored jobs until cancellation safely completes; only completed or cancelled jobs may clear. Add planned SC-144/145 and API-E76-80 with late-retry, worker and no-clobber cases. Administrative cancellation/data/wire design remains pending; no runtime changes.
+
 - Record manual full detailed-job-history retention until an admin clears it through the dashboard; no automatic expiry or compact-only replacement. Add planned SC-143/API-E75 and scope the requested clear workflow, with post-clear UUID/retry and eligibility still undecided. No runtime/dashboard implementation or qualification changes.
 
 - Approve required UUID recording_id and document planned SC-142/API-E73-74, non-UUID 400 rejection and same-ID retry. Durable uniqueness and precise lexical/schema/state handling remain implementation work; runtime and qualification evidence unchanged. Next review ID retention/concurrency.
