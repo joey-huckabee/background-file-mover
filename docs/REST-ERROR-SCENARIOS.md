@@ -8,9 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirteen groups in successive review replies.
-These fifty outcome mappings, the group-12 error envelope and group-13 retry
-timing are contract decisions, not new runtime capabilities.
+The user approved the following fourteen groups in successive review replies.
+The fifty initial outcome mappings, group-12 error envelope, group-13 retry
+timing and group-14 expected-size policy are contract decisions, not new runtime
+capabilities. Group 14 adds the six acceptance situations API-E61-66 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -87,8 +88,8 @@ prototype, not a blanket waiver of legacy C++ cutover or release requirements.
 
 It does not authorize discarding SQLite jobs, changing claimed-object ownership,
 reusing old IDs or renaming accepted destinations. Persisted-state migration or
-safe refusal still requires an explicit design and tests. Optional expected-size
-assertions remain a capability; their new representation still needs agreement.
+safe refusal still requires an explicit design and tests. Expected-size assertions use the approved all-or-nothing expected_sizes_bytes
+map and a default-disabled checking policy (group 14).
 
 - Recorder submits generator identity, a globally unique recording ID, the full
   source directory as the mover sees it, and every file explicitly. Preserve
@@ -111,8 +112,11 @@ file names. The current implementation instead requires `submission_id`,
 `source_path` and file objects containing `name`, with optional `size_bytes`.
 Global recording-ID enforcement and recording-ID destination layout also differ
 from the implemented model. Do not describe the discussed JSON as usable today.
-Optional size assertions remain an existing capability; their representation in
-the new minimal form still needs a representation decision, not silent removal.
+The reviewed replacement uses expected_sizes_bytes as an all-or-nothing map
+whose keys are exactly the submitted files. Expected-size comparisons are
+configurable and disabled by default; a supplied complete map is ignored for
+those comparisons while disabled. Group 14 below defines the accepted behavior.
+The current per-file size_bytes checks do not implement this toggle or map.
 
 ## Approved error envelope (group 12) and recorder retry policy (group 13)
 
@@ -204,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-60 are review keys, not replacement requirements or SC IDs.
+API-E01-66 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -216,7 +220,7 @@ API-E01-60 are review keys, not replacement requirements or SC IDs.
 | API-E06 | Several files already claimed, another listed file confirmed missing | 409 `source_file_missing` | Yes within window; whole-set release remains withheld | Same current 503 pending behavior; no change to partial-custody safety. No per-file permission for producer reuse. |
 | API-E07 | Missing-file deadline expires or persisted missing review block exists | 409 `recording_blocked` | No; operator reviews original job and, if appropriate, audited exact-file reset | Current 409 false. Restart/recorder retry never resets the deadline. Proposed dedicated code, if desired, needs evidence/schema discussion. |
 | API-E08 | A file appears after missing deadline expired | 409 `recording_blocked` | No automatic clearing; same operator workflow | Existing review boundary must remain; presence alone does not reset review. |
-| API-E09 | Expected size assertion differs from observed file size | 409 `source_size_mismatch` | No; inspect original request/object; no new ID bypass | Current 409 false; service measures actual size even when no assertion provided. |
+| API-E09 | Expected size assertion differs from observed file size while checking is enabled | 409 `source_size_mismatch` | No; inspect original request/object; no new ID bypass | Current 409 false; service measures actual size even when no assertion provided. |
 | API-E10 | Source inode/size/parent identity changes during a pending claim | 409 `recording_blocked` | No; review custody/producer immutability violation | Current generic false refusal; selected cases in SC-138. More specific codes require typed proven causes. |
 | API-E11 | Actual source leaf is symlink/nonregular or descriptor traversal/alias checks fail | 409 `recording_blocked` | No; inspect source and configured scope | Current claim refusal is broad; syntactically invalid paths are separate API-E25. No follow-links fallback. |
 | API-E12 | Submitted source is reserved by another accepted recording | 409 `source_reserved` | No blind retry/new ID; investigate original reservation | Current 409 false; never steal custody or disclose another generator's job. |
@@ -284,6 +288,79 @@ reported in job state/diagnostics, not pushed back to a recorder that already le
 | API-E59 | Stop/status controller times out, owner unavailable or worker survives coordinator death | Local lifecycle protocol/exit status, not REST HTTP code | Existing bounded incomplete/restart-blocked workflow | Do not invent REST status codes for the separate Unix operator controller; preserve actual-exit exclusion. |
 | API-E60 | Consumer sees payload/manifest absent or invalid, or only a staging/partial name | Consumer contract condition, not a new mover REST endpoint/status | Wait for valid COMMITTED.json; report invalid manifest/collision to operator | Filesystem destination has no implemented artifact HTTP endpoint. Never infer completion from a visible payload alone. |
 
+## Expected-size policy (group 14)
+
+**Approved on 2026-10-23; not implemented.** The user specifically requests
+that the disabled-checking scenario remain documented. SC-139 tracks this user
+situation; API-E61-66 are its finite acceptance cases, not passing tests.
+
+A startup boolean controls comparison with the recorder's expected sizes; its
+working name is check_expected_sizes and its default is false. This is a
+checking toggle, not merely a require-optional-field toggle. The exact public
+configuration spelling and job/replay policy snapshot mechanics still belong to
+schema/persistence design before implementation.
+
+- **Disabled:** the map may be omitted. If a complete map is supplied, ignore its
+  numeric assertions when comparing against actual files; a mismatch alone does
+  not block handoff. This lets a recorder send the same JSON across deployments
+  with size checking on or off.
+- **Enabled:** the complete map is required and every listed file's expected size
+  must match the service's actual claim observation. A mismatch returns
+  409 source_size_mismatch, retryable false; a missing required map is
+  400 invalid_submission, retryable false.
+- **All or nothing in both modes:** a supplied map must contain exactly one
+  nonnegative integer byte count for every listed path, including zero for an
+  empty file. Partial maps, extra/unlisted names and invalid numeric values are
+  400 invalid_submission, retryable false. JSON decoding/framing errors retain
+  their earlier mappings. Structural validation is distinct from comparing
+  supplied numbers against filesystem observations.
+- **Always active:** service-side actual-size measurement and stable-object
+  checks during claim, copied-size consistency, streamed source hashing,
+  destination reread verification and manifest/receipt checks. This toggle does
+  not disable copy integrity or make a file changing before 202 acceptable.
+
+Ignoring values for size comparison does not make the request mutable. Preserve
+its original complete map for recording-ID replay/conflict rules. Changing an
+assertion on a retry remains changed request content under API-E03, even when
+comparison is disabled. Do not drop the map from canonical request identity just
+because it is not used for size comparison. Finalize policy-change/restart
+semantics explicitly; a config change cannot silently reinterpret an already
+accepted partial claim or rewrite its actual-size evidence.
+
+### Concrete disabled-checking example
+
+Send the following complete request while checking is disabled:
+
+```json
+{
+  "generator_id": "recorder-01",
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_directory": "/mnt/nfs/recordings/run-0042",
+  "files": ["camera1/video.bin", "metadata.json"],
+  "expected_sizes_bytes": {
+    "camera1/video.bin": 100,
+    "metadata.json": 300
+  }
+}
+```
+
+Actual source sizes are video **200 bytes** and metadata **300 bytes**.
+With checking disabled, ignore the supplied 100-byte assertion and perform
+normal claiming. Record actual sizes 200 and 300; all other checks must pass
+before 202. Copy/verify those actual bytes, without truncation or padding.
+With checking enabled, the same mismatch blocks whole-set 202 with
+409 source_size_mismatch. Earlier claimed files remain protected; neither the
+409 nor a partial claim authorizes the recorder to reuse any original path.
+
+| ID | Situation | Approved outcome | Current implementation / acceptance status |
+|---|---|---|---|
+| API-E61 | Checking disabled, size map omitted | Normal claim processing; 202 only after whole-set durable custody | New setting/wire shape pending; ordinary no-assertion claiming already exists. |
+| API-E62 | Checking disabled, complete valid map supplied, one expected 100-byte value differs from actual 200-byte file | Ignore the expected-value mismatch; claim records 200 actual bytes; normal verified delivery and eligible 202 | **Requested documented scenario, SC-139.** New toggle/map unimplemented; no new passing test claimed. |
+| API-E63 | Checking enabled, complete map supplied, all values match actual file sizes | Normal claim processing and whole-set 202 when all other checks pass | New setting/map pending; current per-file assertions are reference behavior only. |
+| API-E64 | Checking enabled, complete map supplied, at least one size mismatches | 409 source_size_mismatch; retryable false; retain any partial custody, no new release | Existing mismatch refusal remains; new configuration/wire acceptance must be qualified. |
+| API-E65 | Checking enabled, map omitted | 400 invalid_submission; retryable false; reject before new acceptance/effects | New required-complete-map rule pending. |
+| API-E66 | Either mode, supplied map partial, has extra/unlisted keys or invalid numeric values | 400 invalid_submission; retryable false; reject before new acceptance/effects | New all-or-nothing shape pending; qualify each vector with checking off/on. |
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -304,12 +381,12 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
 | ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
-| ER-D05 | **Prototype wire compatibility resolved:** user confirms no Rust API clients; replace the old producer format directly, without adapter/dual schema/deprecation. Still decide optional size representation and precise schema. Preserve existing persistent custody and separate C++ cutover requirements. | E03/09/23-25/28 |
+| ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Finalize exact config/schema and persisted policy/replay semantics. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-66 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-13 above are approved: fifty outcome mappings, the shared error
-envelope and recorder retry timing. The unused Rust producer wire format may
+Groups 1-14 above are approved: fifty initial outcome mappings, the shared error
+envelope, recorder retry timing and all-or-nothing expected-size checking policy. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -323,12 +400,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-60 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Resolve optional sizes, ID retention/equivalence and field/config bounds; no silent removal of existing state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-66 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and policy replay semantics without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the sixty situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the sixty-six situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.
@@ -355,7 +432,7 @@ Implementation details and safety checks for those steps:
 5. For each approved API-E row, retain an exact fixture/input/outcome assertion
    or explicit non-HTTP/manual disposition. Test conflicting and identical
    concurrent requests, missing-before/after-deadline and partial claims, lost
-   response/continued work, replay after commit, malformed input and error-body
+   response/continued work, replay after commit, malformed input, group-14 size-policy matrix and error-body
    fallback. Assert no false 202, no new path release, original state preserved,
    no duplicate unsafe effects, no cross-generator leakage and bounded load.
 6. Run every Rust build/test through the production and retained qualification

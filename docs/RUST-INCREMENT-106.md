@@ -126,3 +126,29 @@ Add the reviewed minimal JSON to the API draft, clearly above historical/current
 examples. This does not remove optional size assertions, discard stored jobs or
 waive C++ cutover. Global-ID stored-state migration/refusal and precise schema
 rules still require design. Documentation only; no runtime/qualification change.
+
+## Subsequent contract review: expected-size policy approved (group 14)
+
+The user requests documentation of the disabled-checking scenario and accepts
+ignoring a complete expected_sizes_bytes map when checking is off. Checking is
+default-disabled; enabled requires a complete map and compares every size.
+Partial/extra/invalid maps remain invalid in both modes. An expected 100-byte
+value for an actual 200-byte file does not prevent normal claim processing while
+disabled; record/copy/verify actual 200 bytes. Enabled mismatch remains 409
+source_size_mismatch; missing required or malformed/incomplete map is 400
+invalid_submission. Preserve immutable request replay, partial custody and
+mandatory actual-size/hash/destination verification in either mode.
+
+Add SC-139 and API-E61-66 as approved-contract, implementation/qualification
+pending scenarios. Preserve all prior 138 SC and sixty API review identifiers;
+there are now 139 SC and sixty-six API situations. Update DOC-01/03/05 guidance
+obligations, request example notes, roadmap and handoffs. Exact config spelling
+and persisted-policy handling across retry/restart remain design work, not
+implicitly implemented features. No runtime/dependency/fixture changes or new
+Rust/NFS/SLES qualification; production NFS and deletion remain disabled.
+
+Group-14 documentation checks pass: six new API cases, concrete complete-map
+JSON, policy/example anchors and existing local links, unchanged original 138 SC
+IDs plus SC-139 (139 total), unchanged six DOC IDs and fifty initial approval
+rows. Both retained SLES source archives still match current runtime inputs.
+No new Rust build/test, fixture run or compatibility result is claimed.

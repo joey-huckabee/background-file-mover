@@ -106,10 +106,14 @@ checks, confinement gaps and fail-closed harness requirements.
 ## Resume here
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-13 (fifty mappings, error envelope and retry timing) are approved, including
+before freezing P01. Groups 1-14 (initial errors, envelope, retry timing and size policy) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
+Expected-size checking is default-disabled: ignore a supplied complete
+expected_sizes_bytes map; enabled requires a complete matching map. Partial maps
+are invalid in either mode. Preserve actual-size measurement/integrity checks.
+Document SC-139/API-E61-66; policy and new wire shape are not implemented yet.
 No implementation is authorized merely by listing a proposed scenario.
 
 

@@ -2,12 +2,16 @@
 
 ## Current direction (2026-10-13)
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-60 for user review
-before P01 is frozen. Groups 1-13 (fifty mappings, error envelope and retry timing) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-66 for user review
+before P01 is frozen. Groups 1-14 (initial errors, envelope, retry timing and size policy) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
 and exact schema details still need design.
+Expected-size checking is default-disabled: ignore a supplied complete
+expected_sizes_bytes map; enabled requires a complete matching map. Partial maps
+are invalid in either mode. Preserve actual-size measurement/integrity checks.
+Document SC-139/API-E61-66; policy and new wire shape are not implemented yet.
 
 
 Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.

@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved error groups 1-13, remaining schema decisions and
+current discussion, approved error groups 1-14, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -53,8 +53,15 @@ The source directory is absolute as visible to the mover, inside the generator's
 approved scope. Recording IDs are globally unique; retry the same ID/request.
 Destination selection belongs to startup configuration and subfolders are
 preserved beneath the recording-ID destination folder. This minimal form does
-not require file sizes; optional expected-size representation and precise schema
-rules remain to be finalized. See the error review for approved outcomes.
+not require file sizes when checking is disabled (the default). The approved
+optional expected_sizes_bytes map is all-or-nothing. When checking is enabled,
+require the complete map and compare all values; when disabled, a supplied
+complete map is ignored for expected-size comparison. Partial/extra/invalid maps
+are 400 invalid_submission in either mode. Actual claim-size measurement and
+copy integrity checks remain mandatory. See
+[group 14 and its concrete 100-versus-200-byte scenario](REST-ERROR-SCENARIOS.md#expected-size-policy-group-14)
+for API-E61-66. Exact config spelling and persisted policy replay rules still
+need design; no new toggle/map is implemented yet.
 
 Examples below using submission_id/source_path/file objects describe the current
 prototype and earlier proposals, not the reviewed replacement wire schema.

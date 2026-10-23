@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Document approved default-disabled expected-size checking: ignore complete supplied expected_sizes_bytes assertions when off; require and compare every listed size when on. Preserve all-or-nothing map validation and actual-size/copy integrity checks. Add planned SC-139 and API-E61-66, including expected 100 versus actual 200 bytes; no runtime or qualification changes.
+
 - Record that the Rust prototype API has no clients: replace its producer wire format directly with the reviewed recording-ID/source-directory/explicit-file form, without a compatibility adapter or deprecation period. Preserve persistent custody and separate legacy C++ cutover requirements; exact schema and optional-size representation remain pending. No runtime changes.
 
 - Record approved REST recorder retry timing: honor server delay, then valid Retry-After, then configurable 5/10/20/30-second fallback and five-minute persistent-failure warning. Consolidate API-I01-06 implementation/qualification steps while preserving pending request/schema compatibility. No runtime, retry/review deadline or qualification changes.
