@@ -109,7 +109,7 @@ Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It recor
 the latest user correction, exact next discussion and unchanged runtime state.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-15 (errors, envelope, retry timing and current size policy) are approved, including
+before freezing P01. Groups 1-16 (errors, envelope, retry timing, size policy and unordered files) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
@@ -120,6 +120,9 @@ Apply the current size-check setting to existing unfinished work after restart;
 do not pin/snapshot it per recording. Preserve actual custody/size evidence and
 confirmed whole-set 202 replay. Document SC-139/140 and API-E61-70; implementation
 and qualification remain pending.
+File-list order is immaterial to same-ID replay (group 16/SC-141/API-E71-72).
+Preserve durable file/claim indices by path; duplicates and changed membership or
+assertions still fail. Next settle exact ID syntax, retention and concurrency.
 No implementation is authorized merely by listing a proposed scenario.
 
 

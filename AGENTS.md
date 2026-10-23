@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-70 for user review
-before P01 is frozen. Groups 1-15 (errors, envelope, retry timing and current size policy) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-72 for user review
+before P01 is frozen. Groups 1-16 (errors, envelope, retry timing, size policy and unordered files) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -19,6 +19,9 @@ Apply the current size-check setting to existing unfinished work after restart;
 do not pin/snapshot it per recording. Preserve actual custody/size evidence and
 confirmed whole-set 202 replay. Document SC-139/140 and API-E61-70; implementation
 and qualification remain pending.
+File-list order is immaterial to same-ID replay (group 16/SC-141/API-E71-72).
+Preserve durable file/claim indices by path; duplicates and changed membership or
+assertions still fail. Next settle exact ID syntax, retention and concurrency.
 
 
 Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.

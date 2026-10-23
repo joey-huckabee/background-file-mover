@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved error groups 1-15, remaining schema decisions and
+current discussion, approved contract groups 1-16, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -370,9 +370,14 @@ request for an already claimed job returns `202` again with the same job ID and
 release receipt, even if destination processing has since advanced or failed.
 A still-unclaimed job uses the same bounded handoff wait and returns no 202
 until claims are confirmed. Replay never opens the producer's reused paths.
-A changed request returns `409 idempotency_conflict`. JSON member order does not
-change request identity. Array normalization and recording-ID uniqueness remain
-review items; the key is the authoritative submission identity in this draft.
+For the reviewed replacement, changed immutable content returns
+409 recording_id_conflict. JSON member order and files array order do not change
+request identity. Compare identical path membership and path-keyed size assertions;
+permutation alone replays the original job. Duplicates remain invalid. Preserve
+existing durable file IDs/claim receipts and partial-claim state on replay; this
+order-independent rule is approved but not implemented in the prototype. See
+[group 16/API-E71-72](REST-ERROR-SCENARIOS.md#request-equivalence-file-order-group-16).
+Exact ID syntax, global persistence/concurrency and ID retention still need design.
 Keep durable key tombstones when archiving jobs so retries cannot create another
 transfer by silently reusing a pruned key.
 

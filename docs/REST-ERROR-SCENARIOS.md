@@ -8,11 +8,11 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following fifteen groups in successive review replies.
+The user approved the following sixteen groups in successive review replies.
 The fifty initial outcome mappings, group-12 error envelope, group-13 retry
-timing, group-14 expected-size policy and group-15 current-configuration behavior
-are contract decisions, not new runtime capabilities. Groups 14-15 add the ten
-acceptance situations API-E61-70 below.
+timing, group-14 expected-size policy, group-15 current-configuration behavior
+and group-16 order-independent replay are contract decisions, not new runtime
+capabilities. Groups 14-16 add API-E61-72 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -209,13 +209,13 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-70 are review keys, not replacement requirements or SC IDs.
+API-E01-72 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
 | API-E01 | First submission, every file durably claimed | 202; no error | Success; all original paths may be reused | Implemented, but current body uses numeric job ID and `Claimed`; discussed recording-ID response remains pending. |
 | API-E02 | Identical retry after lost 202, or after delivery completed | 202; no error | Same confirmation; never claim reused leaves | Existing replay uses generator/submission identity and custody validation. Global recording ID and exact post-delivery response need agreement/mapping. |
-| API-E03 | Same recording ID, changed source directory/file list/size assertion or other immutable request data | 409 `recording_id_conflict` | No; retain original body/custody, investigate | Current 409 `submission_conflict`; proposed naming/global key differs. File order currently matters; equivalence rules are open. |
+| API-E03 | Same recording ID, changed source directory/file list/size assertion or other immutable request data | 409 `recording_id_conflict` | No; retain original body/custody, investigate | Current 409 `submission_conflict`; proposed naming/global key differs. File order currently matters in the prototype; group 16 approves order-independent comparison, unimplemented. |
 | API-E04 | Same recording ID submitted by another generator | 409 `recording_id_conflict` only after allowed authorization; otherwise 403 generic denial | No; no cross-generator job/detail disclosure | Global namespace change is not implemented. Authorization must precede existence disclosure; settle exact denial with the remote contract. |
 | API-E05 | One explicitly listed file is confirmed absent on an accessible authorized source | 409 `source_file_missing` | Yes, within the persisted missing-file window; preserve already claimed files | **Approved change, not implemented:** current 503 `handoff_pending`. A missing RPC reply/timeout is not absence proof. |
 | API-E06 | Several files already claimed, another listed file confirmed missing | 409 `source_file_missing` | Yes within window; whole-set release remains withheld | Same current 503 pending behavior; no change to partial-custody safety. No per-file permission for producer reuse. |
@@ -418,6 +418,41 @@ SC-140 and DOC-01/03/04/05 must explain this restart behavior and distinguish
 configuration policy from preserved recording state. These are pending tests,
 not new Rust/NFS qualification results.
 
+## Request equivalence: file order (group 16)
+
+**Approved on 2026-10-23; implementation pending.** Reordering the same explicit
+file paths does not change recording identity. A same-recording-ID retry with
+only file-list order changed resolves to the original job, never a new recording
+or 409 conflict. Existing prototype file-list order matters; update the
+implementation and evidence before advertising this new behavior as supported.
+
+Keep generator, recording ID, source directory, file membership and expected
+size assertions unchanged. Expected sizes are matched by relative path, never
+by file-list position. Object-member order in the JSON/map is not identity.
+Adding/removing/renaming a file or changing an assertion remains a changed
+request, including when expected-size comparison is disabled. Duplicate paths
+remain invalid; treating order as immaterial does not silently deduplicate them.
+No path case folding, symlink resolution or additional path normalization is
+approved by this ordering decision.
+
+Use a deterministic canonical comparison and retain exact original job/claim
+identity. In particular, a partially claimed replay in a new order must map each
+incoming path back to its existing durable file identity; never reassign file
+IDs, claim indices, missing deadlines, custody or receipts by arrival position.
+Preserve actual pending/review response until whole-set handoff is confirmed;
+reordering cannot grant 202, reset review or alter the configured route already
+recorded for the job. Completed handoff replays its existing authorized 202;
+producer-reused leaf names are never reclaimed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E71 | Same-ID retry permutes only file order, with size map absent or complete/unchanged | Same original job, source-to-private mapping and state. Pending/partially claimed jobs retain current retry/review/202 rules; fully claimed/committed recordings replay 202. No new claims of reused leaves or duplicate transfer | Approved contract, tests pending. Qualify accepted-unclaimed, partial claim, confirmed handoff and committed states; include same path-keyed sizes with map-member order varied. |
+| API-E72 | Permuted retry also changes membership/path/expected-size value, or includes duplicate paths | Changed content remains 409 recording_id_conflict; duplicates are rejected under existing 400 path/schema rules. Original custody/deadlines/attempts remain intact | Negative controls pending. An ignored expectation remains immutable request content; do not treat permutation as permission to change it. |
+
+SC-141 tracks this situation. DOC-01/03/04 need reordered-retry examples,
+partial-claim mapping, changed-request contrasts and original-state evidence.
+No new Rust/NFS/SLES result is claimed by recording this agreement.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -437,14 +472,14 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
-| ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
+| ER-D04 | **File ordering resolved (group 16):** permutation alone is the same request. Finalize exact recording-ID syntax, global persistence/concurrent replay and ID retention; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-72 |
 | ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-70 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-15 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-16 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
-current-configuration behavior. The unused Rust producer wire format may
+current-configuration behavior and order-independent file-list replay. The unused Rust producer wire format may
 be replaced directly; global-ID persistence/state handling and precise OpenAPI
 schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
@@ -458,12 +493,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-70 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-72 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the seventy situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for the seventy-two situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.
@@ -490,7 +525,7 @@ Implementation details and safety checks for those steps:
 5. For each approved API-E row, retain an exact fixture/input/outcome assertion
    or explicit non-HTTP/manual disposition. Test conflicting and identical
    concurrent requests, missing-before/after-deadline and partial claims, lost
-   response/continued work, replay after commit, malformed input, group-14/15 size-policy/restart matrices and error-body
+   response/continued work, replay after commit, malformed input, group-14/15 size-policy/restart matrices, group-16 reordered replay and error-body
    fallback. Assert no false 202, no new path release, original state preserved,
    no duplicate unsafe effects, no cross-generator leakage and bounded load.
 6. Run every Rust build/test through the production and retained qualification

@@ -175,3 +175,22 @@ Group-15 documentation validation passed: four new restart cases, seventy API
 review IDs, six implementation steps, unchanged previous 139 SC IDs plus SC-140
 (140 total), six DOC IDs, valid policy anchors/local links and unchanged source
 bytes/hashes in both retained SLES archives. No new runtime qualification.
+
+## Resumed review: file-list order is immaterial (group 16)
+
+The user approves same-ID file-list permutations as equivalent requests when
+all other values remain unchanged. Match sizes by path; preserve existing durable
+file indices/claims/deadlines, partial handoff/review and committed replay.
+Duplicates stay invalid and changed membership/path/assertions still conflict,
+including size assertions whose comparison is disabled. Add planned SC-141 and
+API-E71-72 with accepted/partial/claimed/committed and negative-control variants.
+All previous 140 SC/seventy API IDs remain stable; totals become 141 SC and 72
+API review situations. Runtime still compares ordered lists; no new tests or
+compatibility evidence. Update next-session pointers to ID syntax/retention/
+concurrency rather than asking file ordering again. Production NFS/deletion stay
+disabled; OpenAPI and implementation still await remaining contract decisions.
+
+Group-16 documentation checks passed: all 72 API IDs, original 140 SC IDs plus
+SC-141 (141 total), six DOC IDs, policy links/anchors and next-step handoff.
+Both retained SLES source archive hashes and archived runtime inputs remain
+unchanged. No new Rust build/test, fixture run or qualification pass.

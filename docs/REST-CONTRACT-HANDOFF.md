@@ -4,6 +4,11 @@ Saved 2026-10-23 on `feature/rust-transfer-coordinator`.
 Reviewed documentation through `d0dc013` before this checkpoint. This handoff
 adds no runtime implementation, dependency or qualification result.
 
+Resumed 2026-10-23: file ordering is now resolved. Permuting the same file list
+is an identical retry (group 16, SC-141/API-E71-72), with all other values
+unchanged. Prototype behavior is unchanged. Next settle recording-ID syntax,
+retention and concurrent replay; do not ask the file-order question again.
+
 ## Where we stopped
 
 We are completing P01/API-I01: agree the REST contract before freezing OpenAPI
@@ -13,9 +18,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Fifteen reviewed groups are recorded: fifty initial outcome mappings, a shared
+Sixteen reviewed groups are recorded, including order-independent replay: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-has 140 stable SC IDs and six DOC IDs; API-E01-70 are contract/acceptance
+now has 141 stable SC IDs and six DOC IDs; API-E01-72 are contract/acceptance
 situations, not seventy new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -60,10 +65,11 @@ situations, not seventy new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Continue ER-D04 with a simple question about request equivalence, especially
-   whether reordering the same file list counts as an identical retry. Record the
-   decision, then settle exact ID format, key retention and concurrent replay.
-   Existing prototype file-list order matters; do not assume a new rule is agreed.
+1. Continue ER-D04 with recording-ID syntax, then ID retention and concurrent
+   replay. File-list ordering is resolved: the same paths/assertions in any order
+   are identical. JSON object member order is immaterial; duplicate paths and
+   changed file membership/assertions are not permitted by this decision.
+   Preserve actual durable file indices on reordered partial replay.
 2. Finalize exact schema/config bounds, response validation/precedence and
    persisted global-ID/state handling. Size-policy snapshotting is resolved
    against; only its implementation/replay ordering remains. Review any remaining
