@@ -8,8 +8,9 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following nine groups in successive review replies.
-These forty-three mappings are contract decisions, not new runtime capabilities.
+The user approved the following twelve groups in successive review replies.
+These fifty outcome mappings and the group-12 error envelope are contract
+decisions, not new runtime capabilities.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -58,6 +59,13 @@ review. An approval here does not approve every variant of its broader API-E row
 | 9 | Operator command ID reused with changed parameters | 409 `command_conflict` | No |
 | 9 | Operator audit capacity reached | 409 `operator_audit_capacity` | No; review |
 | 9 | Operator queue/database temporarily unavailable | 503 `service_busy` or `storage_unavailable` | Yes; same command ID/body |
+| 10 | Body on bodyless GET | 400 `unexpected_body` | No |
+| 10 | Optional idempotency header conflicts with request/command ID | 400 `idempotency_key_conflict` | No |
+| 10 | Unsupported headers, including bearer authorization in this profile | 400 `unsupported_headers` | No |
+| 10 | Incomplete HTTP request with valid rejection received | 400 `incomplete_request` | No; correct sending problem |
+| 11 | Worker finished, source effect cannot be safely reconciled | 409 `recording_blocked` | No; operator review |
+| 11 | Unexpected internal server error | 500 `internal_error` if reply possible | Yes; backoff and persistent-failure alert |
+| 11 | Success reply has missing/wrong recording ID or invalid 202 body | Invalid acknowledgement; no trusted code | No; preserve paths and alert |
 
 Retries retain the same recording ID/body and follow the supplied delay.
 No error response grants path reuse or reverses an earlier valid 202. Existing
@@ -92,7 +100,7 @@ from the implemented model. Do not describe the discussed JSON as usable today.
 Optional size assertions remain an existing capability; their representation in
 the new minimal form needs a compatibility decision, not silent removal.
 
-## Proposed response and recorder rules
+## Approved error envelope (group 12) and remaining retry rules
 
 HTTP describes the broad outcome. `error` is a stable application code;
 `retryable` gives the recorder its action. Human diagnostic text is not parsed.
@@ -100,7 +108,7 @@ A retryable result means repeat the **same ID and unchanged request**, not creat
 a new recording. Review/correction means log/alert and preserve remaining source
 paths; never try a new ID to bypass a partial handoff.
 
-Recommended error shape, still pending agreement:
+Approved shape for mover-generated errors; the example delay is not yet fixed:
 
 ```json
 {
@@ -112,12 +120,14 @@ Recommended error shape, still pending agreement:
 }
 ```
 
-`recording_id` may be null/omitted if unavailable, invalid or unsafe to disclose.
-The exact null/omission convention remains open. Relative offending file names
-can be included in bounded authorized diagnostics; no other generator's IDs,
-job existence, absolute private paths or credentials are disclosed.
+`recording_id` is null when unavailable or unsafe to disclose. A malformed ID
+is not echoed as a trusted identity. `retry_after_seconds` is null when automatic
+retry is disallowed. All five envelope fields are present on mover-generated
+errors; no null/omission ambiguity. Optional bounded diagnostic fields remain
+under review; they must not disclose another generator's IDs/job existence,
+absolute private paths or credentials. Proxy/TLS outcomes may lack this JSON.
 
-The proposed `source_paths_released:false` means **this response grants no new
+The approved `source_paths_released:false` means **this response grants no new
 release**, not that no file was claimed or that a previous 202 is revoked. Only
 the submission's valid, matching 202 grants the recorder release. Operator status
 or command replies are not a substitute. Error responses cannot authorize
@@ -171,7 +181,7 @@ API-E01-60 are review keys, not replacement requirements or SC IDs.
 | API-E14 | Source mount/root/enrollment identity changes, private namespace is foreign/ambiguous, or ownership guard validation fails | 409 `recording_blocked` if serving; otherwise startup refusal/no HTTP | No; preserve state, inspect configuration/custody; never rebind automatically | Current broad refusal. Root/mount availability is distinct from authority; timeout alone cannot downgrade this to a safe retry. |
 | API-E15 | Source-space admission enabled and confirmed below configured margin | 503 `source_space_low` | Yes; restore capacity; no new-job admission or false 202 | Existing; default off. Existing accepted-key replay bypasses this new-job check, not custody checks. |
 | API-E16 | Enabled source-space probe unavailable/stale/blocked | 503 `source_space_unavailable` | Yes; no unknown-as-zero/positive guess | Existing; preserve current probe wait/admission behavior and existing-job retries. |
-| API-E17 | Source metadata allocation/write/sync fails with confirmed ENOSPC/EDQUOT | 503 `source_capacity_unavailable` only with safe typed evidence; otherwise 409 `recording_blocked` for ambiguity | Conditional; retry only owned reconciliation, never blindly repeat uncertain namespace effects | Proposed diagnostic refinement; generic claim errors currently return 409 false. Not the same as a low sampled admission margin. |
+| API-E17 | Source metadata allocation/write/sync fails; completed worker effect cannot be safely reconciled | 409 `recording_blocked` | No; preserve original intent/custody and obtain review. Still-running worker remains pending, not this refusal. | Group 11 approves conservative initial handling; no new source-capacity-specific code or automatic effect retry. This is distinct from sampled admission margin. |
 | API-E18 | Service account cannot access source files/private areas | 409 `recording_blocked` | No blind retry; operator fixes approved permissions then reconciles | Current broad claim refusal; this is filesystem permissions, distinct from caller 403. No arbitrary-path disclosure. |
 | API-E19 | Retained job/byte accounting reaches configured admission bound | 503 `retention_capacity` | Yes; operator addresses retained capacity; preserve partial state | Existing; no cleanup is implied while deletion is disabled. |
 | API-E20 | Local SQLite transaction cannot complete; commit outcome may be unknown | 503 `storage_unavailable` | Yes with same ID; alert operator on persistent failure | Current broad retryable result. Does not prove rollback/no job; if DB is corrupt/ownership unsafe, stop effects and require review/startup refusal instead. |
@@ -206,7 +216,7 @@ API-E01-60 are review keys, not replacement requirements or SC IDs.
 | API-E44 | Proxy cannot connect to backend or gets invalid upstream reply | Proxy 502, or 503 for known backend unavailability; body may be proxy-generated | Yes unchanged request with capped backoff/alert; no automatic proxy POST replay | Pending proxy qualification; preserve distinctions between transport and mover JSON. |
 | API-E45 | Proxy waits too long for backend | Proxy 504; body may not follow mover schema | Yes unchanged request; old claim work may still run | Not evidence of cancellation/no effects. Backend handoff deadline should be shorter than proxy/recorder budgets. |
 | API-E46 | Process/proxy dies, network disconnects or recorder times out after any claim phase or after 202 generation | No reliable HTTP outcome | Same-ID unchanged retry; preserve all remaining paths until confirmed 202 | Existing local durable replay; remote end-to-end qualification pending. |
-| API-E47 | Unexpected server bug returns 500 or a non-JSON failure | 500 if response possible | Proposed bounded same-ID retries and alerting; stop unsafe server effects if authoritative state is uncertain | No deliberate generic 500 contract in current handler; never expose stack traces/secrets or fabricate success. |
+| API-E47 | Unexpected server bug returns 500 or a non-JSON failure | 500 `internal_error` if response possible | Group 11 approves same-ID retry with backoff and persistent-failure alerting; unsafe state still stops effects | No deliberate generic 500 contract in current handler; never expose stack traces/secrets or fabricate success. |
 | API-E48 | HTTP redirect, unexpected 2xx, wrong recording ID or malformed purported 202 | Protocol violation, no accepted handoff | Preserve paths; alert; do not follow POST redirects or accept a partial success indication | Proposed client contract validation/fallback; retry details need agreement. |
 
 ## Local operator API and failures after handoff
@@ -248,15 +258,16 @@ contract recommendation, without changing the existing implementation/evidence.
 | Decision | Question to settle | Affected scenarios |
 |---|---|---|
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
-| ER-D02 | Confirm stable code names and specificity. Keep broad `recording_blocked` initially versus add proven typed causes? Do not promise diagnostics the adapter cannot establish. | E03/09-18/23-24/30-31 |
-| ER-D03 | Confirm minimal response fields, null/omission, bounded details, retry delay configuration/backoff/alert behavior and proxy/non-JSON fallback. | E01-02/33-34/39/44-48 |
+| ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
+| ER-D03 | **Envelope approved (group 12):** five fields, null recording_id when unavailable/unsafe, null delay when retry false. Retry timing, optional diagnostic bounds and full fallback/validation details still need review. | E01-02/33-34/39/44-48 |
 | ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
 | ER-D05 | Resolve compatibility/versioning for discussed field names/string files and existing optional size assertions/advanced proposal. No automatic silent wire change. | E03/09/23-25/28 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-9 above are approved. Remaining review covers request edge cases,
-uncertain source-allocation errors, response/envelope/fallback and retry details.
+Groups 1-12 above are approved: fifty outcome mappings plus the shared error
+envelope. Review retry timing next. Global-ID persistence/compatibility and
+precise OpenAPI schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
 
 ## Implementation plan after agreement

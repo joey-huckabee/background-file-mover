@@ -87,3 +87,17 @@ remain authoritative. Exact operator command replay preserves its original
 receipt and cannot reset later review. Request edge cases, response/fallback,
 source-allocation classification and exact retry rules remain under review.
 All runtime/qualification evidence and existing scenario IDs are unchanged.
+
+## Subsequent contract review: groups 10-12 approved
+
+The user approved four remaining request rejections, conservative uncertain-source
+refusal, retryable internal_error and invalid-success acknowledgement refusal.
+There are now fifty approved outcome rows across groups 1-11. Group 12 approves
+the common mover error envelope: recording_id/error/retryable/retry_after_seconds/
+source_paths_released, null recording ID when unavailable or unsafe, null delay
+when retry is disallowed, and no new release on an error. TLS/proxy responses
+need not carry that JSON. Five seconds remains illustrative pending retry timing
+review. Do not add a source-capacity-specific retry code in the initial contract.
+Global-ID persistence/wire compatibility and precise schemas remain P01 work.
+Documentation-only checks preserve the sixty review IDs and 138 SC/six DOC IDs;
+no runtime/fixture builds, tests or new qualification are claimed.

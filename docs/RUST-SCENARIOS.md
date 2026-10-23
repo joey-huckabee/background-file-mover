@@ -27,8 +27,8 @@ map to SC-001-012; background delivery/consumer cases to SC-014-022; operator
 cases to SC-023-033; capacity to SC-071/074/081; remote access to
 SC-043/082-086. Exact scope remains in each original SC row. In particular,
 SC-008 still describes implemented 503 handoff_pending; the 409
-source_file_missing mapping is **approved but not implemented**. Groups 1-9
-(forty-three mappings) are recorded in the review draft; other proposals stay open. DOC-01 needs the approved
+source_file_missing mapping is **approved but not implemented**. Groups 1-12
+(fifty mappings plus the error envelope) are recorded in the review draft; other proposals stay open. DOC-01 needs the approved
 retry-versus-review table, delay and invalid/non-JSON response handling;
 DOC-03 needs operator-only errors; DOC-04/05 must separate transport, startup,
 post-202 delivery and custody uncertainty. Preserve 138 SC and six DOC IDs.
