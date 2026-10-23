@@ -16,7 +16,7 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-retained-data deletion admin access/configuration, plus
+retained-data deletion admin access, plus
 API/bulk/concurrency and remaining
 schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
@@ -24,9 +24,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-22). Current missing-file
+  error mappings, envelope and retry timing (groups 1-23). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-98 disposition and preserve original custody.
+  support. Cover every API-E01-99 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.

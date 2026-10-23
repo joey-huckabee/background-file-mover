@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve manual retained-data deletion independently of the automatic-cleanup setting. Add planned API-E99/SC-151; preserve confirmation, safe-stop, file protections and best-effort failure behavior. Documentation only; no production deletion enabled.
+
 - Simplify confirmed retained-data deletion failure handling: best effort, leave failed files and report failures while attempting other safe selected files. No dedicated pause/resume or automatic retry workflow; existing ownership, safe-stop, confirmation and protected-file rules remain. Documentation only.
 - Approve confirmed retained-data disposal scope: owned retained source and unfinished destination after safe stop, protecting unclaimed originals and completed output. Add planned SC-149/150 and API-E92-98 for confirmation, ownership, protected data, workers, partial results and UUID reuse. Retry/failure and exact admin access/wire rules remain pending; no physical deletion enabled.
 

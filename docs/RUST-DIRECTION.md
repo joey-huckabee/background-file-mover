@@ -109,7 +109,7 @@ Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It recor
 the latest user correction, exact next discussion and unchanged runtime state.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-22 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
+before freezing P01. Groups 1-23 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
@@ -137,7 +137,8 @@ separate explicitly confirmed admin action, limited to owned retained source
 and unfinished destination after safe stop; protect originals/committed output
 (group 22/SC-149/150/API-E92-98). Delete is best effort: leave failed files, attempt other safe confirmed files
 and report failures; no dedicated pause/resume or automatic retry workflow.
-Next settle admin access/configuration; no physical delete or general repair tool is qualified yet;
+Manual deletion works even when automatic cleanup is disabled
+(group 23/SC-151/API-E99). Next settle admin access; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 No implementation is authorized merely by listing a proposed scenario.

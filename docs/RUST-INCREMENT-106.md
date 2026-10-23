@@ -324,3 +324,12 @@ unknown outcomes are not proof of removal. Refine API-E97/SC-150 in place,
 without new scenario IDs. This supersedes earlier next-step failure/retry
 questions. Next settle admin access/configuration and wire details.
 Documentation only; no runtime, build/test, fixture or production gate changes.
+
+## Resumed review: manual deletion independent of automatic cleanup (group 23)
+
+The user approves manual deletion even when automatic cleanup is disabled.
+Keep the separate confirmed admin action and all group-22 ownership, safe-stop,
+protected-file and best-effort rules. Do not silently enable background cleanup
+or production deletion. Add API-E99/SC-151; preserve prior identifiers, with
+99 API cases, 151 SC IDs and six DOC IDs. Next decide admin access, then wire
+and confirmation details. No runtime, Rust build/test or fixture change.

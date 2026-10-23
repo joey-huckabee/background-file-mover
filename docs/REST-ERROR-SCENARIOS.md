@@ -8,7 +8,7 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-two groups in successive review replies.
+The user approved the following twenty-three groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
 direction, not new runtime capabilities. Groups 14-22 add API-E61-98 below.
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-98 are review keys, not replacement requirements or SC IDs.
+API-E01-99 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -711,7 +711,7 @@ and NFS remain disabled.
 | API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs. |
 | API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions. |
 | API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed. |
-| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; Best-effort failure behavior is defined below; access/configuration and exact responses remain pending. |
+| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; Best-effort failure behavior is defined below; access and exact responses remain pending; group 23 resolves cleanup independence. |
 
 SC-147 records file-preserving history clear and retained ownership/accounting.
 SC-148 records separate explicit data deletion. DOC-01/02/03/04/05 must distinguish
@@ -742,8 +742,9 @@ consequence clear. This is explicit retained-data disposal, not proof of a
 successful transfer. Automatic postcommit cleanup still requires its own
 verified-destination/authorization rules. Reconcile this distinction explicitly
 in requirements; do not weaken automatic cleanup guards to implement discard.
-Exact interaction with current source-cleanup/manual-delete configuration and
-admin permissions remains a contract decision. Production deletion stays off.
+Group 23 resolves configuration interaction: manual deletion remains available
+when automatic cleanup is disabled. Admin permissions remain to settle.
+Production deletion stays off.
 
 A file path or the service UID alone does not establish mover ownership. Use
 separate retained-data identity, approved roots and original actual object/
@@ -792,6 +793,29 @@ identity selection. DOC-01/02/03/04/05 must distinguish cancellation, history
 clear, explicit disposal, potential data loss and truthful partial outcomes.
 These are acceptance obligations, not new passing Rust/NFS/SLES evidence.
 
+## Manual deletion is independent of automatic cleanup (group 23)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Disabling
+automatic cleanup does not disable the separate explicitly confirmed admin
+retained-data deletion action. Automatic cleanup controls background removal
+after verified delivery; manual deletion is a deliberate admin action subject
+to group 22's eligibility, ownership, safe-stop, confirmation and protected-file
+rules. Neither cancel nor history clear supplies deletion authorization.
+
+Manual deletion remains best effort: failed files stay behind and failures are
+reported, without a dedicated pause/resume or automatic retry workflow. This
+independence does not enable automatic cleanup, delete completed recordings,
+relax verification for automatic source cleanup or enable production deletion
+in the current prototype. Admin access and exact wire/configuration names remain
+to settle; no additional manual-delete enable switch is required by this decision.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E99 | Automatic cleanup is disabled and an admin confirms deletion of eligible retained data | Allow manual deletion independently of the automatic-cleanup setting, subject to all group-22 safeguards and best-effort failure behavior. Without an explicit confirmed action, keep files | Approved policy; implementation/qualification pending. Production NFS/deletion remain disabled. |
+
+SC-151 and DOC-01/02/03/04/05 must explain the distinction between automatic
+cleanup and explicit manual disposal. No new passing test is claimed.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -816,7 +840,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-22 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-23 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -834,7 +858,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-98 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-99 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

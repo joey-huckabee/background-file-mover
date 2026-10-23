@@ -22,7 +22,8 @@ and unfinished destination only, after safe stop and confirmation. Protect
 unclaimed originals and completed output. Deletion failure is best effort: failed
 files remain, other safe selected files can still be attempted, and failures are
 reported. No dedicated pause/resume or automatic retry workflow. Next settle
-admin access/config interaction and exact wire/bulk/concurrency;
+admin access and exact wire/bulk/concurrency. Group 23 resolves cleanup
+independence: manual deletion works even when automatic cleanup is disabled;
 do not ask file ordering or the UUID-versus-free-form question again.
 
 ## Where we stopped
@@ -34,9 +35,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-two reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Twenty-three reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 150 stable SC IDs and six DOC IDs; API-E01-98 are contract/acceptance
+now has 151 stable SC IDs and six DOC IDs; API-E01-99 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -81,12 +82,13 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Settle admin access/configuration and exact endpoints/transactions/bulk
+1. Settle admin access and exact endpoints/transactions/bulk
    and confirmation details. Group 22 resolves deletion scope and simple failure
    behavior: best effort, leave failed files and report them; no dedicated
    pause/resume state or automatic retry machinery. Preserve safe-stop,
    ownership, confirmation and original/committed-output protections. No
-   destructive code yet. Do not re-open failure-policy design.
+   destructive code yet. Group 23 approves manual deletion with automatic cleanup
+   disabled (SC-151/API-E99). Do not re-open failure-policy or independence design.
 2. Finalize exact schema/config bounds, response validation/precedence and
    persisted global-ID/state handling. Size-policy snapshotting is resolved
    against; only its implementation/replay ordering remains. Review any remaining

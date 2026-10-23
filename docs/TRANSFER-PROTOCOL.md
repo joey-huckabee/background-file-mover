@@ -387,7 +387,8 @@ confirmed admin action is required for retained-data deletion. Group 22 limits
 it to owned retained source and unfinished destination after safe stop, protecting
 unclaimed originals and completed output. Deletion is best effort: leave failed files behind, attempt other independently
 safe confirmed files and report failures. No dedicated pause/resume or automatic
-retry workflow. Access/configuration and exact wire behavior remain to agree
+retry workflow. Manual deletion works even with automatic cleanup disabled
+(group 23/SC-151/API-E99). Admin access and exact wire behavior remain to agree
 before destructive implementation. No new general repair
 workflow or physical deletion is approved merely by clearing history. See
 [API-E87-91/SC-147/148](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
