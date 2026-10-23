@@ -3,7 +3,7 @@
 ## Current direction (2026-10-13)
 
 2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-60 for user review
-before P01 is frozen. Groups 1-12 (fifty mappings plus the error envelope) are approved; other mappings
+before P01 is frozen. Groups 1-13 (fifty mappings, error envelope and retry timing) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. Preserve that distinction and unresolved global-ID wire compatibility.
 

@@ -8,9 +8,9 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twelve groups in successive review replies.
-These fifty outcome mappings and the group-12 error envelope are contract
-decisions, not new runtime capabilities.
+The user approved the following thirteen groups in successive review replies.
+These fifty outcome mappings, the group-12 error envelope and group-13 retry
+timing are contract decisions, not new runtime capabilities.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -100,7 +100,7 @@ from the implemented model. Do not describe the discussed JSON as usable today.
 Optional size assertions remain an existing capability; their representation in
 the new minimal form needs a compatibility decision, not silent removal.
 
-## Approved error envelope (group 12) and remaining retry rules
+## Approved error envelope (group 12) and recorder retry policy (group 13)
 
 HTTP describes the broad outcome. `error` is a stable application code;
 `retryable` gives the recorder its action. Human diagnostic text is not parsed.
@@ -108,7 +108,8 @@ A retryable result means repeat the **same ID and unchanged request**, not creat
 a new recording. Review/correction means log/alert and preserve remaining source
 paths; never try a new ID to bypass a partial handoff.
 
-Approved shape for mover-generated errors; the example delay is not yet fixed:
+Approved shape for mover-generated errors; the example is an advertised delay,
+not a universal constant for all server replies:
 
 ```json
 {
@@ -133,22 +134,50 @@ the submission's valid, matching 202 grants the recorder release. Operator statu
 or command replies are not a substitute. Error responses cannot authorize
 putting previously claimed files back under their original names.
 
-For controlled retryable replies, propose a bounded positive
-`retry_after_seconds`; 5 is illustrative, not a frozen universal interval.
-For 429/503 also send `Retry-After` consistently. Do not rely on a proxy/client
-honoring that header on 409; the JSON field supplies its explicit contract.
-No retry delay cancels a running worker, extends a missing deadline, guarantees
-storage recovery or overrides persisted review. Application acceptance retries
-and background delivery retries are different mechanisms.
+### Approved retry timing and precedence
 
-Clients must also handle an absent/invalid body or no HTTP response. Proposed
-fallback: connection loss and 408/429/500/502/503/504 without a valid mover body
-permit an unchanged retry with capped backoff and alerting for persistent failure.
-No new path release; no assumption that effects did not happen. TLS validation or
-certificate rejection requires correction, not blind repeated submissions.
-Unexpected success codes, redirect responses, mismatched IDs and invalid 202
-bodies are protocol problems: preserve paths and alert, without following redirects
-or accepting success. Retry/alert budget and exact validation remain review items.
+The user approved the following recorder guidance as group 13:
+
+1. Honor a usable mover `retry_after_seconds` when `retryable:true`.
+2. Without usable JSON timing, honor a valid `Retry-After` header for an otherwise
+   retryable result. The body flag `retryable:false` takes precedence and stops
+   automatic retries; a header cannot turn a refusal into permission to retry.
+3. If neither supplies a usable delay, use fallback waits of **5, 10, 20, then
+   30 seconds**, staying at 30 seconds for further fallback retries.
+4. Log a persistent-failure warning after **five minutes**, while continuing
+   permitted retries. The warning does not authorize abandonment or path reuse.
+5. Make these timing defaults configurable. Configuration belongs to the
+   component performing the retries; do not imply the mover controls an external
+   recorder's implementation. Publish this as the supported integration guidance.
+
+All retries keep the same recording ID and unchanged request. Timing never
+extends the mover's persisted missing-file window, resets review, cancels a
+worker, authorizes replacement or overrides custody checks. Existing background
+delivery retry intervals/budgets are unchanged. The five-minute warning and the
+mover's missing-file deadline are independent even if defaults happen to match.
+
+For controlled retryable mover replies, define positive bounded delay values in
+the final schema. A server's explicit valid delay takes precedence over fallback;
+30 seconds is the fallback cap, not a cap on a longer valid advertised delay.
+For 429/503 the implementation plan also includes consistent Retry-After.
+409 retry timing uses the JSON field rather than assuming generic HTTP clients
+honor that header. Exact config names/ranges and diagnostic bounds belong in the
+remaining schema work; do not silently add a new server missing-file timeout.
+
+### Transport/protocol boundaries
+
+Absent/unusable JSON does not make every HTTP result retryable. The reviewed
+transport/temporary cases (connection loss, 408/429/500/502/503/504) permit
+same-request retries using the timing precedence above. Valid rejection such as
+400 incomplete_request requires correction. TLS certificate validation failures
+require correction; never disable verification to continue retries.
+
+Wrong/missing recording ID or malformed 202 is an invalid acknowledgement:
+preserve paths and alert, without accepting success. Unexpected success codes
+and redirects remain protocol errors, not evidence of custody; no automatic
+redirect-following behavior is introduced. Exact response validation and safe
+non-JSON fallback handling must be covered by the implementation case manifest.
+No delay or local warning proves a previous POST transaction failed.
 
 `retryable:false` stops automatic recorder retries for that condition. It does
 not cancel retained work, authorize deletion, or declare the job unrecoverable.
@@ -259,18 +288,38 @@ contract recommendation, without changing the existing implementation/evidence.
 |---|---|---|
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
-| ER-D03 | **Envelope approved (group 12):** five fields, null recording_id when unavailable/unsafe, null delay when retry false. Retry timing, optional diagnostic bounds and full fallback/validation details still need review. | E01-02/33-34/39/44-48 |
+| ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
 | ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
 | ER-D05 | Resolve compatibility/versioning for discussed field names/string files and existing optional size assertions/advanced proposal. No automatic silent wire change. | E03/09/23-25/28 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-12 above are approved: fifty outcome mappings plus the shared error
-envelope. Review retry timing next. Global-ID persistence/compatibility and
+Groups 1-13 above are approved: fifty outcome mappings, the shared error
+envelope and recorder retry timing. Global-ID persistence/compatibility and
 precise OpenAPI schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
 
-## Implementation plan after agreement
+## Consolidated implementation plan
+
+The error-group review is complete for the mappings/envelope/timing listed
+above. This does not freeze the entire REST API. Use the following finite work
+sequence inside P01/P02/P03 and existing release gates; remote rows remain
+pending until their protected ingress/proxy exists.
+
+| Step | Deliverable | Dependency / acceptance |
+|---|---|---|
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-60 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | Resolve remaining request/wire compatibility, ID retention/equivalence and field/config bounds first; no silent removal of size assertions or existing state. |
+| API-I02 | Durable globally unique recording-ID ownership and compatible new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, upgrade/legacy replay and original custody/route preservation. Do not rename/reclaim accepted data casually. |
+| API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
+| API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
+| API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
+| API-I06 | Exact acceptance-case manifest/results for the sixty situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+
+No recorder executable is part of this repository's deliverable by assumption;
+its retry algorithm is integration guidance/examples unless separately requested.
+The mover's implementation must advertise actionable delays consistently.
+
+Implementation details and safety checks for those steps:
 
 1. Record reviewed decisions and freeze an OpenAPI response/error registry with
    request/success schemas. Give each application code one defined condition,
@@ -300,7 +349,8 @@ Agreement on one group does not freeze remaining rows or their broader variants.
    and DOC-04/05 limits. Mark pending remote cases until P02/P03 qualify them.
 
 This is an error-mapping plan within P01 and dependent implementation packages,
-not authorization to implement all proposals before user review. All eight FR
+not authorization to skip unresolved request/schema decisions or qualify all
+remote scenarios by local tests. All eight FR
 gates remain open. Production NFS and source deletion stay disabled.
 
 ## Standards and review evidence

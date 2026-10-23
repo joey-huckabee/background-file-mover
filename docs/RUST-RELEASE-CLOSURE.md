@@ -132,9 +132,11 @@ derived merely from a successful process/container restart.
 
 ## Ordered work packages
 
-P01 input: [API-E01-60 and ER-D01-07](REST-ERROR-SCENARIOS.md) are under user
-review. Freeze their decisions before implementing response or identity changes;
-this draft refines RC-01-03 without adding a release gate or claiming evidence.
+P01 input: [the error review and API-I01-06](REST-ERROR-SCENARIOS.md) record
+approved groups 1-13 (outcome mappings, envelope and retry timing). Resolve
+remaining request/schema/compatibility decisions before freezing OpenAPI and
+implementing identity changes. This refines RC-01-03 without adding a release
+gate or claiming new runtime/qualification evidence.
 
 
 | Package | Concrete deliverable | Dependencies |

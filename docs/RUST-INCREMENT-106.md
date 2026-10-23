@@ -101,3 +101,17 @@ review. Do not add a source-capacity-specific retry code in the initial contract
 Global-ID persistence/wire compatibility and precise schemas remain P01 work.
 Documentation-only checks preserve the sixty review IDs and 138 SC/six DOC IDs;
 no runtime/fixture builds, tests or new qualification are claimed.
+
+## Subsequent contract review: retry timing approved (group 13)
+
+Honor a valid mover delay when retryable, then valid Retry-After without usable
+JSON timing, then configurable fallback 5/10/20/30 seconds capped at 30.
+The configurable five-minute persistent-failure warning does not stop permitted
+retries or release paths. A false retry flag wins over headers; TLS validation
+and invalid acknowledgement refusals do not become transient by losing JSON.
+This recorder guidance changes neither the mover's missing-file deadline nor
+background delivery retry/review intervals. Consolidate API-I01-06: registry and
+schema, durable global IDs/compatibility, local mapping, protected remote access,
+operator/user guidance, and exact-case/SLES qualification. Remaining request and
+schema details still precede implementation. No recorder executable or new
+notification system is introduced. Runtime/fixture evidence is unchanged.

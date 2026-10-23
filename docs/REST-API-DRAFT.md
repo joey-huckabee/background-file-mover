@@ -1,8 +1,9 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, proposed codes and implementation differences. Review and
-agree on that matrix before freezing OpenAPI or changing runtime responses.
+current discussion, approved error groups 1-13, remaining schema decisions and
+implementation differences. Follow API-I01-06; resolve remaining wire/schema
+compatibility before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
 not the implemented wire format shown below. That document labels agreed
 workflow decisions separately from pending field compatibility/error mappings.
