@@ -133,7 +133,7 @@ derived merely from a successful process/container restart.
 ## Ordered work packages
 
 P01 input: [the error review and API-I01-06](REST-ERROR-SCENARIOS.md) record
-approved groups 1-14 (outcomes, envelope, retry timing and expected-size policy). Resolve
+approved groups 1-15 (outcomes, envelope, timing and current size-check policy). Resolve
 remaining request/schema/compatibility decisions before freezing OpenAPI and
 implementing identity changes. This refines RC-01-03 without adding a release
 gate or claiming new runtime/qualification evidence.

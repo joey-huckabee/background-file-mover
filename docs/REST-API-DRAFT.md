@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved error groups 1-14, remaining schema decisions and
+current discussion, approved error groups 1-15, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -60,8 +60,12 @@ complete map is ignored for expected-size comparison. Partial/extra/invalid maps
 are 400 invalid_submission in either mode. Actual claim-size measurement and
 copy integrity checks remain mandatory. See
 [group 14 and its concrete 100-versus-200-byte scenario](REST-ERROR-SCENARIOS.md#expected-size-policy-group-14)
-for API-E61-66. Exact config spelling and persisted policy replay rules still
-need design; no new toggle/map is implemented yet.
+for API-E61-66. Use current startup configuration for pending expected-size
+checks on existing work after restart, without a per-recording setting snapshot;
+see [restart cases API-E67-70](REST-ERROR-SCENARIOS.md#current-size-checking-configuration-governs-existing-work-group-15).
+Confirmed handoff replay and actual size/custody/integrity evidence remain intact.
+Exact config spelling and replay ordering still need implementation design;
+no new toggle/map is implemented yet.
 
 Examples below using submission_id/source_path/file objects describe the current
 prototype and earlier proposals, not the reviewed replacement wire schema.

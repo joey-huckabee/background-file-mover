@@ -152,3 +152,26 @@ JSON, policy/example anchors and existing local links, unchanged original 138 SC
 IDs plus SC-139 (139 total), unchanged six DOC IDs and fifty initial approval
 rows. Both retained SLES source archives still match current runtime inputs.
 No new Rust build/test, fixture run or compatibility result is claimed.
+
+## Subsequent direction: current size policy, no per-job snapshot (group 15)
+
+The user rejects the proposed per-recording expected-size setting as too complex
+and expects new configuration to govern existing work. Revise that policy to use
+the current startup value for pending size checks on existing partial recordings.
+No per-job policy snapshot/version or hot reload. Off-to-on enforces the current
+complete-map/size rules; on-to-off removes an expected-size-only barrier on the
+next original-ID retry. Keep unrelated review/safety rules and actual-size,
+private custody and integrity evidence. Completed handoff still replays 202,
+including a lost reply and producer-reused paths; current policy cannot undo a
+confirmed effect. Do not add autonomous claiming or a new repair command.
+
+Add planned SC-140/API-E67-70 and DOC-01/03/04/05 obligations. Existing 139 SC
+and 66 API IDs remain stable; totals become 140 SC and seventy API situations.
+No runtime, dependency, fixture or compatibility evidence changes; production
+NFS/source deletion remain disabled. This decision addresses expected-size
+checking; it does not silently rewrite other settings' authorization contracts.
+
+Group-15 documentation validation passed: four new restart cases, seventy API
+review IDs, six implementation steps, unchanged previous 139 SC IDs plus SC-140
+(140 total), six DOC IDs, valid policy anchors/local links and unchanged source
+bytes/hashes in both retained SLES archives. No new runtime qualification.

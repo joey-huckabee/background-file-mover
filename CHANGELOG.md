@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Define current startup expected-size configuration for existing unfinished recordings, without per-job setting snapshots. Document off-to-on/on-to-off recovery and confirmed-handoff replay in planned SC-140/API-E67-70; preserve actual custody/size/integrity evidence. No runtime or qualification changes.
+
 - Document approved default-disabled expected-size checking: ignore complete supplied expected_sizes_bytes assertions when off; require and compare every listed size when on. Preserve all-or-nothing map validation and actual-size/copy integrity checks. Add planned SC-139 and API-E61-66, including expected 100 versus actual 200 bytes; no runtime or qualification changes.
 
 - Record that the Rust prototype API has no clients: replace its producer wire format directly with the reviewed recording-ID/source-directory/explicit-file form, without a compatibility adapter or deprecation period. Preserve persistent custody and separate legacy C++ cutover requirements; exact schema and optional-size representation remain pending. No runtime changes.

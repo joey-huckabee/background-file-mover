@@ -17,14 +17,15 @@ another NFS experiment merely because more combinations are possible.
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-14). Current missing-file
+  error mappings, envelope and retry timing (groups 1-15). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-66 disposition and preserve original custody.
+  support. Cover every API-E01-70 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.
-  Finalize exact config/persisted-policy and ID/replay rules without discarding
-  protected persistent state. Qualify API-E61-66 and document SC-139.
+  Use current configuration for existing unfinished size checks, without per-job
+  setting snapshots. Finalize config/replay ordering without discarding custody
+  evidence or confirmed handoff. Qualify API-E61-70 and document SC-139/140.
 
 - [ ] P01: Freeze versioned OpenAPI, manifest validation and supported route,
   retry/error, ID-retention, encoding/path and metadata contracts. Reconcile
