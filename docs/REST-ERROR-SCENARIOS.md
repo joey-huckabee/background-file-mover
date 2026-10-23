@@ -1,10 +1,41 @@
 # REST error scenarios: review draft
 
-Recorded 2026-10-23. **For discussion, not an approved or implemented contract.**
+Recorded 2026-10-23. **Partially approved contract draft; implementation unchanged.**
 The user asked to review the scenarios and agree on codes before implementation.
 This document supports P01/RC-01-03 of the
 [release plan](RUST-RELEASE-CLOSURE.md); it does not add new release gates.
 No runtime, persistence, retry/review policy or NFS/deletion switch changes here.
+
+## Approved groups (2026-10-23)
+
+The user approved the following three groups in successive review replies.
+These fourteen mappings are contract decisions, not new runtime capabilities.
+Other rows and unresolved response/identity/compatibility details remain under
+review. An approval here does not approve every variant of its broader API-E row.
+
+| Group | Situation | Approved HTTP / application code | Automatic retry |
+|---|---|---|---|
+| 1 | Listed file confirmed missing, including partial custody | 409 `source_file_missing` | Yes, within persisted missing window |
+| 1 | Missing-file window expired | 409 `recording_blocked` | No; operator review |
+| 1 | Claim still running, outcome uncertain | 503 `handoff_pending` | Yes; identical request |
+| 1 | Recording ID reused with changed request | 409 `recording_id_conflict` | No; investigate original submission |
+| 2 | Invalid JSON | 400 `invalid_json` | No |
+| 2 | Missing/invalid fields | 400 `invalid_submission` | No |
+| 2 | Invalid file paths | 400 `invalid_file_paths` | No |
+| 2 | Valid source path outside generator scope | 403 `source_outside_scope` | No |
+| 2 | Expected size differs from observed file | 409 `source_size_mismatch` | No; review |
+| 3 | Enabled source-space check confirms insufficient margin | 503 `source_space_low` | Yes |
+| 3 | Enabled source-space check cannot obtain reliable sample | 503 `source_space_unavailable` | Yes |
+| 3 | Retained-job/byte admission limit reached | 503 `retention_capacity` | Yes |
+| 3 | Mover request queue full | 503 `service_busy` | Yes |
+| 3 | Mover shutting down | 503 `service_stopping` | Yes |
+
+Retries retain the same recording ID/body and follow the supplied delay.
+No error response grants path reuse or reverses an earlier valid 202. Existing
+accepted-job retries remain exempt from the new-job source-space admission
+check; custody/authority checks still apply. Do not bypass partial custody by
+correcting under a new ID. The new global-ID namespace and exact wire schema
+still require compatibility/persistence design before implementation.
 
 ## Decisions carried forward from the discussion
 
@@ -21,7 +52,8 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
   reverse an already received valid 202.
 - One missing file can leave the submission pending while other claims remain
   protected. Temporary conditions should be distinguishable from correction or
-  review conditions. The specific missing-file HTTP mapping is **not agreed yet**.
+  review conditions. Missing input is now approved as 409 `source_file_missing`
+  with retry allowed within the existing missing-file window.
 
 The discussed minimal JSON uses `recording_id`, `source_directory` and string
 file names. The current implementation instead requires `submission_id`,
@@ -85,7 +117,8 @@ Operator recovery uses the original state and existing audited procedures.
 
 ## Submission outcomes and source conditions
 
-Every row below is a proposed acceptance scenario, **not a new passing test**.
+The approval table above governs reviewed mappings; other rows below remain
+proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
@@ -97,7 +130,7 @@ API-E01-60 are review keys, not replacement requirements or SC IDs.
 | API-E02 | Identical retry after lost 202, or after delivery completed | 202; no error | Same confirmation; never claim reused leaves | Existing replay uses generator/submission identity and custody validation. Global recording ID and exact post-delivery response need agreement/mapping. |
 | API-E03 | Same recording ID, changed source directory/file list/size assertion or other immutable request data | 409 `recording_id_conflict` | No; retain original body/custody, investigate | Current 409 `submission_conflict`; proposed naming/global key differs. File order currently matters; equivalence rules are open. |
 | API-E04 | Same recording ID submitted by another generator | 409 `recording_id_conflict` only after allowed authorization; otherwise 403 generic denial | No; no cross-generator job/detail disclosure | Global namespace change is not implemented. Authorization must precede existence disclosure; settle exact denial with the remote contract. |
-| API-E05 | One explicitly listed file is confirmed absent on an accessible authorized source | 409 `source_file_missing` | Yes, within the persisted missing-file window; preserve already claimed files | **Proposed change:** current 503 `handoff_pending`. A missing RPC reply/timeout is not absence proof. |
+| API-E05 | One explicitly listed file is confirmed absent on an accessible authorized source | 409 `source_file_missing` | Yes, within the persisted missing-file window; preserve already claimed files | **Approved change, not implemented:** current 503 `handoff_pending`. A missing RPC reply/timeout is not absence proof. |
 | API-E06 | Several files already claimed, another listed file confirmed missing | 409 `source_file_missing` | Yes within window; whole-set release remains withheld | Same current 503 pending behavior; no change to partial-custody safety. No per-file permission for producer reuse. |
 | API-E07 | Missing-file deadline expires or persisted missing review block exists | 409 `recording_blocked` | No; operator reviews original job and, if appropriate, audited exact-file reset | Current 409 false. Restart/recorder retry never resets the deadline. Proposed dedicated code, if desired, needs evidence/schema discussion. |
 | API-E08 | A file appears after missing deadline expired | 409 `recording_blocked` | No automatic clearing; same operator workflow | Existing review boundary must remain; presence alone does not reset review. |
@@ -169,25 +202,23 @@ reported in job state/diagnostics, not pushed back to a recorder that already le
 | API-E59 | Stop/status controller times out, owner unavailable or worker survives coordinator death | Local lifecycle protocol/exit status, not REST HTTP code | Existing bounded incomplete/restart-blocked workflow | Do not invent REST status codes for the separate Unix operator controller; preserve actual-exit exclusion. |
 | API-E60 | Consumer sees payload/manifest absent or invalid, or only a staging/partial name | Consumer contract condition, not a new mover REST endpoint/status | Wait for valid COMMITTED.json; report invalid manifest/collision to operator | Filesystem destination has no implemented artifact HTTP endpoint. Never infer completion from a visible payload alone. |
 
-## Missing file: decision to review first
+## Missing-file mapping: approved, implementation pending
 
-Recommendation: API-E05/E06 use 409 with `source_file_missing` and
-`retryable:true`; API-E07/E08 use 409 with `recording_blocked` and
-`retryable:false`. Keep 503 for unavailable service/storage or uncertain pending
-handoff. These are **our API mappings**, not status choices mandated by HTTP.
-409 describes state conflict and does not inherently mean permanent failure.
-503 must not be used to pretend a confirmed missing input is a server outage.
+API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
+persisted window; API-E07/E08 retain 409 `recording_blocked` with
+`retryable:false` after expiry. Keep 503 `handoff_pending` for unresolved claim
+progress. The user approved this split in group 1. Current code still returns
+503 handoff_pending for a confirmed missing file before its deadline.
 
-An alternative is to retain current 503 pending behavior for compatibility while
-adding the specific application cause. Decide before implementing; the earlier
-conversation's 503 and then 409 examples were recommendations, not two approved
-contracts. No HTTP code alone determines whether original files can be reused.
+This is our API mapping, not an HTTP-mandated choice. 409 does not inherently
+mean permanent failure. Earlier 503 missing-file examples are superseded as a
+contract recommendation, without changing the existing implementation/evidence.
 
 ## Decisions still needed before freezing OpenAPI
 
 | Decision | Question to settle | Affected scenarios |
 |---|---|---|
-| ER-D01 | Adopt proposed missing-file 409/true, retain 503/true, or choose another mapping? Preserve deadline/review semantics either way. | E05-08 |
+| ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
 | ER-D02 | Confirm stable code names and specificity. Keep broad `recording_blocked` initially versus add proven typed causes? Do not promise diagnostics the adapter cannot establish. | E03/09-18/23-24/30-31 |
 | ER-D03 | Confirm minimal response fields, null/omission, bounded details, retry delay configuration/backoff/alert behavior and proxy/non-JSON fallback. | E01-02/33-34/39/44-48 |
 | ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
@@ -195,10 +226,9 @@ contracts. No HTTP code alone determines whether original files can be reused.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Review these in small groups: missing/pending/review first; ID conflicts and
-validation second; unavailable/capacity third; response/retry behavior fourth;
-remote and operator boundaries last. Agreement on one group does not freeze all
-remaining rows.
+Groups 1-3 above are approved. Continue reviewing custody/refusal, remaining
+storage errors, response/retry behavior, then remote and operator boundaries.
+Agreement on one group does not freeze remaining rows or their broader variants.
 
 ## Implementation plan after agreement
 

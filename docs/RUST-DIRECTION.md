@@ -106,8 +106,9 @@ checks, confinement gaps and fail-closed harness requirements.
 ## Resume here
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Missing-file 409 and new recording-ID wire compatibility
-remain proposals; the implemented missing-file response is still retryable 503.
+before freezing P01. Groups 1-3 (fourteen mappings) are approved, including
+missing-file 409; implementation remains retryable 503. New recording-ID wire
+compatibility and other unapproved mappings remain open.
 No implementation is authorized merely by listing a proposed scenario.
 
 

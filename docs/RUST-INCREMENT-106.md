@@ -53,3 +53,13 @@ sequential API-E rows and seven ER-D decisions, all 31 currently emitted literal
 application error names, and unchanged 138 SC/six DOC IDs. Both retained SLES
 source archive hashes and their current runtime input bytes match. Diff
 whitespace is clean. No new runtime/fixture tests or qualification passes.
+
+## Subsequent contract review: groups 1-3 approved
+
+On 2026-10-23 the user approved fourteen mappings covering missing/pending/review
+and ID conflict, validation/source scope/expected size, and temporary source
+capacity/retention/queue/shutdown. The authoritative approval table is in the
+error-scenario document. ER-D01 is resolved: confirmed missing file is retryable
+409 within the existing window, not pending 503; current runtime is unchanged.
+Remaining scenarios and compatibility/envelope decisions still require review.
+No runtime builds/tests or new qualification results follow from this approval.

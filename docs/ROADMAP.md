@@ -16,8 +16,10 @@ another NFS experiment merely because more combinations are possible.
 ## Next work
 
 - [ ] Review and agree on [API-E01-60](REST-ERROR-SCENARIOS.md) in small groups
-  before freezing P01. Resolve ER-D01-07, including missing-file 409 versus
-  current 503, retry/envelope rules and new global recording-ID compatibility.
+  before freezing P01. Complete remaining ER-D02-07 and unapproved scenarios;
+  preserve approved groups 1-3. Implement approved missing-file 409 only after
+  dependent contract/compatibility work; current code still returns 503. Resolve
+  retry/envelope rules and new global recording-ID compatibility.
   Keep unapproved proposals separate from implemented responses.
 
 - [ ] P01: Freeze versioned OpenAPI, manifest validation and supported route,

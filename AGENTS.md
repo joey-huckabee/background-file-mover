@@ -3,8 +3,9 @@
 ## Current direction (2026-10-13)
 
 2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-60 for user review
-before P01 is frozen. Separate agreed workflow from proposed status/code/body
-mappings and global-ID wire changes. No runtime error-policy change in this draft.
+before P01 is frozen. Groups 1-3 (fourteen mappings) are approved; other mappings
+remain under review. Missing-file 409 is approved but current runtime is still
+503. Preserve that distinction and unresolved global-ID wire compatibility.
 
 
 Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.
