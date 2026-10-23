@@ -62,7 +62,9 @@ The [error review](REST-ERROR-SCENARIOS.md) records approved groups 1-13:
 fifty outcome mappings, common error envelope and configurable recorder retry
 timing. Follow API-I01-06 after remaining request/schema/compatibility decisions
 are resolved. API-E01-60 are acceptance situations, not new qualification passes;
-approved missing-file 409/global-ID behavior is not implemented yet.
+approved missing-file 409/global-ID behavior is not implemented yet. No Rust
+prototype API clients exist, so replace its old producer format directly without
+an adapter; stored-job/custody safeguards and separate C++ cutover remain.
 
 Next: P01, freeze versioned OpenAPI, manifest validation and the supported route,
 error/retry, path/metadata and ID-retention inventory. Preserve existing behavior

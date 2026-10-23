@@ -115,3 +115,14 @@ schema, durable global IDs/compatibility, local mapping, protected remote access
 operator/user guidance, and exact-case/SLES qualification. Remaining request and
 schema details still precede implementation. No recorder executable or new
 notification system is introduced. Runtime/fixture evidence is unchanged.
+
+## Subsequent schema clarification: no prototype API clients
+
+The user confirms no one uses the Rust prototype API. Resolve ER-D05's wire
+compatibility question: directly replace submission_id/source_path/file objects
+with the reviewed recording_id/source_directory/string-file producer form; no
+adapter, dual schema or deprecation obligation for unused prototype clients.
+Add the reviewed minimal JSON to the API draft, clearly above historical/current
+examples. This does not remove optional size assertions, discard stored jobs or
+waive C++ cutover. Global-ID stored-state migration/refusal and precise schema
+rules still require design. Documentation only; no runtime/qualification change.

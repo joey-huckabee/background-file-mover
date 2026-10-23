@@ -107,8 +107,9 @@ checks, confinement gaps and fail-closed harness requirements.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
 before freezing P01. Groups 1-13 (fifty mappings, error envelope and retry timing) are approved, including
-missing-file 409; implementation remains retryable 503. New recording-ID wire
-compatibility and other unapproved mappings remain open.
+missing-file 409; implementation remains retryable 503. The user confirms no
+Rust prototype API clients, so replace the producer format without an adapter.
+Global-ID stored-state handling and exact schema details remain open.
 No implementation is authorized merely by listing a proposed scenario.
 
 

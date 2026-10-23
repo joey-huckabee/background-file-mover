@@ -2,8 +2,8 @@
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
 current discussion, approved error groups 1-13, remaining schema decisions and
-implementation differences. Follow API-I01-06; resolve remaining wire/schema
-compatibility before freezing OpenAPI or changing runtime responses.
+implementation differences. Follow API-I01-06; resolve remaining schema and
+persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
 not the implemented wire format shown below. That document labels agreed
 workflow decisions separately from pending field compatibility/error mappings.
@@ -28,6 +28,38 @@ startup readiness: HTTP handling and `/healthz` begin after source singleton
 custody and confirmed bootstrap child exit. A bound TCP port alone is not
 readiness; pending startup responds to shutdown signals but serves no HTTP
 response. NFS remains disabled. Remaining routes/forms are proposals.
+
+## Reviewed producer shape (implementation pending)
+
+The user confirms that no one uses the Rust prototype API. Replace its old
+producer request format directly; an adapter, parallel old/new producer schema
+or deprecation period is unnecessary. This does not waive stored-job/custody
+preservation or the separate legacy C++ cutover gate.
+
+```json
+{
+  "generator_id": "recorder-01",
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_directory": "/mnt/nfs/recordings/run-0042",
+  "files": [
+    "camera1/video.bin",
+    "camera2/video.bin",
+    "metadata.json"
+  ]
+}
+```
+
+The source directory is absolute as visible to the mover, inside the generator's
+approved scope. Recording IDs are globally unique; retry the same ID/request.
+Destination selection belongs to startup configuration and subfolders are
+preserved beneath the recording-ID destination folder. This minimal form does
+not require file sizes; optional expected-size representation and precise schema
+rules remain to be finalized. See the error review for approved outcomes.
+
+Examples below using submission_id/source_path/file objects describe the current
+prototype and earlier proposals, not the reviewed replacement wire schema.
+They remain reference material pending the P01 OpenAPI rewrite. Do not implement
+both forms by default or treat these older examples as frozen compatibility.
 
 ## Existing interface and proposed changes
 

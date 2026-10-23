@@ -21,6 +21,12 @@ required instructions. No runtime/fixture/SLES test was rerun for this review.
 
 ## Scope and reading rules
 
+Producer compatibility decision (2026-10-23): no one uses the Rust prototype
+API. Replace its old producer wire format directly; no adapter/dual-schema or
+deprecation work. SC-001/005/006 still describe implemented behavior until code
+changes and their evidence is updated. Preserve existing jobs/custody and keep
+legacy C++ cutover qualification separate from this unused-client decision.
+
 The [error-scenario review](REST-ERROR-SCENARIOS.md) adds API-E01-60 as pending
 contract-review keys, not new tested SC situations. Its source/handoff cases
 map to SC-001-012; background delivery/consumer cases to SC-014-022; operator

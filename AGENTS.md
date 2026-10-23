@@ -5,7 +5,9 @@
 2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-60 for user review
 before P01 is frozen. Groups 1-13 (fifty mappings, error envelope and retry timing) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
-503. Preserve that distinction and unresolved global-ID wire compatibility.
+503. No one uses the Rust prototype API: replace its producer format directly,
+without an old-wire adapter. Preserve persisted custody; global-ID state handling
+and exact schema details still need design.
 
 
 Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.

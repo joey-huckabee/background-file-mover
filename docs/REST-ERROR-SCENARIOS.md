@@ -76,6 +76,20 @@ still require compatibility/persistence design before implementation.
 
 ## Decisions carried forward from the discussion
 
+### Prototype client compatibility: resolved
+
+The user confirmed on 2026-10-23 that no one uses the Rust prototype API.
+Replace its producer wire format directly with the reviewed contract; do not
+add an old-request adapter, parallel producer schema or deprecation period just
+for the unused prototype. Keep POST /api/v2/jobs as the working route unless
+separately changed during schema freeze. This decision concerns the Rust
+prototype, not a blanket waiver of legacy C++ cutover or release requirements.
+
+It does not authorize discarding SQLite jobs, changing claimed-object ownership,
+reusing old IDs or renaming accepted destinations. Persisted-state migration or
+safe refusal still requires an explicit design and tests. Optional expected-size
+assertions remain a capability; their new representation still needs agreement.
+
 - Recorder submits generator identity, a globally unique recording ID, the full
   source directory as the mover sees it, and every file explicitly. Preserve
   subfolders; do not recursively discover files. Destination is configured.
@@ -98,7 +112,7 @@ file names. The current implementation instead requires `submission_id`,
 Global recording-ID enforcement and recording-ID destination layout also differ
 from the implemented model. Do not describe the discussed JSON as usable today.
 Optional size assertions remain an existing capability; their representation in
-the new minimal form needs a compatibility decision, not silent removal.
+the new minimal form still needs a representation decision, not silent removal.
 
 ## Approved error envelope (group 12) and recorder retry policy (group 13)
 
@@ -290,13 +304,14 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
 | ER-D04 | Resolve new recording-ID global uniqueness, persistence/legacy replay, UUID syntax, file order/equivalence and idempotency-key retention. IDs cannot become reusable merely because delivery completed or cleanup ran. | E02-04/23/37 |
-| ER-D05 | Resolve compatibility/versioning for discussed field names/string files and existing optional size assertions/advanced proposal. No automatic silent wire change. | E03/09/23-25/28 |
+| ER-D05 | **Prototype wire compatibility resolved:** user confirms no Rust API clients; replace the old producer format directly, without adapter/dual schema/deprecation. Still decide optional size representation and precise schema. Preserve existing persistent custody and separate C++ cutover requirements. | E03/09/23-25/28 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
 Groups 1-13 above are approved: fifty outcome mappings, the shared error
-envelope and recorder retry timing. Global-ID persistence/compatibility and
-precise OpenAPI schema/validation details remain separate P01 work.
+envelope and recorder retry timing. The unused Rust producer wire format may
+be replaced directly; global-ID persistence/state handling and precise OpenAPI
+schema/validation details remain separate P01 work.
 Agreement on one group does not freeze remaining rows or their broader variants.
 
 ## Consolidated implementation plan
@@ -308,8 +323,8 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-60 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | Resolve remaining request/wire compatibility, ID retention/equivalence and field/config bounds first; no silent removal of size assertions or existing state. |
-| API-I02 | Durable globally unique recording-ID ownership and compatible new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, upgrade/legacy replay and original custody/route preservation. Do not rename/reclaim accepted data casually. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-60 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Resolve optional sizes, ID retention/equivalence and field/config bounds; no silent removal of existing state. |
+| API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
@@ -326,9 +341,10 @@ Implementation details and safety checks for those steps:
    status, retry rule, permitted details and evidence needed to select it. Define
    precedence: framing/size, authentication/route boundary, schema/source scope,
    identity replay/admission, then claims. Retain stronger fail-closed checks.
-2. Design durable global recording-ID ownership and wire compatibility before
-   changing keys/paths. Qualify migration, concurrent duplicate submissions,
-   legacy replay and state preservation. Freeze recorder retry/retention rules.
+2. Design durable global recording-ID ownership before changing stored keys or
+   paths. Replace the unused producer wire format directly; qualify concurrent
+   duplicate submissions and explicit stored-state migration/refusal, preserving
+   existing custody. Freeze recorder retry/retention rules.
 3. Add typed missing/pending/refusal facts through workers/store where needed;
    select codes from proven facts, not message strings or inferred ENOENT after
    a timeout. Keep existing missing deadlines, review, capacity and delivery

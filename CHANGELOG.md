@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record that the Rust prototype API has no clients: replace its producer wire format directly with the reviewed recording-ID/source-directory/explicit-file form, without a compatibility adapter or deprecation period. Preserve persistent custody and separate legacy C++ cutover requirements; exact schema and optional-size representation remain pending. No runtime changes.
+
 - Record approved REST recorder retry timing: honor server delay, then valid Retry-After, then configurable 5/10/20/30-second fallback and five-minute persistent-failure warning. Consolidate API-I01-06 implementation/qualification steps while preserving pending request/schema compatibility. No runtime, retry/review deadline or qualification changes.
 
 - Record REST review groups 10-12: remaining request errors, conservative source-effect refusal, unexpected-server/invalid-success handling and the five-field error envelope. Fifty outcome mappings plus the error format are approved; timing and remaining API schema compatibility details stay open. Runtime and qualification evidence are unchanged.
