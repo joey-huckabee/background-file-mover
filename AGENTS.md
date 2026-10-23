@@ -2,6 +2,10 @@
 
 ## Current direction (2026-10-13)
 
+Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
+Resume the remaining REST schema/replay discussion; do not re-propose per-job
+size-policy snapshots or begin implementation before the remaining contract is settled.
+
 2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-70 for user review
 before P01 is frozen. Groups 1-15 (errors, envelope, retry timing and current size policy) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still

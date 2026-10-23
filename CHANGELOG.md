@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Save the REST contract shutdown handoff with approved groups 1-15, current-size-policy correction, unresolved replay/schema decisions and exact next step. Documentation only; runtime and qualification evidence remain unchanged.
+
 - Define current startup expected-size configuration for existing unfinished recordings, without per-job setting snapshots. Document off-to-on/on-to-off recovery and confirmed-handoff replay in planned SC-140/API-E67-70; preserve actual custody/size/integrity evidence. No runtime or qualification changes.
 
 - Document approved default-disabled expected-size checking: ignore complete supplied expected_sizes_bytes assertions when off; require and compare every listed size when on. Preserve all-or-nothing map validation and actual-size/copy integrity checks. Add planned SC-139 and API-E61-66, including expected 100 versus actual 200 bytes; no runtime or qualification changes.

@@ -105,6 +105,9 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It records
+the latest user correction, exact next discussion and unchanged runtime state.
+
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
 before freezing P01. Groups 1-15 (errors, envelope, retry timing and current size policy) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no

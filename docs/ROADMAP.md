@@ -15,6 +15,9 @@ another NFS experiment merely because more combinations are possible.
 
 ## Next work
 
+Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
+request equivalence/file ordering and remaining ID/schema details before OpenAPI.
+
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
   error mappings, envelope and retry timing (groups 1-15). Current missing-file
