@@ -1,5 +1,24 @@
 # Testing limits and what the evidence means
 
+## Release-closure evidence boundary (2026-10-22)
+
+[Increment 105](RUST-INCREMENT-105.md) is a review, not a new fixture run.
+The [fixed release matrix](RUST-RELEASE-CLOSURE.md) credits existing results only
+for matching artifacts, layouts, operations and fault mechanisms. Partial or
+blocked cells remain open; no new pass, production support or release date is
+inferred from this reorganization. Freeze concrete case inputs before each
+package; stop unproductive capability discovery and report D04 rather than
+adding unbounded experiments. In particular, clean local fsync without an
+eligible RPC cannot qualify reply withholding, and quiesced NFSD/container
+restart cannot qualify abrupt NAS restart or power-loss durability.
+
+Container-only SLES userspace/ABI tests and approved equivalent-systemd-228 labs
+remain the approach. They do not reproduce the SLES kernel, exact vendor patches,
+physical persistent disks or unknown NetApp/Isilon export behavior. Resolve the
+supported profile and adequate evidence explicitly; no real SLES host requirement
+is introduced. Both SLES gates must rerun on the final candidate. Runtime NFS and
+source deletion stay disabled during the remaining work.
+
 This document explains the boundaries of the Rust evidence. A pass establishes
 the finite cases and configuration recorded by that test, not universal safety
 under every machine, filesystem or failure. Read the raw reports and

@@ -105,6 +105,12 @@ checks, confinement gaps and fail-closed harness requirements.
 
 ## Resume here
 
+Current next work follows the [release-closure review](RUST-RELEASE-CLOSURE.md): P01 freezes the versioned API/manifest and release behavior inventory.
+Use RC-01-24 and P01-12 to bound remaining work; do not automatically select
+another NFS experiment. All eight gates remain open. Keep production NFS and
+source deletion disabled; default-off cleanup remains a release deliverable.
+Earlier increment summaries below are evidence, not the current work order.
+
 Prioritize the [first-release checklist](RUST-FIRST-RELEASE.md), recorded in
 [increment 37](RUST-INCREMENT-37.md). It bounds the initial filesystem/NFS release
 and keeps optional adapters/repair/UI deferred. [Increment 38](RUST-INCREMENT-38.md)

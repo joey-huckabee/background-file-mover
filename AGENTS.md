@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+Current next work is the 2026-10-22 release-closure review in `docs/RUST-RELEASE-CLOSURE.md`: P01 freezes the versioned API/manifest and release behavior inventory.
+Use RC-01-24 and P01-12 to bound remaining work; do not automatically select
+another NFS experiment. All eight gates remain open. Keep production NFS and
+source deletion disabled; default-off cleanup remains a release deliverable.
+Earlier increment summaries below are evidence, not the current work order.
+
 The user now wants a durable Rust transfer coordinator, not a C++-shaped port.
 Work on `feature/rust-transfer-coordinator`; read `docs/RUST-DIRECTION.md`,
 `CONVERSATION.md` and the roadmap handoff first. Experiments are stopped after

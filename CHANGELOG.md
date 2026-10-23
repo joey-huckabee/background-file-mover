@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Review all eight Rust release gates against implementation and retained evidence. Establish RC-01-24 acceptance families, P01-12 execution order and explicit profile/capability decisions; next freeze the versioned API/manifest contract. Preserve historical checklist evidence, keep the roadmap forward looking and clarify that default-off source cleanup is required for release. No new runtime behavior or qualification result; production NFS and deletion remain disabled.
+
 - Qualify pre-effect source inode/size refusal after a partial two-file handoff. Preserve existing non-retryable 409, original intent/private custody and no delivery through two unpaused restarts; independently audit sixteen SQLite/WAL snapshots. Document SC-138 and step-by-step testing limits. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
 
 - Qualify two-file partial handoff replay with first claim complete and second LINK/REMOVE pending. Add a qualification-only file-index pause selector; preserve whole-set 202, retry/review behavior and original-state recovery. Document SC-137 and step-by-step testing limits; both SLES/glibc-2.22 gates pass. Production NFS/private-source cleanup remain disabled.

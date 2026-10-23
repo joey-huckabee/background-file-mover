@@ -1,5 +1,10 @@
 # Background File Mover
 
+Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
+[first-release checklist](docs/RUST-FIRST-RELEASE.md) and
+[future roadmap](docs/ROADMAP.md). Next is the versioned API/manifest contract;
+production NFS and source deletion remain disabled.
+
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
 for the finite results and preserved-state/operator implications.

@@ -6,138 +6,54 @@ in the result documents, changelog and trace matrix.
 
 ## First-release finish line
 
-Use [the first-release checklist](RUST-FIRST-RELEASE.md) to prioritize the eight
-open release gates. The sections below retain broader future obligations; they
-are not all prerequisites for the first release. Do not use increment counts as
-release progress. Deferred capabilities remain deferred unless explicitly added.
-
-Next qualify remaining NFS operation/synchronization and shutdown boundaries,
-remaining endpoint-failure directions/phases beyond selected live copy and
-verification reads, remaining fresh/later source bootstrap and destination recovery
-phases, native SLES manager/cgroup compatibility, actual account control/persistent
-deployment and remaining hard-NFS/systemd operation/deadline behavior (SH-01–04/06–14). Preserve independently retained
-exclusion through actual worker exit; local ownership observations alone cannot
-authorize uncertain-effect redispatch or prove remote settlement.
-Keep delayed NFS
-operations/reconciliation, actual mount/version/security discovery, same/separate
-shares and remaining systemd lifecycle qualification open (SH-10–14); a free local lock or
-a timeout is not remote-settlement proof. No NAS-admin fencing facility is assumed
-for this restricted profile. Keep stronger cross-host/re-enrollment controls deferred.
-Select the proxy package and implement/qualify the [remote access design](REMOTE-API-ACCESS-CONTRACT.md),
-RA-01–16, alongside remaining FR-01 details and FR-02 capacity cases. Keep
-registration deferred, existing-job recovery intact and production NFS/deletion off.
-
-Declare the supported manager/package and kernel profile and qualify its
-remaining deployment behavior. Exact SLES-maintenance RPM patches remain
-untested by the approved equivalent-228 lab; do not infer them from version
-labels or compiled directive names. Complete actual account control, persistent
-deployment and remaining hard-NFS lifecycle phase/deadline evidence. Keep testing container-only,
-with no real SLES installation requirement, and maintain the
-[testing limitations](TESTING-LIMITATIONS.md) and [lab procedure](SYSTEMD-LIFECYCLE-LAB.md).
-Preserve unit-scoped shutdown when packaging: a rejected contender must not run
-a global stop controller against the legitimate owner. Qualify the shipping
-unit's account, restart and timeout behavior for the declared supported profile.
-Define and qualify remaining shipping-unit restart/recovery policy across other
-hard-NFS phases, longer outages and endurance, including supported operator
-intervention. Retain conservative ownership when unit MainPID is zero or the
-unit is failed while an old worker remains alive.
+Work on `feature/rust-transfer-coordinator`. Use the
+[first-release checklist](RUST-FIRST-RELEASE.md) and
+[release-closure matrix](RUST-RELEASE-CLOSURE.md) as the work scheduler. All eight
+FR gates require closure; each qualification package must name its finite RC
+cells, expected outcomes and retained evidence before execution. Do not select
+another NFS experiment merely because more combinations are possible.
 
 ## Next work
 
-Work on `feature/rust-transfer-coordinator`. Read
-[RUST-DIRECTION.md](RUST-DIRECTION.md) and [CONVERSATION.md](../CONVERSATION.md)
-before implementation.
+- [ ] P01: Freeze versioned OpenAPI, manifest validation and supported route,
+  retry/error, ID-retention, encoding/path and metadata contracts. Reconcile
+  draft-only features against active requirements without silently dropping them.
+- [ ] P02-03: Implement protected producer ingress/caller binding and the selected
+  authenticated remote proxy; complete RA-01-16. Keep registration deferred.
+- [ ] P04: Persist allocation intent/receipts for claim-private, recording,
+  payload-staging and manifest-staging objects. Qualify crash boundaries and
+  conservative ambiguous/foreign refusal; offline repair stays deferred.
+- [ ] P05: Close the finite NFS matrix using exact existing evidence first.
+  Resolve actual mount inventory and blocked RPC/server-durability capability
+  decisions. Preserve owned delayed-effect reconciliation/refusal; no timeout or
+  local guard release proves settlement. Keep production NFS disabled.
+- [ ] P06-07: Close remaining capacity and shipping-profile lifecycle cells;
+  preserve existing-job retries, bounded queues/workers, default-off admission,
+  configurable default-60 shutdown and exclusion through actual worker exit.
+- [ ] P08: Implement independently recoverable postcommit source cleanup after
+  its safety prerequisites pass. Require job policy/current authorization and
+  verified receipts; default off, production deletion still disabled.
+- [ ] P09: Deliver shipping package/unit/account/confinement, disconnected build,
+  provisioning and state-preserving upgrade/rollback/cutover procedures.
+- [ ] P10-11: Complete Rust L1/L2/L3/test traceability and DOC-01-05 user guides;
+  maintain them alongside implementation, separate from historical C++ evidence.
+- [ ] P12: Rehearse the exact candidate, rerun both required SLES gates and close
+  every FR gate before proposing production authorization or release.
 
-- [ ] Qualify remaining buffered NMP-41B fresh/warm-cache and later bootstrap,
-  untested claim boundaries and positively observed pending
-  synchronization/RPC operations,
-  plus untested
-  copy/verification endpoint directions, cache/size/load and outage-duration cases.
-  Retain noac NMP-41N evidence separately. Keep production NFS/deletion disabled.
-- [ ] Qualify remaining source/parent-change timing boundaries and multi-file cases,
-  plus independent source/destination outage recovery; expand capacity/concurrent-load duration and
-  queue-size coverage. Preserve existing-job retries, original state/custody,
-  recorder handoff and old-worker exclusion through actual exit.
-- [ ] Select positively observed source workload/cache RPC-bearing boundaries
-  before further sync/death/recovery cases. Clean-file local sync completion is
-  not blocked RPC or remote-settlement proof.
-- [ ] Select positively observed RPC-bearing publication sync boundaries in other
-  workloads/caches/operations before further sync-failure cases. Do not substitute
-  native dirty-write controls or successful local clean-file completion for actual
-  blocked service-sync recovery. Directory sync remains separately scoped.
-- [ ] Qualify remaining server-recovery phases beyond selected live source-copy
-  and destination-verification reads, initial payload/manifest LINK and
-  payload/manifest staging-alias removal:
-  bootstrap/claim and remaining payload/manifest sync boundaries,
-  and worker death/replacement.
-  Cover independent servers/shares and broader filesystem profiles, outstanding UNSTABLE data and delayed effects while preserving original state,
-  custody and exclusion through actual exit. Establish a repeatable bounded
-  abrupt live-server termination facility before selecting its mover cases;
-  NFSD-quiesced container restart does not qualify abrupt recovery. Qualify
-  broader fresh-network-namespace recovery and VM/NAS reboot separately.
-- [ ] Qualify remaining claim/namespace and synchronization RPC reply-loss boundaries
-  in the declared shipping mount/export profile; do not substitute buffered OS
-  controls for unobserved service COMMIT/fsync boundaries. Cover
-  server recovery and delayed-effect settlement, remaining
-  synchronization boundaries with positive actual service-RPC evidence,
-  outages beyond the selected three-minute cases,
-  concurrent queue flooding and export changes.
-- [ ] Complete the producer/consumer guides, restart/shutdown troubleshooting and
-  deployment matrix tracked by [RUST-SCENARIOS.md](RUST-SCENARIOS.md)
-  (DOC-01/02/04/05); keep future adapter/repair guides (DOC-06) deferred. Maintain
-  the [operator guide](RUST-OPERATOR-GUIDE.md) as behavior changes. Update the
-  scenario catalog with each increment, including success, retry, review and
-  recovery situations, actual evidence and remaining documentation obligations.
-- [ ] Qualify enrollment against block-device/quota exhaustion, server I/O errors,
-  in-flight synchronization RPCs and power loss. Preserve conservative review for
-  ambiguous creation; use [the enrollment contract](FENCED-ENROLLMENT-DESIGN.md).
-- [ ] Select and qualify an independently enforced fence before implementing
-  populated/legacy-state re-enrollment or legitimate changes to strict observed
-  pins. Preserve original job/route evidence. Complete authenticated export/root
-  identity qualification; copied markers/observations are not global authority.
-- [ ] Complete remaining SH-01–04/06–14 for the confirmed same-host/local-state
-  profile: remaining guard/storage/death-phase cases, deployment persistence and
-  mount/account policy, remaining bounded-shutdown cases,
-  native SLES systemd/cgroups, account/persistence and combined hard-NFS lifecycle,
-  actual NFS mount/root validation and delayed-effect owned
-  recovery/refusal. Preserve the NF scope mapping; cross-host exclusion/fencer
-  integration and takeover/re-enrollment remain deferred. No guard-release or
-  fixed-wait shortcut for uncertain storage effects.
-- [ ] Define and qualify worker-health/stall and lost-coordinator diagnostics
-  beyond existing assignment/channel/shutdown limits. Preserve bounded workers,
-  termination requests and confirmed-exit exclusion; a worker blocked in the
-  kernel cannot execute a self-timeout, and uncertainty cannot authorize retry
-  or replacement. Keep orphan killing/adoption out of unserved local control.
-- [ ] Extend diagnostics to remaining root/traversal metadata failures and
-  logical custody/integrity refusals.
-- [ ] Extend retry classification beyond confirmed payload-copy ENOSPC; decide
-  configurable/jittered intervals and longer capacity waits with retained-attempt
-  accounting. Qualify block-device/quota free-space margins and admission during
-  destination shortages; use [the retry policy](DELIVERY-RETRY-POLICY.md).
-- [ ] Implement configurable gated source cleanup only after worker/filesystem
-  failure qualification passes.
-- [ ] Deferred: offline custody/orphan inspection and explicit repair tooling.
-  Use worker/NFS failure evidence to determine what operators need. Preserve
-  [RETENTION-REPAIR-DESIGN.md](RETENTION-REPAIR-DESIGN.md) for prerequisites;
-  allocation ownership and fencing still precede any repair effects.
-- [ ] Derive L2/L3 and Rust traceability alongside each increment. Refine protocol,
-  schema and fault cases before the dependent effect, not before all Rust code.
-- [ ] Extend acceptance persistence for API metadata, future schema migrations,
-  bounded async integration and crash/power-loss evidence as effects are introduced.
-- [ ] Extend the local claim slice for production: persisted namespace-allocation
-  intent/orphan reconciliation, stable instance/root/mount authorization, filesystem
-  capability qualification across the supported endpoint configurations.
-  Qualify process supervision/fencing before remote claims; do not enable NFS yet.
-- [ ] Decide which dashboard and integration scenarios to reuse from
-  [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) and
-  [INTEGRATION-DESIGN-NOTES.md](INTEGRATION-DESIGN-NOTES.md).
+Resolve D01-05 from the closure review when their packages approach: mount
+inventory, proxy package/account, supported manager/kernel/container profile,
+unproven durability/server faults, and compatible rollback/cutover. Keep testing
+container-only; do not add a real SLES installation requirement. Equivalent-228
+results do not prove exact vendor-maintenance packages or physical NAS behavior.
+Unreproducible required faults remain blocked pending an explicit disposition.
 
-Experiments remain paused. Do not automatically start E6 or another package
-experiment, or begin a component-for-component port.
-
-Every incremental build/test must pass [the SLES gate](RUST-SLES-GATE.md) using
-cargo-zigbuild for glibc 2.22, ELF audits and exact target test execution. Host-only
-passes are insufficient; keep this gate as SQLite/effects/dependencies are added.
+The sections below preserve broader future obligations and unresolved design
+items. P01/P10 must reconcile their requirement scope with FR-01-08; a mention
+here neither adds an automatic release prerequisite nor withdraws one. Optional
+adapters/repair/UI and cross-host authority remain deferred. Experiments E1-E5
+stay stopped; do not automatically start E6. Every Rust build/test must use the
+[SLES gate](RUST-SLES-GATE.md), not host-only cargo tests. Retain the opt-in NFS
+qualification capability permanently.
 
 ## Design decisions
 
