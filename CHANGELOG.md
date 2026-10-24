@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve 409 recording_cancelled with retryable false for cancelled producer retries before durable handoff; preserve established 202 replay after handoff. Add planned API-E112/113 and SC-164; no transfer revival or new path release. Documentation only.
+
 - Require no confirmation for eligible failed-work retry. Add planned API-E111/SC-163; retain authentication, original job/custody and existing review checks. Cancel/clear/delete confirmations remain. Documentation only.
 
 - Make cancellation final for the first release, preserving files and keeping eligible failed-work retry separate. Add planned API-E110/SC-162; response mappings and implementation remain pending. Documentation only.

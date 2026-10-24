@@ -461,3 +461,14 @@ renumbering (111 API/163 SC/six DOC). Next consolidate admin requests/responses
 and remaining schema details; no further retry-confirmation question needed.
 No runtime, retry timing/review policy, Rust build/test, fixture or production
 gate change; documentation-only verification applies.
+
+## 2026-10-24 review: cancelled producer retry and durable handoff (group 36)
+
+The user approves 409 recording_cancelled/false before completed durable handoff
+and established 202 replay after completed handoff, including lost responses.
+Use the agreed error envelope/null delay/no path release before handoff; preserve
+final cancellation/files without reviving delivery or reopening reused originals.
+Add API-E112/113 and SC-164 (113 API/164 SC/six DOC); preserve prior IDs.
+Pending cancellation still needs safe settlement. Next decide admin cancellation
+acknowledgement while workers stop, separate from producer custody 202.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

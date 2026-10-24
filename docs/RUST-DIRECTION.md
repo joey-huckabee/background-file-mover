@@ -109,7 +109,7 @@ Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It recor
 the latest user correction, exact next discussion and unchanged runtime state.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-35 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
+before freezing P01. Groups 1-36 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
@@ -152,7 +152,9 @@ and preserved files (group 30/SC-158/API-E106). Clear eligible selected jobs, sk
 (group 32/SC-160/API-E108). Request cancellation only for unfinished jobs; skip completed/already-cancelled
 jobs without reasons (group 33/SC-161/API-E109). Safely cancelled jobs cannot resume in the first release; preserve files
 and keep failed-work retry separate (group 34/SC-162/API-E110). Eligible failed-work retry needs no confirmation
-(group 35/SC-163/API-E111). Next consolidate admin request/response and schema details; no physical delete or general repair tool is qualified yet;
+(group 35/SC-163/API-E111). Cancelled producer retry returns 409 recording_cancelled/false before durable
+handoff; preserve established 202 replay afterward (group 36/SC-164/API-E112-113).
+Next decide admin cancellation acknowledgement while safe stop is pending; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 No implementation is authorized merely by listing a proposed scenario.

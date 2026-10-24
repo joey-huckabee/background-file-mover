@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty-five groups in successive review replies.
+The user approved the following thirty-six groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-35 add API-E61-111 below.
+direction, not new runtime capabilities. Groups 14-36 add API-E61-113 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-111 are review keys, not replacement requirements or SC IDs.
+API-E01-113 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1126,8 +1126,8 @@ not remove the existing audited delivery-resume or missing-file-reset workflows.
 
 Service restart and producer resubmission must not resurrect a retained cancelled
 job. Previously confirmed whole-set 202 remains custody evidence, not permission
-to restart delivery or reclaim reused originals. Exact producer response for a
-cancelled job before confirmed handoff still needs the final response mapping.
+to restart delivery or reclaim reused originals. Group 36 now maps a safely cancelled job before completed durable handoff to
+409 recording_cancelled/false and preserves established post-handoff 202 replay.
 Clearing eligible cancelled history remains a separate confirmed action that
 forgets the UUID; later submission is new work under current safety checks, not
 resumption/adoption of the cancelled job or its retained files. Physical deletion
@@ -1139,7 +1139,7 @@ timing or automatic retry policy is introduced.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E110 | Safely cancelled job is targeted by resume/retry, producer resubmission or service restart | Keep cancellation final and preserve retained files. Do not revive the job or reuse its files through failed-work retry; preserve prior handoff evidence and separate clear/new-submission rules | Approved finality; exact response mappings and implementation/qualification pending. Existing eligible failed-work retry/review remains separate. |
+| API-E110 | Safely cancelled job is targeted by resume/retry, producer resubmission or service restart | Keep cancellation final and preserve retained files. Do not revive the job or reuse its files through failed-work retry; preserve prior handoff evidence and separate clear/new-submission rules | Approved finality; group 36 resolves producer cancellation/handoff replay mappings. Exact admin mappings and implementation/qualification pending. Existing eligible failed-work retry/review remains separate. |
 
 SC-162 and DOC-01/02/03/04/05 must distinguish final cancellation from failed-
 work retry and clearing history. No new runtime/retry/security qualification.
@@ -1173,6 +1173,41 @@ implementation before P01 is settled.
 SC-163 and DOC-01/02/03/04/05 distinguish direct failed-work retry from confirmed
 cancel/clear/delete actions. No new passing runtime/qualification evidence.
 
+## Cancelled producer retry: 409 before handoff, 202 replay after handoff (group 36)
+
+**Approved on 2026-10-24; implementation/qualification pending.** For a safely
+cancelled recording whose durable whole-set handoff never completed, an
+authorized identical producer retry returns HTTP 409 `recording_cancelled`,
+`retryable:false`. Use the agreed error envelope with the recording UUID,
+`retry_after_seconds:null` and `source_paths_released:false`. The recorder logs
+the rejection and stops automatic retries. This response grants no source-path
+reuse permission; retained private files and unclaimed originals stay protected.
+
+If durable whole-set handoff completed before cancellation, preserve its 202
+replay for the authorized identical request, including a lost original response.
+The deciding evidence is durable handoff, not whether the recorder received the
+202. This acknowledges existing custody/path-reuse permission only: it does not
+resume the cancelled transfer or reopen producer-reused paths. Cancellation does
+not revoke an established 202. Preserve caller/request equivalence checks and
+existing conflict handling; changing the request is not identical replay.
+
+Do not label cancellation pending on live/uncertain workers as safely finished.
+These mappings do not change safe-stop/settlement requirements or select a new
+pending-state response. Clearing eligible history still forgets the UUID; a
+later submission is new work, not replay of the cleared cancellation/handoff.
+
+Next decide the admin cancellation acknowledgement while safe stop is pending,
+distinguishing acceptance of that admin request from the producer's custody 202.
+Exact endpoint/status fields remain to agree; no new runtime behavior here.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E112 | Authorized identical producer retry of safely cancelled recording without completed durable whole-set handoff | HTTP 409 recording_cancelled, retryable false, null retry delay and source_paths_released false; log/stop recorder retries. Preserve files and final cancellation | Approved mapping; implementation/qualification pending. Includes partial custody; no fabricated source-path release. |
+| API-E113 | Authorized identical producer retry after completed durable handoff, then cancellation, including lost original 202 | Replay established 202 without reviving delivery, reclaiming reused paths or revoking original custody acknowledgement | Approved mapping; implementation/qualification pending. Caller/request checks and cleared-history/new-submission rules remain. |
+
+SC-164 and DOC-01/02/03/04/05 distinguish cancelled-before-handoff rejection
+from preserved post-handoff 202 replay. No passing runtime/qualification claim.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1197,7 +1232,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-35 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-36 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1215,7 +1250,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-111 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-113 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

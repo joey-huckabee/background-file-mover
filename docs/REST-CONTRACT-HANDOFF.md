@@ -43,8 +43,10 @@ skipping completed/already-cancelled jobs without reasons (SC-161/API-E109).
 Group 34 makes cancellation final for the first release, preserves files and
 keeps failed-work retry separate (SC-162/API-E110). Group 35 requires no
 confirmation for eligible failed-work retry (SC-163/API-E111); keep existing
-authentication, review and safety checks. Next consolidate the admin action
-request/response contract and finalize
+authentication, review and safety checks. Group 36 selects 409
+recording_cancelled/false for cancelled producer retries before durable handoff,
+preserving established post-handoff 202 replay (SC-164/API-E112-113). Next decide
+the admin cancellation acknowledgement while workers stop, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -58,9 +60,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Thirty-five reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Thirty-six reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 163 stable SC IDs and six DOC IDs; API-E01-111 are contract/acceptance
+now has 164 stable SC IDs and six DOC IDs; API-E01-113 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -105,8 +107,11 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Consolidate admin action requests/responses and remaining exact schema
-   details for review. Group 35 resolves retry confirmation: none required for
+1. Decide the admin cancellation acknowledgement while safe stop is pending,
+   separate from producer custody acknowledgement. Group 36 resolves producer
+   retries: cancelled before durable handoff is 409 recording_cancelled/false;
+   completed durable handoff preserves 202 replay. Then consolidate remaining
+   admin requests/responses and exact schema details for review. Group 35 resolves retry confirmation: none required for
    eligible failed work; keep all action/review/authentication checks. Group 34
    makes cancellation final for the first release, with files preserved and
    eligible failed-work retry separate. Do not re-open cancelled-job resume.
