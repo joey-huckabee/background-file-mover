@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Require no confirmation for eligible failed-work retry. Add planned API-E111/SC-163; retain authentication, original job/custody and existing review checks. Cancel/clear/delete confirmations remain. Documentation only.
+
 - Make cancellation final for the first release, preserving files and keeping eligible failed-work retry separate. Add planned API-E110/SC-162; response mappings and implementation remain pending. Documentation only.
 
 - Approve requesting cancellation only for unfinished selected jobs, skipping completed/already-cancelled jobs without reasons. Add planned API-E109/SC-161; preserve existing pending cancellation and file/history safeguards. Documentation only.

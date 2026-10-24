@@ -450,3 +450,14 @@ Add API-E110/SC-162 without renumbering (110 API/162 SC/six DOC). Exact cancelle
 job producer/admin response mappings remain to finalize, as does failed-work
 retry confirmation. No retry timing/review policy, runtime, Rust build/test,
 fixture or production gate change; documentation-only increment.
+
+## 2026-10-24 review: failed-work retry needs no confirmation (group 35)
+
+The user rejects confirmation for retry. Submit eligible failed-work retry
+directly while retaining authentication, original identity/custody, eligibility
+and existing audited review/command checks. Preserve final cancellation and
+required cancel/clear/delete confirmations. Add API-E111/SC-163 without
+renumbering (111 API/163 SC/six DOC). Next consolidate admin requests/responses
+and remaining schema details; no further retry-confirmation question needed.
+No runtime, retry timing/review policy, Rust build/test, fixture or production
+gate change; documentation-only verification applies.
