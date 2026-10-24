@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-25, remaining schema decisions and
+current discussion, approved contract groups 1-26, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -402,7 +402,10 @@ are reported. Manual deletion works even when automatic cleanup is disabled
 The admin dashboard must be accessible from another computer
 (group 24/SC-152/API-E100). Keep admin authorization separate from producer
 submission identity. Group 25 selects simple admin username/password; defer
-SSO and advanced account management. Credential setup, session/request
+SSO and advanced account management. Configure one admin account and change
+its password locally on the mover host (group 26/SC-154/API-E102); no remote
+account-management/password-reset workflow. Existing-session behavior after a
+password change, session/request
 protection and exact
 transaction/wire design remain to settle. The dashboard cancel/clear workflow
 still needs implementation;

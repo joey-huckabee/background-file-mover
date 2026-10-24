@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve local setup/password changes on the mover host for one admin account. Add planned API-E102/SC-154; remote account-management/reset screens are not required. Session handling and implementation remain pending.
+
 - Select simple admin username/password for the first-release remote dashboard; defer SSO and advanced account management. Add planned API-E101/SC-153, retain action safeguards and leave minimal login/session implementation pending.
 
 - Require admin dashboard access from another computer, separate from recorder access. Add planned API-E100/SC-152 and begin sign-in/authorization design; no authentication method or remote admin listener implemented.

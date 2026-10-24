@@ -354,3 +354,13 @@ protections. Add API-E101/SC-153 (101 API/153 SC/six DOC IDs), without renumberi
 Finalize minimal credential setup/session/wire rather than re-asking login type.
 No credential, authentication dependency, remote listener, Rust build/test,
 fixture or production NFS/deletion change.
+
+## Resumed review: host-local admin account setup/password changes (group 26)
+
+The user approves one configured admin account, set up and password changed
+locally on the mover host. Remote dashboard account-management/reset screens
+are not required. Add API-E102/SC-154 without renumbering existing IDs: 102 API,
+154 SC and six DOC IDs. Next decide existing-session behavior after password
+change; activation/configuration format remains implementation design. Credential
+changes do not themselves alter jobs/history/files. No runtime, dependency,
+Rust build/test, fixture or production gate change.

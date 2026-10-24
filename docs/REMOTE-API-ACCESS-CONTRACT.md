@@ -16,7 +16,10 @@ trusted-host local-operator statement describes the existing separate interface,
 not a restriction of the new dashboard to the mover host. Group 25 now selects simple admin username/password
 ([API-E101/SC-153](REST-ERROR-SCENARIOS.md#simple-admin-usernamepassword-for-the-first-release-group-25)),
 with SSO and advanced account features deferred. Keep ordinary HTTPS/password/
-session hygiene and finalize minimal credential setup and wire details. No
+session hygiene. Group 26 selects local setup and password changes on the mover
+host for one admin account; remote account-management/reset screens are outside
+the first-release scope. Password-change session handling and minimal wire
+details remain to settle. No
 remote admin listener, login implementation or account-registration system is
 implemented by these decisions. Existing operation eligibility/confirmation and
 production NFS/deletion gates remain unchanged.

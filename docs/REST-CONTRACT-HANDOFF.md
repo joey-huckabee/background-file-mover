@@ -27,8 +27,10 @@ independence: manual deletion works even when automatic cleanup is disabled;
 Group 24 requires dashboard access from another computer (SC-152/API-E100).
 Group 25 selects simple admin username/password (SC-153/API-E101), with SSO
 and advanced account features deferred. Keep ordinary HTTPS/password/session
-hygiene in implementation; finalize minimal credential setup/login/logout
-and exact wire details without an expanded security-design review. Producer credentials alone
+hygiene in implementation. Group 26 approves one admin account configured and
+password changed locally on the mover host (SC-154/API-E102). Next decide
+whether password changes sign out existing dashboard sessions, then finalize
+minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
 
@@ -41,9 +43,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-five reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Twenty-six reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 153 stable SC IDs and six DOC IDs; API-E01-101 are contract/acceptance
+now has 154 stable SC IDs and six DOC IDs; API-E01-102 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -88,7 +90,8 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Finalize minimal username/password login/session details and exact endpoints/transactions/bulk
+1. Decide existing-session behavior after a local admin password change, then
+   finalize minimal username/password login/session details and exact endpoints/transactions/bulk
    and confirmation details. Group 22 resolves deletion scope and simple failure
    behavior: best effort, leave failed files and report them; no dedicated
    pause/resume state or automatic retry machinery. Preserve safe-stop,
