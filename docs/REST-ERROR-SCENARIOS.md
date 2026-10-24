@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-three groups in successive review replies.
+The user approved the following forty-four groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-43 add API-E61-120 below.
+direction, not new runtime capabilities. Groups 14-44 add API-E61-121 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-120 are review keys, not replacement requirements or SC IDs.
+API-E01-121 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1485,6 +1485,48 @@ batch parser. Implementation and qualification remain pending.
 SC-171 and DOC-01/02/03/04/05 explain per-entry processing and failed duplicate
 cancel attempts, separate from job failure and whole-request replay. No new test.
 
+## Cancellation attempt response: accepted, failed and skipped counts (group 44)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Return HTTP
+202 Accepted for a processed admin cancellation selection with this JSON shape:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+All three fields are nonnegative integer counts of per-entry cancellation
+attempt outcomes. accepted_count counts newly accepted cancellation requests,
+not jobs that have safely stopped. failed_count counts failed cancel attempts,
+including a duplicate attempt processed again under group 43. skipped_count
+counts entries skipped under the existing rules, such as nonexistent or already
+completed/safely-cancelled jobs. No individual skip/failure reasons are required.
+Classify each processed entry once using its per-job outcome; do not deduplicate
+or put cancellation-state intelligence into the list handler. For [42,42], where
+the first cancel is accepted, the example above applies. An all-skipped processed
+selection returns zero accepted/failed and its actual skipped count; it does not
+claim that any cancellation was newly accepted.
+
+The dashboard still shows Cancellation pending until safe stop/effect settlement,
+then Cancelled. A failed cancel attempt does not make the transfer job failed or
+reverse/reset an already accepted cancellation. Return accurate counts, not
+invented results for authentication, malformed-request or unreadable-state
+failures. Whole-request errors retain their separate mapping. Exact endpoint,
+limits, transactions and transport-replay semantics remain to finalize.
+
+Next decide the exact response counts for accepted failed-work retry; its 202,
+no-confirmation behavior and actual-progress display are already agreed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E121 | Admin cancellation selection is processed with accepted, failed and/or skipped entries | Return 202 Accepted with accepted_count, failed_count and skipped_count. Count per-entry outcomes once; repeated cancel attempts may fail, skipped entries have no reported reasons. Acceptance is not safe-stop completion | Approved exact count fields; endpoint/limits/transaction/replay and implementation/qualification pending. No batch deduplication, job-failure transition or premature Cancelled status. |
+
+SC-172 and DOC-01/02/03/04/05 explain cancellation attempt counts separately
+from job progress. No new runtime/qualification evidence is claimed.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1509,7 +1551,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-43 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-44 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1527,7 +1569,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-120 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-121 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

@@ -109,7 +109,7 @@ Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It recor
 the latest user correction, exact next discussion and unchanged runtime state.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-43 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
+before freezing P01. Groups 1-44 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
@@ -163,7 +163,8 @@ scheme. All four admin actions use job_ids with separate endpoints
 (group 41/SC-169/API-E118); admin authentication is separate. Silently skip nonexistent IDs and process the rest
 (group 42/SC-170/API-E119). Dispatch repeated entries again; the per-job cancel action owns state decisions
 and a duplicate cancel counts as a failed cancel attempt (group 43/SC-171/API-E120).
-No batch deduplication. Next consolidate compact results and remaining wire/login details; no physical delete or general repair tool is qualified yet;
+No batch deduplication. Cancellation 202 has accepted_count, failed_count and skipped_count
+(group 44/SC-172/API-E121). Next settle retry response counts and remaining wire/login details; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 No implementation is authorized merely by listing a proposed scenario.

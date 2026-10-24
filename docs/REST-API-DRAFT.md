@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-43, remaining schema decisions and
+current discussion, approved contract groups 1-44, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -647,6 +647,26 @@ failed or resetting cancellation progress (SC-171/API-E120). Existing single-
 resource/local-operator 404 mappings remain. See
 [group 41/API-E118/SC-169](REST-ERROR-SCENARIOS.md#shared-job_ids-request-with-separate-admin-action-endpoints-group-41).
 No runtime endpoints or authentication are implemented by this draft.
+
+## Cancellation response counts (group 44)
+
+A processed admin cancellation selection returns HTTP 202 Accepted:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+Count per-entry outcomes from the per-job action, without deduplication. Accepted
+means the cancellation request was accepted; the job remains Cancellation pending
+until safe stop, then Cancelled. Duplicate cancel attempts count as failures;
+nonexistent/completed/already-cancelled skips count as skipped, without reasons.
+These are action counts, not transfer-failure or completed-stop counts. See
+[group 44/API-E121/SC-172](REST-ERROR-SCENARIOS.md#cancellation-attempt-response-accepted-failed-and-skipped-counts-group-44).
+Whole-request authentication/validation/storage errors retain separate handling.
 
 ## Missing file retry and operator review
 

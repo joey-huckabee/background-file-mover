@@ -562,3 +562,13 @@ nonexistent skips remain; exact per-job outcome/result wire and whole-request
 replay stay to finalize. Other actions retain their own per-job effects/counts.
 Next consolidate compact result/count and remaining request/login schemas.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: cancellation accepted/failed/skipped counts (group 44)
+
+The user approves cancellation 202 with accepted_count/failed_count and adds
+skipped_count. Add API-E121/SC-172 without renumbering (121 API/172 SC/six DOC).
+Count per-entry action outcomes, with duplicate cancel failures and existing
+silent skips, without batch deduplication. Accepted is not stopped; preserve
+Cancellation pending until safe stop, then Cancelled. Whole-request errors are
+separate. Next settle retry response counts and remaining wire/login details.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.
