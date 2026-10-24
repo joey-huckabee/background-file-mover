@@ -36,8 +36,9 @@ restart sign-out for all sessions while jobs use normal recovery
 (SC-157/API-E105). Group 30 requires history-clear confirmation showing selected
 jobs and explaining UUID forgetting with preserved files (SC-158/API-E106).
 Group 31 clears eligible selected jobs, skips others without reason reporting
-and never auto-cancels (SC-159/API-E107). Next decide confirmation for an
-explicit cancellation, then finalize
+and never auto-cancels (SC-159/API-E107). Group 32 requires cancellation
+confirmation showing selected jobs only, without explanatory text
+(SC-160/API-E108). Next decide terminal/mixed cancellation selections, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -51,9 +52,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Thirty-one reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Thirty-two reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 159 stable SC IDs and six DOC IDs; API-E01-107 are contract/acceptance
+now has 160 stable SC IDs and six DOC IDs; API-E01-108 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -98,7 +99,9 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide whether explicit cancellation needs confirmation. Groups 30/31 resolve
+1. Decide cancellation behavior for completed/already-cancelled jobs in a
+   selection. Group 32 requires confirmation showing selected jobs only, without
+   explanatory text. Groups 30/31 resolve
    history clear: confirm selected jobs/UUID forgetting/file preservation, clear
    eligible jobs and skip others without reason reporting or automatic cancellation.
    Password-change/restart sign-out and

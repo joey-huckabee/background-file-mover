@@ -418,3 +418,13 @@ Actual storage/request failures must not be reported as successful clears.
 Next decide explicit cancellation confirmation; clear/delete confirmation is
 settled. Exact summary/wire/transactions remain implementation design.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: selected-job cancellation confirmation (group 32)
+
+The user approves confirmation before cancelling jobs, showing the selected jobs
+without explanation. Add API-E108/SC-160 without renumbering (108 API/160 SC/
+six DOC). Dismiss/decline cancels nothing; target confirmed internal job identities
+only. Preserve group-20 file preservation, pending cancellation, commitment and
+safe-stop rules without requiring explanatory dialog text. Next decide terminal/
+mixed-selection cancellation behavior, then exact wire/transaction details.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Require cancellation confirmation displaying selected jobs without explanatory text. Add planned API-E108/SC-160 and preserve file/custody/pending-worker safeguards; terminal/mixed-selection and exact wire behavior remain pending. Documentation only.
+
 - Approve clearing eligible selected history while skipping others without individual reasons or automatic cancellation. Add planned API-E107/SC-159; preserve eligibility/file/UUID rules. Documentation only.
 
 - Require confirmation before history clear, showing selected jobs and explaining forgotten UUIDs with files preserved. Add planned API-E106/SC-158; mixed-selection and exact wire behavior remain pending. Documentation only.

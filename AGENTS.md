@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-107 for user review
-before P01 is frozen. Groups 1-31 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-108 for user review
+before P01 is frozen. Groups 1-32 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -47,7 +47,8 @@ sessions while transfers continue (group 27/SC-155/API-E103). Use a configurable
 Mover restart signs out dashboard sessions; jobs recover normally
 (group 29/SC-157/API-E105). History clear requires confirmation showing selected jobs, UUID forgetting
 and preserved files (group 30/SC-158/API-E106). Clear eligible selected jobs, skip others without reasons and never auto-cancel
-(group 31/SC-159/API-E107). Next decide explicit cancellation confirmation; no physical delete or general repair tool is qualified yet;
+(group 31/SC-159/API-E107). Cancellation requires confirmation showing selected jobs only, no explanation
+(group 32/SC-160/API-E108). Next decide terminal/mixed cancellation selection behavior; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 
