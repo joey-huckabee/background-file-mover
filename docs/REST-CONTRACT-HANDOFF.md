@@ -24,7 +24,11 @@ files remain, other safe selected files can still be attempted, and failures are
 reported. No dedicated pause/resume or automatic retry workflow. Next settle
 admin access and exact wire/bulk/concurrency. Group 23 resolves cleanup
 independence: manual deletion works even when automatic cleanup is disabled;
-do not ask file ordering or the UUID-versus-free-form question again.
+Group 24 requires dashboard access from another computer (SC-152/API-E100).
+Next ask whether an existing organizational sign-in system is available, then
+settle admin permissions/session/request protection. Producer credentials alone
+do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
+local-versus-remote dashboard access again.
 
 ## Where we stopped
 
@@ -35,9 +39,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-three reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Twenty-four reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 151 stable SC IDs and six DOC IDs; API-E01-99 are contract/acceptance
+now has 152 stable SC IDs and six DOC IDs; API-E01-100 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -82,7 +86,7 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Settle admin access and exact endpoints/transactions/bulk
+1. Settle remote admin sign-in/authorization and exact endpoints/transactions/bulk
    and confirmation details. Group 22 resolves deletion scope and simple failure
    behavior: best effort, leave failed files and report them; no dedicated
    pause/resume state or automatic retry machinery. Preserve safe-stop,

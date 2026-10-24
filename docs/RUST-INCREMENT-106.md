@@ -333,3 +333,13 @@ protected-file and best-effort rules. Do not silently enable background cleanup
 or production deletion. Add API-E99/SC-151; preserve prior identifiers, with
 99 API cases, 151 SC IDs and six DOC IDs. Next decide admin access, then wire
 and confirmation details. No runtime, Rust build/test or fixture change.
+
+## Resumed review: remote admin dashboard access (group 24)
+
+The user requires dashboard access from another computer. Add API-E100/SC-152
+without renumbering earlier cases (100 API/152 SC/six DOC IDs). Preserve the
+separate recorder/admin boundary and existing admin action rules. Sign-in,
+authorization and browser/session/request protection remain to agree; next ask
+whether an organizational sign-in system is available. Update the producer
+access contract to distinguish its local-operator scope from this new requirement.
+No remote ingress, account system, runtime, Rust build/test or fixture change.

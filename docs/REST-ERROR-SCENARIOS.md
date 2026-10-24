@@ -8,7 +8,7 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-three groups in successive review replies.
+The user approved the following twenty-four groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
 direction, not new runtime capabilities. Groups 14-22 add API-E61-98 below.
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-99 are review keys, not replacement requirements or SC IDs.
+API-E01-100 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -816,6 +816,34 @@ to settle; no additional manual-delete enable switch is required by this decisio
 SC-151 and DOC-01/02/03/04/05 must explain the distinction between automatic
 cleanup and explicit manual disposal. No new passing test is claimed.
 
+## Admin dashboard access from another computer (group 24)
+
+**Approved access requirement on 2026-10-23; protection design pending.** The
+admin must be able to use the dashboard from another computer. A host-local-only
+UI does not meet this requirement. Include the requested cancellation,
+history-clear and retained-data deletion workflows in the remote admin design.
+
+Remote admin access is separate from recorder submission access. A generator
+identity or producer certificate must not itself grant admin privileges. The
+existing remote producer profile does not implement or qualify a dashboard or
+admin ingress. Do not expose the trusted loopback prototype or existing local
+operator interface as an unauthenticated remote admin API.
+
+Work through protection choices with the user before implementation: first
+whether an existing organizational sign-in system is available, then the admin
+permission model, protected browser connection/session, request protection and
+confirmation details. These mechanisms are not selected by this access decision;
+registration remains deferred and no new account/token system is approved here.
+Previously agreed cancellation, history eligibility, deletion ownership/safe-stop,
+confirmation, protected-file and best-effort rules apply regardless of location.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E100 | Admin uses another computer to manage the mover through the dashboard | Support remote dashboard access through a separately protected admin interface; producer access alone grants no admin actions. Preserve existing admin operation rules | Remote access requirement approved; authentication/authorization, session/request protections, exact responses and implementation/qualification pending. No remote ingress enabled. |
+
+SC-152 and DOC-01/02/03/04/05 must explain remote admin access and distinguish it
+from recorder access. No new runtime or security qualification is claimed.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -840,7 +868,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-23 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-24 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -858,7 +886,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-99 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-100 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

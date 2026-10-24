@@ -7,6 +7,18 @@ The current service is still a trusted loopback prototype, rejects non-loopback
 binding and rejects Authorization headers. Adding a reverse proxy to that
 prototype does not implement this contract. Production NFS and deletion stay off.
 
+## Remote admin dashboard: additional requirement, protection pending
+
+The user requires dashboard access from another computer (2026-10-23,
+[group 24/API-E100/SC-152](REST-ERROR-SCENARIOS.md#admin-dashboard-access-from-another-computer-group-24)).
+The producer-only profile below must not grant dashboard/admin access. Its
+trusted-host local-operator statement describes the existing separate interface,
+not a restriction of the new dashboard to the mover host. Design admin sign-in,
+authorization and browser/session/request protection separately with the user;
+no method, remote admin listener or account-registration system is implemented
+or approved by this requirement. Existing operation eligibility/confirmation and
+production NFS/deletion gates remain unchanged.
+
 ## Selected design profile and trust boundary
 
 Use an external HTTPS proxy on the mover host with mandatory mutual TLS (client

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Require admin dashboard access from another computer, separate from recorder access. Add planned API-E100/SC-152 and begin sign-in/authorization design; no authentication method or remote admin listener implemented.
+
 - Approve manual retained-data deletion independently of the automatic-cleanup setting. Add planned API-E99/SC-151; preserve confirmation, safe-stop, file protections and best-effort failure behavior. Documentation only; no production deletion enabled.
 
 - Simplify confirmed retained-data deletion failure handling: best effort, leave failed files and report failures while attempting other safe selected files. No dedicated pause/resume or automatic retry workflow; existing ownership, safe-stop, confirmation and protected-file rules remain. Documentation only.
