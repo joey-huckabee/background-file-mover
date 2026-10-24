@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty groups in successive review replies.
+The user approved the following thirty-one groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-30 add API-E61-106 below.
+direction, not new runtime capabilities. Groups 14-31 add API-E61-107 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-106 are review keys, not replacement requirements or SC IDs.
+API-E01-107 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1003,15 +1003,47 @@ not replace the separate confirmation required for retained-data deletion.
 
 Exact endpoint/confirmation representation remains implementation design; no
 extra password prompt, typed phrase or multi-stage confirmation protocol is
-required by this decision. Next decide how a mixed selection of eligible and
-ineligible jobs is handled; do not silently choose bulk atomicity or skip behavior.
+required by this decision. Group 31 resolves mixed selections: clear eligible
+selected jobs, skip others without reporting reasons, and never auto-cancel.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E106 | Admin requests clearing selected job history, confirms or dismisses the confirmation | Show selected jobs and explain UUID forgetting with file preservation; clear only after explicit confirmation and current eligibility checks. Decline/dismiss means no clear; do not include unshown/new jobs | Approved confirmation; exact wire/bulk behavior and implementation/qualification pending. No authorization to delete files. |
+| API-E106 | Admin requests clearing selected job history, confirms or dismisses the confirmation | Show selected jobs and explain UUID forgetting with file preservation; clear only after explicit confirmation and current eligibility checks. Decline/dismiss means no clear; do not include unshown/new jobs | Approved confirmation; group 31 resolves mixed eligibility handling. Exact wire and implementation/qualification pending. No authorization to delete files. |
 
 SC-158 and DOC-01/02/03/04/05 must explain the history-clear confirmation and
 its distinction from physical deletion. No new runtime/qualification pass.
+
+## Clear eligible selected history; silently skip ineligible jobs (group 31)
+
+**Approved on 2026-10-24; implementation/qualification pending.** After the
+history-clear confirmation, clear the selected jobs that are currently eligible
+and skip the others. No per-job skip reason needs to be reported. Do not cancel
+anything automatically to make it eligible. An ineligible selected job does not
+by itself prevent clearing eligible selected jobs.
+
+Recheck eligibility when applying the clear: only completed or safely cancelled
+jobs qualify. Active, errored/review, cancellation-pending and unsafe-to-clear
+jobs retain their history/UUID recognition. Preserve their files and work state.
+Do not select later jobs or a new job under a reused UUID merely by matching the
+old UUID. Confirmed eligible clears still forget UUIDs and preserve files with
+separate ownership/accounting, as previously agreed.
+
+Skipping ineligible jobs is normal selection handling; it is not authorization
+to hide actual storage/request failures or falsely claim every selected job was
+cleared. Exact summary/wire response and transaction implementation remain to
+finalize; this decision requires neither a reason-per-job result nor all-or-
+nothing clearing of the selection. No background retries or implicit cancellation
+workflow is introduced.
+
+Next decide whether a separately requested job cancellation requires a simple
+confirmation. History-clear and retained-data deletion confirmation are settled.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E107 | Confirmed history-clear selection contains eligible and ineligible jobs, or eligibility changes before application | Clear only currently eligible selected jobs; skip others without reporting individual reasons. Never auto-cancel, alter skipped jobs or clear unshown/new jobs. Preserve file ownership/accounting and existing cleared-UUID rules | Approved selection behavior; exact summary/transaction/wire and implementation/qualification pending. Actual storage/request failure is not a successful clear. |
+
+SC-159 and DOC-01/02/03/04/05 track mixed-selection history clear without skip
+reason reporting or automatic cancellation. No new passing runtime evidence.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1037,7 +1069,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-30 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-31 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1055,7 +1087,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-106 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-107 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

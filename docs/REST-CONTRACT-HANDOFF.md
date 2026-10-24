@@ -35,7 +35,9 @@ timeout, also without affecting transfers (SC-156/API-E104). Group 29 requires
 restart sign-out for all sessions while jobs use normal recovery
 (SC-157/API-E105). Group 30 requires history-clear confirmation showing selected
 jobs and explaining UUID forgetting with preserved files (SC-158/API-E106).
-Next decide mixed eligible/ineligible clear selections, then finalize
+Group 31 clears eligible selected jobs, skips others without reason reporting
+and never auto-cancels (SC-159/API-E107). Next decide confirmation for an
+explicit cancellation, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -49,9 +51,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Thirty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Thirty-one reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 158 stable SC IDs and six DOC IDs; API-E01-106 are contract/acceptance
+now has 159 stable SC IDs and six DOC IDs; API-E01-107 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -96,8 +98,9 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide mixed eligible/ineligible history-clear selection behavior. Group 30
-   resolves confirmation: show selected jobs, UUID forgetting and preserved files.
+1. Decide whether explicit cancellation needs confirmation. Groups 30/31 resolve
+   history clear: confirm selected jobs/UUID forgetting/file preservation, clear
+   eligible jobs and skip others without reason reporting or automatic cancellation.
    Password-change/restart sign-out and
    configurable 30-minute inactivity expiry are resolved; jobs retain normal
    recovery. Deletion confirmation is already required. Then

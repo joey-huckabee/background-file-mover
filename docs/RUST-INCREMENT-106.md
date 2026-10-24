@@ -407,3 +407,14 @@ not include unshown jobs or authorize file deletion. Keep a simple confirmation;
 no extra password/typed phrase protocol implied. Next decide mixed eligible/
 ineligible selection behavior, then finalize exact wire/transaction design.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: eligible-only history clear, no skip reasons (group 31)
+
+The user approves clearing eligible selected jobs and skipping the others,
+without reporting reasons and without automatic cancellation. Add API-E107/
+SC-159 without renumbering (107 API/159 SC/six DOC). Recheck eligibility, preserve
+skipped job/history/UUID/file state and exact confirmed selection identity.
+Actual storage/request failures must not be reported as successful clears.
+Next decide explicit cancellation confirmation; clear/delete confirmation is
+settled. Exact summary/wire/transactions remain implementation design.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

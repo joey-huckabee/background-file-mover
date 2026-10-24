@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve clearing eligible selected history while skipping others without individual reasons or automatic cancellation. Add planned API-E107/SC-159; preserve eligibility/file/UUID rules. Documentation only.
+
 - Require confirmation before history clear, showing selected jobs and explaining forgotten UUIDs with files preserved. Add planned API-E106/SC-158; mixed-selection and exact wire behavior remain pending. Documentation only.
 
 - Approve dashboard sign-out on mover restart while jobs use normal durable recovery. Add planned API-E105/SC-157; session implementation remains pending and runtime/recovery behavior is unchanged.
