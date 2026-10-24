@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-37, remaining schema decisions and
+current discussion, approved contract groups 1-38, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -583,7 +583,9 @@ cancellation; exact wire/transaction details remain to settle.
 Group 34 makes cancellation final for the first release: no resume/uncancel
 or revival through retry. Preserve files and keep eligible failed-work retry
 separate (SC-162/API-E110). Eligible failed-work retry needs no confirmation
-dialog (group 35/SC-163/API-E111); authentication, current eligibility, original
+dialog (group 35/SC-163/API-E111). An accepted admin retry returns 202 Accepted
+and the dashboard shows actual job progress, without implying execution or
+success (group 38/SC-166/API-E115); authentication, current eligibility, original
 job/custody and existing audited review checks still apply. Group 36 maps an
 authorized identical producer retry of a safely cancelled job without durable
 whole-set handoff to 409 recording_cancelled, retryable false, null retry delay

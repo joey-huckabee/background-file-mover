@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-114 for user review
-before P01 is frozen. Groups 1-37 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-115 for user review
+before P01 is frozen. Groups 1-38 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -54,7 +54,9 @@ and keep failed-work retry separate (group 34/SC-162/API-E110). Eligible failed-
 (group 35/SC-163/API-E111). Cancelled producer retry returns 409 recording_cancelled/false before durable
 handoff; preserve established 202 replay afterward (group 36/SC-164/API-E112-113).
 Admin cancellation returns 202 Accepted, shows Cancellation pending until safe
-stop, then Cancelled (group 37/SC-165/API-E114). Next decide failed-work retry acknowledgement; no physical delete or general repair tool is qualified yet;
+stop, then Cancelled (group 37/SC-165/API-E114). Accepted failed-job retry returns 202 without confirmation and shows actual
+progress, not implied success (group 38/SC-166/API-E115). Next decide completed
+history-clear response; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

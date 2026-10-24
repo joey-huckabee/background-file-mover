@@ -483,3 +483,15 @@ restrictions. Do not alter shutdown waits or infer safety from timeout/sign-out.
 Exact persistence/body/bulk response remains design work. Next decide admin
 failed-work retry acknowledgement; no retry confirmation required.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: accepted failed-job retry 202 and actual progress (group 38)
+
+The user approves HTTP 202 Accepted for accepted failed-job retry, without
+confirmation, and display of actual progress without implying success. Add
+API-E115/SC-166 without renumbering (115 API/166 SC/six DOC). Preserve original
+job/custody, current eligibility and existing audited review/command checks;
+request acceptance is not execution, delivery or publication success. Exact
+request/body/idempotency/progress wire remains pending. Next decide completed
+history-clear response, preserving eligible-only clearing and silent skips.
+Documentation only; no runtime, retry policy, Rust build/test, fixture or
+production gate change.
