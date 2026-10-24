@@ -364,3 +364,14 @@ are not required. Add API-E102/SC-154 without renumbering existing IDs: 102 API,
 change; activation/configuration format remains implementation design. Credential
 changes do not themselves alter jobs/history/files. No runtime, dependency,
 Rust build/test, fixture or production gate change.
+
+## Resumed review: password-change session invalidation (group 27)
+
+The user approves signing out every existing dashboard session when the admin
+password changes, without affecting background transfers. Preserve job/history/
+file lifecycle and already-authorized effect handling. Add API-E103/SC-155,
+preserving prior IDs (103 API/155 SC/six DOC). Specify service-enforced invalidation
+when new credentials become active, without old-session resurrection after
+restart; activation/session mechanism remains to design. Next decide inactivity
+expiry. Documentation only: no runtime, dependency, Rust build/test, fixture or
+production gate change.

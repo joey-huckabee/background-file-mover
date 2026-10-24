@@ -18,8 +18,9 @@ not a restriction of the new dashboard to the mover host. Group 25 now selects s
 with SSO and advanced account features deferred. Keep ordinary HTTPS/password/
 session hygiene. Group 26 selects local setup and password changes on the mover
 host for one admin account; remote account-management/reset screens are outside
-the first-release scope. Password-change session handling and minimal wire
-details remain to settle. No
+the first-release scope. Group 27 requires all existing dashboard sessions to
+be signed out when a password change takes effect, without affecting background
+transfers. Inactivity expiry and minimal session/wire details remain to settle. No
 remote admin listener, login implementation or account-registration system is
 implemented by these decisions. Existing operation eligibility/confirmation and
 production NFS/deletion gates remain unchanged.

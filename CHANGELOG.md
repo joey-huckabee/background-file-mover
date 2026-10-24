@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Require password changes to sign out all existing admin dashboard sessions while background transfers continue unaffected. Add planned API-E103/SC-155; activation/session implementation and inactivity timeout remain pending.
+
 - Approve local setup/password changes on the mover host for one admin account. Add planned API-E102/SC-154; remote account-management/reset screens are not required. Session handling and implementation remain pending.
 
 - Select simple admin username/password for the first-release remote dashboard; defer SSO and advanced account management. Add planned API-E101/SC-153, retain action safeguards and leave minimal login/session implementation pending.
