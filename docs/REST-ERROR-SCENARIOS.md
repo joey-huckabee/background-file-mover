@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty-nine groups in successive review replies.
+The user approved the following forty groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-39 add API-E61-116 below.
+direction, not new runtime capabilities. Groups 14-40 add API-E61-117 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-116 are review keys, not replacement requirements or SC IDs.
+API-E01-117 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1304,9 +1304,9 @@ storage-failure and lost-response/idempotency wire handling remains to finalize;
 no per-job skip-reason reporting or new history-clear background worker is
 required by this decision.
 
-Next decide acknowledgement/result presentation for the separate confirmed
-manual retained-data deletion action. Keep its best-effort failure policy simple;
-no dedicated pause/resume or automatic retry workflow is implied.
+Group 40 selects 202 Accepted for confirmed manual deletion and dashboard
+deleted/failed file counts. Keep its best-effort policy simple, with no automatic
+retries or special recovery workflow.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1314,6 +1314,47 @@ no dedicated pause/resume or automatic retry workflow is implied.
 
 SC-167 and DOC-01/02/03/04/05 explain completed history clear, its count and
 file preservation. No new passing runtime/NFS/SLES evidence is claimed.
+
+## Manual deletion returns 202 and deleted/failed file counts (group 40)
+
+**Approved on 2026-10-24; implementation/qualification pending.** An accepted,
+explicitly confirmed manual retained-data deletion request returns HTTP 202
+Accepted. Run the selected eligible deletion attempts without holding the HTTP
+request open for filesystem completion. The dashboard shows how many files were
+deleted and how many failed; 202 acknowledges the request, not successful removal.
+Exact response/count field names and result lookup remain schema design.
+
+Keep deletion best effort: failed files stay behind, independently safe selected
+files may still be attempted, and successfully removed files are not rolled back.
+No automatic retries, dedicated pause/resume states or special recovery workflow
+is required. An admin may explicitly request deletion again for remaining
+eligible data under the same confirmation/ownership rules. Do not broaden this
+into orphan repair or a generic recursive-path deletion tool.
+
+Count files, not jobs/directories or bytes; only actual confirmed removals count
+as deleted. Do not label still-pending/unknown outcomes as successful removal or
+show final all-success while attempts remain unresolved. Leave remaining or
+uncertain data protected/accounted; no fabricated counts after a failed request
+or interrupted observation. Ordinary status must report incomplete attempts
+honestly without introducing an automatic recovery/retry subsystem. Exact
+interruption/count representation remains implementation design.
+
+Preserve group-22 safe-stop, ownership, exact selection, confirmation and
+protected-original/completed-recording rules. Manual deletion remains available
+with automatic cleanup off. Request/auth/storage/safety failures are not accepted
+success. This admin 202 grants no producer source-path release permission.
+Production NFS and source deletion remain disabled in the current prototype.
+
+Next finalize how admin requests identify selected jobs/data independently of a
+recording UUID that may later be forgotten and reused. Exact endpoints, request
+identity and compact acknowledgement/status schemas remain to freeze in P01.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E117 | Confirmed eligible manual deletion is accepted and file attempts succeed/fail | Return 202 Accepted; show actual deleted-file and failed-file counts. Keep best-effort handling, no automatic retries or special recovery workflow; preserve remaining files, accounting and all ownership/safe-stop/confirmation/protected-data rules | Approved acknowledgement/results; exact count/status/interruption wire and implementation/qualification pending. Acceptance is not successful removal; production NFS/source deletion remain disabled. |
+
+SC-168 and DOC-01/02/03/04/05 explain manual-deletion acceptance and deleted/
+failed file counts without a retry/recovery workflow. No new passing test.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1339,7 +1380,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-39 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-40 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1357,7 +1398,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-116 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-117 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

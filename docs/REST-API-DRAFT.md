@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-39, remaining schema decisions and
+current discussion, approved contract groups 1-40, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -607,7 +607,11 @@ Cancellation pending until work safely stops/effects settle, then Cancelled
 permission. Exact body/persistence/bulk details remain to define; no new
 cancellation deadline is selected. History clear preserves files per group 21.
 [Group 22](REST-ERROR-SCENARIOS.md#confirmed-retained-data-deletion-owned-leftovers-only-after-safe-stop-group-22)
-defines disposal scope/confirmation and best-effort deletion: failed files remain,
+defines disposal scope/confirmation. Group 40 selects 202 Accepted for accepted
+confirmed manual deletion with dashboard deleted-file/failed-file counts
+(SC-168/API-E117), without automatic retries or special recovery workflow.
+Acceptance is not removal success; exact count/status wire remains to define.
+Keep best-effort deletion: failed files remain,
 other safe selected files can be attempted and failures are reported. No dedicated
 delete pause/resume or automatic retry workflow is required. Delivery retry
 retains job ID, resolved names, claimed sources and ownership,

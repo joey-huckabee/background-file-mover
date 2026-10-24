@@ -506,3 +506,14 @@ UUID forgetting and separate retained-file ownership/accounting. Exact field,
 error/transaction/idempotency details remain to finalize. Next decide manual
 deletion acknowledgement/result while keeping best-effort handling simple.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: manual deletion 202 and deleted/failed counts (group 40)
+
+The user approves 202 Accepted for manual deletion and dashboard counts of files
+deleted/failed, without automatic retries or special recovery workflow. Add
+API-E117/SC-168 without renumbering (117 API/168 SC/six DOC). Keep best-effort
+handling, actual outcomes/accounting, remaining-data protection and all original
+confirmation/ownership/safe-stop/protected-recording rules. Exact count/status/
+interruption wire remains design work; do not fabricate success for unknown
+attempts. Next finalize admin selection identifiers and compact wire schemas.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

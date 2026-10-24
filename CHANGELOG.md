@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve manual deletion 202 Accepted with deleted/failed file counts, no automatic retries or special recovery workflow. Add planned API-E117/SC-168 and preserve confirmed scope, ownership/safe-stop and protected-file rules. Documentation only.
+
 - Approve completed history-clear 200 OK with the actual number of jobs cleared, silent ineligible skips and files untouched. Add planned API-E116/SC-167; exact wire/transaction implementation remains pending. Documentation only.
 
 - Approve 202 Accepted for accepted failed-job retry without confirmation; dashboard shows actual progress without implying success. Add planned API-E115/SC-166 and retain original job/custody/review rules. Documentation only.

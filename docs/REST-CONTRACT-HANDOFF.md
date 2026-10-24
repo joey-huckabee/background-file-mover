@@ -50,8 +50,10 @@ returns admin 202 Accepted and displays Cancellation pending until safe stop,
 then Cancelled (SC-165/API-E114). Group 38 selects 202 for accepted failed-job
 retry, without confirmation, showing actual progress rather than implied success
 (SC-166/API-E115). Group 39 selects 200 OK with the actual count of jobs
-cleared, silent ineligible skips and files untouched (SC-167/API-E116). Next
-decide manual deletion acknowledgement/result, then finalize
+cleared, silent ineligible skips and files untouched (SC-167/API-E116). Group 40
+selects 202 for manual deletion with deleted/failed file counts and no automatic
+retries or special recovery workflow (SC-168/API-E117). Next finalize admin
+selection identifiers and compact request/response/status schemas, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -65,9 +67,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Thirty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 167 stable SC IDs and six DOC IDs; API-E01-116 are contract/acceptance
+now has 168 stable SC IDs and six DOC IDs; API-E01-117 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -112,8 +114,9 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide acknowledgement/result presentation for confirmed manual retained-data
-   deletion, retaining simple best-effort handling. Group 39 resolves completed
+1. Finalize admin selection identifiers and compact request/response/status
+   schemas. Group 40 resolves manual deletion: 202 Accepted with actual deleted/
+   failed file counts and no automatic retries or special recovery workflow. Group 39 resolves completed
    history clear: 200 OK with actual cleared-job count, silent skips and files
    untouched. Exact field/error/transaction/idempotency details remain to finalize. Group 38 resolves retry: 202 Accepted, no confirmation,
    actual progress without implied success. Group 37
