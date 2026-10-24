@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-one groups in successive review replies.
+The user approved the following forty-two groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-41 add API-E61-118 below.
+direction, not new runtime capabilities. Groups 14-42 add API-E61-119 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-118 are review keys, not replacement requirements or SC IDs.
+API-E01-119 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1383,7 +1383,7 @@ This is an authenticated admin request body, not a login or recorder submission.
 Admin authentication is checked separately before effects; a job ID is not a
 credential. Do not add username/password to each action body. Exact login/
 session transport, endpoint paths/methods, numeric bounds, empty/duplicate lists,
-unknown-ID handling and request limits remain to finalize. The proposed browser
+request limits remain to finalize; group 42 resolves nonexistent-ID skips. The proposed browser
 session-cookie flow is not selected merely by approval of this action shape.
 
 Preserve action-specific semantics: cancel/clear/delete require the agreed
@@ -1394,9 +1394,9 @@ the agreed 202 responses; completed history clear returns 200 with actual count.
 Do not bypass existing audited review/reset prerequisites because the shared
 body is compact; exact service-side command integration remains to design.
 
-Next decide how an action handles an unknown/no-longer-existing job ID, including
-a stale dashboard selection. Distinguish missing job history from retained-data
-ownership that still exists after a history clear; do not discard that ownership.
+Group 42 now silently skips nonexistent IDs in selected actions and processes
+remaining IDs. Distinguish missing detailed history from retained-data ownership
+that still exists after clear; do not discard that ownership.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1404,6 +1404,43 @@ ownership that still exists after a history clear; do not discard that ownership
 
 SC-169 and DOC-01/02/03/04/05 explain shared selected-job JSON, separate actions
 and admin authentication independent of the body. No new passing runtime test.
+
+## Silently skip nonexistent job IDs in selected admin actions (group 42)
+
+**Approved on 2026-10-24; implementation/qualification pending.** For cancel,
+failed-work retry, history clear and manual retained-data deletion requests,
+silently skip job IDs that no longer exist and process the remaining IDs under
+their usual current-state/eligibility rules. A missing selected job does not
+reject the whole action or require a per-job reason/warning. Never create a
+replacement job, resolve by recording UUID/path or act on a different job to
+satisfy a stale selection.
+
+For deletion, absence of detailed history alone does not mean all associated
+data ownership is gone: use the previously agreed retained-file ownership/state
+under the targeted existing job_id after history clear. If neither relevant job
+state nor retained-data ownership exists for that target, skip it. Do not erase
+ownership or silently abandon retained files just because history was cleared.
+Do not treat inaccessible/corrupt/unreadable state as a proven nonexistent ID;
+actual request/storage/authentication errors retain their error handling.
+
+This applies to the four selected-action endpoints using job_ids, not every
+route in the API. Existing unknown-job single-resource reads and separate local
+operator command mappings remain 404 where specified. No change to malformed-ID
+validation, request-limit rules or authentication is agreed by silent skipping.
+A request containing only missing IDs performs no effects; completed history
+clear reports 200 with zero cleared. Exact no-work acknowledgement/body for the
+other actions remains to finalize; do not invent successful work/file counts.
+
+Next decide how duplicate IDs within one job_ids list are handled. Exact endpoint
+paths, list validation/bounds and compact login/acknowledgement/status schemas
+remain to freeze; no implementation begins before the contract is settled.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E119 | One of four selected admin actions includes nonexistent/no-longer-existing job IDs | Silently skip nonexistent targets and process remaining IDs under normal action rules; no skip reasons, replacement jobs or UUID/path fallback. Preserve retained-data ownership after clear and distinguish lookup/storage failure from nonexistence | Approved selected-action behavior; exact wire/no-work/list validation and implementation/qualification pending. Separate single-resource/local-operator 404 mappings remain. |
+
+SC-170 and DOC-01/02/03/04/05 explain stale selections and silent nonexistent-ID
+skips for selected actions. No passing runtime/NFS/SLES result is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1429,7 +1466,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-41 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-42 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1447,7 +1484,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-118 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-119 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

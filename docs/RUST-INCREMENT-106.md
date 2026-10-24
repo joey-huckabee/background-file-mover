@@ -539,3 +539,14 @@ password in each action body. A browser session cookie is a proposed transport,
 not an additional approved wire detail. Next decide unknown-ID handling, then
 finalize exact endpoints/list bounds/login/session/request/response schemas.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: silent nonexistent-ID skips in admin selections (group 42)
+
+The user approves silently skipping job IDs that no longer exist and processing
+remaining IDs. Add API-E119/SC-170 without renumbering (119 API/170 SC/six DOC).
+Apply to four selected actions, without changing single-resource/local-operator
+404 mappings. Preserve retained-data ownership after clear, original identity,
+authentication and actual lookup/storage failure handling. History clear with
+no eligible target reports zero; other exact no-work responses remain to design.
+Next decide duplicate IDs within a list and remaining wire/login details.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

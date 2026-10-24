@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-41, remaining schema decisions and
+current discussion, approved contract groups 1-42, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -637,7 +637,10 @@ be signed in; authentication is separate from this body. Do not include a
 username/password in each action request. Cancel/clear/delete retain their
 confirmation requirements; retry has none. Apply existing review/custody and
 protected-file rules. Exact endpoint names/methods, list validation/limits,
-unknown-ID behavior and login/session transport remain to settle. See
+and login/session transport remain to settle. Group 42 silently skips
+nonexistent selected job IDs and processes the rest (SC-170/API-E119); this does
+not turn unreadable state into a missing ID or discard retained-data ownership
+after history clear. Existing single-resource/local-operator 404 mappings remain. See
 [group 41/API-E118/SC-169](REST-ERROR-SCENARIOS.md#shared-job_ids-request-with-separate-admin-action-endpoints-group-41).
 No runtime endpoints or authentication are implemented by this draft.
 

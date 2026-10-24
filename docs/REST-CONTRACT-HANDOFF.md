@@ -56,7 +56,9 @@ retries or special recovery workflow (SC-168/API-E117). User clarification:
 use existing job_id and the targeted job's stored state; no additional identifier
 scheme. Group 41 uses job_ids for cancel/retry/clear/delete, each at a separate
 endpoint (SC-169/API-E118). Authenticate the admin separately; credentials do not
-belong in action bodies. Next decide unknown-job-ID handling and finalize
+belong in action bodies. Group 42 silently skips nonexistent job IDs and processes
+remaining IDs (SC-170/API-E119), preserving retained-data ownership after clear.
+Next decide duplicate-ID handling within a list and finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -70,9 +72,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-one reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-two reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 169 stable SC IDs and six DOC IDs; API-E01-118 are contract/acceptance
+now has 170 stable SC IDs and six DOC IDs; API-E01-119 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -117,8 +119,10 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide unknown/no-longer-existing job-ID handling, distinguishing missing
-   history from preserved retained-data ownership after clear. Group 41 resolves
+1. Decide duplicate-ID handling within job_ids. Group 42 resolves missing IDs:
+   silently skip nonexistent targets and process the rest, preserving retained-
+   data ownership after history clear. Existing single-resource/local-operator
+   404 mappings remain outside this selected-action rule. Group 41 resolves
    the common job_ids body and separate endpoints for all four admin actions.
    Continue remaining compact admin/login/request/response/status schema review
    using existing job_id and the targeted job's stored state. No additional identifier scheme

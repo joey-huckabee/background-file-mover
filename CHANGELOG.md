@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve silently skipping nonexistent job IDs in all four selected admin actions while processing remaining targets. Add planned API-E119/SC-170; preserve retained-data ownership, actual lookup errors and separate single-resource 404 mappings. Documentation only.
+
 - Approve a shared job_ids request for cancel, retry, history clear and manual deletion, each at its own endpoint. Add planned API-E118/SC-169; admin authentication remains separate from action bodies and exact wire/login details are pending. Documentation only.
 
 - Clarify that manual deletion uses the existing job_id and the targeted job's stored state/eligibility; no additional admin identifier scheme is required. Preserve agreed file ownership, confirmation and protection rules. Documentation only.
