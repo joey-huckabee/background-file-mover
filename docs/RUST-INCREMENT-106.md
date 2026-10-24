@@ -495,3 +495,14 @@ request/body/idempotency/progress wire remains pending. Next decide completed
 history-clear response, preserving eligible-only clearing and silent skips.
 Documentation only; no runtime, retry policy, Rust build/test, fixture or
 production gate change.
+
+## 2026-10-24 review: completed history clear 200 and actual count (group 39)
+
+The user approves 200 OK with the number of jobs cleared, silent ineligible skips
+and files untouched. Add API-E116/SC-167 without renumbering (116 API/167 SC/
+six DOC). Count actual applied clears, not selected/attempted/unknown work; zero
+is valid if none qualify. Preserve original job identity, confirmed selection,
+UUID forgetting and separate retained-file ownership/accounting. Exact field,
+error/transaction/idempotency details remain to finalize. Next decide manual
+deletion acknowledgement/result while keeping best-effort handling simple.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

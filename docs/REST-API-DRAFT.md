@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-38, remaining schema decisions and
+current discussion, approved contract groups 1-39, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -394,7 +394,10 @@ clear confirmation showing selected jobs and explaining that UUIDs are forgotten
 but files remain (group 30/SC-158/API-E106); dismissing it clears nothing.
 Clear eligible selected jobs and skip others without reporting reasons; never
 cancel automatically (group 31/SC-159/API-E107). Recheck eligibility when applying
-the clear. Exact wire/transaction details remain to define. See
+the clear. A finished clear returns 200 OK with the number of jobs actually
+cleared, including zero if none qualify, with no skip reasons and no file changes
+(group 39/SC-167/API-E116). Exact count field/wire/transaction details remain
+to define. See
 [group 19/API-E76-80](REST-ERROR-SCENARIOS.md#admin-clear-forgets-uuids-cancel-unfinished-or-errored-jobs-first-group-19).
 Group 21 also approves preserving files on clear, with separate operational
 ownership/accounting and no old UUID replay record. Deleting retained data

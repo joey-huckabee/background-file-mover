@@ -49,7 +49,9 @@ preserving established post-handoff 202 replay (SC-164/API-E112-113). Group 37
 returns admin 202 Accepted and displays Cancellation pending until safe stop,
 then Cancelled (SC-165/API-E114). Group 38 selects 202 for accepted failed-job
 retry, without confirmation, showing actual progress rather than implied success
-(SC-166/API-E115). Next decide completed history-clear response, then finalize
+(SC-166/API-E115). Group 39 selects 200 OK with the actual count of jobs
+cleared, silent ineligible skips and files untouched (SC-167/API-E116). Next
+decide manual deletion acknowledgement/result, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -63,9 +65,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Thirty-eight reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Thirty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 166 stable SC IDs and six DOC IDs; API-E01-115 are contract/acceptance
+now has 167 stable SC IDs and six DOC IDs; API-E01-116 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -110,8 +112,10 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide the response to completed history clear, preserving eligible-only
-   clearing and silent skips. Group 38 resolves retry: 202 Accepted, no confirmation,
+1. Decide acknowledgement/result presentation for confirmed manual retained-data
+   deletion, retaining simple best-effort handling. Group 39 resolves completed
+   history clear: 200 OK with actual cleared-job count, silent skips and files
+   untouched. Exact field/error/transaction/idempotency details remain to finalize. Group 38 resolves retry: 202 Accepted, no confirmation,
    actual progress without implied success. Group 37
    resolves cancellation: admin 202 Accepted, Cancellation pending until safe stop,
    then Cancelled; this is separate from producer custody acknowledgement. Group 36 resolves producer
