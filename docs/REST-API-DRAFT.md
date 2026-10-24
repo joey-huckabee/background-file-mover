@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-33, remaining schema decisions and
+current discussion, approved contract groups 1-34, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -580,6 +580,10 @@ confirm only the shown job identities. Request cancellation only for unfinished
 jobs; skip completed/already-cancelled jobs without reporting reasons
 (group 33/SC-161/API-E109). Recheck current state and preserve pending
 cancellation; exact wire/transaction details remain to settle.
+Group 34 makes cancellation final for the first release: no resume/uncancel
+or revival through retry. Preserve files and keep eligible failed-work retry
+separate (SC-162/API-E110). Pending cancellation still requires safe settlement;
+finality does not waive worker exit or other safety checks.
 Group 20 approves preserving files on cancellation: originals, private claims,
 partial staging and published files stay in place; valid completion manifests
 are preserved. Blocked workers/uncertain publication keep cancellation pending

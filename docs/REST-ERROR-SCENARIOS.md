@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty-three groups in successive review replies.
+The user approved the following thirty-four groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-33 add API-E61-109 below.
+direction, not new runtime capabilities. Groups 14-34 add API-E61-110 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-109 are review keys, not replacement requirements or SC IDs.
+API-E01-110 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1098,8 +1098,8 @@ workers/effects remain unresolved. Preserve group-20 file retention, actual-exit
 commitment and safe-stop rules. This action neither clears history nor deletes
 data. Exact summary/transaction/wire response remains implementation design.
 
-Next decide whether a safely cancelled job can be resumed in the first release.
-Do not imply that cancellation is reversible or select a resume protocol yet.
+Group 34 makes safely completed cancellation final for the first release,
+with files preserved and eligible failed-work retry kept separate.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1107,6 +1107,42 @@ Do not imply that cancellation is reversible or select a resume protocol yet.
 
 SC-161 and DOC-01/02/03/04/05 track unfinished-only cancellation without skip
 reason reporting. No new runtime or NFS/SLES qualification is claimed.
+
+## Cancellation is final for the first release; failed-work retry is separate (group 34)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Once a job
+is safely cancelled, cancellation is final for the first release. Do not offer
+resume/uncancel or allow a retry action to revive that job. Keep the files in
+place under existing ownership/accounting rules. Final cancellation is distinct
+from a cancellation request still awaiting worker exit/effect settlement; do not
+mark pending cancellation finished just to make it terminal.
+
+Retrying failed work remains a separate operation on eligible unfinished failed/
+review work, with existing safety checks and original durable custody. It must
+not adopt cancelled data, create a replacement job, discard partials, reset
+unrelated deadlines or bypass review merely because the admin requests retry.
+Exact retry UI/wire and any explicitly supported reset remain to finalize; do
+not remove the existing audited delivery-resume or missing-file-reset workflows.
+
+Service restart and producer resubmission must not resurrect a retained cancelled
+job. Previously confirmed whole-set 202 remains custody evidence, not permission
+to restart delivery or reclaim reused originals. Exact producer response for a
+cancelled job before confirmed handoff still needs the final response mapping.
+Clearing eligible cancelled history remains a separate confirmed action that
+forgets the UUID; later submission is new work under current safety checks, not
+resumption/adoption of the cancelled job or its retained files. Physical deletion
+remains separately confirmed and scoped. No automatic source restoration occurs.
+
+Next decide whether retrying failed work through the dashboard requires a simple
+selected-job confirmation; cancellation/history-clear/delete confirmation is
+already settled. No new retry timing or automatic retry policy is introduced.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E110 | Safely cancelled job is targeted by resume/retry, producer resubmission or service restart | Keep cancellation final and preserve retained files. Do not revive the job or reuse its files through failed-work retry; preserve prior handoff evidence and separate clear/new-submission rules | Approved finality; exact response mappings and implementation/qualification pending. Existing eligible failed-work retry/review remains separate. |
+
+SC-162 and DOC-01/02/03/04/05 must distinguish final cancellation from failed-
+work retry and clearing history. No new runtime/retry/security qualification.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1132,7 +1168,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-33 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-34 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1150,7 +1186,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-109 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-110 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

@@ -439,3 +439,14 @@ reset deadlines or claim safe exit/settlement from a repeated request. Preserve
 original job identity, files/history and group-20 safety rules. Next decide
 whether safely cancelled jobs may resume; no resume protocol is implied yet.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: final cancellation; failed-work retry stays separate (group 34)
+
+The user approves final cancellation for the first release with preserved files.
+Keep eligible failed-work retry separate; do not revive cancelled jobs through
+resume/retry/restart or retained-UUID resubmission. Preserve prior whole-set 202,
+pending cancellation settlement and distinct history-clear/new-submission rules.
+Add API-E110/SC-162 without renumbering (110 API/162 SC/six DOC). Exact cancelled-
+job producer/admin response mappings remain to finalize, as does failed-work
+retry confirmation. No retry timing/review policy, runtime, Rust build/test,
+fixture or production gate change; documentation-only increment.
