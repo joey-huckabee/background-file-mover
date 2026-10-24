@@ -343,3 +343,14 @@ authorization and browser/session/request protection remain to agree; next ask
 whether an organizational sign-in system is available. Update the producer
 access contract to distinguish its local-operator scope from this new requirement.
 No remote ingress, account system, runtime, Rust build/test or fixture change.
+
+## Resumed review: simple admin username/password (group 25)
+
+The user selects admin username/password and explicitly wants to avoid an
+in-depth cybersecurity project for the first release. Record the minimal login
+scope, defer SSO/advanced account features and retain ordinary login hygiene as
+implementation detail. Keep producer/admin separation and all existing operation
+protections. Add API-E101/SC-153 (101 API/153 SC/six DOC IDs), without renumbering.
+Finalize minimal credential setup/session/wire rather than re-asking login type.
+No credential, authentication dependency, remote listener, Rust build/test,
+fixture or production NFS/deletion change.

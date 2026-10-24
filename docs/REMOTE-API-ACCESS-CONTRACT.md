@@ -13,10 +13,12 @@ The user requires dashboard access from another computer (2026-10-23,
 [group 24/API-E100/SC-152](REST-ERROR-SCENARIOS.md#admin-dashboard-access-from-another-computer-group-24)).
 The producer-only profile below must not grant dashboard/admin access. Its
 trusted-host local-operator statement describes the existing separate interface,
-not a restriction of the new dashboard to the mover host. Design admin sign-in,
-authorization and browser/session/request protection separately with the user;
-no method, remote admin listener or account-registration system is implemented
-or approved by this requirement. Existing operation eligibility/confirmation and
+not a restriction of the new dashboard to the mover host. Group 25 now selects simple admin username/password
+([API-E101/SC-153](REST-ERROR-SCENARIOS.md#simple-admin-usernamepassword-for-the-first-release-group-25)),
+with SSO and advanced account features deferred. Keep ordinary HTTPS/password/
+session hygiene and finalize minimal credential setup and wire details. No
+remote admin listener, login implementation or account-registration system is
+implemented by these decisions. Existing operation eligibility/confirmation and
 production NFS/deletion gates remain unchanged.
 
 ## Selected design profile and trust boundary

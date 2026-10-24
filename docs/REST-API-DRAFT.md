@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-24, remaining schema decisions and
+current discussion, approved contract groups 1-25, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -401,7 +401,9 @@ are reported. Manual deletion works even when automatic cleanup is disabled
 [group 21/API-E87-91](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
 The admin dashboard must be accessible from another computer
 (group 24/SC-152/API-E100). Keep admin authorization separate from producer
-submission identity; authentication, session/request protection and exact
+submission identity. Group 25 selects simple admin username/password; defer
+SSO and advanced account management. Credential setup, session/request
+protection and exact
 transaction/wire design remain to settle. The dashboard cancel/clear workflow
 still needs implementation;
 no endpoint or physical deletion is implemented. Old destination content keeps

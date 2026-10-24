@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-100 for user review
-before P01 is frozen. Groups 1-24 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-101 for user review
+before P01 is frozen. Groups 1-25 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -38,7 +38,9 @@ and unfinished destination after safe stop; protect originals/committed output
 and report failures; no dedicated pause/resume or automatic retry workflow.
 Manual deletion works even when automatic cleanup is disabled
 (group 23/SC-151/API-E99). Remote dashboard access from another computer is required
-(group 24/SC-152/API-E100). Next settle admin sign-in/authorization; no physical delete or general repair tool is qualified yet;
+(group 24/SC-152/API-E100). Use simple admin username/password for the first release
+(group 25/SC-153/API-E101); defer SSO/advanced account features. Next finalize
+minimal login/session and wire details; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

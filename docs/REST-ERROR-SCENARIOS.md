@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-four groups in successive review replies.
+The user approved the following twenty-five groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-22 add API-E61-98 below.
+direction, not new runtime capabilities. Groups 14-25 add API-E61-101 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-100 are review keys, not replacement requirements or SC IDs.
+API-E01-101 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -830,9 +830,9 @@ admin ingress. Do not expose the trusted loopback prototype or existing local
 operator interface as an unauthenticated remote admin API.
 
 Work through protection choices with the user before implementation: first
-whether an existing organizational sign-in system is available, then the admin
+the simple username/password choice in group 25, then the admin
 permission model, protected browser connection/session, request protection and
-confirmation details. These mechanisms are not selected by this access decision;
+confirmation details. Group 25 selects username/password; the remaining mechanism details are not selected by this access decision;
 registration remains deferred and no new account/token system is approved here.
 Previously agreed cancellation, history eligibility, deletion ownership/safe-stop,
 confirmation, protected-file and best-effort rules apply regardless of location.
@@ -843,6 +843,37 @@ confirmation, protected-file and best-effort rules apply regardless of location.
 
 SC-152 and DOC-01/02/03/04/05 must explain remote admin access and distinguish it
 from recorder access. No new runtime or security qualification is claimed.
+
+## Simple admin username/password for the first release (group 25)
+
+**User-selected direction on 2026-10-23; implementation/qualification pending.**
+Use admin username/password sign-in for the remote dashboard. Keep the first
+release small: no SSO/Active Directory integration, self-registration, MFA,
+complex role hierarchy or account-management UI is required for this increment.
+Use a single configured admin account as the minimal implementation baseline;
+credential provisioning and exact configuration names remain to define. Do not
+ask for real passwords in conversation or commit credentials to the repository.
+
+A signed-in admin can use the agreed admin workflows; recorder identity alone
+never grants those rights. All admin action endpoints must enforce sign-in,
+not merely hide dashboard buttons. Authentication does not bypass safe-stop,
+ownership, protected files, clear eligibility or deletion confirmation.
+
+Keep ordinary login hygiene in the implementation design: HTTPS for remote
+browser access, a password hash rather than plaintext credential storage,
+no password logging, and a simple protected sign-in session with logout and
+basic request protection. These are implementation details to finalize, not an
+expanded cybersecurity project or a new set of release gates. Exact login/session
+wire details, expiry and error mappings remain pending; this decision does not
+select a password-hashing/TLS/session dependency or enable a remote listener.
+Registration/token enrollment for recording generators remains deferred.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E101 | Admin signs in with username/password, or a caller attempts admin actions without a valid sign-in | Support the simple configured admin login; require valid admin authentication for admin reads/actions and preserve existing operation safeguards. Invalid/missing authentication grants no admin effects | Login choice approved; credential/session/configuration and exact error mappings implementation/qualification pending. Producer credentials alone remain insufficient. |
+
+SC-153 and DOC-01/02/03/04/05 track the simple admin sign-in scope and separation
+from recorder access. No authentication or security qualification is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -868,7 +899,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-24 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-25 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -886,7 +917,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-100 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-101 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
