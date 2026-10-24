@@ -550,3 +550,15 @@ authentication and actual lookup/storage failure handling. History clear with
 no eligible target reports zero; other exact no-work responses remain to design.
 Next decide duplicate IDs within a list and remaining wire/login details.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 clarification: process duplicates; cancel owns its state (group 43)
+
+The user rejects batch deduplication: process repeated IDs again and count a
+duplicate cancel as a failed cancel. Keep state/eligibility intelligence in the
+per-job action, not the list handler. Preserve accepted/pending cancellation,
+deadlines, files and actual-exit rules; an attempt failure is not job failure.
+Add API-E120/SC-171 without renumbering (120 API/171 SC/six DOC). Existing terminal/
+nonexistent skips remain; exact per-job outcome/result wire and whole-request
+replay stay to finalize. Other actions retain their own per-job effects/counts.
+Next consolidate compact result/count and remaining request/login schemas.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

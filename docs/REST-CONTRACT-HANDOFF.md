@@ -58,7 +58,10 @@ scheme. Group 41 uses job_ids for cancel/retry/clear/delete, each at a separate
 endpoint (SC-169/API-E118). Authenticate the admin separately; credentials do not
 belong in action bodies. Group 42 silently skips nonexistent job IDs and processes
 remaining IDs (SC-170/API-E119), preserving retained-data ownership after clear.
-Next decide duplicate-ID handling within a list and finalize
+Group 43 processes repeated entries again with per-job action/state decisions;
+duplicate cancels count as failed attempts, not failed job states
+(SC-171/API-E120). Do not deduplicate or predict cancellation state in the batch
+handler. Next consolidate compact admin result/count schemas and finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -72,9 +75,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-two reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-three reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 170 stable SC IDs and six DOC IDs; API-E01-119 are contract/acceptance
+now has 171 stable SC IDs and six DOC IDs; API-E01-120 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -119,7 +122,10 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide duplicate-ID handling within job_ids. Group 42 resolves missing IDs:
+1. Consolidate compact admin result/count schemas and remaining request/login
+   details. Group 43 resolves duplicate entries: process again via the per-job
+   action, with duplicate cancels counted as failed cancel attempts. No batch
+   deduplication or cancellation-state intelligence. Group 42 resolves missing IDs:
    silently skip nonexistent targets and process the rest, preserving retained-
    data ownership after history clear. Existing single-resource/local-operator
    404 mappings remain outside this selected-action rule. Group 41 resolves

@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-two groups in successive review replies.
+The user approved the following forty-three groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-42 add API-E61-119 below.
+direction, not new runtime capabilities. Groups 14-43 add API-E61-120 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-119 are review keys, not replacement requirements or SC IDs.
+API-E01-120 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1382,7 +1382,7 @@ an additional identifier scheme or an action-discriminator field in the body.
 This is an authenticated admin request body, not a login or recorder submission.
 Admin authentication is checked separately before effects; a job ID is not a
 credential. Do not add username/password to each action body. Exact login/
-session transport, endpoint paths/methods, numeric bounds, empty/duplicate lists,
+session transport, endpoint paths/methods, numeric bounds and empty lists,
 request limits remain to finalize; group 42 resolves nonexistent-ID skips. The proposed browser
 session-cookie flow is not selected merely by approval of this action shape.
 
@@ -1431,9 +1431,10 @@ A request containing only missing IDs performs no effects; completed history
 clear reports 200 with zero cleared. Exact no-work acknowledgement/body for the
 other actions remains to finalize; do not invent successful work/file counts.
 
-Next decide how duplicate IDs within one job_ids list are handled. Exact endpoint
-paths, list validation/bounds and compact login/acknowledgement/status schemas
-remain to freeze; no implementation begins before the contract is settled.
+Group 43 now dispatches repeated entries again with per-job outcome decisions;
+a duplicate cancel counts as a failed attempt. Exact endpoint paths, remaining
+list validation/bounds and compact login/result schemas remain to freeze before
+implementation.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1441,6 +1442,48 @@ remain to freeze; no implementation begins before the contract is settled.
 
 SC-170 and DOC-01/02/03/04/05 explain stale selections and silent nonexistent-ID
 skips for selected actions. No passing runtime/NFS/SLES result is claimed.
+
+## Process repeated entries; per-job cancellation decides failure (group 43)
+
+**User clarification approved on 2026-10-24; implementation/qualification
+pending.** Keep job_ids processing simple: dispatch entries as supplied, including
+repeated IDs. Do not deduplicate, reject duplicate IDs as malformed, or implement
+cancellation eligibility/state intelligence in the batch/list handler. State and
+eligibility belong to the per-job action; the handler records its outcomes.
+
+For cancellation, a duplicate attempt is processed again and counted as a failed
+cancel, not silently discarded or counted as another successful cancellation.
+For example, if job 42 can accept cancellation, job_ids [42, 42] produces one
+accepted cancel and one failed cancel attempt. This is an action-attempt result,
+not a transition of job 42 into a failed-transfer state. Do not reset cancellation
+progress/deadlines, undo the accepted request, restart work or bypass actual-exit/
+effect-settlement checks on the repeated call. Cancellation pending stays pending
+until safely stopped, then Cancelled.
+
+Group 33's normal skips for jobs already completed/cancelled remain; group 42
+still skips nonexistent targets. Apply the explicit duplicate-cancel failure
+rule inside per-job processing/outcome reporting rather than adding list-level
+state prediction or a duplicate-filtering layer. Exact distinction/outcome
+representation belongs in the per-job contract; no need to infer it from free-
+text diagnostics. No individual failure-reason display is required here.
+
+For the other actions, repeated entries likewise reach their per-job operation;
+this decision does not decree every repeated retry/clear/delete a failed cancel,
+recount files already removed or weaken their existing safety/counting rules.
+Do not confuse repetition within a list with replay of an entire transport-
+retried request; exact request replay/idempotency remains to finalize separately.
+Producer duplicate file paths remain invalid under their separate submission rule.
+
+Next consolidate compact admin result/count schemas and remaining request/login
+wire details. Do not re-propose deduplication or move state decisions into the
+batch parser. Implementation and qualification remain pending.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E120 | An admin job_ids list repeats an ID, including a second cancel after the first was accepted | Dispatch the repeated entry to the per-job action again; no batch deduplication/state intelligence. Count a duplicate cancel as a failed cancel attempt, preserving the accepted cancellation and job lifecycle. Other action outcomes follow their own per-job rules | Approved clarification; exact per-job/summary/wire and implementation/qualification pending. Failed attempt is not a failed-transfer job state; no deadline reset or extra physical effect permission. |
+
+SC-171 and DOC-01/02/03/04/05 explain per-entry processing and failed duplicate
+cancel attempts, separate from job failure and whole-request replay. No new test.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1466,7 +1509,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-42 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-43 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1484,7 +1527,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-119 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-120 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

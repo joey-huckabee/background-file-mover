@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Process duplicate admin job_ids entries again without batch deduplication/state prediction. Per-job cancellation decides the result; a duplicate cancel counts as a failed attempt without failing the job or resetting cancellation. Add planned API-E120/SC-171. Documentation only.
+
 - Approve silently skipping nonexistent job IDs in all four selected admin actions while processing remaining targets. Add planned API-E119/SC-170; preserve retained-data ownership, actual lookup errors and separate single-resource 404 mappings. Documentation only.
 
 - Approve a shared job_ids request for cancel, retry, history clear and manual deletion, each at its own endpoint. Add planned API-E118/SC-169; admin authentication remains separate from action bodies and exact wire/login details are pending. Documentation only.
