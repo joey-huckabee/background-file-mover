@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve configurable dashboard inactivity sign-out, default 30 minutes, without affecting background transfers. Add planned API-E104/SC-156; implementation and session behavior across mover restart remain pending.
+
 - Require password changes to sign out all existing admin dashboard sessions while background transfers continue unaffected. Add planned API-E103/SC-155; activation/session implementation and inactivity timeout remain pending.
 
 - Approve local setup/password changes on the mover host for one admin account. Add planned API-E102/SC-154; remote account-management/reset screens are not required. Session handling and implementation remain pending.

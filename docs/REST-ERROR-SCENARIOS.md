@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-seven groups in successive review replies.
+The user approved the following twenty-eight groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-27 add API-E61-103 below.
+direction, not new runtime capabilities. Groups 14-28 add API-E61-104 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-103 are review keys, not replacement requirements or SC IDs.
+API-E01-104 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -891,7 +891,7 @@ finalize. No default password, reset endpoint or remote account-management API
 is introduced by this decision. Recorder enrollment remains deferred.
 
 Group 27 now requires signing out all existing dashboard sessions on password
-change while transfers continue. Session expiry remains to decide. Credential administration
+change while transfers continue. Group 28 defines configurable 30-minute inactivity expiry. Credential administration
 must not implicitly cancel jobs, clear history or delete retained data.
 
 | ID | Situation | Required outcome | Evidence/status |
@@ -918,8 +918,8 @@ actions already safely authorized. A browser losing sign-in is not evidence
 that an earlier request failed. All existing operation and confirmation rules
 remain. This does not add SSO, complex accounts or a new security workstream.
 
-Next decide the inactivity timeout for otherwise valid dashboard sessions.
-No timeout duration or disable option has been selected yet.
+Group 28 now selects a configurable 30-minute inactivity timeout. No disable
+option or absolute session lifetime has been selected.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -927,6 +927,34 @@ No timeout duration or disable option has been selected yet.
 
 SC-155 and DOC-01/02/03/04/05 must explain password-change sign-out separately
 from transfer lifecycle. No passing runtime/authentication evidence is claimed.
+
+## Configurable 30-minute dashboard inactivity timeout (group 28)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Dashboard
+sessions expire after 30 minutes of inactivity by default. Make the inactivity
+interval configurable. On expiry, require a fresh admin login before further
+admin access; leaving a dashboard open does not promise an indefinite sign-in.
+Treat inactivity as absence of admin interaction, not absence of transfer work;
+automatic dashboard refresh/background polling alone must not keep an unattended
+session signed in. Exact activity reporting/configuration name and bounds remain
+implementation details; no disable option or absolute session lifetime is agreed.
+
+Expiry affects dashboard access only. Background transfers continue; it does
+not cancel/pause/restart jobs, clear history, delete files or undo already
+authorized actions. Enforce expiry for admin endpoints, not just the displayed
+login state. Signing in again does not weaken operation eligibility or deletion
+confirmation. Password-change invalidation remains independent and signs out
+all existing sessions even if the inactivity interval has not elapsed.
+
+Next decide whether otherwise valid sessions survive a mover restart. Keep the
+minimal username/password scope; no new account-management/security workstream.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E104 | Dashboard session reaches its configured inactivity interval while transfers continue | Default to 30 minutes, allow configuration, then require fresh login for admin access. Background transfers and already-authorized job actions continue unaffected; automatic refresh alone is not user activity | Approved timeout; configuration bounds/activity reporting, restart behavior and exact auth wire response implementation/qualification pending. |
+
+SC-156 and DOC-01/02/03/04/05 track inactivity expiry separately from transfer
+lifecycle. No new passing runtime/authentication/SLES evidence is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -952,7 +980,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-27 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-28 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -970,7 +998,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-103 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-104 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

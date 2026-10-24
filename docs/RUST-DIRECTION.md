@@ -109,7 +109,7 @@ Start with [the 2026-10-23 shutdown handoff](REST-CONTRACT-HANDOFF.md). It recor
 the latest user correction, exact next discussion and unchanged runtime state.
 
 2026-10-23: review [REST error scenarios](REST-ERROR-SCENARIOS.md) with the user
-before freezing P01. Groups 1-27 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
+before freezing P01. Groups 1-28 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved, including
 missing-file 409; implementation remains retryable 503. The user confirms no
 Rust prototype API clients, so replace the producer format without an adapter.
 Global-ID stored-state handling and exact schema details remain open.
@@ -143,7 +143,9 @@ Manual deletion works even when automatic cleanup is disabled
 (group 25/SC-153/API-E101); defer SSO/advanced account features. Next finalize
 minimal login/session and wire details. Account setup/password changes are
 host-local (group 26/SC-154/API-E102); password changes sign out all dashboard
-sessions while transfers continue (group 27/SC-155/API-E103). Next decide session inactivity timeout; no physical delete or general repair tool is qualified yet;
+sessions while transfers continue (group 27/SC-155/API-E103). Use a configurable
+30-minute inactivity timeout without affecting transfers (group 28/SC-156/API-E104).
+Next decide session behavior across mover restart; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 No implementation is authorized merely by listing a proposed scenario.

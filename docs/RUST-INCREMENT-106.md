@@ -375,3 +375,14 @@ when new credentials become active, without old-session resurrection after
 restart; activation/session mechanism remains to design. Next decide inactivity
 expiry. Documentation only: no runtime, dependency, Rust build/test, fixture or
 production gate change.
+
+## Resumed review: configurable dashboard inactivity expiry (group 28)
+
+The user approves 30 minutes of inactivity by default, configurable, with no
+background-transfer effects. Add API-E104/SC-156; preserve prior IDs (104 API,
+156 SC/six DOC). Expiry requires fresh admin sign-in; automatic polling alone
+is not user interaction. Keep password-change invalidation and all operation
+protections. Config bounds/activity reporting remain implementation details;
+no disable option or absolute lifetime selected. Next decide session behavior
+across mover restart. No runtime, Rust build/test, fixture or production gate
+change; documentation-only verification applies.

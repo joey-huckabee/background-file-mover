@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-27, remaining schema decisions and
+current discussion, approved contract groups 1-28, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -406,7 +406,9 @@ SSO and advanced account management. Configure one admin account and change
 its password locally on the mover host (group 26/SC-154/API-E102); no remote
 account-management/password-reset workflow. Password changes sign out all
 existing dashboard sessions while background transfers continue
-(group 27/SC-155/API-E103). Inactivity expiry and session/request
+(group 27/SC-155/API-E103). Sessions also expire after a configurable
+30 minutes of inactivity by default, without affecting transfers
+(group 28/SC-156/API-E104). Restart behavior and session/request
 protection and exact
 transaction/wire design remain to settle. The dashboard cancel/clear workflow
 still needs implementation;
