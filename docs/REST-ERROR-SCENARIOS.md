@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty-two groups in successive review replies.
+The user approved the following thirty-three groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-32 add API-E61-108 below.
+direction, not new runtime capabilities. Groups 14-33 add API-E61-109 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-108 are review keys, not replacement requirements or SC IDs.
+API-E01-109 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1057,8 +1057,8 @@ password prompt, typed phrase or multi-stage interaction.
 Declining/dismissing the confirmation cancels nothing. Selecting jobs alone is
 not authorization. Apply confirmation only to the displayed job identities;
 do not include later/unshown jobs or new jobs under reused UUIDs. Recheck job
-state when applying the request; exact mixed/completed/already-cancelled
-selection behavior remains the next decision.
+state when applying the request. Group 33 now selects unfinished-only
+cancellation, skipping completed/already-cancelled jobs without reasons.
 
 This display choice does not change group 20: cancellation preserves files,
 pending workers/uncertain publication keep cancellation pending, and cancellation
@@ -1069,10 +1069,44 @@ as explanatory text in the confirmation dialog.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E108 | Admin selects jobs to cancel and confirms or dismisses the prompt | Require confirmation showing selected jobs only; no explanatory text needed. Decline/dismiss means no cancellation. Target only confirmed job identities and preserve group-20 cancellation semantics | Approved confirmation; exact wire, terminal/mixed-selection behavior and implementation/qualification pending. No implicit history clear or file deletion. |
+| API-E108 | Admin selects jobs to cancel and confirms or dismisses the prompt | Require confirmation showing selected jobs only; no explanatory text needed. Decline/dismiss means no cancellation. Target only confirmed job identities and preserve group-20 cancellation semantics | Approved confirmation; group 33 resolves terminal/mixed selections. Exact wire and implementation/qualification pending. No implicit history clear or file deletion. |
 
 SC-160 and DOC-01/02/03/04/05 track selected-job cancellation confirmation
 without required explanation. No new runtime/recovery qualification is claimed.
+
+## Cancel unfinished selected jobs; skip completed/cancelled jobs (group 33)
+
+**Approved on 2026-10-24; implementation/qualification pending.** After the
+selected-job cancellation confirmation, request cancellation only for unfinished
+jobs. Skip completed or already safely cancelled jobs without reporting skip
+reasons. Leave skipped jobs, their completion/cancellation outcome, files,
+history and UUID recognition unchanged. Their presence in the selection does
+not prevent requests for the unfinished selected jobs.
+
+Recheck current state when applying each request. If a job completes before
+cancellation is applied, preserve its completed outcome and skip it. An errored
+or review-required unfinished job still needs explicit cancellation before
+history clear. A cancellation already pending is not safely cancelled: repeated
+requests must not restart deadlines or claim worker/effect settlement. Keep the
+existing cancellation pending rather than undoing it or inventing a new attempt.
+Confirmation targets only the displayed original job identities; do not cancel
+a new job that reused a cleared UUID.
+
+No skip reasons are required. This does not authorize hiding actual request/
+storage failures or reporting requested cancellation as safely finished while
+workers/effects remain unresolved. Preserve group-20 file retention, actual-exit,
+commitment and safe-stop rules. This action neither clears history nor deletes
+data. Exact summary/transaction/wire response remains implementation design.
+
+Next decide whether a safely cancelled job can be resumed in the first release.
+Do not imply that cancellation is reversible or select a resume protocol yet.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E109 | Confirmed cancellation selection contains unfinished, completed, already-cancelled or cancellation-pending jobs | Request cancellation only for unfinished jobs; skip completed/safely-cancelled jobs without reasons and leave them unchanged. Preserve existing pending cancellation without resetting progress/deadlines or falsely reporting safe completion | Approved selection behavior; exact summary/wire/transaction and implementation/qualification pending. Include completion racing with application and original identity/UUID reuse. |
+
+SC-161 and DOC-01/02/03/04/05 track unfinished-only cancellation without skip
+reason reporting. No new runtime or NFS/SLES qualification is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1098,7 +1132,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-32 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-33 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1116,7 +1150,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-108 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-109 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

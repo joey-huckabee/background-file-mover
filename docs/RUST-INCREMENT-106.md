@@ -428,3 +428,14 @@ only. Preserve group-20 file preservation, pending cancellation, commitment and
 safe-stop rules without requiring explanatory dialog text. Next decide terminal/
 mixed-selection cancellation behavior, then exact wire/transaction details.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: unfinished-only cancellation selection (group 33)
+
+The user approves skipping completed/already-cancelled selected jobs without
+reasons and requesting cancellation only for unfinished jobs. Add API-E109/
+SC-161 without renumbering (109 API/161 SC/six DOC). Recheck current state,
+preserve skipped jobs/commitment and existing pending cancellation, and never
+reset deadlines or claim safe exit/settlement from a repeated request. Preserve
+original job identity, files/history and group-20 safety rules. Next decide
+whether safely cancelled jobs may resume; no resume protocol is implied yet.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.
