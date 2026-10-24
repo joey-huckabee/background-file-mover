@@ -54,7 +54,9 @@ cleared, silent ineligible skips and files untouched (SC-167/API-E116). Group 40
 selects 202 for manual deletion with deleted/failed file counts and no automatic
 retries or special recovery workflow (SC-168/API-E117). User clarification:
 use existing job_id and the targeted job's stored state; no additional identifier
-scheme. Next consolidate compact admin request/response/status schemas, then finalize
+scheme. Group 41 uses job_ids for cancel/retry/clear/delete, each at a separate
+endpoint (SC-169/API-E118). Authenticate the admin separately; credentials do not
+belong in action bodies. Next decide unknown-job-ID handling and finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -68,9 +70,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-one reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 168 stable SC IDs and six DOC IDs; API-E01-117 are contract/acceptance
+now has 169 stable SC IDs and six DOC IDs; API-E01-118 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -115,8 +117,11 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Consolidate compact admin request/response/status schemas using existing
-   job_id and the targeted job's stored state. No additional identifier scheme
+1. Decide unknown/no-longer-existing job-ID handling, distinguishing missing
+   history from preserved retained-data ownership after clear. Group 41 resolves
+   the common job_ids body and separate endpoints for all four admin actions.
+   Continue remaining compact admin/login/request/response/status schema review
+   using existing job_id and the targeted job's stored state. No additional identifier scheme
    is needed; do not re-ask this choice. Group 40 resolves manual deletion: 202 Accepted with actual deleted/
    failed file counts and no automatic retries or special recovery workflow. Group 39 resolves completed
    history clear: 200 OK with actual cleared-job count, silent skips and files

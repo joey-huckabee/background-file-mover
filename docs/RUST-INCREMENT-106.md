@@ -528,3 +528,14 @@ confirmation/safe-stop/protected-file rules and history-clear UUID forgetting.
 Next consolidate exact admin wire schemas around the existing identity/state.
 Documentation only; no runtime, storage redesign, Rust build/test, fixture or
 production gate change.
+
+## 2026-10-24 review: job_ids for separate admin action endpoints (group 41)
+
+The user approves job_ids for all four admin actions with one endpoint per
+action. Add API-E118/SC-169 without renumbering (118 API/169 SC/six DOC). Use
+existing job identity/state and preserve action-specific confirmation/eligibility/
+outcome rules. User asks how login relates: authenticate separately; no username/
+password in each action body. A browser session cookie is a proposed transport,
+not an additional approved wire detail. Next decide unknown-ID handling, then
+finalize exact endpoints/list bounds/login/session/request/response schemas.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty groups in successive review replies.
+The user approved the following forty-one groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-40 add API-E61-117 below.
+direction, not new runtime capabilities. Groups 14-41 add API-E61-118 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-117 are review keys, not replacement requirements or SC IDs.
+API-E01-118 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1364,6 +1364,47 @@ job identifier is needed; no runtime or storage redesign is implied here.
 SC-168 and DOC-01/02/03/04/05 explain manual-deletion acceptance and deleted/
 failed file counts without a retry/recovery workflow. No new passing test.
 
+## Shared job_ids request with separate admin action endpoints (group 41)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Use a
+`job_ids` array for all four admin actions: cancellation, failed-work retry,
+history clear and manual retained-data deletion. Each action has its own
+endpoint. A single selected job uses a one-element array; multiple selections
+use the same shape. Use the existing service job IDs and stored state, without
+an additional identifier scheme or an action-discriminator field in the body.
+
+```json
+{
+  "job_ids": [42, 43]
+}
+```
+
+This is an authenticated admin request body, not a login or recorder submission.
+Admin authentication is checked separately before effects; a job ID is not a
+credential. Do not add username/password to each action body. Exact login/
+session transport, endpoint paths/methods, numeric bounds, empty/duplicate lists,
+unknown-ID handling and request limits remain to finalize. The proposed browser
+session-cookie flow is not selected merely by approval of this action shape.
+
+Preserve action-specific semantics: cancel/clear/delete require the agreed
+confirmations; eligible failed-work retry does not. Use each job's current state,
+apply existing eligibility/custody checks and preserve terminal cancellation,
+file protection and UUID-clear rules. Accepted cancellation/retry/deletion use
+the agreed 202 responses; completed history clear returns 200 with actual count.
+Do not bypass existing audited review/reset prerequisites because the shared
+body is compact; exact service-side command integration remains to design.
+
+Next decide how an action handles an unknown/no-longer-existing job ID, including
+a stale dashboard selection. Distinguish missing job history from retained-data
+ownership that still exists after a history clear; do not discard that ownership.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E118 | Admin invokes cancel, failed-work retry, history clear or manual deletion for one or more selected jobs | Use a job_ids array of existing job identifiers with a separate endpoint per action. Check admin authentication independently and apply that action's current-state/confirmation/eligibility/outcome rules | Approved common body/separate endpoints; exact paths/methods/list validation/auth transport and implementation/qualification pending. No credentials in each action body or new job identifier scheme. |
+
+SC-169 and DOC-01/02/03/04/05 explain shared selected-job JSON, separate actions
+and admin authentication independent of the body. No new passing runtime test.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1388,7 +1429,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-40 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-41 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1406,7 +1447,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-117 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-118 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

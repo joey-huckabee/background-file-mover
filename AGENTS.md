@@ -6,8 +6,8 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-117 for user review
-before P01 is frozen. Groups 1-40 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-118 for user review
+before P01 is frozen. Groups 1-41 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -58,7 +58,9 @@ stop, then Cancelled (group 37/SC-165/API-E114). Accepted failed-job retry retur
 progress, not implied success (group 38/SC-166/API-E115). Completed history clear returns 200 OK with actual cleared-job count, silent
 skips and untouched files (group 39/SC-167/API-E116). Manual deletion returns 202 and deleted/failed file counts, with no automatic
 retry or special recovery workflow (group 40/SC-168/API-E117). Use existing job_id and the targeted job's stored state; no extra identifier
-scheme. Next consolidate admin wire schemas; no physical delete or general repair tool is qualified yet;
+scheme. All four admin actions use job_ids with separate endpoints
+(group 41/SC-169/API-E118); admin authentication is separate. Next settle unknown-ID
+handling and remaining wire/login details; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

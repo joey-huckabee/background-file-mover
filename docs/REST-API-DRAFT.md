@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-40, remaining schema decisions and
+current discussion, approved contract groups 1-41, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -620,6 +620,26 @@ delete pause/resume or automatic retry workflow is required. Delivery retry
 retains job ID, resolved names, claimed sources and ownership,
 allocating new internal operation attempts only when safe. This changes the old
 new-job retry behavior, which could reopen a newer recording at a reused path.
+
+## Shared admin action selection (group 41)
+
+Cancel, failed-work retry, history clear and manual retained-data deletion each
+use a separate endpoint with the same selected-job request body:
+
+```json
+{
+  "job_ids": [42, 43]
+}
+```
+
+Use existing service job IDs and each job's current stored state. The admin must
+be signed in; authentication is separate from this body. Do not include a
+username/password in each action request. Cancel/clear/delete retain their
+confirmation requirements; retry has none. Apply existing review/custody and
+protected-file rules. Exact endpoint names/methods, list validation/limits,
+unknown-ID behavior and login/session transport remain to settle. See
+[group 41/API-E118/SC-169](REST-ERROR-SCENARIOS.md#shared-job_ids-request-with-separate-admin-action-endpoints-group-41).
+No runtime endpoints or authentication are implemented by this draft.
 
 ## Missing file retry and operator review
 
