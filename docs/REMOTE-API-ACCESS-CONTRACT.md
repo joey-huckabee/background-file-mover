@@ -21,8 +21,9 @@ host for one admin account; remote account-management/reset screens are outside
 the first-release scope. Group 27 requires all existing dashboard sessions to
 be signed out when a password change takes effect, without affecting background
 transfers. Group 28 selects a configurable 30-minute inactivity timeout, also
-without affecting transfers. Session behavior across mover restart and minimal
-session/wire details remain to settle. No
+without affecting transfers. Group 29 requires all sessions to sign out on mover
+restart while jobs recover normally from durable state. Minimal session/wire
+implementation details remain to settle. No
 remote admin listener, login implementation or account-registration system is
 implemented by these decisions. Existing operation eligibility/confirmation and
 production NFS/deletion gates remain unchanged.

@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following twenty-eight groups in successive review replies.
+The user approved the following twenty-nine groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-28 add API-E61-104 below.
+direction, not new runtime capabilities. Groups 14-29 add API-E61-105 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-104 are review keys, not replacement requirements or SC IDs.
+API-E01-105 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -946,15 +946,44 @@ login state. Signing in again does not weaken operation eligibility or deletion
 confirmation. Password-change invalidation remains independent and signs out
 all existing sessions even if the inactivity interval has not elapsed.
 
-Next decide whether otherwise valid sessions survive a mover restart. Keep the
-minimal username/password scope; no new account-management/security workstream.
+Group 29 requires a fresh login after mover restart while jobs use normal
+recovery. Keep the minimal username/password scope; no new security workstream.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E104 | Dashboard session reaches its configured inactivity interval while transfers continue | Default to 30 minutes, allow configuration, then require fresh login for admin access. Background transfers and already-authorized job actions continue unaffected; automatic refresh alone is not user activity | Approved timeout; configuration bounds/activity reporting, restart behavior and exact auth wire response implementation/qualification pending. |
+| API-E104 | Dashboard session reaches its configured inactivity interval while transfers continue | Default to 30 minutes, allow configuration, then require fresh login for admin access. Background transfers and already-authorized job actions continue unaffected; automatic refresh alone is not user activity | Approved timeout; configuration bounds/activity reporting and exact auth wire response implementation/qualification pending; group 29 resolves restart sign-out. |
 
 SC-156 and DOC-01/02/03/04/05 track inactivity expiry separately from transfer
 lifecycle. No new passing runtime/authentication/SLES evidence is claimed.
+
+## Mover restart signs out dashboard sessions; normal job recovery (group 29)
+
+**Approved on 2026-10-23; implementation/qualification pending.** A mover
+restart invalidates all pre-restart dashboard sessions. Require a fresh admin
+login after startup; a retained browser cookie or previously unexpired session
+must not restore signed-in access. This applies to every browser/computer and
+both normal and crash/recovery starts. Do not require persisting sessions across
+restarts; exact session representation remains implementation design.
+
+Jobs recover through the existing normal startup/recovery rules using original
+durable state and custody. Signing out dashboard sessions does not cancel,
+forget, re-create or delete jobs/data, reset retry/review deadlines, clear
+history or bypass ownership checks. Normal startup safety refusals still apply;
+this is not a promise that interrupted/unsafe work always resumes immediately.
+The dashboard must distinguish loss of sign-in from completion/failure of an
+earlier action. Previously accepted effects remain governed by their original
+operation rules, not the browser session's survival.
+
+Next decide whether clearing selected eligible history needs an explicit
+confirmation that explains UUID forgetting and preservation of files. Retained-
+data deletion already requires confirmation; do not re-open that decision.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E105 | Mover restarts while browsers have signed-in dashboard sessions and durable jobs exist | Reject pre-restart sessions and require fresh login; recover jobs through normal original-state startup/recovery without implicit cancellation, history clear, deadline reset or deletion | Approved behavior; session/startup integration and exact auth response implementation/qualification pending. Existing ownership/review/startup refusals remain. |
+
+SC-157 and DOC-01/02/03/04/05 must distinguish dashboard sign-out from durable job
+recovery. No new runtime/recovery/security qualification is claimed.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -980,7 +1009,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-28 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-29 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -998,7 +1027,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-104 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-105 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |

@@ -386,3 +386,14 @@ protections. Config bounds/activity reporting remain implementation details;
 no disable option or absolute lifetime selected. Next decide session behavior
 across mover restart. No runtime, Rust build/test, fixture or production gate
 change; documentation-only verification applies.
+
+## Resumed review: dashboard sign-out on mover restart (group 29)
+
+The user approves invalidating existing dashboard sessions on mover restart,
+with jobs recovering normally. Add API-E105/SC-157 without renumbering prior
+cases (105 API/157 SC/six DOC). Preserve original durable state/custody, retry/
+review deadlines and startup/ownership checks; sign-out is not job cancellation
+or a promise of immediate recovery despite unsafe state. Next decide confirmation
+for clearing eligible history; retained-data deletion confirmation is settled.
+Documentation only; no runtime, dependency, Rust build/test, fixture or production
+gate change. Session implementation and exact wire details remain pending.

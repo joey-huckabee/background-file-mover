@@ -31,8 +31,9 @@ hygiene in implementation. Group 26 approves one admin account configured and
 password changed locally on the mover host (SC-154/API-E102). Group 27 requires
 password changes to sign out all dashboard sessions without affecting background
 transfers (SC-155/API-E103). Group 28 selects a configurable 30-minute inactivity
-timeout, also without affecting transfers (SC-156/API-E104). Next decide whether
-sessions survive mover restart, then finalize
+timeout, also without affecting transfers (SC-156/API-E104). Group 29 requires
+restart sign-out for all sessions while jobs use normal recovery
+(SC-157/API-E105). Next decide confirmation for clearing eligible history, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -46,9 +47,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-eight reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Twenty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 156 stable SC IDs and six DOC IDs; API-E01-104 are contract/acceptance
+now has 157 stable SC IDs and six DOC IDs; API-E01-105 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -93,9 +94,10 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide session behavior across mover restart. Password-change invalidation
-   and configurable 30-minute inactivity expiry are resolved; transfers remain
-   unaffected. Then
+1. Decide whether clearing eligible history requires confirmation explaining
+   UUID forgetting and preserved files. Password-change/restart sign-out and
+   configurable 30-minute inactivity expiry are resolved; jobs retain normal
+   recovery. Deletion confirmation is already required. Then
    finalize minimal username/password login/session details and exact endpoints/transactions/bulk
    and confirmation details. Group 22 resolves deletion scope and simple failure
    behavior: best effort, leave failed files and report them; no dedicated
