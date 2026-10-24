@@ -158,8 +158,8 @@ Admin cancellation returns 202 Accepted, shows Cancellation pending until safe
 stop, then Cancelled (group 37/SC-165/API-E114). Accepted failed-job retry returns 202 without confirmation and shows actual
 progress, not implied success (group 38/SC-166/API-E115). Completed history clear returns 200 OK with actual cleared-job count, silent
 skips and untouched files (group 39/SC-167/API-E116). Manual deletion returns 202 and deleted/failed file counts, with no automatic
-retry or special recovery workflow (group 40/SC-168/API-E117). Next finalize admin
-selection identifiers and wire schemas; no physical delete or general repair tool is qualified yet;
+retry or special recovery workflow (group 40/SC-168/API-E117). Use existing job_id and the targeted job's stored state; no extra identifier
+scheme. Next consolidate admin wire schemas; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 No implementation is authorized merely by listing a proposed scenario.

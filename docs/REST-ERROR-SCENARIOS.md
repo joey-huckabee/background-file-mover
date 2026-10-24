@@ -1345,13 +1345,21 @@ with automatic cleanup off. Request/auth/storage/safety failures are not accepte
 success. This admin 202 grants no producer source-path release permission.
 Production NFS and source deletion remain disabled in the current prototype.
 
-Next finalize how admin requests identify selected jobs/data independently of a
-recording UUID that may later be forgotten and reused. Exact endpoints, request
-identity and compact acknowledgement/status schemas remain to freeze in P01.
+**User clarification, 2026-10-24:** use the existing `job_id` and evaluate the
+stored state of the job targeted for deletion. No additional admin identifier
+scheme is needed. Check current eligibility and mover-owned retained files for
+that job; do not look up a different/new job by recording UUID or path resemblance.
+After history clear, preserve only the previously agreed necessary retained-file
+ownership/accounting evidence, not hidden detailed history or UUID replay state.
+Do not introduce another selection-ID system to implement that requirement.
+
+Next consolidate exact admin endpoints and compact request/response/status
+schemas around existing job identity and state. Do not re-ask whether an extra
+job identifier is needed; no runtime or storage redesign is implied here.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E117 | Confirmed eligible manual deletion is accepted and file attempts succeed/fail | Return 202 Accepted; show actual deleted-file and failed-file counts. Keep best-effort handling, no automatic retries or special recovery workflow; preserve remaining files, accounting and all ownership/safe-stop/confirmation/protected-data rules | Approved acknowledgement/results; exact count/status/interruption wire and implementation/qualification pending. Acceptance is not successful removal; production NFS/source deletion remain disabled. |
+| API-E117 | Confirmed eligible manual deletion is accepted and file attempts succeed/fail | Return 202 Accepted; show actual deleted-file and failed-file counts. Keep best-effort handling, no automatic retries or special recovery workflow; preserve remaining files, accounting and all ownership/safe-stop/confirmation/protected-data rules. Use existing job_id and that job's current stored state; no extra identifier scheme | Approved acknowledgement/results; exact count/status/interruption wire and implementation/qualification pending. Acceptance is not successful removal; production NFS/source deletion remain disabled. |
 
 SC-168 and DOC-01/02/03/04/05 explain manual-deletion acceptance and deleted/
 failed file counts without a retry/recovery workflow. No new passing test.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Clarify that manual deletion uses the existing job_id and the targeted job's stored state/eligibility; no additional admin identifier scheme is required. Preserve agreed file ownership, confirmation and protection rules. Documentation only.
+
 - Approve manual deletion 202 Accepted with deleted/failed file counts, no automatic retries or special recovery workflow. Add planned API-E117/SC-168 and preserve confirmed scope, ownership/safe-stop and protected-file rules. Documentation only.
 
 - Approve completed history-clear 200 OK with the actual number of jobs cleared, silent ineligible skips and files untouched. Add planned API-E116/SC-167; exact wire/transaction implementation remains pending. Documentation only.

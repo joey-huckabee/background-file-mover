@@ -610,7 +610,10 @@ cancellation deadline is selected. History clear preserves files per group 21.
 defines disposal scope/confirmation. Group 40 selects 202 Accepted for accepted
 confirmed manual deletion with dashboard deleted-file/failed-file counts
 (SC-168/API-E117), without automatic retries or special recovery workflow.
-Acceptance is not removal success; exact count/status wire remains to define.
+Acceptance is not removal success. Use existing job_id and evaluate that job's
+current stored state/eligibility for deletion; no new admin identifier scheme
+is required. Existing ownership/confirmation/protected-file rules still apply.
+Exact count/status wire remains to define.
 Keep best-effort deletion: failed files remain,
 other safe selected files can be attempted and failures are reported. No dedicated
 delete pause/resume or automatic retry workflow is required. Delivery retry

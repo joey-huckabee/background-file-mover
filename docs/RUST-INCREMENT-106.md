@@ -517,3 +517,14 @@ confirmation/ownership/safe-stop/protected-recording rules. Exact count/status/
 interruption wire remains design work; do not fabricate success for unknown
 attempts. Next finalize admin selection identifiers and compact wire schemas.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 clarification: use existing job_id/state for deletion
+
+The user clarifies that deletion should evaluate state under the existing job_id
+being targeted. Do not introduce another admin identifier scheme or re-ask this
+as a new choice. Clarify group 40/API-E117/SC-168 in place; counts stay 117 API,
+168 SC/six DOC. Preserve current eligibility, retained-file ownership/accounting,
+confirmation/safe-stop/protected-file rules and history-clear UUID forgetting.
+Next consolidate exact admin wire schemas around the existing identity/state.
+Documentation only; no runtime, storage redesign, Rust build/test, fixture or
+production gate change.
