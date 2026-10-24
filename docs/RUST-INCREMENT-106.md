@@ -472,3 +472,14 @@ Add API-E112/113 and SC-164 (113 API/164 SC/six DOC); preserve prior IDs.
 Pending cancellation still needs safe settlement. Next decide admin cancellation
 acknowledgement while workers stop, separate from producer custody 202.
 Documentation only; no runtime, Rust build/test, fixture or production gate change.
+
+## 2026-10-24 review: accepted admin cancellation and pending safe stop (group 37)
+
+The user approves admin cancellation HTTP 202 Accepted, Cancellation pending
+until work safely stops, then Cancelled. Add API-E114/SC-165 without renumbering
+(114 API/165 SC/six DOC). Distinguish accepted admin intent from producer custody
+202 and preserve files/ownership, pending-operation recovery and clear/delete
+restrictions. Do not alter shutdown waits or infer safety from timeout/sign-out.
+Exact persistence/body/bulk response remains design work. Next decide admin
+failed-work retry acknowledgement; no retry confirmation required.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

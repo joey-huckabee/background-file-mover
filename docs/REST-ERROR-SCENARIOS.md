@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following thirty-six groups in successive review replies.
+The user approved the following thirty-seven groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-36 add API-E61-113 below.
+direction, not new runtime capabilities. Groups 14-37 add API-E61-114 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-113 are review keys, not replacement requirements or SC IDs.
+API-E01-114 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -645,7 +645,7 @@ orphan adoption is introduced by tracking known retained files.
 | API-E83 | Cancel during partial destination copy | Keep staging bytes and claimed source; stop further work once authorized activity safely settles; no false copied/verified/committed state | Test progress and restart preservation, not merely desired-cancel flag. |
 | API-E84 | Cancel after payload publication but before manifest authorization | Keep published payload/staging/source; authorize no new completion manifest; consumers continue to ignore incomplete recording | Cancellation doesn't remove final files or overwrite reused source paths. Previously authorized effects remain separately reconciled. |
 | API-E85 | Cancel while manifest publication is authorized/in flight or valid COMMITTED.json is already visible | Reconcile actual publication; preserve visible recording/manifest. Do not report that cancellation kept it uncommitted when publication actually completed | Include visibility before local result receipt; no retraction of delivered data or earlier 202. |
-| API-E86 | Cancel while a worker is blocked/terminating or storage effects are unresolved | Keep cancellation pending, files/ownership/state protected and history ineligible to clear until safe settlement and actual worker exit | No timeout/signal-as-proof or unsafe replacement; exact bounded cancel response remains to define. |
+| API-E86 | Cancel while a worker is blocked/terminating or storage effects are unresolved | Keep cancellation pending, files/ownership/state protected and history ineligible to clear until safe settlement and actual worker exit | No timeout/signal-as-proof or unsafe replacement; group 37 selects admin 202/Cancellation pending, then Cancelled after safe stop; exact body remains to define. |
 
 SC-146 and DOC-01/02/03/04/05 must explain retained files, consumer commitment,
 cancel-pending/clear eligibility, producer-path reuse and unchanged space usage.
@@ -1196,9 +1196,9 @@ These mappings do not change safe-stop/settlement requirements or select a new
 pending-state response. Clearing eligible history still forgets the UUID; a
 later submission is new work, not replay of the cleared cancellation/handoff.
 
-Next decide the admin cancellation acknowledgement while safe stop is pending,
-distinguishing acceptance of that admin request from the producer's custody 202.
-Exact endpoint/status fields remain to agree; no new runtime behavior here.
+Group 37 selects admin cancellation 202 Accepted with Cancellation pending
+until safe stop, then Cancelled, distinct from producer custody 202. Exact
+endpoint/body fields remain to agree; no new runtime behavior here.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1207,6 +1207,45 @@ Exact endpoint/status fields remain to agree; no new runtime behavior here.
 
 SC-164 and DOC-01/02/03/04/05 distinguish cancelled-before-handoff rejection
 from preserved post-handoff 202 replay. No passing runtime/qualification claim.
+
+## Admin cancellation returns 202; pending until safe stop (group 37)
+
+**Approved on 2026-10-24; implementation/qualification pending.** An accepted
+admin cancellation request returns HTTP 202 Accepted. Show `Cancellation pending`
+until the selected job's work has safely stopped and authorized/uncertain effects
+are reconciled; then show `Cancelled`. The response acknowledges acceptance of
+the admin cancellation request, not completion of cancellation or transfer.
+Do not hold the HTTP request open waiting for blocked workers to exit.
+
+A 202 must reflect actual accepted cancellation intent; request/storage failures
+must not be acknowledged as success. Exact persistence/transaction/body fields
+remain to define. Pending cancellation survives normal recovery using original
+state; timeout, lost reply, dashboard sign-out or mover restart must not falsely
+finish or reverse it. A repeated request preserves the existing pending operation
+and does not reset deadlines. No new cancellation deadline or change to the
+configured shutdown wait is introduced.
+
+Keep files and ownership protected while pending. History remains ineligible
+to clear and retained-data deletion remains unauthorized until the existing safe
+stop/settlement rules permit it. Final cancellation is not reversible in the
+first release. Preserve already-completed publication as previously agreed;
+completion racing with cancellation must not retract a committed recording.
+
+This admin 202 is separate from producer whole-set custody acknowledgement.
+It grants no source-path reuse permission or completed-delivery guarantee.
+Groups 33/36 still govern silent terminal-job skips and producer 409/202 replay.
+Exact response for a selection containing only skipped jobs remains part of
+final bulk/summary design, not a claim that skipped jobs were newly cancelled.
+
+Next decide the acknowledgement for an admin request to retry eligible failed
+work; retry requires no confirmation and existing review/custody rules remain.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E114 | Admin cancellation is accepted while workers or effects still need to stop/settle | Return HTTP 202 Accepted; display Cancellation pending until safe stop/settlement, then Cancelled. Preserve custody/files and cancellation intent through normal recovery; no false completion or source-path release | Approved admin acknowledgement/status progression; persistence/body/bulk details and implementation/qualification pending. No change to runtime shutdown deadline or production gates. |
+
+SC-165 and DOC-01/02/03/04/05 distinguish accepted admin cancellation, pending
+safe stop and final cancellation from producer custody. No new passing test.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1232,7 +1271,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-36 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-37 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1250,7 +1289,7 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-113 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-114 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
