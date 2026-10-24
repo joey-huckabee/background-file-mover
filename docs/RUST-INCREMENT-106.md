@@ -397,3 +397,13 @@ or a promise of immediate recovery despite unsafe state. Next decide confirmatio
 for clearing eligible history; retained-data deletion confirmation is settled.
 Documentation only; no runtime, dependency, Rust build/test, fixture or production
 gate change. Session implementation and exact wire details remain pending.
+
+## 2026-10-24 review: explicit history-clear confirmation (group 30)
+
+The user approves confirmation showing selected jobs and explaining forgotten
+UUIDs with preserved files. Add API-E106/SC-158 without renumbering (106 API,
+158 SC/six DOC). Decline/dismiss clears nothing; revalidate eligibility and do
+not include unshown jobs or authorize file deletion. Keep a simple confirmation;
+no extra password/typed phrase protocol implied. Next decide mixed eligible/
+ineligible selection behavior, then finalize exact wire/transaction design.
+Documentation only; no runtime, Rust build/test, fixture or production gate change.

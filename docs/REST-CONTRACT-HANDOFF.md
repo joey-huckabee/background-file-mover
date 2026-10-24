@@ -1,6 +1,6 @@
 # REST contract shutdown handoff
 
-Saved 2026-10-23 on `feature/rust-transfer-coordinator`.
+Updated 2026-10-24 on `feature/rust-transfer-coordinator`.
 Reviewed documentation through `d0dc013` before this checkpoint. This handoff
 adds no runtime implementation, dependency or qualification result.
 
@@ -33,7 +33,9 @@ password changes to sign out all dashboard sessions without affecting background
 transfers (SC-155/API-E103). Group 28 selects a configurable 30-minute inactivity
 timeout, also without affecting transfers (SC-156/API-E104). Group 29 requires
 restart sign-out for all sessions while jobs use normal recovery
-(SC-157/API-E105). Next decide confirmation for clearing eligible history, then finalize
+(SC-157/API-E105). Group 30 requires history-clear confirmation showing selected
+jobs and explaining UUID forgetting with preserved files (SC-158/API-E106).
+Next decide mixed eligible/ineligible clear selections, then finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -47,9 +49,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Twenty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Thirty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 157 stable SC IDs and six DOC IDs; API-E01-105 are contract/acceptance
+now has 158 stable SC IDs and six DOC IDs; API-E01-106 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -94,8 +96,9 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide whether clearing eligible history requires confirmation explaining
-   UUID forgetting and preserved files. Password-change/restart sign-out and
+1. Decide mixed eligible/ineligible history-clear selection behavior. Group 30
+   resolves confirmation: show selected jobs, UUID forgetting and preserved files.
+   Password-change/restart sign-out and
    configurable 30-minute inactivity expiry are resolved; jobs retain normal
    recovery. Deletion confirmation is already required. Then
    finalize minimal username/password login/session details and exact endpoints/transactions/bulk

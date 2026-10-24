@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Require confirmation before history clear, showing selected jobs and explaining forgotten UUIDs with files preserved. Add planned API-E106/SC-158; mixed-selection and exact wire behavior remain pending. Documentation only.
+
 - Approve dashboard sign-out on mover restart while jobs use normal durable recovery. Add planned API-E105/SC-157; session implementation remains pending and runtime/recovery behavior is unchanged.
 
 - Approve configurable dashboard inactivity sign-out, default 30 minutes, without affecting background transfers. Add planned API-E104/SC-156; implementation and session behavior across mover restart remain pending.
