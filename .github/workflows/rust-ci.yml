@@ -39,3 +39,16 @@ jobs:
           PY
       - name: Cargo-libc, ELF audit and SLES debug/release tests
         run: python3 scripts/check-rust-sles.py ${{ matrix.mode == 'nfs-qualification' && '--qualification' || '' }}
+      - name: Retain gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: rust-sles-${{ matrix.mode }}
+          path: |
+            rust/validation/*/report.json
+            rust/validation/*/*.log
+            rust/validation/*/*.test
+            rust/validation/*/*.txt
+            rust/validation/*/*.toml
+            rust/validation/*/*image.json
+          retention-days: 14
