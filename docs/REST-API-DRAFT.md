@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-44, remaining schema decisions and
+current discussion, approved contract groups 1-45, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -667,6 +667,28 @@ nonexistent/completed/already-cancelled skips count as skipped, without reasons.
 These are action counts, not transfer-failure or completed-stop counts. See
 [group 44/API-E121/SC-172](REST-ERROR-SCENARIOS.md#cancellation-attempt-response-accepted-failed-and-skipped-counts-group-44).
 Whole-request authentication/validation/storage errors retain separate handling.
+
+## Retry response counts (group 45)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Failed-job
+retry returns HTTP 202 Accepted with:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+These nonnegative integer counts describe per-entry retry attempts accepted,
+failed or skipped. Acceptance is not transfer success; display actual progress
+and later outcome. Preserve eligibility, existing job/custody and review checks,
+no confirmation for eligible retry, and no cancelled-job revival. Repeated entries
+still go through the per-job operation; exact duplicate-retry outcomes and whole-
+request replay remain to settle. Authentication/validation/storage errors keep
+separate handling; exact endpoints, bounds and other wire details remain pending.
+See [group 45/API-E122/SC-173](REST-ERROR-SCENARIOS.md#retry-attempt-response-accepted-failed-and-skipped-counts-group-45).
 
 ## Missing file retry and operator review
 

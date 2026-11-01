@@ -63,7 +63,8 @@ duplicate cancels count as failed attempts, not failed job states
 (SC-171/API-E120). Do not deduplicate or predict cancellation state in the batch
 handler. Group 44 selects cancellation 202 with accepted_count, failed_count and
 skipped_count (SC-172/API-E121); these count attempts, not stopped jobs.
-Next settle retry response counts and finalize
+Group 45 approves the same retry count fields with HTTP 202 (SC-173/API-E122),
+counting retry attempts rather than successful transfers. Next finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
@@ -71,8 +72,8 @@ local-versus-remote dashboard access or SSO-versus-password login again.
 ## Moving to another computer (2026-11-01)
 
 Read [the portable workstation handoff](WORKSTATION-HANDOFF.md) for the complete
-reading map, implementation-versus-contract distinction, exact unanswered retry
-count question, cloud prerequisites and verification/evidence-transfer limits.
+reading map, implementation-versus-contract distinction, current remaining login/session
+question, cloud prerequisites and verification/evidence-transfer limits.
 [The evidence inventory](WORKSTATION-EVIDENCE-INVENTORY.json) records tracked
 report hashes and the two retained SLES source/artifact baselines. Raw packs
 under ignored rust/validation/ do not arrive in a Git clone; preserve them
@@ -87,9 +88,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-four reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-five reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 172 stable SC IDs and six DOC IDs; API-E01-121 are contract/acceptance
+now has 173 stable SC IDs and six DOC IDs; API-E01-122 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -134,7 +135,9 @@ situations, not new passing tests. All eight release gates remain open.
 
 ## Next work when we resume
 
-1. Decide retry response counts, then remaining request/login details. Group 44
+1. Retry response counts are approved in group 45: HTTP 202 with accepted_count,
+   failed_count and skipped_count for retry attempts, not transfer success.
+   Next decide browser session-cookie login, then remaining request/wire details. Group 44
    resolves cancellation JSON: accepted_count, failed_count and skipped_count
    with HTTP 202; counts describe per-entry attempts, not safe-stop completion. Group 43 resolves duplicate entries: process again via the per-job
    action, with duplicate cancels counted as failed cancel attempts. No batch

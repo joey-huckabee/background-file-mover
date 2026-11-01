@@ -58,6 +58,7 @@ for Rust changes. NFS/systemd labs require their separately documented selected
 prerequisites; readiness does not qualify those labs.
 
 Read `REST-CONTRACT-HANDOFF.md` and `WORKSTATION-HANDOFF.md` before development.
-Groups 1-44 are approved; retry response counts remain unapproved. All eight
+Groups 1-45 are approved, including retry attempt response counts. Remaining
+wire/login details and implementation/qualification are pending. All eight
 release gates remain open. Agent setup authorizes no REST implementation,
 production NFS/source deletion, or movement of operational state/custody.

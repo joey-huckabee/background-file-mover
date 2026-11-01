@@ -18,8 +18,8 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Future work | [Roadmap](ROADMAP.md) | Remove completed tasks; keep history elsewhere. |
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
-| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-44 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 172 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-45 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 173 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |
@@ -32,7 +32,7 @@ Use these sources together; the roadmap alone is not the whole specification.
 
 We are in P01/API-I01, agreeing the REST contract before versioned OpenAPI and
 related implementation. All eight release gates remain open. The latest saved
-contract decision is group 44, API-E121/SC-172:
+contract decision is group 45 (2026-11-01), API-E122/SC-173:
 
 ```json
 {
@@ -42,11 +42,11 @@ contract decision is group 44, API-E121/SC-172:
 }
 ```
 
-This is cancellation HTTP 202 and counts per-entry attempts, not completed
-worker stops. The last question offered was whether failed-job retry should
-use the same three fields with 202. **The user has not approved that proposal.**
-Ask that next, then consolidate remaining response/login/schema/replay decisions.
-Do not silently implement it because it sounds consistent with cancellation.
+Both cancellation (group 44) and failed-work retry (group 45) use HTTP 202
+with these three count fields. Retry counts describe attempts, not successful
+transfers. **The user approved the retry response shape on 2026-11-01.**
+Next decide browser session-cookie login, then consolidate remaining response/
+login/schema/replay decisions. No runtime implementation is authorized yet.
 
 Accepted admin behavior to preserve:
 
@@ -269,5 +269,6 @@ This handoff adds no runtime implementation or dependency. Checks cover the
 tracked report inventory/hashes, retained SLES archive/source/binary identity,
 links/JSON/examples, stable 121 API/172 SC/six DOC identifiers and staged whitespace.
 No Rust build/test or NFS/systemd fixture was run for this migration audit.
-The question about retry accepted/failed/skipped counts remains pending, exactly
-as before the migration request. Nothing here freezes new wire/schema decisions.
+At the migration audit, retry accepted/failed/skipped counts were still pending.
+Group 45 subsequently approved them on 2026-11-01; other wire/schema decisions
+remain unsettled and implementation/qualification is pending.

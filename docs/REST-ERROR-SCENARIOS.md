@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-four groups in successive review replies.
+The user approved the following forty-five groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-44 add API-E61-121 below.
+direction, not new runtime capabilities. Groups 14-45 add API-E61-122 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-121 are review keys, not replacement requirements or SC IDs.
+API-E01-122 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1517,8 +1517,8 @@ invented results for authentication, malformed-request or unreadable-state
 failures. Whole-request errors retain their separate mapping. Exact endpoint,
 limits, transactions and transport-replay semantics remain to finalize.
 
-Next decide the exact response counts for accepted failed-work retry; its 202,
-no-confirmation behavior and actual-progress display are already agreed.
+Group 45 below resolves the corresponding retry response counts; remaining
+wire/login and request-replay details are still pending.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
@@ -1526,6 +1526,41 @@ no-confirmation behavior and actual-progress display are already agreed.
 
 SC-172 and DOC-01/02/03/04/05 explain cancellation attempt counts separately
 from job progress. No new runtime/qualification evidence is claimed.
+
+## Retry attempt response: accepted, failed and skipped counts (group 45)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Failed-job
+retry returns HTTP 202 Accepted with the same three count fields as cancellation:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+All three fields are nonnegative integers describing per-entry retry attempt
+outcomes: accepted_count for accepted retry attempts, failed_count for failed
+retry attempts, and skipped_count for skipped entries. Acceptance does not mean
+the transfer has succeeded; show actual job progress and later outcome.
+Preserve existing eligibility, authentication, custody and audited review checks.
+No confirmation is required for eligible failed-work retry; cancelled jobs
+cannot be revived. Continue to process repeated entries through the per-job
+operation without batch deduplication. This approval does not assign duplicate
+retry outcomes by copying the duplicate-cancellation failure rule.
+
+Whole-request authentication/validation/storage errors retain their separate
+handling. Exact endpoints, list bounds, no-work edge cases, transaction,
+concurrency and transport-replay details remain to finalize. This changes the
+contract only, with no runtime implementation or passing qualification claim.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E122 | Admin failed-work retry selection produces accepted, failed or skipped attempts | Return 202 Accepted with accepted_count, failed_count and skipped_count describing retry attempts; show actual progress and outcome separately | Approved count fields; implementation/qualification and remaining wire/replay details pending. No transfer-success claim, cancelled-job revival or change to retry/review policy. |
+
+SC-173 and DOC-01/02/03/04/05 must distinguish retry attempt counts from actual
+transfer progress and outcome. Next settle minimal dashboard login/session wire.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1551,7 +1586,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-44 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-45 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1569,12 +1604,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-121 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-122 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for the ninety-eight situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-122 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

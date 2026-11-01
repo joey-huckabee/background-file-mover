@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve failed-work retry HTTP 202 with accepted_count, failed_count and
+  skipped_count for per-entry attempts. Add planned API-E122/SC-173 (group 45);
+  preserve actual progress, custody and existing retry/review checks. Contract
+  documentation only; remaining wire/login details and implementation pending.
+
 - Replace Rust ZigBuild with pinned cargo-libc 0.2.4 and a digest-pinned Rust
   1.99.0 builder base. Preserve locked dependencies, glibc 2.22, independent
   ELF audits, debug/release SLES tests and retained qualification features.

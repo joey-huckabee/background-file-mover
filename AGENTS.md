@@ -19,14 +19,14 @@ Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 2026-11-01 development-machine migration: then read `docs/WORKSTATION-HANDOFF.md`
 and `docs/WORKSTATION-EVIDENCE-INVENTORY.json`. These preserve resume context,
 cloud prerequisites and tracked-versus-local verification artifacts. Raw
-rust/validation/ packs are ignored and not transferred by Git. The pending
-retry response-count proposal is not approved; do not infer approval from migration.
+rust/validation/ packs are ignored and not transferred by Git. Retry response counts
+were separately approved on 2026-11-01 (group 45); other contract decisions remain pending.
 Moving the checkout is not authorization to move active service custody/state.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-121 for user review
-before P01 is frozen. Groups 1-44 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-122 for user review
+before P01 is frozen. Groups 1-45 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -83,7 +83,10 @@ scheme. All four admin actions use job_ids with separate endpoints
 (group 42/SC-170/API-E119). Dispatch repeated entries again; the per-job cancel action owns state decisions
 and a duplicate cancel counts as a failed cancel attempt (group 43/SC-171/API-E120).
 No batch deduplication. Cancellation 202 has accepted_count, failed_count and skipped_count
-(group 44/SC-172/API-E121). Next settle retry response counts and remaining wire/login details; no physical delete or general repair tool is qualified yet;
+(group 44/SC-172/API-E121). Group 45 approves failed-work retry HTTP 202 with
+accepted_count, failed_count and skipped_count for attempts, not successful
+transfers (SC-173/API-E122), implementation/qualification pending. Next settle
+remaining wire/login details; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

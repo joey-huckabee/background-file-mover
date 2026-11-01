@@ -18,17 +18,17 @@ another NFS experiment merely because more combinations are possible.
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. On a new
 computer follow [the portable handoff](WORKSTATION-HANDOFF.md) to provision the
 verification environment and preserve any required local-only evidence before
-discarding the old workstation. Settle the pending retry response counts before
-freezing admin wire schemas. Finalize the simple username/password login/session
+discarding the old workstation. Retry response counts are approved in group 45;
+complete remaining admin wire schemas. Finalize the simple username/password login/session
 wire contract, API/bulk/concurrency and remaining schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
 Encode the required UUID recording_id; finalize lexical canonicalization. Preserve approved order-independent file replay.
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-44). Current missing-file
+  error mappings, envelope and retry timing (groups 1-45). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-121 disposition and preserve original custody.
+  support. Cover every API-E01-122 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.
