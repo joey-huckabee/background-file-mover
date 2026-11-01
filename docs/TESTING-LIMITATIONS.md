@@ -27,6 +27,12 @@ under every machine, filesystem or failure. Read the raw reports and
 
 ## Evidence portability
 
+The [Cargo-libc migration](CARGO-LIBC-MIGRATION.md) replaces the Rust builder,
+with fresh independent ELF inspections and pinned SLES tests. Historical NFS/
+systemd evidence remains tied to its original binaries and acquisition inputs;
+new ABI passes do not requalify those fixtures. Cargo-libc's current provider
+emits non-PIE executables; shipping hardening remains open under FR-06/P09.
+
 [The workstation handoff](WORKSTATION-HANDOFF.md) distinguishes Git-tracked
 reports/procedures from ignored raw rust/validation/ packs, local caches and VM
 state. [The inventory](WORKSTATION-EVIDENCE-INVENTORY.json) records the migration

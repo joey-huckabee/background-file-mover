@@ -7,6 +7,8 @@ compile/test pass is insufficient, including for the dependency-free core.
 Run `python scripts/check-rust-sles.py` from the repository root (Python 3.11+,
 Podman). On Linux use python3 if needed; the WSL shell helper invokes the same
 gate. GitHub's Rust workflow runs it on each relevant push/pull request.
+CI now retains diagnostic reports/logs for 14 days; source archives and binaries
+are not uploaded. This supersedes the original no-upload note in `rust/README.md`.
 
 ## Moving the gate to another machine
 
@@ -54,6 +56,10 @@ and qualification; this gate does not unpause E6 or approve arbitrary packages.
 5. Verify the pinned runtime reports glibc 2.22, copy/hash-check exact artifacts,
    run `ldd -r` with eager binding and execute all discovered Rust test harnesses
    as UID/GID 1000, capabilities dropped and network disabled.
+   Use SLES's `setsid --wait` for smoke/test execution, requiring a positive
+   private PID/PGID/SID preflight and preserving the target's failure status.
+   Older OCI exec launchers can otherwise inherit an invisible process group
+   (`getpgrp() == 0`) inside the container's PID namespace.
 6. Fail if relocation/testing fails or no real tests run. Retain local ignored
    reports/logs/binaries; remove created containers and retain toolchain/registry caches.
 

@@ -28,9 +28,12 @@ before selection.
    readelf audit and six negative controls.
 4. Hash-copy every executable into the unchanged digest-pinned SLES 12 SP5
    runtime. Require eager relocation, actual target tests and the service smoke
-   check, in both production and retained qualification modes. Keep application
-   builds offline/locked; provision sources separately. Run the two full gates
-   sequentially in native Ubuntu WSL2 and retain failures as well as passes.
+   check, in both production and retained qualification modes. Launch target
+   test executables in their own visible session/group with `setsid --wait`,
+   preserving failure exit statuses and verifying the launch environment first.
+   Keep application builds offline/locked; provision sources separately. Run
+   both full gates sequentially in native Ubuntu WSL2 and retain failures as
+   well as passes.
 5. Update CI, agent instructions and current user documentation. Preserve old
    reports and inventories as historical Zig evidence. Record actual new run IDs,
    artifacts, source hashes, image identity, package inventory and limitations.
@@ -50,7 +53,7 @@ OCI image inspection and installed Debian package list are saved with each gate.
 The Rust base and cargo-libc version/lock are pinned. Debian package repositories
 are not snapshotted, so rebuilding the builder later may change Clang/binutils
 package revisions; tool/package/image evidence identifies the actual build.
-Retain the built image for byte-exact reproduction.
+Retain the built image and raw packs to preserve the exact historical inputs.
 
 The provider linker emits dynamically linked `ET_EXEC` (non-PIE) executables,
 as observed in both production profiles. This is cargo-libc's current provider
@@ -64,10 +67,24 @@ source deletion stay disabled.
 
 ## Results
 
-Production run `20261101T181414Z-b2a31c1e` passed 211 tests in each of debug
-and release, 20 independent ELF audits and six negative controls, with no cleanup
-error. Qualification run `20261101T184249Z-346c7961-nfs-qualification` is in
-progress; it is not yet a passing result.
+Both native WSL gates passed with Rust runtime code/manifests/Cargo.lock unchanged:
+
+| Mode | Run | Debug tests passed | Release tests passed |
+| --- | --- | ---: | ---: |
+| Production | `20261101T181414Z-b2a31c1e` | 211 | 211 |
+| Qualification | `20261101T184249Z-346c7961-nfs-qualification` | 213 | 213 |
+
+Each gate audited and inspected 20 executables, exercised six audit negative
+controls and completed cleanup without errors. Independent post-run verification
+matched both 62-file source snapshots to current Rust inputs, checked both
+archive hashes, rehashed all 40 retained binaries and checked every cargo-libc
+inspection. [The evidence record](CARGO-LIBC-EVIDENCE.json) retains the reports,
+report hashes and actual local builder image identity. Raw packs remain in
+`/home/joey/GIT/background-file-mover-testing/rust/validation/`.
+
+These local gates ran the integration at `bdd24d8`; subsequent CI launcher fixes
+do not change Rust inputs, toolchain configuration or the builder recipe. Final
+CI gates additionally validate the new session launcher on GitHub's OCI engine.
 
 The initial production attempt `20261101T181211Z-de05dc4d` failed before any
 application build/test because the harness combined provider diagnostics on
@@ -75,6 +92,26 @@ stderr with generated TOML on stdout. The corrected gate keeps these streams
 separate, validates the TOML before use and passes two regression tests on both
 Windows and native WSL. The failed report/logs remain retained.
 
-Independent read-only cloud patch review found no actionable issues. It did not
-build or run the application and does not substitute for local execution.
-Historical evidence remains unchanged.
+GitHub initially exposed a pre-existing container-launch problem: the service's
+`rustix::process::getpgrp()` panicked because its group was outside the visible
+PID namespace (group ID zero). Run `41339459969` failed immediately in both
+modes; `41339844179` retained full diagnostics identifying the panic. The older
+ZigBuild run `39820695958` had the same 12/72 production and 9/75 qualification
+pass/fail counts. No runtime ownership assertion was removed or weakened.
+
+The corrected launcher uses SLES's `setsid --wait`, records PID == PGID == SID > 0
+before testing, and preserves child failure status. A local SLES probe verified
+matching positive IDs and propagation of exit status 7; old SLES `ps` requires
+separate `-o` options for the preflight columns. CI now retains diagnostic
+reports/logs for 14 days and allows 60 minutes per mode for complete runs.
+
+Final [CI run 41340296012](https://github.com/joey-huckabee/background-file-mover/actions/runs/41340296012)
+passed both complete modes at commit `b6d90ac`: production 211 and qualification
+213 tests in each of debug/release. Its reports confirm private positive test
+sessions and no cleanup errors. Downloaded CI reports and their hashes are
+retained alongside local results in [the evidence record](CARGO-LIBC-EVIDENCE.json).
+
+Two independent read-only cloud reviews, covering the migration and the session
+fix respectively, found no actionable issues. They did not build or run the
+application and do not substitute for execution. Historical evidence remains
+unchanged; all eight release gates remain open.

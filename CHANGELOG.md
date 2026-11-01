@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Replace Rust ZigBuild with pinned cargo-libc 0.2.4 and a digest-pinned Rust
+  1.99.0 builder base. Preserve locked dependencies, glibc 2.22, independent
+  ELF audits, debug/release SLES tests and retained qualification features.
+  Add configuration-stream regression checks and retained CI diagnostics;
+  normalize target test sessions to fix the pre-existing CI process-group-zero
+  startup failure. Retain the separate Zig C fixture compiler and document
+  non-PIE/reproducibility limits. Runtime code and REST decisions are unchanged.
+
 - Capture a portable development handoff with exact pending REST decision,
   release/verification reading map, cloud setup steps and testing limits. Add
   a hash inventory of 205 tracked evidence reports and both retained SLES
