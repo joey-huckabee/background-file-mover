@@ -215,7 +215,7 @@ def main() -> int:
         # session/group; --wait preserves a forked program's actual exit status.
         session = run(["podman", "exec", "--user", "1000:1000", runtime,
                        "/usr/bin/setsid", "--wait", "/bin/sh", "-c",
-                       "exec ps -o pid=,pgid=,sid= -p $$"], results / "runtime-session.txt").split()
+                       "exec ps -o pid= -o pgid= -o sid= -p $$"], results / "runtime-session.txt").split()
         if len(session) != 3 or len(set(session)) != 1 or int(session[0]) <= 0:
             raise ValueError(f"target session/process group is not private and visible: {session}")
         report["runtime_session"] = dict(zip(("pid", "pgid", "sid"), map(int, session)))
