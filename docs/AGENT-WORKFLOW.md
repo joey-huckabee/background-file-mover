@@ -44,10 +44,12 @@ artifacts on Linux-native storage. Gate results live under ignored
 
 ## Verified setup and remaining limits
 
-Local readiness: x86_64 Ubuntu 24.04 on WSL2, Python 3.12.3, native rootless
+Initial setup readiness: x86_64 Ubuntu 24.04 on WSL2, Python 3.12.3, native rootless
 Podman 5.8.2 responding to `podman info`, and both digest-pinned builder/runtime
 images present. The gate's help command runs. No Rust build/test or SLES gate
 was run for this agent setup; cached images alone do not establish a gate pass.
+For the subsequent Cargo-libc builder change and fresh gate results, see
+[the migration record](CARGO-LIBC-MIGRATION.md).
 
 Cloud readiness: Debian 12 on ARM64, Python 3.11.2, Git 2.56.0; Podman/Docker
 absent and x86_64 execution unavailable/unverified. Required SLES gates are

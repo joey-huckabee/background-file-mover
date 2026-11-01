@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-01 build-tool migration: Rust validation now uses cargo-libc 0.2.4
+through `scripts/check-rust-sles.py`, superseding cargo-zigbuild requirements
+below. Preserve glibc 2.22, independent ELF audits and both pinned SLES gate
+modes. See `docs/CARGO-LIBC-MIGRATION.md` for plan, results and the retained
+Zig C fixture compiler boundary. REST decisions remain pending as recorded.
+
 2026-11-01 agent setup: the local coordinator works from
 `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`. Ubuntu WSL2 testing
 uses `/home/joey/GIT/background-file-mover-testing`, a separate clone synced
@@ -255,7 +261,7 @@ plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlo
 Backfill prior scenarios and do not describe pending qualification as supported.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
-cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
+cargo-libc target GNU/glibc 2.22, ELF audit and exact target tests in pinned
 SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical
 C++ toolchain/scope/branch guidance below applies to the reference code, and
 does not override this direction. Keep production glibc 2.22 and container-only

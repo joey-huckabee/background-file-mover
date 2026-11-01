@@ -136,16 +136,16 @@ python scripts/check-rust-sles.py
 For this Windows checkout, run from WSL:
 
 ```sh
-bash /mnt/c/Users/Joey/Documents/GIT-GitHub/joey-huckabee/background-file-mover/scripts/test-rust-wsl.sh
+bash /home/joey/GIT/background-file-mover-testing/scripts/test-rust-wsl.sh
 ```
 
 The WSL helper invokes the same Python gate through native Podman. Sources are
-copied into the builder's native container filesystem; compilation never happens
-under `/mnt/c`. It does not change the historical WSL checkout. The pinned builder
-uses Rust 1.99.0, cargo-zigbuild 0.23.4 and Zig 0.16.0, with target
+copied into the builder's native container filesystem. The builder recipe
+uses a digest-pinned Rust 1.99.0 base and cargo-libc 0.2.4, with target
 `x86_64-unknown-linux-gnu.2.22` and baseline x86-64 CPU flags.
 
-The gate checks formatting/Clippy, zigbuilds debug and release targets, audits
+The gate checks formatting/Clippy, builds debug and release targets through
+cargo-libc's exported configuration, audits
 every emitted executable and runs the exact test binaries in pinned SLES userspace
 as UID 1000 with eager binding, no capabilities and no network. Host-only
 `cargo test` is not a completed validation. Future service executables also need
@@ -154,7 +154,7 @@ their own runtime smoke/behavior checks; add those as executable slices arrive.
 Cargo compilation is offline/locked. Missing pinned images, toolchain and locked
 crate sources require provisioning network access; retain their caches for offline
 runs. Logs, binaries and a source snapshot remain in ignored `rust/validation/`.
-Created containers are removed; the named toolchain cache is retained. No validation
+Created containers are removed; the derived builder image is retained. No validation
 data/source archive is uploaded by CI. The registry source cache is also retained.
 See [the platform gate](../docs/RUST-SLES-GATE.md)
 and [increment evidence](../docs/RUST-INCREMENT-01.md). Package experiments remain

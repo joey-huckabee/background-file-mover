@@ -1,6 +1,6 @@
 # Mandatory Rust SLES build and test gate
 
-Every Rust build/test validation must target GNU/glibc 2.22 using cargo-zigbuild
+Every Rust build/test validation must target GNU/glibc 2.22 using cargo-libc
 and execute the resulting tests in pinned SLES 12 SP5 userspace. A host-only
 compile/test pass is insufficient, including for the dependency-free core.
 
@@ -21,13 +21,18 @@ migration as a new SLES pass.
 
 [rust-platform.json](../scripts/rust-platform.json) is the gate's configuration:
 
-- Rust 1.99.0, cargo-zigbuild 0.23.4, Zig 0.16.0.
+- Rust 1.99.0, cargo-libc 0.2.4, source-mode glibc provider, Clang 16/GNU binutils.
 - Target `x86_64-unknown-linux-gnu.2.22`, `-C target-cpu=x86-64`, no musl.
-- Builder `ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5`.
+- Rust base `docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7`,
+  with [the builder recipe](../scripts/Containerfile.rust).
 - Runtime `registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35`.
 
-The image contains Rust 1.93.0 initially; the harness explicitly installs/checks
-1.99.0 using a named toolchain cache. Never silently use the image's older Rust.
+The derived builder installs the exact cargo-libc version with its locked tool
+dependencies and checks Rust/cargo-libc versions before building. The recipe and
+configuration determine its cache tag. Each report retains actual image identity,
+Debian package inventory, generated Cargo configuration and provider verification.
+See [the migration plan/results](CARGO-LIBC-MIGRATION.md) for reproducibility limits
+and the separate legacy `builder` image used only by retained NFS fixtures.
 Provision missing images/toolchain and locked crate sources first; application Cargo builds stay offline
 and locked. Adding dependencies requires their controlled source provisioning
 and qualification; this gate does not unpause E6 or approve arbitrary packages.
@@ -36,9 +41,11 @@ and qualification; this gate does not unpause E6 or approve arbitrary packages.
 
 1. Verify pinned images/tool versions; stage a source snapshot on the builder's
    native container filesystem. Validate formatting and Clippy with warnings denied.
-2. Zigbuild all workspace targets in debug and release, with JSON artifact
+2. Generate cargo-libc's target configuration and build all workspace targets
+   in debug and release, with explicit GNU target and JSON artifact
    discovery. Require actual emitted test binaries, not a successful library-only build.
-3. Audit every executable for x86_64, the standard loader, allowed shared libraries,
+3. Inspect every executable with cargo-libc, then independently audit with readelf
+   for x86_64, the standard loader, allowed shared libraries,
    no RPATH/RUNPATH, no GLIBC_PRIVATE and no GLIBC requirement above 2.22.
    Reject a linked newer-libc renameat2 wrapper; low-level qualified syscalls are
    a separate filesystem design matter.

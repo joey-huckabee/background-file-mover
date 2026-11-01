@@ -33,7 +33,7 @@ def prepare_builder(results: Path) -> str:
     return image
 
 
-def run(args: list[str], log: Path | None = None, timeout: int = 900) -> str:
+def run(args: list[str], log: Path | None = None, timeout: int = 900, *, stdout_only: bool = False) -> str:
     result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
                             errors="replace", timeout=timeout)
     output = result.stdout + result.stderr
@@ -41,7 +41,7 @@ def run(args: list[str], log: Path | None = None, timeout: int = 900) -> str:
         log.write_text(output, encoding="utf-8")
     if result.returncode:
         raise RuntimeError(f"command failed ({result.returncode}): {args[0:3]}\n{output[-4000:]}")
-    return output
+    return result.stdout if stdout_only else output
 
 
 def audit(text: str) -> dict:
@@ -156,7 +156,10 @@ def main() -> int:
         # Export the documented Cargo configuration: preserve JSON discovery of
         # every executable, while keeping host build scripts/proc macros native.
         selection = ["--target", CONFIG["target"], "--provider-mode", CONFIG["provider_mode"], "--cc", CONFIG["cc"]]
-        run(execute + ["cargo", "libc", "env"] + selection + ["--format", "cargo"], results / "cargo-libc.toml")
+        configuration = run(execute + ["cargo", "libc", "env"] + selection + ["--format", "cargo"],
+                            results / "provider-prepare.log", stdout_only=True)
+        tomllib.loads(configuration)  # Refuse diagnostics accidentally mixed into the configuration.
+        (results / "cargo-libc.toml").write_text(configuration, encoding="utf-8")
         run(["podman", "cp", str(results / "cargo-libc.toml"), f"{builder}:/work/cargo-libc.toml"])
         run(execute + ["cargo", "libc", "provider", "verify", "--glibc", "2.22", "--mode", CONFIG["provider_mode"]], results / "provider-verify.log")
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",

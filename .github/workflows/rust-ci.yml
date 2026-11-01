@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+      - name: Check Cargo configuration stream handling
+        run: python3 -m unittest discover -s scripts -p test_rust_sles.py
       - name: Pull pinned Rust base and SLES runtime
         run: |
           command -v podman

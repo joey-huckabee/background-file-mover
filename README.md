@@ -210,7 +210,7 @@ and refuses changed bindings or populated unbound legacy state before readiness.
 See its migration limits and provisioning instructions before using older configs.
 Offline inspection and repair are deferred; prioritize remaining worker isolation
 and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
-Every build/test uses the zigbuild/SLES gate.
+Every Rust build/test uses the [cargo-libc/SLES gate](docs/RUST-SLES-GATE.md).
 Registration/authentication is deferred while tested increments develop. The C++
 implementation described below remains the reference, not the intended Rust architecture.
 
