@@ -2,6 +2,13 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-01 agent setup: the local coordinator works from
+`D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`. Ubuntu WSL2 testing
+uses `/home/joey/GIT/background-file-mover-testing`, a separate clone synced
+from committed coordinator work. This supersedes the historical canonical-WSL
+checkout path below. See `docs/AGENT-WORKFLOW.md` for roles, synchronization and
+validation limits. The cloud child is ARM64 and is not the SLES qualification host.
+
 Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 2026-11-01 development-machine migration: then read `docs/WORKSTATION-HANDOFF.md`
 and `docs/WORKSTATION-EVIDENCE-INVENTORY.json`. These preserve resume context,
