@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-45, remaining schema decisions and
+current discussion, approved contract groups 1-46, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -636,8 +636,9 @@ Use existing service job IDs and each job's current stored state. The admin must
 be signed in; authentication is separate from this body. Do not include a
 username/password in each action request. Cancel/clear/delete retain their
 confirmation requirements; retry has none. Apply existing review/custody and
-protected-file rules. Exact endpoint names/methods, list validation/limits,
-and login/session transport remain to settle. Group 42 silently skips
+protected-file rules. Exact endpoint names/methods and list validation/limits
+remain to settle. Group 46 selects browser session-cookie transport for dashboard
+sign-in; exact login/logout wire is pending. Group 42 silently skips
 nonexistent selected job IDs and processes the rest (SC-170/API-E119); this does
 not turn unreadable state into a missing ID or discard retained-data ownership
 after history clear. Group 43 processes repeated entries again; do not deduplicate
@@ -689,6 +690,20 @@ still go through the per-job operation; exact duplicate-retry outcomes and whole
 request replay remain to settle. Authentication/validation/storage errors keep
 separate handling; exact endpoints, bounds and other wire details remain pending.
 See [group 45/API-E122/SC-173](REST-ERROR-SCENARIOS.md#retry-attempt-response-accepted-failed-and-skipped-counts-group-45).
+
+## Dashboard sign-in session cookie (group 46)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Use a browser
+session cookie to keep the dashboard admin signed in and authenticate subsequent
+admin requests. Preserve the configurable 30-minute inactivity timeout and
+all-session sign-out on password change or mover restart. Expiry/sign-out does
+not stop transfers. Admin account setup/password changes remain host-local;
+producer credentials do not authorize admin actions.
+
+Cookie attributes/name, login/logout paths/methods/bodies, manual logout scope,
+browser-restart persistence and session implementation details remain to settle.
+Keep ordinary HTTPS/password/session hygiene without expanding account features.
+See [group 46/API-E123/SC-174](REST-ERROR-SCENARIOS.md#browser-session-cookie-for-dashboard-sign-in-group-46).
 
 ## Missing file retry and operator review
 

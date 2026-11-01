@@ -18,8 +18,8 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Future work | [Roadmap](ROADMAP.md) | Remove completed tasks; keep history elsewhere. |
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
-| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-45 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 173 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-46 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 174 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |
@@ -32,7 +32,11 @@ Use these sources together; the roadmap alone is not the whole specification.
 
 We are in P01/API-I01, agreeing the REST contract before versioned OpenAPI and
 related implementation. All eight release gates remain open. The latest saved
-contract decision is group 45 (2026-11-01), API-E122/SC-173:
+contract decision is group 46 (2026-11-01), API-E123/SC-174: use a browser session
+cookie for dashboard admin sign-in, preserving agreed expiry/sign-out rules and
+unaffected transfers. Manual logout scope and exact wire remain pending.
+
+The preceding group 45 retry response is also approved:
 
 ```json
 {
@@ -45,15 +49,16 @@ contract decision is group 45 (2026-11-01), API-E122/SC-173:
 Both cancellation (group 44) and failed-work retry (group 45) use HTTP 202
 with these three count fields. Retry counts describe attempts, not successful
 transfers. **The user approved the retry response shape on 2026-11-01.**
-Next decide browser session-cookie login, then consolidate remaining response/
-login/schema/replay decisions. No runtime implementation is authorized yet.
+Browser session-cookie login is now approved in group 46. Next decide whether
+manual logout ends only the current browser session, then consolidate remaining
+response/login/schema/replay decisions. No runtime implementation is authorized yet.
 
 Accepted admin behavior to preserve:
 
 - One account, username/password; setup and password changes on the mover host.
   Remote dashboard access required. SSO, advanced account management and
   registration are deferred. Ordinary HTTPS/password/session implementation
-  details remain; browser session cookies were proposed, not explicitly frozen.
+  details remain; browser session cookies are approved in group 46.
 - Password changes invalidate every session; restart also signs sessions out.
   Configurable inactivity timeout defaults to 30 minutes. Sign-out/expiry do not
   cancel jobs; jobs use normal durable recovery after restart.
@@ -270,5 +275,6 @@ tracked report inventory/hashes, retained SLES archive/source/binary identity,
 links/JSON/examples, stable 121 API/172 SC/six DOC identifiers and staged whitespace.
 No Rust build/test or NFS/systemd fixture was run for this migration audit.
 At the migration audit, retry accepted/failed/skipped counts were still pending.
-Group 45 subsequently approved them on 2026-11-01; other wire/schema decisions
+Group 45 subsequently approved them on 2026-11-01; group 46 then approved
+browser session-cookie sign-in. Other wire/schema decisions
 remain unsettled and implementation/qualification is pending.

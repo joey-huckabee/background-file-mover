@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve browser session-cookie dashboard sign-in (group 46/API-E123/SC-174).
+  Preserve agreed expiry, password-change/restart sign-out and transfer independence.
+  Exact cookie/login/logout wire and implementation/qualification remain pending.
+
 - Approve failed-work retry HTTP 202 with accepted_count, failed_count and
   skipped_count for per-entry attempts. Add planned API-E122/SC-173 (group 45);
   preserve actual progress, custody and existing retry/review checks. Contract

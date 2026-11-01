@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-five groups in successive review replies.
+The user approved the following forty-six groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-45 add API-E61-122 below.
+direction, not new runtime capabilities. Groups 14-46 add API-E61-123 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-122 are review keys, not replacement requirements or SC IDs.
+API-E01-123 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1381,10 +1381,10 @@ an additional identifier scheme or an action-discriminator field in the body.
 
 This is an authenticated admin request body, not a login or recorder submission.
 Admin authentication is checked separately before effects; a job ID is not a
-credential. Do not add username/password to each action body. Exact login/
-session transport, endpoint paths/methods, numeric bounds and empty lists,
-request limits remain to finalize; group 42 resolves nonexistent-ID skips. The proposed browser
-session-cookie flow is not selected merely by approval of this action shape.
+credential. Do not add username/password to each action body. Exact login/logout
+wire, endpoint paths/methods, numeric bounds, empty lists and request limits
+remain to finalize; group 42 resolves nonexistent-ID skips. Group 46 separately
+approves browser session-cookie sign-in; this was not implied by group 41.
 
 Preserve action-specific semantics: cancel/clear/delete require the agreed
 confirmations; eligible failed-work retry does not. Use each job's current state,
@@ -1560,7 +1560,32 @@ contract only, with no runtime implementation or passing qualification claim.
 | API-E122 | Admin failed-work retry selection produces accepted, failed or skipped attempts | Return 202 Accepted with accepted_count, failed_count and skipped_count describing retry attempts; show actual progress and outcome separately | Approved count fields; implementation/qualification and remaining wire/replay details pending. No transfer-success claim, cancelled-job revival or change to retry/review policy. |
 
 SC-173 and DOC-01/02/03/04/05 must distinguish retry attempt counts from actual
-transfer progress and outcome. Next settle minimal dashboard login/session wire.
+transfer progress and outcome. Group 46 below resolves browser session-cookie
+transport; remaining login/logout wire details are pending.
+
+## Browser session cookie for dashboard sign-in (group 46)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Dashboard
+admin sign-in uses a browser session cookie to keep the admin signed in. The
+browser supplies that session cookie with subsequent dashboard/admin requests;
+producer credentials alone do not grant admin access.
+
+Preserve the previously agreed rules: configurable 30-minute inactivity timeout,
+all-session invalidation after password changes and mover restart, and no effect
+on background transfers when dashboard access expires or sessions are signed out.
+The single account is still configured and changed locally on the mover host.
+This approval does not settle cookie attributes/name, exact login/logout wire,
+manual logout scope, browser-restart persistence, session storage or replay/
+concurrency details. Keep ordinary HTTPS/password/session hygiene; no broader
+account-management or registration feature is introduced.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E123 | Dashboard admin signs in and makes subsequent admin requests | Use a browser session cookie for the authenticated dashboard session, preserving existing expiry, password-change/restart sign-out and transfer-independence rules | Approved session transport; exact cookie/login/logout wire and implementation/qualification pending. Producer access does not grant admin powers. |
+
+SC-174 and DOC-01/02/03/04/05 must explain cookie-based dashboard sign-in and
+existing session invalidation without implying job cancellation. Next decide
+whether manual logout ends only the current browser session.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1586,7 +1611,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-45 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-46 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1604,12 +1629,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-122 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-123 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-122 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-123 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.
