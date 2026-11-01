@@ -8,6 +8,15 @@ Run `python scripts/check-rust-sles.py` from the repository root (Python 3.11+,
 Podman). On Linux use python3 if needed; the WSL shell helper invokes the same
 gate. GitHub's Rust workflow runs it on each relevant push/pull request.
 
+## Moving the gate to another machine
+
+Use [the portable handoff](WORKSTATION-HANDOFF.md) for clone/provision commands,
+current exact baseline and ignored raw-pack limitations. The tracked reports
+and [migration inventory](WORKSTATION-EVIDENCE-INVENTORY.json) preserve historical
+hashes, not local binaries/containers/caches. Run fresh gates when artifacts are
+needed on a new host; do not invent old run directories or treat a documentation
+migration as a new SLES pass.
+
 ## Pinned inputs
 
 [rust-platform.json](../scripts/rust-platform.json) is the gate's configuration:

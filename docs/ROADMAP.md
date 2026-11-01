@@ -15,10 +15,12 @@ another NFS experiment merely because more combinations are possible.
 
 ## Next work
 
-Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. Next resolve
-the simple username/password admin login/session contract, plus
-API/bulk/concurrency and remaining
-schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
+Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. On a new
+computer follow [the portable handoff](WORKSTATION-HANDOFF.md) to provision the
+verification environment and preserve any required local-only evidence before
+discarding the old workstation. Settle the pending retry response counts before
+freezing admin wire schemas. Finalize the simple username/password login/session
+wire contract, API/bulk/concurrency and remaining schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
 Encode the required UUID recording_id; finalize lexical canonicalization. Preserve approved order-independent file replay.
 

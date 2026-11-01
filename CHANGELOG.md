@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Capture a portable development handoff with exact pending REST decision,
+  release/verification reading map, cloud setup steps and testing limits. Add
+  a hash inventory of 205 tracked evidence reports and both retained SLES
+  source/artifact baselines. Document that ignored raw packs/caches are not
+  transferred by Git; no runtime or new qualification change.
+
 - Approve cancellation HTTP 202 with accepted_count, failed_count and skipped_count for per-entry attempts. Add planned API-E121/SC-172; preserve pending safe-stop status, duplicate failures and silent skips. Documentation only.
 
 - Process duplicate admin job_ids entries again without batch deduplication/state prediction. Per-job cancellation decides the result; a duplicate cancel counts as a failed attempt without failing the job or resetting cancellation. Add planned API-E120/SC-171. Documentation only.

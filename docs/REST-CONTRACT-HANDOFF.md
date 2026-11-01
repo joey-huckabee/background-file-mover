@@ -1,6 +1,6 @@
 # REST contract shutdown handoff
 
-Updated 2026-10-24 on `feature/rust-transfer-coordinator`.
+Updated 2026-11-01 on `feature/rust-transfer-coordinator`.
 Reviewed documentation through `d0dc013` before this checkpoint. This handoff
 adds no runtime implementation, dependency or qualification result.
 
@@ -67,6 +67,16 @@ Next settle retry response counts and finalize
 minimal login/logout and exact wire details without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
+
+## Moving to another computer (2026-11-01)
+
+Read [the portable workstation handoff](WORKSTATION-HANDOFF.md) for the complete
+reading map, implementation-versus-contract distinction, exact unanswered retry
+count question, cloud prerequisites and verification/evidence-transfer limits.
+[The evidence inventory](WORKSTATION-EVIDENCE-INVENTORY.json) records tracked
+report hashes and the two retained SLES source/artifact baselines. Raw packs
+under ignored rust/validation/ do not arrive in a Git clone; preserve them
+separately if historical raw auditability is needed. No new build/test is claimed.
 
 ## Where we stopped
 

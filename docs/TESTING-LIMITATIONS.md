@@ -25,6 +25,17 @@ under every machine, filesystem or failure. Read the raw reports and
 [scenario catalog](RUST-SCENARIOS.md) alongside this matrix. All eight
 [first-release gates](RUST-FIRST-RELEASE.md) remain open.
 
+## Evidence portability
+
+[The workstation handoff](WORKSTATION-HANDOFF.md) distinguishes Git-tracked
+reports/procedures from ignored raw rust/validation/ packs, local caches and VM
+state. [The inventory](WORKSTATION-EVIDENCE-INVENTORY.json) records the migration
+baseline's report/source/artifact hashes. A Git clone preserves the specification
+and recorded reports, not every historical raw log/binary/capture. Fresh gates
+produce new packs, not the old run's proof. Cloud kernel/privilege compatibility
+must be checked independently. No new compatibility/fault pass is implied by
+copying the repository or by source/hash integrity checks.
+
 ## Current operating boundary
 
 The production build remains a trusted loopback/protected-local-filesystem

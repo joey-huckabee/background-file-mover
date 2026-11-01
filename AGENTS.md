@@ -3,6 +3,12 @@
 ## Current direction (2026-10-13)
 
 Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
+2026-11-01 development-machine migration: then read `docs/WORKSTATION-HANDOFF.md`
+and `docs/WORKSTATION-EVIDENCE-INVENTORY.json`. These preserve resume context,
+cloud prerequisites and tracked-versus-local verification artifacts. Raw
+rust/validation/ packs are ignored and not transferred by Git. The pending
+retry response-count proposal is not approved; do not infer approval from migration.
+Moving the checkout is not authorization to move active service custody/state.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
@@ -26,8 +32,9 @@ SC-142/API-E73-74), unimplemented. Detailed job history stays until admin
 clears it using the dashboard (group 18/SC-143/API-E75); no automatic expiry or
 compact-only replacement. Admin clear forgets those UUIDs: later submissions
 are new recordings. Only completed/safely cancelled jobs may be cleared; cancel
-unfinished/errored jobs first (group 19/SC-144/145/API-E76-80). Next settle
-file disposition at history clear, admin wire/bulk/concurrency and release placement.
+unfinished/errored jobs first (group 19/SC-144/145/API-E76-80). Preserve agreed
+file disposition at history clear; finalize remaining admin wire/bulk/concurrency
+and release placement.
 Cancellation preserves all existing files in place (group 20/SC-146/API-E81-86);
 blocked workers/uncertain publication keep it pending. No automatic restore/delete.
 History clear preserves files and separate ownership/accounting but forgets
