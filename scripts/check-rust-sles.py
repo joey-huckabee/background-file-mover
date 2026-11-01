@@ -210,6 +210,15 @@ def main() -> int:
         if runtime_version != "glibc 2.22":
             raise ValueError(f"wrong runtime glibc: {runtime_version}")
         run(["podman", "exec", runtime, "cat", "/etc/os-release"], results / "runtime-os.txt")
+        # Older OCI exec implementations can inherit a process group outside
+        # this PID namespace (getpgrp() == 0). Give target processes a visible
+        # session/group; --wait preserves a forked program's actual exit status.
+        session = run(["podman", "exec", "--user", "1000:1000", runtime,
+                       "/usr/bin/setsid", "--wait", "/bin/sh", "-c",
+                       "exec ps -o pid=,pgid=,sid= -p $$"], results / "runtime-session.txt").split()
+        if len(session) != 3 or len(set(session)) != 1 or int(session[0]) <= 0:
+            raise ValueError(f"target session/process group is not private and visible: {session}")
+        report["runtime_session"] = dict(zip(("pid", "pgid", "sid"), map(int, session)))
         for profile in ("debug", "release"):
             print(f"Building with cargo-libc and testing {profile} against SLES/glibc 2.22...", flush=True)
             args = execute + ["cargo", "build", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace",
@@ -259,13 +268,13 @@ def main() -> int:
                 item = {"name": name, "sha256": digest, "test": is_test, "elf": elf_report}
                 profile_report["artifacts"].append(item)
                 if is_test:
-                    test_output = run(runtime_exec + [remote, "--test-threads=1"], results / f"{name}.test")
+                    test_output = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--test-threads=1"], results / f"{name}.test")
                     counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed", test_output)
                     if not counts or any(int(failed) for _, failed in counts):
                         raise ValueError("missing successful test result")
                     profile_report["tests_passed"] += sum(int(passed) for passed, _ in counts)
                 else:
-                    smoke = run(runtime_exec + [remote, "--check-platform"], results / f"{name}.smoke")
+                    smoke = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--check-platform"], results / f"{name}.smoke")
                     if "file-mover 0.1.0 local-claim prototype" not in smoke:
                         raise ValueError("service runtime smoke failed")
                     if f"build={mode}" not in smoke:
