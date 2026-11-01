@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Rust with zigbuild, audit every executable, and test in pinned SLES."""
+"""Build Rust with cargo-libc, audit every executable, and test in pinned SLES."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -16,6 +16,21 @@ import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = json.loads((ROOT / "scripts/rust-platform.json").read_text())
+
+
+def prepare_builder(results: Path) -> str:
+    """Cache a recipe/config-specific builder; record its actual image and tools."""
+    recipe = ROOT / "scripts/Containerfile.rust"
+    inputs = recipe.read_bytes() + json.dumps(CONFIG, sort_keys=True).encode()
+    image = "localhost/file-mover-cargo-libc:" + hashlib.sha256(inputs).hexdigest()[:20]
+    if subprocess.run(["podman", "image", "exists", image], capture_output=True).returncode:
+        print("Preparing cargo-libc builder (first run may take several minutes)...", flush=True)
+        run(["podman", "build", "--jobs", "1", "--tag", image,
+             "--build-arg", f"RUST_IMAGE={CONFIG['builder_base']}",
+             "--build-arg", f"CARGO_LIBC_VERSION={CONFIG['cargo_libc']}",
+             "--file", str(recipe), str(ROOT / "scripts")], results / "builder-build.log", timeout=1800)
+    run(["podman", "image", "inspect", image], results / "builder-image.json")
+    return image
 
 
 def run(args: list[str], log: Path | None = None, timeout: int = 900) -> str:
@@ -94,28 +109,24 @@ def main() -> int:
     containers = []
     print(f"SLES validation: {results}", flush=True)
     try:
-        for role in ("builder", "runtime"):
+        builder_image = prepare_builder(results)
+        report["builder_recipe_sha256"] = hashlib.sha256((ROOT / "scripts/Containerfile.rust").read_bytes()).hexdigest()
+        report["builder_image"] = builder_image
+        for role in ("runtime",):
             available = subprocess.run(["podman", "image", "exists", CONFIG[role]], capture_output=True)
             if available.returncode:
                 print(f"Pulling pinned {role} image...", flush=True)
                 run(["podman", "pull", CONFIG[role]], results / f"{role}-pull.log")
             run(["podman", "image", "inspect", CONFIG[role]], results / f"{role}-image.json")
-        cache = "file-mover-rustup-1-99"
         registry = "file-mover-cargo-registry"
-        for volume in (cache, registry):
+        for volume in (registry,):
             exists = subprocess.run(["podman", "volume", "inspect", volume], capture_output=True)
             if exists.returncode:
                 run(["podman", "volume", "create", volume])
-        print("Ensuring pinned Rust toolchain (cached between runs)...", flush=True)
-        run(["podman", "run", "--rm", "--volume", f"{cache}:/toolchain",
-             "--env", "RUSTUP_HOME=/toolchain", "--entrypoint", "rustup", CONFIG["builder"],
-             "toolchain", "install", CONFIG["rust"], "--profile", "minimal", "--component",
-             "rustfmt,clippy", "--target", "x86_64-unknown-linux-gnu", "--no-self-update"], results / "setup.log")
-        builder = run(["podman", "create", "--network", "none", "--volume", f"{cache}:/toolchain",
+        builder = run(["podman", "create", "--network", "none",
                        "--volume", f"{registry}:/usr/local/cargo/registry",
-                       "--env", "RUSTUP_HOME=/toolchain", "--env", "RUSTFLAGS=-C target-cpu=x86-64",
                        "--env", "LIBSQLITE3_FLAGS=-USQLITE_THREADSAFE -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 -USQLITE_DEFAULT_MEMSTATUS -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_ENABLE_API_ARMOR",
-                       "--entrypoint", "/bin/sh", CONFIG["builder"], "-c", "exec sleep infinity"]).strip()
+                       "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
         containers.append(builder)
         run(["podman", "start", builder])
         archive = results / "source.tar.gz"
@@ -128,9 +139,8 @@ def main() -> int:
         run(["podman", "exec", builder, "/bin/sh", "-c",
              "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
         # Provision locked sources separately; no application build runs online.
-        provisioner = run(["podman", "create", "--volume", f"{cache}:/toolchain",
-                           "--volume", f"{registry}:/usr/local/cargo/registry", "--env", "RUSTUP_HOME=/toolchain",
-                           "--entrypoint", "/bin/sh", CONFIG["builder"], "-c", "exec sleep infinity"]).strip()
+        provisioner = run(["podman", "create", "--volume", f"{registry}:/usr/local/cargo/registry",
+                           "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
         containers.append(provisioner)
         run(["podman", "start", provisioner])
         run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
@@ -138,12 +148,17 @@ def main() -> int:
         print("Provisioning the locked E1–E5 dependency graph...", flush=True)
         run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
-                     "rustc --version; cargo --version; cargo-zigbuild --version; zig version"], results / "toolchain.txt")
-        if f"rustc {CONFIG['rust']} " not in tools or f"cargo-zigbuild {CONFIG['cargo_zigbuild']}" not in tools:
-            raise ValueError("unexpected Rust/zigbuild version")
-        if CONFIG["zig"] not in tools.splitlines():
-            raise ValueError("unexpected Zig version")
+                     "rustc --version; cargo --version; cargo libc --version; clang-16 --version; gcc --version; ld.bfd --version"], results / "toolchain.txt")
+        if f"rustc {CONFIG['rust']} " not in tools or f"cargo-libc {CONFIG['cargo_libc']}" not in tools.splitlines():
+            raise ValueError("unexpected Rust/cargo-libc version")
+        run(["podman", "exec", builder, "dpkg-query", "-W"], results / "builder-packages.txt")
         execute = ["podman", "exec", "--workdir", "/work", builder]
+        # Export the documented Cargo configuration: preserve JSON discovery of
+        # every executable, while keeping host build scripts/proc macros native.
+        selection = ["--target", CONFIG["target"], "--provider-mode", CONFIG["provider_mode"], "--cc", CONFIG["cc"]]
+        run(execute + ["cargo", "libc", "env"] + selection + ["--format", "cargo"], results / "cargo-libc.toml")
+        run(["podman", "cp", str(results / "cargo-libc.toml"), f"{builder}:/work/cargo-libc.toml"])
+        run(execute + ["cargo", "libc", "provider", "verify", "--glibc", "2.22", "--mode", CONFIG["provider_mode"]], results / "provider-verify.log")
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
                                              "--filter-platform", "x86_64-unknown-linux-gnu"] + features, results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
@@ -181,7 +196,7 @@ def main() -> int:
                     raise ValueError(f"unqualified features for {package['name']}")
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
-        run(execute + ["cargo", "clippy", "--offline", "--locked", "--workspace", "--all-targets",
+        run(execute + ["cargo", "clippy", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
         runtime = run(["podman", "create", "--network", "none", "--cap-drop", "all",
                        "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh",
@@ -193,9 +208,9 @@ def main() -> int:
             raise ValueError(f"wrong runtime glibc: {runtime_version}")
         run(["podman", "exec", runtime, "cat", "/etc/os-release"], results / "runtime-os.txt")
         for profile in ("debug", "release"):
-            print(f"Zigbuilding and testing {profile} against SLES/glibc 2.22...", flush=True)
-            args = execute + ["cargo", "zigbuild", "--offline", "--locked", "--workspace",
-                              "--all-targets", "--target", CONFIG["target"], "--message-format", "json"] + features
+            print(f"Building with cargo-libc and testing {profile} against SLES/glibc 2.22...", flush=True)
+            args = execute + ["cargo", "build", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace",
+                              "--all-targets", "--target", "x86_64-unknown-linux-gnu", "--message-format", "json"] + features
             if profile == "release":
                 args.append("--release")
             output = run(args, results / f"{profile}-build.log")
@@ -218,6 +233,7 @@ def main() -> int:
                 if options.qualification:
                     name += "-nfs-qualification"
                 local = results / name
+                run(execute + ["cargo", "libc", "inspect", path, "--max-glibc", "2.22", "--json"], results / f"{name}.cargo-libc.json")
                 elf_text = run(execute + ["readelf", "-W", "-h", "-l", "-d", "--dyn-syms", path], results / f"{name}.elf")
                 elf_report = audit(elf_text)
                 if "audit_negative_controls" not in report:

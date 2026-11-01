@@ -2,9 +2,10 @@ name: Rust SLES compatibility
 
 on:
   push:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    # Include the builder recipe as a qualification input.
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/Containerfile.rust", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   pull_request:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/Containerfile.rust", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   workflow_dispatch:
 
 permissions:
@@ -24,15 +25,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      - name: Pull pinned builder and runtime
+      - name: Pull pinned Rust base and SLES runtime
         run: |
           command -v podman
           python3 - <<'PY'
           import json, subprocess
           from pathlib import Path
           config = json.loads(Path("scripts/rust-platform.json").read_text())
-          for role in ("builder", "runtime"):
+          for role in ("builder_base", "runtime"):
               subprocess.run(["podman", "pull", config[role]], check=True)
           PY
-      - name: Zigbuild, ELF audit and SLES debug/release tests
+      - name: Cargo-libc, ELF audit and SLES debug/release tests
         run: python3 scripts/check-rust-sles.py ${{ matrix.mode == 'nfs-qualification' && '--qualification' || '' }}
