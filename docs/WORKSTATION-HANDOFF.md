@@ -214,11 +214,12 @@ from a new build or edit a report to pretend the old binary was transferred.
    ```
 
    Windows can use python instead; scripts/test-rust-wsl.sh invokes the same gate
-   from WSL. These run debug/release zigbuild, ELF audit and exact-target tests
+   from WSL. These run debug/release Cargo-libc builds, ELF audit and exact-target tests
    under pinned SLES 12 SP5 userspace with glibc 2.22. Host-only cargo tests are
-   insufficient. Rust 1.99.0, cargo-zigbuild 0.23.4 and Zig 0.16.0 are the saved
-   pins; the gate explicitly provisions the toolchain, not the builder's older
-   initial Rust. Get actual new run directories from gate output, not old IDs.
+   insufficient. Rust 1.99.0 and cargo-libc 0.2.4 are the current pins; see
+   [the builder migration](CARGO-LIBC-MIGRATION.md). Historical reports/inventory
+   retain their original ZigBuild inputs. Get actual new run directories from
+   gate output, not old IDs.
 6. For NFS/systemd work, choose a named finite RC/P package first. Follow its
    step-by-step lab with the exact passing gate artifacts, both modes as required,
    source/fixture input checks and owned-resource cleanup. Do not launch the

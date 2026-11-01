@@ -94,8 +94,9 @@ Use [DASHBOARD-DESIGN-NOTES.md](DASHBOARD-DESIGN-NOTES.md) for the offline/secur
 requirements and status-query/polling findings when designing the operator UI.
 
 Retain x86_64 GNU/glibc 2.22, baseline CPU settings, no musl, modern controlled
-builds and pinned SLES-equivalent container validation. The user's builder remains
-unqualified; cargo-zigbuild is the reference. The conversation's actual-host test
+builds and pinned SLES-equivalent container validation. The requested Cargo-libc
+replacement uses the same [mandatory gates](CARGO-LIBC-MIGRATION.md); historical
+ZigBuild evidence remains tied to its original artifacts. The conversation's actual-host test
 suggestion does not override the user's explicit container-only preference.
 Preserve the [NFS fixture note](NFS-TEST-FIXTURE.md). Old kernel/CPU and storage
 durability coverage remain limited. Disconnected builds need toolchain/targets,
@@ -212,7 +213,7 @@ administration is assumed. Production NFS/deletion and remote ingress stay off;
 registration stays deferred.
 
 Every Rust build/test now requires [RUST-SLES-GATE.md](RUST-SLES-GATE.md): reference
-cargo-zigbuild GNU/glibc 2.22 compilation, ELF audit and exact debug/release test
+cargo-libc GNU/glibc 2.22 compilation, ELF audit and exact debug/release test
 execution in pinned SLES userspace. Run `python scripts/check-rust-sles.py`;
 host-only tests do not satisfy validation, even for early pure-core increments.
 

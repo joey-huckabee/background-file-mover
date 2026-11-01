@@ -200,7 +200,9 @@ session, so it introduces no running experiment needing cleanup. Do not infer
 unrelated machine-wide container/process state from that statement.
 
 Every future Rust build/test must use the production and retained qualification
-GNU/glibc-2.22 cargo-zigbuild, ELF audit and exact-target SLES userspace gates.
+GNU/glibc-2.22 cargo-libc, ELF audit and exact-target SLES userspace gates.
+The separately requested [builder migration](CARGO-LIBC-MIGRATION.md) does not
+approve any pending REST decision.
 Keep container-only compatibility qualification; no real SLES installation
 requirement. Production NFS and source deletion remain disabled. Registration,
 S3, cross-host takeover and offline repair remain deferred; experiments stay

@@ -6,6 +6,12 @@ feature qualification, independent ELF auditing and actual SLES execution.
 REST contract decisions, runtime code, Cargo.lock and operational custody remain
 outside this toolchain change.
 
+The integration follows [cargo-libc's plain Cargo workflow](https://github.com/rustcommons/cargo-libc/blob/main/docs/USER-GUIDE.md#plain-cargo-and-ci)
+and installs [the published 0.2.4 package](https://crates.io/crates/cargo-libc/0.2.4).
+The local cargo-libc checkout was still at 0.2.0; it was inspected without
+changing that repository. The published release was checked against upstream
+before selection.
+
 ## Plan and acceptance
 
 1. Pin Rust 1.99.0's official Bookworm image by digest and published cargo-libc
@@ -46,6 +52,11 @@ are not snapshotted, so rebuilding the builder later may change Clang/binutils
 package revisions; tool/package/image evidence identifies the actual build.
 Retain the built image for byte-exact reproduction.
 
+The provider linker emits dynamically linked `ET_EXEC` (non-PIE) executables,
+as observed in both production profiles. This is cargo-libc's current provider
+link strategy. The existing ABI gate does not enforce a PIE hardening policy;
+shipping hardening remains part of FR-06/P09, not a result of this migration.
+
 cargo-libc's automatic provider and ELF check do not replace pinned SLES runtime
 tests. No kernel simulation, old CPU/kernel, real NAS, NFS fault or production
 support is claimed. All eight release gates remain open; production NFS and
@@ -53,5 +64,17 @@ source deletion stay disabled.
 
 ## Results
 
-Implementation and validation in progress. Do not treat this plan as a passing
-gate report. Historical evidence remains unchanged.
+Production run `20261101T181414Z-b2a31c1e` passed 211 tests in each of debug
+and release, 20 independent ELF audits and six negative controls, with no cleanup
+error. Qualification run `20261101T184249Z-346c7961-nfs-qualification` is in
+progress; it is not yet a passing result.
+
+The initial production attempt `20261101T181211Z-de05dc4d` failed before any
+application build/test because the harness combined provider diagnostics on
+stderr with generated TOML on stdout. The corrected gate keeps these streams
+separate, validates the TOML before use and passes two regression tests on both
+Windows and native WSL. The failed report/logs remain retained.
+
+Independent read-only cloud patch review found no actionable issues. It did not
+build or run the application and does not substitute for local execution.
+Historical evidence remains unchanged.
