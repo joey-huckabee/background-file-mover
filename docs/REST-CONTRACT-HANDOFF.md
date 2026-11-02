@@ -68,8 +68,11 @@ counting retry attempts rather than successful transfers. Group 46 selects a
 browser session cookie for dashboard sign-in (SC-174/API-E123), preserving the
 agreed expiry/sign-out rules. Group 47 requires manual sign-out everywhere
 (SC-175/API-E124) and clarifies that transfers belong to the mover service,
-independently of dashboard credentials/session lifetime. Next settle remaining
-login/logout wire details without an expanded security review. Producer credentials alone
+independently of dashboard credentials/session lifetime. Group 48 approves
+login 200 with cookie, incorrect-credentials 401 with "Invalid username or
+password.", missing/expired-session 401 requiring sign-in, and logout 204 after
+all-session invalidation (SC-176-179/API-E125-128). Next settle exact routes,
+request fields and response schemas without an expanded security review. Producer credentials alone
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
 
@@ -92,9 +95,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-seven reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-eight reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 175 stable SC IDs and six DOC IDs; API-E01-124 are contract/acceptance
+now has 179 stable SC IDs and six DOC IDs; API-E01-128 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -144,7 +147,10 @@ situations, not new passing tests. All eight release gates remain open.
    Browser session-cookie login is approved in group 46, preserving agreed expiry
    and sign-out rules. Group 47 requires manual sign-out to invalidate all admin
    sessions and clarifies service-owned transfers are independent of dashboard
-   credentials/session lifetime. Next finalize remaining wire details. Group 44
+   credentials/session lifetime. Group 48 approves login 200/cookie, incorrect-
+   credentials 401/shared message, missing/expired-session 401 requiring sign-in
+   and logout 204 after all-session invalidation. Next consolidate exact routes,
+   request fields and response schemas with remaining replay details. Group 44
    resolves cancellation JSON: accepted_count, failed_count and skipped_count
    with HTTP 202; counts describe per-entry attempts, not safe-stop completion. Group 43 resolves duplicate entries: process again via the per-job
    action, with duplicate cancels counted as failed cancel attempts. No batch

@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-seven groups in successive review replies.
+The user approved the following forty-eight groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-47 add API-E61-124 below.
+direction, not new runtime capabilities. Groups 14-48 add API-E61-128 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-124 are review keys, not replacement requirements or SC IDs.
+API-E01-128 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1603,8 +1603,9 @@ cancel or restart transfers. Existing explicit job actions retain their separate
 authorization, eligibility and custody rules.
 
 This resolves manual logout scope while preserving password-change/restart
-all-session invalidation. Exact logout endpoint/method/body/status, cookie
-handling and in-flight request/concurrency details remain to finalize. No new
+all-session invalidation. Group 48 selects 204 No Content after successful
+all-session sign-out. Exact logout endpoint/method, cookie handling and in-flight
+request/concurrency details remain to finalize. No new
 runtime behavior or passing qualification evidence is claimed.
 
 | ID | Situation | Required outcome | Evidence/status |
@@ -1614,6 +1615,41 @@ runtime behavior or passing qualification evidence is claimed.
 SC-175 and DOC-01/02/03/04/05 must explain sign-out everywhere and the service's
 independent ownership of transfers. Remaining login/logout wire and other finite
 P01 contract details are still pending.
+
+## Dashboard login, session and logout responses (group 48)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Use these
+responses for dashboard admin authentication:
+
+| Situation | Approved response |
+|---|---|
+| Successful login | 200 OK with the dashboard session cookie |
+| Incorrect credentials | 401 Unauthorized with the generic message "Invalid username or password." |
+| Missing or expired session on a protected admin request | 401 Unauthorized; require sign-in |
+| Successful manual sign-out | 204 No Content after invalidating all admin sessions |
+
+The invalid-credentials message is shared for incorrect usernames and passwords;
+this approval does not define a JSON field name or other error-body encoding.
+Successful logout has no response body, and success is reported only after the
+all-session invalidation required by group 47. Cookie transport and previously
+agreed expiry/invalidation rules remain as approved in groups 27-29 and 46-47.
+
+Exact endpoint paths/methods, login request fields, success/error body schemas,
+headers/cookie attributes, already-signed-out logout/replay and in-flight request
+ordering remain to finalize. Do not invent successful authentication or completed
+session revocation when validation/storage/other request handling fails. No
+runtime implementation or new passing qualification is claimed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E125 | Admin supplies correct login credentials | Return 200 OK with the authenticated dashboard session cookie | Approved status/cookie; exact endpoint/request/success body and implementation/qualification pending. |
+| API-E126 | Admin supplies incorrect login credentials | Return 401 Unauthorized with "Invalid username or password." | Approved shared message/status; exact body schema and implementation/qualification pending. |
+| API-E127 | Protected admin request has a missing or expired session | Return 401 Unauthorized and require sign-in | Approved status/sign-in requirement; exact body/headers and implementation/qualification pending. |
+| API-E128 | Manual admin sign-out successfully invalidates all admin sessions | Return 204 No Content after all-session invalidation; no response body | Approved success status and ordering; remaining endpoint/cookie/replay/concurrency and implementation/qualification pending. |
+
+SC-176-179 and DOC-01/02/03/04/05 must explain these approved outcomes. Next
+consolidate exact login/logout routes, request fields and response body schemas
+with the remaining finite P01 wire/replay decisions.
 
 ## Missing-file mapping: approved, implementation pending
 
@@ -1639,7 +1675,7 @@ contract recommendation, without changing the existing implementation/evidence.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-47 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-48 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1657,12 +1693,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-124 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-128 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-124 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-128 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

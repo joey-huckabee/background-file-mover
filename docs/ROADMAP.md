@@ -21,16 +21,17 @@ verification environment and preserve any required local-only evidence before
 discarding the old workstation. Retry response counts are approved in group 45;
 browser session-cookie sign-in is approved in group 46 and global manual
 sign-out in group 47. Transfers are service-owned and independent of dashboard
-credentials/sessions. Finalize the simple username/password login/session
-wire contract, API/bulk/concurrency and remaining schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
+credentials/sessions. Group 48 approves login/session/logout response statuses.
+Finalize exact routes, request fields and response body schemas for the simple
+username/password login/session contract, API/bulk/concurrency and remaining schema details before OpenAPI. Preserve completed-or-safely-cancelled clear eligibility
 and the approved forgetting of cleared UUIDs; later reuse is new work.
 Encode the required UUID recording_id; finalize lexical canonicalization. Preserve approved order-independent file replay.
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-47). Current missing-file
+  error mappings, envelope and retry timing (groups 1-48). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-124 disposition and preserve original custody.
+  support. Cover every API-E01-128 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.

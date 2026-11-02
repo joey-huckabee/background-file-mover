@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve dashboard authentication response statuses (group 48/API-E125-128/
+  SC-176-179): login 200 with cookie; incorrect credentials 401 with shared
+  "Invalid username or password." message; missing/expired session 401 requiring
+  sign-in; successful global logout 204 with no body after invalidation. Contract
+  documentation only; exact routes/body schemas and implementation pending.
+
 - Approve manual admin sign-out everywhere (group 47/API-E124/SC-175).
   Invalidate every dashboard session across browsers/devices. Clarify that the
   mover service owns transfers independently of dashboard credentials or session

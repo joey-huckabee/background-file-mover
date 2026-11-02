@@ -25,8 +25,8 @@ Moving the checkout is not authorization to move active service custody/state.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-124 for user review
-before P01 is frozen. Groups 1-47 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-128 for user review
+before P01 is frozen. Groups 1-48 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -91,7 +91,11 @@ sign-out rules, transfers unaffected (SC-174/API-E123). Implementation/qualifica
 is pending. Group 47 requires manual admin sign-out to invalidate every
 dashboard session (SC-175/API-E124). Transfers belong to the mover service and
 execute independently of dashboard credentials/session lifetime; dashboard authentication
-events do not pause/cancel/restart them. Next settle remaining wire/login details; no physical delete or general repair tool is qualified yet;
+events do not pause/cancel/restart them. Group 48 approves login 200 with cookie,
+incorrect-credentials 401 with "Invalid username or password.", missing/expired-
+session 401 requiring sign-in, and logout 204 after all-session invalidation
+(SC-176-179/API-E125-128), implementation/qualification pending. Next settle
+exact routes, request/response schemas and remaining wire/replay details; no physical delete or general repair tool is qualified yet;
 finalize lexical canonicalization in the schema, without re-asking UUID versus
 free-form IDs.
 

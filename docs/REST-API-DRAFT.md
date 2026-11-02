@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-47, remaining schema decisions and
+current discussion, approved contract groups 1-48, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -717,9 +717,28 @@ The mover service owns transfers independently of dashboard credentials and
 sessions. Signing in/out, session expiry and dashboard password changes do not pause,
 cancel or restart transfers. Dashboard authentication controls access to admin
 requests; explicit job actions retain their own eligibility and custody checks.
-Exact logout endpoint/method/body/status, cookie handling and in-flight request
-ordering remain to finalize. See
+Group 48 selects 204 No Content after successful all-session invalidation.
+Exact logout endpoint/method, cookie handling and in-flight request ordering
+remain to finalize. See
 [group 47/API-E124/SC-175](REST-ERROR-SCENARIOS.md#manual-admin-sign-out-invalidates-all-sessions-group-47).
+
+## Login, session and logout response statuses (group 48)
+
+**Approved on 2026-11-01; implementation/qualification pending.**
+
+| Situation | HTTP response |
+|---|---|
+| Successful login | 200 OK with session cookie |
+| Incorrect credentials | 401 Unauthorized with "Invalid username or password." |
+| Missing or expired session on a protected admin request | 401 Unauthorized; require sign-in |
+| Successful manual sign-out | 204 No Content after all admin sessions are invalidated |
+
+Use the same invalid-credentials message for incorrect usernames and passwords.
+The exact error JSON/body encoding and successful-login body remain pending.
+Logout success has no body and must follow completed global session invalidation.
+Exact paths/methods, login request fields, headers/cookie attributes, already-
+signed-out logout/replay and in-flight request ordering remain to settle.
+See [group 48/API-E125-128/SC-176-179](REST-ERROR-SCENARIOS.md#dashboard-login-session-and-logout-responses-group-48).
 
 ## Missing file retry and operator review
 

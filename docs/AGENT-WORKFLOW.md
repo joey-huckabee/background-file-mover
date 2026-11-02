@@ -58,8 +58,8 @@ for Rust changes. NFS/systemd labs require their separately documented selected
 prerequisites; readiness does not qualify those labs.
 
 Read `REST-CONTRACT-HANDOFF.md` and `WORKSTATION-HANDOFF.md` before development.
-Groups 1-47 are approved, including retry attempt counts, browser session
-cookies and global manual admin sign-out. Transfers belong to the mover service
+Groups 1-48 are approved, including retry attempt counts, browser session
+cookies, global manual admin sign-out and login/session/logout response statuses. Transfers belong to the mover service
 and run independently of dashboard credentials/sessions. Remaining wire/login
 details and implementation/qualification are pending. All eight
 release gates remain open. Agent setup authorizes no REST implementation,

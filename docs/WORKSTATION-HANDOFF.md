@@ -18,8 +18,8 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Future work | [Roadmap](ROADMAP.md) | Remove completed tasks; keep history elsewhere. |
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
-| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-47 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 175 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-48 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 179 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |
@@ -32,11 +32,15 @@ Use these sources together; the roadmap alone is not the whole specification.
 
 We are in P01/API-I01, agreeing the REST contract before versioned OpenAPI and
 related implementation. All eight release gates remain open. The latest saved
-contract decision is group 47 (2026-11-01), API-E124/SC-175: manual admin
-sign-out invalidates every dashboard session across browsers/devices. Transfers
-belong to the mover service and execute independently of dashboard credentials
-or sessions. Browser session-cookie sign-in remains approved in group 46.
-Exact login/logout wire details remain pending.
+contract decision is group 48 (2026-11-01), API-E125-128/SC-176-179:
+
+- Successful login: 200 OK with session cookie.
+- Incorrect credentials: 401 Unauthorized, "Invalid username or password."
+- Missing/expired session: 401 Unauthorized, require sign-in.
+- Successful manual sign-out: 204 No Content after all-session invalidation.
+
+Exact routes, login request fields, response body schemas, cookie attributes
+and remaining replay/concurrency details are still pending.
 
 The preceding group 45 retry response is also approved:
 
@@ -52,16 +56,20 @@ Both cancellation (group 44) and failed-work retry (group 45) use HTTP 202
 with these three count fields. Retry counts describe attempts, not successful
 transfers. **The user approved the retry response shape on 2026-11-01.**
 Browser session-cookie login is approved in group 46; global manual sign-out
-is approved in group 47. Next consolidate remaining response/login/schema/replay
-decisions. No runtime implementation is authorized yet.
+is approved in group 47. Group 48 resolves the four response statuses above.
+Next consolidate exact routes, request/response schemas and replay decisions.
+No runtime implementation is authorized yet.
 
 Accepted admin behavior to preserve:
 
 - One account, username/password; setup and password changes on the mover host.
   Remote dashboard access required. SSO, advanced account management and
   registration are deferred. Ordinary HTTPS/password/session implementation
-  details remain; browser session cookies are approved in group 46.
+  details remain; browser session cookies are approved in group 46. Group 48
+  approves login 200/cookie, incorrect-credentials 401/shared message and
+  missing/expired-session 401 requiring sign-in.
 - Manual sign-out, password changes and restart invalidate every admin session.
+  Successful manual sign-out returns 204 No Content after global invalidation.
   Configurable inactivity timeout defaults to 30 minutes. The mover service owns
   transfers independently of dashboard credentials/sessions; dashboard
   authentication events do not pause/cancel/restart transfers. Jobs recover normally after a
@@ -281,5 +289,6 @@ No Rust build/test or NFS/systemd fixture was run for this migration audit.
 At the migration audit, retry accepted/failed/skipped counts were still pending.
 Group 45 subsequently approved them on 2026-11-01; group 46 then approved
 browser session-cookie sign-in. Group 47 approves global manual sign-out and
-clarifies transfer independence from dashboard credentials. Other wire/schema decisions
+clarifies transfer independence from dashboard credentials. Group 48 approves
+the four login/session/logout response statuses. Other wire/schema decisions
 remain unsettled and implementation/qualification is pending.
