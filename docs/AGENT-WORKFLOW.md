@@ -20,6 +20,10 @@ overwriting concurrent local work. Resume the existing child with `room-cli
 thread tell thr_xnjapdndei` and a concrete task. When the bundled PowerShell
 launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
+Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
+The coordinator owns the draft and integration; the cloud child reviews contract
+consistency. Groups 1-48 remain approved; implementation awaits remaining decisions.
+
 ## Synchronizing Linux tests
 
 The WSL test clone has `coordinator` pointing to the D: checkout via

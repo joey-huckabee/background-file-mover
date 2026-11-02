@@ -2,6 +2,8 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-48 remain approved; this proposal adds no approval or implementation authorization.
+
 2026-11-01 build-tool migration: Rust validation now uses cargo-libc 0.2.4
 through `scripts/check-rust-sles.py`, superseding cargo-zigbuild requirements
 below. Preserve glibc 2.22, independent ELF audits and both pinned SLES gate

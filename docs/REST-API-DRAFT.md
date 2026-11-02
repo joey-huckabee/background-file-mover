@@ -1,5 +1,7 @@
 # Rust REST API contract draft
 
+Read the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md) for the next P01 review. It separates approved groups 1-48 from proposed routes and four remaining decision packages. Older examples below remain historical and do not enlarge release scope.
+
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
 current discussion, approved contract groups 1-48, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and

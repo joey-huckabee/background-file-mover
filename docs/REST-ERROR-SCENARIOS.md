@@ -1665,6 +1665,9 @@ contract recommendation, without changing the existing implementation/evidence.
 
 ## Decisions still needed before freezing OpenAPI
 
+Use the [consolidated proposal](REST-CONTRACT-PROPOSAL.md) to review these
+remaining details in four packages. It adds no approval group or passing test.
+
 | Decision | Question to settle | Affected scenarios |
 |---|---|---|
 | ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |

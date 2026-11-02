@@ -1,5 +1,7 @@
 # REST contract shutdown handoff
 
+Next review: [consolidated REST contract proposal](REST-CONTRACT-PROPOSAL.md). Review its four decision packages before freezing OpenAPI or implementing changes. This draft records no new approval group.
+
 Updated 2026-11-01 on `feature/rust-transfer-coordinator`.
 Reviewed documentation through `d0dc013` before this checkpoint. This handoff
 adds no runtime implementation, dependency or qualification result.

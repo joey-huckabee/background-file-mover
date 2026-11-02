@@ -15,6 +15,8 @@ another NFS experiment merely because more combinations are possible.
 
 ## Next work
 
+Review the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md): release surface, identity/retained data, admin request replay and consumer manifest. Settle these four packages before the OpenAPI freeze.
+
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. On a new
 computer follow [the portable handoff](WORKSTATION-HANDOFF.md) to provision the
 verification environment and preserve any required local-only evidence before

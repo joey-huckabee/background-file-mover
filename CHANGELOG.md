@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add a consolidated P01 REST route/schema review proposal and four remaining
+  decision packages. Preserve groups 1-48 and existing evidence; no runtime
+  implementation, OpenAPI freeze or release qualification is claimed.
+
 - Approve dashboard authentication response statuses (group 48/API-E125-128/
   SC-176-179): login 200 with cookie; incorrect credentials 401 with shared
   "Invalid username or password." message; missing/expired session 401 requiring

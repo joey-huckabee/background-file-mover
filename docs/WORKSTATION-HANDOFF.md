@@ -1,5 +1,7 @@
 # Moving development to another computer
 
+Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-48 remain the approved baseline.
+
 Recorded 2026-11-01. Branch: `feature/rust-transfer-coordinator`.
 Baseline before this handoff: `686e15c` (groups 1-44). This document is a durable
 entry point for a new developer/agent without the previous chat. It does not
