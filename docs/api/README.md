@@ -56,6 +56,11 @@ The external producer security scheme is a proposed boundary, not deployment
 configuration or proof of protected ingress. Listing/status/retained-data and
 specialized operator schemas remain to finish under the route inventory.
 
+Start the next review with the [short admin-action closeout table](ADMIN-REPLAY.candidate.md#short-closeout-table).
+It separates existing approvals from recommended remaining defaults. Keep user
+review on visible behavior; exact fields and transaction mechanics are engineering
+work. No further encoding-only fixture expansion is planned before implementation.
+
 ## Freeze blockers and recommendations
 
 | Blocker | Recommended next decision/design | Still required before freeze |

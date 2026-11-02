@@ -5,6 +5,51 @@ The compact body remains {"job_ids":[...]}; no new public job or operation ID or
 confirmation dialog is added. Exact wire/storage details below remain proposals.
 [Groups 35/38/41-45](../REST-ERROR-SCENARIOS.md) remain authoritative.
 
+## Short closeout table
+
+2026-11-02: the user asked to proceed with less detail. This table is the next
+behavior review, not another encoding specification. **Proposed** rows are
+recommendations, not new approvals; groups 1-49 remain the approved baseline.
+Routine names, serialization and transaction mechanics are engineering work.
+
+| Situation | Recommended rule | Basis / remaining choice |
+|---|---|---|
+| A valid cancel batch finishes with no jobs newly accepted | Keep 202 and report the real zero accepted/failed/skipped counts. Do not imply any job stopped. | Group 44 already covers processed all-skipped selections. No new approval needed. |
+| A valid retry batch finishes with no jobs newly accepted | Use the same 202 count summary; show zero accepted and actual failed/skipped attempts. Whole-request validation/storage errors remain errors. | Proposed completion of group 45's no-work edge case; no successful-transfer claim. |
+| [42,42] retries eligible job 42 | First occurrence may schedule it; the second independently checks that same frozen review and counts as failed once work is scheduled. Whole-request replay preserves both original outcomes. | Proposed duplicate-retry classification. Do not infer approval from duplicate cancel. |
+| A cancellation response is lost | Dispatch a repeated request against the same stored job. Pending duplicate cancel fails; completed/safely-cancelled/missing entries skip. Never undo the first cancellation or cancel a replacement job. | Existing groups 33/41-44, with proposed transport application. No new target ID. |
+| A history-clear response is lost | Repeating clear reports only jobs actually cleared this time; previously cleared IDs silently skip. Files and separate ownership remain untouched. | Existing groups 19/21/31/39/42. No hidden UUID-recognition tombstone. |
+| History is explicitly cleared after a retry was accepted | Clear that job's detailed command results too. Late retry of the cleared job skips; other uncleared jobs retain their own exact replay results. Original aggregate counts are not promised after clear. | Proposed receipt-lifetime boundary. Never retain hidden detailed history or redirect the old job ID to a reused UUID. |
+| A confirmed deletion is already running | Allow one active sweep per job. Repeat requests observe that same sweep; no second removal attempt or double-counted files. Keep showing actual pending/deleted/failed results. | Proposed concurrency rule, within approved best effort/safe-stop scope. |
+| Deletion finishes with failures and the admin tries again | Require a fresh deliberate confirmation for the remaining safe files. No automatic retry. Show the latest sweep's results under the original job ID, including after history clear; do not promise every older sweep remains separately available. | Fresh explicit request is approved in group 40. Latest-result-only presentation is proposed. |
+| The owned file selection changes after confirmation | Reject the stale confirmation and require a fresh confirmation; never broaden the deletion. An older replay must not start a later sweep. | Proposed stale-selection rule preserving approved exact selection/protected-output safety. |
+| Storage fails partway through a batch | Return an error without fabricated final counts; earlier committed decisions remain valid. Retry uses the original frozen context, and status shows actual progress. | Preserve group 38 and exact replay. No batch-wide rollback claim or false success. |
+
+The two substantial user-visible choices are **what remains available after
+history clear** and **showing only the latest manual-deletion result**. The retry
+no-work/duplicate defaults above complete the agreed count model. We recommend
+these defaults together so the remaining discussion does not become a review of
+individual field names or encoding details.
+
+Receipts for uncleared jobs must not expire automatically or disappear when
+receipt capacity fills. Refuse additional unauditable commands instead. Design
+bounded failed/skipped batch receipt storage without an automatic history purge.
+Clearing one job must not erase the audit/replay protection of other jobs in the
+same selection. A future SQL migration must make those boundaries testable.
+
+Only the latest deletion result is proposed; this does not permit an old
+confirmation to be reused as new intent. Bind it to a monotonic per-job stored
+state version and exact owned-file scope, revalidate before effects, and return
+an existing result or stale refusal rather than start another sweep. This is a
+precondition on the existing job's state, not a new public operation identifier.
+The exact transport and receipt layout are engineering design still to complete.
+
+No new schema fixtures or simulated lifecycle tests are needed to count this
+review as progress. These rows require real storage/action tests when implemented;
+none is new passing evidence. Other P01 engineering work remains: complete read
+schemas, state-preserving UUID migration, legacy/v2 manifest handling and protected
+session/ingress design. They are not six separate user product-approval requests.
+
 ## Why retry needs immutable context
 
 At review epoch 0, an operator retries job 42 and the response is lost. The

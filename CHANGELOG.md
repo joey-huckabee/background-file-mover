@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Consolidate remaining admin-action behavior into a short closeout table:
+  distinguish existing approvals from proposed retry/no-work, post-clear receipt
+  and latest-deletion-result defaults. Reduce further encoding-only planning;
+  no new approval group, runtime implementation or qualification is claimed.
+
 - Specify the candidate Mover-Retry-Context header with canonical encoding,
   ordered lossless job-ID binding, existing-instance precondition and unchanged
   8 KiB aggregate head bound. Add four wire known answers, 52 codec cases and a

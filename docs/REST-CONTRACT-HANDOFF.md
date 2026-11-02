@@ -98,6 +98,13 @@ separately if historical raw auditability is needed. No new build/test is claime
 
 ## Where we stopped
 
+2026-11-02 scope correction: the user says we may be getting into the weeds.
+Agree: further encoding-only work is not the next deliverable. Use the
+[short admin-action table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
+for one consolidated behavior review, with proposals visibly separate from
+already approved behavior. Keep routine technical choices with the coordinator.
+Groups 1-49 remain approved; this scope correction approves no new action policy.
+
 We are completing P01/API-I01: agree the REST contract before freezing OpenAPI
 or starting the dependent Rust changes. The user wants simple questions, one
 manageable decision/group at a time. Do not restart the error-code review or

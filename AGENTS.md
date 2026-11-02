@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-02 scope correction: the user asks for less time in details. Use the
+short closeout table in `docs/api/ADMIN-REPLAY.candidate.md` for remaining visible
+admin behavior. Resolve routine technical choices autonomously; do not expand
+encoding-only planning/fixtures. Proposed defaults are not new approvals;
+groups 1-49 and the contract-before-implementation rule remain unchanged.
+
 2026-11-01 P01 candidate artifacts: see `docs/api/README.md` for partial
 OpenAPI, producer/session/manifest schemas, fixtures and explicit freeze blockers.
 Group 49 (2026-11-02) approves immutable existing review-version/audit context

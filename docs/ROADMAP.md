@@ -22,6 +22,13 @@ review-version/audit context, without changing the job_ids body. No OpenAPI free
 
 ## Next work
 
+Use the [short action closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
+to settle remaining visible defaults together: duplicate/no-work retry results,
+receipt availability after history clear and latest manual-deletion results.
+The user requests less time in details. Complete routine schema/transaction
+choices autonomously; do not grow another encoding-only validation package.
+Preserve the requirement to settle the remaining contract before implementation.
+
 Review the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md): release surface, identity/retained data, admin request replay and consumer manifest. Settle these four packages before the OpenAPI freeze.
 
 Read [the shutdown handoff](REST-CONTRACT-HANDOFF.md) before resuming. On a new
