@@ -9,11 +9,14 @@ the reviewed-state retry header. These files make the schema proposal executable
 
 | File | Purpose and limit |
 |---|---|
-| [openapi.candidate.json](openapi.candidate.json) | Partial OpenAPI 3.1.1 producer and three session operations; route/read/action completion and security details remain blockers. Do not generate production clients. |
-| [contract.candidate.schema.json](contract.candidate.schema.json) | 21 proposed JSON Schema 2020-12 definitions for producer, session, selections/counts and manifest v2. Route-specific code/precedence remains separate. |
-| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 50 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
+| [openapi.candidate.json](openapi.candidate.json) | Partial OpenAPI 3.1.1 producer, three session operations and admin retry; route/read/action completion and security details remain blockers. Do not generate production clients. |
+| [contract.candidate.schema.json](contract.candidate.schema.json) | 25 proposed JSON Schema 2020-12 definitions for producer, session, selections/counts and manifest v2. Route-specific code/precedence remains separate. |
+| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 57 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
 | [REQUEST-IDENTITY.candidate.md](REQUEST-IDENTITY.candidate.md) | Exact proposed immutable-request framing and compatibility limits. |
 | [request-identity-v1.candidate.vectors.json](request-identity-v1.candidate.vectors.json) | Seven input/frame/hash known answers, including unordered replay and distinct Unicode spellings. |
+| [RETRY-HEADER.candidate.md](RETRY-HEADER.candidate.md) | Exact proposed header encoding, instance/selection binding, byte bounds and validation precedence; not a contract freeze. |
+| [retry-context.candidate.vectors.json](retry-context.candidate.vectors.json) | Four wire known answers, 52 decoding cases and explicit NOT_RUN runtime obligations. |
+| [check_retry_context_candidate.py](check_retry_context_candidate.py) | Reproducible standard-library codec checker, no service/SQL/filesystem effects. |
 | [ADMIN-REPLAY.candidate.md](ADMIN-REPLAY.candidate.md) | Concrete reviewed-state context recommendation, crash/duplicate/replay obligations and latest-sweep deletion proposal. |
 | [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 129 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
 
@@ -45,7 +48,8 @@ integers losslessly; ordinary binary64 JSON parsing can round values above
 2^53-1. Exact decimal-string sizes remain an alternative requiring a deliberate
 schema/consumer decision. No new runtime dependency is introduced here.
 
-The partial OpenAPI file does not enumerate every error or complete authentication
+The partial OpenAPI file now includes the retry header parameter and its
+decoded/read-projection schemas. It does not enumerate every error or complete authentication
 and CSRF protection. Its default producer error response describes mover-generated
 JSON only; it does not promise that proxy errors or TLS failures have that body.
 The external producer security scheme is a proposed boundary, not deployment
@@ -57,7 +61,7 @@ specialized operator schemas remain to finish under the route inventory.
 | Blocker | Recommended next decision/design | Still required before freeze |
 |---|---|---|
 | F01 Release surface | Use the consolidated 16-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
-| F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Header transport approved; exact header budget; same-transaction receipts, later-epoch/duplicate/crash semantics and bounded retention |
+| F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Concrete header encoding/bounds candidate supplied and checked; exact error/duplicate/zero-accepted outcomes, same-transaction receipts and bounded retention remain |
 | F03 Clear/delete outcomes | Retain ownership by old job_id; one active deletion sweep and latest-sweep summary | Confirm stale selection, request replay, partial failure and summary lifetime; keep actual files protected |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
@@ -66,13 +70,15 @@ specialized operator schemas remain to finish under the route inventory.
 These blockers are not new approvals or all release gates. They are the remaining
 P01 items, with P02/P03 deployment evidence explicitly separate. Group 49 now
 settles F02 header transport while preserving the compact body and existing job
-identifiers. Complete its exact encoding/bounds and transactional receipt
-design alongside the remaining contract before bulk retry implementation.
+identifiers. Its [exact wire candidate](RETRY-HEADER.candidate.md) now has
+checked encoding/bounds, with existing instance identity as an explicit proposed
+precondition. Complete the remaining outcome/transaction/retention design and
+other contract details before bulk retry implementation.
 
 ## Verification performed
 
 - Existing WSL Python 3.12.3/jsonschema 4.10.3 checked the Draft 2020-12 schema
-  against its metaschema, then all 50 fixture expectations, including rejected
+  against its metaschema, then all 57 fixture expectations, including rejected
   shapes, overflow, disabled-comparison immutable maps and duplicate selections.
 - Eleven separate semantic fixture expectations checked UTF-8 byte lengths,
   map completeness, prefix conflicts, source trailing slash and job-ID range,
@@ -81,9 +87,20 @@ design alongside the remaining contract before bulk retry implementation.
 - All seven identity frames were reconstructed separately using integer byte
   conversion. Python hashlib and OpenSSL agreed with every saved SHA-256.
   File permutations/uppercase UUIDs matched, while map/Unicode changes differed.
+- Windows Python 3.12.10 ran the reference codec checker: four known answers,
+  52 decoding cases, including exact large integers, malformed/duplicate fields,
+  null/duplicate epochs, wrong instance and encoding/aggregate limits. Widest
+  canonical payload/value are 4018/5361 bytes. Node independently matched all
+  four selection frames, SHA-256 values and JSON/base64url headers using BigInt
+  and the saved decimal-string IDs. These checks do not exercise real HTTP,
+  authentication, SQLite scheduling, later-review replay or physical effects.
 - JSON parsing, local references, stable API/SC IDs, trace-row coverage and diff
   whitespace were checked. OpenAPI reference consistency was checked; a full
   OpenAPI validator/client generator and live HTTP tests were not run.
+
+The reproducible codec command is `python docs/api/check_retry_context_candidate.py`.
+The original seven request-identity vectors and eleven semantic examples retain
+their earlier checks; these are separate from the new retry wire checks.
 
 Validation used the existing installed tools and artifact bytes; no install,
 Rust build/test, service start, SQLite migration or NFS/delete qualification was

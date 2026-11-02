@@ -15,8 +15,9 @@ another NFS experiment merely because more combinations are possible.
 
 Complete the [candidate contract bundle](api/README.md) and its F01-F06
 freeze blockers. The producer/session subset, manifest schema proposal and
-identity fixtures are present; full route/read/action schemas and exact retry
-header/receipt design remain. Group 49 approves header transport for existing
+identity fixtures are present; full route/read/action schemas and retry
+outcome/receipt design remain. The [retry header wire candidate](api/RETRY-HEADER.candidate.md)
+now supplies exact encoding/bounds and checked fixtures. Group 49 approves header transport for existing
 review-version/audit context, without changing the job_ids body. No OpenAPI freeze or runtime qualification yet.
 
 ## Next work

@@ -287,8 +287,9 @@ mean the exact replay/intent mechanism still needs design. Options must preserve
 the existing job ID and compact body while proving the operator acted on the
 specific reviewed state, for example through protected precondition context;
 group 49 selects an immutable request header for the existing review version
-and audit context, while keeping the job_ids-only body. Exact header spelling,
-encoding/bounds and transactional receipt design remain pending. No new public
+and audit context, while keeping the job_ids-only body. The [wire candidate](api/RETRY-HEADER.candidate.md) now supplies exact header
+spelling, encoding/bounds, existing-instance precondition and checked fixtures.
+Outcome/transactional receipt design and the overall schema freeze remain pending. No new public
 command identifier or confirmation dialog is added. Complete that design and
 the later-epoch replay cases before implementation.
 

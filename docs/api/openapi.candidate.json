@@ -3,14 +3,14 @@
   "info": {
     "title": "Background File Mover - partial contract candidate",
     "version": "2.0.0-candidate.1",
-    "description": "NOT FROZEN. Partial producer/session wire only; not an implemented API or release surface. See README.md. Do not generate production clients from this draft."
+    "description": "NOT FROZEN. Partial producer/session/retry wire candidate; not an implemented API or complete release surface. See README.md. Do not generate production clients from this draft."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "x-status": "candidate-not-frozen",
   "x-not-for-client-generation": true,
   "x-freeze-blockers": [
     "Route inventory and exact read schemas",
-    "Bulk retry header encoding/bounds and transactional receipt retention (header mechanism approved in group 49)",
+    "Bulk retry receipt retention, duplicate/no-acceptance outcome policy and transaction design; concrete candidate header/bounds now supplied",
     "Clear/delete concurrency, confirmation and asynchronous counts",
     "Global UUID stored-state migration and no-clobber reuse",
     "Manifest numeric encoding and legacy compatibility",
@@ -239,6 +239,86 @@
         "x-contract-cases": [
           "API-E123",
           "API-E127"
+        ]
+      }
+    },
+    "/api/v2/admin/jobs/retry": {
+      "post": {
+        "operationId": "adminRetryFailedJobs",
+        "description": "Candidate only. Group49 approves header transport; exact name/encoding and remaining outcome policies are proposals. Validate frozen context then replay stored occurrence outcomes before new eligibility. No new user confirmation or job identifier.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Mover-Retry-Context",
+            "in": "header",
+            "required": true,
+            "description": "v1. plus canonical unpadded base64url of the fixed-key decoded RetryContextDecoded object. 6144-byte value, 4096-byte decoded payload; aggregate raw head8192 unchanged. Existing instance and ordered selection binding required.",
+            "schema": {
+              "$ref": "./contract.candidate.schema.json#/$defs/RetryContextHeader"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./contract.candidate.schema.json#/$defs/JobSelection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable completed response with accepted retry attempts; counts are not completed transfers. All-failed/all-skipped response policy remains a freeze blocker.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AttemptCounts"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Candidate invalid_retry_context for malformed/missing/duplicate/invalid context or selection disagreement; body envelope still to freeze."
+          },
+          "401": {
+            "description": "Missing/expired/revoked admin session; no receipt disclosure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Candidate review_conflict for wrong mover instance; per-occurrence stale epochs/count policy remains separate."
+          },
+          "431": {
+            "description": "Aggregate head, encoded context or decoded context bound exceeded; no effects. Candidate request_headers_too_large code/body to finalize."
+          },
+          "503": {
+            "description": "Storage/queue failure; no fabricated final counts. Preserve original context for retry; prior transactions may have committed."
+          }
+        },
+        "x-csrf-defense": "Required; exact transport remains pending",
+        "x-contract-cases": [
+          "API-E115",
+          "API-E118",
+          "API-E120",
+          "API-E122",
+          "API-E129"
+        ],
+        "x-pending": [
+          "No-accepted-attempt HTTP policy",
+          "Duplicate retry occurrence classification",
+          "Partial transaction/storage outcomes and receipt lifetime after history clear",
+          "Exact admin error response envelope and CSRF/read integration"
         ]
       }
     }

@@ -748,6 +748,82 @@
       "valid": true,
       "value": "9223372036854775808",
       "semantic_valid": false
+    },
+    {
+      "id": "retry-context-decoded",
+      "schema": "RetryContextDecoded",
+      "valid": true,
+      "value": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "76f612ec802d9462e213569df66f872fcccf33a61eeadc354ce5a7033bce150a",
+        "review_epochs": [
+          0,
+          null,
+          0
+        ],
+        "reason": "Inspected protected staging and corrected destination permissions"
+      }
+    },
+    {
+      "id": "retry-context-boolean-epoch",
+      "schema": "RetryContextDecoded",
+      "valid": false,
+      "value": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "76f612ec802d9462e213569df66f872fcccf33a61eeadc354ce5a7033bce150a",
+        "review_epochs": [
+          true,
+          null,
+          true
+        ],
+        "reason": "Inspected protected staging and corrected destination permissions"
+      }
+    },
+    {
+      "id": "retry-context-null-is-structurally-valid",
+      "schema": "RetryContextDecoded",
+      "valid": true,
+      "value": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "76f612ec802d9462e213569df66f872fcccf33a61eeadc354ce5a7033bce150a",
+        "review_epochs": [
+          null,
+          null,
+          null
+        ],
+        "reason": "Inspected protected staging and corrected destination permissions"
+      }
+    },
+    {
+      "id": "retry-context-header",
+      "schema": "RetryContextHeader",
+      "valid": true,
+      "value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+    },
+    {
+      "id": "retry-context-padded-header",
+      "schema": "RetryContextHeader",
+      "valid": false,
+      "value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9="
+    },
+    {
+      "id": "retry-context-whitespace-header",
+      "schema": "RetryContextHeader",
+      "valid": false,
+      "value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9\n"
+    },
+    {
+      "id": "retry-review-snapshot",
+      "schema": "RetryReviewSnapshot",
+      "valid": true,
+      "value": {
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "job_id": "42",
+        "review_epoch": 0
+      }
     }
   ]
 }

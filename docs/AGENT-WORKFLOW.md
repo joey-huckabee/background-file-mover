@@ -68,8 +68,9 @@ prerequisites; readiness does not qualify those labs.
 
 Read `REST-CONTRACT-HANDOFF.md` and `WORKSTATION-HANDOFF.md` before development.
 Group 49 adds reviewed-state retry context in a header (API-E129/SC-180),
-with job_ids-only body and exact-command replay preserved. Header encoding,
-bounds and transactional receipt design remain pending.
+with job_ids-only body and exact-command replay preserved. Concrete header encoding/bounds are in the
+[wire candidate](api/RETRY-HEADER.candidate.md); outcome/transactional receipt
+design remains pending, with no runtime implementation.
 Groups 1-49 are approved, including retry attempt counts, browser session
 cookies, global manual admin sign-out and login/session/logout response statuses. Transfers belong to the mover service
 and run independently of dashboard credentials/sessions. Remaining wire/login

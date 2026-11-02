@@ -7,8 +7,10 @@ OpenAPI, producer/session/manifest schemas, fixtures and explicit freeze blocker
 Group 49 (2026-11-02) approves immutable existing review-version/audit context
 in a retry request header, with job_ids-only body and exact-command replay
 preserved (SC-180/API-E129). No extra job identifier or confirmation dialog.
-Header spelling/encoding, bounds and receipt design remain to finalize; no
-runtime implementation or qualification is claimed.
+The concrete wire candidate is `docs/api/RETRY-HEADER.candidate.md`, with
+checked encoding/bounds and an explicit existing-instance precondition proposal.
+Outcome/receipt design and contract freeze remain pending; no runtime
+implementation or qualification is claimed.
 
 2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-49 remain approved; the original proposal is not implementation authorization.
 

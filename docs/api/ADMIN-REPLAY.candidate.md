@@ -16,7 +16,8 @@ A mutable session variable, current-state lookup or ordinary CSRF token cannot
 prove which review the operator intended; another tab or polling can change
 current state while an old HTTP request remains in flight.
 
-**Approved header mechanism (group 49), exact wire pending:** carry the existing per-job review
+**Approved header mechanism (group 49), candidate wire now specified:** carry
+the existing per-job review
 epochs and required audit context in an immutable request header. Keep the JSON
 body unchanged. Bind that context to the authenticated account, retry action
 and exact ordered list, including duplicate occurrences. Freeze it at the
@@ -26,11 +27,12 @@ context. A new deliberate action after later review uses the later epoch.
 No extra confirmation dialog is added and no generic audit reason substitutes
 for the existing reviewed explanation of operator action.
 
-Exact header spelling/encoding and its aggregate byte budget are not selected
-here. The complete request must fit the existing 8 KiB header bound. An encoding
-or smaller per-request context limit must be specified and negatively tested;
-do not silently raise HTTP limits to accommodate a batch. Request context is
-not another job-identifier scheme, and it does not replace CSRF protection.
+The [wire candidate](RETRY-HEADER.candidate.md) now specifies
+Mover-Retry-Context, canonical base64url/JSON, exact selection binding and byte
+limits with executable artifact fixtures. It additionally proposes the existing
+instance identity as a precondition against wrong-installation replay. These
+precise fields remain candidates, not new approvals. The aggregate 8 KiB head
+bound is unchanged. Context is neither a new job identifier nor CSRF protection.
 
 ## Transactional behavior to preserve
 

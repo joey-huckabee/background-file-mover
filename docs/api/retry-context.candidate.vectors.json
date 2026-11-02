@@ -1,0 +1,1709 @@
+{
+  "status": "candidate-not-frozen",
+  "description": "Codec fixtures only, not authentication, eligibility, SQL or HTTP parser evidence. Epoch null stays nonauthorizing; valid denotes valid context only.",
+  "header_name": "Mover-Retry-Context",
+  "known_answers": [
+    {
+      "id": "duplicate-selection",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "context": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "76f612ec802d9462e213569df66f872fcccf33a61eeadc354ce5a7033bce150a",
+        "review_epochs": [
+          0,
+          null,
+          0
+        ],
+        "reason": "Inspected protected staging and corrected destination permissions"
+      },
+      "selection_frame_hex": "42464d2d52455452592d53454c454354494f4e007631000003000000000000002a000000000000002b000000000000002a",
+      "header_value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9",
+      "job_id_decimal_strings": [
+        "42",
+        "43",
+        "42"
+      ]
+    },
+    {
+      "id": "lossless-large-ids",
+      "body": {
+        "job_ids": [
+          9223372036854775807,
+          9007199254740993
+        ]
+      },
+      "context": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "c08b532a7cceeac44afecec3288f87520f27264d065015a8a7eda27da24af117",
+        "review_epochs": [
+          0,
+          64
+        ],
+        "reason": "Reviewed exact original job identities"
+      },
+      "selection_frame_hex": "42464d2d52455452592d53454c454354494f4e0076310000027fffffffffffffff0020000000000001",
+      "header_value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6ImMwOGI1MzJhN2NjZWVhYzQ0YWZlY2VjMzI4OGY4NzUyMGYyNzI2NGQwNjUwMTVhOGE3ZWRhMjdkYTI0YWYxMTciLCJyZXZpZXdfZXBvY2hzIjpbMCw2NF0sInJlYXNvbiI6IlJldmlld2VkIGV4YWN0IG9yaWdpbmFsIGpvYiBpZGVudGl0aWVzIn0",
+      "job_id_decimal_strings": [
+        "9223372036854775807",
+        "9007199254740993"
+      ]
+    },
+    {
+      "id": "unicode-reason",
+      "body": {
+        "job_ids": [
+          42
+        ]
+      },
+      "context": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "742c85125914db3dcdbdc0b4c6ca8fa187fe49e456aa2f0fdc4751d37806bc30",
+        "review_epochs": [
+          0
+        ],
+        "reason": "V\u00e9rified original custody"
+      },
+      "selection_frame_hex": "42464d2d52455452592d53454c454354494f4e007631000001000000000000002a",
+      "header_value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc0MmM4NTEyNTkxNGRiM2RjZGJkYzBiNGM2Y2E4ZmExODdmZTQ5ZTQ1NmFhMmYwZmRjNDc1MWQzNzgwNmJjMzAiLCJyZXZpZXdfZXBvY2hzIjpbMF0sInJlYXNvbiI6IlbDqXJpZmllZCBvcmlnaW5hbCBjdXN0b2R5In0",
+      "job_id_decimal_strings": [
+        "42"
+      ]
+    },
+    {
+      "id": "ordered-selection",
+      "body": {
+        "job_ids": [
+          42,
+          42,
+          43
+        ]
+      },
+      "context": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "selection_sha256": "b5ec374973da344d4e1e0dd98ef73964c67f2699f854946a84701b1402316a58",
+        "review_epochs": [
+          0,
+          0,
+          null
+        ],
+        "reason": "Inspected protected staging and corrected destination permissions"
+      },
+      "selection_frame_hex": "42464d2d52455452592d53454c454354494f4e007631000003000000000000002a000000000000002a000000000000002b",
+      "header_value": "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6ImI1ZWMzNzQ5NzNkYTM0NGQ0ZTFlMGRkOThlZjczOTY0YzY3ZjI2OTlmODU0OTQ2YTg0NzAxYjE0MDIzMTZhNTgiLCJyZXZpZXdfZXBvY2hzIjpbMCwwLG51bGxdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9",
+      "job_id_decimal_strings": [
+        "42",
+        "42",
+        "43"
+      ]
+    }
+  ],
+  "decoding_cases": [
+    {
+      "id": "valid-duplicates-and-null",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "valid",
+      "expected_epochs": [
+        0,
+        null,
+        0
+      ]
+    },
+    {
+      "id": "missing-header",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "header_occurrence"
+    },
+    {
+      "id": "duplicate-header",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9",
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "header_occurrence"
+    },
+    {
+      "id": "comma-joined-header",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9,v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "forbidden-padding",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9="
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "internal-whitespace",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJ zaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "invalid-alphabet",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9+"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "empty-token",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1."
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "wrong-prefix-version",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v2.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "wrong-object-version",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoyLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "boolean-object-version",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjp0cnVlLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "unknown-payload-field",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyIsImV4dHJhIjowfQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "duplicate-json-key",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "invalid-utf8",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1._w"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "invalid-json",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.ew"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "json-bom",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.77u_eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "noncanonical-key-order",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyIsInJldmlld19lcG9jaHMiOlswLG51bGwsMF0sInNlbGVjdGlvbl9zaGEyNTYiOiI3NmY2MTJlYzgwMmQ5NDYyZTIxMzU2OWRmNjZmODcyZmNjY2YzM2E2MWVlYWRjMzU0Y2U1YTcwMzNiY2UxNTBhIiwiaW5zdGFuY2VfaWQiOiIwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZiIsInZlcnNpb24iOjF9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "noncanonical_payload"
+    },
+    {
+      "id": "noncanonical-whitespace",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.ewogInZlcnNpb24iOiAxLAogImluc3RhbmNlX2lkIjogIjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwKICJzZWxlY3Rpb25fc2hhMjU2IjogIjc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLAogInJldmlld19lcG9jaHMiOiBbCiAgMCwKICBudWxsLAogIDAKIF0sCiAicmVhc29uIjogIkluc3BlY3RlZCBwcm90ZWN0ZWQgc3RhZ2luZyBhbmQgY29ycmVjdGVkIGRlc3RpbmF0aW9uIHBlcm1pc3Npb25zIgp9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "noncanonical_payload"
+    },
+    {
+      "id": "noncanonical-unicode-escape",
+      "body": {
+        "job_ids": [
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc0MmM4NTEyNTkxNGRiM2RjZGJkYzBiNGM2Y2E4ZmExODdmZTQ5ZTQ1NmFhMmYwZmRjNDc1MWQzNzgwNmJjMzAiLCJyZXZpZXdfZXBvY2hzIjpbMF0sInJlYXNvbiI6IlZcdTAwZTlyaWZpZWQgb3JpZ2luYWwgY3VzdG9keSJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "noncanonical_payload"
+    },
+    {
+      "id": "boolean-epoch",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbdHJ1ZSxudWxsLHRydWVdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "negative-epoch",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbLTEsbnVsbCwtMV0sInJlYXNvbiI6Ikluc3BlY3RlZCBwcm90ZWN0ZWQgc3RhZ2luZyBhbmQgY29ycmVjdGVkIGRlc3RpbmF0aW9uIHBlcm1pc3Npb25zIn0"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "fractional-epoch",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMC41LG51bGwsMC41XSwicmVhc29uIjoiSW5zcGVjdGVkIHByb3RlY3RlZCBzdGFnaW5nIGFuZCBjb3JyZWN0ZWQgZGVzdGluYXRpb24gcGVybWlzc2lvbnMifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "integral-float-epoch",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMC4wLG51bGwsMC4wXSwicmVhc29uIjoiSW5zcGVjdGVkIHByb3RlY3RlZCBzdGFnaW5nIGFuZCBjb3JyZWN0ZWQgZGVzdGluYXRpb24gcGVybWlzc2lvbnMifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "overflow-epoch",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbNDI5NDk2NzI5NixudWxsLDQyOTQ5NjcyOTZdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "empty-epochs",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbXSwicmVhc29uIjoiSW5zcGVjdGVkIHByb3RlY3RlZCBzdGFnaW5nIGFuZCBjb3JyZWN0ZWQgZGVzdGluYXRpb24gcGVybWlzc2lvbnMifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "wrong-epoch-count",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMF0sInJlYXNvbiI6Ikluc3BlY3RlZCBwcm90ZWN0ZWQgc3RhZ2luZyBhbmQgY29ycmVjdGVkIGRlc3RpbmF0aW9uIHBlcm1pc3Npb25zIn0"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "selection_mismatch"
+    },
+    {
+      "id": "inconsistent-duplicate-epochs",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDFdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "duplicate_epoch_mismatch"
+    },
+    {
+      "id": "null-epochs-remain-null",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbbnVsbCxudWxsLG51bGxdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "valid",
+      "expected_epochs": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "blank-reason",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiIgICAifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "empty-reason",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiIifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "control-reason",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJyZXZpZXdcbnJlYXNvbiJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "utf8-reason-overflow",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiLDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpw6nDqcOpIn0"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "unpaired-surrogate-reason",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJcdWQ4MDAifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "nonstring-reason",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOjQyfQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "selection-reordered-with-old-header",
+      "body": {
+        "job_ids": [
+          42,
+          42,
+          43
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "selection_mismatch"
+    },
+    {
+      "id": "selection-membership-changed",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          44
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "selection_mismatch"
+    },
+    {
+      "id": "wrong-instance",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "ffffffffffffffffffffffffffffffff",
+      "outcome": "instance_mismatch"
+    },
+    {
+      "id": "uppercase-instance",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlBQkNERUYwMTIzNDU2Nzg5QUJDREVGIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "uppercase-selection-digest",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2RjYxMkVDODAyRDk0NjJFMjEzNTY5REY2NkY4NzJGQ0NDRjMzQTYxRUVBREMzNTRDRTVBNzAzM0JDRTE1MEEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_payload"
+    },
+    {
+      "id": "decoded-size-overflow",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "decoded_too_large"
+    },
+    {
+      "id": "value-size-overflow",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "value_too_large"
+    },
+    {
+      "id": "invalid-zero-job-id",
+      "body": {
+        "job_ids": [
+          0
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "boolean-job-id",
+      "body": {
+        "job_ids": [
+          true
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "overflow-job-id",
+      "body": {
+        "job_ids": [
+          9223372036854775808
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "string-job-id",
+      "body": {
+        "job_ids": [
+          "42"
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "fractional-job-id",
+      "body": {
+        "job_ids": [
+          42.0
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "too-many-job-ids",
+      "body": {
+        "job_ids": [
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "extra-body-identifier",
+      "body": {
+        "job_ids": [
+          42
+        ],
+        "operation_id": "new"
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_selection"
+    },
+    {
+      "id": "aggregate-head-exact-bound",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "valid",
+      "expected_epochs": [
+        0,
+        null,
+        0
+      ],
+      "head_bytes": 8192
+    },
+    {
+      "id": "aggregate-head-overflow",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucyJ9"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "head_too_large",
+      "head_bytes": 8193
+    },
+    {
+      "id": "nonzero-unused-base64-bits",
+      "body": {
+        "job_ids": [
+          42,
+          43,
+          42
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6Ijc2ZjYxMmVjODAyZDk0NjJlMjEzNTY5ZGY2NmY4NzJmY2NjZjMzYTYxZWVhZGMzNTRjZTVhNzAzM2JjZTE1MGEiLCJyZXZpZXdfZXBvY2hzIjpbMCxudWxsLDBdLCJyZWFzb24iOiJJbnNwZWN0ZWQgcHJvdGVjdGVkIHN0YWdpbmcgYW5kIGNvcnJlY3RlZCBkZXN0aW5hdGlvbiBwZXJtaXNzaW9ucy4ifR"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "invalid_encoding"
+    },
+    {
+      "id": "maximum-canonical-context",
+      "body": {
+        "job_ids": [
+          9223372036854775807,
+          9223372036854775806,
+          9223372036854775805,
+          9223372036854775804,
+          9223372036854775803,
+          9223372036854775802,
+          9223372036854775801,
+          9223372036854775800,
+          9223372036854775799,
+          9223372036854775798,
+          9223372036854775797,
+          9223372036854775796,
+          9223372036854775795,
+          9223372036854775794,
+          9223372036854775793,
+          9223372036854775792,
+          9223372036854775791,
+          9223372036854775790,
+          9223372036854775789,
+          9223372036854775788,
+          9223372036854775787,
+          9223372036854775786,
+          9223372036854775785,
+          9223372036854775784,
+          9223372036854775783,
+          9223372036854775782,
+          9223372036854775781,
+          9223372036854775780,
+          9223372036854775779,
+          9223372036854775778,
+          9223372036854775777,
+          9223372036854775776,
+          9223372036854775775,
+          9223372036854775774,
+          9223372036854775773,
+          9223372036854775772,
+          9223372036854775771,
+          9223372036854775770,
+          9223372036854775769,
+          9223372036854775768,
+          9223372036854775767,
+          9223372036854775766,
+          9223372036854775765,
+          9223372036854775764,
+          9223372036854775763,
+          9223372036854775762,
+          9223372036854775761,
+          9223372036854775760,
+          9223372036854775759,
+          9223372036854775758,
+          9223372036854775757,
+          9223372036854775756,
+          9223372036854775755,
+          9223372036854775754,
+          9223372036854775753,
+          9223372036854775752,
+          9223372036854775751,
+          9223372036854775750,
+          9223372036854775749,
+          9223372036854775748,
+          9223372036854775747,
+          9223372036854775746,
+          9223372036854775745,
+          9223372036854775744,
+          9223372036854775743,
+          9223372036854775742,
+          9223372036854775741,
+          9223372036854775740,
+          9223372036854775739,
+          9223372036854775738,
+          9223372036854775737,
+          9223372036854775736,
+          9223372036854775735,
+          9223372036854775734,
+          9223372036854775733,
+          9223372036854775732,
+          9223372036854775731,
+          9223372036854775730,
+          9223372036854775729,
+          9223372036854775728,
+          9223372036854775727,
+          9223372036854775726,
+          9223372036854775725,
+          9223372036854775724,
+          9223372036854775723,
+          9223372036854775722,
+          9223372036854775721,
+          9223372036854775720,
+          9223372036854775719,
+          9223372036854775718,
+          9223372036854775717,
+          9223372036854775716,
+          9223372036854775715,
+          9223372036854775714,
+          9223372036854775713,
+          9223372036854775712,
+          9223372036854775711,
+          9223372036854775710,
+          9223372036854775709,
+          9223372036854775708,
+          9223372036854775707,
+          9223372036854775706,
+          9223372036854775705,
+          9223372036854775704,
+          9223372036854775703,
+          9223372036854775702,
+          9223372036854775701,
+          9223372036854775700,
+          9223372036854775699,
+          9223372036854775698,
+          9223372036854775697,
+          9223372036854775696,
+          9223372036854775695,
+          9223372036854775694,
+          9223372036854775693,
+          9223372036854775692,
+          9223372036854775691,
+          9223372036854775690,
+          9223372036854775689,
+          9223372036854775688,
+          9223372036854775687,
+          9223372036854775686,
+          9223372036854775685,
+          9223372036854775684,
+          9223372036854775683,
+          9223372036854775682,
+          9223372036854775681,
+          9223372036854775680,
+          9223372036854775679,
+          9223372036854775678,
+          9223372036854775677,
+          9223372036854775676,
+          9223372036854775675,
+          9223372036854775674,
+          9223372036854775673,
+          9223372036854775672,
+          9223372036854775671,
+          9223372036854775670,
+          9223372036854775669,
+          9223372036854775668,
+          9223372036854775667,
+          9223372036854775666,
+          9223372036854775665,
+          9223372036854775664,
+          9223372036854775663,
+          9223372036854775662,
+          9223372036854775661,
+          9223372036854775660,
+          9223372036854775659,
+          9223372036854775658,
+          9223372036854775657,
+          9223372036854775656,
+          9223372036854775655,
+          9223372036854775654,
+          9223372036854775653,
+          9223372036854775652,
+          9223372036854775651,
+          9223372036854775650,
+          9223372036854775649,
+          9223372036854775648,
+          9223372036854775647,
+          9223372036854775646,
+          9223372036854775645,
+          9223372036854775644,
+          9223372036854775643,
+          9223372036854775642,
+          9223372036854775641,
+          9223372036854775640,
+          9223372036854775639,
+          9223372036854775638,
+          9223372036854775637,
+          9223372036854775636,
+          9223372036854775635,
+          9223372036854775634,
+          9223372036854775633,
+          9223372036854775632,
+          9223372036854775631,
+          9223372036854775630,
+          9223372036854775629,
+          9223372036854775628,
+          9223372036854775627,
+          9223372036854775626,
+          9223372036854775625,
+          9223372036854775624,
+          9223372036854775623,
+          9223372036854775622,
+          9223372036854775621,
+          9223372036854775620,
+          9223372036854775619,
+          9223372036854775618,
+          9223372036854775617,
+          9223372036854775616,
+          9223372036854775615,
+          9223372036854775614,
+          9223372036854775613,
+          9223372036854775612,
+          9223372036854775611,
+          9223372036854775610,
+          9223372036854775609,
+          9223372036854775608,
+          9223372036854775607,
+          9223372036854775606,
+          9223372036854775605,
+          9223372036854775604,
+          9223372036854775603,
+          9223372036854775602,
+          9223372036854775601,
+          9223372036854775600,
+          9223372036854775599,
+          9223372036854775598,
+          9223372036854775597,
+          9223372036854775596,
+          9223372036854775595,
+          9223372036854775594,
+          9223372036854775593,
+          9223372036854775592,
+          9223372036854775591,
+          9223372036854775590,
+          9223372036854775589,
+          9223372036854775588,
+          9223372036854775587,
+          9223372036854775586,
+          9223372036854775585,
+          9223372036854775584,
+          9223372036854775583,
+          9223372036854775582,
+          9223372036854775581,
+          9223372036854775580,
+          9223372036854775579,
+          9223372036854775578,
+          9223372036854775577,
+          9223372036854775576,
+          9223372036854775575,
+          9223372036854775574,
+          9223372036854775573,
+          9223372036854775572,
+          9223372036854775571,
+          9223372036854775570,
+          9223372036854775569,
+          9223372036854775568,
+          9223372036854775567,
+          9223372036854775566,
+          9223372036854775565,
+          9223372036854775564,
+          9223372036854775563,
+          9223372036854775562,
+          9223372036854775561,
+          9223372036854775560,
+          9223372036854775559,
+          9223372036854775558,
+          9223372036854775557,
+          9223372036854775556,
+          9223372036854775555,
+          9223372036854775554,
+          9223372036854775553,
+          9223372036854775552
+        ]
+      },
+      "header_values": [
+        "v1.eyJ2ZXJzaW9uIjoxLCJpbnN0YW5jZV9pZCI6IjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVmIiwic2VsZWN0aW9uX3NoYTI1NiI6IjFiYzRmNjRlN2JhZGNkZjYwNmQxZTBjY2RhMTcxYjgzNDJkMmQzN2Q0MDM1Zjk5MGM0Njg3ZmFjODllMjIwNDMiLCJyZXZpZXdfZXBvY2hzIjpbNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NSw0Mjk0OTY3Mjk1LDQyOTQ5NjcyOTUsNDI5NDk2NzI5NV0sInJlYXNvbiI6IlxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFwifQ"
+      ],
+      "expected_instance": "0123456789abcdef0123456789abcdef",
+      "outcome": "valid",
+      "expected_epochs": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295
+      ]
+    }
+  ],
+  "bounds": {
+    "maximum_canonical_payload_bytes": 4018,
+    "maximum_canonical_value_bytes": 5361,
+    "decoded_limit_bytes": 4096,
+    "value_limit_bytes": 6144,
+    "aggregate_head_limit_bytes": 8192
+  },
+  "required_runtime_cases": [
+    {
+      "id": "old-request-later-review",
+      "evidence": "NOT_RUN",
+      "condition": "Replay epoch-0 original receipt before current epoch-1 eligibility; do not schedule again"
+    },
+    {
+      "id": "revoked-auth-replay",
+      "evidence": "NOT_RUN",
+      "condition": "Reject unauthenticated or revoked-session replay before receipt disclosure"
+    },
+    {
+      "id": "duplicate-occurrence",
+      "evidence": "NOT_RUN",
+      "condition": "Persist two distinct occurrence outcomes for [42,42], never count one successful command twice"
+    },
+    {
+      "id": "atomic-receipt-scheduling",
+      "evidence": "NOT_RUN",
+      "condition": "Crash before/after commit cannot separate retry scheduling from persisted outcome"
+    },
+    {
+      "id": "null-precondition",
+      "evidence": "NOT_RUN",
+      "condition": "Do not replace a frozen null with current eligible review state"
+    },
+    {
+      "id": "partial-batch-replay",
+      "evidence": "NOT_RUN",
+      "condition": "Finish only missing occurrences with original frozen context"
+    },
+    {
+      "id": "history-clear-boundary",
+      "evidence": "NOT_RUN",
+      "condition": "Define receipt lifetime after explicit clear without retaining hidden detailed history"
+    },
+    {
+      "id": "audit-cap-replay",
+      "evidence": "NOT_RUN",
+      "condition": "Replay original receipt before new-command 64-audit cap checks"
+    }
+  ]
+}

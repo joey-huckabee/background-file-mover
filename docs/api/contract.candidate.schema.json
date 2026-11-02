@@ -330,7 +330,8 @@
       "x-semantic-rules": [
         "Process each occurrence, in submitted order; do not deduplicate.",
         "Clients must preserve integer precision; JSON binary64 rounding is not allowed.",
-        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header encoding and receipt design pending."
+        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header encoding and receipt design pending.",
+        "Raw job IDs are exact integer tokens: no booleans, decimal/exponent notation or binary64 rounding. JSON Schema alone does not check token spelling."
       ]
     },
     "AttemptCounts": {
@@ -481,6 +482,119 @@
         "Measured sizes and full content SHA-256 must match verified publication evidence.",
         "All manifest UUIDs lowercase. Stored immutable bytes, not regenerated formatting, govern recovery.",
         "New v2 is a proposal; preserve legacy v1 bytes. Numeric byte-count representation requires compatibility approval."
+      ]
+    },
+    "InstanceId": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 32,
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "RetryReviewSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "review_epoch": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "instance_id",
+        "job_id",
+        "review_epoch"
+      ],
+      "x-status": "candidate read projection; exact integration into bounded job/detail reads pending",
+      "x-semantic-rules": [
+        "A matching epoch does not prove human inspection or authorize effects.",
+        "Copy existing reviewed state at deliberate click; no polling-based refresh of a pending request."
+      ]
+    },
+    "RetryContextDecoded": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "selection_sha256": {
+          "$ref": "#/$defs/Digest"
+        },
+        "review_epochs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "not": {
+            "pattern": "[\\x00-\\x1f\\x7f-\\x9f]"
+          },
+          "x-max-utf8-bytes": 512
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "selection_sha256",
+        "review_epochs",
+        "reason"
+      ],
+      "x-max-utf8-bytes": 4096,
+      "x-semantic-rules": [
+        "Fixed-key compact UTF-8 JSON encoding, valid scalars, integer tokens only; no duplicate or unknown keys.",
+        "Epoch array length equals ordered job_ids; repeated same IDs must have identical epoch values.",
+        "Null is nonauthorizing and never replaced with current state.",
+        "Reason is 1..512 UTF-8 bytes, nonblank, control-free; preserve exact text.",
+        "Existing instance identity and exact ordered selection digest must match; authentication and CSRF remain separate."
+      ]
+    },
+    "RetryContextHeader": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 6144,
+      "pattern": "^v1\\.[A-Za-z0-9_-]+$",
+      "not": {
+        "pattern": "[^A-Za-z0-9_.-]"
+      },
+      "x-decoded-schema": {
+        "$ref": "#/$defs/RetryContextDecoded"
+      },
+      "x-semantic-rules": [
+        "Exactly one case-insensitive Mover-Retry-Context occurrence, after HTTP OWS removal.",
+        "Canonical unpadded base64url; no comma joining, padding, whitespace or nonzero unused bits.",
+        "Decoded bytes <=4096 and canonical JSON; full raw request head still <=8192 bytes."
       ]
     }
   }

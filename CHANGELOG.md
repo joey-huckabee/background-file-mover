@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Specify the candidate Mover-Retry-Context header with canonical encoding,
+  ordered lossless job-ID binding, existing-instance precondition and unchanged
+  8 KiB aggregate head bound. Add four wire known answers, 52 codec cases and a
+  reproducible standard-library checker; extend schema fixtures to 57 and the
+  partial OpenAPI to admin retry. Encoding/artifact checks only; outcome/receipt
+  policy and API freeze remain pending, with no Rust/service effects.
+
 - Approve existing review-version/audit context in a retry request header
   (group 49/API-E129/SC-180), preserving the job_ids-only body and exact-command
   replay so a delayed request cannot retry a later failure. No new job identifier
