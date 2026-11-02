@@ -3,13 +3,15 @@
 Group 49 approves reviewed-state context in a request header on 2026-11-02.
 The compact body remains {"job_ids":[...]}; no new public job or operation ID or
 confirmation dialog is added. Exact wire/storage details below remain proposals.
-[Groups 35/38/41-45](../REST-ERROR-SCENARIOS.md) remain authoritative.
+[Groups 35/38/41-45](../REST-ERROR-SCENARIOS.md) remain authoritative, with
+[group 50](../REST-ERROR-SCENARIOS.md#history-clear-forgets-all-file-linkage-group-50)
+now removing all file management/linkage after successful clear.
 
 ## Short closeout table
 
 2026-11-02: the user asked to proceed with less detail. This table is the next
 behavior review, not another encoding specification. **Proposed** rows are
-recommendations, not new approvals; groups 1-49 remain the approved baseline.
+recommendations, not new approvals; groups 1-50 are approved, with group 50 overriding post-clear tracking.
 Routine names, serialization and transaction mechanics are engineering work.
 
 | Situation | Recommended rule | Basis / remaining choice |
@@ -18,15 +20,15 @@ Routine names, serialization and transaction mechanics are engineering work.
 | A valid retry batch finishes with no jobs newly accepted | Use the same 202 count summary; show zero accepted and actual failed/skipped attempts. Whole-request validation/storage errors remain errors. | Proposed completion of group 45's no-work edge case; no successful-transfer claim. |
 | [42,42] retries eligible job 42 | First occurrence may schedule it; the second independently checks that same frozen review and counts as failed once work is scheduled. Whole-request replay preserves both original outcomes. | Proposed duplicate-retry classification. Do not infer approval from duplicate cancel. |
 | A cancellation response is lost | Dispatch a repeated request against the same stored job. Pending duplicate cancel fails; completed/safely-cancelled/missing entries skip. Never undo the first cancellation or cancel a replacement job. | Existing groups 33/41-44, with proposed transport application. No new target ID. |
-| A history-clear response is lost | Repeating clear reports only jobs actually cleared this time; previously cleared IDs silently skip. Files and separate ownership remain untouched. | Existing groups 19/21/31/39/42. No hidden UUID-recognition tombstone. |
+| A history-clear response is lost | Repeating clear reports only jobs actually cleared this time; previously cleared IDs silently skip. Files remain untouched; all cleared-job ownership/accounting and action linkage is forgotten. | Group 50 overrides earlier post-clear tracking; groups 19/31/39/42 preserve other rules. No hidden UUID-recognition tombstone. |
 | History is explicitly cleared after a retry was accepted | Clear that job's detailed command results too. Late retry of the cleared job skips; other uncleared jobs retain their own exact replay results. Original aggregate counts are not promised after clear. | Proposed receipt-lifetime boundary. Never retain hidden detailed history or redirect the old job ID to a reused UUID. |
 | A confirmed deletion is already running | Allow one active sweep per job. Repeat requests observe that same sweep; no second removal attempt or double-counted files. Keep showing actual pending/deleted/failed results. | Proposed concurrency rule, within approved best effort/safe-stop scope. |
-| Deletion finishes with failures and the admin tries again | Require a fresh deliberate confirmation for the remaining safe files. No automatic retry. Show the latest sweep's results under the original job ID, including after history clear; do not promise every older sweep remains separately available. | Fresh explicit request is approved in group 40. Latest-result-only presentation is proposed. |
+| Deletion finishes with failures and the admin tries again | Require a fresh deliberate confirmation for the remaining safe files. No automatic retry. Show the latest sweep's results under the original job ID, while the job is still tracked. Clear forgets the results and all file linkage; do not promise every older sweep remains separately available. | Fresh explicit request is approved in group 40. Latest-result-only presentation is proposed. |
 | The owned file selection changes after confirmation | Reject the stale confirmation and require a fresh confirmation; never broaden the deletion. An older replay must not start a later sweep. | Proposed stale-selection rule preserving approved exact selection/protected-output safety. |
 | Storage fails partway through a batch | Return an error without fabricated final counts; earlier committed decisions remain valid. Retry uses the original frozen context, and status shows actual progress. | Preserve group 38 and exact replay. No batch-wide rollback claim or false success. |
 
-The two substantial user-visible choices are **what remains available after
-history clear** and **showing only the latest manual-deletion result**. The retry
+Group 50 settles the post-clear choice: **nothing remains linked to the files**.
+Showing only the latest manual-deletion result **before clear** remains proposed. The retry
 no-work/duplicate defaults above complete the agreed count model. We recommend
 these defaults together so the remaining discussion does not become a review of
 individual field names or encoding details.
@@ -111,32 +113,34 @@ Current safeguards are in [operators.rs](../../rust/crates/mover-store/src/opera
 [operators.sql](../../rust/crates/mover-store/src/operators.sql), and the
 [later-review replay tests](../../rust/crates/mover-store/src/tests.rs).
 
-## Deletion results after history clear
+## Clear ends file management (group 50)
 
-**Proposed:** keep operational ownership and deletion status under the original
-job_id when history clears. Retention lookup must consult that retained-owner
-record even without the detailed job row. Never resolve through forgotten UUID
-recognition or redirect an old job ID to newly submitted work.
+Successful clear leaves all source/destination files in place and forgets their
+mover linkage, ownership, accounting, inventory and operation results. There is
+no retained-owner row or post-clear management endpoint. If the mover should
+delete eligible retained data, finish that confirmed action before clear.
+Afterward, cleanup is outside this service. Do not reconstruct linkage from old
+paths, directory scans or immutable manifest contents, and do not rewrite those
+files to implement clear. Removing tracked byte totals does not free disk space.
 
-Permit one active confirmed deletion sweep per job. Persist actual deleted/failed
-counts and an explicit pending/unknown/completed condition for the latest sweep.
-A 202 reports only facts known at acceptance; pending counts are not final zeros.
-Later status exposes actual progress and final counts under that same job_id.
-Failed files remain and no automatic retry is scheduled. A later explicitly
-confirmed sweep may replace the latest summary; overlapping and historical
-request results are not separately addressable under this recommendation.
+Clear requires safely completed/cancelled work with every associated worker and
+file effect stopped/settled, including manual deletion/cleanup. Serialize new
+actions against clear so no worker continues after the job is forgotten. Old
+job IDs silently skip in bulk actions and keep existing 404 lookup behavior.
+Never resolve through the forgotten UUID or reuse an old internal job ID.
 
-Confirm only the displayed owned file set, revalidate its protected identities
-at admission and safe stop, and reject changes rather than widen deletion.
-Keep committed-output protection and uncertain-worker exclusion. No file effects
-are authorized by receipt counts. Exact stale-confirmation responses, repeated
-whole-request semantics and summary replacement policy remain to approve.
+**Still proposed before clear:** one active confirmed deletion sweep per tracked
+job, latest-sweep progress/actual deleted/failed counts under that job_id, and
+fresh confirmation for another deliberate attempt. No automatic retry or double
+counting. A stale confirmation must not broaden scope or start a later sweep.
+Clear removes its result; no post-clear summary is retained. Preserve committed
+output/original protection and best effort for safely owned remaining files.
 
 ## Finite acceptance obligations
 
 Freeze tests for: lost epoch-0 response followed by epoch-1 failure; two tabs at
 one epoch; refreshed session/polling with an old request; duplicate occurrences;
 crash before/after scheduling commit; partial batch replay; audit capacity;
-revoked-session replay; history clear versus receipt retention; old job lookup
-after UUID reuse; deletion with partial failure and stale confirmation. These
+revoked-session replay; history clear removes only its own receipts/linkage; no post-clear old job
+management or reconstruction after UUID reuse; deletion with partial failure and stale confirmation. These
 are planned obligations, not new passing tests or permission for physical delete.

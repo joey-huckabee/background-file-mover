@@ -17,8 +17,9 @@ and require cancellation before clearing unfinished/errored jobs. Only completed
 or safely cancelled jobs are eligible. Cancellation now preserves files in place
 (group 20, SC-146/API-E81-86), including source claims, partial staging and valid
 published recordings. Blocked workers/uncertain publication keep it pending.
-History clear now also preserves files and separate ownership/accounting while
-forgetting UUID recognition (group 21, SC-147/148/API-E87-91). Physical retained-data deletion needs a separate explicit admin action. Its
+Group 50 supersedes group 21 post-clear tracking: clear leaves files in place
+but forgets all source/destination linkage, ownership/accounting and action
+results. Remaining files leave mover management (SC-181-183/API-E130-132). Physical retained-data deletion needs a separate explicit admin action. Its
 scope is now approved in group 22 (SC-149/150/API-E92-98): owned retained source
 and unfinished destination only, after safe stop and confirmation. Protect
 unclaimed originals and completed output. Deletion failure is best effort: failed
@@ -59,7 +60,7 @@ use existing job_id and the targeted job's stored state; no additional identifie
 scheme. Group 41 uses job_ids for cancel/retry/clear/delete, each at a separate
 endpoint (SC-169/API-E118). Authenticate the admin separately; credentials do not
 belong in action bodies. Group 42 silently skips nonexistent job IDs and processes
-remaining IDs (SC-170/API-E119), preserving retained-data ownership after clear.
+remaining IDs (SC-170/API-E119), forgetting all file linkage on successful clear under group 50.
 Group 43 processes repeated entries again with per-job action/state decisions;
 duplicate cancels count as failed attempts, not failed job states
 (SC-171/API-E120). Do not deduplicate or predict cancellation state in the batch
@@ -80,7 +81,7 @@ local-versus-remote dashboard access or SSO-versus-password login again.
 
 Current deliverable: [candidate contract artifacts](api/README.md), including
 partial OpenAPI, 25 schema definitions, 57 structural fixtures, seven request
-identity vectors and a 129-case index. These are draft-schema checks only, not
+identity vectors and a 132-case index. These are draft-schema checks only, not
 new runtime evidence. Group 49 approves retry review-version/audit context
 in a header on 2026-11-02, with the job_ids-only body and original replay
 semantics preserved (SC-180/API-E129). The concrete [header wire candidate](api/RETRY-HEADER.candidate.md) now defines
@@ -98,12 +99,18 @@ separately if historical raw auditability is needed. No new build/test is claime
 
 ## Where we stopped
 
+Latest decision, group 50: **cleared means no remaining mover linkage to source
+or destination files**, including ownership/accounting/inventories/results. Files
+stay unchanged. Delete through the mover before clear; afterward cleanup is
+outside this service. No live/uncertain transfer/delete/cleanup effect may remain
+at successful clear. Historical post-clear tracking language is superseded.
+
 2026-11-02 scope correction: the user says we may be getting into the weeds.
 Agree: further encoding-only work is not the next deliverable. Use the
 [short admin-action table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
 for one consolidated behavior review, with proposals visibly separate from
 already approved behavior. Keep routine technical choices with the coordinator.
-Groups 1-49 remain approved; this scope correction approves no new action policy.
+Groups 1-50 remain approved; this scope correction approves no new action policy.
 
 We are completing P01/API-I01: agree the REST contract before freezing OpenAPI
 or starting the dependent Rust changes. The user wants simple questions, one
@@ -112,9 +119,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Fifty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 180 stable SC IDs and six DOC IDs; API-E01-129 are contract/acceptance
+now has 183 stable SC IDs and six DOC IDs; API-E01-132 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve
@@ -172,8 +179,8 @@ situations, not new passing tests. All eight release gates remain open.
    with HTTP 202; counts describe per-entry attempts, not safe-stop completion. Group 43 resolves duplicate entries: process again via the per-job
    action, with duplicate cancels counted as failed cancel attempts. No batch
    deduplication or cancellation-state intelligence. Group 42 resolves missing IDs:
-   silently skip nonexistent targets and process the rest, preserving retained-
-   data ownership after history clear. Existing single-resource/local-operator
+   silently skip nonexistent targets and process the rest. Group 50 forgets all
+   file linkage after clear; later cleanup of those files is outside the mover. Existing single-resource/local-operator
    404 mappings remain outside this selected-action rule. Group 41 resolves
    the common job_ids body and separate endpoints for all four admin actions.
    Continue remaining compact admin/login/request/response/status schema review

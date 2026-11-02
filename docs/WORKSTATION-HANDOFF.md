@@ -1,6 +1,6 @@
 # Moving development to another computer
 
-Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-49 remain the approved baseline.
+Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-50 remain the approved baseline.
 
 Recorded 2026-11-01. Branch: `feature/rust-transfer-coordinator`.
 Baseline before this handoff: `686e15c` (groups 1-44). This document is a durable
@@ -25,8 +25,8 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Future work | [Roadmap](ROADMAP.md) | Remove completed tasks; keep history elsewhere. |
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
-| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-49 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 180 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-50 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 183 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |
@@ -96,15 +96,16 @@ Accepted admin behavior to preserve:
 - History clear: confirm selected jobs and explain UUID forgetting/file
   preservation. Only completed/safely-cancelled jobs; never auto-cancel. Skip
   ineligible jobs without reasons. Finished clear returns 200 and actual count.
-  Retain necessary file ownership/accounting separately from deleted history
-  and UUID replay recognition. A cleared UUID later submitted is new work.
+  Group 50 removes every source/destination linkage, ownership/accounting and
+  action result along with history/UUID recognition. Leave files in place and
+  outside mover management; finish any desired mover deletion before clear. A cleared UUID later submitted is new work.
 - Manual deletion: separate explicit confirmation, only mover-owned retained
   source/unfinished destination after safe stop. Protect unclaimed originals
   and completed recordings/manifests. Works with automatic cleanup off. Return
   202, show deleted/failed file counts, best effort. No automatic retries or
   special recovery workflow. Runtime production deletion remains disabled.
-- Missing IDs are silently skipped for selected actions; preserve retained-data
-  ownership even if detailed history was cleared. This does not change separate
+- Missing IDs are silently skipped for selected actions, including cleared jobs;
+  no post-clear file ownership/inventory or reconstruction remains. This does not change separate
   single-resource/local-operator 404 mappings or hide storage errors.
 - Process duplicate entries again. Do not deduplicate or predict cancellation
   state in the batch layer. Per-job operation decides; duplicate cancel counts

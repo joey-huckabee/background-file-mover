@@ -1698,7 +1698,7 @@
     {
       "id": "history-clear-boundary",
       "evidence": "NOT_RUN",
-      "condition": "Define receipt lifetime after explicit clear without retaining hidden detailed history"
+      "condition": "Group50 clear removes all cleared-job linkage and action receipts only after safe stop; preserve uncleared-job exact replay and never redirect an old job ID to reused UUID/files"
     },
     {
       "id": "audit-cap-replay",

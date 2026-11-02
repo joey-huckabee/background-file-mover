@@ -138,7 +138,8 @@ context/selection uses 400; wrong instance uses 409 review_conflict. Raw duplica
 HTTP headers retain framing 400 invalid_http rather than a fabricated application
 reply. Missing/expired/revoked session is approved 401. Exact admin error-body
 schema, stale/null/duplicate per-occurrence counts, zero-accepted HTTP behavior,
-partial storage failure and post-clear receipt lifetime remain to settle.
+partial storage failure remain to settle. Group 50 removes every cleared-job
+receipt and file linkage; preserve exact replay only for uncleared jobs.
 A 503 or lost response never proves that no scheduling transaction committed.
 The candidate OpenAPI documents these remaining boundaries, not fictional success.
 
@@ -149,7 +150,7 @@ The standard-library checker reads the [known answers and decoding cases](retry-
 four exact frames/headers, 52 positive/rejection cases, and the maximum-width
 bound. It touches no service, database or transfer files. The case file lists
 future runtime obligations as NOT_RUN, including lost reply/later review,
-authenticated replay, crash atomicity, partial batches, duplicates and history clear.
+authenticated replay, crash atomicity, partial batches, duplicates and history clear under group 50.
 
 The checker demonstrates the proposed codec and refusal rules only. It does not
 validate real HTTP framing, CSRF, audit storage, durable scheduling or worker

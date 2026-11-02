@@ -1,6 +1,6 @@
 # Consolidated REST contract proposal
 
-2026-11-01. Review draft for P01; updated 2026-11-02 for approved group 49.
+2026-11-01. Review draft for P01; updated 2026-11-02 through approved group 50.
 This is a proposal, not a frozen API, runtime change or qualification result.
 The [approved error review](REST-ERROR-SCENARIOS.md) remains authoritative for
 accepted behavior. This document replaces older draft examples as the next
@@ -20,8 +20,8 @@ Review the four decision packages below together. The recommended direction is:
    unrelated draft features.
 2. Preserve existing jobs, paths, receipts and ownership. Add global UUID
    recognition without automatically translating or relocating legacy custody.
-   History clear forgets UUID recognition but preserves retained-data addressing
-   under the original job ID. Existing destination collisions remain refusals.
+   History clear forgets UUID recognition and all source/destination linkage;
+   remaining files leave mover management. Existing destination collisions remain refusals.
 3. Serialize actions against stored job state and process every listed
    occurrence. Preserve audited retry replay so an old request cannot release a
    later review. Expose asynchronous outcomes through the same job ID and
@@ -48,8 +48,8 @@ Approved behavior is not reopened by the outstanding implementation design.
   integrity checks remain. The current startup setting governs unfinished work;
   do not snapshot that setting per recording.
 - History remains until explicit admin clear. Only completed or safely cancelled
-  jobs may be cleared. Clear forgets UUID recognition and preserves files and
-  separate ownership/accounting. A subsequent use of that UUID is new work.
+  jobs may be cleared. Clear preserves files but forgets UUID recognition and all associated
+  source/destination ownership, accounting, inventory and action-result linkage. A subsequent use of that UUID is new work.
 - Cancellation preserves files in place and remains pending until safe stop.
   Safely cancelled jobs cannot resume. Retry of eligible failed work is separate.
 - Manual deletion is separately confirmed, best effort, and limited to owned
@@ -85,8 +85,7 @@ The public producer boundary must never expose admin or trusted-local controls.
 | GET /api/v2/admin/jobs | Dashboard | New; bounded history list, pagination |
 | GET /api/v2/jobs/{job_id} | Admin or trusted local operator | Existing; reviewed status extension |
 | GET /api/v2/retention | Admin or trusted local operator | Existing; persisted accounting, not free-space proof |
-| GET /api/v2/jobs/{job_id}/retention | Admin or trusted local operator | Existing; preserve ownership lookup after history clear |
-| GET /api/v2/admin/retained-data | Dashboard | New; bounded retained-owner list, including cleared history, same job_id |
+| GET /api/v2/jobs/{job_id}/retention | Admin or trusted local operator | Existing; available only while the job remains tracked |
 | POST /api/v2/admin/jobs/cancel | Dashboard | New; selected-job confirmation, 202 attempt counts |
 | POST /api/v2/admin/jobs/retry | Dashboard | New; no confirmation, 202 attempt counts |
 | POST /api/v2/admin/jobs/clear-history | Dashboard | New; UUID-forgetting/file-preservation confirmation, 200 |
@@ -135,8 +134,9 @@ select an unqualified proxy or enable remote ingress.
 **Proposed read contracts:** lists take limit (default 50, maximum 256) and an
 opaque continuation cursor, return items and next_cursor, and never promise a
 cross-request snapshot. A cursor is pagination state, not a job identifier.
-Bound stale cursor behavior in the schema. History excludes cleared jobs;
-retained-data lists preserve original job_id selection for owned remnants.
+Bound stale cursor behavior in the schema. Cleared jobs have no job-linked retained-data listing or lookup.
+Use the ordinary tracked-job views before clear; a separate post-clear inventory
+endpoint is removed from this proposal under group 50.
 Status retains persisted condition, measured file evidence, attempts/deadlines,
 and cancellation/deletion progress; distinguish facts from live storage health.
 Retain detailed existing job status and retention fields until an explicit
@@ -234,14 +234,15 @@ preservation, refuse startup before effects with documented operator guidance.
 This is a migration design requirement, not permission to discard old state or
 claim that a migration has already been implemented or qualified.
 
-After clear, retain only the separate operational ownership/accounting necessary
-to manage the old files by original job_id, without consulting that record for
-producer UUID replay recognition. Reusing a cleared UUID creates a new job ID.
-It grants no rights over old files: refuse occupied/conflicting destination
-names using existing no-clobber protections; do not adopt old output or silently
-add suffixes. The retained-data list must not restore forgotten UUID recognition
-or require another public identifier. Exact retained record fields and access
-rules are part of the persisted-state design review.
+After clear, retain no source/destination linkage, path/receipt inventory,
+per-job ownership/accounting or action results for the cleared job. Leave files
+unchanged and outside mover management; no scan or old manifest may rebuild the
+linkage. Manual mover deletion must finish before clear. Block clear while any
+associated worker/effect is live or unresolved, including deletion/cleanup.
+A forgotten UUID may create a new job ID, but physical no-clobber rules still
+refuse old occupied destinations; no adoption, suffixing or overwrite shortcut.
+Removing ledger charges does not create physical free space. Group 50 replaces
+the earlier separate-owner-record design; qualify restart with unmanaged leftovers.
 
 ## Package 3: actions, request replay and observable results
 
@@ -302,8 +303,8 @@ and the audit trail; compact input is not permission to bypass them.
 
 Deletion needs special care: a 202 is acceptance, not a completed count. Propose
 initial deleted_count/failed_count as actual observations so far, plus
-completion_pending:true; later authenticated retained-data/job status exposes
-actual final counts under that same job_id. No fabricated zeros meaning final
+completion_pending:true; later authenticated job status exposes actual final counts under that same
+job_id only while it remains tracked. Clear removes those results and all file linkage. No fabricated zeros meaning final
 success, new deletion-job identifier or automatic resubmission. Decide whether
 counts are per latest admitted request or cumulative, and how a lost reply is
 reconciled, before freezing these fields.
@@ -317,7 +318,7 @@ not an excuse for an extra job identifier or a general repair workflow.
 Clear/cancel/delete/retry races must preserve these invariants: no clear before
 completed safe cancellation; no deletion of committed output or producer-reused
 originals; no retry of safely cancelled work; no stale job ID redirected to a
-new job sharing a forgotten UUID; no file disposal from a count or error alone.
+new job sharing a forgotten UUID; no cleanup or reconstruction of cleared linkage; no file disposal from a count or error alone.
 
 ## Package 4: consumer manifest and compatibility
 
@@ -355,9 +356,10 @@ file above is simply a transferred payload.
 | API-E106-122 | Confirmations, action bodies, repeated entries, statuses/counts; package 3 |
 | API-E123-128 | Cookie sign-in, global logout and approved auth responses; package 1 |
 | API-E129 | Approved reviewed-state retry header; exact encoding, bounds and receipt design pending; package 3 |
+| API-E130-132 | Group 50 removes all post-clear file linkage/management, leaves files in place and requires all effects safely stopped before clear; package 2/3 |
 
-This table indexes all 129 cases; it is not an executed-test manifest or a claim
-that the remaining fields are approved. SC-001-180 and DOC-01-06 retain their
+This table indexes all 132 cases; it is not an executed-test manifest or a claim
+that the remaining fields are approved. SC-001-183 and DOC-01-06 retain their
 existing evidence and pending status. Do not add passing evidence from review.
 
 After these decisions are settled, produce versioned OpenAPI, the complete

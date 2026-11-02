@@ -1,9 +1,9 @@
 # Rust REST API contract draft
 
-Read the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md) for the next P01 review. It separates approved groups 1-49 from proposed routes and four remaining decision packages. Older examples below remain historical and do not enlarge release scope.
+Read the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md) for the next P01 review. It separates approved groups 1-50 from proposed routes and four remaining decision packages. Older examples below remain historical and do not enlarge release scope.
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-49, remaining schema decisions and
+current discussion, approved contract groups 1-50, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -401,8 +401,9 @@ cleared, including zero if none qualify, with no skip reasons and no file change
 (group 39/SC-167/API-E116). Exact count field/wire/transaction details remain
 to define. See
 [group 19/API-E76-80](REST-ERROR-SCENARIOS.md#admin-clear-forgets-uuids-cancel-unfinished-or-errored-jobs-first-group-19).
-Group 21 also approves preserving files on clear, with separate operational
-ownership/accounting and no old UUID replay record. Deleting retained data
+Group 50 supersedes group 21 post-clear tracking: leave files but forget all
+source/destination linkage, ownership/accounting and action results. Remaining
+files leave mover management; request deletion before clear if desired. Deleting retained data
 requires a separate confirmed admin action. Group 22 permits only owned retained
 source/unfinished destination after safe stop; unclaimed originals/completed
 output stay protected. Deletion is best effort; failures leave files behind and
@@ -642,8 +643,8 @@ protected-file rules. Exact endpoint names/methods and list validation/limits
 remain to settle. Group 46 selects browser session-cookie transport for dashboard
 sign-in; exact login/logout wire is pending. Group 42 silently skips
 nonexistent selected job IDs and processes the rest (SC-170/API-E119); this does
-not turn unreadable state into a missing ID or discard retained-data ownership
-after history clear. Group 43 processes repeated entries again; do not deduplicate
+not turn unreadable state into a missing ID. Under group 50, successful clear
+forgets every source/destination linkage; old cleared IDs then silently skip. Group 43 processes repeated entries again; do not deduplicate
 or predict job state in the list handler. The per-job operation decides outcomes;
 a duplicate cancel counts as a failed cancel attempt without making the job itself
 failed or resetting cancellation progress (SC-171/API-E120). Existing single-

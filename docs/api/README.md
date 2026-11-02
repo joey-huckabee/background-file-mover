@@ -2,7 +2,7 @@
 
 2026-11-01, P01 review work following the
 [consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Not runtime
-implementation.** Updated 2026-11-02: groups 1-49 are approved; group 49 selects
+implementation.** Updated 2026-11-02: groups 1-50 are approved; group 50 changes post-clear ownership, and group 49 selects
 the reviewed-state retry header. These files make the schema proposal executable without claiming the unfinished API is ready to ship.
 
 ## Artifacts
@@ -18,10 +18,12 @@ the reviewed-state retry header. These files make the schema proposal executable
 | [retry-context.candidate.vectors.json](retry-context.candidate.vectors.json) | Four wire known answers, 52 decoding cases and explicit NOT_RUN runtime obligations. |
 | [check_retry_context_candidate.py](check_retry_context_candidate.py) | Reproducible standard-library codec checker, no service/SQL/filesystem effects. |
 | [ADMIN-REPLAY.candidate.md](ADMIN-REPLAY.candidate.md) | Concrete reviewed-state context recommendation, crash/duplicate/replay obligations and latest-sweep deletion proposal. |
-| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 129 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
+| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 132 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
 
 The first 128 case-map outcomes are copied from the review tables at ad9fee9;
-API-E129 adds the approved group-49 outcome on 2026-11-02. It does
+API-E129 adds group 49 and API-E130-132 add group 50 on 2026-11-02.
+Rows marked SUPERSEDED_POST_CLEAR retain historical outcomes for traceability;
+they do not require keeping cleared-file linkage. The case map does
 not upgrade a proposed detail into approval; later explicit approval sections
 and the original row's scope still govern. Rows with transport/no-HTTP outcomes
 stay transport/no-HTTP obligations rather than invented OpenAPI responses.
@@ -48,6 +50,11 @@ integers losslessly; ordinary binary64 JSON parsing can round values above
 2^53-1. Exact decimal-string sizes remain an alternative requiring a deliberate
 schema/consumer decision. No new runtime dependency is introduced here.
 
+Group 50 removes the proposed post-clear retained-owner inventory route.
+Tracked-job views and deletion results exist only before clear; no service file
+linkage/accounting or cleanup survives successful clear. Physical disk bytes and
+unchanged payload/manifest contents may remain; do not rebuild tracking from them.
+
 The partial OpenAPI file now includes the retry header parameter and its
 decoded/read-projection schemas. It does not enumerate every error or complete authentication
 and CSRF protection. Its default producer error response describes mover-generated
@@ -65,9 +72,9 @@ work. No further encoding-only fixture expansion is planned before implementatio
 
 | Blocker | Recommended next decision/design | Still required before freeze |
 |---|---|---|
-| F01 Release surface | Use the consolidated 16-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
+| F01 Release surface | Use the consolidated 15-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
 | F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Concrete header encoding/bounds candidate supplied and checked; exact error/duplicate/zero-accepted outcomes, same-transaction receipts and bounded retention remain |
-| F03 Clear/delete outcomes | Retain ownership by old job_id; one active deletion sweep and latest-sweep summary | Confirm stale selection, request replay, partial failure and summary lifetime; keep actual files protected |
+| F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Deletion/latest-result proposals apply only before clear. |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
 | F06 Authentication/ingress | Global session revocation, HTTPS, same-origin mutation protection, separate producer trust | Exact CSRF, inactivity activity rules, endpoint denial/validation precedence and bounded selected proxy profile |

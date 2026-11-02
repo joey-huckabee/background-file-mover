@@ -8,10 +8,12 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-nine groups in successive review replies.
+**Current override, 2026-11-02:** Group 50 supersedes earlier post-clear ownership/accounting rules: successful eligible clear forgets all source/destination file linkage; files stay in place, and cleared files leave mover management. See API-E130-132.
+
+The user approved the following fifty groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-49 add API-E61-129 below.
+direction, not new runtime capabilities. Groups 14-50 add API-E61-132 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +210,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-129 are review keys, not replacement requirements or SC IDs.
+API-E01-132 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -524,6 +526,10 @@ promise an implemented cleanup/history clear route or silently discard state.
 
 ## Admin clear forgets UUIDs; cancel unfinished or errored jobs first (group 19)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **User direction recorded 2026-10-23; implementation pending.** Explicit admin
 history clear removes the selected detailed history **and forgets its recording
 UUID**. Keep no deduplication tombstone or compact completion receipt for that
@@ -589,6 +595,10 @@ DOC-01/03/04/05 must explain both, including the loss of old replay protection.
 
 ## Cancellation preserves files in place (group 20)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **Approved on 2026-10-23; implementation/qualification pending.** Cancellation
 stops further transfer work and preserves existing files at their current
 locations. It is not automatic rollback, restoration or data deletion. This
@@ -653,6 +663,10 @@ These are planned contract cases; no new Rust/NFS/SLES result is claimed.
 
 ## History clear keeps files; data deletion is a separate admin action (group 21)
 
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
+
 **Approved on 2026-10-23; implementation/qualification pending.** The user
 accepts keeping files when history is cleared. Clear removes selected detailed
 job history and UUID recognition, while preserving existing physical files and
@@ -707,10 +721,10 @@ and NFS remain disabled.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E87 | Clear completed history while source retention and/or completed destination files still exist | Files and valid manifest remain unchanged; history/UUID recognition are removed; required retained-file ownership/accounting survives separately | Approved contract; preserve content/identity and no unlink/restore effects. New operational storage design pending. |
-| API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs. |
-| API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions. |
-| API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed. |
+| API-E87 | Clear completed history while source retention and/or completed destination files still exist | Files and valid manifest remain unchanged; history/UUID recognition are removed; required retained-file ownership/accounting survives separately | Approved contract; preserve content/identity and no unlink/restore effects. New operational storage design pending.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
 | API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; Best-effort failure behavior is defined below; access and exact responses remain pending; group 23 resolves cleanup independence. |
 
 SC-147 records file-preserving history clear and retained ownership/accounting.
@@ -719,6 +733,10 @@ these controls, UUID forgetting, storage occupancy and preservation of valid
 consumer output. These are pending acceptance cases, not new passing tests.
 
 ## Confirmed retained-data deletion: owned leftovers only after safe stop (group 22)
+
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
 
 **Approved on 2026-10-23; implementation/qualification pending.** The separate
 admin action may delete only mover-owned retained source files and unfinished
@@ -786,7 +804,7 @@ or unresolved data; selection/history clear alone cannot release bytes.
 | API-E95 | Root/path/object/parent ownership changes or cannot be proven before deletion | Refuse unsafe effects, preserve ownership/evidence and report review/uncertainty | Do not adopt objects or infer authority from names/UID; no recursive arbitrary-path cleanup. |
 | API-E96 | Worker still active/blocked/terminating, cancellation pending or publication outcome unresolved | Deletion remains unauthorized until safe stop/settlement; confirmation cannot bypass the blocker | Existing actual-exit and remote-settlement limits apply; no signal/timeout shortcut. |
 | API-E97 | Some selected deletion succeeds, then error, lost reply or restart occurs | Best effort: leave failed files behind, attempt other independently safe confirmed files and report failures/unknown outcomes truthfully. No rollback or dedicated pause/resume/retry workflow | Approved simplified behavior; exact response shape pending. Uncertainty never grants authority to delete a different object. |
-| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/confirmation details still to qualify; repeated requests use the same ownership safeguards. |
+| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/confirmation details still to qualify; repeated requests use the same ownership safeguards.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
 
 SC-149 records the eligible/protected categories and SC-150 confirmed safe-stop/
 identity selection. DOC-01/02/03/04/05 must distinguish cancellation, history
@@ -987,6 +1005,10 @@ recovery. No new runtime/recovery/security qualification is claimed.
 
 ## Confirm selected history clear and explain UUID forgetting (group 30)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **Approved on 2026-10-24; implementation/qualification pending.** Require an
 explicit confirmation before clearing job history. Show the selected jobs and
 explain that clearing forgets their recording UUIDs but leaves their files in
@@ -1015,6 +1037,10 @@ its distinction from physical deletion. No new runtime/qualification pass.
 
 ## Clear eligible selected history; silently skip ineligible jobs (group 31)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **Approved on 2026-10-24; implementation/qualification pending.** After the
 history-clear confirmation, clear the selected jobs that are currently eligible
 and skip the others. No per-job skip reason needs to be reported. Do not cancel
@@ -1041,7 +1067,7 @@ remain as separately agreed.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E107 | Confirmed history-clear selection contains eligible and ineligible jobs, or eligibility changes before application | Clear only currently eligible selected jobs; skip others without reporting individual reasons. Never auto-cancel, alter skipped jobs or clear unshown/new jobs. Preserve file ownership/accounting and existing cleared-UUID rules | Approved selection behavior; exact summary/transaction/wire and implementation/qualification pending. Actual storage/request failure is not a successful clear. |
+| API-E107 | Confirmed history-clear selection contains eligible and ineligible jobs, or eligibility changes before application | Clear only currently eligible selected jobs; skip others without reporting individual reasons. Never auto-cancel, alter skipped jobs or clear unshown/new jobs. Preserve file ownership/accounting and existing cleared-UUID rules | Approved selection behavior; exact summary/transaction/wire and implementation/qualification pending. Actual storage/request failure is not a successful clear.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
 
 SC-159 and DOC-01/02/03/04/05 track mixed-selection history clear without skip
 reason reporting or automatic cancellation. No new passing runtime evidence.
@@ -1284,6 +1310,10 @@ progress/success. No new runtime/Rust/NFS/SLES qualification is claimed.
 
 ## Completed history clear returns 200 and actual cleared-job count (group 39)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **Approved on 2026-10-24; implementation/qualification pending.** After applying
 a confirmed history-clear request, return HTTP 200 OK with the number of jobs
 actually cleared. Count successful eligible history/UUID removals, not the number
@@ -1310,12 +1340,16 @@ retries or special recovery workflow.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E116 | Confirmed history-clear request finishes, including mixed eligibility or no eligible selected jobs | Return HTTP 200 OK with the actual number of jobs cleared (zero if none); silently skip ineligible jobs, never auto-cancel and leave files untouched. Preserve original identity and separate retained-file ownership/accounting | Approved status/count; exact JSON/error/transaction/idempotency and implementation/qualification pending. Do not count selections or unknown/failed clears as successful. |
+| API-E116 | Confirmed history-clear request finishes, including mixed eligibility or no eligible selected jobs | Return HTTP 200 OK with the actual number of jobs cleared (zero if none); silently skip ineligible jobs, never auto-cancel and leave files untouched. Preserve original identity and separate retained-file ownership/accounting | Approved status/count; exact JSON/error/transaction/idempotency and implementation/qualification pending. Do not count selections or unknown/failed clears as successful.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
 
 SC-167 and DOC-01/02/03/04/05 explain completed history clear, its count and
 file preservation. No new passing runtime/NFS/SLES evidence is claimed.
 
 ## Manual deletion returns 202 and deleted/failed file counts (group 40)
+
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
 
 **Approved on 2026-10-24; implementation/qualification pending.** An accepted,
 explicitly confirmed manual retained-data deletion request returns HTTP 202
@@ -1407,6 +1441,10 @@ and admin authentication independent of the body. No new passing runtime test.
 
 ## Silently skip nonexistent job IDs in selected admin actions (group 42)
 
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
 **Approved on 2026-10-24; implementation/qualification pending.** For cancel,
 failed-work retry, history clear and manual retained-data deletion requests,
 silently skip job IDs that no longer exist and process the remaining IDs under
@@ -1438,7 +1476,7 @@ implementation.
 
 | ID | Situation | Required outcome | Evidence/status |
 |---|---|---|---|
-| API-E119 | One of four selected admin actions includes nonexistent/no-longer-existing job IDs | Silently skip nonexistent targets and process remaining IDs under normal action rules; no skip reasons, replacement jobs or UUID/path fallback. Preserve retained-data ownership after clear and distinguish lookup/storage failure from nonexistence | Approved selected-action behavior; exact wire/no-work/list validation and implementation/qualification pending. Separate single-resource/local-operator 404 mappings remain. |
+| API-E119 | One of four selected admin actions includes nonexistent/no-longer-existing job IDs | Silently skip nonexistent targets and process remaining IDs under normal action rules; no skip reasons, replacement jobs or UUID/path fallback. Preserve retained-data ownership after clear and distinguish lookup/storage failure from nonexistence | Approved selected-action behavior; exact wire/no-work/list validation and implementation/qualification pending. Separate single-resource/local-operator 404 mappings remain.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
 
 SC-170 and DOC-01/02/03/04/05 explain stale selections and silent nonexistent-ID
 skips for selected actions. No passing runtime/NFS/SLES result is claimed.
@@ -1682,6 +1720,70 @@ retry outcome or settle clear/delete request replay and asynchronous counts.
 SC-180 and DOC-01/02/03/04/05 must explain safe lost-response retry without
 adding a new user workflow. This is a contract decision, not a new passing test.
 
+## History clear forgets all file linkage (group 50)
+
+**Approved on 2026-11-02; implementation/qualification pending.** The user
+changes the earlier post-clear rule: once an eligible job is cleared, keep no
+further mover linkage to its source or destination files. Forget detailed job
+history, UUID recognition, per-job command/deletion results and all associated
+retained-file ownership, path/receipt indexes and per-job accounting records.
+Do not retain a hidden owner record or an inventory entry under the old job ID.
+
+Files remain exactly where they are. Clear is not deletion, relocation, restore
+or rewriting of payloads/committed manifests. Existing file/manifest contents do
+not become a service tracking record, authority to adopt them or a reason to
+rebuild cleared job linkage during restart. Shared root enrollment, instance
+identity and other jobs' safety state remain; these are not a cleared job's
+source/destination inventory.
+
+### Consequences
+
+- If the admin wants the mover to delete eligible retained data, request and
+  finish that separately confirmed deletion **before** clearing the job. Clearing
+  first relinquishes mover management; later cleanup is outside this service.
+- Cleared jobs and their files disappear from job-linked management/accounting
+  and any retained-data view. Old selected job IDs silently skip under group 42;
+  existing single-resource missing-job reads keep their 404 behavior. No UUID,
+  path, directory scan or immutable-manifest fallback may recreate the linkage.
+- Dropping the mover's byte accounting does not free physical disk space. Real
+  filesystem usage and source-space observations still include files left there.
+  Keep existing default-off admission policy; make no new capacity guarantee.
+- Clearing still requires completed or safely cancelled work and explicit
+  confirmation. All associated copy/delete/cleanup operations must have safely
+  stopped and uncertain effects settled. An active/unresolved deletion prevents
+  successful clear just as an unresolved transfer does. Serialize clear versus
+  new actions; success cannot leave a worker later acting for that cleared job.
+- Explain in the existing clear confirmation that files stay but the mover
+  forgets all tracking and cannot later clean them up. Keep selected-job scope,
+  silent ineligible skips, actual cleared count and no automatic cancellation.
+- Reusing the forgotten UUID is new work with a new non-reused internal job ID.
+  Normal scope/authority/no-clobber checks remain. Existing destination files
+  may still collide; forgetting them is not permission to overwrite/adopt them.
+
+This supersedes group 21's retained ownership/accounting after clear and the
+post-clear extensions in groups 19/22/30/31/39/40/42. Preserve their other rules:
+files stay; before clear, deletion is explicit, scoped and safe; missing IDs
+skip; unreadable state is not absence; confirmation/status/counts still apply.
+Group 49 exact retry replay remains for uncleared jobs. Clear removes only the
+cleared job's receipts, never another selected job's replay/ownership evidence.
+Old aggregate results are not retained through hidden cleared-job history.
+
+The implementation must qualify a transactionally recoverable forget operation,
+restart with intentionally unmanaged leftovers, exclusion of live effects,
+no automatic reacquisition and no false physical-space claim. Do not casually
+remove current SQLite/custody records or files to simulate this future feature.
+No service state was changed and no production deletion was authorized here.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E130 | Admin clears an eligible completed/safely cancelled job while source/destination files remain | Forget history, UUID recognition, command/deletion results and all job-to-file tracking/ownership/accounting; leave physical files and manifests untouched | Approved group 50; supersedes post-clear linkage in earlier cases. Transaction/restart implementation and qualification pending. |
+| API-E131 | After clear, old IDs, a restart, a later deletion request or a reused UUID encounter files left behind | No mover lookup, inventory, cleanup or automatic reconstruction of the cleared linkage. Old batch targets skip; existing missing-resource reads remain 404. Files are now outside mover management; no overwrite/adoption shortcut | Approved group 50; physical usage remains real despite removal from the mover ledger. Implementation/qualification pending. |
+| API-E132 | Clear races with a live or unresolved transfer/deletion/cleanup effect | Do not successfully clear until safe stop/settlement. Keep ineligible jobs/evidence intact, process other eligible selections normally and serialize new actions against clear | Approved group 50 safety boundary; no half-clear, pending-worker abandonment or later mover effect for a cleared job. Implementation/qualification pending. |
+
+SC-181-183 and DOC-01-05 must explain this replacement rule in plain language.
+No earlier scenario ID is deleted or repurposed; superseded expectations remain
+explicitly historical. This adds contract cases, not passing runtime evidence.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1709,7 +1811,7 @@ remaining details in four packages. It adds no approval group or passing test.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-49 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-50 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1727,12 +1829,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-129 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-132 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-129 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-132 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

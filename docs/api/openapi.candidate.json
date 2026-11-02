@@ -11,7 +11,7 @@
   "x-freeze-blockers": [
     "Route inventory and exact read schemas",
     "Bulk retry receipt retention, duplicate/no-acceptance outcome policy and transaction design; concrete candidate header/bounds now supplied",
-    "Clear/delete concurrency, confirmation and asynchronous counts",
+    "Group50 safe full unlinking of service records (not physical files), clear/delete serialization and pre-clear asynchronous counts",
     "Global UUID stored-state migration and no-clobber reuse",
     "Manifest numeric encoding and legacy compatibility",
     "Remote proxy and session CSRF/inactivity boundary details"
@@ -317,7 +317,7 @@
         "x-pending": [
           "No-accepted-attempt HTTP policy",
           "Duplicate retry occurrence classification",
-          "Partial transaction/storage outcomes and receipt lifetime after history clear",
+          "Partial transaction/storage outcomes; group50 clears that job records/receipts without affecting uncleared-job replay",
           "Exact admin error response envelope and CSRF/read integration"
         ]
       }
@@ -336,5 +336,6 @@
         "description": "Proposed opaque server-side dashboard session. CSRF defense remains mandatory; this scheme alone is incomplete."
       }
     }
-  }
+  },
+  "x-history-clear-policy": "Group50: cleared jobs have no remaining mover file linkage or results. Leave files unchanged; require all associated effects stopped/settled before clear."
 }

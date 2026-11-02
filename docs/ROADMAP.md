@@ -24,7 +24,8 @@ review-version/audit context, without changing the job_ids body. No OpenAPI free
 
 Use the [short action closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
 to settle remaining visible defaults together: duplicate/no-work retry results,
-receipt availability after history clear and latest manual-deletion results.
+latest manual-deletion results before clear. Group 50 settles post-clear
+behavior: leave files but forget every mover link, account and result.
 The user requests less time in details. Complete routine schema/transaction
 choices autonomously; do not grow another encoding-only validation package.
 Preserve the requirement to settle the remaining contract before implementation.
@@ -45,9 +46,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-49). Current missing-file
+  error mappings, envelope and retry timing (groups 1-50). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-129 disposition and preserve original custody.
+  support. Cover every API-E01-132 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.
@@ -60,8 +61,8 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
   behavior, file/custody separation, capacity accounting and release placement.
   Encode approved eligibility: completed or safely cancelled; error/unfinished
   must cancel first. Cancellation preserves files in place; blocked workers or
-  uncertain publication keep it pending. Clear preserves files with separate
-  operational ownership/accounting, while forgetting UUIDs. Qualify that storage
+  uncertain publication keep it pending. Group 50 clear leaves files but forgets every source/destination link,
+  ownership/accounting record, inventory, result and UUID replay entry. Qualify that safe forget
   transition and implement only the approved owned-source/unfinished-destination
   disposal scope with safe stop and explicit confirmation. Protect originals and
   committed output; use best-effort deletion with failures reported; settle authorization before effects. Clear forgets UUIDs; later reuse is a new recording, with

@@ -2,11 +2,20 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-02 group 50 supersedes post-clear tracking: successful eligible clear
+forgets all linkage to source/destination files, including separate ownership,
+accounting, inventories and action results. Files stay in place and leave mover
+management. Delete through the mover before clear; later cleanup is outside the
+service. Clear remains blocked by active/uncertain transfer/delete/cleanup effects.
+See `docs/REST-ERROR-SCENARIOS.md` group 50/API-E130-132 and SC-181-183.
+Earlier retained-ownership-after-clear instructions below are historical and
+superseded. No runtime/state/deletion change is authorized by this doc update.
+
 2026-11-02 scope correction: the user asks for less time in details. Use the
 short closeout table in `docs/api/ADMIN-REPLAY.candidate.md` for remaining visible
 admin behavior. Resolve routine technical choices autonomously; do not expand
 encoding-only planning/fixtures. Proposed defaults are not new approvals;
-groups 1-49 and the contract-before-implementation rule remain unchanged.
+groups 1-50 and the contract-before-implementation rule remain unchanged.
 
 2026-11-01 P01 candidate artifacts: see `docs/api/README.md` for partial
 OpenAPI, producer/session/manifest schemas, fixtures and explicit freeze blockers.
@@ -18,7 +27,7 @@ checked encoding/bounds and an explicit existing-instance precondition proposal.
 Outcome/receipt design and contract freeze remain pending; no runtime
 implementation or qualification is claimed.
 
-2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-49 remain approved; the original proposal is not implementation authorization.
+2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-50 remain approved; the original proposal is not implementation authorization.
 
 2026-11-01 build-tool migration: Rust validation now uses cargo-libc 0.2.4
 through `scripts/check-rust-sles.py`, superseding cargo-zigbuild requirements
@@ -43,8 +52,8 @@ Moving the checkout is not authorization to move active service custody/state.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-129 for user review
-before P01 is frozen. Groups 1-49 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-132 for user review
+before P01 is frozen. Groups 1-50 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling
@@ -68,8 +77,8 @@ file disposition at history clear; finalize remaining admin wire/bulk/concurrenc
 and release placement.
 Cancellation preserves all existing files in place (group 20/SC-146/API-E81-86);
 blocked workers/uncertain publication keep it pending. No automatic restore/delete.
-History clear preserves files and separate ownership/accounting but forgets
-UUID recognition (group 21/SC-147/148/API-E87-91). Data deletion requires a
+History clear preserves files but now forgets all associated mover linkage
+and ownership/accounting (group 50 supersedes group 21 post-clear tracking). Data deletion requires a
 separate explicitly confirmed admin action, limited to owned retained source
 and unfinished destination after safe stop; protect originals/committed output
 (group 22/SC-149/150/API-E92-98). Delete is best effort: leave failed files, attempt other safe confirmed files

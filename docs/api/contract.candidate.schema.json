@@ -3,7 +3,7 @@
   "title": "Background File Mover contract candidate - NOT FROZEN",
   "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
   "x-status": "candidate-not-frozen",
-  "x-approved-groups-through": 49,
+  "x-approved-groups-through": 50,
   "$defs": {
     "RecordingId": {
       "type": "string",
@@ -597,5 +597,6 @@
         "Decoded bytes <=4096 and canonical JSON; full raw request head still <=8192 bytes."
       ]
     }
-  }
+  },
+  "x-history-clear-policy": "Group50: after safe stop/settlement, successful eligible clear forgets all source/destination linkage, ownership/accounting/inventory and action results. Files remain unmanaged; no post-clear cleanup or reconstruction."
 }
