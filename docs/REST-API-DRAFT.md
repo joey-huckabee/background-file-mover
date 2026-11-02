@@ -1,7 +1,7 @@
 # Rust REST API contract draft
 
 The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
-current discussion, approved contract groups 1-46, remaining schema decisions and
+current discussion, approved contract groups 1-47, remaining schema decisions and
 implementation differences. Follow API-I01-06; resolve remaining schema and
 persisted-state details before freezing OpenAPI or changing runtime responses.
 The discussed global recording ID/full source directory/string-file form is
@@ -700,10 +700,26 @@ all-session sign-out on password change or mover restart. Expiry/sign-out does
 not stop transfers. Admin account setup/password changes remain host-local;
 producer credentials do not authorize admin actions.
 
-Cookie attributes/name, login/logout paths/methods/bodies, manual logout scope,
-browser-restart persistence and session implementation details remain to settle.
+Group 47 resolves manual sign-out as all-session invalidation. Cookie attributes/
+name, login/logout paths/methods/bodies, browser-restart persistence and session
+implementation details remain to settle.
 Keep ordinary HTTPS/password/session hygiene without expanding account features.
 See [group 46/API-E123/SC-174](REST-ERROR-SCENARIOS.md#browser-session-cookie-for-dashboard-sign-in-group-46).
+
+## Sign out everywhere and transfer independence (group 47)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Manual admin
+sign-out from any browser/device invalidates every admin dashboard session.
+Previously issued session cookies must no longer authorize subsequent admin
+requests; every browser/device must sign in again.
+
+The mover service owns transfers independently of dashboard credentials and
+sessions. Signing in/out, session expiry and dashboard password changes do not pause,
+cancel or restart transfers. Dashboard authentication controls access to admin
+requests; explicit job actions retain their own eligibility and custody checks.
+Exact logout endpoint/method/body/status, cookie handling and in-flight request
+ordering remain to finalize. See
+[group 47/API-E124/SC-175](REST-ERROR-SCENARIOS.md#manual-admin-sign-out-invalidates-all-sessions-group-47).
 
 ## Missing file retry and operator review
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve manual admin sign-out everywhere (group 47/API-E124/SC-175).
+  Invalidate every dashboard session across browsers/devices. Clarify that the
+  mover service owns transfers independently of dashboard credentials or session
+  lifetime; sign-in/out and dashboard credential events do not pause/cancel/restart them.
+  Contract documentation only; implementation/qualification and exact wire pending.
+
 - Approve browser session-cookie dashboard sign-in (group 46/API-E123/SC-174).
   Preserve agreed expiry, password-change/restart sign-out and transfer independence.
   Exact cookie/login/logout wire and implementation/qualification remain pending.
