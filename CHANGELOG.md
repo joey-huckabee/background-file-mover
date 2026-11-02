@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Approve existing review-version/audit context in a retry request header
+  (group 49/API-E129/SC-180), preserving the job_ids-only body and exact-command
+  replay so a delayed request cannot retry a later failure. No new job identifier
+  or confirmation dialog. Exact wire/receipt design and implementation pending.
+
 - Add executable P01 contract candidates: partial OpenAPI, 21 JSON Schema
   definitions, 50 structural fixtures, seven immutable-request identity vectors
   and an index of all 128 API cases. Document the reviewed-state retry-context

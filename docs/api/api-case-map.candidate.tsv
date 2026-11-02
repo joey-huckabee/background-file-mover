@@ -127,3 +127,4 @@ API-E125	1	Admin supplies correct login credentials	Return 200 OK with the authe
 API-E126	1	Admin supplies incorrect login credentials	Return 401 Unauthorized with "Invalid username or password."	NOT_EXECUTED_BY_SCHEMA_CHECK
 API-E127	1	Protected admin request has a missing or expired session	Return 401 Unauthorized and require sign-in	NOT_EXECUTED_BY_SCHEMA_CHECK
 API-E128	1	Manual admin sign-out successfully invalidates all admin sessions	Return 204 No Content after all-session invalidation; no response body	NOT_EXECUTED_BY_SCHEMA_CHECK
+API-E129	3	Lost-response retry arrives after a later review	Keep frozen existing review-version/audit context in a header and job_ids-only body; original replay cannot authorize the newer failure	NOT_EXECUTED_BY_SCHEMA_CHECK

@@ -1,8 +1,8 @@
 # Admin replay and retained-data outcomes - candidate
 
-This design review resolves mechanisms, not new product approvals. The compact
-body remains {"job_ids":[...]}; no new public job or operation ID is proposed.
-The reviewed request context outside that body is an outstanding user choice.
+Group 49 approves reviewed-state context in a request header on 2026-11-02.
+The compact body remains {"job_ids":[...]}; no new public job or operation ID or
+confirmation dialog is added. Exact wire/storage details below remain proposals.
 [Groups 35/38/41-45](../REST-ERROR-SCENARIOS.md) remain authoritative.
 
 ## Why retry needs immutable context
@@ -16,7 +16,7 @@ A mutable session variable, current-state lookup or ordinary CSRF token cannot
 prove which review the operator intended; another tab or polling can change
 current state while an old HTTP request remains in flight.
 
-**Recommended mechanism, pending approval:** carry the existing per-job review
+**Approved header mechanism (group 49), exact wire pending:** carry the existing per-job review
 epochs and required audit context in an immutable request header. Keep the JSON
 body unchanged. Bind that context to the authenticated account, retry action
 and exact ordered list, including duplicate occurrences. Freeze it at the

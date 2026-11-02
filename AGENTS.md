@@ -4,11 +4,13 @@
 
 2026-11-01 P01 candidate artifacts: see `docs/api/README.md` for partial
 OpenAPI, producer/session/manifest schemas, fixtures and explicit freeze blockers.
-No new approval group or runtime evidence is claimed. Resolve immutable
-reviewed-state retry context without changing the compact job_ids body or
-bypassing existing exact-command replay; the header choice remains pending.
+Group 49 (2026-11-02) approves immutable existing review-version/audit context
+in a retry request header, with job_ids-only body and exact-command replay
+preserved (SC-180/API-E129). No extra job identifier or confirmation dialog.
+Header spelling/encoding, bounds and receipt design remain to finalize; no
+runtime implementation or qualification is claimed.
 
-2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-48 remain approved; this proposal adds no approval or implementation authorization.
+2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-49 remain approved; the original proposal is not implementation authorization.
 
 2026-11-01 build-tool migration: Rust validation now uses cargo-libc 0.2.4
 through `scripts/check-rust-sles.py`, superseding cargo-zigbuild requirements
@@ -33,8 +35,8 @@ Moving the checkout is not authorization to move active service custody/state.
 Resume the remaining REST schema/replay discussion; do not re-propose per-job
 size-policy snapshots or begin implementation before the remaining contract is settled.
 
-2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-128 for user review
-before P01 is frozen. Groups 1-48 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
+2026-10-23: `docs/REST-ERROR-SCENARIOS.md` records API-E01-129 for user review
+before P01 is frozen. Groups 1-49 (errors, retry/size policy, replay, UUIDs and admin data controls) are approved; other mappings
 remain under review. Missing-file 409 is approved but current runtime is still
 503. No one uses the Rust prototype API: replace its producer format directly,
 without an old-wire adapter. Preserve persisted custody; global-ID state handling

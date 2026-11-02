@@ -8,10 +8,10 @@ No runtime, persistence, retry/review policy or NFS/deletion switch changes here
 
 ## Approved groups (2026-10-23)
 
-The user approved the following forty-eight groups in successive review replies.
+The user approved the following forty-nine groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-48 add API-E61-128 below.
+direction, not new runtime capabilities. Groups 14-49 add API-E61-129 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -208,7 +208,7 @@ proposed acceptance scenarios. **None is a new passing test.**
 `Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
 under `rust/crates/`, plus the linked operator/remote contracts. It does not
 assert that every listed variant has been separately qualified. Scenario IDs
-API-E01-128 are review keys, not replacement requirements or SC IDs.
+API-E01-129 are review keys, not replacement requirements or SC IDs.
 
 | ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
 |---|---|---|---|---|
@@ -1651,6 +1651,37 @@ SC-176-179 and DOC-01/02/03/04/05 must explain these approved outcomes. Next
 consolidate exact login/logout routes, request fields and response body schemas
 with the remaining finite P01 wire/replay decisions.
 
+## Reviewed-state retry context uses a header (group 49)
+
+**Approved on 2026-11-02; implementation/qualification pending.** Carry the
+existing job review version and required audit context in a retry request
+header while keeping the JSON body as {"job_ids":[...]}. This lets an uncertain
+transport retry identify the failure the admin deliberately chose to retry,
+without introducing another public job/operation identifier or confirmation
+dialog. Existing authentication, review and custody checks still apply.
+
+Freeze this context for that deliberate Retry action and resend it unchanged
+when retrying the same HTTP request. An old request must preserve its original
+result and must never authorize retry of a later failure/review cycle. A new
+deliberate action after inspecting a later review uses that later context.
+Polling, session renewal or looking up the latest state cannot refresh an old
+request's intent. A CSRF token alone is not a reviewed-state precondition.
+
+This approval selects the header transport for existing context, not its exact
+name, encoding, per-request size limits, batch receipt storage/retention or
+internal command-key derivation. Preserve the existing aggregate 8 KiB header
+bound, exact-command replay and audit prerequisites. Duplicate entries still
+receive per-job decisions; group 49 does not approve the proposed duplicate
+retry outcome or settle clear/delete request replay and asynchronous counts.
+[The candidate design](api/ADMIN-REPLAY.candidate.md) separates those details.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E129 | A retry response is lost, its scheduled work later fails into a newer review, and the browser resends the old request | Keep the job_ids-only body and frozen existing review-version/audit context in a request header. Preserve original exact-command replay; the old request cannot authorize the newer failure. No new job identifier or confirmation dialog | Approved header mechanism and intent boundary; exact wire, transactional receipts/retention and implementation/qualification pending. |
+
+SC-180 and DOC-01/02/03/04/05 must explain safe lost-response retry without
+adding a new user workflow. This is a contract decision, not a new passing test.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1678,7 +1709,7 @@ remaining details in four packages. It adds no approval group or passing test.
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 
-Groups 1-48 above record the agreed direction: fifty initial outcome mappings, the shared error
+Groups 1-49 above record the agreed direction: fifty initial outcome mappings, the shared error
 envelope, recorder retry timing, all-or-nothing expected-size checking and
 current-configuration behavior, unordered replay, UUID recording IDs and manual
 full-history retention, eligible admin clear that forgets UUIDs, file-preserving
@@ -1696,12 +1727,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-128 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-129 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-128 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-129 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

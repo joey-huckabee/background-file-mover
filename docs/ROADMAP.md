@@ -15,8 +15,9 @@ another NFS experiment merely because more combinations are possible.
 
 Complete the [candidate contract bundle](api/README.md) and its F01-F06
 freeze blockers. The producer/session subset, manifest schema proposal and
-identity fixtures are present; full route/read/action schemas and the retry
-precondition decision remain. No OpenAPI freeze or runtime qualification yet.
+identity fixtures are present; full route/read/action schemas and exact retry
+header/receipt design remain. Group 49 approves header transport for existing
+review-version/audit context, without changing the job_ids body. No OpenAPI freeze or runtime qualification yet.
 
 ## Next work
 
@@ -36,9 +37,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 
 - [ ] Complete remaining request/schema and persisted-state decisions and execute
   [API-I01-06](REST-ERROR-SCENARIOS.md) within P01/P02/P03. Preserve the approved
-  error mappings, envelope and retry timing (groups 1-48). Current missing-file
+  error mappings, envelope and retry timing (groups 1-49). Current missing-file
   behavior remains 503 until implementation; do not mistake approval for runtime
-  support. Cover every API-E01-128 disposition and preserve original custody.
+  support. Cover every API-E01-129 disposition and preserve original custody.
   Replace the unused Rust producer format directly; no old-wire adapter or
   deprecation work is required. Encode approved expected_sizes_bytes all-or-nothing
   and default-disabled checking, including ignored complete maps when off.

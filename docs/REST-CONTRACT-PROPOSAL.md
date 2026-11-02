@@ -1,6 +1,6 @@
 # Consolidated REST contract proposal
 
-2026-11-01. Review draft for P01, based on approved groups 1-48.
+2026-11-01. Review draft for P01; updated 2026-11-02 for approved group 49.
 This is a proposal, not a frozen API, runtime change or qualification result.
 The [approved error review](REST-ERROR-SCENARIOS.md) remains authoritative for
 accepted behavior. This document replaces older draft examples as the next
@@ -9,7 +9,7 @@ review entry point; historical examples are not additional release requirements.
 Machine-readable [candidate schemas, fixtures and acceptance map](api/README.md)
 now accompany this proposal. Their structural checks do not freeze P01.
 The [admin replay design](api/ADMIN-REPLAY.candidate.md) gives the concrete
-reviewed-state context recommendation; the header choice remains pending.
+reviewed-state context recommendation; group 49 approves the header transport on 2026-11-02, with exact wire pending.
 
 ## What needs approval
 
@@ -286,9 +286,11 @@ intent. The job_ids-only bulk body and prohibition on another identifier scheme
 mean the exact replay/intent mechanism still needs design. Options must preserve
 the existing job ID and compact body while proving the operator acted on the
 specific reviewed state, for example through protected precondition context;
-no particular transport or new required body field is selected here. A new
-public command identifier is not silently introduced. Do not implement bulk
-retry until that conflict is settled and its later-epoch replay tests are fixed.
+group 49 selects an immutable request header for the existing review version
+and audit context, while keeping the job_ids-only body. Exact header spelling,
+encoding/bounds and transactional receipt design remain pending. No new public
+command identifier or confirmation dialog is added. Complete that design and
+the later-epoch replay cases before implementation.
 
 Propose that duplicate retry within one batch fails eligibility after an earlier
 entry schedules it; missing or completed entries skip. This rule is still a
@@ -351,9 +353,10 @@ file above is simply a transferred payload.
 | API-E100-105 | Remote admin, host-local account and session lifecycle; package 1 |
 | API-E106-122 | Confirmations, action bodies, repeated entries, statuses/counts; package 3 |
 | API-E123-128 | Cookie sign-in, global logout and approved auth responses; package 1 |
+| API-E129 | Approved reviewed-state retry header; exact encoding, bounds and receipt design pending; package 3 |
 
-This table indexes all 128 cases; it is not an executed-test manifest or a claim
-that the remaining fields are approved. SC-001-179 and DOC-01-06 retain their
+This table indexes all 129 cases; it is not an executed-test manifest or a claim
+that the remaining fields are approved. SC-001-180 and DOC-01-06 retain their
 existing evidence and pending status. Do not add passing evidence from review.
 
 After these decisions are settled, produce versioned OpenAPI, the complete

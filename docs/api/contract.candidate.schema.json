@@ -3,7 +3,7 @@
   "title": "Background File Mover contract candidate - NOT FROZEN",
   "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
   "x-status": "candidate-not-frozen",
-  "x-approved-groups-through": 48,
+  "x-approved-groups-through": 49,
   "$defs": {
     "RecordingId": {
       "type": "string",
@@ -330,7 +330,7 @@
       "x-semantic-rules": [
         "Process each occurrence, in submitted order; do not deduplicate.",
         "Clients must preserve integer precision; JSON binary64 rounding is not allowed.",
-        "Audited bulk retry needs separately resolved immutable reviewed-state context."
+        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header encoding and receipt design pending."
       ]
     },
     "AttemptCounts": {

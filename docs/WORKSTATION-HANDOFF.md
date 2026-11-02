@@ -1,6 +1,6 @@
 # Moving development to another computer
 
-Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-48 remain the approved baseline.
+Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-49 remain the approved baseline.
 
 Recorded 2026-11-01. Branch: `feature/rust-transfer-coordinator`.
 Baseline before this handoff: `686e15c` (groups 1-44). This document is a durable
@@ -10,7 +10,8 @@ moving a running mover's operational state to another host.
 
 The [candidate contract bundle](api/README.md) contains the next concrete P01
 artifacts and validation limits. Its schemas/fixtures are reviewable proposals;
-all 128 API/179 SC IDs and groups 1-48 retain their prior status.
+the original 128 API/179 SC IDs retain their status; group 49 adds the approved
+retry context header (API-E129/SC-180), with implementation/qualification pending.
 
 ## What is in Git, and where to read it
 
@@ -24,8 +25,8 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Future work | [Roadmap](ROADMAP.md) | Remove completed tasks; keep history elsewhere. |
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
-| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-48 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 179 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-49 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 180 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |

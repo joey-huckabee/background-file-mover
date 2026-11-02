@@ -10,7 +10,7 @@
   "x-not-for-client-generation": true,
   "x-freeze-blockers": [
     "Route inventory and exact read schemas",
-    "Bulk retry reviewed-state context and receipt retention",
+    "Bulk retry header encoding/bounds and transactional receipt retention (header mechanism approved in group 49)",
     "Clear/delete concurrency, confirmation and asynchronous counts",
     "Global UUID stored-state migration and no-clobber reuse",
     "Manifest numeric encoding and legacy compatibility",

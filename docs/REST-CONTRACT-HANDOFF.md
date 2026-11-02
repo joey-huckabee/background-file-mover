@@ -80,10 +80,11 @@ local-versus-remote dashboard access or SSO-versus-password login again.
 
 Current deliverable: [candidate contract artifacts](api/README.md), including
 partial OpenAPI, 21 schema definitions, 50 structural fixtures, seven request
-identity vectors and a 128-case index. These are draft-schema checks only, not
-new runtime evidence. Reviewed-state retry context outside the job_ids body is
-the immediate outstanding user choice; do not replace exact-command replay
-with a current-state-only retry or implement bulk retry before it is settled.
+identity vectors and a 129-case index. These are draft-schema checks only, not
+new runtime evidence. Group 49 approves retry review-version/audit context
+in a header on 2026-11-02, with the job_ids-only body and original replay
+semantics preserved (SC-180/API-E129). Exact header/bounds and transactional
+receipt design remain; do not replace replay with a current-state-only retry.
 
 ## Moving to another computer (2026-11-01)
 
@@ -104,9 +105,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Forty-eight reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Forty-nine reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 179 stable SC IDs and six DOC IDs; API-E01-128 are contract/acceptance
+now has 180 stable SC IDs and six DOC IDs; API-E01-129 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve

@@ -22,7 +22,7 @@ launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
 The coordinator owns the draft and integration; the cloud child reviews contract
-consistency. Groups 1-48 remain approved; implementation awaits remaining decisions.
+consistency. Groups 1-49 remain approved; implementation awaits remaining decisions.
 
 For P01 schema work, see the [candidate bundle](api/README.md). Cloud review
 is read-only; local artifact validation uses existing WSL Python/jsonschema and
@@ -67,7 +67,10 @@ for Rust changes. NFS/systemd labs require their separately documented selected
 prerequisites; readiness does not qualify those labs.
 
 Read `REST-CONTRACT-HANDOFF.md` and `WORKSTATION-HANDOFF.md` before development.
-Groups 1-48 are approved, including retry attempt counts, browser session
+Group 49 adds reviewed-state retry context in a header (API-E129/SC-180),
+with job_ids-only body and exact-command replay preserved. Header encoding,
+bounds and transactional receipt design remain pending.
+Groups 1-49 are approved, including retry attempt counts, browser session
 cookies, global manual admin sign-out and login/session/logout response statuses. Transfers belong to the mover service
 and run independently of dashboard credentials/sessions. Remaining wire/login
 details and implementation/qualification are pending. All eight

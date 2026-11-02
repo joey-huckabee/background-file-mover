@@ -2,8 +2,8 @@
 
 2026-11-01, P01 review work following the
 [consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Not runtime
-implementation.** Approved groups remain 1-48. These files make the schema
-proposal executable without claiming the unfinished API is ready to ship.
+implementation.** Updated 2026-11-02: groups 1-49 are approved; group 49 selects
+the reviewed-state retry header. These files make the schema proposal executable without claiming the unfinished API is ready to ship.
 
 ## Artifacts
 
@@ -15,9 +15,10 @@ proposal executable without claiming the unfinished API is ready to ship.
 | [REQUEST-IDENTITY.candidate.md](REQUEST-IDENTITY.candidate.md) | Exact proposed immutable-request framing and compatibility limits. |
 | [request-identity-v1.candidate.vectors.json](request-identity-v1.candidate.vectors.json) | Seven input/frame/hash known answers, including unordered replay and distinct Unicode spellings. |
 | [ADMIN-REPLAY.candidate.md](ADMIN-REPLAY.candidate.md) | Concrete reviewed-state context recommendation, crash/duplicate/replay obligations and latest-sweep deletion proposal. |
-| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 128 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
+| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 129 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
 
-The case-map outcome text is copied from the review tables at ad9fee9. It does
+The first 128 case-map outcomes are copied from the review tables at ad9fee9;
+API-E129 adds the approved group-49 outcome on 2026-11-02. It does
 not upgrade a proposed detail into approval; later explicit approval sections
 and the original row's scope still govern. Rows with transport/no-HTTP outcomes
 stay transport/no-HTTP obligations rather than invented OpenAPI responses.
@@ -56,17 +57,17 @@ specialized operator schemas remain to finish under the route inventory.
 | Blocker | Recommended next decision/design | Still required before freeze |
 |---|---|---|
 | F01 Release surface | Use the consolidated 16-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
-| F02 Retry intent/replay | Allow immutable existing review epoch/audit context outside the job_ids-only body | User choice; exact header budget; same-transaction receipts, later-epoch/duplicate/crash semantics and bounded retention |
+| F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Header transport approved; exact header budget; same-transaction receipts, later-epoch/duplicate/crash semantics and bounded retention |
 | F03 Clear/delete outcomes | Retain ownership by old job_id; one active deletion sweep and latest-sweep summary | Confirm stale selection, request replay, partial failure and summary lifetime; keep actual files protected |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
 | F06 Authentication/ingress | Global session revocation, HTTPS, same-origin mutation protection, separate producer trust | Exact CSRF, inactivity activity rules, endpoint denial/validation precedence and bounded selected proxy profile |
 
 These blockers are not new approvals or all release gates. They are the remaining
-P01 items, with P02/P03 deployment evidence explicitly separate. The immediate
-user choice is F02: allow reviewed-state context in a header while preserving
-the compact body and existing job identifiers. Independent schema work can
-continue while that choice is pending; bulk retry implementation cannot.
+P01 items, with P02/P03 deployment evidence explicitly separate. Group 49 now
+settles F02 header transport while preserving the compact body and existing job
+identifiers. Complete its exact encoding/bounds and transactional receipt
+design alongside the remaining contract before bulk retry implementation.
 
 ## Verification performed
 
