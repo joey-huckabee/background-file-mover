@@ -1,0 +1,116 @@
+{
+  "status": "candidate-not-frozen",
+  "vectors": [
+    {
+      "id": "minimal",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "camera1/video.bin",
+          "camera2/video.bin",
+          "metadata.json"
+        ]
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000030000001163616d657261312f766964656f2e62696e0000001163616d657261322f766964656f2e62696e0000000d6d657461646174612e6a736f6e00",
+      "sha256": "2c6f1facac8a501be5417eefa322dd474bdfbadabea749b622d79d3db4bd3c02"
+    },
+    {
+      "id": "file-order-permutation",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "metadata.json",
+          "camera2/video.bin",
+          "camera1/video.bin"
+        ]
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000030000001163616d657261312f766964656f2e62696e0000001163616d657261322f766964656f2e62696e0000000d6d657461646174612e6a736f6e00",
+      "sha256": "2c6f1facac8a501be5417eefa322dd474bdfbadabea749b622d79d3db4bd3c02"
+    },
+    {
+      "id": "uuid-uppercase",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550E8400-E29B-41D4-A716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "camera1/video.bin",
+          "camera2/video.bin",
+          "metadata.json"
+        ]
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000030000001163616d657261312f766964656f2e62696e0000001163616d657261322f766964656f2e62696e0000000d6d657461646174612e6a736f6e00",
+      "sha256": "2c6f1facac8a501be5417eefa322dd474bdfbadabea749b622d79d3db4bd3c02"
+    },
+    {
+      "id": "complete-size-map",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "camera1/video.bin",
+          "camera2/video.bin",
+          "metadata.json"
+        ],
+        "expected_sizes_bytes": {
+          "camera1/video.bin": 0,
+          "camera2/video.bin": 1,
+          "metadata.json": 2
+        }
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000030000001163616d657261312f766964656f2e62696e0000001163616d657261322f766964656f2e62696e0000000d6d657461646174612e6a736f6e01000000000000000000000000000000010000000000000002",
+      "sha256": "7cc4c85291bd360ad1cb8b208007452ecfa8637e3693473db883452f3aa6f50f"
+    },
+    {
+      "id": "changed-assertion",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "camera1/video.bin",
+          "camera2/video.bin",
+          "metadata.json"
+        ],
+        "expected_sizes_bytes": {
+          "camera1/video.bin": 0,
+          "camera2/video.bin": 1,
+          "metadata.json": 3
+        }
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000030000001163616d657261312f766964656f2e62696e0000001163616d657261322f766964656f2e62696e0000000d6d657461646174612e6a736f6e01000000000000000000000000000000010000000000000003",
+      "sha256": "77fbca44689a00c1e1767f05639c78e784121b7a115a48412cab3cbf94696ae6"
+    },
+    {
+      "id": "unicode-precomposed",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "\u00e9.bin"
+        ]
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d303034320000000100000006c3a92e62696e00",
+      "sha256": "94befc1e22f00403e66005694e9b66a7ff7211120a6c4265508290fd9ebf2cc3"
+    },
+    {
+      "id": "unicode-decomposed",
+      "request": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "e\u0301.bin"
+        ]
+      },
+      "frame_hex": "42464d2d524551554553542d4944454e54495459007631000000000b7265636f726465722d30310000002435353065383430302d653239622d343164342d613731362d3434363635353434303030300000001c2f6d6e742f6e66732f7265636f7264696e67732f72756e2d30303432000000010000000765cc812e62696e00",
+      "sha256": "62986e522f360b062d728a4f5727c7773c41d7bbd432b1efe2261e7861c143bf"
+    }
+  ]
+}

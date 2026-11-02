@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Background File Mover contract candidate - NOT FROZEN",
+  "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
+  "x-status": "candidate-not-frozen",
+  "x-approved-groups-through": 48,
+  "$defs": {
+    "RecordingId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "JobId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 19,
+      "pattern": "^[1-9][0-9]*$",
+      "not": {
+        "pattern": "[^0-9]"
+      },
+      "x-integer-maximum": 9223372036854775807
+    },
+    "RelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4095,
+      "allOf": [
+        {
+          "not": {
+            "pattern": "^/|/$|//"
+          }
+        },
+        {
+          "not": {
+            "pattern": "(^|/)(\\.|\\.\\.|\\.file-mover|\\.control|\\.staging|COMMITTED\\.json)(/|$)"
+          }
+        },
+        {
+          "not": {
+            "pattern": "[\\\\\\x00-\\x1f\\x7f-\\x9f]"
+          }
+        }
+      ],
+      "x-max-utf8-bytes": 4095
+    },
+    "SourceDirectory": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4095,
+      "pattern": "^/",
+      "allOf": [
+        {
+          "not": {
+            "pattern": "[\\\\\\x00-\\x1f\\x7f-\\x9f]"
+          }
+        },
+        {
+          "not": {
+            "pattern": "(^|/)(\\.|\\.\\.)(/|$)"
+          }
+        },
+        {
+          "not": {
+            "pattern": "//"
+          }
+        }
+      ],
+      "x-max-utf8-bytes": 4095,
+      "x-semantic-rules": [
+        "no trailing slash except root"
+      ]
+    },
+    "GeneratorId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "not": {
+        "pattern": "[^A-Za-z0-9._-]"
+      }
+    },
+    "ByteCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "Digest": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ProducerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generator_id": {
+          "$ref": "#/$defs/GeneratorId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "source_directory": {
+          "$ref": "#/$defs/SourceDirectory"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/RelativePath"
+          }
+        },
+        "expected_sizes_bytes": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 256,
+          "propertyNames": {
+            "$ref": "#/$defs/RelativePath"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ByteCount"
+          }
+        }
+      },
+      "required": [
+        "generator_id",
+        "recording_id",
+        "source_directory",
+        "files"
+      ],
+      "x-semantic-rules": [
+        "Expected-size map keys equal files exactly when supplied, regardless of checking setting.",
+        "No file path is an ancestor of another listed path.",
+        "UTF-8 byte limits and scalar validity require separate semantic validation.",
+        "Current setting requires map only before whole-set handoff; an exact confirmed replay remains 202.",
+        "Immutable identity includes supplied map presence and values, even when comparison disabled."
+      ]
+    },
+    "ProducerAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "accepted": {
+          "const": true
+        },
+        "source_paths_released": {
+          "const": true
+        }
+      },
+      "required": [
+        "job_id",
+        "recording_id",
+        "accepted",
+        "source_paths_released"
+      ]
+    },
+    "ProducerError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recording_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_paths_released": {
+          "const": false
+        }
+      },
+      "required": [
+        "recording_id",
+        "error",
+        "retryable",
+        "retry_after_seconds",
+        "source_paths_released"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "retryable": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "retry_after_seconds": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LoginRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "username",
+        "password"
+      ],
+      "x-semantic-rules": [
+        "Do not trim, normalize, echo or log credentials. Limits are candidate bounds, not password policy."
+      ]
+    },
+    "LoginSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authenticated": {
+          "const": true
+        }
+      },
+      "required": [
+        "authenticated"
+      ]
+    },
+    "InvalidCredentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "const": "invalid_credentials"
+        },
+        "message": {
+          "const": "Invalid username or password."
+        }
+      },
+      "required": [
+        "error",
+        "message"
+      ]
+    },
+    "AuthenticationRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "const": "authentication_required"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    },
+    "SessionStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authenticated": {
+          "const": true
+        },
+        "inactivity_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "authenticated",
+        "inactivity_timeout_seconds"
+      ]
+    },
+    "JobSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      },
+      "required": [
+        "job_ids"
+      ],
+      "x-semantic-rules": [
+        "Process each occurrence, in submitted order; do not deduplicate.",
+        "Clients must preserve integer precision; JSON binary64 rounding is not allowed.",
+        "Audited bulk retry needs separately resolved immutable reviewed-state context."
+      ]
+    },
+    "AttemptCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "skipped_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      },
+      "required": [
+        "accepted_count",
+        "failed_count",
+        "skipped_count"
+      ],
+      "x-semantic-rules": [
+        "Counts sum to number of attempted list occurrences only for a complete response.",
+        "Acceptance counts do not mean work completed."
+      ]
+    },
+    "HistoryCleared": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cleared_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      },
+      "required": [
+        "cleared_count"
+      ]
+    },
+    "RequestIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "version",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3,
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "not": {
+            "pattern": "[^0-9]"
+          },
+          "x-integer-maximum": 255
+        },
+        "path": {
+          "$ref": "#/$defs/RelativePath"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/ByteCount"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "file_id",
+        "path",
+        "size_bytes",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "instance_id": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "generator_id": {
+          "$ref": "#/$defs/GeneratorId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "request_identity": {
+          "$ref": "#/$defs/RequestIdentity"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/ManifestFile"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "job_id",
+        "generator_id",
+        "recording_id",
+        "request_identity",
+        "files"
+      ],
+      "x-max-utf8-bytes": 131072,
+      "x-semantic-rules": [
+        "Exact original path membership and stable file IDs; no duplicates or prefix conflicts.",
+        "Measured sizes and full content SHA-256 must match verified publication evidence.",
+        "All manifest UUIDs lowercase. Stored immutable bytes, not regenerated formatting, govern recovery.",
+        "New v2 is a proposal; preserve legacy v1 bytes. Numeric byte-count representation requires compatibility approval."
+      ]
+    }
+  }
+}

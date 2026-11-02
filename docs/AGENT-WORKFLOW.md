@@ -24,6 +24,11 @@ Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.m
 The coordinator owns the draft and integration; the cloud child reviews contract
 consistency. Groups 1-48 remain approved; implementation awaits remaining decisions.
 
+For P01 schema work, see the [candidate bundle](api/README.md). Cloud review
+is read-only; local artifact validation uses existing WSL Python/jsonschema and
+OpenSSL without a Rust build or operational-state access. The Linux-native
+checkout still advances only from committed coordinator work.
+
 ## Synchronizing Linux tests
 
 The WSL test clone has `coordinator` pointing to the D: checkout via

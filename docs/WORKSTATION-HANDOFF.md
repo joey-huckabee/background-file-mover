@@ -8,6 +8,10 @@ entry point for a new developer/agent without the previous chat. It does not
 approve implementation before the remaining contract is settled, or authorize
 moving a running mover's operational state to another host.
 
+The [candidate contract bundle](api/README.md) contains the next concrete P01
+artifacts and validation limits. Its schemas/fixtures are reviewable proposals;
+all 128 API/179 SC IDs and groups 1-48 retain their prior status.
+
 ## What is in Git, and where to read it
 
 The roadmap deliberately contains future work only. Decisions, historical

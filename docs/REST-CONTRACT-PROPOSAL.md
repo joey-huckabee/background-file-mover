@@ -6,6 +6,11 @@ The [approved error review](REST-ERROR-SCENARIOS.md) remains authoritative for
 accepted behavior. This document replaces older draft examples as the next
 review entry point; historical examples are not additional release requirements.
 
+Machine-readable [candidate schemas, fixtures and acceptance map](api/README.md)
+now accompany this proposal. Their structural checks do not freeze P01.
+The [admin replay design](api/ADMIN-REPLAY.candidate.md) gives the concrete
+reviewed-state context recommendation; the header choice remains pending.
+
 ## What needs approval
 
 Review the four decision packages below together. The recommended direction is:

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add executable P01 contract candidates: partial OpenAPI, 21 JSON Schema
+  definitions, 50 structural fixtures, seven immutable-request identity vectors
+  and an index of all 128 API cases. Document the reviewed-state retry-context
+  recommendation and remaining freeze blockers. Artifact checks only; groups
+  1-48, runtime behavior and all release gates retain their existing status.
+
 - Add a consolidated P01 REST route/schema review proposal and four remaining
   decision packages. Preserve groups 1-48 and existing evidence; no runtime
   implementation, OpenAPI freeze or release qualification is claimed.

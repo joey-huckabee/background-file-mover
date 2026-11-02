@@ -1,0 +1,260 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Background File Mover - partial contract candidate",
+    "version": "2.0.0-candidate.1",
+    "description": "NOT FROZEN. Partial producer/session wire only; not an implemented API or release surface. See README.md. Do not generate production clients from this draft."
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "x-status": "candidate-not-frozen",
+  "x-not-for-client-generation": true,
+  "x-freeze-blockers": [
+    "Route inventory and exact read schemas",
+    "Bulk retry reviewed-state context and receipt retention",
+    "Clear/delete concurrency, confirmation and asynchronous counts",
+    "Global UUID stored-state migration and no-clobber reuse",
+    "Manifest numeric encoding and legacy compatibility",
+    "Remote proxy and session CSRF/inactivity boundary details"
+  ],
+  "paths": {
+    "/api/v2/jobs": {
+      "post": {
+        "operationId": "submitRecording",
+        "description": "202 only after complete durable source custody; identical confirmed replay remains 202. No destination completion claim. Producer-only protected boundary.",
+        "security": [
+          {
+            "producerMutualTLS": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./contract.candidate.schema.json#/$defs/ProducerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Complete durable custody / authorized identical replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/ProducerAccepted"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Mover-generated producer error; transport/proxy failures may lack this JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/ProducerError"
+                }
+              }
+            }
+          }
+        },
+        "x-body-max-bytes": 65536,
+        "x-contract-cases": [
+          "API-E01",
+          "API-E02",
+          "API-E03",
+          "API-E04",
+          "API-E05",
+          "API-E06",
+          "API-E07",
+          "API-E08",
+          "API-E09",
+          "API-E10",
+          "API-E11",
+          "API-E12",
+          "API-E13",
+          "API-E14",
+          "API-E15",
+          "API-E16",
+          "API-E17",
+          "API-E18",
+          "API-E19",
+          "API-E20",
+          "API-E21",
+          "API-E22",
+          "API-E23",
+          "API-E24",
+          "API-E25",
+          "API-E26",
+          "API-E27",
+          "API-E28",
+          "API-E29",
+          "API-E30",
+          "API-E31",
+          "API-E32",
+          "API-E33",
+          "API-E34",
+          "API-E35",
+          "API-E36",
+          "API-E37",
+          "API-E38",
+          "API-E39",
+          "API-E40",
+          "API-E41",
+          "API-E42",
+          "API-E43",
+          "API-E44",
+          "API-E45",
+          "API-E46",
+          "API-E47",
+          "API-E48",
+          "API-E61",
+          "API-E62",
+          "API-E63",
+          "API-E64",
+          "API-E65",
+          "API-E66",
+          "API-E67",
+          "API-E68",
+          "API-E69",
+          "API-E70",
+          "API-E71",
+          "API-E72",
+          "API-E73",
+          "API-E74"
+        ]
+      }
+    },
+    "/api/v2/admin/login": {
+      "post": {
+        "operationId": "adminLogin",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./contract.candidate.schema.json#/$defs/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated; Set-Cookie establishes proposed opaque server session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/LoginSuccess"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "__Host-mover_admin=<opaque>; Secure; HttpOnly; Path=/; SameSite=Strict. No Domain or persistent expiry. Candidate only.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Generic invalid username/password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/InvalidCredentials"
+                }
+              }
+            }
+          }
+        },
+        "x-csrf-defense": "Required; exact login same-origin defense remains to specify",
+        "x-contract-cases": [
+          "API-E125",
+          "API-E126"
+        ]
+      }
+    },
+    "/api/v2/admin/logout": {
+      "post": {
+        "operationId": "adminLogoutEverywhere",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "All admin sessions revoked; no response body"
+          },
+          "401": {
+            "description": "No valid session; candidate edge behavior",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            }
+          }
+        },
+        "x-csrf-defense": "Required; exact transport pending",
+        "x-contract-cases": [
+          "API-E124",
+          "API-E128"
+        ]
+      }
+    },
+    "/api/v2/admin/session": {
+      "get": {
+        "operationId": "adminSession",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current session valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/SessionStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            }
+          }
+        },
+        "x-contract-cases": [
+          "API-E123",
+          "API-E127"
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "producerMutualTLS": {
+        "type": "mutualTLS",
+        "description": "External protected producer ingress; TLS rejection may have no HTTP response. Not implemented."
+      },
+      "adminCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-mover_admin",
+        "description": "Proposed opaque server-side dashboard session. CSRF defense remains mandatory; this scheme alone is incomplete."
+      }
+    }
+  }
+}

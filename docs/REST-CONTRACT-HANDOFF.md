@@ -78,6 +78,13 @@ request fields and response schemas without an expanded security review. Produce
 do not grant admin powers. Do not ask file ordering, UUID-versus-free-form or
 local-versus-remote dashboard access or SSO-versus-password login again.
 
+Current deliverable: [candidate contract artifacts](api/README.md), including
+partial OpenAPI, 21 schema definitions, 50 structural fixtures, seven request
+identity vectors and a 128-case index. These are draft-schema checks only, not
+new runtime evidence. Reviewed-state retry context outside the job_ids body is
+the immediate outstanding user choice; do not replace exact-command replay
+with a current-state-only retry or implement bulk retry before it is settled.
+
 ## Moving to another computer (2026-11-01)
 
 Read [the portable workstation handoff](WORKSTATION-HANDOFF.md) for the complete

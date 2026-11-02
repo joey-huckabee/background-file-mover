@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-01 P01 candidate artifacts: see `docs/api/README.md` for partial
+OpenAPI, producer/session/manifest schemas, fixtures and explicit freeze blockers.
+No new approval group or runtime evidence is claimed. Resolve immutable
+reviewed-state retry context without changing the compact job_ids body or
+bypassing existing exact-command replay; the header choice remains pending.
+
 2026-11-01 P01 review draft: read `docs/REST-CONTRACT-PROPOSAL.md` for the consolidated route/schema proposal and four remaining decision packages. Groups 1-48 remain approved; this proposal adds no approval or implementation authorization.
 
 2026-11-01 build-tool migration: Rust validation now uses cargo-libc 0.2.4

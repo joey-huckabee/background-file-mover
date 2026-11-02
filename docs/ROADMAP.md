@@ -13,6 +13,11 @@ FR gates require closure; each qualification package must name its finite RC
 cells, expected outcomes and retained evidence before execution. Do not select
 another NFS experiment merely because more combinations are possible.
 
+Complete the [candidate contract bundle](api/README.md) and its F01-F06
+freeze blockers. The producer/session subset, manifest schema proposal and
+identity fixtures are present; full route/read/action schemas and the retry
+precondition decision remain. No OpenAPI freeze or runtime qualification yet.
+
 ## Next work
 
 Review the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md): release surface, identity/retained data, admin request replay and consumer manifest. Settle these four packages before the OpenAPI freeze.
