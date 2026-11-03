@@ -25,7 +25,8 @@ def main():
         name = names.pop()
         metadata = json.load(tar.extractfile(name + "/bundle.json"))
     runtime = json.loads((ROOT / "scripts/rust-platform.json").read_text())["runtime"]
-    report = {"status": "FAILED", "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bundle": metadata["name"], "runtime": runtime, "checks": []}
+    report = {"status": "FAILED", "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bundle": metadata["name"], "runtime": runtime,
+              "checker_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "checks": []}
     owned = None
 
     def run(*cmd, ok=True):
@@ -35,7 +36,7 @@ def main():
         return result
 
     def execute(*cmd, ok=True):
-        return run("podman", "exec", "--user", "1000:1000", owned, *cmd, ok=ok)
+        return run("podman", "exec", "--user", "1000:1000", owned, "/usr/bin/setsid", "--wait", *cmd, ok=ok)
 
     def http(method, path, body=None):
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
