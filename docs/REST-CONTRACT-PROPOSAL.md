@@ -301,8 +301,9 @@ the later-epoch replay cases before implementation.
 
 Group 51 approves failed duplicate retry within one batch after an earlier
 entry schedules it, and 202 summaries even with no accepted attempts. Missing
-or completed entries retain their approved skip rules; exact eligibility/wire
-and transactional receipt implementation still need completion. The complete
+IDs retain their approved skip rule. Completed jobs remain ineligible for retry;
+their failed-versus-skipped retry count classification is not approved by group 51.
+Exact eligibility/wire and transactional receipt implementation still need completion. The complete
 eligibility/count table must include ineligible review states, repeated whole
 requests and partial durable storage failures. Preserve ownership/binding checks
 and the audit trail; compact input is not permission to bypass them.

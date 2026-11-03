@@ -26,7 +26,7 @@ all mover linkage and management. Historical post-clear owner/accounting wording
 below is superseded. Delete through the mover before clear; afterward cleanup is
 outside the service. This is approved direction, not implemented support.
 
-Current catalog: 183 stable SC IDs and six DOC IDs. SC-181-183 record group 50:
+Current catalog: 189 stable SC IDs and six DOC IDs. SC-181-189 record group 50:
 eligible clear forgets all source/destination linkage while leaving files,
 with post-clear nonmanagement and safe-stop/settlement gating. Earlier retained-
 ownership-after-clear expectations are superseded, not passing support. SC-180 records approved

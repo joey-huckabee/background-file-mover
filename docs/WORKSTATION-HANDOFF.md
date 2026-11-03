@@ -1,6 +1,6 @@
 # Moving development to another computer
 
-Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-50 remain the approved baseline.
+Current P01 review artifact: [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md), with four remaining decision packages. Groups 1-51 remain the approved baseline.
 
 Recorded 2026-11-01. Branch: `feature/rust-transfer-coordinator`.
 Baseline before this handoff: `686e15c` (groups 1-44). This document is a durable
@@ -26,7 +26,7 @@ Use these sources together; the roadmap alone is not the whole specification.
 | First-release scope and eight open gates | [First release](RUST-FIRST-RELEASE.md) | No release/production approval yet. |
 | Bounded verification and implementation order | [Release closure](RUST-RELEASE-CLOSURE.md) | RC-01-24, P01-12 and D01-05 are the scheduler. |
 | Exact approved versus pending REST behavior | [Error/acceptance review](REST-ERROR-SCENARIOS.md), [API draft](REST-API-DRAFT.md) | Groups 1-50 approved; remaining details not frozen. Old draft examples are not automatically the new wire contract. |
-| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 183 SC IDs, six DOC IDs; pending cases are not passing tests. |
+| User situations and documentation backlog | [Scenario catalog](RUST-SCENARIOS.md) | 189 SC IDs, six DOC IDs; pending cases are not passing tests. |
 | Architecture/provenance | [Rust direction](RUST-DIRECTION.md), [conversation input](../CONVERSATION.md), [transfer protocol](TRANSFER-PROTOCOL.md), [integrity](INTEGRITY-DESIGN.md) | Later explicit decisions supersede historical proposals. |
 | Historical results and design increments | RUST-INCREMENT-01 through RUST-INCREMENT-106 under docs/, [changelog](../CHANGELOG.md) | Increment 105 bounds closure; 106 records the continuing contract review. |
 | ABI/userspace qualification | [Mandatory SLES gate](RUST-SLES-GATE.md), [platform pins](../scripts/rust-platform.json) | Both production and qualification modes required. |
@@ -36,6 +36,12 @@ Use these sources together; the roadmap alone is not the whole specification.
 | Source/evidence portability inventory | [Evidence inventory](WORKSTATION-EVIDENCE-INVENTORY.json) | Historical report hashes plus the two latest local gate source/artifact hashes. |
 
 ## Exact stopping point; no chat memory required
+
+2026-11-03 approval: group 51 closes the specific retry/deletion defaults in
+[the short admin table](api/ADMIN-REPLAY.candidate.md#short-closeout-table), recorded
+as API-E133-138/SC-184-189. Do not reopen those defaults or infer broader wire,
+security/compatibility approval, P01 freeze or runtime implementation authority.
+The current inventory is 138 API and 189 SC IDs, with six DOC IDs unchanged.
 
 The user's later direct instruction authorizes bounded group-50 implementation.
 [Increment 107](RUST-INCREMENT-107.md) describes the guarded offline completed-job
