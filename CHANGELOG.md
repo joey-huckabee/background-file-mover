@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Consolidate Rust restart/shutdown recovery into a user runbook, covering
+  normal and interrupted transfers, systemd timeouts, surviving workers, startup
+  refusals, upgrades/reboots, exact handling steps and qualification limits.
+
 - Implement guarded host-local `--clear-history CONFIG JOB_ID... [--confirm]`
   for committed jobs: one transaction forgets every per-job record/replay link
   without touching source/destination payloads or manifests. Refuse active

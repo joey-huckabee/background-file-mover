@@ -1,5 +1,10 @@
 # Rust operator status and recovery guide
 
+For normal restart, systemd timeout, surviving workers, transfer-phase recovery,
+startup refusal, upgrades and reboot handling, use the
+[restart and shutdown runbook](RUST-RESTART-RUNBOOK.md). Each case includes user
+actions and its tested or pending scope.
+
 For the controlled server-recovery test procedure, use the
 [actual mover lab](NFS-SERVER-MOVER-LAB.md). Preserve the original local state,
 enrollment, claimed source and uncertain staging when NFS is unavailable. A
