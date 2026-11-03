@@ -33,6 +33,8 @@ def main():
     report = {"status": "FAILED", "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(), "bundle": metadata["name"], "runtime": runtime,
               "checker_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "checks": []}
     owned = None
+    binary = None
+    base = "/tmp/offline-work/live"
 
     def run(*cmd, ok=True):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -49,7 +51,7 @@ def main():
         command = "exec 3<>/dev/tcp/127.0.0.1:8080; printf %s " + shlex.quote(request) + " >&3; cat <&3"
         response = execute("/bin/bash", "-c", command, ok=False)
         if response.returncode or not response.stdout.startswith("HTTP/"):
-            return 0, ""
+            return 0, (response.stdout + response.stderr)[-1000:]
         head, _, data = response.stdout.partition("\n\n")
         return int(head.split()[1]), data
 
@@ -91,7 +93,6 @@ def main():
         assert execute("sh", "/tmp/offline-work/extra/verify.sh", ok=False).returncode != 0
         report["checks"].append("tampered executable and extra file refuse before installation")
         config = json.loads((ROOT / "rust/config/local.example.json").read_text())
-        base = "/tmp/offline-work/live"
         config.update(source_root=base + "/source", destination_root=base + "/destination", state_database=base + "/state/jobs.sqlite")
         execute("mkdir", "-m", "700", base, base + "/source", base + "/destination", base + "/state", base + "/source/.file-mover", base + "/destination/.file-mover", base + "/source/input")
         for role in ("source", "destination"):
@@ -101,8 +102,13 @@ def main():
         execute("/bin/sh", "-c", "umask 077; printf %s " + shlex.quote(json.dumps(config)) + " > " + base + "/config.json; printf 'offline bundle payload' > " + base + "/source/input/data")
         binary = installed + "/bin/file-mover"
         execute(binary, "--initialize-source", base + "/config.json")
-        run("podman", "exec", "--user", "1000:1000", "-d", owned, "/usr/bin/setsid", "--wait", binary, base + "/config.json")
-        wait_for(lambda: http("GET", "/healthz")[0] == 200, "installed service not ready")
+        launch = "exec /usr/bin/setsid --wait " + shlex.quote(binary) + " " + base + "/config.json > " + base + "/service.log 2>&1"
+        run("podman", "exec", "--user", "1000:1000", "-d", owned, "/bin/sh", "-c", launch)
+        def healthy():
+            code, data = http("GET", "/healthz")
+            report["last_health"] = {"code": code, "body": data}
+            return code == 200
+        wait_for(healthy, "installed service not ready")
         status, body = http("POST", "/api/v2/jobs", {"generator_id": config["generator_id"], "submission_id": "offline-bundle", "source_path": base + "/source/input", "files": [{"name": "data"}]})
         if status != 202:
             raise RuntimeError(f"submission failed {status}: {body}")
@@ -118,6 +124,10 @@ def main():
         report["status"] = "PASSED"
     except Exception as error:
         report["error"] = str(error)
+        if owned and binary:
+            report["service_log"] = execute("cat", base + "/service.log", ok=False).stdout[-4000:]
+            status = execute(binary, "--status", base + "/config.json", ok=False)
+            report["local_status"] = status.stdout + status.stderr
     finally:
         if owned:
             result = run("podman", "rm", "-f", owned, ok=False)
