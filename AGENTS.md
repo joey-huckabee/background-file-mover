@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-03 group 51 approves the P01 admin closeout defaults: retry 202 even
+with zero accepted attempts; failed duplicate retry after scheduling; clear
+removes that job's retry receipts; one active deletion pass per job, latest
+results before clear and fresh confirmation when selected files change. Preserve
+exact replay for uncleared jobs and group-50 full forgetting. See API-E133-138 /
+SC-184-189 in docs/REST-ERROR-SCENARIOS.md. Current baseline is groups 1-51;
+earlier 1-50 counts below are prior checkpoints. Remaining candidates/P01 freeze
+and implementation/qualification are not approved by this decision.
+
 2026-11-02 implementation authorization: the user explicitly asks to implement
 group 50 now. This overrides the contract-before-code hold only for the bounded
 offline completed-job clear in `docs/RUST-INCREMENT-107.md`. It adds a guarded

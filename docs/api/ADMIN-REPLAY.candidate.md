@@ -9,29 +9,30 @@ now removing all file management/linkage after successful clear.
 
 ## Short closeout table
 
-2026-11-02: the user asked to proceed with less detail. This table is the next
-behavior review, not another encoding specification. **Proposed** rows are
-recommendations, not new approvals; groups 1-50 are approved, with group 50 overriding post-clear tracking.
+2026-11-03: group 51 approves the specified retry/deletion defaults below.
+Groups 1-51 are approved, with group 50 overriding post-clear tracking. Rows
+still marked proposed remain proposals; this is not approval of all candidate
+transport, schema or implementation details.
 Routine names, serialization and transaction mechanics are engineering work.
 
-| Situation | Recommended rule | Basis / remaining choice |
+| Situation | Rule / remaining recommendation | Approval / remaining choice |
 |---|---|---|
 | A valid cancel batch finishes with no jobs newly accepted | Keep 202 and report the real zero accepted/failed/skipped counts. Do not imply any job stopped. | Group 44 already covers processed all-skipped selections. No new approval needed. |
-| A valid retry batch finishes with no jobs newly accepted | Use the same 202 count summary; show zero accepted and actual failed/skipped attempts. Whole-request validation/storage errors remain errors. | Proposed completion of group 45's no-work edge case; no successful-transfer claim. |
-| [42,42] retries eligible job 42 | First occurrence may schedule it; the second independently checks that same frozen review and counts as failed once work is scheduled. Whole-request replay preserves both original outcomes. | Proposed duplicate-retry classification. Do not infer approval from duplicate cancel. |
+| A valid retry batch finishes with no jobs newly accepted | Use the same 202 count summary; show zero accepted and actual failed/skipped attempts. Whole-request validation/storage errors remain errors. | Approved group 51/API-E133; no successful-transfer claim. |
+| [42,42] retries eligible job 42 | First occurrence may schedule it; the second independently checks that same frozen review and counts as failed once work is scheduled. Whole-request replay preserves both original outcomes. | Approved group 51/API-E134; exact-command replay and frozen review remain required. |
 | A cancellation response is lost | Dispatch a repeated request against the same stored job. Pending duplicate cancel fails; completed/safely-cancelled/missing entries skip. Never undo the first cancellation or cancel a replacement job. | Existing groups 33/41-44, with proposed transport application. No new target ID. |
 | A history-clear response is lost | Repeating clear reports only jobs actually cleared this time; previously cleared IDs silently skip. Files remain untouched; all cleared-job ownership/accounting and action linkage is forgotten. | Group 50 overrides earlier post-clear tracking; groups 19/31/39/42 preserve other rules. No hidden UUID-recognition tombstone. |
-| History is explicitly cleared after a retry was accepted | Clear that job's detailed command results too. Late retry of the cleared job skips; other uncleared jobs retain their own exact replay results. Original aggregate counts are not promised after clear. | Proposed receipt-lifetime boundary. Never retain hidden detailed history or redirect the old job ID to a reused UUID. |
-| A confirmed deletion is already running | Allow one active sweep per job. Repeat requests observe that same sweep; no second removal attempt or double-counted files. Keep showing actual pending/deleted/failed results. | Proposed concurrency rule, within approved best effort/safe-stop scope. |
-| Deletion finishes with failures and the admin tries again | Require a fresh deliberate confirmation for the remaining safe files. No automatic retry. Show the latest sweep's results under the original job ID, while the job is still tracked. Clear forgets the results and all file linkage; do not promise every older sweep remains separately available. | Fresh explicit request is approved in group 40. Latest-result-only presentation is proposed. |
-| The owned file selection changes after confirmation | Reject the stale confirmation and require a fresh confirmation; never broaden the deletion. An older replay must not start a later sweep. | Proposed stale-selection rule preserving approved exact selection/protected-output safety. |
+| History is explicitly cleared after a retry was accepted | Clear that job's detailed command results too. Late retry of the cleared job skips; other uncleared jobs retain their own exact replay results. Original aggregate counts are not promised after clear. | Approved group 51/API-E135, consistent with group 50. No hidden history or redirection to a reused UUID. |
+| A confirmed deletion is already running | Allow one active sweep per job. Repeat requests observe that same sweep; no second removal attempt or double-counted files. Keep showing actual pending/deleted/failed results. | Approved group 51/API-E136, within existing best effort/safe-stop scope. |
+| Deletion finishes with failures and the admin tries again | Require a fresh deliberate confirmation for the remaining safe files. No automatic retry. Show the latest sweep's results under the original job ID, while the job is still tracked. Clear forgets the results and all file linkage; do not promise every older sweep remains separately available. | Fresh explicit request remains approved in group 40. Latest-result-only presentation is approved in group 51/API-E137. |
+| The owned file selection changes after confirmation | Reject the stale confirmation and require a fresh confirmation; never broaden the deletion. An older replay must not start a later sweep. | Approved group 51/API-E138; exact stale-error wire remains to specify. |
 | Storage fails partway through a batch | Return an error without fabricated final counts; earlier committed decisions remain valid. Retry uses the original frozen context, and status shows actual progress. | Preserve group 38 and exact replay. No batch-wide rollback claim or false success. |
 
 Group 50 settles the post-clear choice: **nothing remains linked to the files**.
-Showing only the latest manual-deletion result **before clear** remains proposed. The retry
-no-work/duplicate defaults above complete the agreed count model. We recommend
-these defaults together so the remaining discussion does not become a review of
-individual field names or encoding details.
+Group 51 also approves latest manual-deletion results **before clear**, retry
+no-work/duplicate outcomes, receipt removal for the cleared job and one active
+deletion pass with stale-selection refusal. Cancellation transport application
+and exact field/storage details remain separate; do not infer their approval.
 
 Receipts for uncleared jobs must not expire automatically or disappear when
 receipt capacity fills. Refuse additional unauditable commands instead. Design
@@ -39,7 +40,7 @@ bounded failed/skipped batch receipt storage without an automatic history purge.
 Clearing one job must not erase the audit/replay protection of other jobs in the
 same selection. A future SQL migration must make those boundaries testable.
 
-Only the latest deletion result is proposed; this does not permit an old
+Only the latest deletion result is approved (group 51); this does not permit an old
 confirmation to be reused as new intent. Bind it to a monotonic per-job stored
 state version and exact owned-file scope, revalidate before effects, and return
 an existing result or stale refusal rather than start another sweep. This is a
@@ -98,8 +99,8 @@ bound is unchanged. Context is neither a new job identifier nor CSRF protection.
   exact context to reject changed parameters rather than trust a digest alone.
 - Every repeated list occurrence gets its own per-job decision. Reusing one
   command key for both entries of [42,42] would wrongly replay one accepted
-  command as two accepted attempts. The exact second-retry classification is
-  still a proposal; do not infer it from the approved duplicate-cancel rule.
+  command as two accepted attempts. Group 51 fixes the second occurrence as failed after the first schedules work;
+  do not count one accepted command twice.
 - A crash between jobs may leave a partial batch. Replay processes only missing
   occurrences with their original preconditions; it cannot refresh epochs or
   fabricate counts for uncommitted results. Parallel batches serialize per job.
@@ -129,7 +130,7 @@ actions against clear so no worker continues after the job is forgotten. Old
 job IDs silently skip in bulk actions and keep existing 404 lookup behavior.
 Never resolve through the forgotten UUID or reuse an old internal job ID.
 
-**Still proposed before clear:** one active confirmed deletion sweep per tracked
+**Approved by group 51 before clear:** one active confirmed deletion sweep per tracked
 job, latest-sweep progress/actual deleted/failed counts under that job_id, and
 fresh confirmation for another deliberate attempt. No automatic retry or double
 counting. A stale confirmation must not broaden scope or start a later sweep.

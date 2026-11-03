@@ -2,7 +2,7 @@
 
 2026-11-01, P01 review work following the
 [consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Not runtime
-implementation.** Updated 2026-11-02: groups 1-50 are approved; group 50 changes post-clear ownership, and group 49 selects
+implementation.** Updated 2026-11-03: groups 1-51 are approved; group 50 changes post-clear ownership, and group 49 selects
 the reviewed-state retry header. These files make the schema proposal executable without claiming the unfinished API is ready to ship.
 
 The user subsequently authorized bounded group-50 code: see
@@ -16,7 +16,7 @@ into an implemented authenticated API or qualify cancelled-job clearing.
 P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)
 specifies fifteen-route audience separation, proposed Origin/CSRF transport,
 inactivity renewal and global-revocation admission ordering. This is engineering
-contract work only; pending admin outcome choices, remaining schemas, compatibility
+contract work only; approved group-51 admin outcomes, remaining schemas, compatibility
 and full freeze/implementation remain open.
 
 | File | Purpose and limit |
@@ -30,10 +30,11 @@ and full freeze/implementation remain open.
 | [retry-context.candidate.vectors.json](retry-context.candidate.vectors.json) | Four wire known answers, 52 decoding cases and explicit NOT_RUN runtime obligations. |
 | [check_retry_context_candidate.py](check_retry_context_candidate.py) | Reproducible standard-library codec checker, no service/SQL/filesystem effects. |
 | [ADMIN-REPLAY.candidate.md](ADMIN-REPLAY.candidate.md) | Concrete reviewed-state context recommendation, crash/duplicate/replay obligations and latest-sweep deletion proposal. |
-| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 132 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
+| [api-case-map.candidate.tsv](api-case-map.candidate.tsv) | All 138 existing API acceptance IDs, situations and reviewed outcomes indexed to proposal packages. No case is marked executed by the schema checks. |
 
 The first 128 case-map outcomes are copied from the review tables at ad9fee9;
 API-E129 adds group 49 and API-E130-132 add group 50 on 2026-11-02.
+API-E133-138 add the explicitly approved group-51 defaults on 2026-11-03.
 Rows marked SUPERSEDED_POST_CLEAR retain historical outcomes for traceability;
 they do not require keeping cleared-file linkage. The case map does
 not upgrade a proposed detail into approval; later explicit approval sections
@@ -85,7 +86,7 @@ work. No further encoding-only fixture expansion is planned before implementatio
 | Blocker | Recommended next decision/design | Still required before freeze |
 |---|---|---|
 | F01 Release surface | Use the consolidated 15-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
-| F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Concrete header encoding/bounds candidate supplied and checked; exact error/duplicate/zero-accepted outcomes, same-transaction receipts and bounded retention remain |
+| F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Group 51 settles zero-accepted 202 and failed duplicate retry; exact errors, same-transaction receipts and bounded storage/retention implementation remain |
 | F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Deletion/latest-result proposals apply only before clear. |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
@@ -147,5 +148,6 @@ build was needed. Token/cloud cost was not measured.
 
 JSON/reference/security-AND checks and all 57 existing structural schema fixtures
 pass; this is not a complete OpenAPI-validator, browser, authenticated HTTP or
-transaction-race test. Product closeout defaults still await an explicit answer;
-groups 1-50 and all 132 API/183 SC IDs retain their existing approval status.
+transaction-race test. Group 51 now approves the specific retry/deletion defaults; cancellation
+transport application and broader candidate compatibility/security choices remain
+separate. The inventory is now 138 API and 189 SC IDs; earlier IDs are preserved.

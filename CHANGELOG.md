@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record approved group-51 retry/deletion defaults (API-E133-138/SC-184-189),
+  preserving uncleared exact replay and full forgetting at clear. Contract only;
+  remaining candidate wire, runtime implementation and qualification stay open.
+
 - Add a versioned offline Rust prototype installation bundle, gated executable
   provenance, locked dependency source/license material, integrity/dependency
   verification, non-overwriting installation and produce/use/recovery instructions.

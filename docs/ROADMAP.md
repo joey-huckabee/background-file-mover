@@ -29,9 +29,12 @@ lifecycle and authenticated dashboard integration remain planned work. Do not ex
 remote clear endpoint through the existing unauthenticated producer/operator API.
 The remaining unrelated contract work is still pending.
 
-Use the [short action closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
-to settle remaining visible defaults together: duplicate/no-work retry results,
-latest manual-deletion results before clear. Group 50 settles post-clear
+Group 51 approves the retry/deletion defaults in the
+[short action closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table):
+zero-accepted 202, failed duplicate retry, per-job receipt removal at clear,
+one active/latest deletion pass and stale-selection reconfirmation. Finish
+transactional/route/schema details without asking those choices again.
+Cancellation transport application remains a separate proposal. Group 50 settles post-clear
 behavior: leave files but forget every mover link, account and result.
 The user requests less time in details. Complete routine schema/transaction
 choices autonomously; do not grow another encoding-only validation package.

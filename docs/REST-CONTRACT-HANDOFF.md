@@ -99,6 +99,16 @@ separately if historical raw auditability is needed. No new build/test is claime
 
 ## Where we stopped
 
+Latest approval, 2026-11-03: group 51 accepts zero-accepted retry 202, failed
+second retry after scheduling, per-job retry-receipt forgetting at clear, one
+active deletion pass, latest tracked-job deletion results and fresh confirmation
+when files change (API-E133-138/SC-184-189). This does not approve cancellation
+transport replay, all other candidate details, P01 freeze or runtime work.
+[Access-boundary candidate](api/ACCESS-BOUNDARY.candidate.md) captures engineering
+session/CSRF/revocation choices, with browser-compatible marked GET protection;
+it remains a candidate. Continue the remaining P01 route/error/read schemas and
+compatibility work without reopening approved groups 1-51.
+
 Implementation authorization, 2026-11-02: the user now explicitly asks for code.
 The bounded [increment 107](RUST-INCREMENT-107.md) adds an offline host-local
 completed-job command with guarded current-state admission and preview/confirm.
@@ -126,9 +136,9 @@ add another NFS experiment automatically. Read
 [the error/acceptance review](REST-ERROR-SCENARIOS.md) and
 [the API draft](REST-API-DRAFT.md) for exact decisions and implementation gaps.
 
-Fifty reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
+Fifty-one reviewed groups are recorded, including confirmed owned-data disposal: fifty initial outcome mappings, a shared
 error envelope, recorder retry policy and ten size/restart cases. The catalog
-now has 183 stable SC IDs and six DOC IDs; API-E01-132 are contract/acceptance
+now has 189 stable SC IDs and six DOC IDs; API-E01-138 are contract/acceptance
 situations, not new passing tests. All eight release gates remain open.
 
 ## Decisions to preserve

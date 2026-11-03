@@ -31,7 +31,8 @@ Review the four decision packages below together. The recommended direction is:
    use strict UTF-8 paths without silent filename normalization.
 
 All route spellings, schema spellings, limits and recommendations marked
-**Proposed** below remain reviewable. No new approval group is recorded here.
+**Proposed** below remain reviewable. The original proposal records no new approval; group 51 subsequently approves
+only the retry/deletion defaults recorded in the canonical error scenarios.
 Approved behavior is not reopened by the outstanding implementation design.
 
 ## Approved constraints carried forward
@@ -246,6 +247,10 @@ the earlier separate-owner-record design; qualify restart with unmanaged leftove
 
 ## Package 3: actions, request replay and observable results
 
+Group 51 approves the bounded retry/deletion defaults in the
+[short closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table), including
+per-job retry-receipt removal at clear. It does not freeze all request/replay wire.
+
 Approved compact request shape, illustrated with numeric existing job IDs:
 
 ```json
@@ -294,9 +299,10 @@ Outcome/transactional receipt design and the overall schema freeze remain pendin
 command identifier or confirmation dialog is added. Complete that design and
 the later-epoch replay cases before implementation.
 
-Propose that duplicate retry within one batch fails eligibility after an earlier
-entry schedules it; missing or completed entries skip. This rule is still a
-proposal, unlike the already approved duplicate cancel failure. The complete
+Group 51 approves failed duplicate retry within one batch after an earlier
+entry schedules it, and 202 summaries even with no accepted attempts. Missing
+or completed entries retain their approved skip rules; exact eligibility/wire
+and transactional receipt implementation still need completion. The complete
 eligibility/count table must include ineligible review states, repeated whole
 requests and partial durable storage failures. Preserve ownership/binding checks
 and the audit trail; compact input is not permission to bypass them.
@@ -305,13 +311,14 @@ Deletion needs special care: a 202 is acceptance, not a completed count. Propose
 initial deleted_count/failed_count as actual observations so far, plus
 completion_pending:true; later authenticated job status exposes actual final counts under that same
 job_id only while it remains tracked. Clear removes those results and all file linkage. No fabricated zeros meaning final
-success, new deletion-job identifier or automatic resubmission. Decide whether
-counts are per latest admitted request or cumulative, and how a lost reply is
-reconciled, before freezing these fields.
+success, new deletion-job identifier or automatic resubmission. Group 51 selects
+the latest pass rather than cumulative older-pass results, and one active pass
+per job. Exact response fields and lost-reply reconciliation still need design.
 
 Bind deletion confirmation to the displayed owned file set. Prefer a server-side
 snapshot of existing job/file identities with revalidation at admission and
-safe stop; reject changed selection instead of widening deletion. The exact
+safe stop. Group 51 approves rejecting changed selection and requiring fresh
+confirmation instead of widening deletion. The exact
 confirmation transport and stale-confirmation response remain a design decision,
 not an excuse for an extra job identifier or a general repair workflow.
 

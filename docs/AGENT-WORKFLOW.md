@@ -106,7 +106,7 @@ new benchmark project or an approval step for routine work.
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
 The coordinator owns the draft and integration; the cloud child reviews contract
-consistency. Groups 1-50 remain approved; unsettled API implementation awaits
+consistency. Groups 1-51 remain approved; unsettled API implementation awaits
 remaining decisions. Separately authorized work includes bounded offline history
 clear and the build/packaging increments [107](RUST-INCREMENT-107.md),
 [108](RUST-INCREMENT-108.md) and [109](RUST-INCREMENT-109.md). This agent workflow
@@ -162,7 +162,7 @@ Group 49 adds reviewed-state retry context in a header (API-E129/SC-180),
 with job_ids-only body and exact-command replay preserved. Concrete header encoding/bounds are in the
 [wire candidate](api/RETRY-HEADER.candidate.md); outcome/transactional receipt
 design remains pending, with no runtime implementation.
-Groups 1-50 are approved, including retry attempt counts, browser session
+Groups 1-51 are approved, including retry attempt counts, browser session
 cookies, global manual admin sign-out and login/session/logout response statuses. Transfers belong to the mover service
 and run independently of dashboard credentials/sessions. Remaining wire/login
 details and implementation/qualification are pending. All eight

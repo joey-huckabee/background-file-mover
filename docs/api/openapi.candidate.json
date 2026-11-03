@@ -401,7 +401,7 @@
         },
         "responses": {
           "202": {
-            "description": "Durable completed response with accepted retry attempts; counts are not completed transfers. All-failed/all-skipped response policy remains a freeze blocker.",
+            "description": "Approved groups 45/51: valid completed retry batches return 202 even with zero accepted attempts, with actual accepted/failed/skipped occurrence counts. Scheduling acceptance is not transfer completion. Whole-request validation/storage failures remain errors.",
             "content": {
               "application/json": {
                 "schema": {
@@ -442,13 +442,19 @@
           "API-E118",
           "API-E120",
           "API-E122",
-          "API-E129"
+          "API-E129",
+          "API-E133",
+          "API-E134",
+          "API-E135"
         ],
         "x-pending": [
-          "No-accepted-attempt HTTP policy",
-          "Duplicate retry occurrence classification",
           "Partial transaction/storage outcomes; group50 clears that job records/receipts without affecting uncleared-job replay",
           "Exact admin error response envelope and CSRF/read integration"
+        ],
+        "x-approved-group-51": [
+          "After the first eligible duplicate schedules work, the next occurrence counts failed.",
+          "Exact transport replay preserves original outcomes for uncleared jobs and never releases a later review.",
+          "History clear removes only that job's receipts/linkage, without erasing uncleared-job replay."
         ]
       }
     }
