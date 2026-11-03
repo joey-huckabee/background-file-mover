@@ -48,8 +48,12 @@ def main():
     def http(method, path, body=None):
         payload = "" if body is None else json.dumps(body, separators=(",", ":"))
         request = f"{method} {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: {len(payload)}\r\nContent-Type: application/json\r\n\r\n{payload}"
-        command = "exec 3<>/dev/tcp/127.0.0.1:8080; printf %s " + shlex.quote(request) + " >&3; cat <&3"
-        response = execute("/bin/bash", "-c", command, ok=False)
+        client = ('use Socket; alarm 5; socket(S,PF_INET,SOCK_STREAM,0) or die $!; '
+                  'connect(S,sockaddr_in(8080,inet_aton("127.0.0.1"))) or die $!; '
+                  'my $r=$ARGV[0]; my $sent=0; while($sent<length($r)) { '
+                  'my $n=syswrite(S,$r,length($r)-$sent,$sent); die $! unless defined($n) && $n>0; $sent+=$n; } '
+                  'shutdown(S,1); while(1) { my $n=sysread(S,my $b,65536); die $! unless defined($n); last unless $n; print $b; }')
+        response = execute("/usr/bin/perl", "-e", client, request, ok=False)
         if response.returncode or not response.stdout.startswith("HTTP/"):
             return 0, (response.stdout + response.stderr)[-1000:]
         head, _, data = response.stdout.partition("\n\n")
