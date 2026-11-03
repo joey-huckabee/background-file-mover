@@ -4181,14 +4181,33 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
             .unwrap()
             .is_some()
     );
-    // The child inherits the epoch's process group, but no guard descriptor.
-    let guard = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
-    guard.prepare_workers().unwrap();
-    let mut child = Command::new("/bin/sleep").arg("30").spawn().unwrap();
-    drop(guard);
+    // A separate coordinator exits completely; only its unguarded child survives.
+    let helper = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "offline_history_epoch_helper", "--nocapture"])
+        .env("FILE_MOVER_CLEAR_EPOCH_HELPER", &database)
+        .output()
+        .unwrap();
+    assert!(helper.status.success(), "{helper:?}");
+    let worker: u32 = String::from_utf8(helper.stdout)
+        .unwrap()
+        .lines()
+        .find_map(|line| line.strip_prefix("epoch-child:"))
+        .expect("helper reports its child PID")
+        .parse()
+        .unwrap();
     let refused = clear_history(&f, &["1"], true);
-    child.kill().unwrap();
-    child.wait().unwrap();
+    assert!(
+        Command::new("/bin/kill")
+            .args(["-TERM", &worker.to_string()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).is_err() {
+        assert!(Instant::now() < deadline, "orphan did not exit");
+        std::thread::sleep(Duration::from_millis(10));
+    }
     assert!(!refused.status.success(), "{refused:?}");
     assert!(
         String::from_utf8_lossy(&refused.stderr)
@@ -4201,7 +4220,7 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
             .unwrap()
             .is_some()
     );
-    // Existing fixture startup retires only its verified-dead synthetic epoch.
+    // Normal startup must accept only after the old group has actually exited.
     f.start();
     f.stop();
     // Payload roots can be completely unavailable: this command is SQLite-only.
@@ -4284,4 +4303,24 @@ fn offline_history_clear_rejects_missing_or_foreign_state_and_bad_selections() {
         assert!(!result.status.success(), "{result:?}");
         assert_eq!(std::fs::read(&database).unwrap(), contents);
     }
+}
+
+#[test]
+fn offline_history_epoch_helper() {
+    let Ok(database) = std::env::var("FILE_MOVER_CLEAR_EPOCH_HELPER") else {
+        return;
+    };
+    let guard = mover_fs::InstanceGuard::for_database(&database).unwrap();
+    guard.prepare_workers().unwrap();
+    let child = Command::new("/bin/sleep")
+        .arg("30")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    println!("epoch-child:{}", child.id());
+    std::io::stdout().flush().unwrap();
+    drop(guard); // No descriptor survives; the next process must consult the epoch.
+    std::process::exit(0);
 }
