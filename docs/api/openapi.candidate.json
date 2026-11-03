@@ -379,7 +379,17 @@
                 },
                 "description": "Authenticated responses are not cacheable."
               }
-            }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ]
           },
           "400": {
             "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
@@ -653,7 +663,17 @@
                 },
                 "description": "Authenticated responses are not cacheable."
               }
-            }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ]
           },
           "400": {
             "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
@@ -933,7 +953,17 @@
                 },
                 "description": "Authenticated responses are not cacheable."
               }
-            }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ]
           },
           "400": {
             "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
@@ -946,7 +976,8 @@
             },
             "x-error-codes": [
               "invalid_http",
-              "invalid_json"
+              "invalid_json",
+              "unexpected_body"
             ],
             "headers": {
               "Cache-Control": {
@@ -1653,7 +1684,8 @@
               "invalid_http",
               "invalid_json",
               "invalid_cursor",
-              "invalid_selection"
+              "invalid_selection",
+              "unexpected_body"
             ],
             "headers": {
               "Cache-Control": {
@@ -1957,7 +1989,8 @@
             "x-error-codes": [
               "invalid_http",
               "invalid_json",
-              "invalid_job_id"
+              "invalid_job_id",
+              "unexpected_body"
             ],
             "headers": {
               "Cache-Control": {
@@ -2263,7 +2296,8 @@
             "x-error-codes": [
               "invalid_http",
               "invalid_json",
-              "invalid_job_id"
+              "invalid_job_id",
+              "unexpected_body"
             ],
             "headers": {
               "Cache-Control": {
@@ -2578,7 +2612,8 @@
             "x-error-codes": [
               "invalid_http",
               "invalid_json",
-              "invalid_job_id"
+              "invalid_job_id",
+              "unexpected_body"
             ],
             "headers": {
               "Cache-Control": {

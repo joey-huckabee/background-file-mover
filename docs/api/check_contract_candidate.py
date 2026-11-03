@@ -79,7 +79,9 @@ def main():
                     "GET must accept browser omission of Origin: " + path)
         if path.endswith(("/resume", "/reset-missing")):
             require(op.get("x-access-boundary") == "trusted-local-only", "local audience missing")
-        for response in op["responses"].values():
+        for status, response in op["responses"].items():
+            require(status == "204" or "application/json" in response.get("content", {}),
+                    "mover response schema missing: " + path + " " + status)
             for media in response.get("content", {}).values():
                 require("schema" in media, "missing response schema")
             ref = response.get("content", {}).get("application/json", {}).get("schema", {}).get("$ref", "")

@@ -1993,7 +1993,8 @@
             "not_found",
             "rate_limited",
             "internal_error",
-            "service_stopping"
+            "service_stopping",
+            "unexpected_body"
           ]
         },
         "message": {

@@ -1,5 +1,12 @@
 # REST contract shutdown handoff
 
+2026-11-03 schema completion checkpoint: [candidate artifacts](api/README.md)
+now supply all fifteen proposed operations, 66 definitions and 91 structural
+fixtures. The maintained checker passed in the native Ubuntu WSL2 clone.
+This is contract work only; compatibility, cancellation replay, completed-retry
+classification, receipt/confirmation transactions and security/runtime proof
+remain unresolved. No full P01 freeze or remote API implementation is claimed.
+
 Next review: [consolidated REST contract proposal](REST-CONTRACT-PROPOSAL.md). Review its four decision packages before freezing OpenAPI or implementing changes. This draft records no new approval group.
 
 Updated 2026-11-01 on `feature/rust-transfer-coordinator`.
