@@ -4131,7 +4131,7 @@ fn nfs_profile_configuration_is_explicit_and_cannot_downgrade_to_local() {
     }
 }
 
-fn clear_history(f: &Fixture, ids: &[&str], confirm: bool) -> std::process::Output {
+fn clear_history_process(f: &Fixture, ids: &[&str], confirm: bool) -> Child {
     let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
     command
         .arg("--clear-history")
@@ -4140,7 +4140,17 @@ fn clear_history(f: &Fixture, ids: &[&str], confirm: bool) -> std::process::Outp
     if confirm {
         command.arg("--confirm");
     }
-    command.output().unwrap()
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap()
+}
+fn clear_history(f: &Fixture, ids: &[&str], confirm: bool) -> std::process::Output {
+    clear_history_process(f, ids, confirm)
+        .wait_with_output()
+        .unwrap()
 }
 
 #[test]
@@ -4168,8 +4178,13 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
         (m.dev(), m.ino(), m.len(), std::fs::read(p).unwrap())
     };
     let before: Vec<_> = paths.iter().map(|p| snapshot(p)).collect();
-    let preview = clear_history(&f, &["1"], false);
+    let preview_process = clear_history_process(&f, &["1"], false);
+    let preview_pid = preview_process.id();
+    let preview = preview_process.wait_with_output().unwrap();
     assert!(preview.status.success(), "{preview:?}");
+    let epoch: Value =
+        serde_json::from_slice(&std::fs::read(f.root.join("state/workers.json")).unwrap()).unwrap();
+    assert_eq!(epoch["group"].as_u64(), Some(u64::from(preview_pid)));
     assert_eq!(
         serde_json::from_slice::<Value>(&preview.stdout).unwrap()["confirmation_required"],
         true

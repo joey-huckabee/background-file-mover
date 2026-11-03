@@ -94,11 +94,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         let config = read_config(&config_path)?;
-        // This command never starts workers or touches either payload root.
-        // Admission rejects the daemon and all surviving worker-group members
-        // before SQLite, including the epoch-after-flock-release case.
+        // No filesystem worker subprocesses or payload-root access. Admission
+        // excludes the daemon and surviving groups before SQLite. Register this
+        // process too: its SQLite owner must outlive any early flock closure.
         let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
         instance.validate_database(&config.state_database)?;
+        instance.prepare_workers()?;
         if confirm {
             let store = mover_store::Store::open_for_history_clear(&config.state_database)?;
             instance.validate_database(&config.state_database)?;
