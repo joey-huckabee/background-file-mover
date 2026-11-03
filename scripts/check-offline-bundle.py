@@ -62,7 +62,7 @@ def main():
         raise RuntimeError(message)
 
     try:
-        owned = run("podman", "create", "--pull=never", "--network", "none", "--cap-drop", "all", "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", runtime, "-c", "exec sleep infinity").stdout.strip()
+        owned = run("podman", "create", "--pull=never", "--network", "none", "--user", "1000:1000", "--cap-drop", "all", "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", runtime, "-c", "exec sleep infinity").stdout.strip()
         run("podman", "start", owned)
         mode = run("podman", "inspect", "--format", "{{.HostConfig.NetworkMode}}", owned).stdout.strip()
         assert mode == "none"
@@ -74,7 +74,6 @@ def main():
             with tarfile.open(archive) as tar:
                 tar.extractall(directory, filter="data")
             run("podman", "cp", directory + "/.", owned + ":/tmp/offline-work")
-        run("podman", "exec", owned, "chown", "1000:1000", "/tmp/offline-work")
         report["checks"].append("host extracts archive for minimal target without tar; target verifies complete copied inventory")
         unpacked = "/tmp/offline-work/" + name
         installed = "/tmp/offline-work/installed"
