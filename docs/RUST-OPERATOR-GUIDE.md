@@ -29,6 +29,57 @@ controller. `shutdown_wait_seconds` now defaults to 60 and accepts integer value
 1–3600. It bounds the separate stop command; it does not promise that the daemon,
 blocked workers or NFS operations exit by that deadline.
 
+## Offline clear of completed history
+
+[Increment 107](RUST-INCREMENT-107.md) implements a host-local maintenance
+command for **committed jobs only**. Stop the service normally first; the command
+refuses a live daemon or surviving worker, including workers whose flock has
+closed. Do not remove guard/lifetime files to force it. No remote clear endpoint
+or admin sign-in is introduced. Safely-cancelled-job support waits for the actual
+cancellation lifecycle; stopping the daemon does not make unfinished work cancelled.
+
+Preview selected existing job IDs and the consequences:
+
+```sh
+file-mover --clear-history /path/to/config.json 42 43
+```
+
+To apply that selection explicitly:
+
+```sh
+file-mover --clear-history /path/to/config.json 42 43 --confirm
+```
+
+Preview does not alter job data; both preview and apply record their process
+lifetime in the normal local workers.json protocol before opening SQLite.
+
+Success prints `{"cleared_count":N}`, the actual number cleared. Missing,
+noncommitted and repeated-after-clear IDs silently skip. Lists require 1-256
+canonical positive numeric job IDs. This bounded implementation uses the current
+prototype job/submission identities; it does not implement the pending global
+UUID producer format or dashboard wire. An error is not a successful clear.
+
+Clear leaves source payloads, destination payloads and COMMITTED.json untouched.
+It removes every selected job-linked database record, its replay recognition,
+accounting and audit/results. The files then leave mover management. If the
+mover should remove retained data, that separate deletion feature must be
+implemented/qualified and used before clear; no payload deletion is provided
+by this command. Old private source/destination files still consume real space.
+
+The original database must exist at schema 11. This command never initializes
+or migrates state and never acquires source/destination roots, so unavailable
+payload mounts do not block its database-only work. Shared instance identity,
+source enrollment and the monotonically increasing job sequence stay intact.
+After restart, old files are not rediscovered/adopted. Under the current prototype
+wire, resubmitting a forgotten submission is fresh work with a new internal ID;
+future recording-UUID layout must still enforce normal destination collisions.
+
+The eligible batch is one SQLite transaction: a database failure rolls it back;
+no half-clear is reported. Preserve the original database/WAL after any uncertain
+client/process result and re-query/repeat the selection after normal recovery.
+No automatic history expiry, restore, orphan repair or production NFS enablement
+is included. Validation evidence and remaining boundaries are in increment 107.
+
 ## Local ownership and refused starts
 
 All supported manual/service starts must use the same configuration and fixed

@@ -5,6 +5,12 @@
 implementation.** Updated 2026-11-02: groups 1-50 are approved; group 50 changes post-clear ownership, and group 49 selects
 the reviewed-state retry header. These files make the schema proposal executable without claiming the unfinished API is ready to ship.
 
+The user subsequently authorized bounded group-50 code: see
+[increment 107](../RUST-INCREMENT-107.md) and the
+[operator command](../RUST-OPERATOR-GUIDE.md#offline-clear-of-completed-history).
+That offline committed-job implementation does not turn this candidate OpenAPI
+into an implemented authenticated API or qualify cancelled-job clearing.
+
 ## Artifacts
 
 | File | Purpose and limit |

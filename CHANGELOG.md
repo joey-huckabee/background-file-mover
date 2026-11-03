@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Implement guarded host-local `--clear-history CONFIG JOB_ID... [--confirm]`
+  for committed jobs: one transaction forgets every per-job record/replay link
+  without touching source/destination payloads or manifests. Refuse active
+  daemon/surviving workers and fresh/legacy state; preserve shared enrollment
+  and non-reused IDs. Cancellation/admin HTTP integration remains pending.
+  See increment 107 for actual validation and limits.
+
 - Approve full file-linkage forgetting on eligible job clear (group 50/
   API-E130-132/SC-181-183), superseding earlier post-clear owner retention.
   Leave files in place but remove mover ownership/accounting/inventories and

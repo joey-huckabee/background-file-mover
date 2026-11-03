@@ -2,6 +2,14 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-02 implementation authorization: the user explicitly asks to implement
+group 50 now. This overrides the contract-before-code hold only for the bounded
+offline completed-job clear in `docs/RUST-INCREMENT-107.md`. It adds a guarded
+host-local command, not remote admin access or a cancellation state. Existing
+current-schema state only; hold instance/lifetime exclusion through SQLite close.
+Other unsettled API work remains gated. Record actual SLES results and limits;
+production NFS, payload deletion and automatic cleanup remain disabled.
+
 2026-11-02 group 50 supersedes post-clear tracking: successful eligible clear
 forgets all linkage to source/destination files, including separate ownership,
 accounting, inventories and action results. Files stay in place and leave mover

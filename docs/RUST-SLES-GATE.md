@@ -72,6 +72,10 @@ them solely on a modern host. Host analysis tools are not deployed artifacts.
 
 ## Coverage boundary
 
+The guarded offline completed-history command has separate current-source results
+in [increment 107](RUST-INCREMENT-107.md) and its [evidence inventory](HISTORY-CLEAR-EVIDENCE.json).
+These local SLES checks do not requalify earlier NFS/systemd artifacts.
+
 Current Cargo-libc migration results are recorded in
 [the migration record](CARGO-LIBC-MIGRATION.md). Historical ZigBuild
 production/qualification counts and artifact hashes are retained in

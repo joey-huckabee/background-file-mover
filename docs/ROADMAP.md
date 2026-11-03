@@ -22,6 +22,13 @@ review-version/audit context, without changing the job_ids body. No OpenAPI free
 
 ## Next work
 
+The user authorizes group-50 implementation now. [Increment 107](RUST-INCREMENT-107.md)
+delivers offline committed-job clearing with exclusive instance/lifetime admission
+and explicit confirmation. Both required SLES modes pass. The actual cancellation
+lifecycle and authenticated dashboard integration remain planned work. Do not expose a
+remote clear endpoint through the existing unauthenticated producer/operator API.
+The remaining unrelated contract work is still pending.
+
 Use the [short action closeout table](api/ADMIN-REPLAY.candidate.md#short-closeout-table)
 to settle remaining visible defaults together: duplicate/no-work retry results,
 latest manual-deletion results before clear. Group 50 settles post-clear

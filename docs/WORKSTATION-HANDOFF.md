@@ -37,9 +37,17 @@ Use these sources together; the roadmap alone is not the whole specification.
 
 ## Exact stopping point; no chat memory required
 
+The user's later direct instruction authorizes bounded group-50 implementation.
+[Increment 107](RUST-INCREMENT-107.md) describes the guarded offline completed-job
+clear and its current actual validation. It preserves source/destination files,
+refuses a live daemon/surviving epoch and opens only existing schema-11 state.
+No HTTP admin/authentication or cancellation lifecycle is implemented by it.
+The broad earlier implementation hold remains for other unsettled contract work.
+
 We are in P01/API-I01, agreeing the REST contract before versioned OpenAPI and
-related implementation. All eight release gates remain open. The latest saved
-contract decision is group 48 (2026-11-01), API-E125-128/SC-176-179:
+related implementation. All eight release gates remain open. The saved
+contract decisions now include groups 49-50 as recorded above and in the REST
+handoff. The earlier group-48 checkpoint (2026-11-01), API-E125-128/SC-176-179:
 
 - Successful login: 200 OK with session cookie.
 - Incorrect credentials: 401 Unauthorized, "Invalid username or password."

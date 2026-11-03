@@ -99,6 +99,13 @@ separately if historical raw auditability is needed. No new build/test is claime
 
 ## Where we stopped
 
+Implementation authorization, 2026-11-02: the user now explicitly asks for code.
+The bounded [increment 107](RUST-INCREMENT-107.md) adds an offline host-local
+completed-job command with guarded current-state admission and preview/confirm.
+It is not an authenticated admin endpoint or cancelled-job implementation.
+Read its actual gate evidence before treating that subset as validated; the
+broader schema/remote/cancellation work remains pending.
+
 Latest decision, group 50: **cleared means no remaining mover linkage to source
 or destination files**, including ownership/accounting/inventories/results. Files
 stay unchanged. Delete through the mover before clear; afterward cleanup is
