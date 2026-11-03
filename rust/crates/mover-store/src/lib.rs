@@ -14,6 +14,7 @@ use std::{
     thread,
     time::Duration,
 };
+mod history;
 mod missing_resets;
 mod operators;
 mod retention;
@@ -289,18 +290,29 @@ impl Store {
         })
     }
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-        Self::start(path.as_ref().to_owned(), false)
+        Self::start(path.as_ref().to_owned(), false, false)
     }
     pub fn open_read_only(path: impl AsRef<Path>) -> Result<Self> {
-        Self::start(path.as_ref().to_owned(), true)
+        Self::start(path.as_ref().to_owned(), true, false)
     }
-    fn start(path: PathBuf, read_only: bool) -> Result<Self> {
+    /// Existing current-schema state only; never create or migrate it here.
+    /// The caller must hold exclusive instance/lifetime admission throughout.
+    /// Do not attach this maintenance connection to a running coordinator.
+    pub fn open_for_history_clear(path: impl AsRef<Path>) -> Result<Self> {
+        Self::start(path.as_ref().to_owned(), false, true)
+    }
+    fn start(path: PathBuf, read_only: bool, history_clear: bool) -> Result<Self> {
         let (commands, receiver) = mpsc::sync_channel(32);
         let (startup, ready) = mpsc::sync_channel(1);
         let worker = thread::Builder::new()
             .name("mover-sqlite".into())
             .spawn(move || {
-                let mut database = match Database::open(&path, read_only) {
+                let opened = if history_clear {
+                    Database::open_mode(&path, false, true)
+                } else {
+                    Database::open(&path, read_only)
+                };
+                let mut database = match opened {
                     Ok(database) => {
                         if startup.send(Ok(())).is_err() {
                             return;
@@ -562,11 +574,17 @@ impl Drop for Store {
 struct Database {
     connection: Connection,
     limits: Option<(u64, u64)>,
+    history_clear: bool,
 }
 impl Database {
     fn open(path: &Path, read_only: bool) -> Result<Self> {
+        Self::open_mode(path, read_only, false)
+    }
+    fn open_mode(path: &Path, read_only: bool, history_clear: bool) -> Result<Self> {
         let flags = if read_only {
             OpenFlags::SQLITE_OPEN_READ_ONLY
+        } else if history_clear {
+            OpenFlags::SQLITE_OPEN_READ_WRITE
         } else {
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE
         };
@@ -578,7 +596,10 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        let fresh = version == 0 && application == 0 && !read_only;
+        if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {
+            return Err(StoreError::UnsupportedSchema);
+        }
+        let fresh = version == 0 && application == 0 && !read_only && !history_clear;
         if fresh {
             let objects: i64 = connection.query_row(
                 "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
@@ -711,6 +732,7 @@ impl Database {
         Ok(Self {
             connection,
             limits: None,
+            history_clear,
         })
     }
 

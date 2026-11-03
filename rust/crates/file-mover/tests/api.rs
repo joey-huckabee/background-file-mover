@@ -3547,14 +3547,22 @@ fn local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite() {
     config["source_root"] = json!(f.root.join("unavailable-source"));
     let path = f.root.join("duplicate.json");
     std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
-    for mode in [None, Some("--initialize-source"), Some("--transfer-one")] {
+    for mode in [
+        None,
+        Some("--initialize-source"),
+        Some("--transfer-one"),
+        Some("--clear-history"),
+    ] {
         let mut command = Command::new(&exe);
         if let Some(mode) = mode {
             command.arg(mode);
         }
         command.arg(&path);
-        if mode == Some("--transfer-one") {
+        if mode == Some("--transfer-one") || mode == Some("--clear-history") {
             command.arg("1");
+        }
+        if mode == Some("--clear-history") {
+            command.arg("--confirm");
         }
         instance_refusal(command);
         assert!(!f.root.join("state/not-created.sqlite").exists());
@@ -4120,5 +4128,160 @@ fn nfs_profile_configuration_is_explicit_and_cannot_downgrade_to_local() {
         value[role]["filesystem"] = json!("nfs");
         value[role]["nfs_mount"]["profile"] = json!("unknown");
         assert!(serde_json::from_value::<file_mover::Config>(value).is_err());
+    }
+}
+
+fn clear_history(f: &Fixture, ids: &[&str], confirm: bool) -> std::process::Output {
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .arg("--clear-history")
+        .arg(f.root.join("config.json"))
+        .args(ids);
+    if confirm {
+        command.arg("--confirm");
+    }
+    command.output().unwrap()
+}
+
+#[test]
+fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_files() {
+    use std::os::unix::fs::MetadataExt;
+    let mut f = Fixture::new(300);
+    provision_destination(&f);
+    let body = f.input("clear-and-reuse", json!([{"name":"data"}]));
+    f.write("data", b"original recording");
+    assert_eq!(f.post(&body).0, 202);
+    wait_manifest(&f, "1");
+    f.write("data", b"newly produced recording");
+    f.stop();
+    let database = f.root.join("state/jobs.sqlite");
+    let paths = [
+        "source/.file-mover/1-0/data",
+        "destination/1/data",
+        "destination/1/COMMITTED.json",
+        "source/current/data",
+    ];
+    let root = f.root.clone();
+    let snapshot = |name: &str| {
+        let p = root.join(name);
+        let m = std::fs::metadata(&p).unwrap();
+        (m.dev(), m.ino(), m.len(), std::fs::read(p).unwrap())
+    };
+    let before: Vec<_> = paths.iter().map(|p| snapshot(p)).collect();
+    let preview = clear_history(&f, &["1"], false);
+    assert!(preview.status.success(), "{preview:?}");
+    assert_eq!(
+        serde_json::from_slice::<Value>(&preview.stdout).unwrap()["confirmation_required"],
+        true
+    );
+    assert!(
+        mover_store::Store::open_read_only(&database)
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .is_some()
+    );
+    // The child inherits the epoch's process group, but no guard descriptor.
+    let guard = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
+    guard.prepare_workers().unwrap();
+    let mut child = Command::new("/bin/sleep").arg("30").spawn().unwrap();
+    drop(guard);
+    let refused = clear_history(&f, &["1"], true);
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(!refused.status.success(), "{refused:?}");
+    assert!(
+        String::from_utf8_lossy(&refused.stderr)
+            .contains("local instance or surviving worker already owns state")
+    );
+    assert!(
+        mover_store::Store::open_read_only(&database)
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .is_some()
+    );
+    // Existing fixture startup retires only its verified-dead synthetic epoch.
+    f.start();
+    f.stop();
+    // Payload roots can be completely unavailable: this command is SQLite-only.
+    std::fs::rename(f.root.join("source"), f.root.join("parked-source")).unwrap();
+    std::fs::rename(
+        f.root.join("destination"),
+        f.root.join("parked-destination"),
+    )
+    .unwrap();
+    let result = clear_history(&f, &["1", "9999", "1"], true);
+    std::fs::rename(f.root.join("parked-source"), f.root.join("source")).unwrap();
+    std::fs::rename(
+        f.root.join("parked-destination"),
+        f.root.join("destination"),
+    )
+    .unwrap();
+    assert!(result.status.success(), "{result:?}");
+    assert_eq!(
+        serde_json::from_slice::<Value>(&result.stdout).unwrap(),
+        json!({"cleared_count":1})
+    );
+    for (p, old) in paths.iter().zip(&before) {
+        assert_eq!(&snapshot(p), old);
+    }
+    let s = mover_store::Store::open_read_only(&database).unwrap();
+    assert!(s.get(1).unwrap().is_none());
+    assert!(s.claim_intent(1, 0).unwrap().is_none());
+    assert!(s.manifest(1).unwrap().is_none());
+    assert!(s.destination_observation(1).unwrap().is_none());
+    assert_eq!(s.retention(None).unwrap().unwrap().jobs, 0);
+    assert!(s.source_ownership().unwrap().unwrap().object.is_some());
+    drop(s);
+    f.start();
+    assert_eq!(status(&f, "1").0, 404);
+    assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 0);
+    assert_eq!(
+        retention(&f, None).1["details"]["source_reserved_bytes"],
+        "0"
+    );
+    let (code, fresh) = f.post(&body);
+    assert_eq!(code, 202);
+    assert_eq!(fresh["job_id"], "2");
+    wait_manifest(&f, "2");
+    assert_eq!(
+        std::fs::read(f.root.join("destination/2/data")).unwrap(),
+        b"newly produced recording"
+    );
+    f.stop();
+    for (p, old) in paths[..3].iter().zip(&before) {
+        assert_eq!(&snapshot(p), old);
+    }
+}
+
+#[test]
+fn offline_history_clear_rejects_missing_or_foreign_state_and_bad_selections() {
+    let f = Fixture::uninitialized(300);
+    let database = f.root.join("state/jobs.sqlite");
+    for ids in [
+        vec![],
+        vec!["0"],
+        vec!["-1"],
+        vec!["01"],
+        vec!["+1"],
+        vec!["1", "--confirm", "--confirm"],
+        vec!["1"; 257],
+    ] {
+        let result = clear_history(&f, &ids, false);
+        assert!(!result.status.success(), "{result:?}");
+        assert!(!database.exists());
+        assert!(!f.root.join("state/instance.lock").exists());
+    }
+    for confirm in [false, true] {
+        assert!(!clear_history(&f, &["1"], confirm).status.success());
+        assert!(!database.exists());
+    }
+    for contents in [b"".as_slice(), b"not a SQLite database".as_slice()] {
+        std::fs::write(&database, contents).unwrap();
+        std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let result = clear_history(&f, &["1"], true);
+        assert!(!result.status.success(), "{result:?}");
+        assert_eq!(std::fs::read(&database).unwrap(), contents);
     }
 }

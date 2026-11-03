@@ -1935,3 +1935,270 @@ fn sqlite_native_open_refuses_database_symlink() {
     assert!(Store::open_read_only(&alias).is_err());
     assert_eq!(Store::open(original).unwrap().job_count().unwrap(), 0);
 }
+
+fn history_job(store: &Store, name: &str, phase: i64) -> Accepted {
+    let mut c = context();
+    c.destination_binding = Some("history-destination".into());
+    let submission = Submission::new(
+        "g",
+        name,
+        "/mnt/recordings/current",
+        vec![FileSpec::new(name, None).unwrap()],
+    )
+    .unwrap();
+    let job = store.accept(&submission, &c).unwrap();
+    store.note_missing(job.job_id, 0, 100).unwrap();
+    assert!(store.claim_blocked(job.job_id, 500).unwrap());
+    store
+        .reset_missing(
+            job.job_id,
+            &MissingResetRequest {
+                command_id: "missing-reset".into(),
+                review_epoch: 0,
+                file_index: 0,
+                retry_window_seconds: 10,
+                actor: "test".into(),
+                reason: "Inspected original recording".into(),
+            },
+            500,
+        )
+        .unwrap();
+    let claim = intent_for(&job, 0, 3);
+    store.begin_claim(&claim).unwrap();
+    store.finish_claim(&claim).unwrap();
+    store
+        .pin_destination(job.job_id, "history-destination", "observed")
+        .unwrap();
+    review(store, job.job_id);
+    store
+        .resume_delivery(job.job_id, &resume_request(0), 120)
+        .unwrap();
+    store.delivery_deferred(job.job_id, 140).unwrap();
+    let mut transfer = Transfer {
+        job_id: job.job_id,
+        file_index: 0,
+        attempt: 1,
+        destination_root: c.destination_path,
+        relative_name: name.into(),
+        root: claim.root.clone(),
+        area: claim.area.clone(),
+        parent: claim.parent.clone(),
+        staging_directory: claim.area.clone(),
+        stage: ObjectIdentity {
+            size: 0,
+            ..claim.source.clone()
+        },
+        sha256: None,
+        phase: TransferPhase::Intent,
+    };
+    store.save_transfer(&transfer).unwrap();
+    transfer.attempt = 2;
+    transfer.stage.inode += 1;
+    store.save_transfer(&transfer).unwrap();
+    transfer.stage.size = 3;
+    transfer.sha256 = Some("a".repeat(64));
+    for state in [
+        TransferPhase::Copied,
+        TransferPhase::Verified,
+        TransferPhase::PublishIntent,
+        TransferPhase::Published,
+    ] {
+        transfer.phase = state;
+        store.save_transfer(&transfer).unwrap();
+    }
+    let mut manifest = ManifestRecord {
+        job_id: job.job_id,
+        bytes: "trusted persistence fixture".into(),
+        sha256: "b".repeat(64),
+        phase: 0,
+        object: None,
+    };
+    store.save_manifest(&manifest).unwrap();
+    for state in 1..=phase {
+        manifest.phase = state;
+        manifest.object = Some(ObjectIdentity {
+            size: if state == 1 {
+                0
+            } else {
+                manifest.bytes.len() as u64
+            },
+            ..claim.source.clone()
+        });
+        store.save_manifest(&manifest).unwrap();
+    }
+    store.get(job.job_id).unwrap().unwrap()
+}
+
+#[test]
+fn history_clear_forgets_each_job_row_and_replay_without_reusing_ids() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let first = history_job(&s, "first", 4);
+    let other = history_job(&s, "other", 4);
+    let pending = s
+        .accept(&input("g", "pending-clear", "pending"), &context())
+        .unwrap();
+    assert!(matches!(
+        s.clear_completed_history(&[first.job_id]),
+        Err(StoreError::InvalidContext)
+    ));
+    drop(s);
+    let connection = Connection::open(f.db()).unwrap();
+    let mut expected = retained_table_rows(&connection);
+    for (table, rows) in &mut expected {
+        let columns: Vec<String> = connection
+            .prepare(&format!("PRAGMA table_info({table})"))
+            .unwrap()
+            .query_map([], |r| r.get(1))
+            .unwrap()
+            .collect::<std::result::Result<_, _>>()
+            .unwrap();
+        if let Some(column) = columns.iter().position(|c| c == "job_id") {
+            rows.retain(|row| row[column] != rusqlite::types::Value::Integer(first.job_id));
+        }
+    }
+    drop(connection);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(
+        s.clear_completed_history(&[first.job_id, pending.job_id, 9999, first.job_id])
+            .unwrap(),
+        1
+    );
+    assert!(s.get(first.job_id).unwrap().is_none());
+    assert!(s.status(first.job_id).unwrap().is_none());
+    assert!(s.retention(Some(first.job_id)).unwrap().is_none());
+    assert!(!s.replay(first.recording.submission()).unwrap());
+    assert_eq!(s.retention(None).unwrap().unwrap().jobs, 2);
+    let c = Connection::open(f.db()).unwrap();
+    assert_eq!(retained_table_rows(&c), expected);
+    assert_eq!(
+        c.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| r
+            .get::<_, i64>(
+            0
+        ))
+        .unwrap(),
+        0
+    );
+    drop(c);
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert!(s.get(first.job_id).unwrap().is_none());
+    assert!(
+        s.get(other.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .is_committed()
+    );
+    let fresh = s
+        .accept(first.recording.submission(), &first.context)
+        .unwrap();
+    assert!(!fresh.replay);
+    assert!(fresh.job_id > pending.job_id);
+    assert_eq!(fresh.recording.handoff(), Handoff::Pending);
+}
+
+#[test]
+fn history_clear_skips_published_but_uncommitted_and_rejects_invalid_batches() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let jobs: Vec<_> = (0..=4)
+        .map(|phase| history_job(&s, &format!("phase-{phase}"), phase))
+        .collect();
+    drop(s);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    for ids in [
+        vec![],
+        vec![0],
+        vec![-1],
+        vec![jobs[4].job_id, 0],
+        vec![jobs[4].job_id; 257],
+    ] {
+        assert!(matches!(
+            s.clear_completed_history(&ids),
+            Err(StoreError::InvalidContext)
+        ));
+        assert!(s.get(jobs[4].job_id).unwrap().is_some());
+    }
+    assert_eq!(
+        s.clear_completed_history(&jobs.iter().map(|j| j.job_id).collect::<Vec<_>>())
+            .unwrap(),
+        1
+    );
+    for job in &jobs[..4] {
+        assert!(s.get(job.job_id).unwrap().is_some());
+    }
+}
+
+#[test]
+fn history_clear_failure_rolls_back_prior_jobs_and_all_dependent_rows() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let first = history_job(&s, "rollback-one", 4);
+    let second = history_job(&s, "rollback-two", 4);
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch(&format!("CREATE TRIGGER fail_clear BEFORE DELETE ON jobs WHEN OLD.job_id={} BEGIN SELECT RAISE(ABORT,'injected late clear failure'); END;", second.job_id)).unwrap();
+    let before = retained_table_rows(&c);
+    drop(c);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert!(matches!(
+        s.clear_completed_history(&[first.job_id, second.job_id]),
+        Err(StoreError::Sqlite(_))
+    ));
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert!(
+        s.get(first.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .is_committed()
+    );
+    assert!(
+        s.get(second.job_id)
+            .unwrap()
+            .unwrap()
+            .recording
+            .is_committed()
+    );
+    assert_eq!(
+        retained_table_rows(&Connection::open(f.db()).unwrap()),
+        before
+    );
+}
+
+#[test]
+fn history_clear_admission_never_creates_initializes_or_migrates_state() {
+    let f = Fixture::new();
+    assert!(Store::open_for_history_clear(f.db()).is_err());
+    assert!(!f.db().exists());
+    let c = Connection::open(f.db()).unwrap();
+    assert!(matches!(
+        Store::open_for_history_clear(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    assert_eq!(
+        c.query_row("SELECT count(*) FROM sqlite_schema", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    drop(c);
+    drop(Store::open(f.db()).unwrap());
+    let c = Connection::open(f.db()).unwrap();
+    c.pragma_update(None, "user_version", 10).unwrap();
+    let before = retained_table_rows(&c);
+    assert!(matches!(
+        Store::open_for_history_clear(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    assert_eq!(
+        c.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
+        10
+    );
+    assert_eq!(retained_table_rows(&c), before);
+}

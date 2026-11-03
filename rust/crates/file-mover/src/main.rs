@@ -71,6 +71,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
+    if path == "--clear-history" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        let mut confirm = false;
+        let mut job_ids = Vec::new();
+        for value in args {
+            if value == "--confirm" && !confirm {
+                confirm = true;
+                continue;
+            }
+            let id: i64 = value
+                .parse()
+                .map_err(|_| "canonical positive job ID required")?;
+            if id <= 0 || id.to_string() != value || job_ids.len() == 256 {
+                return Err("1-256 canonical positive job IDs required".into());
+            }
+            job_ids.push(id);
+        }
+        if job_ids.is_empty() {
+            return Err(
+                "usage: file-mover --clear-history CONFIG.json JOB_ID... [--confirm]".into(),
+            );
+        }
+        let config = read_config(&config_path)?;
+        // This command never starts workers or touches either payload root.
+        // Admission rejects the daemon and all surviving worker-group members
+        // before SQLite, including the epoch-after-flock-release case.
+        let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
+        instance.validate_database(&config.state_database)?;
+        if confirm {
+            let store = mover_store::Store::open_for_history_clear(&config.state_database)?;
+            instance.validate_database(&config.state_database)?;
+            eprintln!(
+                "Clear selected jobs {job_ids:?}: forget history, replay and all file tracking; files stay in place and leave mover management."
+            );
+            let cleared = store.clear_completed_history(&job_ids)?;
+            println!("{}", serde_json::json!({"cleared_count":cleared}));
+        } else {
+            // Read-only schema/state validation; no fresh database or migration.
+            let _store = mover_store::Store::open_read_only(&config.state_database)?;
+            println!(
+                "{}",
+                serde_json::json!({"selected_job_ids":job_ids,"confirmation_required":true,"effect":"Forget history, replay and all file tracking. Files stay in place and leave mover management. Only committed jobs can currently be cleared. Rerun with --confirm."})
+            );
+        }
+        return Ok(());
+    }
     if path == "--initialize-source" {
         let config_path = args.next().ok_or("configuration path required")?;
         if args.next().is_some() {
