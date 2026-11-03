@@ -1,5 +1,8 @@
 # Rust operator status and recovery guide
 
+For producing, verifying and installing the current prototype without target
+internet access, use the [offline installation guide](OFFLINE-INSTALL.md).
+
 For normal restart, systemd timeout, surviving workers, transfer-phase recovery,
 startup refusal, upgrades and reboot handling, use the
 [restart and shutdown runbook](RUST-RESTART-RUNBOOK.md). Each case includes user

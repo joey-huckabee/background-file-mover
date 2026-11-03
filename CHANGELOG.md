@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add a versioned offline Rust prototype installation bundle, gated executable
+  provenance, locked dependency source/license material, integrity/dependency
+  verification, non-overwriting installation and produce/use/recovery instructions.
+  Service activation remains explicit; shipping deployment qualification stays open.
+
 - Add strict `--offline` Cargo-libc/SLES validation using cached pinned images
   and locked sources, with no image/download fallback or online provisioner;
   retain full build/test/audit coverage and record observed container networks.

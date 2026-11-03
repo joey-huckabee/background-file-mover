@@ -855,3 +855,9 @@ in the [SLES guide](RUST-SLES-GATE.md#strict-offline-validation). DOC-05 gains
 cached-input prerequisites, missing-cache refusal and network evidence; portable
 disconnected packaging stays pending. Existing 183 SC and six DOC IDs remain
 unchanged. Actual results and scope are in [increment 108](RUST-INCREMENT-108.md).
+
+Increment 109 adds the [offline installation guide](OFFLINE-INSTALL.md) for
+DOC-03/04/05: exact gated-artifact packaging, offline OS dependency verification,
+new-directory-only installation, fresh-scope prerequisites and state-preserving
+upgrade/recovery/removal. Actual package checks and remaining shipping unit/account
+limits are recorded separately; existing 183 SC and six DOC IDs stay unchanged.

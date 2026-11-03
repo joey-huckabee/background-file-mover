@@ -1,0 +1,23 @@
+# Candidate native Rust unit, not a qualified production deployment policy.
+# Replace @INSTALL_ROOT@, @SERVICE_USER@ and @CONFIG_PATH@ before installation.
+[Unit]
+Description=Background File Mover (Rust prototype)
+
+[Service]
+Type=simple
+User=@SERVICE_USER@
+Group=@SERVICE_USER@
+ExecStart=@INSTALL_ROOT@/bin/file-mover @CONFIG_PATH@
+# Unit-scoped signals only: global --stop here could stop a foreign owner.
+KillMode=control-group
+SendSIGKILL=no
+# For the default 60-second mover budget. Set above your configured budget.
+TimeoutStopSec=75
+# Activation/retry remains explicit until the shipping policy is qualified.
+Restart=no
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
