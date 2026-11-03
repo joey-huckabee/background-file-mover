@@ -16,14 +16,16 @@ into an implemented authenticated API or qualify cancelled-job clearing.
 P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)
 specifies fifteen-route audience separation, proposed Origin/CSRF transport,
 inactivity renewal and global-revocation admission ordering. This is engineering
-contract work only; approved group-51 admin outcomes, remaining schemas, compatibility
-and full freeze/implementation remain open.
+contract work only. Group-51 defaults are approved; the fifteen-route schema
+candidate is now supplied. Compatibility and full freeze/implementation remain open.
 
 | File | Purpose and limit |
 |---|---|
-| [openapi.candidate.json](openapi.candidate.json) | Partial OpenAPI 3.1.1 producer, three session operations and admin retry; route/read/action completion and security details remain blockers. Do not generate production clients. |
-| [contract.candidate.schema.json](contract.candidate.schema.json) | 25 proposed JSON Schema 2020-12 definitions for producer, session, selections/counts and manifest v2. Route-specific code/precedence remains separate. |
-| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 57 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
+| [openapi.candidate.json](openapi.candidate.json) | OpenAPI 3.1.1 candidate for all fifteen proposed operations, with request/response schemas and per-response error registry. Not implemented or frozen. Do not generate production clients. |
+| [contract.candidate.schema.json](contract.candidate.schema.json) | 66 JSON Schema 2020-12 definitions, including current status/operator/retention shapes and proposed list/confirmation/admin views. Semantic and compatibility limits remain explicit. |
+| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 91 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
+| [ROUTE-SCHEMAS.candidate.md](ROUTE-SCHEMAS.candidate.md) | Read/action wire, bounded confirmation preview, local transport representation, error precedence and unresolved compatibility limits. |
+| [check_contract_candidate.py](check_contract_candidate.py) | Read-only metaschema, fixture, reference, route inventory and selected access/error checks; requires existing jsonschema. Not a full OpenAPI validator. |
 | [REQUEST-IDENTITY.candidate.md](REQUEST-IDENTITY.candidate.md) | Exact proposed immutable-request framing and compatibility limits. |
 | [request-identity-v1.candidate.vectors.json](request-identity-v1.candidate.vectors.json) | Seven input/frame/hash known answers, including unordered replay and distinct Unicode spellings. |
 | [RETRY-HEADER.candidate.md](RETRY-HEADER.candidate.md) | Exact proposed header encoding, instance/selection binding, byte bounds and validation precedence; not a contract freeze. |
@@ -68,13 +70,13 @@ Tracked-job views and deletion results exist only before clear; no service file
 linkage/accounting or cleanup survives successful clear. Physical disk bytes and
 unchanged payload/manifest contents may remain; do not rebuild tracking from them.
 
-The partial OpenAPI file now includes the retry header parameter and its
-decoded/read-projection schemas. It does not enumerate every error or complete authentication
-and CSRF protection. Its default producer error response describes mover-generated
-JSON only; it does not promise that proxy errors or TLS failures have that body.
-The external producer security scheme is a proposed boundary, not deployment
-configuration or proof of protected ingress. Listing/status/retained-data and
-specialized operator schemas remain to finish under the route inventory.
+The OpenAPI candidate now covers all fifteen proposed operations. Current local
+operator envelopes are preserved separately from producer errors; cancellation,
+deletion and list/confirmation fields are proposed extensions. Its per-response
+`x-error-codes` entries form the candidate route registry. Transport/proxy errors
+can lack mover JSON. The external producer scheme and local-only transport
+annotations are proposed boundaries, not qualified ingress configuration.
+See [route schema limits](ROUTE-SCHEMAS.candidate.md) before using these artifacts.
 
 Start the next review with the [short admin-action closeout table](ADMIN-REPLAY.candidate.md#short-closeout-table).
 It separates existing approvals from recommended remaining defaults. Keep user
@@ -85,9 +87,9 @@ work. No further encoding-only fixture expansion is planned before implementatio
 
 | Blocker | Recommended next decision/design | Still required before freeze |
 |---|---|---|
-| F01 Release surface | Use the consolidated 15-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review exact read schemas and route access; do not inherit unrelated historical routes |
+| F01 Release surface | Use the consolidated 15-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review the completed candidate read/action schemas and route access; no unrelated historical routes added |
 | F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Group 51 settles zero-accepted 202 and failed duplicate retry; exact errors, same-transaction receipts and bounded storage/retention implementation remain |
-| F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Group 51 approves one-active/latest-result deletion behavior before clear; exact wire/storage design remains pending. |
+| F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Group 51 approves one-active/latest-result deletion behavior before clear; candidate wire now supplied; durable storage/transaction design and qualification remain pending. |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
 | F06 Authentication/ingress | [Access-boundary candidate](ACCESS-BOUNDARY.candidate.md): cookie AND CSRF for mutations, exact Origin, deliberate-read activity and revocation/admission ordering | Validate candidate against full route/error schemas; credential/session bounds, runtime race proof and selected proxy profile remain open |
@@ -103,7 +105,7 @@ other contract details before bulk retry implementation.
 ## Verification performed
 
 - Existing WSL Python 3.12.3/jsonschema 4.10.3 checked the Draft 2020-12 schema
-  against its metaschema, then all 57 fixture expectations, including rejected
+  against its metaschema, then the original 57 fixture expectations, including rejected
   shapes, overflow, disabled-comparison immutable maps and duplicate selections.
 - Eleven separate semantic fixture expectations checked UTF-8 byte lengths,
   map completeness, prefix conflicts, source trailing slash and job-ID range,
@@ -151,3 +153,13 @@ pass; this is not a complete OpenAPI-validator, browser, authenticated HTTP or
 transaction-race test. Group 51 now approves the specific retry/deletion defaults; cancellation
 transport application and broader candidate compatibility/security choices remain
 separate. The inventory is now 138 API and 189 SC IDs; earlier IDs are preserved.
+
+### Schema completion checks (2026-11-03)
+
+`python3 docs/api/check_contract_candidate.py` passed in Ubuntu WSL2 with the
+existing jsonschema package: 66 definitions, 91 structural fixtures, fifteen
+operations and reference/access/error checks. The 34 added cases cover current
+legacy/UUID status branches, null measurements, u128 retention strings, audit
+and local operator shapes, confirmation completeness and asynchronous counts.
+These are structural examples, not service acceptance or full OpenAPI conformance.
+No Rust source, runtime, operational state or production setting changed.

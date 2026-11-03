@@ -824,6 +824,857 @@
         "job_id": "42",
         "review_epoch": 0
       }
+    },
+    {
+      "id": "status-current-legacy-null-size",
+      "schema": "JobStatus",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "status-uuid-branch",
+      "schema": "JobStatus",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null,
+          "recording_id": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      }
+    },
+    {
+      "id": "status-no-dual-identity",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null,
+          "recording_id": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      }
+    },
+    {
+      "id": "status-release-required",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "status-no-http-status-field",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        },
+        "status": 200
+      }
+    },
+    {
+      "id": "status-no-null-omitted-error",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        },
+        "error": null
+      }
+    },
+    {
+      "id": "status-no-invented-copying-phase",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Copying",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "status-size-not-negative",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": -1,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "status-consumed-audit-epoch",
+      "schema": "JobStatus",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 3,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": {
+            "command_id": "resume-1",
+            "review_epoch": 1,
+            "actor": "trusted-loopback-operator",
+            "reason": "Inspected storage and corrected capacity.",
+            "recorded_at": 1700000000,
+            "prior_retry_after": 1699999999,
+            "prior_code": "destination_capacity_requires_review"
+          },
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": null,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "retention-job-u128-ledger",
+      "schema": "RetentionResponse",
+      "valid": true,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "job_id": "42",
+        "details": {
+          "scope": "Job",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false
+        }
+      }
+    },
+    {
+      "id": "retention-no-numeric-ledger",
+      "schema": "RetentionResponse",
+      "valid": false,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "job_id": "42",
+        "details": {
+          "scope": "Job",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": 1,
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false
+        }
+      }
+    },
+    {
+      "id": "retention-job-id-required",
+      "schema": "RetentionResponse",
+      "valid": false,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "scope": "Job",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false
+        }
+      }
+    },
+    {
+      "id": "retention-job-no-global-headroom",
+      "schema": "RetentionResponse",
+      "valid": false,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "job_id": "42",
+        "details": {
+          "scope": "Job",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": {
+            "new_job_slots": 1,
+            "source_bytes": "2",
+            "destination_bytes": "2",
+            "over_limit": false
+          },
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false
+        }
+      }
+    },
+    {
+      "id": "retention-global-cached-disabled",
+      "schema": "RetentionResponse",
+      "valid": true,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "scope": "Global",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false,
+          "source_space_admission": {
+            "policy": {
+              "enabled": false,
+              "min_available_bytes": 0,
+              "min_available_percent": 0,
+              "max_sample_age_seconds": 5,
+              "probe_timeout_seconds": 2
+            },
+            "scope": "SourceRoot",
+            "observation_source": "supervised_child",
+            "state": "Disabled",
+            "observed_available_bytes": null,
+            "required_available_bytes": null,
+            "sample_age_ms": null,
+            "reason": null
+          }
+        }
+      }
+    },
+    {
+      "id": "retention-global-no-job-id",
+      "schema": "RetentionResponse",
+      "valid": false,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "scope": "Global",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false,
+          "source_space_admission": {
+            "policy": {
+              "enabled": false,
+              "min_available_bytes": 0,
+              "min_available_percent": 0,
+              "max_sample_age_seconds": 5,
+              "probe_timeout_seconds": 2
+            },
+            "scope": "SourceRoot",
+            "observation_source": "supervised_child",
+            "state": "Disabled",
+            "observed_available_bytes": null,
+            "required_available_bytes": null,
+            "sample_age_ms": null,
+            "reason": null
+          }
+        },
+        "job_id": "42"
+      }
+    },
+    {
+      "id": "retention-global-cache-required",
+      "schema": "RetentionResponse",
+      "valid": false,
+      "value": {
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "scope": "Global",
+          "retained_jobs": 1,
+          "committed_jobs": 0,
+          "source_claims": 1,
+          "confirmed_claims": 1,
+          "unmeasured_files": 0,
+          "source_reserved_bytes": "18446744073709551616",
+          "destination_reserved_bytes": "36893488147419103232",
+          "destination_attempts_by_phase": {
+            "Intent": 0,
+            "Copied": 0,
+            "Verified": 0,
+            "PublishIntent": 0,
+            "Published": 0
+          },
+          "configured_limits": null,
+          "global_headroom": null,
+          "filesystem_inspected": false,
+          "unreceipted_allocations_accounted": false,
+          "automatic_reclamation_enabled": false
+        }
+      }
+    },
+    {
+      "id": "local-resume-current",
+      "schema": "ResumeRequest",
+      "valid": true,
+      "value": {
+        "command_id": "cmd-1",
+        "expected_review_epoch": 2,
+        "reason": "Inspected destination and corrected the failure."
+      }
+    },
+    {
+      "id": "local-resume-epoch-overflow",
+      "schema": "ResumeRequest",
+      "valid": false,
+      "value": {
+        "command_id": "cmd-1",
+        "expected_review_epoch": 4294967296,
+        "reason": "Inspected destination and corrected the failure."
+      }
+    },
+    {
+      "id": "local-resume-requires-audit-reason",
+      "schema": "ResumeRequest",
+      "valid": false,
+      "value": {
+        "command_id": "cmd-1",
+        "expected_review_epoch": 2,
+        "reason": "   "
+      }
+    },
+    {
+      "id": "local-reset-current",
+      "schema": "MissingResetRequest",
+      "valid": true,
+      "value": {
+        "command_id": "cmd-2",
+        "expected_missing_review_epoch": 2,
+        "file_id": "0",
+        "retry_window_seconds": 86400,
+        "reason": "Producer restored missing file."
+      }
+    },
+    {
+      "id": "local-reset-window-overflow",
+      "schema": "MissingResetRequest",
+      "valid": false,
+      "value": {
+        "command_id": "cmd-2",
+        "expected_missing_review_epoch": 2,
+        "file_id": "0",
+        "retry_window_seconds": 86401,
+        "reason": "Producer restored missing file."
+      }
+    },
+    {
+      "id": "local-reset-file-not-number",
+      "schema": "MissingResetRequest",
+      "valid": false,
+      "value": {
+        "command_id": "cmd-2",
+        "expected_missing_review_epoch": 2,
+        "file_id": 0,
+        "retry_window_seconds": 86400,
+        "reason": "Producer restored missing file."
+      }
+    },
+    {
+      "id": "local-resume-receipt",
+      "schema": "ResumeReceipt",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "source_paths_released": true,
+        "retryable": false,
+        "details": {
+          "action": "DeliveryResumeScheduled",
+          "command_id": "cmd-1",
+          "review_epoch": 3,
+          "replay": true
+        }
+      }
+    },
+    {
+      "id": "local-reset-receipt",
+      "schema": "MissingResetReceipt",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "action": "MissingDeadlineReset",
+          "command_id": "cmd-2",
+          "missing_review_epoch": 3,
+          "new_deadline": 1700000000,
+          "replay": false
+        }
+      }
+    },
+    {
+      "id": "operator-error-omits-unknown-job",
+      "schema": "OperatorError",
+      "valid": true,
+      "value": {
+        "error": "not_found",
+        "source_paths_released": false,
+        "retryable": false
+      }
+    },
+    {
+      "id": "operator-error-no-producer-envelope",
+      "schema": "OperatorError",
+      "valid": false,
+      "value": {
+        "recording_id": null,
+        "error": "not_found",
+        "source_paths_released": false,
+        "retryable": false,
+        "retry_after_seconds": null
+      }
+    },
+    {
+      "id": "health-current-ready",
+      "schema": "HealthReady",
+      "valid": true,
+      "value": {
+        "state": "Running",
+        "source_paths_released": false,
+        "retryable": false
+      }
+    },
+    {
+      "id": "list-empty-page",
+      "schema": "JobList",
+      "valid": true,
+      "value": {
+        "items": [],
+        "next_cursor": null,
+        "confirmation": null
+      }
+    },
+    {
+      "id": "confirmation-duplicate-selection",
+      "schema": "ConfirmationPreview",
+      "valid": true,
+      "value": {
+        "action": "clear-history",
+        "job_ids": [
+          42,
+          42
+        ],
+        "token": "candidate-proof-0001",
+        "expires_at": 1700000000,
+        "deletion_targets": [],
+        "complete": true
+      }
+    },
+    {
+      "id": "confirmation-no-truncated-authority",
+      "schema": "ConfirmationPreview",
+      "valid": false,
+      "value": {
+        "action": "clear-history",
+        "job_ids": [
+          42,
+          42
+        ],
+        "token": "candidate-proof-0001",
+        "expires_at": 1700000000,
+        "deletion_targets": [],
+        "complete": false
+      }
+    },
+    {
+      "id": "delete-accepted-progress",
+      "schema": "DeleteAccepted",
+      "valid": true,
+      "value": {
+        "deleted_count": 1,
+        "failed_count": 2,
+        "completion_pending": true
+      }
+    },
+    {
+      "id": "delete-no-scheduled-as-deleted",
+      "schema": "DeleteAccepted",
+      "valid": false,
+      "value": {
+        "accepted_count": 3,
+        "deleted_count": 0,
+        "failed_count": 0,
+        "completion_pending": true
+      }
+    },
+    {
+      "id": "deletion-latest-settled",
+      "schema": "DeletionStatus",
+      "valid": true,
+      "value": {
+        "completion_pending": false,
+        "deleted_count": 3,
+        "failed_count": 1
+      }
+    },
+    {
+      "id": "cancel-pending-view",
+      "schema": "CancellationStatus",
+      "valid": true,
+      "value": {
+        "state": "Pending",
+        "requested_at": 1700000000,
+        "stopped_at": null
+      }
     }
   ]
 }

@@ -138,8 +138,8 @@ and session revocation never pause, cancel or restart already admitted transfers
    exact retry receipts, then make transactional per-occurrence state decisions.
    Preserve receipt-before-new-eligibility and no side effects from invalid context.
 
-The route-specific error registry, request bounds and full remaining schemas
-still need completion. Required future tests include cross-origin login/logout,
+The [route schemas and error registry candidate](ROUTE-SCHEMAS.candidate.md) now
+supplies the fifteen-operation wire proposal and bounds. Required future tests include cross-origin login/logout,
 missing/wrong/session-swapped CSRF tokens, idle polling versus deliberate reads,
 global revocation racing queued/bulk actions, revoked-session receipt disclosure,
 unchanged frozen retry intent after renewal, and producer/local/admin segregation.
