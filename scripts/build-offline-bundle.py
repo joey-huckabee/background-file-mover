@@ -105,10 +105,15 @@ def rust_notices(report_path: Path, report: dict) -> dict[str, bytes]:
         sysroot = command("podman", "exec", owned, "rustc", "--print", "sysroot")
         files = {}
         with tempfile.TemporaryDirectory() as directory:
-            for name in ("COPYRIGHT", "LICENSE-APACHE", "LICENSE-MIT"):
+            for name in ("COPYRIGHT.html", "COPYRIGHT-library.html", "licenses"):
                 target = Path(directory) / name
                 command("podman", "cp", f"{owned}:{sysroot}/share/doc/rust/{name}", str(target))
-                files[f"share/licenses/rust-toolchain/{name}"] = target.read_bytes()
+                if target.is_dir():
+                    for entry in sorted(target.rglob("*")):
+                        if entry.is_file() and not entry.is_symlink():
+                            files["share/licenses/rust-toolchain/" + str(entry.relative_to(directory))] = entry.read_bytes()
+                else:
+                    files[f"share/licenses/rust-toolchain/{name}"] = target.read_bytes()
         return files
     finally:
         command("podman", "rm", "-f", owned)
