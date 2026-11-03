@@ -1675,6 +1675,27 @@
         "requested_at": 1700000000,
         "stopped_at": null
       }
+    },
+    {
+      "id": "operator-idempotency-header-conflict",
+      "schema": "OperatorError",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "error": "idempotency_key_conflict",
+        "source_paths_released": false,
+        "retryable": false
+      }
+    },
+    {
+      "id": "operator-instance-validation-blocked",
+      "schema": "OperatorError",
+      "valid": true,
+      "value": {
+        "error": "recording_blocked",
+        "source_paths_released": false,
+        "retryable": false
+      }
     }
   ]
 }

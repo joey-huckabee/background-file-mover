@@ -31,6 +31,11 @@ not a JSON field. Operator errors retain this envelope rather than adopting the
 producer five-field error body. Receipt schemas preserve current action names
 and resulting epochs. Command IDs are bounded to 128 UTF-8 bytes; audit reasons
 are 1–512 UTF-8 bytes, nonblank and control-free, without silent normalization.
+The existing optional `Idempotency-Key` header must, if supplied, exactly match
+the body command_id UTF-8 bytes; mismatch is 400 `idempotency_key_conflict`
+before queueing. It neither replaces command_id nor adds another identifier.
+Queued status, retention and operator commands return 409 `recording_blocked`
+if instance validation fails, with no invented job_id when it is absent.
 Reset windows are 1–86400 seconds. Exact commands replay before new eligibility
 or audit-cap checks, without authorizing a later review.
 

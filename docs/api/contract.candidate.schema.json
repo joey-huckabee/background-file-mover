@@ -1949,7 +1949,9 @@
             "request_too_large",
             "request_headers_too_large",
             "method_not_allowed",
-            "internal_error"
+            "internal_error",
+            "idempotency_key_conflict",
+            "recording_blocked"
           ]
         },
         "source_paths_released": {

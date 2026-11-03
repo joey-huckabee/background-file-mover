@@ -2168,7 +2168,8 @@
             "x-error-codes": [
               "review_conflict",
               "command_conflict",
-              "operator_audit_capacity"
+              "operator_audit_capacity",
+              "recording_blocked"
             ],
             "headers": {
               "Cache-Control": {
@@ -2475,7 +2476,8 @@
             "x-error-codes": [
               "review_conflict",
               "command_conflict",
-              "operator_audit_capacity"
+              "operator_audit_capacity",
+              "recording_blocked"
             ],
             "headers": {
               "Cache-Control": {
@@ -2791,7 +2793,8 @@
             "x-error-codes": [
               "review_conflict",
               "command_conflict",
-              "operator_audit_capacity"
+              "operator_audit_capacity",
+              "recording_blocked"
             ],
             "headers": {
               "Cache-Control": {
@@ -3810,6 +3813,15 @@
               "$ref": "./contract.candidate.schema.json#/$defs/JobId"
             },
             "description": "Original positive i64 job ID in canonical decimal. Cleared IDs are absent; never reuse IDs."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "$ref": "./contract.candidate.schema.json#/$defs/CommandId"
+            },
+            "description": "Existing optional operator header. If present, bytes must exactly equal the JSON command_id UTF-8 bytes; mismatch is 400 idempotency_key_conflict before queueing. It does not replace the required command_id or change exact-command replay."
           }
         ],
         "requestBody": {
@@ -3854,7 +3866,8 @@
               "invalid_http",
               "invalid_json",
               "invalid_job_id",
-              "invalid_resume"
+              "invalid_resume",
+              "idempotency_key_conflict"
             ],
             "headers": {
               "Cache-Control": {
@@ -4053,7 +4066,8 @@
             "x-error-codes": [
               "review_conflict",
               "command_conflict",
-              "operator_audit_capacity"
+              "operator_audit_capacity",
+              "recording_blocked"
             ],
             "headers": {
               "Cache-Control": {
@@ -4089,6 +4103,15 @@
               "$ref": "./contract.candidate.schema.json#/$defs/JobId"
             },
             "description": "Original positive i64 job ID in canonical decimal. Cleared IDs are absent; never reuse IDs."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "$ref": "./contract.candidate.schema.json#/$defs/CommandId"
+            },
+            "description": "Existing optional operator header. If present, bytes must exactly equal the JSON command_id UTF-8 bytes; mismatch is 400 idempotency_key_conflict before queueing. It does not replace the required command_id or change exact-command replay."
           }
         ],
         "requestBody": {
@@ -4133,7 +4156,8 @@
               "invalid_http",
               "invalid_json",
               "invalid_job_id",
-              "invalid_missing_reset"
+              "invalid_missing_reset",
+              "idempotency_key_conflict"
             ],
             "headers": {
               "Cache-Control": {
@@ -4332,7 +4356,8 @@
             "x-error-codes": [
               "review_conflict",
               "command_conflict",
-              "operator_audit_capacity"
+              "operator_audit_capacity",
+              "recording_blocked"
             ],
             "headers": {
               "Cache-Control": {

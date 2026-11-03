@@ -79,6 +79,13 @@ def main():
                     "GET must accept browser omission of Origin: " + path)
         if path.endswith(("/resume", "/reset-missing")):
             require(op.get("x-access-boundary") == "trusted-local-only", "local audience missing")
+            require("Idempotency-Key" in params and not params["Idempotency-Key"]["required"],
+                    "existing optional operator header missing")
+            require("idempotency_key_conflict" in op["responses"]["400"]["x-error-codes"],
+                    "existing command/header conflict missing")
+        if op.get("x-trusted-local-alternative") or op.get("x-access-boundary") == "trusted-local-only":
+            require("recording_blocked" in op["responses"]["409"]["x-error-codes"],
+                    "existing instance-validation error missing")
         for status, response in op["responses"].items():
             require(status == "204" or "application/json" in response.get("content", {}),
                     "mover response schema missing: " + path + " " + status)

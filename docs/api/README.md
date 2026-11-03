@@ -23,7 +23,7 @@ candidate is now supplied. Compatibility and full freeze/implementation remain o
 |---|---|
 | [openapi.candidate.json](openapi.candidate.json) | OpenAPI 3.1.1 candidate for all fifteen proposed operations, with request/response schemas and per-response error registry. Not implemented or frozen. Do not generate production clients. |
 | [contract.candidate.schema.json](contract.candidate.schema.json) | 66 JSON Schema 2020-12 definitions, including current status/operator/retention shapes and proposed list/confirmation/admin views. Semantic and compatibility limits remain explicit. |
-| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 91 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
+| [contract.candidate.fixtures.json](contract.candidate.fixtures.json) | 93 positive/negative structural cases; 11 also declare separately checked semantic expectations. These are not mover HTTP acceptance runs. |
 | [ROUTE-SCHEMAS.candidate.md](ROUTE-SCHEMAS.candidate.md) | Read/action wire, bounded confirmation preview, local transport representation, error precedence and unresolved compatibility limits. |
 | [check_contract_candidate.py](check_contract_candidate.py) | Read-only metaschema, fixture, reference, route inventory and selected access/error checks; requires existing jsonschema. Not a full OpenAPI validator. |
 | [REQUEST-IDENTITY.candidate.md](REQUEST-IDENTITY.candidate.md) | Exact proposed immutable-request framing and compatibility limits. |
@@ -157,8 +157,8 @@ separate. The inventory is now 138 API and 189 SC IDs; earlier IDs are preserved
 ### Schema completion checks (2026-11-03)
 
 `python3 docs/api/check_contract_candidate.py` passed in Ubuntu WSL2 with the
-existing jsonschema package: 66 definitions, 91 structural fixtures, fifteen
-operations and reference/access/error checks. The 34 added cases cover current
+existing jsonschema package: 66 definitions, 93 structural fixtures, fifteen
+operations and reference/access/error checks. The 36 added cases cover current
 legacy/UUID status branches, null measurements, u128 retention strings, audit
 and local operator shapes, confirmation completeness and asynchronous counts.
 These are structural examples, not service acceptance or full OpenAPI conformance.

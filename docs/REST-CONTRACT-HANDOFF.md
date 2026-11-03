@@ -1,7 +1,7 @@
 # REST contract shutdown handoff
 
 2026-11-03 schema completion checkpoint: [candidate artifacts](api/README.md)
-now supply all fifteen proposed operations, 66 definitions and 91 structural
+now supply all fifteen proposed operations, 66 definitions and 93 structural
 fixtures. The maintained checker passed in the native Ubuntu WSL2 clone.
 This is contract work only; compatibility, cancellation replay, completed-retry
 classification, receipt/confirmation transactions and security/runtime proof
