@@ -7,6 +7,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import tarfile
+import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +20,10 @@ def main():
     args = parser.parse_args()
     archive = args.archive.resolve(strict=True)
     with tarfile.open(archive) as tar:
+        for member in tar.getmembers():
+            path = Path(member.name)
+            if path.is_absolute() or ".." in path.parts or not (member.isfile() or member.isdir()):
+                raise ValueError("unsafe bundle archive member")
         names = {m.name.split("/")[0] for m in tar.getmembers()}
         if len(names) != 1:
             raise ValueError("expected one bundle root")
@@ -62,8 +67,15 @@ def main():
         mode = run("podman", "inspect", "--format", "{{.HostConfig.NetworkMode}}", owned).stdout.strip()
         assert mode == "none"
         report["network"] = mode
-        run("podman", "cp", str(archive), owned + ":/tmp/bundle.tar.gz")
-        execute("/bin/sh", "-c", "mkdir -m 700 /tmp/offline-work; cd /tmp/offline-work; tar -xzf /tmp/bundle.tar.gz")
+        # The pinned minimal runtime lacks tar. Transfer an extracted directory,
+        # as documented for targets without an archive tool; verification still
+        # runs entirely in SLES before installation/executable use.
+        with tempfile.TemporaryDirectory() as directory:
+            with tarfile.open(archive) as tar:
+                tar.extractall(directory, filter="data")
+            run("podman", "cp", directory + "/.", owned + ":/tmp/offline-work")
+        run("podman", "exec", owned, "chown", "1000:1000", "/tmp/offline-work")
+        report["checks"].append("host extracts archive for minimal target without tar; target verifies complete copied inventory")
         unpacked = "/tmp/offline-work/" + name
         installed = "/tmp/offline-work/installed"
         execute("sh", unpacked + "/verify.sh")

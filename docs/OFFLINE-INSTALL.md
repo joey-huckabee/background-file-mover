@@ -92,6 +92,13 @@ relocation and runs the side-effect-free `--check-platform` smoke check. It does
 not acquire source/destination roots or open SQLite. An architecture/library
 failure is not permission to substitute another binary or remove checks.
 
+If the target has no tar/gzip (the pinned minimal SLES test image does not),
+verify and extract on the transfer host, copy the **entire extracted directory**
+without adding/removing files, then run `sh verify.sh` on the target before use.
+This still requires the target's listed verification utilities. No script
+downloads missing OS tools. Normal installed SLES systems can use the archive
+workflow when their administrator has provisioned tar/gzip.
+
 ## Install without changing service state
 
 Choose a **new** absolute versioned directory whose parent already exists and
