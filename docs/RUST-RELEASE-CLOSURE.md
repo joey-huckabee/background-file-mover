@@ -68,6 +68,13 @@ and observed network-mode evidence. Read its actual results for this bounded
 FR-06/RC-21-22 contribution. Portable disconnected packaging, shipping hardening
 and the exact candidate rerun remain open; this does not close a release gate.
 
+2026-11-03 packaging follow-up: [increment 109](RUST-INCREMENT-109.md) delivers a
+versioned offline **prototype** installation bundle with source/license material,
+checksums, non-overwriting installation and [user instructions](OFFLINE-INSTALL.md).
+The native systemd unit remains a candidate; shipping account/confinement,
+installation policy, vendor lifecycle, compatible rollback and release approval
+remain open. This credits RC-21 packaging work without closing FR-06.
+
 ## Decisions that must not be hidden in implementation
 
 | Decision | Required input/disposition | Blocks |

@@ -1,0 +1,540 @@
+{
+  "scope": "Increment 109: offline current-prototype installation bundle, not production deployment approval.",
+  "packaging_commit": "1214f3919ba18037eeba977fa2329ec0283494fa",
+  "bundle_name": "file-mover-0.1.0-prototype-1214f3919ba1-linux-x86_64",
+  "archive_bytes": 259742247,
+  "archive_sha256": "769ee347c9cf9b70f8c3bdaf57695334c127e87bd4363b545aa853828b8a948c",
+  "checksum_file_sha256": "a0a3b01322053290331b92a4dcff7456adbf59edccf876e4920b93e8b885d46a",
+  "bundle_file_count": 608,
+  "metadata": {
+    "format": 1,
+    "name": "file-mover-0.1.0-prototype-1214f3919ba1-linux-x86_64",
+    "packaging_commit": "1214f3919ba18037eeba977fa2329ec0283494fa",
+    "rust_tree": "29d1244f9cfc6172addf98cdb9c048fa60963ea0",
+    "gate_run": "20261103T131744Z-b9d8096d",
+    "gate_report_sha256": "cd5ea84d655c3988f080fb65ff702368bbc85fdff6fa669bc367a8ea9110c14b",
+    "executable_sha256": "d2ebff704d0ebd5ac6f185287fb199586bc95a887d64048d684a28e6288e2822",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "required_os_libraries": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "dependencies": [
+      {
+        "name": "bitflags",
+        "version": "2.13.2",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06",
+        "notices": [
+          "share/licenses/crates/bitflags-2.13.2/LICENSE-APACHE",
+          "share/licenses/crates/bitflags-2.13.2/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "block-buffer",
+        "version": "0.10.4",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71",
+        "notices": [
+          "share/licenses/crates/block-buffer-0.10.4/LICENSE-APACHE",
+          "share/licenses/crates/block-buffer-0.10.4/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "bytes",
+        "version": "1.12.1",
+        "license": "MIT",
+        "crate_sha256": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+        "notices": [
+          "share/licenses/crates/bytes-1.12.1/LICENSE"
+        ]
+      },
+      {
+        "name": "cc",
+        "version": "1.8.0",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "6651c9ed80effdc7db0ff72512157f901af5e3549e341e24b1dd4887d836d838",
+        "notices": [
+          "share/licenses/crates/cc-1.8.0/LICENSE-APACHE",
+          "share/licenses/crates/cc-1.8.0/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "cfg-if",
+        "version": "1.0.5",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600",
+        "notices": [
+          "share/licenses/crates/cfg-if-1.0.5/LICENSE-APACHE",
+          "share/licenses/crates/cfg-if-1.0.5/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "cpufeatures",
+        "version": "0.2.17",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280",
+        "notices": [
+          "share/licenses/crates/cpufeatures-0.2.17/LICENSE-APACHE",
+          "share/licenses/crates/cpufeatures-0.2.17/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "crypto-common",
+        "version": "0.1.7",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a",
+        "notices": [
+          "share/licenses/crates/crypto-common-0.1.7/LICENSE-APACHE",
+          "share/licenses/crates/crypto-common-0.1.7/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "digest",
+        "version": "0.10.7",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292",
+        "notices": [
+          "share/licenses/crates/digest-0.10.7/LICENSE-APACHE",
+          "share/licenses/crates/digest-0.10.7/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "errno",
+        "version": "0.3.14",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+        "notices": [
+          "share/licenses/crates/errno-0.3.14/LICENSE-APACHE",
+          "share/licenses/crates/errno-0.3.14/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "fallible-iterator",
+        "version": "0.3.0",
+        "license": "MIT/Apache-2.0",
+        "crate_sha256": "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649",
+        "notices": [
+          "share/licenses/crates/fallible-iterator-0.3.0/LICENSE-APACHE",
+          "share/licenses/crates/fallible-iterator-0.3.0/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "fallible-streaming-iterator",
+        "version": "0.1.9",
+        "license": "MIT/Apache-2.0",
+        "crate_sha256": "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a",
+        "notices": [
+          "share/licenses/crates/fallible-streaming-iterator-0.1.9/LICENSE-APACHE",
+          "share/licenses/crates/fallible-streaming-iterator-0.1.9/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "find-msvc-tools",
+        "version": "0.1.14",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484",
+        "notices": [
+          "share/licenses/crates/find-msvc-tools-0.1.14/LICENSE-APACHE",
+          "share/licenses/crates/find-msvc-tools-0.1.14/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "generic-array",
+        "version": "0.14.7",
+        "license": "MIT",
+        "crate_sha256": "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a",
+        "notices": [
+          "share/licenses/crates/generic-array-0.14.7/LICENSE"
+        ]
+      },
+      {
+        "name": "httparse",
+        "version": "1.10.1",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87",
+        "notices": [
+          "share/licenses/crates/httparse-1.10.1/LICENSE-APACHE",
+          "share/licenses/crates/httparse-1.10.1/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "itoa",
+        "version": "1.0.18",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+        "notices": [
+          "share/licenses/crates/itoa-1.0.18/LICENSE-APACHE",
+          "share/licenses/crates/itoa-1.0.18/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "libc",
+        "version": "0.2.190",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78",
+        "notices": [
+          "share/licenses/crates/libc-0.2.190/LICENSE-APACHE",
+          "share/licenses/crates/libc-0.2.190/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "libsqlite3-sys",
+        "version": "0.38.2",
+        "license": "MIT",
+        "crate_sha256": "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8",
+        "notices": [
+          "share/licenses/crates/libsqlite3-sys-0.38.2/LICENSE",
+          "share/licenses/crates/libsqlite3-sys-0.38.2/sqlcipher/LICENSE"
+        ]
+      },
+      {
+        "name": "linux-raw-sys",
+        "version": "0.12.1",
+        "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+        "crate_sha256": "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53",
+        "notices": [
+          "share/licenses/crates/linux-raw-sys-0.12.1/COPYRIGHT",
+          "share/licenses/crates/linux-raw-sys-0.12.1/LICENSE-APACHE",
+          "share/licenses/crates/linux-raw-sys-0.12.1/LICENSE-Apache-2.0_WITH_LLVM-exception",
+          "share/licenses/crates/linux-raw-sys-0.12.1/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "memchr",
+        "version": "2.8.3",
+        "license": "Unlicense OR MIT",
+        "crate_sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+        "notices": [
+          "share/licenses/crates/memchr-2.8.3/COPYING",
+          "share/licenses/crates/memchr-2.8.3/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "mio",
+        "version": "1.2.4",
+        "license": "MIT",
+        "crate_sha256": "1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee",
+        "notices": [
+          "share/licenses/crates/mio-1.2.4/LICENSE"
+        ]
+      },
+      {
+        "name": "pin-project-lite",
+        "version": "0.2.17",
+        "license": "Apache-2.0 OR MIT",
+        "crate_sha256": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+        "notices": [
+          "share/licenses/crates/pin-project-lite-0.2.17/LICENSE-APACHE",
+          "share/licenses/crates/pin-project-lite-0.2.17/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "pkg-config",
+        "version": "0.3.34",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548",
+        "notices": [
+          "share/licenses/crates/pkg-config-0.3.34/LICENSE-APACHE",
+          "share/licenses/crates/pkg-config-0.3.34/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "proc-macro2",
+        "version": "1.0.107",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+        "notices": [
+          "share/licenses/crates/proc-macro2-1.0.107/LICENSE-APACHE",
+          "share/licenses/crates/proc-macro2-1.0.107/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "quote",
+        "version": "1.0.47",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+        "notices": [
+          "share/licenses/crates/quote-1.0.47/LICENSE-APACHE",
+          "share/licenses/crates/quote-1.0.47/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "rusqlite",
+        "version": "0.40.1",
+        "license": "MIT",
+        "crate_sha256": "11438310b19e3109b6446c33d1ed5e889428cf2e278407bc7896bc4aaea43323",
+        "notices": [
+          "share/licenses/crates/rusqlite-0.40.1/LICENSE"
+        ]
+      },
+      {
+        "name": "rustix",
+        "version": "1.1.5",
+        "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+        "crate_sha256": "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d",
+        "notices": [
+          "share/licenses/crates/rustix-1.1.5/COPYRIGHT",
+          "share/licenses/crates/rustix-1.1.5/LICENSE-APACHE",
+          "share/licenses/crates/rustix-1.1.5/LICENSE-Apache-2.0_WITH_LLVM-exception",
+          "share/licenses/crates/rustix-1.1.5/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "serde",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba",
+        "notices": [
+          "share/licenses/crates/serde-1.0.229/LICENSE-APACHE",
+          "share/licenses/crates/serde-1.0.229/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "serde_core",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48",
+        "notices": [
+          "share/licenses/crates/serde_core-1.0.229/LICENSE-APACHE",
+          "share/licenses/crates/serde_core-1.0.229/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "serde_derive",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348",
+        "notices": [
+          "share/licenses/crates/serde_derive-1.0.229/LICENSE-APACHE",
+          "share/licenses/crates/serde_derive-1.0.229/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "serde_json",
+        "version": "1.0.154",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6",
+        "notices": [
+          "share/licenses/crates/serde_json-1.0.154/LICENSE-APACHE",
+          "share/licenses/crates/serde_json-1.0.154/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "sha2",
+        "version": "0.10.9",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283",
+        "notices": [
+          "share/licenses/crates/sha2-0.10.9/LICENSE-APACHE",
+          "share/licenses/crates/sha2-0.10.9/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "shlex",
+        "version": "2.0.1",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba",
+        "notices": [
+          "share/licenses/crates/shlex-2.0.1/LICENSE-APACHE",
+          "share/licenses/crates/shlex-2.0.1/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "signal-hook-registry",
+        "version": "1.4.8",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+        "notices": [
+          "share/licenses/crates/signal-hook-registry-1.4.8/LICENSE-APACHE",
+          "share/licenses/crates/signal-hook-registry-1.4.8/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "smallvec",
+        "version": "1.16.3",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "5b3dc8af474f516a851ff4bd12db780f948b9250ad37211e4eec0bccea54e01b",
+        "notices": [
+          "share/licenses/crates/smallvec-1.16.3/LICENSE-APACHE",
+          "share/licenses/crates/smallvec-1.16.3/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "socket2",
+        "version": "0.6.5",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+        "notices": [
+          "share/licenses/crates/socket2-0.6.5/LICENSE-APACHE",
+          "share/licenses/crates/socket2-0.6.5/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "syn",
+        "version": "3.0.9",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b",
+        "notices": [
+          "share/licenses/crates/syn-3.0.9/LICENSE-APACHE",
+          "share/licenses/crates/syn-3.0.9/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.2",
+        "license": "MIT",
+        "crate_sha256": "e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044",
+        "notices": [
+          "share/licenses/crates/tokio-1.53.2/LICENSE"
+        ]
+      },
+      {
+        "name": "typenum",
+        "version": "1.20.1",
+        "license": "MIT OR Apache-2.0",
+        "crate_sha256": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+        "notices": [
+          "share/licenses/crates/typenum-1.20.1/LICENSE",
+          "share/licenses/crates/typenum-1.20.1/LICENSE-APACHE",
+          "share/licenses/crates/typenum-1.20.1/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "unicode-ident",
+        "version": "1.0.27",
+        "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+        "crate_sha256": "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563",
+        "notices": [
+          "share/licenses/crates/unicode-ident-1.0.27/LICENSE-APACHE",
+          "share/licenses/crates/unicode-ident-1.0.27/LICENSE-MIT",
+          "share/licenses/crates/unicode-ident-1.0.27/LICENSE-UNICODE"
+        ]
+      },
+      {
+        "name": "vcpkg",
+        "version": "0.2.15",
+        "license": "MIT/Apache-2.0",
+        "crate_sha256": "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426",
+        "notices": [
+          "share/licenses/crates/vcpkg-0.2.15/LICENSE-APACHE",
+          "share/licenses/crates/vcpkg-0.2.15/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "version_check",
+        "version": "0.9.5",
+        "license": "MIT/Apache-2.0",
+        "crate_sha256": "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a",
+        "notices": [
+          "share/licenses/crates/version_check-0.9.5/LICENSE-APACHE",
+          "share/licenses/crates/version_check-0.9.5/LICENSE-MIT"
+        ]
+      },
+      {
+        "name": "zmij",
+        "version": "1.0.23",
+        "license": "MIT",
+        "crate_sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+        "notices": [
+          "share/licenses/crates/zmij-1.0.23/LICENSE-MIT"
+        ]
+      }
+    ],
+    "scope": "native local-filesystem prototype; no production NFS, remote ingress or qualified shipping systemd policy"
+  },
+  "repeat_build": {
+    "status": "IDENTICAL",
+    "sha256": "769ee347c9cf9b70f8c3bdaf57695334c127e87bd4363b545aa853828b8a948c"
+  },
+  "input_sha256": {
+    "scripts/build-offline-bundle.py": "477d5824f87f7b8886da72c5c7ffb921635994dc84ce39ece17f60971b7f7ed7",
+    "scripts/check-offline-bundle.py": "0cc8d2f9024d4895ba030536db0b05860343a199151e7e0eb9ec6d8461661f54",
+    "scripts/test_offline_bundle.py": "d9a9443c91f1a95fe7ebb178df1b9a5efea5ba633e416891b648b787990f3054",
+    "scripts/bundle/install.sh": "f4189f6e79f6b37cf5afd4712b57f71fc8c02644063c79da94f1890269b12e64",
+    "scripts/bundle/verify.sh": "a06bcc88eea0b7c50e3823f915219a7302e858712d44c98e08a67aaf6ac4f0d9",
+    "scripts/bundle/file-mover.service.in": "9c0fb80b8dd02c28452965e46aa8a4ef0b1e286232c7fe68f6035558943672a7",
+    "docs/OFFLINE-INSTALL.md": "4400aa410da542a931f0a0d0b6c885b0005843495d4c820c59f55d75e3387be7"
+  },
+  "pinned_sles_check": {
+    "status": "PASSED",
+    "archive_sha256": "769ee347c9cf9b70f8c3bdaf57695334c127e87bd4363b545aa853828b8a948c",
+    "bundle": "file-mover-0.1.0-prototype-1214f3919ba1-linux-x86_64",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "checker_sha256": "0cc8d2f9024d4895ba030536db0b05860343a199151e7e0eb9ec6d8461661f54",
+    "checks": [
+      "host extracts archive for minimal target without tar; target verifies complete copied inventory",
+      "offline verify/install/reverify as UID/GID 1000, no external networking",
+      "existing, noncanonical and bundle-nested installation destinations refuse",
+      "tampered executable and extra file refuse before installation",
+      "installed executable initializes, serves HTTP, commits exact payload/manifest SHA-256, retains source, stops/restarts and replays the same job without changing its manifest"
+    ],
+    "network": "none",
+    "last_health": {
+      "code": 200,
+      "body": "{\"state\":\"Running\",\"source_paths_released\":false,\"retryable\":false}"
+    }
+  },
+  "check_report_sha256": "3296862258f9781ee563d7a74c04036a552b0a518124aec46aef154b7153e68c",
+  "regression_checks": {
+    "windows": "3 Python methods PASSED",
+    "native_wsl": "3 Python methods PASSED",
+    "shell_syntax": "PASSED",
+    "candidate_unit_syntax": "PASSED with systemd 255.4-1ubuntu8.18; syntax only, no lifecycle qualification"
+  },
+  "preserved_earlier_checks": [
+    {
+      "report": "a3ad2ea-install-check-v2.json",
+      "sha256": "3c01a64adba3b2998b19e3b810f0e1eeb42eed0261bca23da2c775c2bb0827da",
+      "status": "FAILED",
+      "error": "installed service not ready",
+      "cleanup_error": null
+    },
+    {
+      "report": "a3ad2ea-install-check-v3.json",
+      "sha256": "f2d34e08d4ca713396a97d0ef563e49dafd6285f2cc3420f49da484bc2dde199",
+      "status": "PASSED",
+      "error": null,
+      "cleanup_error": null
+    },
+    {
+      "report": "a3ad2ea-install-check.json",
+      "sha256": "ceeb892eb9ff3303d884fa6c6a00ae4197ab70a532c2e73a868bbd4ec8de548a",
+      "status": "FAILED",
+      "error": "installed service not ready",
+      "cleanup_error": null
+    },
+    {
+      "report": "e5fb037-install-check-v2.json",
+      "sha256": "139a31981692c1ae3f0fb20c16e45c718e75470b59fde35d274f2f70aeee7575",
+      "status": "FAILED",
+      "error": "('podman', 'exec', '9b5cd614a96591b55c287d7023a74857439e82103527591f43519f121fc929a8', 'chown')\nchown: changing ownership of '/tmp/offline-work': Operation not permitted\n",
+      "cleanup_error": null
+    },
+    {
+      "report": "e5fb037-install-check-v3.json",
+      "sha256": "9f2650aa62b8280bdddd4062edbb385bc3e8a17e118209b5c3b760973113027c",
+      "status": "FAILED",
+      "error": "('podman', 'exec', '--user', '1000:1000')\nMissing OS prerequisite: awk\n",
+      "cleanup_error": null
+    },
+    {
+      "report": "e5fb037-install-check.json",
+      "sha256": "f7451e6e8bb20683ba07fb40a60ce39d17c92de760ac480bd77df1c21cf88eff",
+      "status": "FAILED",
+      "error": "('podman', 'exec', '--user', '1000:1000')\n/bin/sh: tar: command not found\n",
+      "cleanup_error": null
+    }
+  ],
+  "initial_assembly_refusal": "Absent plain-text Rust COPYRIGHT; corrected to cached COPYRIGHT.html, COPYRIGHT-library.html and licenses. No archive was emitted.",
+  "limits": [
+    "Native Linux x86_64; OS glibc >=2.22 and compatible OS-provided libraries/utilities required. No vendor RPMs, libc replacement, compiler images, credentials, active config or state included.",
+    "Systemd template is a candidate only, activation remains explicit. Vendor/account/confinement, compatible rollback and full deployment qualification remain open.",
+    "Rust source/pins/dependencies unchanged; executable is exact production release from 20261103T131744Z-b9d8096d. No new Rust build.",
+    "All eight release gates remain open; production NFS/source deletion/automatic cleanup/remote ingress remain disabled."
+  ]
+}

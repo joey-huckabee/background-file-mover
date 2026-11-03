@@ -73,6 +73,11 @@ without changing the pins, Rust source or ELF/SLES acceptance checks. Its result
 are separate from the original migration runs below. Portable disconnected
 packaging and shipping PIE hardening remain open.
 
+[Increment 109](RUST-INCREMENT-109.md) subsequently supplies a versioned offline
+prototype installation bundle. Qualified shipping deployment and PIE hardening
+remain open; use its actual package evidence and limits rather than inferring
+production readiness from the original migration.
+
 ## Results
 
 Both native WSL gates passed with Rust runtime code/manifests/Cargo.lock unchanged:

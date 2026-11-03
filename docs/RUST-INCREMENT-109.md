@@ -53,6 +53,35 @@ qualification gate passed 220 per profile. No Rust source/pins/dependencies chan
 Packaging tests execute only the retained gated executable in pinned SLES userspace;
 no host Cargo or new Rust build is used.
 
+## Completed package validation
+
+The final candidate is built from packaging commit `1214f3919ba1`; its retained
+production executable still matches the original gate hash. The separate
+[package evidence](OFFLINE-BUNDLE-EVIDENCE.json) records the exact archive name,
+size/digest, two-build comparison and actual pinned-SLES installation result.
+The checker passes offline verification/install/reverification, refusal of
+existing/noncanonical/nested destinations, tampered/extra-file refusal, fresh
+local enrollment, real HTTP submission, payload/manifest size/SHA-256 checks,
+retained source and clean original-state restart/replay with an unchanged manifest.
+UID/GID 1000, no capabilities, no-new-privileges and network=none are retained.
+No live host service/account/config/state was changed.
+
+The candidate unit passes syntax-only verification with systemd 255 on WSL.
+This is not a lifecycle pass on that manager or exact SLES vendor qualification.
+Shell syntax and three Python packaging regression methods pass on Windows/WSL
+as applicable. No Rust rebuild is needed: complete retained gate source/pin and
+artifact inventories match the unchanged Rust tree.
+
+Keep preliminary failed reports. Initial assembly expected an absent plain-text
+Rust COPYRIGHT; the collector was corrected to the cached HTML/license layout.
+Preliminary checks exposed missing tar/awk in the minimal runtime, an unnecessary
+chown under dropped capabilities and unavailable Bash /dev/tcp. The final checker
+uses extracted-directory transfer, native minimal utilities, primary UID/GID 1000
+and the image's existing Perl Socket fixture client. The service log and local
+Running status identified the readiness probe error; no runtime check/assertion
+or service behavior was relaxed. Earlier failed/passing candidate archive reports
+remain ignored locally and are indexed in the tracked evidence.
+
 All eight release gates remain open. This advances FR-06/RC-21, not complete
 deployment/rollback/confinement or physical durability qualification. Production
 NFS/source deletion/automatic cleanup/remote ingress remain disabled.

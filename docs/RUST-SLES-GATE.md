@@ -47,6 +47,10 @@ supply a portable air-gap image/source bundle or finish disconnected installatio
 packaging. Host networking is not globally disabled. See
 [increment 108](RUST-INCREMENT-108.md) for actual validation and remaining limits.
 
+For an offline **installation** bundle of retained validated artifacts, use the
+[produce/install guide](OFFLINE-INSTALL.md); it is separate from cached offline
+build validation and retains prototype/deployment limits.
+
 ## Pinned inputs
 
 [rust-platform.json](../scripts/rust-platform.json) is the gate's configuration:
