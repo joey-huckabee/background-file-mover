@@ -19,6 +19,34 @@ hashes, not local binaries/containers/caches. Run fresh gates when artifacts are
 needed on a new host; do not invent old run directories or treat a documentation
 migration as a new SLES pass.
 
+## Strict offline validation
+
+After a normal connected gate has provisioned the pinned builder/runtime images
+and locked registry sources in this host's Podman storage, run:
+
+```sh
+python3 scripts/check-rust-sles.py --offline
+python3 scripts/check-rust-sles.py --offline --qualification
+```
+
+The WSL helper `scripts/test-rust-wsl.sh` forwards both options. Run the two
+modes sequentially. Offline mode refuses a missing cached builder, pinned SLES
+image or registry volume instead of building/pulling/creating a replacement.
+`cargo fetch --offline --locked` checks the existing source cache in the
+network-disabled builder; missing crates fail without online fallback. No online
+provisioner is created. Container creation uses `--pull=never`; both builder and
+runtime network modes are inspected, required to be `none`, and recorded.
+All normal formatting, Clippy, dependency/feature checks, debug/release builds,
+ELF audits, negative controls and exact SLES tests still run. Reports include
+`offline: true` and the observed `container_networks`.
+
+If inputs are missing, provision them on an authorized connected build host by
+running the normal gate, then retry offline. Do not remove existing cache data.
+This mode proves a build/test using already prepared local caches; it does not
+supply a portable air-gap image/source bundle or finish disconnected installation
+packaging. Host networking is not globally disabled. See
+[increment 108](RUST-INCREMENT-108.md) for actual validation and remaining limits.
+
 ## Pinned inputs
 
 [rust-platform.json](../scripts/rust-platform.json) is the gate's configuration:

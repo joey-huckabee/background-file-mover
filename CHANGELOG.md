@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add strict `--offline` Cargo-libc/SLES validation using cached pinned images
+  and locked sources, with no image/download fallback or online provisioner;
+  retain full build/test/audit coverage and record observed container networks.
+
 - Consolidate Rust restart/shutdown recovery into a user runbook, covering
   normal and interrupted transfers, systemd timeouts, surviving workers, startup
   refusals, upgrades/reboots, exact handling steps and qualification limits.

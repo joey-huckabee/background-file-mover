@@ -65,6 +65,14 @@ tests. No kernel simulation, old CPU/kernel, real NAS, NFS fault or production
 support is claimed. All eight release gates remain open; production NFS and
 source deletion stay disabled.
 
+## Strict offline follow-up
+
+[Increment 108](RUST-INCREMENT-108.md) adds an explicit cached-input-only gate
+mode. It removes mandatory online source provisioning from offline validation
+without changing the pins, Rust source or ELF/SLES acceptance checks. Its results
+are separate from the original migration runs below. Portable disconnected
+packaging and shipping PIE hardening remain open.
+
 ## Results
 
 Both native WSL gates passed with Rust runtime code/manifests/Cargo.lock unchanged:

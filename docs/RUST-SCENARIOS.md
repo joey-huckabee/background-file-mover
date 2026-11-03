@@ -849,3 +849,9 @@ Increment 104 adds SC-138: 138 stable SC and six DOC identifiers. DOC-01-05 incl
 blocked or orphan workers, systemd recovery, source/destination startup outages,
 transfer phases, review/admission refusals, upgrades and reboot limits. Existing
 183 SC and six DOC IDs are preserved; no new runtime or qualification is claimed.
+
+Increment 108 adds strict offline build validation and associated user commands
+in the [SLES guide](RUST-SLES-GATE.md#strict-offline-validation). DOC-05 gains
+cached-input prerequisites, missing-cache refusal and network evidence; portable
+disconnected packaging stays pending. Existing 183 SC and six DOC IDs remain
+unchanged. Actual results and scope are in [increment 108](RUST-INCREMENT-108.md).

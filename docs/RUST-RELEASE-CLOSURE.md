@@ -62,6 +62,12 @@ operations and fault mechanisms. See the
 [previous checklist evidence](RUST-RELEASE-EVIDENCE-HISTORY.md) and individual
 increment reports; this review supersedes their scheduling suggestions.
 
+2026-11-03 build follow-up: [increment 108](RUST-INCREMENT-108.md) adds strict
+cached-input-only Cargo-libc/SLES validation, with explicit missing-cache refusal
+and observed network-mode evidence. Read its actual results for this bounded
+FR-06/RC-21-22 contribution. Portable disconnected packaging, shipping hardening
+and the exact candidate rerun remain open; this does not close a release gate.
+
 ## Decisions that must not be hidden in implementation
 
 | Decision | Required input/disposition | Blocks |
