@@ -1938,6 +1938,7 @@ fn sqlite_native_open_refuses_database_symlink() {
 
 fn history_job(store: &Store, name: &str, phase: i64) -> Accepted {
     let mut c = context();
+    c.policy.group_by_generator = false;
     c.destination_binding = Some("history-destination".into());
     let submission = Submission::new(
         "g",
