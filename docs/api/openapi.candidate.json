@@ -155,6 +155,18 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "Mover-CSRF-Token": {
+                "description": "Candidate opaque session-bound CSRF token; only returned after login or authorized session read. No token in JSON.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Authentication material must not be cached.",
+                "schema": {
+                  "const": "no-store"
+                }
               }
             }
           },
@@ -167,12 +179,27 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Candidate admin_request_forbidden: Origin/CSRF boundary failed; no job/session-activity effect."
           }
         },
-        "x-csrf-defense": "Required; exact login same-origin defense remains to specify",
+        "x-csrf-defense": "Candidate specified in ACCESS-BOUNDARY.candidate.md: exact Origin; protected mutations require session cookie AND session-bound Mover-CSRF-Token. Not implemented/frozen.",
         "x-contract-cases": [
           "API-E125",
           "API-E126"
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Candidate exact configured HTTPS dashboard origin; reject missing, null, multiple or mismatching values. Never infer the trusted origin from an untrusted forwarded header."
+          }
         ]
       }
     },
@@ -181,12 +208,26 @@
         "operationId": "adminLogoutEverywhere",
         "security": [
           {
-            "adminCookie": []
+            "adminCookie": [],
+            "adminCsrfHeader": []
           }
         ],
         "responses": {
           "204": {
-            "description": "All admin sessions revoked; no response body"
+            "description": "All admin sessions revoked; no response body",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Candidate delete __Host-mover_admin with the same Path=/, Secure, HttpOnly and SameSite=Strict scope and Max-Age=0; server global revocation is authoritative.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            }
           },
           "401": {
             "description": "No valid session; candidate edge behavior",
@@ -197,12 +238,27 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Candidate admin_request_forbidden: Origin/CSRF boundary failed; no job/session-activity effect."
           }
         },
-        "x-csrf-defense": "Required; exact transport pending",
+        "x-csrf-defense": "Candidate specified in ACCESS-BOUNDARY.candidate.md: exact Origin; protected mutations require session cookie AND session-bound Mover-CSRF-Token. Not implemented/frozen.",
         "x-contract-cases": [
           "API-E124",
           "API-E128"
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Candidate exact configured HTTPS dashboard origin; reject missing, null, multiple or mismatching values. Never infer the trusted origin from an untrusted forwarded header."
+          }
         ]
       }
     },
@@ -223,6 +279,20 @@
                   "$ref": "./contract.candidate.schema.json#/$defs/SessionStatus"
                 }
               }
+            },
+            "headers": {
+              "Mover-CSRF-Token": {
+                "description": "Candidate opaque session-bound CSRF token; only returned after login or authorized session read. No token in JSON.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Authentication material must not be cached.",
+                "schema": {
+                  "const": "no-store"
+                }
+              }
             }
           },
           "401": {
@@ -234,11 +304,48 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Candidate admin_request_forbidden when a deliberate-activity read fails its Origin/CSRF checks; do not renew inactivity."
           }
         },
         "x-contract-cases": [
           "API-E123",
           "API-E127"
+        ],
+        "x-inactivity-policy": "Background reads do not renew. Optional deliberate Mover-Admin-Activity: interaction additionally requires exact Origin and valid CSRF. See ACCESS-BOUNDARY.candidate.md.",
+        "parameters": [
+          {
+            "name": "Mover-Admin-Activity",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "interaction"
+              ]
+            },
+            "description": "Candidate deliberate read/navigation only. Omit for polling. If supplied, valid CSRF and configured Origin are additionally mandatory before inactivity renewal."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Required and must exactly match configured dashboard origin when deliberate activity is asserted."
+          },
+          {
+            "name": "Mover-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required and session-bound when deliberate activity is asserted; not required for an ordinary nonrenewing session read."
+          }
         ]
       }
     },
@@ -248,7 +355,8 @@
         "description": "Candidate only. Group49 approves header transport; exact name/encoding and remaining outcome policies are proposals. Validate frozen context then replay stored occurrence outcomes before new eligibility. No new user confirmation or job identifier.",
         "security": [
           {
-            "adminCookie": []
+            "adminCookie": [],
+            "adminCsrfHeader": []
           }
         ],
         "parameters": [
@@ -260,6 +368,16 @@
             "schema": {
               "$ref": "./contract.candidate.schema.json#/$defs/RetryContextHeader"
             }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Candidate exact configured HTTPS dashboard origin; reject missing, null, multiple or mismatching values. Never infer the trusted origin from an untrusted forwarded header."
           }
         ],
         "requestBody": {
@@ -304,9 +422,12 @@
           },
           "503": {
             "description": "Storage/queue failure; no fabricated final counts. Preserve original context for retry; prior transactions may have committed."
+          },
+          "403": {
+            "description": "Candidate admin_request_forbidden: Origin/CSRF boundary failed; no job/session-activity effect."
           }
         },
-        "x-csrf-defense": "Required; exact transport remains pending",
+        "x-csrf-defense": "Candidate specified in ACCESS-BOUNDARY.candidate.md: exact Origin; protected mutations require session cookie AND session-bound Mover-CSRF-Token. Not implemented/frozen.",
         "x-contract-cases": [
           "API-E115",
           "API-E118",
@@ -334,6 +455,12 @@
         "in": "cookie",
         "name": "__Host-mover_admin",
         "description": "Proposed opaque server-side dashboard session. CSRF defense remains mandatory; this scheme alone is incomplete."
+      },
+      "adminCsrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Mover-CSRF-Token",
+        "description": "Candidate session-bound CSRF token; requires valid adminCookie and exact configured Origin. Not a retry review context or file-selection confirmation."
       }
     }
   },

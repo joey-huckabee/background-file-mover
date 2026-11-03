@@ -13,6 +13,12 @@ into an implemented authenticated API or qualify cancelled-job clearing.
 
 ## Artifacts
 
+P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)
+specifies fifteen-route audience separation, proposed Origin/CSRF transport,
+inactivity renewal and global-revocation admission ordering. This is engineering
+contract work only; pending admin outcome choices, remaining schemas, compatibility
+and full freeze/implementation remain open.
+
 | File | Purpose and limit |
 |---|---|
 | [openapi.candidate.json](openapi.candidate.json) | Partial OpenAPI 3.1.1 producer, three session operations and admin retry; route/read/action completion and security details remain blockers. Do not generate production clients. |
@@ -83,7 +89,7 @@ work. No further encoding-only fixture expansion is planned before implementatio
 | F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Deletion/latest-result proposals apply only before clear. |
 | F04 UUID persistence | Explicit state-preserving migration or safe refusal; no rekey/relocation of legacy custody | Exact supported old-state schema matrix and upgrade/rollback design; collision response for cleared UUID reuse |
 | F05 Consumer manifest | V2 with versioned request digest, actual sizes/hashes and unchanged legacy v1 bytes | Approve numeric/filename compatibility, exact v2 schema and consumer fixtures |
-| F06 Authentication/ingress | Global session revocation, HTTPS, same-origin mutation protection, separate producer trust | Exact CSRF, inactivity activity rules, endpoint denial/validation precedence and bounded selected proxy profile |
+| F06 Authentication/ingress | [Access-boundary candidate](ACCESS-BOUNDARY.candidate.md): cookie AND CSRF for mutations, exact Origin, deliberate-read activity and revocation/admission ordering | Validate candidate against full route/error schemas; credential/session bounds, runtime race proof and selected proxy profile remain open |
 
 These blockers are not new approvals or all release gates. They are the remaining
 P01 items, with P02/P03 deployment evidence explicitly separate. Group 49 now

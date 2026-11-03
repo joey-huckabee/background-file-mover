@@ -315,8 +315,8 @@ safe stop; reject changed selection instead of widening deletion. The exact
 confirmation transport and stale-confirmation response remain a design decision,
 not an excuse for an extra job identifier or a general repair workflow.
 
-Clear/cancel/delete/retry races must preserve these invariants: no clear before
-completed safe cancellation; no deletion of committed output or producer-reused
+Clear/cancel/delete/retry races must preserve these invariants: clear only for completed or safely cancelled jobs with all associated effects
+safely stopped/settled; no deletion of committed output or producer-reused
 originals; no retry of safely cancelled work; no stale job ID redirected to a
 new job sharing a forgotten UUID; no cleanup or reconstruction of cleared linkage; no file disposal from a count or error alone.
 
