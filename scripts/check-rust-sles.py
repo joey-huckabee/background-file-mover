@@ -18,12 +18,14 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG = json.loads((ROOT / "scripts/rust-platform.json").read_text())
 
 
-def prepare_builder(results: Path) -> str:
+def prepare_builder(results: Path, *, offline: bool = False) -> str:
     """Cache a recipe/config-specific builder; record its actual image and tools."""
     recipe = ROOT / "scripts/Containerfile.rust"
     inputs = recipe.read_bytes() + json.dumps(CONFIG, sort_keys=True).encode()
     image = "localhost/file-mover-cargo-libc:" + hashlib.sha256(inputs).hexdigest()[:20]
     if subprocess.run(["podman", "image", "exists", image], capture_output=True).returncode:
+        if offline:
+            raise RuntimeError("offline prerequisite missing: cached cargo-libc builder; run the gate without --offline on a connected build host first")
         print("Preparing cargo-libc builder (first run may take several minutes)...", flush=True)
         run(["podman", "build", "--jobs", "1", "--tag", image,
              "--build-arg", f"RUST_IMAGE={CONFIG['builder_base']}",
@@ -97,6 +99,7 @@ def negative_controls(text: str) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--qualification", action="store_true", help="Audit/test the retained NFS qualification build")
+    parser.add_argument("--offline", action="store_true", help="Use cached images and locked sources only; never build/pull images or provision online")
     options = parser.parse_args()
     mode = "nfs-qualification" if options.qualification else "production"
     features = ["--features", "file-mover/nfs-qualification"] if options.qualification else []
@@ -105,16 +108,19 @@ def main() -> int:
         stamp += "-nfs-qualification"
     results = ROOT / "rust/validation" / stamp
     results.mkdir(parents=True)
-    report = {"status": "FAILED", "config": CONFIG, "profiles": {}, "run_id": stamp, "build_mode": mode}
+    report = {"status": "FAILED", "config": CONFIG, "profiles": {}, "run_id": stamp, "build_mode": mode,
+              "offline": options.offline}
     containers = []
     print(f"SLES validation: {results}", flush=True)
     try:
-        builder_image = prepare_builder(results)
+        builder_image = prepare_builder(results, offline=options.offline)
         report["builder_recipe_sha256"] = hashlib.sha256((ROOT / "scripts/Containerfile.rust").read_bytes()).hexdigest()
         report["builder_image"] = builder_image
         for role in ("runtime",):
             available = subprocess.run(["podman", "image", "exists", CONFIG[role]], capture_output=True)
             if available.returncode:
+                if options.offline:
+                    raise RuntimeError(f"offline prerequisite missing: pinned {role} image; run the gate without --offline on a connected build host first")
                 print(f"Pulling pinned {role} image...", flush=True)
                 run(["podman", "pull", CONFIG[role]], results / f"{role}-pull.log")
             run(["podman", "image", "inspect", CONFIG[role]], results / f"{role}-image.json")
@@ -122,13 +128,18 @@ def main() -> int:
         for volume in (registry,):
             exists = subprocess.run(["podman", "volume", "inspect", volume], capture_output=True)
             if exists.returncode:
+                if options.offline:
+                    raise RuntimeError("offline prerequisite missing: file-mover-cargo-registry source cache; run the gate without --offline on a connected build host first")
                 run(["podman", "volume", "create", volume])
-        builder = run(["podman", "create", "--network", "none",
+        builder = run(["podman", "create", "--pull=never", "--network", "none",
                        "--volume", f"{registry}:/usr/local/cargo/registry",
                        "--env", "LIBSQLITE3_FLAGS=-USQLITE_THREADSAFE -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 -USQLITE_DEFAULT_MEMSTATUS -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_ENABLE_API_ARMOR",
                        "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
         containers.append(builder)
         run(["podman", "start", builder])
+        report["container_networks"] = {"builder": run(["podman", "inspect", "--format", "{{.HostConfig.NetworkMode}}", builder]).strip()}
+        if report["container_networks"]["builder"] != "none":
+            raise ValueError("builder networking is not disabled")
         archive = results / "source.tar.gz"
         with tarfile.open(archive, "w:gz") as tar:
             for child in (ROOT / "rust").iterdir():
@@ -138,15 +149,19 @@ def main() -> int:
         run(["podman", "cp", str(archive), f"{builder}:/tmp/source.tar.gz"])
         run(["podman", "exec", builder, "/bin/sh", "-c",
              "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
-        # Provision locked sources separately; no application build runs online.
-        provisioner = run(["podman", "create", "--volume", f"{registry}:/usr/local/cargo/registry",
-                           "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
-        containers.append(provisioner)
-        run(["podman", "start", provisioner])
-        run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
-        run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
-        print("Provisioning the locked E1–E5 dependency graph...", flush=True)
-        run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
+        if options.offline:
+            print("Checking cached locked sources without networking...", flush=True)
+            run(["podman", "exec", "--workdir", "/work", builder, "cargo", "fetch", "--offline", "--locked"], results / "fetch.log")
+        else:
+            # Provision locked sources separately; no application build runs online.
+            provisioner = run(["podman", "create", "--pull=never", "--volume", f"{registry}:/usr/local/cargo/registry",
+                               "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
+            containers.append(provisioner)
+            run(["podman", "start", provisioner])
+            run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
+            run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
+            print("Provisioning the locked E1–E5 dependency graph...", flush=True)
+            run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
                      "rustc --version; cargo --version; cargo libc --version; clang-16 --version; gcc --version; ld.bfd --version"], results / "toolchain.txt")
         if f"rustc {CONFIG['rust']} " not in tools or f"cargo-libc {CONFIG['cargo_libc']}" not in tools.splitlines():
@@ -201,11 +216,14 @@ def main() -> int:
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
         run(execute + ["cargo", "clippy", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
-        runtime = run(["podman", "create", "--network", "none", "--cap-drop", "all",
+        runtime = run(["podman", "create", "--pull=never", "--network", "none", "--cap-drop", "all",
                        "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh",
                        CONFIG["runtime"], "-c", "exec sleep infinity"]).strip()
         containers.append(runtime)
         run(["podman", "start", runtime])
+        report["container_networks"]["runtime"] = run(["podman", "inspect", "--format", "{{.HostConfig.NetworkMode}}", runtime]).strip()
+        if report["container_networks"]["runtime"] != "none":
+            raise ValueError("runtime networking is not disabled")
         runtime_version = run(["podman", "exec", runtime, "getconf", "GNU_LIBC_VERSION"], results / "runtime-glibc.txt").strip()
         if runtime_version != "glibc 2.22":
             raise ValueError(f"wrong runtime glibc: {runtime_version}")

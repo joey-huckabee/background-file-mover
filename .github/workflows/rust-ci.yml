@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
-      - name: Check Cargo configuration stream handling
+      - name: Check Cargo configuration and offline gate safety
         run: python3 -m unittest discover -s scripts -p test_rust_sles.py
       - name: Pull pinned Rust base and SLES runtime
         run: |
