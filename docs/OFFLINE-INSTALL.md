@@ -74,7 +74,7 @@ Packaging does not copy or recreate historical ignored raw validation packs.
 ## Verify on the disconnected target
 
 Required utilities are `/bin/sh`, tar/gzip, GNU coreutils (including sha256sum,
-mktemp and mv), find, awk, grep, cmp, getconf and ldd. Installation needs no Rust,
+mktemp and mv), find, sed, grep, cmp, getconf and ldd. Installation needs no Rust,
 Cargo, compiler, internet access or Python. Use a private trusted extraction
 directory, as the executable will be run during verification.
 
