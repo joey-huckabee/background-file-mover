@@ -63,7 +63,20 @@ Use the native WSL clone described in [the agent workflow](AGENT-WORKFLOW.md).
    different output directory must produce identical archive bytes. This is
    reproducibility of packaging retained artifacts, not a promise that arbitrary
    future toolchain/image rebuilds reproduce the executable.
-5. Transfer the two files to the disconnected target. Send the digest through
+5. Test the archive using the pinned, already cached SLES image:
+
+   ```sh
+   python3 scripts/check-offline-bundle.py rust/validation/bundles/ACTUAL-NAME.tar.gz \
+     --report rust/validation/bundles/ACTUAL-NAME.install-check.json
+   ```
+
+   The checker uses the image's existing Perl Socket module only for fixture HTTP
+   requests; the installed application/installer do not depend on Perl. It checks
+   actual installation, refusals, payload/manifest hashes and original-state
+   restart/replay as UID/GID 1000 with no capabilities or external networking.
+   It removes only its own disposable container. Require PASSED and no cleanup
+   error before distributing the archive. Preserve failed reports too.
+6. Transfer the archive, checksum and passing check report to the disconnected target. Send the digest through
    a trusted channel as well: a checksum supplied beside a compromised archive
    does not authenticate its publisher. No signing infrastructure is supplied.
 
@@ -118,7 +131,7 @@ are inert. Running `sh /absolute/install-directory/verify.sh` rechecks the insta
 Protect the installation from modification by the service account.
 
 Installation to an existing destination is an error; choose another versioned
-directory. Do not use the installation path as the state directory. Logs/state
+directory outside the extracted bundle. Nested installation is refused. Do not use the installation path as the state directory. Logs/state
 are not written beneath the installation by these scripts. Root access is only
 needed when your chosen parent or later service administration requires it.
 
@@ -176,9 +189,12 @@ set it above the actual configured budget and review the chosen manager's behavi
 `Type=simple`/active does not establish mover readiness.
 
 An authorized administrator must substitute the real immutable installation
-path, existing service user/group and protected local config path for the three
-`@...@` placeholders. Inspect the result; never install unresolved placeholders.
-Install the reviewed unit under the actual service name, then run:
+path, existing service user and group, and protected local config path for the
+four `@...@` placeholders. Inspect the result; never install unresolved placeholders.
+Install the reviewed unit under the actual service name, preserving an existing
+unit and following the upgrade procedure if one is already present. For a new
+unit an authorized administrator can use `install -m 0644 reviewed.service
+/etc/systemd/system/file-mover.service`, then run:
 
 ```sh
 systemctl daemon-reload

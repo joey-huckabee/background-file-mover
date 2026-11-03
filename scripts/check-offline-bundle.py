@@ -89,7 +89,8 @@ def main():
         report["checks"].append("offline verify/install/reverify as UID/GID 1000, no external networking")
         assert execute("sh", unpacked + "/install.sh", installed, ok=False).returncode != 0
         assert execute("sh", unpacked + "/install.sh", "/tmp/offline-work/../unsafe", ok=False).returncode != 0
-        report["checks"].append("existing and noncanonical installation destinations refuse")
+        assert execute("sh", unpacked + "/install.sh", unpacked + "/nested-install", ok=False).returncode != 0
+        report["checks"].append("existing, noncanonical and bundle-nested installation destinations refuse")
         execute("/bin/sh", "-c", "cp -R " + shlex.quote(unpacked) + " /tmp/offline-work/tampered; printf extra >> /tmp/offline-work/tampered/bin/file-mover")
         assert execute("sh", "/tmp/offline-work/tampered/install.sh", "/tmp/offline-work/should-not-exist", ok=False).returncode != 0
         assert execute("test", "-e", "/tmp/offline-work/should-not-exist", ok=False).returncode != 0
@@ -113,7 +114,8 @@ def main():
             report["last_health"] = {"code": code, "body": data}
             return code == 200
         wait_for(healthy, "installed service not ready")
-        status, body = http("POST", "/api/v2/jobs", {"generator_id": config["generator_id"], "submission_id": "offline-bundle", "source_path": base + "/source/input", "files": [{"name": "data"}]})
+        submission = {"generator_id": config["generator_id"], "submission_id": "offline-bundle", "source_path": base + "/source/input", "files": [{"name": "data"}]}
+        status, body = http("POST", "/api/v2/jobs", submission)
         if status != 202:
             raise RuntimeError(f"submission failed {status}: {body}")
         accepted = json.loads(body)
@@ -122,9 +124,24 @@ def main():
             code, data = http("GET", "/api/v2/jobs/" + job)
             return code == 200 and json.loads(data).get("state") == "Committed"
         wait_for(committed, "installed service did not commit payload")
+        payload = execute("cat", base + "/destination/" + job + "/data").stdout
+        assert payload == "offline bundle payload"
+        manifest_bytes = execute("cat", base + "/destination/" + job + "/COMMITTED.json").stdout
+        manifest = json.loads(manifest_bytes)
+        entry = manifest["files"][0]
+        assert entry["path"] == "data" and entry["size_bytes"] == len(payload)
+        assert entry["algorithm"] == "sha256" and entry["sha256"] == hashlib.sha256(payload.encode()).hexdigest()
+        assert execute("cat", base + "/source/.file-mover/" + job + "-0/data").stdout == payload
+        execute(binary, "--stop", base + "/config.json")
+        run("podman", "exec", "--user", "1000:1000", "-d", owned, "/bin/sh", "-c", launch)
+        wait_for(healthy, "installed service did not restart")
+        assert committed()
+        code, replay = http("POST", "/api/v2/jobs", submission)
+        assert code == 202 and str(json.loads(replay)["job_id"]) == job
+        assert execute("cat", base + "/destination/" + job + "/COMMITTED.json").stdout == manifest_bytes
         execute(binary, "--stop", base + "/config.json")
         execute("sh", installed + "/verify.sh")
-        report["checks"].append("installed executable initializes fresh local scope, serves HTTP, accepts/copies/verifies/commits a recording and stops")
+        report["checks"].append("installed executable initializes, serves HTTP, commits exact payload/manifest SHA-256, retains source, stops/restarts and replays the same job without changing its manifest")
         report["status"] = "PASSED"
     except Exception as error:
         report["error"] = str(error)

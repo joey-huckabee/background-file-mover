@@ -14,6 +14,7 @@ test ! -e "$prefix" && test ! -L "$prefix" || { echo 'Installation destination a
 parent=$(dirname -- "$prefix")
 test "$parent" = "$(CDPATH= cd -- "$parent" && pwd -P)" || { echo 'Installation parent must exist without symlink aliases' >&2; exit 1; }
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+case "$parent/" in "$root/"*) echo 'Install outside the extracted bundle directory' >&2; exit 2;; esac
 sh "$root/verify.sh"
 umask 022
 stage=$(mktemp -d "$parent/.file-mover-install.XXXXXX")
