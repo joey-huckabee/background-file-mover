@@ -306,14 +306,14 @@
             }
           },
           "403": {
-            "description": "Candidate admin_request_forbidden when a deliberate-activity read fails its Origin/CSRF checks; do not renew inactivity."
+            "description": "Candidate admin_request_forbidden when a marked read fails CSRF, target-authority or supplied Origin/Fetch-Metadata checks. Missing Origin alone is allowed on GET; do not renew rejected activity."
           }
         },
         "x-contract-cases": [
           "API-E123",
           "API-E127"
         ],
-        "x-inactivity-policy": "Background reads do not renew. Optional deliberate Mover-Admin-Activity: interaction additionally requires exact Origin and valid CSRF. See ACCESS-BOUNDARY.candidate.md.",
+        "x-inactivity-policy": "Background reads do not renew. Deliberate Mover-Admin-Activity: interaction requires session-bound CSRF and the configured target authority. Origin is optional on GET, but must match when supplied. Sec-Fetch-Site must be same-origin when supplied. See ACCESS-BOUNDARY.candidate.md.",
         "parameters": [
           {
             "name": "Mover-Admin-Activity",
@@ -325,7 +325,7 @@
                 "interaction"
               ]
             },
-            "description": "Candidate deliberate read/navigation only. Omit for polling. If supplied, valid CSRF and configured Origin are additionally mandatory before inactivity renewal."
+            "description": "Candidate deliberate read/navigation only. Omit for polling. If supplied, valid session-bound CSRF and configured target authority are mandatory. Do not require a script-supplied Origin for same-origin browser GET."
           },
           {
             "name": "Origin",
@@ -335,7 +335,7 @@
               "type": "string",
               "format": "uri"
             },
-            "description": "Required and must exactly match configured dashboard origin when deliberate activity is asserted."
+            "description": "Browsers normally omit Origin on same-origin GET. Optional here; if supplied it must exactly match the configured dashboard origin."
           },
           {
             "name": "Mover-CSRF-Token",
@@ -345,6 +345,15 @@
               "type": "string"
             },
             "description": "Required and session-bound when deliberate activity is asserted; not required for an ordinary nonrenewing session read."
+          },
+          {
+            "name": "Sec-Fetch-Site",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Browser-supplied metadata. If present on a deliberate-activity read it must be same-origin; absence does not remove the mandatory session-bound CSRF check."
           }
         ]
       }

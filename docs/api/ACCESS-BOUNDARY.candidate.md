@@ -47,7 +47,10 @@ the separate [remote access obligations](../REMOTE-API-ACCESS-CONTRACT.md).
   not an origin inferred from an untrusted Host/forwarding header. Match against
   that configured origin; reject missing, `null`, multiple or mismatching Origin
   on login and cookie-authenticated mutations. No Referer-only fallback or CORS
-  credential sharing is proposed. Forwarded identity/origin inputs require the
+  credential sharing is proposed. Validate the effective dashboard target authority
+  against configuration through the trusted TLS/ingress boundary, including when
+  GET omits Origin; a caller-provided Host value never defines the allowed origin.
+  Forwarded identity/origin inputs require the
   selected trusted ingress boundary; a public caller cannot assert them.
 - Successful login returns the already proposed `{"authenticated":true}` body,
   its session cookie and a `Mover-CSRF-Token` response header. Valid session GET
@@ -76,13 +79,21 @@ This candidate does not select a proxy, new account feature or token framework.
 Keep the approved configurable 30-minute default. Login starts the server-side
 monotonic inactivity clock. Successful authorized dashboard actions renew it;
 logout revokes instead. Failed authentication, rejected actions, polling,
-auto-refresh and trusted-local operator/producer traffic do not renew it.
+auto-refresh and trusted-local operator/producer traffic do not renew it. Exact
+transport replay and a batch with no newly admitted action do not renew it either;
+a fresh deliberate view/navigation can use the read activity signal.
 
 For a deliberate dashboard read/navigation, propose the request header
 `Mover-Admin-Activity: interaction`. Such a read renews only after a valid session,
-matching Origin and valid CSRF token are checked. The ordinary GET remains
-read-only without that marker. Unknown/multiple marker values are validation
-errors, not implicit activity. Background polling must omit the marker; the UI
+valid CSRF token and the configured dashboard target authority are checked.
+Do not require Origin on GET: ordinary same-origin browser GET fetches omit it
+and scripts cannot set that forbidden header. If Origin is present, require an
+exact configured-origin match. If Sec-Fetch-Site is present, require same-origin;
+its absence is not a substitute for the mandatory session-bound CSRF token.
+Cross-origin credentialed CORS/preflight remains disabled, so an attacker cannot
+obtain the token or submit the custom activity/CSRF headers through allowed CORS.
+The ordinary GET remains read-only without the activity marker. Unknown/multiple marker values are validation
+errors, not implicit activity. Background polling and automatic retransmissions must omit the marker; the UI
 must not keep submitting it during an idle open tab. This marker is an activity
 signal, not proof of a human gesture, a job identifier or an authorization token.
 No new activity endpoint is added to the fifteen-route inventory.
@@ -120,6 +131,8 @@ and session revocation never pause, cancel or restart already admitted transfers
 3. Login checks its same-origin/media-type boundary before checking credentials.
    For valid sessions reject failed Origin/CSRF/activity protection with candidate
    403 `admin_request_forbidden`, without changing job/session activity state.
+   Marked GETs use their CSRF/optional-browser-header rule above; missing Origin
+   alone is not a failure for those reads.
    Malformed bounded bodies remain separate whole-request validation errors.
 4. Validate complete action context/selection/confirmation, recognize authorized
    exact retry receipts, then make transactional per-occurrence state decisions.
@@ -135,3 +148,7 @@ No authenticated HTTP, transaction-race or remote deployment test is claimed her
 Security rationale: [OWASP CSRF prevention guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
 recommends server-validated protection for cookie-authenticated mutations.
 This project-specific candidate still requires implementation and adversarial tests.
+
+Browser compatibility: [Fetch request Origin rules](https://fetch.spec.whatwg.org/#append-a-request-origin-header)
+and [forbidden request headers](https://fetch.spec.whatwg.org/#forbidden-request-header)
+explain why marked same-origin GETs cannot require a script-supplied Origin.

@@ -134,3 +134,18 @@ eight release gates remain open; production NFS and source deletion remain off.
 Schema syntax follows the primary [JSON Schema 2020-12 validation specification](https://json-schema.org/draft/2020-12/json-schema-validation)
 and [OpenAPI 3.1.1 specification](https://spec.openapis.org/oas/v3.1.1.html).
 These references explain document syntax; they do not approve product behavior.
+
+### P01 access-boundary work, 2026-11-03
+
+The local coordinator drafted the boundary and OpenAPI metadata; the existing
+cloud reviewer independently audited the baseline and the new diff. Review
+caught one browser-compatibility defect before implementation: mandatory Origin
+on same-origin GET activity. The candidate now requires session-bound CSRF for
+marked reads, checks supplied Origin/Fetch-Metadata and configured target
+authority, and keeps strict Origin for POST actions. No new agent or heavy
+build was needed. Token/cloud cost was not measured.
+
+JSON/reference/security-AND checks and all 57 existing structural schema fixtures
+pass; this is not a complete OpenAPI-validator, browser, authenticated HTTP or
+transaction-race test. Product closeout defaults still await an explicit answer;
+groups 1-50 and all 132 API/183 SC IDs retain their existing approval status.
