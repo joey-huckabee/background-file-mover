@@ -80,6 +80,51 @@ client/process result and re-query/repeat the selection after normal recovery.
 No automatic history expiry, restore, orphan repair or production NFS enablement
 is included. Validation evidence and remaining boundaries are in increment 107.
 
+## Finding surviving workers and restarting
+
+Run these checks on the Linux host, under the service account and in the same
+PID namespace as the mover. First use the normal local controls:
+
+```sh
+file-mover --stop /path/to/config.json
+file-mover --status /path/to/config.json
+```
+
+A responding controller reports observed child PIDs, bounded to 64; this is not
+a complete inventory. If the coordinator has exited, status can instead report
+`OwnerUnavailable` without a live controller to list its children.
+
+The `workers.json` beside the configured `state_database` stores the original
+process-group number in its `group` field. Read it without changing it:
+
+```sh
+cat /path/to/state-directory/workers.json
+```
+
+For example, if `group` is 12345, list matching processes and threads:
+
+```sh
+ps -eLo pid,tid,ppid,pgid,stat,wchan:24,args | awk 'NR == 1 || $4 == 12345'
+```
+
+Replace 12345 with the recorded group. This includes orphaned workers whose
+parent PID has changed. `PID` identifies the process, `TID` its thread, `PGID`
+the group, and `STAT` its observed state. `D` means uninterruptible kernel wait,
+often blocked storage I/O; a kill request does not guarantee immediate exit.
+Resolve the underlying storage problem and allow the old workers to finish
+exiting. A stale record or reused group/PID is possible: this listing is for
+inspection, not permission to kill processes. Do not delete lifetime files or
+change state paths to bypass refusal; an empty listing alone is not clearance.
+The mover's own admission checks remain authoritative for supported local starts.
+
+**Restart does not reconnect to or adopt surviving workers.** A replacement
+service refuses admission while the original worker group remains active, even
+if the original coordinator and its flock are gone. After old workers have
+exited, restart with the same configuration and original local database.
+The new coordinator recovers/reconciles unfinished jobs from durable state,
+subject to their existing retry/review rules; it does not attach to old processes.
+An ownership-refused start or clear leaves the original job data intact.
+
 ## Local ownership and refused starts
 
 All supported manual/service starts must use the same configuration and fixed
