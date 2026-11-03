@@ -4319,7 +4319,7 @@ fn offline_history_epoch_helper() {
         .stderr(Stdio::null())
         .spawn()
         .unwrap();
-    println!("epoch-child:{}", child.id());
+    println!("\nepoch-child:{}", child.id());
     std::io::stdout().flush().unwrap();
     drop(guard); // No descriptor survives; the next process must consult the epoch.
     std::process::exit(0);
