@@ -1,9 +1,17 @@
 # REST contract shutdown handoff
 
+2026-11-03 group-52 checkpoint: the user approved all five compatibility
+recommendations in [COMPATIBILITY.md](api/COMPATIBILITY.md). Candidate new
+producer/v2 sizes are decimal strings; existing operator/v1 numeric sizes stay
+unchanged. Current artifacts have 69 definitions, 108 structural fixtures and
+fifteen routes; API-E139-143/SC-190-194 append approved policy without claiming
+runtime support. Exact supported predecessor/state matrix, migration/rollback
+qualification, remaining action replay and P01 freeze are still open.
+
 2026-11-03 schema completion checkpoint: [candidate artifacts](api/README.md)
 now supply all fifteen proposed operations, 66 definitions and 93 structural
 fixtures. The maintained checker passed in the native Ubuntu WSL2 clone.
-This is contract work only; compatibility, cancellation replay, completed-retry
+This is contract work only; exact migration/rollback support, cancellation replay, completed-retry
 classification, receipt/confirmation transactions and security/runtime proof
 remain unresolved. No full P01 freeze or remote API implementation is claimed.
 

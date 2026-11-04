@@ -1,7 +1,7 @@
 # Route schemas and error registry candidate
 
 2026-11-03. Engineering proposal for P01, **not frozen or implemented**.
-Groups 1–51 remain the approval source. Completing a schema does not approve
+Groups 1–52 remain the approval source. Completing a schema does not approve
 the compatibility choices or qualify the runtime. The fifteen operations in
 [OpenAPI](openapi.candidate.json) are the proposed supported inventory; each
 JSON response and request references the accompanying strict object schemas.
@@ -15,8 +15,8 @@ size is null; it is never zero or an expected size. File custody and transfer
 phases are separate. The outer review epochs are current versions; stored audit
 epochs are the versions consumed by their commands. Legacy `submission_id`
 and new UUID `recording_id` are mutually exclusive branches. Reading legacy
-state must not assign a UUID or rewrite custody. Which old schemas may upgrade
-or must refuse remains a compatibility decision.
+state must not assign a UUID or rewrite custody. Group 52 approves preservation with supported upgrades or safe refusal; the
+exact supported predecessor/schema matrix remains engineering work.
 
 The optional detailed-status `retry_review`, `cancellation` and `deletion`
 fields, new summary views and cancellation states are **proposed extensions**.
@@ -140,6 +140,7 @@ Run `python3 docs/api/check_contract_candidate.py` with the existing `jsonschema
 package. It checks the metaschema, fixture expectations, all schema references,
 fifteen-operation inventory and selected access/error invariants. It is not a
 full OpenAPI validator, semantic admission validator, HTTP test, transaction test
-or release gate. Manifest numeric/filename compatibility, global UUID state
-handling, cancellation replay, completed-retry count classification, durable
+or release gate. Group 52 settles numeric/filename and legacy-preservation policy. Exact UUID
+state migration/refusal, supported upgrade/rollback matrix, cancellation replay,
+completed-retry count classification, durable
 receipts/confirmation design and deployment/security proof remain open.

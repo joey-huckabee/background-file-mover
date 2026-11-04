@@ -11,7 +11,7 @@
   "x-freeze-blockers": [
     "Review candidate schemas/access/error mapping against approved behavior.",
     "Completed retry classification, cancellation transport replay, transactional receipts and confirmation storage design.",
-    "Global UUID stored-state compatibility and manifest numeric/filename consumer compatibility.",
+    "Group52 compatibility policy is approved; exact supported predecessor/state matrix, migration/refusal and rollback design remain to prove.",
     "Credential/session bounds, runtime revocation races and selected proxy qualification."
   ],
   "paths": {
@@ -4589,8 +4589,18 @@
       },
       "DeleteAccepted": {
         "$ref": "./contract.candidate.schema.json#/$defs/DeleteAccepted"
+      },
+      "DecimalByteCount": {
+        "$ref": "./contract.candidate.schema.json#/$defs/DecimalByteCount"
+      },
+      "ManifestV1File": {
+        "$ref": "./contract.candidate.schema.json#/$defs/ManifestV1File"
+      },
+      "ManifestV1": {
+        "$ref": "./contract.candidate.schema.json#/$defs/ManifestV1"
       }
     }
   },
-  "x-history-clear-policy": "Group50: cleared jobs have no remaining mover file linkage or results. Leave files unchanged; require all associated effects stopped/settled before clear."
+  "x-history-clear-policy": "Group50: cleared jobs have no remaining mover file linkage or results. Leave files unchanged; require all associated effects stopped/settled before clear.",
+  "x-approved-group-52": "Preserve legacy custody/IDs/receipts/v1 bytes; v2 new recordings with request digest and decimal-string sizes; strict exact UTF-8; explicit qualified upgrade/rollback list with safe refusal."
 }

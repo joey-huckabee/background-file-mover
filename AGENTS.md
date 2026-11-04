@@ -2,6 +2,18 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-03 group 52 approves the five compatibility recommendations: preserve
+legacy custody/IDs/receipts with supported upgrades or safe refusal; manifest v2
+for new recordings with UUID, measured sizes/hashes and request-identity digest,
+while preserving v1 bytes/recovery for still-tracked jobs; canonical decimal-string
+u64 sizes for the new producer/v2 manifest only, preserving existing operator
+numeric formats; strict exact UTF-8 filenames without normalization/renaming;
+and an explicit supported upgrade/rollback list with incompatible-binary refusal
+and no stale database restore over active custody. See docs/api/COMPATIBILITY.md,
+API-E139-143 and SC-190-194. Current baseline is groups 1-52. Exact supported
+versions, migration/rollback implementation and qualification remain pending;
+this is not full P01 freeze or general runtime implementation authorization.
+
 2026-11-03 group 51 approves the P01 admin closeout defaults: retry 202 even
 with zero accepted attempts; failed duplicate retry after scheduling; clear
 removes that job's retry receipts; one active deletion pass per job, latest

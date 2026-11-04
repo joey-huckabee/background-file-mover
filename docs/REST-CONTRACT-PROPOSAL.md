@@ -1,6 +1,6 @@
 # Consolidated REST contract proposal
 
-2026-11-01. Review draft for P01; updated 2026-11-02 through approved group 50.
+2026-11-01. Review draft for P01; updated 2026-11-03 through approved group 52.
 This is a proposal, not a frozen API, runtime change or qualification result.
 The [approved error review](REST-ERROR-SCENARIOS.md) remains authoritative for
 accepted behavior. This document replaces older draft examples as the next
@@ -32,7 +32,9 @@ Review the four decision packages below together. The recommended direction is:
 
 All route spellings, schema spellings, limits and recommendations marked
 **Proposed** below remain reviewable. The original proposal records no new approval; group 51 subsequently approves
-only the retry/deletion defaults recorded in the canonical error scenarios.
+the retry/deletion defaults, and group 52 approves the five compatibility
+recommendations in [COMPATIBILITY.md](api/COMPATIBILITY.md). Other candidate
+mechanisms/limits remain reviewable.
 Approved behavior is not reopened by the outstanding implementation design.
 
 ## Approved constraints carried forward
@@ -226,7 +228,7 @@ when source authority, custody and admission are independently proven. ER-D07
 still requires exact binding/admission precedence; it does not reopen that
 outage behavior or authorize a generic destination HTTP failure.
 
-**Proposed persistence approach:** design an explicit transactional upgrade for
+**Group-52 approved preservation direction:** design an explicit transactional upgrade for
 new global UUID ownership alongside original job/file identifiers. Preserve old
 source/destination paths, database evidence, enrollment, worker epochs, receipts
 and manifest bytes. Legacy non-UUID jobs remain legacy operational records;
@@ -346,10 +348,11 @@ reread verification and no-clobber durable publication.
 
 Existing v1 manifests contain submission_id. Preserve those bytes and continue
 recognizing their recorded ownership during recovery; do not rewrite committed
-output to v2. New recordings use v2 only after explicit consumer compatibility
-approval. Freeze JSON numeric precision for byte sizes (current u64 numbers
-versus exact decimal strings), byte encoding, maximum manifest size and complete
-schema before producing fixtures. Recording metadata remains excluded from the
+output to v2. Group 52 approves v2 for new recordings, with canonical decimal-string u64
+producer expected sizes and v2 measured sizes, preserving existing operator
+numeric formats and v1 numeric sizes. It also approves exact UTF-8 spelling/case
+without normalization or silent renaming. Exact serialization/bounds and consumer
+qualification remain pending, alongside the supported upgrade/rollback matrix. Recording metadata remains excluded from the
 minimal producer schema unless separately approved; the ordinary metadata.json
 file above is simply a transferred payload.
 
@@ -365,9 +368,11 @@ file above is simply a transferred payload.
 | API-E123-128 | Cookie sign-in, global logout and approved auth responses; package 1 |
 | API-E129 | Approved reviewed-state retry header; exact encoding, bounds and receipt design pending; package 3 |
 | API-E130-132 | Group 50 removes all post-clear file linkage/management, leaves files in place and requires all effects safely stopped before clear; package 2/3 |
+| API-E133-138 | Group 51 retry/deletion defaults; package 3 |
+| API-E139-143 | Group 52 compatibility direction, decimal-string new producer/v2 sizes and legacy preservation; packages 2/4 |
 
-This table indexes all 132 cases; it is not an executed-test manifest or a claim
-that the remaining fields are approved. SC-001-183 and DOC-01-06 retain their
+This table indexes all 143 cases; it is not an executed-test manifest or a claim
+that the remaining fields are approved. SC-001-194 and DOC-01-06 retain their
 existing evidence and pending status. Do not add passing evidence from review.
 
 After these decisions are settled, produce versioned OpenAPI, the complete

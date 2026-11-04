@@ -26,7 +26,9 @@ all mover linkage and management. Historical post-clear owner/accounting wording
 below is superseded. Delete through the mover before clear; afterward cleanup is
 outside the service. This is approved direction, not implemented support.
 
-Current catalog: 189 stable SC IDs and six DOC IDs. SC-181-189 record group 50:
+Current catalog: 194 stable SC IDs and six DOC IDs. SC-190-194 record approved
+group-52 compatibility, awaiting implementation/qualification. SC-184-189 record
+group-51 admin defaults. SC-181-183 record group 50:
 eligible clear forgets all source/destination linkage while leaving files,
 with post-clear nonmanagement and safe-stop/settlement gating. Earlier retained-
 ownership-after-clear expectations are superseded, not passing support. SC-180 records approved
@@ -193,6 +195,12 @@ deployment instructions. Scenario IDs are documentation keys, not requirement ID
 | SC-187 | A confirmed deletion pass is already active for a tracked job | Allow one active pass per job. Repeated requests observe that pass without a second deletion or double counting. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 51/API-E136](REST-ERROR-SCENARIOS.md#admin-retry-and-deletion-closeout-defaults-group-51). No runtime claim or broader candidate approval. |
 | SC-188 | The admin inspects deletion results before history clear | Show the latest deletion pass's actual pending/deleted/failed results under the existing job_id. Clear forgets these results and all file linkage; no separate older-pass history is promised. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 51/API-E137](REST-ERROR-SCENARIOS.md#admin-retry-and-deletion-closeout-defaults-group-51). No runtime claim or broader candidate approval. |
 | SC-189 | The owned file selection changes after deletion confirmation | Reject the stale confirmation and require fresh confirmation of the current safe selection. Never broaden the deletion or let an old replay start a later pass. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 51/API-E138](REST-ERROR-SCENARIOS.md#admin-retry-and-deletion-closeout-defaults-group-51). No runtime claim or broader candidate approval. |
+
+| SC-190 | New release encounters existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment and receipts. Upgrade only declared supported state formats; otherwise refuse safely before effects. Never invent UUIDs for legacy jobs. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 52/API-E139](REST-ERROR-SCENARIOS.md#stored-state-manifest-and-wire-compatibility-group-52). No migration, rollback, consumer or runtime qualification claim. |
+| SC-191 | A new recording completes, or a still-tracked legacy recording recovers | New recordings use manifest v2 with UUID, measured sizes/hashes and request-identity digest. Preserve original v1 bytes and support still-tracked legacy recovery; never reconstruct cleared ownership. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 52/API-E140](REST-ERROR-SCENARIOS.md#stored-state-manifest-and-wire-compatibility-group-52). No migration, rollback, consumer or runtime qualification claim. |
+| SC-192 | Producer or consumer exchanges byte sizes above ordinary browser integer precision | New producer expected sizes and manifest-v2 measured sizes use exact canonical decimal u64 strings. Preserve existing operator numeric formats and legacy-v1 numeric sizes. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 52/API-E141](REST-ERROR-SCENARIOS.md#stored-state-manifest-and-wire-compatibility-group-52). No migration, rollback, consumer or runtime qualification claim. |
+| SC-193 | A producer submits a filename outside the supported new-contract encoding | Require valid UTF-8; preserve exact spelling and case. Reject unsupported names explicitly without silent renaming, case folding or Unicode normalization. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 52/API-E142](REST-ERROR-SCENARIOS.md#stored-state-manifest-and-wire-compatibility-group-52). No migration, rollback, consumer or runtime qualification claim. |
+| SC-194 | An operator upgrades, rolls back or encounters incompatible state | Publish an explicit supported release/state list. Refuse incompatible binaries before effects; never restore a stale database over active custody. Exact support list and qualification remain pending. | **Approved on 2026-11-03; implementation/qualification pending.** [Group 52/API-E143](REST-ERROR-SCENARIOS.md#stored-state-manifest-and-wire-compatibility-group-52). No migration, rollback, consumer or runtime qualification claim. |
 
 ## Delivery, integrity and consumers
 
@@ -873,3 +881,9 @@ Group 51 adds SC-184-189 while preserving all earlier IDs: 189 SC and six DOC
 identifiers. DOC-01-05 need retry-zero/duplicate outcomes, cleared-job receipt
 boundaries and one-active/latest deletion results with stale-selection refusal.
 This is contract approval only; no new passing runtime/qualification evidence.
+
+Group 52 adds SC-190-194 while preserving earlier IDs: 194 SC and six DOC
+identifiers. DOC-01-05 must cover decimal-string new producer/v2 sizes, exact
+UTF-8 names, legacy custody/v1 preservation and the supported upgrade/rollback
+list with safe refusal. Exact supported versions and implementation/qualification
+remain pending; no file/state migration or production enablement occurred.

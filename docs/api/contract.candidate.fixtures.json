@@ -32,9 +32,9 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "camera1/video.bin": 0,
-          "camera2/video.bin": 1,
-          "metadata.json": 2
+          "camera1/video.bin": "0",
+          "camera2/video.bin": "1",
+          "metadata.json": "2"
         }
       },
       "semantic_valid": true
@@ -221,9 +221,9 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "camera1/video.bin": -1,
-          "camera2/video.bin": -1,
-          "metadata.json": -1
+          "camera1/video.bin": "-1",
+          "camera2/video.bin": "-1",
+          "metadata.json": "-1"
         }
       }
     },
@@ -241,9 +241,9 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "camera1/video.bin": 18446744073709551616,
-          "camera2/video.bin": 18446744073709551616,
-          "metadata.json": 18446744073709551616
+          "camera1/video.bin": "18446744073709551616",
+          "camera2/video.bin": "18446744073709551616",
+          "metadata.json": "18446744073709551616"
         }
       }
     },
@@ -261,9 +261,9 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "camera1/video.bin": 0.5,
-          "camera2/video.bin": 0.5,
-          "metadata.json": 0.5
+          "camera1/video.bin": "0.5",
+          "camera2/video.bin": "0.5",
+          "metadata.json": "0.5"
         }
       }
     },
@@ -297,7 +297,7 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "metadata.json": 0
+          "metadata.json": "0"
         }
       },
       "semantic_valid": false
@@ -316,10 +316,10 @@
           "metadata.json"
         ],
         "expected_sizes_bytes": {
-          "camera1/video.bin": 0,
-          "camera2/video.bin": 1,
-          "metadata.json": 2,
-          "unlisted": 0
+          "camera1/video.bin": "0",
+          "camera2/video.bin": "1",
+          "metadata.json": "2",
+          "unlisted": "0"
         }
       },
       "semantic_valid": false
@@ -604,21 +604,21 @@
           {
             "file_id": "0",
             "path": "camera1/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "1",
             "path": "camera2/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "2",
             "path": "metadata.json",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
@@ -645,21 +645,21 @@
           {
             "file_id": "0",
             "path": "camera1/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "1",
             "path": "camera2/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "2",
             "path": "metadata.json",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
@@ -681,21 +681,21 @@
           {
             "file_id": "0",
             "path": "camera1/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "1",
             "path": "camera2/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "2",
             "path": "metadata.json",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
@@ -721,21 +721,21 @@
           {
             "file_id": "0",
             "path": "camera1/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "1",
             "path": "camera2/video.bin",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           {
             "file_id": "2",
             "path": "metadata.json",
-            "size_bytes": 0,
+            "size_bytes": "0",
             "algorithm": "sha256",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
@@ -1695,6 +1695,272 @@
         "error": "recording_blocked",
         "source_paths_released": false,
         "retryable": false
+      }
+    },
+    {
+      "id": "decimal-size-zero",
+      "schema": "DecimalByteCount",
+      "valid": true,
+      "value": "0"
+    },
+    {
+      "id": "decimal-size-above-js-exact",
+      "schema": "DecimalByteCount",
+      "valid": true,
+      "value": "9007199254740993"
+    },
+    {
+      "id": "decimal-size-maximum",
+      "schema": "DecimalByteCount",
+      "valid": true,
+      "value": "18446744073709551615"
+    },
+    {
+      "id": "decimal-size-overflow",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": "18446744073709551616"
+    },
+    {
+      "id": "decimal-size-leading-zero",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": "01"
+    },
+    {
+      "id": "decimal-size-exponent",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": "1e3"
+    },
+    {
+      "id": "decimal-size-numeric",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": 1
+    },
+    {
+      "id": "decimal-size-boolean",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": true
+    },
+    {
+      "id": "decimal-size-newline",
+      "schema": "DecimalByteCount",
+      "valid": false,
+      "value": "1\n"
+    },
+    {
+      "id": "producer-rejects-old-numeric-size-map",
+      "schema": "ProducerRequest",
+      "valid": false,
+      "value": {
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "source_directory": "/mnt/nfs/recordings/run-0042",
+        "files": [
+          "camera1/video.bin",
+          "camera2/video.bin",
+          "metadata.json"
+        ],
+        "expected_sizes_bytes": {
+          "camera1/video.bin": 1,
+          "camera2/video.bin": 1,
+          "metadata.json": 1
+        }
+      }
+    },
+    {
+      "id": "manifest-v2-rejects-numeric-size",
+      "schema": "ManifestV2",
+      "valid": false,
+      "value": {
+        "version": 2,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "job_id": "42",
+        "generator_id": "recorder-01",
+        "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+        "request_identity": {
+          "version": 1,
+          "algorithm": "sha256",
+          "sha256": "2c6f1facac8a501be5417eefa322dd474bdfbadabea749b622d79d3db4bd3c02"
+        },
+        "files": [
+          {
+            "file_id": "0",
+            "path": "camera1/video.bin",
+            "size_bytes": 1,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "1",
+            "path": "camera2/video.bin",
+            "size_bytes": "0",
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "2",
+            "path": "metadata.json",
+            "size_bytes": "0",
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ]
+      }
+    },
+    {
+      "id": "legacy-manifest-v1-preserved-shape",
+      "schema": "ManifestV1",
+      "valid": true,
+      "value": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "job_id": "42",
+        "generator_id": "recorder-01",
+        "files": [
+          {
+            "file_id": "0",
+            "path": "camera1/video.bin",
+            "size_bytes": 1,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "1",
+            "path": "camera2/video.bin",
+            "size_bytes": 0,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "2",
+            "path": "metadata.json",
+            "size_bytes": 0,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "submission_id": "legacy-recording"
+      }
+    },
+    {
+      "id": "legacy-manifest-v1-no-size-rewrite",
+      "schema": "ManifestV1",
+      "valid": false,
+      "value": {
+        "version": 1,
+        "instance_id": "0123456789abcdef0123456789abcdef",
+        "job_id": "42",
+        "generator_id": "recorder-01",
+        "files": [
+          {
+            "file_id": "0",
+            "path": "camera1/video.bin",
+            "size_bytes": "1",
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "1",
+            "path": "camera2/video.bin",
+            "size_bytes": 0,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "file_id": "2",
+            "path": "metadata.json",
+            "size_bytes": 0,
+            "algorithm": "sha256",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "submission_id": "legacy-recording"
+      }
+    },
+    {
+      "id": "operator-size-remains-numeric-u64",
+      "schema": "JobStatus",
+      "valid": true,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": 18446744073709551615,
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
+      }
+    },
+    {
+      "id": "operator-size-no-string-rewrite",
+      "schema": "JobStatus",
+      "valid": false,
+      "value": {
+        "job_id": "42",
+        "state": "Accepted",
+        "source_paths_released": false,
+        "retryable": false,
+        "details": {
+          "generator_id": "legacy-generator",
+          "submission_id": "old-key",
+          "condition": "AwaitingClaims",
+          "review_epoch": 0,
+          "missing_review_epoch": 0,
+          "manifest_phase": null,
+          "source_cleanup_enabled": false,
+          "latest_missing_reset": null,
+          "latest_resume": null,
+          "files": [
+            {
+              "file_id": "0",
+              "name": "data.bin",
+              "size_bytes": "18446744073709551615",
+              "phase": "Pending",
+              "transfer_phase": null,
+              "attempt": null
+            }
+          ],
+          "missing": [
+            {
+              "file_id": "0",
+              "deadline": 1700000000,
+              "blocked": false,
+              "deadline_elapsed": false
+            }
+          ],
+          "delivery_retry": null
+        }
       }
     }
   ]

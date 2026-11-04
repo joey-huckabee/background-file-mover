@@ -10,7 +10,7 @@ now removing all file management/linkage after successful clear.
 ## Short closeout table
 
 2026-11-03: group 51 approves the specified retry/deletion defaults below.
-Groups 1-51 are approved, with group 50 overriding post-clear tracking. Rows
+Groups 1-52 are approved, with group 50 overriding post-clear tracking. Rows
 still marked proposed remain proposals; this is not approval of all candidate
 transport, schema or implementation details.
 Routine names, serialization and transaction mechanics are engineering work.

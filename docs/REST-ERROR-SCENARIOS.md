@@ -11,10 +11,10 @@ NFS/deletion switch changes here.
 
 **Current override, 2026-11-02:** Group 50 supersedes earlier post-clear ownership/accounting rules: successful eligible clear forgets all source/destination file linkage; files stay in place, and cleared files leave mover management. See API-E130-132.
 
-The user approved the following fifty-one groups in successive review replies.
+The user approved the following fifty-two groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-51 add API-E61-138 below.
+direction, not new runtime capabilities. Groups 14-52 add API-E61-143 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 
@@ -1818,6 +1818,34 @@ unchanged. Cancellation transport replay, exact wire/receipt layout, remaining
 schemas, compatibility and the P01 freeze are not approved by this reply.
 No runtime, operational state, file deletion or production switch changes here.
 
+## Stored-state, manifest and wire compatibility (group 52)
+
+**Approved on 2026-11-03; implementation/qualification pending.** The user
+accepted the five compatibility recommendations presented after schema completion:
+preserve legacy custody with supported upgrades or safe refusal; use v2 for new
+recordings while preserving v1 recovery; decimal-string new producer/v2 sizes;
+strict exact UTF-8 filenames; and an explicit supported upgrade/rollback list.
+See [approved compatibility direction](api/COMPATIBILITY.md) for scope and limits.
+
+Earlier numeric new-producer/v2 examples are superseded by this decimal-string
+wire decision. Existing operator numeric formats remain unchanged. Exact supported predecessor
+versions, migration transactions, rollback procedures and consumer/runtime tests
+remain engineering deliverables; this approval claims none have passed. It does
+not approve all candidate fields/limits/framing, unrelated retry/cancellation
+choices, authentication deployment, P01 freeze or general implementation.
+Group 50 continues to prohibit all post-clear linkage or reconstruction.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E139 | New release encounters existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment and receipts. Upgrade only declared supported state formats; otherwise refuse safely before effects. Never invent UUIDs for legacy jobs. | Approved group 52; implementation/qualification pending. |
+| API-E140 | A new recording completes, or a still-tracked legacy recording recovers | New recordings use manifest v2 with UUID, measured sizes/hashes and request-identity digest. Preserve original v1 bytes and support still-tracked legacy recovery; never reconstruct cleared ownership. | Approved group 52; implementation/qualification pending. |
+| API-E141 | Producer or consumer exchanges byte sizes above ordinary browser integer precision | New producer expected sizes and manifest-v2 measured sizes use exact canonical decimal u64 strings. Preserve existing operator numeric formats and legacy-v1 numeric sizes. | Approved group 52; implementation/qualification pending. |
+| API-E142 | A producer submits a filename outside the supported new-contract encoding | Require valid UTF-8; preserve exact spelling and case. Reject unsupported names explicitly without silent renaming, case folding or Unicode normalization. | Approved group 52; implementation/qualification pending. |
+| API-E143 | An operator upgrades, rolls back or encounters incompatible state | Publish an explicit supported release/state list. Refuse incompatible binaries before effects; never restore a stale database over active custody. Exact support list and qualification remain pending. | Approved group 52; implementation/qualification pending. |
+
+SC-190-194 and DOC-01-05 must reflect this compatibility direction. Preserve all
+earlier IDs and evidence; structural schemas do not qualify state recovery.
+
 ## Missing-file mapping: approved, implementation pending
 
 API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
@@ -1863,12 +1891,12 @@ pending until their protected ingress/proxy exists.
 
 | Step | Deliverable | Dependency / acceptance |
 |---|---|---|
-| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-138 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-143 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
 | API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
 | API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
 | API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
 | API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
-| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-138 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-143 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
 
 No recorder executable is part of this repository's deliverable by assumption;
 its retry algorithm is integration guidance/examples unless separately requested.

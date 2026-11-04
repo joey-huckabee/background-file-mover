@@ -3,7 +3,7 @@
   "title": "Background File Mover contract candidate - NOT FROZEN",
   "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
   "x-status": "candidate-not-frozen",
-  "x-approved-groups-through": 51,
+  "x-approved-groups-through": 52,
   "$defs": {
     "RecordingId": {
       "type": "string",
@@ -83,7 +83,8 @@
     "ByteCount": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 18446744073709551615
+      "maximum": 18446744073709551615,
+      "description": "Preserved numeric u64 for existing operator/status fields and legacy manifest v1. Not the new producer/manifest v2 wire size type."
     },
     "Digest": {
       "type": "string",
@@ -121,7 +122,7 @@
             "$ref": "#/$defs/RelativePath"
           },
           "additionalProperties": {
-            "$ref": "#/$defs/ByteCount"
+            "$ref": "#/$defs/DecimalByteCount"
           }
         }
       },
@@ -416,7 +417,7 @@
           "$ref": "#/$defs/RelativePath"
         },
         "size_bytes": {
-          "$ref": "#/$defs/ByteCount"
+          "$ref": "#/$defs/DecimalByteCount"
         },
         "algorithm": {
           "const": "sha256"
@@ -481,7 +482,7 @@
         "Exact original path membership and stable file IDs; no duplicates or prefix conflicts.",
         "Measured sizes and full content SHA-256 must match verified publication evidence.",
         "All manifest UUIDs lowercase. Stored immutable bytes, not regenerated formatting, govern recovery.",
-        "New v2 is a proposal; preserve legacy v1 bytes. Numeric byte-count representation requires compatibility approval."
+        "Group 52 approves v2 for new recordings with exact decimal-string measured sizes and a request-identity digest. Preserve legacy v1 bytes and recover only still-tracked jobs; no reconstruction after clear. Exact framing/bounds remain engineering candidate until P01 freeze."
       ]
     },
     "InstanceId": {
@@ -2036,6 +2037,100 @@
         "Actual latest-pass observations only. Acceptance does not imply completed deletion.",
         "Dispatch every submitted occurrence; aggregate each observed latest pass/owned target once so repeated IDs cannot double-count files.",
         "Group 51 preserves one active pass/latest results before clear. Empty/ineligible deletion-batch HTTP mapping remains proposed, not newly approved."
+      ]
+    },
+    "DecimalByteCount": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+      "not": {
+        "pattern": "[^0-9]"
+      },
+      "description": "Group 52: exact canonical decimal u64, 0 through 18446744073709551615. No sign, whitespace, leading zeros, fraction or exponent. New producer and manifest v2 only; existing operator numeric fields remain numeric."
+    },
+    "ManifestV1File": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3,
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "not": {
+            "pattern": "[^0-9]"
+          },
+          "x-integer-maximum": 255
+        },
+        "path": {
+          "$ref": "#/$defs/StoredPath"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/ByteCount"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "file_id",
+        "path",
+        "size_bytes",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "instance_id": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "generator_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/ManifestV1File"
+          }
+        },
+        "submission_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "job_id",
+        "generator_id",
+        "submission_id",
+        "files"
+      ],
+      "x-max-utf8-bytes": 131072,
+      "x-semantic-rules": [
+        "Recovery compatibility for still-tracked original legacy jobs only; exact stored serialized bytes/receipts govern recovery. Never rewrite v1 as v2.",
+        "Numeric u64 size_bytes is preserved; legacy identity is submission_id, not an invented recording UUID. No scanning/adoption of cleared files."
       ]
     }
   },

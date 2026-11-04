@@ -4,6 +4,7 @@
 This is not an OpenAPI conformance validator or a service acceptance test.
 Run from any directory: python3 docs/api/check_contract_candidate.py
 """
+import hashlib
 import json
 from pathlib import Path
 
@@ -46,6 +47,38 @@ def main():
         errors = list(validator.iter_errors(case["value"]))
         require((not errors) == case["valid"],
                 case["id"] + ": " + "; ".join(e.message for e in errors))
+
+    # Reuse the original seven vectors: the approved JSON size spelling changes,
+    # while the integer framing and hashes must remain identical.
+    vectors = read("request-identity-v1.candidate.vectors.json")["vectors"]
+    producer = Draft202012Validator({"$defs": schema["$defs"],
+                                    "$ref": "#/$defs/ProducerRequest"})
+    for vector in vectors:
+        request = vector["request"]
+        producer.validate(request)
+        frame = bytearray(b"BFM-REQUEST-IDENTITY\x00v1\x00")
+
+        def string(value):
+            encoded = value.encode("utf-8")
+            frame.extend(len(encoded).to_bytes(4, "big"))
+            frame.extend(encoded)
+
+        string(request["generator_id"])
+        string(request["recording_id"].lower())
+        string(request["source_directory"])
+        paths = sorted(request["files"], key=lambda path: path.encode("utf-8"))
+        frame.extend(len(paths).to_bytes(4, "big"))
+        for path in paths:
+            string(path)
+        sizes = request.get("expected_sizes_bytes")
+        frame.append(0 if sizes is None else 1)
+        if sizes is not None:
+            require(set(sizes) == set(paths), "vector size-map membership mismatch")
+            for path in paths:
+                frame.extend(int(sizes[path]).to_bytes(8, "big"))
+        require(frame.hex() == vector["frame_hex"], "identity frame changed: " + vector["id"])
+        require(hashlib.sha256(frame).hexdigest() == vector["sha256"],
+                "identity hash changed: " + vector["id"])
 
     expected = {
         ("post", "/api/v2/jobs"), ("get", "/healthz"),
@@ -102,6 +135,7 @@ def main():
             require(node["$ref"][len(prefix):] in schema["$defs"], "dangling reference")
     print(f"PASS: {len(schema['$defs'])} definitions, {len(fixtures)} structural fixtures, "
           f"{len(actual)} route operations and reference/access checks")
+    print(f"PASS: {len(vectors)} existing request-identity frames/hashes with decimal-string size inputs")
     print("NOT RUN: semantic annotations, full OpenAPI conformance, HTTP/SQL/security/runtime qualification")
 
 

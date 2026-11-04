@@ -21,7 +21,8 @@ Build this byte sequence, without JSON whitespace or platform line endings:
 3. Unsigned 32-bit big-endian file count. Sort file paths by unsigned UTF-8 byte
    sequence and emit each as a length-prefixed string using step 2.
 4. One byte 00 if expected_sizes_bytes was absent, or 01 if present. If present,
-   emit each expected byte count as unsigned 64-bit big-endian, in the same
+   parse each canonical decimal-string expected byte count losslessly, then
+   emit its value as unsigned 64-bit big-endian, in the same
    sorted path order. The validated map must have exactly these keys.
 
 Compute SHA-256 over the entire sequence; use 64 lowercase hexadecimal digits.
@@ -50,7 +51,9 @@ the framing from lengths/to_bytes and checked both Python hashlib and OpenSSL
 against every saved answer. This checks the proposed encoding only, not Rust
 implementation, collision handling, consumer compatibility or storage durability.
 
-Compatibility approval for manifest v2, legacy manifest recovery and integer
-representation remains required before freeze. If byte counts become decimal
-strings on the JSON wire, they must still parse to the same bounded integers
-for this encoding; do not silently hash the spelling of a JSON number.
+Group 52 approves v2 for new recordings, unchanged v1 recovery for still-tracked
+jobs and decimal-string u64 sizes on the new JSON wire. The precise framing
+above remains an engineering candidate until P01 freeze. The existing seven
+vectors now spell supplied sizes as strings; their frames and digests are
+unchanged because framing encodes parsed integers, never JSON spelling.
+No runtime, consumer or migration/rollback qualification is claimed.
