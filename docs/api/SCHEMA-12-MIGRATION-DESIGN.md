@@ -8,6 +8,12 @@ is the proposed next version. Groups 1-52 and the
 The exact SQL and implementation below are engineering recommendations for
 review; this is not P01 freeze or a supported upgrade claim.
 
+Subsequent authorization starts the first implementation slice in
+[increment 111](../RUST-INCREMENT-111.md): fresh schema 12 and legacy readers,
+with apply disabled. Its runtime results/limits supersede this document's
+historical design-only checkpoint only for that bounded slice. The backup and
+conversion procedure below remains unimplemented and unqualified.
+
 ## Recommendation and scope
 
 Rebuild only `jobs` in one SQLite transaction to replace its unconditional legacy

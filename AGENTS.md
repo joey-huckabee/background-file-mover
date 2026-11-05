@@ -2,6 +2,14 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-04 schema-12 foundation implementation: the user says to start the next
+bounded implementation after design review. Increment 111 adds fresh schema 12,
+legacy readers/writers and namespace/sequence preservation tests. Migration apply
+remains disabled: schema 11 refuses with MigrationRequired; UUID rows refuse with
+UnsupportedIdentity before effects. No production state is converted. Verified
+backup/apply, new producer/manifest-v2 activation, deployment and broader freeze
+remain separate work. See docs/RUST-INCREMENT-111.md for actual gate status.
+
 2026-11-04 migration design authorization: the user asks to start the transactional
 migration design. See docs/api/SCHEMA-12-MIGRATION-DESIGN.md and its candidate SQL
 under docs/api/migrations/. Proposed rebuild/backup/identity mechanics are design

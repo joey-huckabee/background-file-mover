@@ -39,26 +39,30 @@ blocked workers or NFS operations exit by that deadline.
 
 ## State compatibility before startup
 
-[Increment 110](RUST-INCREMENT-110.md) checks local database compatibility before
-source bootstrap for daemon startup, initialization and single-transfer commands.
-Offline history-clear preview/apply uses the same check before opening its Store.
-This binary accepts its supported schema-11 layout; schemas 1-10, foreign/newer
-formats, unexpected schema objects and corrupt state refuse. It no longer
-performs historical automatic database upgrades. No new schema migration command
-is available yet.
+[Increment 111](RUST-INCREMENT-111.md) creates schema 12 for fresh explicit
+initialization and supports legacy jobs in that layout. Its guarded checks run
+before source bootstrap for daemon startup, initialization and single-transfer
+commands, and before offline history-clear preview/apply opens a Store.
+
+Existing schema-11 state returns MigrationRequired and remains untouched. The
+verified backup/upgrader is not available yet; this foundation binary is not a
+usable upgrade for that state. Continue using the compatible original binary
+and database. Schemas 1-10, foreign/newer formats, unexpected schema objects and
+corrupt state refuse. UUID-bearing schema-12 state returns UnsupportedIdentity;
+UUID producer and manifest-v2 runtime are not enabled in this build.
 
 On refusal, keep the original database, recovery files, configuration, enrollment
 and payloads. Use software compatible with that state and the declared
-[support matrix](api/SCHEMA-11-UPGRADE.md). Do not edit version fields, initialize
+[support scope](api/SCHEMA-11-UPGRADE.md). Do not edit version fields, initialize
 replacement state, delete locks or restore a stale snapshot to force startup.
-Normal startup and transfer require existing state. Use `--initialize-source`
-only for an intentionally provisioned unused scope; it does not repair existing
+Normal startup and transfer require existing state. Use --initialize-source only
+for an intentionally provisioned unused scope; it does not repair existing
 custody or authorize re-enrollment. Status/stop still work independently of the
-database while an owner is running. Compatibility inspection can write normal
-local lifetime/shared-memory metadata; it does not change job data.
+database while an owner is running. Inspection can write normal local lifetime/
+shared-memory metadata; it does not change job data.
 
-Old executables do not gain this early check retroactively. Launching an old
-binary against upgraded state is not a supported rollback procedure. See the
+Old executables do not gain early checks retroactively. Launching an old binary
+against upgraded state is not a supported rollback procedure. See the
 [restart runbook](RUST-RESTART-RUNBOOK.md) for surviving workers and safe recovery.
 
 ## Offline clear of completed history

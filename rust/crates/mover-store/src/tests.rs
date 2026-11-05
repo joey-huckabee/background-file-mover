@@ -2092,7 +2092,10 @@ fn assert_unsupported_unchanged(path: &Path) {
         Store::check_compatibility(path, false).err(),
     ] {
         assert!(
-            matches!(error, Some(StoreError::UnsupportedSchema)),
+            matches!(
+                error,
+                Some(StoreError::UnsupportedSchema | StoreError::MigrationRequired)
+            ),
             "{error:?}"
         );
         assert_eq!(std::fs::read(path).unwrap(), before);
@@ -2119,7 +2122,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=10).chain([12, 99]) {
+    for version in (1..=11).chain([13, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2150,4 +2153,306 @@ fn compatibility_rejects_foreign_corrupt_and_modified_current_schema() {
     std::fs::write(f.db(), b"not SQLite").unwrap();
     assert!(Store::check_compatibility(f.db(), true).is_err());
     assert_eq!(std::fs::read(f.db()).unwrap(), b"not SQLite");
+}
+
+// Fixture builders below exist only in this cfg(test) module. There is no
+// production conversion method or CLI. They exercise the target DDL and reader
+// before a guarded backup/apply path can be implemented.
+fn schema_eleven_fixture(path: &Path, populated: bool) -> Connection {
+    let c = Connection::open(path).unwrap();
+    c.pragma_update(None, "journal_mode", "WAL").unwrap();
+    c.pragma_update(None, "synchronous", "FULL").unwrap();
+    c.pragma_update(None, "foreign_keys", "ON").unwrap();
+    c.execute_batch(include_str!("jobs_v11.sql")).unwrap();
+    create_dependent_tables(&c).unwrap();
+    initialize_instance(&c).unwrap();
+    c.pragma_update(None, "application_id", APPLICATION_ID)
+        .unwrap();
+    c.pragma_update(None, "user_version", 11).unwrap();
+    if populated {
+        c.execute_batch("INSERT INTO jobs VALUES(7,'g','11111111-2222-3333-4444-555555555555','/mnt/recordings/current','recordings','/mnt/recordings','current','archive','/mnt/archive',0,0,300,2);
+            INSERT INTO files VALUES(7,0,'Data',NULL),(7,1,'telemetry/events','001');
+            INSERT INTO reservations VALUES('recordings','current/Data',7,0),('recordings','current/telemetry/events',7,1);
+            INSERT INTO missing VALUES(7,0,400,1);
+            UPDATE sqlite_sequence SET seq=99 WHERE name='jobs';").unwrap();
+    }
+    c
+}
+fn rebuild_schema_twelve_fixture(c: &mut Connection) {
+    let sequence: Option<i64> = c
+        .query_row(
+            "SELECT seq FROM sqlite_sequence WHERE name='jobs'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()
+        .unwrap();
+    c.pragma_update(None, "foreign_keys", "OFF").unwrap();
+    let tx = c
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .unwrap();
+    let (create, indexes) = include_str!("jobs.sql")
+        .split_once("ALTER TABLE jobs_v12 RENAME TO jobs;")
+        .unwrap();
+    tx.execute_batch(create).unwrap();
+    tx.execute_batch("INSERT INTO jobs_v12(job_id,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind,recording_uuid,request_identity_version,request_identity_sha256)
+        SELECT job_id,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,0,NULL,NULL,NULL FROM jobs;
+        DROP TABLE jobs;
+        ALTER TABLE jobs_v12 RENAME TO jobs;").unwrap();
+    tx.execute_batch(indexes).unwrap();
+    tx.execute(
+        "DELETE FROM sqlite_sequence WHERE name IN ('jobs','jobs_v12')",
+        [],
+    )
+    .unwrap();
+    if let Some(sequence) = sequence {
+        tx.execute(
+            "INSERT INTO sqlite_sequence(name,seq) VALUES('jobs',?1)",
+            [sequence],
+        )
+        .unwrap();
+    }
+    validate_schema(&tx).unwrap();
+    validate_job_sequence(&tx).unwrap();
+    let broken: i64 = tx
+        .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(broken, 0);
+    tx.pragma_update(None, "user_version", SCHEMA_VERSION)
+        .unwrap();
+    tx.commit().unwrap();
+    c.pragma_update(None, "foreign_keys", "ON").unwrap();
+}
+
+#[test]
+fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
+    let f = Fixture::new();
+    let mut c = schema_eleven_fixture(&f.db(), true);
+    let mut before = retained_table_rows(&c);
+    let old_jobs = before.remove("jobs").unwrap();
+    rebuild_schema_twelve_fixture(&mut c);
+    let mut after = retained_table_rows(&c);
+    let new_jobs = after.remove("jobs").unwrap();
+    assert_eq!(before, after);
+    assert_eq!(new_jobs.len(), old_jobs.len());
+    for (old, new) in old_jobs.iter().zip(&new_jobs) {
+        assert_eq!(old, &new[..13]);
+        assert_eq!(
+            new[13..],
+            [
+                rusqlite::types::Value::Integer(0),
+                rusqlite::types::Value::Null,
+                rusqlite::types::Value::Null,
+                rusqlite::types::Value::Null
+            ]
+        );
+    }
+    drop(c);
+    Store::check_compatibility(f.db(), false).unwrap();
+    let store = Store::open(f.db()).unwrap();
+    let job = store.get(7).unwrap().unwrap();
+    assert_eq!(
+        job.recording.submission().submission_id(),
+        "11111111-2222-3333-4444-555555555555"
+    );
+    assert_eq!(
+        job.recording.submission().files()[0].relative_path(),
+        "Data"
+    );
+    assert_eq!(
+        job.recording.submission().files()[1].expected_size(),
+        Some(1)
+    );
+    assert_eq!(
+        store.status(7).unwrap().unwrap().missing,
+        vec![(0, 400, true)]
+    );
+    let replay = store
+        .accept(job.recording.submission(), &job.context)
+        .unwrap();
+    assert!(replay.replay);
+    assert_eq!(replay.job_id, 7);
+    let mut other_context = context();
+    other_context.source_relative_directory = "new".into();
+    let new = Submission::new(
+        "g",
+        "next",
+        "/mnt/recordings/new",
+        vec![FileSpec::new("new-data", None).unwrap()],
+    )
+    .unwrap();
+    assert_eq!(store.accept(&new, &other_context).unwrap().job_id, 100);
+}
+
+#[test]
+fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
+    for high_water in [None, Some(99)] {
+        let f = Fixture::new();
+        let mut c = schema_eleven_fixture(&f.db(), false);
+        if let Some(value) = high_water {
+            c.execute("INSERT INTO sqlite_sequence VALUES('jobs',?1)", [value])
+                .unwrap();
+        }
+        rebuild_schema_twelve_fixture(&mut c);
+        let value: Option<i64> = c
+            .query_row(
+                "SELECT seq FROM sqlite_sequence WHERE name='jobs'",
+                [],
+                |r| r.get(0),
+            )
+            .optional()
+            .unwrap();
+        assert_eq!(value, high_water);
+        drop(c);
+        let store = Store::open(f.db()).unwrap();
+        assert_eq!(
+            store
+                .accept(&input("g", "new", "data"), &context())
+                .unwrap()
+                .job_id,
+            high_water.unwrap_or(0) + 1
+        );
+    }
+}
+
+#[test]
+fn schema_eleven_actual_layout_refuses_without_conversion_in_every_store_mode() {
+    let f = Fixture::new();
+    drop(schema_eleven_fixture(&f.db(), true));
+    let before = std::fs::read(f.db()).unwrap();
+    for error in [
+        Store::open(f.db()).err(),
+        Store::open_read_only(f.db()).err(),
+        Store::open_for_history_clear(f.db()).err(),
+        Store::check_compatibility(f.db(), true).err(),
+    ] {
+        assert!(
+            matches!(error, Some(StoreError::MigrationRequired)),
+            "{error:?}"
+        );
+        assert_eq!(std::fs::read(f.db()).unwrap(), before);
+    }
+}
+
+fn insert_uuid_fixture(
+    c: &Connection,
+    generator: &str,
+    uuid: rusqlite::types::Value,
+    version: rusqlite::types::Value,
+    digest: rusqlite::types::Value,
+) -> rusqlite::Result<usize> {
+    c.execute("INSERT INTO jobs(generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind,recording_uuid,request_identity_version,request_identity_sha256)
+        VALUES(?1,NULL,'/mnt/recordings/uuid','recordings','/mnt/recordings','uuid','archive','/mnt/archive',0,0,300,1,1,?2,?3,?4)",params![generator,uuid,version,digest])
+}
+
+#[test]
+fn schema_twelve_namespace_constraints_are_global_and_close_null_loopholes() {
+    use rusqlite::types::Value::{Blob, Integer, Null, Text};
+    let f = Fixture::new();
+    let store = Store::open(f.db()).unwrap();
+    let id = "11111111-2222-3333-4444-555555555555";
+    store.accept(&input("g", id, "data"), &context()).unwrap();
+    drop(store);
+    let c = Connection::open(f.db()).unwrap();
+    let uuid = Blob(vec![
+        0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55, 0x55, 0x55, 0x55,
+        0x55,
+    ]);
+    let digest = Blob(vec![0x22; 32]);
+    insert_uuid_fixture(&c, "g", uuid.clone(), Integer(1), digest.clone()).unwrap();
+    assert_schema_constraint(insert_uuid_fixture(
+        &c,
+        "different-generator",
+        uuid,
+        Integer(1),
+        digest.clone(),
+    ));
+    for (uuid, version, digest) in [
+        (Null, Integer(1), digest.clone()),
+        (Blob(vec![0; 15]), Integer(1), digest.clone()),
+        (Text("0".repeat(16)), Integer(1), digest.clone()),
+        (Blob(vec![0; 16]), Null, digest.clone()),
+        (Blob(vec![0; 16]), Integer(2), digest.clone()),
+        (Blob(vec![0; 16]), Integer(1), Null),
+        (Blob(vec![0; 16]), Integer(1), Blob(vec![0; 31])),
+        (Blob(vec![0; 16]), Integer(1), Text("a".repeat(32))),
+    ] {
+        assert_schema_constraint(insert_uuid_fixture(&c, "g", uuid, version, digest));
+    }
+    assert_schema_constraint(c.execute(
+        "UPDATE jobs SET recording_uuid=zeroblob(16) WHERE identity_kind=0",
+        [],
+    ));
+    assert_schema_constraint(c.execute(
+        "UPDATE jobs SET submission_id='legacy' WHERE identity_kind=1",
+        [],
+    ));
+    assert_schema_constraint(c.execute("INSERT INTO jobs SELECT NULL,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind,recording_uuid,request_identity_version,request_identity_sha256 FROM jobs WHERE identity_kind=0",[]));
+}
+
+#[test]
+fn schema_twelve_uuid_capability_refuses_before_writable_store_admission() {
+    use rusqlite::types::Value::{Blob, Integer};
+    let f = Fixture::new();
+    drop(Store::open(f.db()).unwrap());
+    let c = Connection::open(f.db()).unwrap();
+    insert_uuid_fixture(&c, "g", Blob(vec![1; 16]), Integer(1), Blob(vec![2; 32])).unwrap();
+    let id = c.last_insert_rowid();
+    c.execute("INSERT INTO files VALUES(?1,0,'data',NULL)", [id])
+        .unwrap();
+    c.execute(
+        "INSERT INTO reservations VALUES('recordings','uuid/data',?1,0)",
+        [id],
+    )
+    .unwrap();
+    drop(c);
+    let before = std::fs::read(f.db()).unwrap();
+    for error in [
+        Store::open(f.db()).err(),
+        Store::open_read_only(f.db()).err(),
+        Store::open_for_history_clear(f.db()).err(),
+        Store::check_compatibility(f.db(), false).err(),
+    ] {
+        assert!(
+            matches!(error, Some(StoreError::UnsupportedIdentity)),
+            "{error:?}"
+        );
+        assert_eq!(std::fs::read(f.db()).unwrap(), before);
+    }
+}
+
+#[test]
+fn schema_twelve_sequence_corruption_refuses_without_repair() {
+    for sql in [
+        "DELETE FROM sqlite_sequence WHERE name='jobs'",
+        "UPDATE sqlite_sequence SET seq=0 WHERE name='jobs'",
+        "UPDATE sqlite_sequence SET seq='bad' WHERE name='jobs'",
+        "INSERT INTO sqlite_sequence SELECT name,seq FROM sqlite_sequence WHERE name='jobs'",
+    ] {
+        let f = Fixture::new();
+        let store = Store::open(f.db()).unwrap();
+        store
+            .accept(&input("g", "sequence", "data"), &context())
+            .unwrap();
+        drop(store);
+        let c = Connection::open(f.db()).unwrap();
+        c.execute_batch(sql).unwrap();
+        drop(c);
+        let before = std::fs::read(f.db()).unwrap();
+        assert!(
+            matches!(Store::open(f.db()), Err(StoreError::CorruptState)),
+            "{sql}"
+        );
+        assert_eq!(std::fs::read(f.db()).unwrap(), before);
+    }
+}
+
+fn assert_schema_constraint(result: rusqlite::Result<usize>) {
+    let error = result.unwrap_err();
+    let rusqlite::Error::SqliteFailure(code, _) = error else {
+        panic!("expected SQLite constraint failure: {error}");
+    };
+    assert_eq!(code.code, rusqlite::ErrorCode::ConstraintViolation);
 }

@@ -25,7 +25,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 11;
+const SCHEMA_VERSION: i64 = 12;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -33,6 +33,8 @@ pub enum StoreError {
     Io(std::io::Error),
     Protocol(ProtocolError),
     UnsupportedSchema,
+    MigrationRequired,
+    UnsupportedIdentity,
     UnsupportedSqliteConfiguration,
     InvalidContext,
     CorruptState,
@@ -59,7 +61,15 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 11 mover state required; automatic legacy upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 12 mover state required; automatic legacy upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+            ),
+            Self::MigrationRequired => write!(
+                f,
+                "MigrationRequired: schema 11 state is preserved; explicit migration to schema 12 is required and apply is not enabled in this build. Do not reinitialize or replace original state."
+            ),
+            Self::UnsupportedIdentity => write!(
+                f,
+                "UnsupportedIdentity: this build supports legacy jobs only; UUID admission and recovery are not enabled. Preserve original state and use a compatible binary."
             ),
             other => write!(f, "{other:?}"),
         }
@@ -406,7 +416,7 @@ impl Store {
             let tx = db.connection.transaction()?;
             let id: Option<i64> = tx
                 .query_row(
-                    "SELECT job_id FROM jobs WHERE generator_id=?1 AND submission_id=?2",
+                    "SELECT job_id FROM jobs WHERE identity_kind=0 AND generator_id=?1 AND submission_id=?2",
                     params![submission.generator_id(), submission.submission_id()],
                     |r| r.get(0),
                 )
@@ -612,6 +622,11 @@ impl Drop for Store {
 }
 
 fn create_tables(connection: &Connection) -> Result<()> {
+    connection.execute_batch(include_str!("jobs.sql"))?;
+    create_dependent_tables(connection)
+}
+
+fn create_dependent_tables(connection: &Connection) -> Result<()> {
     for sql in [
         include_str!("schema.sql"),
         include_str!("claims.sql"),
@@ -658,6 +673,48 @@ fn validate_schema(connection: &Connection) -> Result<()> {
     Ok(())
 }
 
+// Schema 12 reserves the UUID representation, but this increment exposes only
+// legacy reconstruction. Reject unsupported whole-state capabilities BEFORE
+// any writable connection settings or payload effects.
+fn require_legacy_identities(connection: &Connection) -> Result<()> {
+    let unsupported: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM jobs WHERE identity_kind=1)",
+        [],
+        |r| r.get(0),
+    )?;
+    if unsupported {
+        return Err(StoreError::UnsupportedIdentity);
+    }
+    let corrupt: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM jobs WHERE identity_kind IS NULL OR typeof(identity_kind)!='integer' OR identity_kind!=0 OR typeof(submission_id)!='text' OR recording_uuid IS NOT NULL OR request_identity_version IS NOT NULL OR request_identity_sha256 IS NOT NULL)", [], |r| r.get(0),
+    )?;
+    if corrupt {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+
+fn validate_job_sequence(connection: &Connection) -> Result<()> {
+    let (count, minimum, maximum): (i64, Option<i64>, Option<i64>) = connection.query_row(
+        "SELECT count(*),min(job_id),max(job_id) FROM jobs",
+        [],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )?;
+    let sequences: Vec<rusqlite::types::Value> = connection
+        .prepare("SELECT seq FROM sqlite_sequence WHERE name='jobs'")?
+        .query_map([], |r| r.get(0))?
+        .collect::<std::result::Result<_, _>>()?;
+    let sequence = match sequences.as_slice() {
+        [] if count == 0 => return Ok(()),
+        [rusqlite::types::Value::Integer(value)] if *value >= 0 => *value,
+        _ => return Err(StoreError::CorruptState),
+    };
+    if minimum.is_some_and(|id| id <= 0) || maximum.is_some_and(|id| id > sequence) {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+
 struct Database {
     connection: Connection,
     limits: Option<(u64, u64)>,
@@ -683,13 +740,16 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
+        if version == 11 && application == APPLICATION_ID {
+            return Err(StoreError::MigrationRequired);
+        }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {
             return Err(StoreError::UnsupportedSchema);
         }
         let fresh = version == 0 && application == 0 && !read_only && !history_clear;
         if fresh {
             let objects: i64 = connection.query_row(
-                "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
+                "SELECT count(*) FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*'",
                 [],
                 |r| r.get(0),
             )?;
@@ -700,6 +760,10 @@ impl Database {
             return Err(StoreError::UnsupportedSchema);
         }
         connection.pragma_update(None, "trusted_schema", "OFF")?;
+        if !fresh {
+            require_legacy_identities(&connection)?;
+            validate_job_sequence(&connection)?;
+        }
         if !read_only {
             connection.pragma_update(None, "journal_mode", "WAL")?;
         }
@@ -855,7 +919,7 @@ impl Database {
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let prior: Option<i64> = tx
             .query_row(
-                "SELECT job_id FROM jobs WHERE generator_id=?1 AND submission_id=?2",
+                "SELECT job_id FROM jobs WHERE identity_kind=0 AND generator_id=?1 AND submission_id=?2",
                 params![submission.generator_id(), submission.submission_id()],
                 |r| r.get(0),
             )
@@ -909,7 +973,7 @@ impl Database {
                 return Err(StoreError::SourceReserved);
             }
         }
-        tx.execute("INSERT INTO jobs(generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+        tx.execute("INSERT INTO jobs(generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0)",
             params![submission.generator_id(), submission.submission_id(), submission.source_directory(), context.source_root_id,
                 context.source_root_path, context.source_relative_directory, context.policy.destination_id,
                 context.destination_path, context.policy.group_by_generator, context.policy.delete_source_after_commit,
@@ -1042,6 +1106,19 @@ impl Database {
 }
 
 fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
+    let kind: Option<i64> = connection
+        .query_row(
+            "SELECT identity_kind FROM jobs WHERE job_id=?1",
+            [job_id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    match kind {
+        None => return Ok(None),
+        Some(0) => (),
+        Some(1) => return Err(StoreError::UnsupportedIdentity),
+        Some(_) => return Err(StoreError::CorruptState),
+    }
     let header = connection.query_row("SELECT generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count FROM jobs WHERE job_id=?1",
         [job_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, AcceptanceContext {
             source_root_id: r.get(3)?, source_root_path: r.get(4)?, source_relative_directory: r.get(5)?,

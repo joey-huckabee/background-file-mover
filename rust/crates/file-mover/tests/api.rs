@@ -2903,7 +2903,8 @@ fn background_multi_file_delivery_commits_after_202_without_more_requests() {
 fn restart_discovers_claimed_delivery_and_keeps_original_destination() {
     let mut f = Fixture::new(300);
     f.write("data", b"persisted");
-    assert_eq!(f.post(&f.input("restart", json!([{"name":"data"}]))).0, 202);
+    let legacy_id = "11111111-2222-3333-4444-555555555555";
+    assert_eq!(f.post(&f.input(legacy_id, json!([{"name":"data"}]))).0, 202);
     f.stop();
     provision_destination(&f);
     let path = f.root.join("config.json");
@@ -2912,6 +2913,9 @@ fn restart_discovers_claimed_delivery_and_keeps_original_destination() {
     std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
     f.start();
     let manifest = wait_manifest(&f, "1");
+    assert_eq!(manifest["version"], 1);
+    assert_eq!(manifest["submission_id"], legacy_id);
+    assert!(manifest.get("recording_id").is_none());
     assert_eq!(manifest["files"][0]["size_bytes"], 9);
     assert!(!f.root.join("replacement/1").exists());
     f.stop();
@@ -4353,7 +4357,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=10).chain([12, 99, 100, 101]) {
+    for case in (1..=11).chain([13, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -4408,6 +4412,8 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
+                } else if case == 11 {
+                    "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
                 }),

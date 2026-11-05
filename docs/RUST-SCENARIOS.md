@@ -903,3 +903,10 @@ sequence, backup, namespace and interruption tests for SC-190/194; see
 [the design](api/SCHEMA-12-MIGRATION-DESIGN.md). Its candidate SQL is outside Rust
 and has not been executed. Existing 194 SC and six DOC IDs remain unchanged;
 no new migration, backup, producer or runtime qualification is claimed.
+
+
+Increment 111 implements the schema-12 foundation portion of SC-190/194: fresh
+creation, legacy readers/writers, capability refusal and ID-sequence preservation
+checks. See [its results and limits](RUST-INCREMENT-111.md). Test-only rebuilds
+are not migration qualification. Backup/apply and UUID/v2 runtime remain gated;
+existing 194 SC and six DOC identifiers are unchanged.

@@ -53,7 +53,9 @@ comparison policy or immutable complete-map assertions.
 
 ## Legacy and current-state limits
 
-The implementation currently uses schema 11 and manifest v1. The candidate
+The latest foundation implementation creates schema 12 for fresh explicit setup
+and supports legacy manifest v1; see [increment 111](../RUST-INCREMENT-111.md).
+Existing schema 11 requires the still-unimplemented explicit upgrader. The candidate
 schemas now describe v1 separately from v2; a shape check does not prove valid
 ownership, receipts, commitment, or recovery. A legacy non-UUID submission stays
 a legacy record; it must not silently become a new global recording UUID.
