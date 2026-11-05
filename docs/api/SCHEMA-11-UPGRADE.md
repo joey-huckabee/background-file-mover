@@ -47,8 +47,8 @@ Every row below is a required future behavior; runtime status is **NOT_RUN**.
 | Active daemon or surviving lifetime-epoch worker | Refuse before SQLite admission for migration. |
 | Incompatible old binary against upgraded state | Supported installation/startup procedure must refuse before storage effects; direct old-binary invocation is not a supported rollback path. |
 
-The current ordinary Store opener automatically migrates versions 1-10. The
-new release must explicitly replace that behavior for this path with refusal;
+Before increment 110 the ordinary Store opener automatically migrated versions
+1-10. Increment 110 replaced that behavior with refusal;
 this is an intentional support boundary, not a claim that those schemas were
 never previously accepted. A future older-version upgrade needs its own matrix
 and qualification. Fresh target initialization remains separately gated by the
@@ -227,9 +227,10 @@ installation, power-loss durability, deletion or release readiness.
 
 Planning step 1 is complete when this matrix, invariants, refusal rules and
 acceptance dispositions are recorded and reviewed. Runtime work needs separate
-authorization. The next bounded implementation proposal is early compatibility
-preflight before source/destination bootstrap; transactional conversion follows
-only after its target SQL/identity design is concrete and reviewable.
+authorization. Early compatibility preflight is implemented in increment 110. The
+[transactional design](SCHEMA-12-MIGRATION-DESIGN.md) now specifies the proposed
+target SQL/identity layout and conversion; its implementation remains separately
+authorized work.
 
 Before any supported-release claim, replace NOT_RUN with exact evidence and
 publish the exact supported binary/state pairs. No predecessor executable,

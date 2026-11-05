@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-04 migration design authorization: the user asks to start the transactional
+migration design. See docs/api/SCHEMA-12-MIGRATION-DESIGN.md and its candidate SQL
+under docs/api/migrations/. Proposed rebuild/backup/identity mechanics are design
+only; no runtime schema-12 code, database conversion, backup or producer/v2
+activation is authorized. Groups 1-52 and increment-110 limits remain in force.
+
 2026-11-04 bounded implementation authorization: the user explicitly requests
 compatibility checks now. Increment 110 adds guarded schema-11 preflight before
 payload bootstrap for daemon, initialization and transfer CLI; rejects historical

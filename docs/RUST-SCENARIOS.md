@@ -896,3 +896,10 @@ See [increment 110](RUST-INCREMENT-110.md) for current validation status and the
 [operator guide](RUST-OPERATOR-GUIDE.md#state-compatibility-before-startup) for
 refusal handling. Existing 194 SC and six DOC IDs remain unchanged. Target-schema
 migration, old-binary launch qualification and broader release gates remain open.
+
+
+The schema-12 migration design maps MIG-01-13 onto concrete preservation,
+sequence, backup, namespace and interruption tests for SC-190/194; see
+[the design](api/SCHEMA-12-MIGRATION-DESIGN.md). Its candidate SQL is outside Rust
+and has not been executed. Existing 194 SC and six DOC IDs remain unchanged;
+no new migration, backup, producer or runtime qualification is claimed.

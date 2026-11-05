@@ -29,6 +29,11 @@ removes automatic schema-1-10 upgrades. Its validation record governs that
 bounded capability. It does not implement conversion to the planned target
 schema or qualify an old executable's direct launch/rollback behavior.
 
+The next [transactional migration design](SCHEMA-12-MIGRATION-DESIGN.md) supplies
+proposed schema-12 jobs DDL, identity constraints, backup/conversion mechanics
+and acceptance mapping. The user authorized this design on 2026-11-04; it does
+not authorize migration execution or settle the remaining framing/runtime gates.
+
 ## Wire size boundary
 
 For new producer `expected_sizes_bytes` values and v2 file `size_bytes`, accept
