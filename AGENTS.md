@@ -2,6 +2,14 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-04 migration planning step 1: the user approves one explicit offline
+upgrade path from validated schema 11 to the next schema, preserving legacy
+custody/recovery and refusing unsupported state. See docs/api/SCHEMA-11-UPGRADE.md
+for the planned matrix, invariants, acceptance checklist and draft procedure.
+Schemas 1-10 are outside this initial path despite historical auto-migrations.
+Exact executable qualification remains pending. This authorizes documentation,
+not runtime migration code, target schema SQL, full P01 freeze or deployment.
+
 2026-11-03 group 52 approves the five compatibility recommendations: preserve
 legacy custody/IDs/receipts with supported upgrades or safe refusal; manifest v2
 for new recordings with UUID, measured sizes/hashes and request-identity digest,

@@ -13,6 +13,15 @@ an upgrade/recovery qualification result.
 | Filenames | Require valid UTF-8 for the new contract; retain exact spelling and case. Reject unsupported names explicitly. Never silently rename, case-fold or normalize Unicode. | Check Unicode scalars and byte limits before filesystem effects; preserve existing custody rather than applying new admission rules destructively to legacy records. |
 | Upgrade/rollback | Publish an explicit list of supported release/state combinations. An incompatible binary refuses before effects. Never restore a stale database over active transfers. | Populate and qualify the list using exact binaries/state fixtures. No predecessor, rollback or migration is declared supported merely by this approval. |
 
+## Approved initial migration scope
+
+On 2026-11-04 the user approved planning step 1: one explicit offline path from
+validated schema 11 to the next schema, preserving legacy recovery and refusing
+unsupported state. See [schema-11 upgrade specification](SCHEMA-11-UPGRADE.md)
+for the exact planned matrix, invariants, fixture checklist and draft procedure.
+This narrows the initial support target; no upgrade is yet implemented or
+qualified, and runtime migration code remains separately gated.
+
 ## Wire size boundary
 
 For new producer `expected_sizes_bytes` values and v2 file `size_bytes`, accept
@@ -40,8 +49,9 @@ Original file/claim indices and original serialized manifest bytes govern
 recovery. A still-tracked legacy job's continuation must preserve its original
 manifest protocol; do not switch it to v2 because it finishes after an upgrade.
 
-An exact supported upgrade/rollback matrix is still a deliverable, with these
-required dispositions rather than invented support claims:
+The initial planned matrix is now recorded in the linked upgrade specification.
+An executable-qualified support list remains a deliverable, with these required
+dispositions rather than invented support claims:
 
 | State/binary situation | Required disposition |
 |---|---|
