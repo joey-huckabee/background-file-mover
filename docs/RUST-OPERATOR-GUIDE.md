@@ -41,6 +41,7 @@ blocked workers or NFS operations exit by that deadline.
 
 [Increment 110](RUST-INCREMENT-110.md) checks local database compatibility before
 source bootstrap for daemon startup, initialization and single-transfer commands.
+Offline history-clear preview/apply uses the same check before opening its Store.
 This binary accepts its supported schema-11 layout; schemas 1-10, foreign/newer
 formats, unexpected schema objects and corrupt state refuse. It no longer
 performs historical automatic database upgrades. No new schema migration command

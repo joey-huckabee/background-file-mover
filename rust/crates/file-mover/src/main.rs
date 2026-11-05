@@ -98,8 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // excludes the daemon and surviving groups before SQLite. Register this
         // process too: its SQLite owner must outlive any early flock closure.
         let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
-        instance.validate_database(&config.state_database)?;
-        instance.prepare_workers()?;
+        file_mover::check_state_compatibility(&config, &instance, false)?;
         if confirm {
             let store = mover_store::Store::open_for_history_clear(&config.state_database)?;
             instance.validate_database(&config.state_database)?;

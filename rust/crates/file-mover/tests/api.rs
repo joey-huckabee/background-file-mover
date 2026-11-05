@@ -4371,14 +4371,22 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
         config["source_root"] = json!(f.root.join("unavailable-source"));
         std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
-        for mode in [None, Some("--initialize-source"), Some("--transfer-one")] {
+        for mode in [
+            None,
+            Some("--initialize-source"),
+            Some("--transfer-one"),
+            Some("--clear-history"),
+        ] {
             let mut command = Command::new(&exe);
             if let Some(mode) = mode {
                 command.arg(mode);
             }
             command.arg(&config_path);
-            if mode == Some("--transfer-one") {
+            if mode == Some("--transfer-one") || mode == Some("--clear-history") {
                 command.arg("1");
+            }
+            if mode == Some("--clear-history") {
+                command.arg("--confirm");
             }
             let mut child = command
                 .stdout(Stdio::null())

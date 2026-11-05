@@ -6,7 +6,8 @@ schema-12 migration, UUID producer, manifest v2, repair or deployment change.
 
 ## Behavior
 
-Daemon startup, `--initialize-source` and `--transfer-one` now acquire the existing
+Daemon startup, `--initialize-source`, `--transfer-one` and offline history clear
+now acquire the existing
 InstanceGuard, validate database/recovery-file locality and identity, register
 their process-group lifetime, and inspect compatible local state before starting
 source bootstrap. Guard/lifetime ownership continues through normal SQLite
@@ -41,7 +42,7 @@ New Store cases cover missing/empty initialization boundaries, all historical
 versions, unknown/newer versions, foreign application ID, corrupt input and
 modified schema. Historical populated fixtures assert byte-preserving refusal;
 the schema-10 fixture retains all populated table comparisons. A CLI case checks
-all three bootstrap entry points against versions 1-10, 12/99, foreign and corrupt
+all four effect entry points against versions 1-10, 12/99, foreign and corrupt
 state with source unavailable, unchanged database bytes, no enrollment receipt
 and no control socket. Existing guard/orphan, original-WAL restart, enrollment,
 transfer and offline-clear tests remain required regression coverage.
