@@ -127,6 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let instance = Arc::new(mover_fs::InstanceGuard::for_database(
             &config.state_database,
         )?);
+        file_mover::check_state_compatibility(&config, &instance, true)?;
         let stop = AtomicBool::new(false);
         let mut guard = file_mover::bootstrap::acquire(
             &config.source_root,
@@ -150,6 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let instance = Arc::new(mover_fs::InstanceGuard::for_database(
             &config.state_database,
         )?);
+        file_mover::check_state_compatibility(&config, &instance, false)?;
         let mut guard = file_mover::bootstrap::acquire(
             &config.source_root,
             &config.source_binding,

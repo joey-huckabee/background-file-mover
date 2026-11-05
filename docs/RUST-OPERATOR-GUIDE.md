@@ -37,6 +37,29 @@ controller. `shutdown_wait_seconds` now defaults to 60 and accepts integer value
 1–3600. It bounds the separate stop command; it does not promise that the daemon,
 blocked workers or NFS operations exit by that deadline.
 
+## State compatibility before startup
+
+[Increment 110](RUST-INCREMENT-110.md) checks local database compatibility before
+source bootstrap for daemon startup, initialization and single-transfer commands.
+This binary accepts its supported schema-11 layout; schemas 1-10, foreign/newer
+formats, unexpected schema objects and corrupt state refuse. It no longer
+performs historical automatic database upgrades. No new schema migration command
+is available yet.
+
+On refusal, keep the original database, recovery files, configuration, enrollment
+and payloads. Use software compatible with that state and the declared
+[support matrix](api/SCHEMA-11-UPGRADE.md). Do not edit version fields, initialize
+replacement state, delete locks or restore a stale snapshot to force startup.
+Normal startup and transfer require existing state. Use `--initialize-source`
+only for an intentionally provisioned unused scope; it does not repair existing
+custody or authorize re-enrollment. Status/stop still work independently of the
+database while an owner is running. Compatibility inspection can write normal
+local lifetime/shared-memory metadata; it does not change job data.
+
+Old executables do not gain this early check retroactively. Launching an old
+binary against upgraded state is not a supported rollback procedure. See the
+[restart runbook](RUST-RESTART-RUNBOOK.md) for surviving workers and safe recovery.
+
 ## Offline clear of completed history
 
 [Increment 107](RUST-INCREMENT-107.md) implements a host-local maintenance

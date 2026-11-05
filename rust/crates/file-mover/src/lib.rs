@@ -893,6 +893,20 @@ async fn connection(
     })
     .await;
 }
+/// Run before payload bootstrap. Caller retains the guard through Store shutdown.
+/// Local lifetime metadata may be written; job data is inspected read-only.
+pub fn check_state_compatibility(
+    c: &Config,
+    instance: &mover_fs::InstanceGuard,
+    initialize: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    instance.validate_database(&c.state_database)?;
+    instance.prepare_workers()?;
+    Store::check_compatibility(&c.state_database, initialize)?;
+    instance.validate_database(&c.state_database)?;
+    Ok(())
+}
+
 /// Caller may bind port zero for tests. Reject non-loopback listeners/configs.
 pub async fn serve(
     listener: TcpListener,
@@ -927,6 +941,8 @@ pub async fn serve_controlled(
                     mover_fs::InstanceGuard::for_database(&startup_config.state_database)
                         .map_err(|e| e.to_string())?,
                 );
+                check_state_compatibility(&startup_config, &instance, false)
+                    .map_err(|e| e.to_string())?;
                 let control = control::Server::start(instance.clone(), startup_lifecycle.clone())
                     .map_err(|e| e.to_string())?;
                 let guard = bootstrap::acquire(

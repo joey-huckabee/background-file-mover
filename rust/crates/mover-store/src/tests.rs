@@ -6,7 +6,7 @@ use std::sync::{
 };
 
 #[test]
-fn schema_one_migrates_without_losing_accepted_jobs() {
+fn schema_one_refuses_unsupported_state() {
     let fixture = Fixture::new();
     {
         let mut db = Database::open(&fixture.db(), false).unwrap();
@@ -15,22 +15,7 @@ fn schema_one_migrates_without_losing_accepted_jobs() {
             .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; DROP TABLE claims; PRAGMA user_version=1;")
             .unwrap();
     }
-    assert!(matches!(
-        Store::open_read_only(fixture.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let store = Store::open(fixture.db()).unwrap();
-    let replay = store
-        .accept(&input("a", "old", "data"), &context())
-        .unwrap();
-    assert!(replay.replay);
-    assert_eq!(replay.recording.handoff(), Handoff::Pending);
-    assert!(store.claim_intent(replay.job_id, 0).unwrap().is_none());
-    assert!(
-        store
-            .accept(&input("b", "new", "data"), &context())
-            .is_err()
-    );
+    assert_unsupported_unchanged(&fixture.db());
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -88,12 +73,12 @@ fn source_ownership_preparation_survives_restart_and_activation_is_exact() {
 }
 
 #[test]
-fn schema_nine_jobs_and_enrollment_are_preserved_without_fabricated_ownership() {
+fn schema_nine_refusal_preserves_jobs_and_enrollment() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
     s.enroll_source("/mnt/recordings", "binding", "observed")
         .unwrap();
-    let job = s
+    let _job = s
         .accept(&input("g", "legacy-nine", "data"), &context())
         .unwrap();
     drop(s);
@@ -101,13 +86,7 @@ fn schema_nine_jobs_and_enrollment_are_preserved_without_fabricated_ownership() 
     c.execute_batch("DROP TABLE source_ownership; PRAGMA user_version=9;")
         .unwrap();
     drop(c);
-    let s = Store::open(f.db()).unwrap();
-    assert!(s.source_ownership().unwrap().is_none());
-    assert!(matches!(
-        s.prepare_source_ownership("/source", "binding", "observed", "receipt"),
-        Err(StoreError::SourceEnrollmentRequired)
-    ));
-    assert_eq!(s.get(job.job_id).unwrap().unwrap().recording, job.recording);
+    assert_unsupported_unchanged(&f.db());
 }
 
 #[test]
@@ -144,10 +123,10 @@ fn source_enrollment_is_durable_and_never_rebound() {
     ));
 }
 #[test]
-fn schema_seven_jobs_require_explicit_enrollment_without_losing_jobs() {
+fn schema_seven_populated_state_refuses_without_mutation() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
-    let job = s.accept(&input("g", "legacy", "data"), &context()).unwrap();
+    let _job = s.accept(&input("g", "legacy", "data"), &context()).unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
@@ -155,16 +134,10 @@ fn schema_seven_jobs_require_explicit_enrollment_without_losing_jobs() {
     )
     .unwrap();
     drop(c);
-    let s = Store::open(f.db()).unwrap();
-    assert!(matches!(
-        s.enroll_source("/source", "binding-v1", "observed"),
-        Err(StoreError::SourceEnrollmentRequired)
-    ));
-    assert_eq!(s.get(job.job_id).unwrap().unwrap().recording, job.recording);
-    assert_eq!(s.job_count().unwrap(), 1);
+    assert_unsupported_unchanged(&f.db());
 }
 #[test]
-fn schema_seven_empty_state_can_enroll_after_migration() {
+fn schema_seven_empty_state_refuses_without_enrollment() {
     let f = Fixture::new();
     drop(Store::open(f.db()).unwrap());
     let c = Connection::open(f.db()).unwrap();
@@ -173,10 +146,7 @@ fn schema_seven_empty_state_can_enroll_after_migration() {
     )
     .unwrap();
     drop(c);
-    let s = Store::open(f.db()).unwrap();
-    s.enroll_source("/source", "binding-v1", "observed")
-        .unwrap();
-    assert_eq!(s.job_count().unwrap(), 0);
+    assert_unsupported_unchanged(&f.db());
 }
 
 #[test]
@@ -314,7 +284,7 @@ fn reset_request(epoch: u32) -> MissingResetRequest {
     }
 }
 #[test]
-fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
+fn schema_six_refuses_unsupported_state() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
     let complete = ready_job(&s);
@@ -325,7 +295,6 @@ fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
         .accept(&input("g", "pending", "other"), &context())
         .unwrap();
     s.note_missing(pending.job_id, 1, 100).unwrap();
-    let instance = s.instance_id().unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
@@ -333,16 +302,7 @@ fn schema_six_migration_preserves_delivery_audit_and_missing_deadlines() {
     )
     .unwrap();
     drop(c);
-    assert!(matches!(
-        Store::open_read_only(f.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let s = Store::open(f.db()).unwrap();
-    assert_eq!(s.instance_id().unwrap(), instance);
-    assert_eq!(s.status(complete.job_id).unwrap().unwrap().review_epoch, 1);
-    let p = s.status(pending.job_id).unwrap().unwrap();
-    assert_eq!(p.missing, vec![(1, 400, false)]);
-    assert_eq!(p.missing_review_epoch, 0);
+    assert_unsupported_unchanged(&f.db());
 }
 #[test]
 fn missing_reset_preserves_claims_reservations_and_old_replays_do_not_extend_deadlines() {
@@ -504,12 +464,11 @@ fn resume_request(epoch: u32) -> ResumeRequest {
     }
 }
 #[test]
-fn schema_five_migration_preserves_claims_instance_and_review() {
+fn schema_five_refuses_unsupported_state() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
     let j = ready_job(&s);
     review(&s, j.job_id);
-    let instance = s.instance_id().unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
@@ -517,16 +476,7 @@ fn schema_five_migration_preserves_claims_instance_and_review() {
     )
     .unwrap();
     drop(c);
-    assert!(matches!(
-        Store::open_read_only(f.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let s = Store::open(f.db()).unwrap();
-    let status = s.status(j.job_id).unwrap().unwrap();
-    assert_eq!(s.instance_id().unwrap(), instance);
-    assert_eq!(status.review_epoch, 0);
-    assert_eq!(status.delivery.unwrap().0, 3);
-    assert_eq!(status.job.recording.handoff(), Handoff::Ready202);
+    assert_unsupported_unchanged(&f.db());
 }
 #[test]
 fn operator_resume_is_audited_idempotent_and_rejects_stale_review_epochs() {
@@ -706,7 +656,7 @@ fn retained_table_rows(
     rows
 }
 #[test]
-fn schema_ten_retry_migration_preserves_every_populated_table_and_saved_deadline() {
+fn schema_ten_refusal_preserves_every_populated_table_and_saved_deadline() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
     s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
@@ -781,36 +731,17 @@ fn schema_ten_retry_migration_preserves_every_populated_table_and_saved_deadline
     assert!(s.claim_blocked(pending.job_id, 500).unwrap());
     s.reset_missing(pending.job_id, &reset_request(0), 500)
         .unwrap();
-    let instance = s.instance_id().unwrap();
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     schema_ten_retry_table(&c);
     let before = retained_table_rows(&c);
     drop(c);
-    assert!(matches!(
-        Store::open_read_only(f.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let s = Store::open(f.db()).unwrap();
+    assert_unsupported_unchanged(&f.db());
     let c = Connection::open(f.db()).unwrap();
-    assert_eq!(
-        c.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
-            .unwrap(),
-        11
-    );
     assert_eq!(retained_table_rows(&c), before);
-    assert_eq!(s.instance_id().unwrap(), instance);
-    assert!(s.delivery_candidates(139, 1).unwrap().is_empty());
-    assert_eq!(s.delivery_candidates(140, 1).unwrap(), vec![job.job_id]);
-    s.delivery_failed_with_kind(job.job_id, 140, DeliveryFailureKind::DestinationCapacity)
-        .unwrap();
-    assert_eq!(
-        s.status(job.job_id).unwrap().unwrap().delivery,
-        Some((3, 260, "destination_capacity_requires_review".into()))
-    );
 }
 #[test]
-fn failed_capacity_code_migration_rolls_back_schema_version_and_retained_rows() {
+fn corrupt_unsupported_schema_ten_refuses_without_mutation() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
     let id = ready_job(&s).job_id;
@@ -818,11 +749,14 @@ fn failed_capacity_code_migration_rolls_back_schema_version_and_retained_rows() 
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     schema_ten_retry_table(&c);
-    // Controlled corrupt fixture: fail the copy after ALTER/CREATE, not before it.
+    // Even corrupt unsupported state must be preserved without attempting conversion.
     c.execute_batch("PRAGMA ignore_check_constraints=ON; UPDATE delivery_failures SET code='invalid_fixture_code'; PRAGMA ignore_check_constraints=OFF;").unwrap();
     let before = retained_table_rows(&c);
     drop(c);
-    assert!(matches!(Store::open(f.db()), Err(StoreError::Sqlite(_))));
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::UnsupportedSchema)
+    ));
     let c = Connection::open(f.db()).unwrap();
     assert_eq!(
         c.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
@@ -941,36 +875,17 @@ fn capacity_backoff_persistence_failure_does_not_partially_update_count_or_deadl
 }
 
 #[test]
-fn coordination_migration_preserves_instance_and_bounded_delivery_retries() {
+fn coordination_refuses_unsupported_state() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
-    let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
+    let _job = db.accept(&input("g", "old", "data"), &context()).unwrap();
     db.connection.execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; PRAGMA user_version=4;").unwrap();
     drop(db);
-    let s = Store::open(f.db()).unwrap();
-    let instance = s.instance_id().unwrap();
-    assert_eq!(instance.len(), 32);
-    assert!(s.delivery_candidates(100, 1).unwrap().is_empty());
-    s.begin_claim(&intent_for(&job, 0, 3)).unwrap();
-    s.finish_claim(&intent_for(&job, 0, 3)).unwrap();
-    s.begin_claim(&intent_for(&job, 1, u64::MAX)).unwrap();
-    s.finish_claim(&intent_for(&job, 1, u64::MAX)).unwrap();
-    assert_eq!(s.delivery_candidates(100, 1).unwrap(), vec![job.job_id]);
-    s.delivery_deferred(job.job_id, 100).unwrap();
-    assert!(s.delivery_candidates(104, 1).unwrap().is_empty());
-    assert_eq!(s.delivery_candidates(105, 1).unwrap(), vec![job.job_id]);
-    for time in [105, 110, 115] {
-        s.delivery_failed(job.job_id, time).unwrap();
-    }
-    assert!(s.delivery_candidates(1000, 1).unwrap().is_empty());
-    drop(s);
-    let s = Store::open(f.db()).unwrap();
-    assert_eq!(s.instance_id().unwrap(), instance);
-    assert!(s.delivery_candidates(1000, 1).unwrap().is_empty());
+    assert_unsupported_unchanged(&f.db());
 }
 
 #[test]
-fn schema_three_migration_retains_claim_evidence() {
+fn schema_three_refuses_unsupported_state() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
@@ -981,13 +896,7 @@ fn schema_three_migration_retains_claim_evidence() {
         .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; PRAGMA user_version=3;")
         .unwrap();
     drop(db);
-    assert!(matches!(
-        Store::open_read_only(f.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let s = Store::open(f.db()).unwrap();
-    assert_eq!(s.claim_intent(job.job_id, 0).unwrap().unwrap().0, intent);
-    assert!(s.transfer(job.job_id, 0).unwrap().is_none());
+    assert_unsupported_unchanged(&f.db());
 }
 
 #[test]
@@ -1083,7 +992,7 @@ fn missing_deadline_survives_restart_replay_and_clock_rollback() {
 }
 
 #[test]
-fn schema_two_migration_preserves_partial_claims() {
+fn schema_two_refuses_unsupported_state() {
     let f = Fixture::new();
     let mut db = Database::open(&f.db(), false).unwrap();
     let job = db.accept(&input("g", "old", "data"), &context()).unwrap();
@@ -1094,14 +1003,7 @@ fn schema_two_migration_preserves_partial_claims() {
         .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; DROP TABLE source_enrollment; DROP TABLE missing_resets; DROP TABLE operator_resumes; DROP TABLE delivery_failures; DROP TABLE manifests; DROP TABLE metadata; DROP TABLE transfers; DROP TABLE missing; PRAGMA user_version=2;")
         .unwrap();
     drop(db);
-    let store = Store::open(f.db()).unwrap();
-    let job = store.get(job.job_id).unwrap().unwrap();
-    assert_eq!(
-        job.recording.file_phase(0),
-        Some(mover_core::FilePhase::Claimed)
-    );
-    assert_eq!(job.recording.handoff(), Handoff::Pending);
-    assert!(!store.note_missing(job.job_id, 1, 100).unwrap());
+    assert_unsupported_unchanged(&f.db());
 }
 
 fn intent_for(job: &Accepted, index: usize, size: u64) -> ClaimIntent {
@@ -1691,7 +1593,7 @@ fn destination_policy_and_observation_survive_route_changes_and_restart() {
     }
 }
 #[test]
-fn schema_eight_jobs_migrate_but_cannot_adopt_current_destination_policy() {
+fn schema_eight_jobs_refuses_unsupported_state() {
     let f = Fixture::new();
     {
         let mut db = Database::open(&f.db(), false).unwrap();
@@ -1701,29 +1603,7 @@ fn schema_eight_jobs_migrate_but_cannot_adopt_current_destination_policy() {
             .execute_batch("DROP TABLE source_ownership; DROP TABLE destination_bindings; PRAGMA user_version=8;")
             .unwrap();
     }
-    assert!(matches!(
-        Store::open_read_only(f.db()),
-        Err(StoreError::UnsupportedSchema)
-    ));
-    let store = Store::open(f.db()).unwrap();
-    assert_eq!(store.job_count().unwrap(), 1);
-    assert!(matches!(
-        store.require_destination_bindings(),
-        Err(StoreError::DestinationEnrollmentRequired)
-    ));
-    assert!(matches!(
-        store.pin_destination(1, "new-policy", "new-observation"),
-        Err(StoreError::DestinationEnrollmentRequired)
-    ));
-    assert!(
-        store
-            .get(1)
-            .unwrap()
-            .unwrap()
-            .context
-            .destination_binding
-            .is_none()
-    );
+    assert_unsupported_unchanged(&f.db());
 }
 #[test]
 fn destination_refusal_persists_immediate_review_after_an_outage() {
@@ -2202,4 +2082,63 @@ fn history_clear_admission_never_creates_initializes_or_migrates_state() {
         10
     );
     assert_eq!(retained_table_rows(&c), before);
+}
+
+fn assert_unsupported_unchanged(path: &Path) {
+    let before = std::fs::read(path).unwrap();
+    for error in [
+        Store::open(path).err(),
+        Store::open_read_only(path).err(),
+        Store::check_compatibility(path, false).err(),
+    ] {
+        assert!(
+            matches!(error, Some(StoreError::UnsupportedSchema)),
+            "{error:?}"
+        );
+        assert_eq!(std::fs::read(path).unwrap(), before);
+    }
+}
+
+#[test]
+fn compatibility_checks_all_unsupported_versions_without_initializing() {
+    let f = Fixture::new();
+    assert!(Store::check_compatibility(f.db(), false).is_err());
+    assert!(!f.db().exists());
+    Store::check_compatibility(f.db(), true).unwrap();
+    assert!(!f.db().exists());
+    std::fs::write(f.db(), []).unwrap();
+    assert!(Store::check_compatibility(f.db(), false).is_err());
+    Store::check_compatibility(f.db(), true).unwrap();
+    assert_eq!(std::fs::metadata(f.db()).unwrap().len(), 0);
+    drop(Store::open(f.db()).unwrap());
+    for version in (1..=10).chain([12, 99]) {
+        let c = Connection::open(f.db()).unwrap();
+        c.pragma_update(None, "user_version", version).unwrap();
+        drop(c);
+        assert_unsupported_unchanged(&f.db());
+    }
+}
+
+#[test]
+fn compatibility_rejects_foreign_corrupt_and_modified_current_schema() {
+    for sql in [
+        "PRAGMA application_id=42;",
+        "CREATE TRIGGER unexpected AFTER INSERT ON jobs BEGIN SELECT 1; END;",
+        "DROP TABLE source_ownership;",
+        "UPDATE metadata SET value='bad' WHERE key='instance_id';",
+    ] {
+        let f = Fixture::new();
+        drop(Store::open(f.db()).unwrap());
+        Store::check_compatibility(f.db(), false).unwrap();
+        let c = Connection::open(f.db()).unwrap();
+        c.execute_batch(sql).unwrap();
+        drop(c);
+        let before = std::fs::read(f.db()).unwrap();
+        assert!(Store::check_compatibility(f.db(), false).is_err(), "{sql}");
+        assert_eq!(std::fs::read(f.db()).unwrap(), before);
+    }
+    let f = Fixture::new();
+    std::fs::write(f.db(), b"not SQLite").unwrap();
+    assert!(Store::check_compatibility(f.db(), true).is_err());
+    assert_eq!(std::fs::read(f.db()).unwrap(), b"not SQLite");
 }

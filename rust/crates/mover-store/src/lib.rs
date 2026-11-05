@@ -57,6 +57,10 @@ impl fmt::Display for StoreError {
         match self {
             Self::Sqlite(error) => write!(f, "SQLite: {error}"),
             Self::Io(error) => write!(f, "I/O: {error}"),
+            Self::UnsupportedSchema => write!(
+                f,
+                "UnsupportedSchema: schema 11 mover state required; automatic legacy upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+            ),
             other => write!(f, "{other:?}"),
         }
     }
@@ -288,6 +292,40 @@ impl Store {
             tx.commit()?;
             Ok(())
         })
+    }
+    /// Check existing state before payload bootstrap, under caller-held instance
+    /// and lifetime exclusion. Missing/empty state is allowed only for explicit
+    /// initialization. Never create, migrate or initialize state in this check.
+    pub fn check_compatibility(path: impl AsRef<Path>, initialize: bool) -> Result<()> {
+        let path = path.as_ref();
+        match std::fs::symlink_metadata(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound && initialize => return Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(StoreError::SourceEnrollmentRequired);
+            }
+            Err(e) => return Err(e.into()),
+            Ok(metadata) if metadata.is_file() && metadata.len() == 0 && initialize => {
+                for suffix in ["-wal", "-shm", "-journal"] {
+                    match std::fs::symlink_metadata(format!("{}{suffix}", path.display())) {
+                        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+                        Err(e) => return Err(e.into()),
+                        Ok(_) => return Err(StoreError::UnsupportedSchema),
+                    }
+                }
+                return Ok(());
+            }
+            Ok(_) => (),
+        }
+        let database = Database::open(path, true)?;
+        validate_schema(&database.connection)?;
+        let integrity: String =
+            database
+                .connection
+                .query_row("PRAGMA integrity_check", [], |r| r.get(0))?;
+        if integrity != "ok" {
+            return Err(StoreError::CorruptState);
+        }
+        Ok(())
     }
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Self::start(path.as_ref().to_owned(), false, false)
@@ -571,6 +609,53 @@ impl Drop for Store {
     }
 }
 
+fn create_tables(connection: &Connection) -> Result<()> {
+    for sql in [
+        include_str!("schema.sql"),
+        include_str!("claims.sql"),
+        include_str!("missing.sql"),
+        include_str!("transfers.sql"),
+        include_str!("coordination.sql"),
+        include_str!("operators.sql"),
+        include_str!("missing_resets.sql"),
+        include_str!("source_enrollment.sql"),
+        include_str!("destination_bindings.sql"),
+        include_str!("source_ownership.sql"),
+        include_str!("capacity_retries.sql"),
+    ] {
+        connection.execute_batch(sql)?;
+    }
+    Ok(())
+}
+
+// A version label alone cannot establish compatibility. Compare the complete
+// supported DDL, allowing whitespace differences only. Unknown triggers/views/
+// indexes or changed constraints refuse; no user SQL is executed for conversion.
+fn validate_schema(connection: &Connection) -> Result<()> {
+    fn definitions(connection: &Connection) -> Result<Vec<(String, String, String, String)>> {
+        let mut statement = connection.prepare(
+            "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name",
+        )?;
+        Ok(statement
+            .query_map([], |row| {
+                let sql: String = row.get(3)?;
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    sql.split_whitespace().collect::<Vec<_>>().join(" "),
+                ))
+            })?
+            .collect::<std::result::Result<_, _>>()?)
+    }
+    let reference = Connection::open_in_memory()?;
+    create_tables(&reference)?;
+    if definitions(connection)? != definitions(&reference)? {
+        return Err(StoreError::UnsupportedSchema);
+    }
+    Ok(())
+}
+
 struct Database {
     connection: Connection,
     limits: Option<(u64, u64)>,
@@ -609,12 +694,13 @@ impl Database {
             if objects != 0 {
                 return Err(StoreError::UnsupportedSchema);
             }
-        } else if (version != SCHEMA_VERSION && !((1..=10).contains(&version) && !read_only))
-            || application != APPLICATION_ID
-        {
+        } else if version != SCHEMA_VERSION || application != APPLICATION_ID {
             return Err(StoreError::UnsupportedSchema);
         }
-        connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "trusted_schema", "OFF")?;
+        if !read_only {
+            connection.pragma_update(None, "journal_mode", "WAL")?;
+        }
         connection.pragma_update(None, "synchronous", "FULL")?;
         connection.pragma_update(None, "foreign_keys", "ON")?;
         let journal: String = connection.pragma_query_value(None, "journal_mode", |r| r.get(0))?;
@@ -640,55 +726,9 @@ impl Database {
         }
         if fresh {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            tx.execute_batch(include_str!("schema.sql"))?;
-            tx.execute_batch(include_str!("claims.sql"))?;
-            tx.execute_batch(include_str!("missing.sql"))?;
-            tx.execute_batch(include_str!("transfers.sql"))?;
-            tx.execute_batch(include_str!("coordination.sql"))?;
-            tx.execute_batch(include_str!("operators.sql"))?;
-            tx.execute_batch(include_str!("missing_resets.sql"))?;
-            if version <= 7 {
-                tx.execute_batch(include_str!("source_enrollment.sql"))?;
-            }
-            tx.execute_batch(include_str!("destination_bindings.sql"))?;
-            tx.execute_batch(include_str!("source_ownership.sql"))?;
-            tx.execute_batch(include_str!("capacity_retries.sql"))?;
+            create_tables(&tx)?;
             initialize_instance(&tx)?;
             tx.pragma_update(None, "application_id", APPLICATION_ID)?;
-            tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
-            tx.commit()?;
-        }
-        if (1..=10).contains(&version) && !read_only {
-            let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            if version == 1 {
-                tx.execute_batch(include_str!("claims.sql"))?;
-            }
-            if version <= 2 {
-                tx.execute_batch(include_str!("missing.sql"))?;
-            }
-            if version <= 3 {
-                tx.execute_batch(include_str!("transfers.sql"))?;
-            }
-            if version <= 4 {
-                tx.execute_batch(include_str!("coordination.sql"))?;
-                initialize_instance(&tx)?;
-            }
-            if version <= 5 {
-                tx.execute_batch(include_str!("operators.sql"))?;
-            }
-            if version <= 6 {
-                tx.execute_batch(include_str!("missing_resets.sql"))?;
-            }
-            if version <= 7 {
-                tx.execute_batch(include_str!("source_enrollment.sql"))?;
-            }
-            if version <= 8 {
-                tx.execute_batch(include_str!("destination_bindings.sql"))?;
-            }
-            if version <= 9 {
-                tx.execute_batch(include_str!("source_ownership.sql"))?;
-            }
-            tx.execute_batch(include_str!("capacity_retries.sql"))?;
             tx.pragma_update(None, "user_version", SCHEMA_VERSION)?;
             tx.commit()?;
         }

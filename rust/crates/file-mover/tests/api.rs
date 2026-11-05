@@ -4339,3 +4339,70 @@ fn offline_history_epoch_helper() {
     drop(guard); // No descriptor survives; the next process must consult the epoch.
     std::process::exit(0);
 }
+
+#[test]
+fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
+    let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
+    for case in (1..=10).chain([12, 99, 100, 101]) {
+        let f = Fixture::uninitialized(300);
+        let database = f.root.join("state/jobs.sqlite");
+        drop(mover_store::Store::open(&database).unwrap());
+        let mut bytes = std::fs::read(&database).unwrap();
+        if case == 100 {
+            bytes[68..72].copy_from_slice(&42_u32.to_be_bytes());
+        } else if case == 101 {
+            bytes = b"corrupt database fixture".to_vec();
+        } else {
+            bytes[60..64].copy_from_slice(&(case as u32).to_be_bytes());
+        }
+        std::fs::write(&database, &bytes).unwrap();
+        let config_path = f.root.join("config.json");
+        let mut config: Value =
+            serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+        config["source_root"] = json!(f.root.join("unavailable-source"));
+        std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+        for mode in [None, Some("--initialize-source"), Some("--transfer-one")] {
+            let mut command = Command::new(&exe);
+            if let Some(mode) = mode {
+                command.arg(mode);
+            }
+            command.arg(&config_path);
+            if mode == Some("--transfer-one") {
+                command.arg("1");
+            }
+            let mut child = command
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let until = Instant::now() + Duration::from_secs(4);
+            while child.try_wait().unwrap().is_none() {
+                if Instant::now() >= until {
+                    child.kill().unwrap();
+                    child.wait().unwrap();
+                    panic!("compatibility refusal blocked: {case} {mode:?}");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            let output = child.wait_with_output().unwrap();
+            assert!(!output.status.success(), "{case} {mode:?}");
+            let log = String::from_utf8_lossy(&output.stderr);
+            assert!(
+                log.contains(if case == 101 {
+                    "SQLite:"
+                } else {
+                    "UnsupportedSchema"
+                }),
+                "{case} {mode:?}: {log}"
+            );
+            assert_eq!(std::fs::read(&database).unwrap(), bytes);
+            assert!(!f.root.join("state/control.sock").exists());
+            assert!(!f.root.join("unavailable-source").exists());
+            assert!(
+                !f.root
+                    .join("source/.file-mover/source-enrollment.json")
+                    .exists()
+            );
+        }
+    }
+}

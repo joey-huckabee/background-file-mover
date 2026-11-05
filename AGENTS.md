@@ -2,6 +2,13 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-04 bounded implementation authorization: the user explicitly requests
+compatibility checks now. Increment 110 adds guarded schema-11 preflight before
+payload bootstrap for daemon, initialization and transfer CLI; rejects historical
+auto-migrations and unsupported state. No schema-12 migration, UUID/v2 runtime,
+rollback conversion, deployment or full P01 freeze is authorized. See
+docs/RUST-INCREMENT-110.md for exact validation status and limitations.
+
 2026-11-04 migration planning step 1: the user approves one explicit offline
 upgrade path from validated schema 11 to the next schema, preserving legacy
 custody/recovery and refusing unsupported state. See docs/api/SCHEMA-11-UPGRADE.md

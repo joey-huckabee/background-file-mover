@@ -887,3 +887,12 @@ identifiers. DOC-01-05 must cover decimal-string new producer/v2 sizes, exact
 UTF-8 names, legacy custody/v1 preservation and the supported upgrade/rollback
 list with safe refusal. Exact supported versions and implementation/qualification
 remain pending; no file/state migration or production enablement occurred.
+
+
+Increment 110 implements the bounded early-refusal portion of SC-190/194:
+guarded schema-11 compatibility inspection before source bootstrap, historical
+version refusal without automatic migration, and preserved explicit fresh setup.
+See [increment 110](RUST-INCREMENT-110.md) for current validation status and the
+[operator guide](RUST-OPERATOR-GUIDE.md#state-compatibility-before-startup) for
+refusal handling. Existing 194 SC and six DOC IDs remain unchanged. Target-schema
+migration, old-binary launch qualification and broader release gates remain open.
