@@ -2110,6 +2110,14 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     assert!(Store::check_compatibility(f.db(), false).is_err());
     Store::check_compatibility(f.db(), true).unwrap();
     assert_eq!(std::fs::metadata(f.db()).unwrap().len(), 0);
+    let recovery = f.db().with_file_name("state.sqlite-wal");
+    std::fs::write(&recovery, b"retained recovery evidence").unwrap();
+    assert!(Store::check_compatibility(f.db(), true).is_err());
+    assert_eq!(
+        std::fs::read(&recovery).unwrap(),
+        b"retained recovery evidence"
+    );
+    std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
     for version in (1..=10).chain([12, 99]) {
         let c = Connection::open(f.db()).unwrap();
@@ -2124,6 +2132,7 @@ fn compatibility_rejects_foreign_corrupt_and_modified_current_schema() {
     for sql in [
         "PRAGMA application_id=42;",
         "CREATE TRIGGER unexpected AFTER INSERT ON jobs BEGIN SELECT 1; END;",
+        "CREATE TRIGGER sqliteXblock AFTER INSERT ON jobs BEGIN SELECT RAISE(ABORT,'blocked'); END;",
         "DROP TABLE source_ownership;",
         "UPDATE metadata SET value='bad' WHERE key='instance_id';",
     ] {

@@ -298,23 +298,25 @@ impl Store {
     /// initialization. Never create, migrate or initialize state in this check.
     pub fn check_compatibility(path: impl AsRef<Path>, initialize: bool) -> Result<()> {
         let path = path.as_ref();
-        match std::fs::symlink_metadata(path) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound && initialize => return Ok(()),
+        let fresh = match std::fs::symlink_metadata(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound && initialize => true,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 return Err(StoreError::SourceEnrollmentRequired);
             }
             Err(e) => return Err(e.into()),
-            Ok(metadata) if metadata.is_file() && metadata.len() == 0 && initialize => {
-                for suffix in ["-wal", "-shm", "-journal"] {
-                    match std::fs::symlink_metadata(format!("{}{suffix}", path.display())) {
-                        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
-                        Err(e) => return Err(e.into()),
-                        Ok(_) => return Err(StoreError::UnsupportedSchema),
-                    }
+            Ok(metadata) => metadata.is_file() && metadata.len() == 0 && initialize,
+        };
+        if fresh {
+            for suffix in ["-wal", "-shm", "-journal"] {
+                let mut recovery = path.as_os_str().to_owned();
+                recovery.push(suffix);
+                match std::fs::symlink_metadata(Path::new(&recovery)) {
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+                    Err(e) => return Err(e.into()),
+                    Ok(_) => return Err(StoreError::UnsupportedSchema),
                 }
-                return Ok(());
             }
-            Ok(_) => (),
+            return Ok(());
         }
         let database = Database::open(path, true)?;
         validate_schema(&database.connection)?;
@@ -634,7 +636,7 @@ fn create_tables(connection: &Connection) -> Result<()> {
 fn validate_schema(connection: &Connection) -> Result<()> {
     fn definitions(connection: &Connection) -> Result<Vec<(String, String, String, String)>> {
         let mut statement = connection.prepare(
-            "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name",
+            "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name",
         )?;
         Ok(statement
             .query_map([], |row| {

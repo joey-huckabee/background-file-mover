@@ -10,8 +10,8 @@ Daemon startup, `--initialize-source` and `--transfer-one` now acquire the exist
 InstanceGuard, validate database/recovery-file locality and identity, register
 their process-group lifetime, and inspect compatible local state before starting
 source bootstrap. Guard/lifetime ownership continues through normal SQLite
-closure. The daemon creates its local control server only after compatibility
-passes. Existing `--status` and `--stop` remain independent of SQLite and payload
+closure. The daemon keeps its independent local control server available during
+inspection; a refusal drops that server and removes its socket. Existing `--status` and `--stop` remain independent of SQLite and payload
 storage so an operator can observe/stop an already-running owner.
 
 Existing database inspection uses a no-CREATE read-only connection, requires

@@ -941,9 +941,9 @@ pub async fn serve_controlled(
                     mover_fs::InstanceGuard::for_database(&startup_config.state_database)
                         .map_err(|e| e.to_string())?,
                 );
-                check_state_compatibility(&startup_config, &instance, false)
-                    .map_err(|e| e.to_string())?;
                 let control = control::Server::start(instance.clone(), startup_lifecycle.clone())
+                    .map_err(|e| e.to_string())?;
+                check_state_compatibility(&startup_config, &instance, false)
                     .map_err(|e| e.to_string())?;
                 let guard = bootstrap::acquire(
                     &startup_config.source_root,
