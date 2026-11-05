@@ -1,0 +1,180 @@
+{
+  "scope": "Increment 111: fresh schema12 and legacy readers/writers only; migration apply, backup and UUID/v2 runtime disabled. Test-only rebuilds are not a production migrator.",
+  "validated_commit": "617960a7404cb0dec9359aaf7862709cc1a81e31",
+  "validated_rust_tree": "8bb7844963648b4c75104ed679f2694a4a535e07",
+  "host": "Ubuntu WSL2 x86_64; exact target tests in pinned SLES 12 SP5 userspace.",
+  "raw_evidence_directory": "/home/joey/GIT/background-file-mover-testing/rust/validation",
+  "raw_evidence_transferred_by_git": false,
+  "pins": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_libc": "0.2.4",
+    "provider_mode": "source",
+    "cc": "/usr/bin/clang-16",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "source_input_count": 65,
+  "source_inputs_sha256": {
+    "rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228",
+    ".gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+    "README.md": "69cd988e885f46356dca1c359e29b027b01afc867ad77e40f0b4db579ade9ceb",
+    "config/local.example.json": "60361a53728365d969c62a4696fe6cdccd37edfc890fccc01d81ef8a0080ac77",
+    "Cargo.lock": "5dafb4f7f397fc3b44323f8e6b5e2fa0164991a8077a2b57f3fce6422b0155e6",
+    "Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+    "crates/file-mover/Cargo.toml": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27",
+    "crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+    "crates/file-mover/src/claim_worker.rs": "c40448eef5adbd19984c0573cfbd447b8fdfc234d4ef417b9d35014127e80441",
+    "crates/file-mover/src/control.rs": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf",
+    "crates/file-mover/src/delivery_worker.rs": "156423185220df8e7a75c0bad57e0138983cbedeca5180dc44526fc5f2b1ef21",
+    "crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+    "crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+    "crates/file-mover/src/http.rs": "36e715e93fb6816967e8507f72ca33b38f953ff7e54eca0abefa9cae61578a1a",
+    "crates/file-mover/src/lib.rs": "0370fc463b1356e4b600dc0119e9d62cc2cdf3566f12fc76f0f1b72e3d15b7e6",
+    "crates/file-mover/src/main.rs": "56f7e19e3fadf4ab58e4989757f5368984105c2e428093b47bd95880b905a98d",
+    "crates/file-mover/src/payload.rs": "3eea1904fd3d3921d31623e91556d5ed3ce1308e92c08835fc96991db34a80a1",
+    "crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+    "crates/file-mover/tests/api.rs": "d1a850629f26bfcd842aa94fe3f0ef34a6d7cf56425e0fe1ebba666487340bff",
+    "crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+    "crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+    "crates/mover-core/src/lib.rs": "7913455d94ef0698e0c1f5c0ccaaad99be59e80b2b82c3ac073953f103556814",
+    "crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+    "crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+    "crates/mover-core/src/transfer.rs": "5356b62597ba876a2c000a89432d9296491f2862187089e142665560372f7786",
+    "crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+    "crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+    "crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+    "crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+    "crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+    "crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+    "crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+    "crates/mover-fs/src/instance.rs": "1ccf002e17e5d79b36e606eb4e2876a3f26481b9ce4744eb51d20b69d5664f40",
+    "crates/mover-fs/src/lib.rs": "0c369b6391787fc30c0d2dc6988daed2c136f276b98361e0fabd2135299ff7e7",
+    "crates/mover-fs/src/manifest.rs": "a4d26dab80a4fba935a0a5788d5703f0bb42472b18144bcc7336b35aea941359",
+    "crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+    "crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+    "crates/mover-fs/src/qualification.rs": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb",
+    "crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+    "crates/mover-fs/src/transfer.rs": "113419d962c8724e3e19a6f62b15ee1d3dac3e2f9fa61b745def675bb73cf67c",
+    "crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+    "crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+    "crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+    "crates/mover-store/Cargo.toml": "4e7dccebcb8dfe02701cb60ed9289784fff4fcf9ce96fa83a0efc427b7559928",
+    "crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+    "crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+    "crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+    "crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+    "crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+    "crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+    "crates/mover-store/src/jobs.sql": "d2f996570b6ab6b4094517b324c76935203b10ddc6cb5f3be812ed9edda3ec18",
+    "crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+    "crates/mover-store/src/lib.rs": "0d9120b2b48770cc546431cc52fb4b3ba5bb36972e59411395853fa2e9d717a6",
+    "crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+    "crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+    "crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+    "crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+    "crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+    "crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+    "crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+    "crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+    "crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+    "crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+    "crates/mover-store/src/tests.rs": "82ce38d64179950e611c8201b1bf6a2e8ae36268af78f4d2958adee252f3c7bc",
+    "crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db"
+  },
+  "runs": [
+    {
+      "run_id": "20261105T053518Z-09ab3d21",
+      "mode": "production",
+      "status": "PASSED",
+      "offline": true,
+      "report_sha256": "6bd1628d4527fbe530332cad62bc6ad034812c74b952ffb2dfcdf6e5f506ce19",
+      "source_archive_sha256": "b66ec760bae327208a26bb48f17f350f4e12cb506ab51e04936059f6d23a6fa2",
+      "profiles": {
+        "debug": {
+          "tests_passed": 227,
+          "tests_ignored": 5,
+          "artifacts_rehashed": 10
+        },
+        "release": {
+          "tests_passed": 227,
+          "tests_ignored": 5,
+          "artifacts_rehashed": 10
+        }
+      },
+      "negative_controls": [
+        "new-glibc",
+        "private-glibc",
+        "wrong-loader",
+        "unexpected-library",
+        "runpath",
+        "wrong-architecture"
+      ],
+      "container_networks": {
+        "builder": "none",
+        "runtime": "none"
+      },
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261105T060535Z-5f6f819b-nfs-qualification",
+      "mode": "nfs-qualification",
+      "status": "PASSED",
+      "offline": true,
+      "report_sha256": "cc761a4f5c05f7621f3f0340433d7aeb0db954dbc8523415a3cc143bad517637",
+      "source_archive_sha256": "721174388aed4260675db808072a313d65db59c90db2c00ff47a3661955e83f0",
+      "profiles": {
+        "debug": {
+          "tests_passed": 229,
+          "tests_ignored": 5,
+          "artifacts_rehashed": 10
+        },
+        "release": {
+          "tests_passed": 229,
+          "tests_ignored": 5,
+          "artifacts_rehashed": 10
+        }
+      },
+      "negative_controls": [
+        "new-glibc",
+        "private-glibc",
+        "wrong-loader",
+        "unexpected-library",
+        "runpath",
+        "wrong-architecture"
+      ],
+      "container_networks": {
+        "builder": "none",
+        "runtime": "none"
+      },
+      "cleanup_error": null
+    }
+  ],
+  "predecessor_jobs_ddl": {
+    "reference_commit": "efac4f494a4b8a3b7bb041c2bfebed5e76c54450",
+    "preserved_exactly_after_fixture_comment": true
+  },
+  "independent_review": {
+    "thread": "thr_xnjapdndei",
+    "scope": "efac4f4..617960a",
+    "findings": "No actionable findings.",
+    "builds_tests_run_by_reviewer": false
+  },
+  "limits": [
+    "No operational state conversion, backup/apply path or migration fault qualification.",
+    "No UUID admission, UUID recovery, manifest v2 or new producer wire activation.",
+    "No production NFS, target-install cutover, old kernel/CPU, power-loss or remote settlement qualification.",
+    "Affected historical NFS/bootstrap acquisition assumptions require separate review/adaptation and fresh qualification."
+  ]
+}

@@ -16,6 +16,11 @@ schema-11 compatibility refusal before payload bootstrap/offline clear and
 removes historical automatic upgrades. This does not implement the target-schema
 migration or any pending producer/admin/session wire behavior.
 
+[Increment 111](../RUST-INCREMENT-111.md) implements the first schema-12
+foundation slice for fresh setup and legacy readers/writers. Schema 11 now
+returns MigrationRequired; backup/apply and UUID/v2 activation remain disabled.
+See its exact gate status before treating the foundation as a usable upgrade.
+
 ## Artifacts
 
 P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)

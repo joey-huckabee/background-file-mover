@@ -12,6 +12,11 @@ refusal. Its results concern admission to existing schema 11, not the future
 schema-11-to-target conversion specified here. The upgrade matrix and migration
 acceptance cases below remain unqualified until that separate implementation.
 
+The first [schema-12 foundation slice](../RUST-INCREMENT-111.md) subsequently
+implements fresh target creation and legacy readers/writers, with migration apply
+still disabled. Its normal startup refuses schema 11 with MigrationRequired.
+This is not qualification of the schema-11 conversion matrix below.
+
 ## Target and release evidence
 
 The planned target is the next schema, provisionally schema 12. Its exact SQL,
