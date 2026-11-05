@@ -4407,7 +4407,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             let log = String::from_utf8_lossy(&output.stderr);
             assert!(
                 log.contains(if case == 101 {
-                    "SQLite:"
+                    "file is not a database"
                 } else {
                     "UnsupportedSchema"
                 }),

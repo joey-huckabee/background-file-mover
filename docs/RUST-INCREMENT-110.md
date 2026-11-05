@@ -51,3 +51,14 @@ Validation status: **PENDING**. Both cargo-libc/SLES production and qualificatio
 gates must validate the final changed Rust inputs. No host-only Cargo tests,
 production NFS, target-schema migration or incompatible historical executable
 qualification is claimed. Exact gate results will be recorded before closeout.
+
+
+The initial final-source production run `20261105T032748Z-b6e652e8` failed its
+new corrupt-database CLI diagnostic assertion in debug (87 API tests passed,
+one failed). The CLI refused correctly, but Rust's main-result Debug formatting
+used `Sqlite(...)` while daemon startup used Display `SQLite: ...`. The regression
+now checks the shared underlying `file is not a database` diagnostic; refusal,
+unchanged database bytes, no enrollment and socket cleanup assertions remain.
+This failed report is retained; fresh gates must validate the corrected test.
+Earlier runs `20261105T031907Z-6c15fd3a` and `20261105T032541Z-a6cfac7b` were
+intentionally interrupted after source changes and are not acceptance results.
