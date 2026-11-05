@@ -617,7 +617,12 @@ fn missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it() {
         let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         config["state_database"] = json!(fresh.join("jobs.sqlite"));
         std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
-        refused_start(&path);
+        let output = initialize_source(&path);
+        assert!(!output.status.success(), "{case}: {output:?}");
+        let log = String::from_utf8_lossy(&output.stderr);
+        // Exercise bootstrap refusal, not the new missing-state startup refusal.
+        assert!(!log.contains("SourceEnrollmentRequired"), "{case}: {log}");
+        assert!(!log.contains("UnsupportedSchema"), "{case}: {log}");
         assert!(!fresh.join("jobs.sqlite").exists());
         if case == "missing" {
             assert!(!lock.exists());
@@ -878,7 +883,12 @@ fn source_marker_and_filesystem_failures_precede_sqlite() {
             _ => unreachable!(),
         }
         std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
-        refused_start(&config_path);
+        let output = initialize_source(&config_path);
+        assert!(!output.status.success(), "{case}: {output:?}");
+        let log = String::from_utf8_lossy(&output.stderr);
+        // Exercise bootstrap refusal, not the new missing-state startup refusal.
+        assert!(!log.contains("SourceEnrollmentRequired"), "{case}: {log}");
+        assert!(!log.contains("UnsupportedSchema"), "{case}: {log}");
         assert!(!fresh.join("jobs.sqlite").exists(), "{case}");
     }
 }
