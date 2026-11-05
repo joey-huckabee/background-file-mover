@@ -11,6 +11,11 @@ The user subsequently authorized bounded group-50 code: see
 That offline committed-job implementation does not turn this candidate OpenAPI
 into an implemented authenticated API or qualify cancelled-job clearing.
 
+Separately authorized [increment 110](../RUST-INCREMENT-110.md) adds guarded
+schema-11 compatibility refusal before payload bootstrap/offline clear and
+removes historical automatic upgrades. This does not implement the target-schema
+migration or any pending producer/admin/session wire behavior.
+
 ## Artifacts
 
 P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)

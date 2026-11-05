@@ -6,6 +6,12 @@ recovery and refusing state outside the declared matrix. This document completes
 migration planning step 1. It does not authorize runtime migration code, freeze
 P01, or declare any upgrade qualified. Groups 1-52 remain the product baseline.
 
+Subsequent bounded authorization implements early current-schema compatibility
+checks in [increment 110](../RUST-INCREMENT-110.md), including historical-version
+refusal. Its results concern admission to existing schema 11, not the future
+schema-11-to-target conversion specified here. The upgrade matrix and migration
+acceptance cases below remain unqualified until that separate implementation.
+
 ## Target and release evidence
 
 The planned target is the next schema, provisionally schema 12. Its exact SQL,

@@ -22,6 +22,13 @@ for the exact planned matrix, invariants, fixture checklist and draft procedure.
 This narrows the initial support target; no upgrade is yet implemented or
 qualified, and runtime migration code remains separately gated.
 
+The user separately authorized early compatibility checks on 2026-11-04.
+[Increment 110](../RUST-INCREMENT-110.md) implements guarded current-schema
+inspection before payload bootstrap and before offline history clear, and
+removes automatic schema-1-10 upgrades. Its validation record governs that
+bounded capability. It does not implement conversion to the planned target
+schema or qualify an old executable's direct launch/rollback behavior.
+
 ## Wire size boundary
 
 For new producer `expected_sizes_bytes` values and v2 file `size_bytes`, accept
