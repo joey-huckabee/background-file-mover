@@ -17,6 +17,11 @@ implements fresh target creation and legacy readers/writers, with migration appl
 still disabled. Its normal startup refuses schema 11 with MigrationRequired.
 This is not qualification of the schema-11 conversion matrix below.
 
+Separately authorized [increment 112](../RUST-INCREMENT-112.md) adds guarded
+inspection and explicit verified offline backup, with conversion/apply disabled.
+See [the operator procedure](../OFFLINE-STATE-BACKUP.md) and actual gate status;
+these preparation commands do not qualify the upgrade/rollback matrix.
+
 ## Target and release evidence
 
 The planned target is the next schema, provisionally schema 12. Its exact SQL,

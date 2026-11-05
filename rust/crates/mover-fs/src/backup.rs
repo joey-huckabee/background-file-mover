@@ -159,15 +159,16 @@ impl BackupOutput {
         for suffix in ["", "-wal", "-shm", "-journal"] {
             let candidate = format!("{}{suffix}", self.database_path());
             instance::backup_local(Path::new(&candidate))?;
-            if !suffix.is_empty()
-                && fs::statat(
+            if !suffix.is_empty() {
+                match fs::statat(
                     &current_dir,
                     format!("state.sqlite{suffix}").as_str(),
                     AtFlags::SYMLINK_NOFOLLOW,
-                )
-                .is_ok()
-            {
-                return Err("unexpected snapshot sidecar".into());
+                ) {
+                    Ok(_) => return Err("unexpected snapshot sidecar".into()),
+                    Err(Errno::NOENT) => (),
+                    Err(error) => return Err(error.into()),
+                }
             }
         }
         let named = fs::statat(&current_dir, "state.sqlite", AtFlags::SYMLINK_NOFOLLOW)?;
@@ -333,6 +334,9 @@ mod tests {
         drop(Store::open(f.path("live.sqlite")).unwrap());
         let inspected = StateInspection::open(f.path("live.sqlite")).unwrap();
         let pairing = validate_inspected_state(&inspected).unwrap();
+        let empty = BackupOutput::create(&f.path("incomplete"), &[]).unwrap();
+        assert!(empty.finish(&inspected, pairing).is_err());
+        assert!(!Path::new(&f.path("incomplete/VERIFIED.json")).exists());
         let out = BackupOutput::create(&f.path("backup"), &[]).unwrap();
         out.copy(&inspected).unwrap();
         assert!(!Path::new(&f.path("backup/VERIFIED.json")).exists());

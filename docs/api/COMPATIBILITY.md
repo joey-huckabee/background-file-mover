@@ -34,6 +34,11 @@ proposed schema-12 jobs DDL, identity constraints, backup/conversion mechanics
 and acceptance mapping. The user authorized this design on 2026-11-04; it does
 not authorize migration execution or settle the remaining framing/runtime gates.
 
+Separately authorized [increment 112](../RUST-INCREMENT-112.md) adds guarded
+inspection and explicit verified offline backup, with conversion/apply disabled.
+See [the operator procedure](../OFFLINE-STATE-BACKUP.md) and actual gate status;
+these preparation commands do not qualify the upgrade/rollback matrix.
+
 ## Wire size boundary
 
 For new producer `expected_sizes_bytes` values and v2 file `size_bytes`, accept

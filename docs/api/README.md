@@ -18,8 +18,13 @@ migration or any pending producer/admin/session wire behavior.
 
 [Increment 111](../RUST-INCREMENT-111.md) implements the first schema-12
 foundation slice for fresh setup and legacy readers/writers. Schema 11 now
-returns MigrationRequired; backup/apply and UUID/v2 activation remain disabled.
+returns MigrationRequired; migration apply and UUID/v2 activation remain disabled.
 See its exact gate status before treating the foundation as a usable upgrade.
+
+[Increment 112](../RUST-INCREMENT-112.md) adds guarded `--check-state` and
+explicit verified `--backup-state` for supported schema 11 or legacy-only 12.
+Follow [the offline procedure](../OFFLINE-STATE-BACKUP.md); this does not
+implement conversion/apply, qualify physical custody or freeze the REST contract.
 
 ## Artifacts
 
