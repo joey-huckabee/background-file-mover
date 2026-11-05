@@ -29,6 +29,44 @@ struct Entry {
     sha256: String,
 }
 
+/// Checks immutable stored v1 bytes against stored identities/evidence only.
+/// It intentionally does not open published files or claim directories.
+pub(crate) fn validate_inspected_manifest(
+    job: &Accepted,
+    record: Option<&ManifestRecord>,
+    transfers: &[Option<mover_core::Transfer>],
+    instance: &str,
+) -> mover_store::Result<()> {
+    let Some(record) = record else {
+        return Ok(());
+    };
+    let bad = || mover_store::StoreError::CorruptState;
+    let m: Manifest = serde_json::from_str(&record.bytes).map_err(|_| bad())?;
+    if format!("{:x}", Sha256::digest(record.bytes.as_bytes())) != record.sha256
+        || m.version != 1
+        || m.instance_id != instance
+        || m.job_id != job.job_id.to_string()
+        || m.generator_id != job.recording.submission().generator_id()
+        || m.submission_id != job.recording.submission().submission_id()
+        || m.files.len() != transfers.len()
+    {
+        return Err(bad());
+    }
+    for (i, entry) in m.files.iter().enumerate() {
+        let t = transfers[i].as_ref().ok_or_else(bad)?;
+        if t.phase != TransferPhase::Published
+            || entry.file_id != i.to_string()
+            || entry.path != t.relative_name
+            || entry.size_bytes != t.stage.size
+            || entry.algorithm != "sha256"
+            || Some(&entry.sha256) != t.sha256.as_ref()
+        {
+            return Err(bad());
+        }
+    }
+    Ok(())
+}
+
 fn expected(store: &Store, id: i64) -> ManifestResult<(String, OwnedFd, OwnedFd)> {
     let job = store.get(id)?.ok_or("unknown recording")?;
     let mut files = Vec::new();

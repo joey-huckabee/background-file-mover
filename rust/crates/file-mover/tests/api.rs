@@ -4225,6 +4225,13 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
         .parse()
         .unwrap();
     let refused = clear_history(&f, &["1"], true);
+    let orphan_backup = f.root.join("orphan-refused-backup");
+    let inspection_refused = offline_state_command(&f, "--check-state", None)
+        .output()
+        .unwrap();
+    let backup_refused = offline_state_command(&f, "--backup-state", Some(&orphan_backup))
+        .output()
+        .unwrap();
     assert!(
         Command::new("/bin/kill")
             .args(["-TERM", &worker.to_string()])
@@ -4238,6 +4245,12 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
         std::thread::sleep(Duration::from_millis(10));
     }
     assert!(!refused.status.success(), "{refused:?}");
+    assert!(
+        !inspection_refused.status.success(),
+        "{inspection_refused:?}"
+    );
+    assert!(!backup_refused.status.success(), "{backup_refused:?}");
+    assert!(!orphan_backup.exists());
     assert!(
         String::from_utf8_lossy(&refused.stderr)
             .contains("local instance or surviving worker already owns state")
@@ -4429,4 +4442,211 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             );
         }
     }
+}
+
+fn offline_state_command(f: &Fixture, action: &str, output: Option<&std::path::Path>) -> Command {
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command.arg(action).arg(f.root.join("config.json"));
+    if let Some(output) = output {
+        command.arg(output);
+    }
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    command
+}
+#[test]
+fn offline_inspection_and_backup_preserve_original_recovery_without_payload_roots() {
+    use std::os::unix::fs::MetadataExt;
+    let mut f = Fixture::new(300);
+    provision_destination(&f);
+    f.write("data", b"offline backup custody");
+    let input = f.input("offline-backup", json!([{"name":"data"}]));
+    assert_eq!(f.post(&input).0, 202);
+    wait_manifest(&f, "1");
+    let live = f.root.join("state/jobs.sqlite");
+    let blocked = f.root.join("blocked-backup");
+    for action in ["--check-state", "--backup-state"] {
+        let result = offline_state_command(
+            &f,
+            action,
+            if action == "--backup-state" {
+                Some(&blocked)
+            } else {
+                None
+            },
+        )
+        .output()
+        .unwrap();
+        assert!(!result.status.success(), "{result:?}");
+        assert!(!blocked.exists());
+    }
+    f.stop();
+    let original = std::fs::read(&live).unwrap();
+    let original_inode = std::fs::metadata(&live).unwrap().ino();
+    let manifest = std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap();
+    std::fs::rename(f.root.join("source"), f.root.join("source-unavailable")).unwrap();
+    std::fs::rename(
+        f.root.join("destination"),
+        f.root.join("destination-unavailable"),
+    )
+    .unwrap();
+    let check = offline_state_command(&f, "--check-state", None)
+        .spawn()
+        .unwrap();
+    let check_pid = check.id();
+    let result = check.wait_with_output().unwrap();
+    assert!(result.status.success(), "{result:?}");
+    let report: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(report["schema_version"], 12);
+    assert_eq!(report["retained_jobs"], 1);
+    assert_eq!(report["pairing_state"], "RecordedActive");
+    let epoch: Value =
+        serde_json::from_slice(&std::fs::read(f.root.join("state/workers.json")).unwrap()).unwrap();
+    assert_eq!(epoch["group"].as_u64(), Some(u64::from(check_pid)));
+    let output = f.root.join("verified-backup");
+    let backup = offline_state_command(&f, "--backup-state", Some(&output))
+        .spawn()
+        .unwrap();
+    let backup_pid = backup.id();
+    let result = backup.wait_with_output().unwrap();
+    assert!(result.status.success(), "{result:?}");
+    let epoch: Value =
+        serde_json::from_slice(&std::fs::read(f.root.join("state/workers.json")).unwrap()).unwrap();
+    assert_eq!(epoch["group"].as_u64(), Some(u64::from(backup_pid)));
+    let receipt: Value =
+        serde_json::from_slice(&std::fs::read(output.join("VERIFIED.json")).unwrap()).unwrap();
+    assert_eq!(receipt["retained_jobs"], 1);
+    assert_eq!(receipt["migration_apply_enabled"], false);
+    let inspected = mover_store::StateInspection::open(&live).unwrap();
+    inspected
+        .verify_snapshot(output.join("state.sqlite"))
+        .unwrap();
+    drop(inspected);
+    assert_eq!(std::fs::read(&live).unwrap(), original);
+    assert_eq!(std::fs::metadata(&live).unwrap().ino(), original_inode);
+    assert!(
+        !offline_state_command(&f, "--backup-state", Some(&output))
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    std::fs::rename(f.root.join("source-unavailable"), f.root.join("source")).unwrap();
+    std::fs::rename(
+        f.root.join("destination-unavailable"),
+        f.root.join("destination"),
+    )
+    .unwrap();
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap(),
+        manifest
+    );
+    f.start();
+    assert_eq!(f.post(&input).0, 202);
+    assert_eq!(status(&f, "1").1["state"], "Committed");
+    f.stop();
+}
+#[test]
+fn offline_backup_failures_preserve_state_and_do_not_authorize_reuse() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let live = f.root.join("state/jobs.sqlite");
+    let original = std::fs::read(&live).unwrap();
+    for stage in [
+        "copy",
+        "copy_enospc",
+        "file_sync",
+        "receipt_write",
+        "directory_sync",
+        "postpublish_sync",
+    ] {
+        let output = f.root.join(format!("backup-fault-{stage}"));
+        let result = offline_state_command(&f, "--backup-state", Some(&output))
+            .env("FILE_MOVER_QUALIFICATION_BACKUP_FAULT", stage)
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.success(),
+            !cfg!(feature = "nfs-qualification"),
+            "{stage}: {result:?}"
+        );
+        assert_eq!(
+            output.join("VERIFIED.json").exists(),
+            !cfg!(feature = "nfs-qualification") || stage == "postpublish_sync"
+        );
+        assert!(
+            !offline_state_command(&f, "--backup-state", Some(&output))
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        assert_eq!(std::fs::read(&live).unwrap(), original);
+    }
+    for output in [
+        f.root.join("state/backup"),
+        f.root.join("source/backup"),
+        f.root.join("destination/backup"),
+    ] {
+        assert!(
+            !offline_state_command(&f, "--backup-state", Some(&output))
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+        assert!(!output.exists());
+    }
+}
+
+#[test]
+#[cfg(feature = "nfs-qualification")]
+fn interrupted_backup_leaves_no_completion_and_new_attempt_requires_new_directory() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let rendezvous = f.root.join("backup-rendezvous");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let output = f.root.join("interrupted-backup");
+    let original = std::fs::read(f.root.join("state/jobs.sqlite")).unwrap();
+    let mut child = offline_state_command(&f, "--backup-state", Some(&output))
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "backup_after_copy")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous)
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !rendezvous.join("ready").exists() {
+        if Instant::now() >= deadline {
+            child.kill().unwrap();
+            let result = child.wait_with_output().unwrap();
+            panic!("backup did not reach copy checkpoint: {result:?}");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let contender = offline_state_command(&f, "--check-state", None)
+        .output()
+        .unwrap();
+    child.kill().unwrap();
+    let result = child.wait_with_output().unwrap();
+    assert!(!result.status.success());
+    assert!(!contender.status.success());
+    assert!(output.join("state.sqlite").exists());
+    assert!(!output.join("VERIFIED.json").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("state/jobs.sqlite")).unwrap(),
+        original
+    );
+    assert!(
+        !offline_state_command(&f, "--backup-state", Some(&output))
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    let result = offline_state_command(&f, "--backup-state", Some(&f.root.join("fresh-backup")))
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "{result:?}");
 }

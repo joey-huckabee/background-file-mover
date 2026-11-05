@@ -451,6 +451,9 @@ fn refuse_mounted(directory: &str, names: &[&str]) -> Result<()> {
 }
 // mountinfo is local proc metadata, never an NFS pathname traversal.
 fn local_mounts() -> Result<Vec<std::path::PathBuf>> {
+    parse_mounts(&mount_inventory()?)
+}
+fn mount_inventory() -> Result<Vec<u8>> {
     let file = std::fs::File::open("/proc/self/mountinfo")
         .map_err(|_| ClaimError::Blocked("local mount inventory unavailable"))?;
     let mut bytes = Vec::new();
@@ -460,7 +463,31 @@ fn local_mounts() -> Result<Vec<std::path::PathBuf>> {
     if bytes.len() > 4 * 1024 * 1024 {
         return Err(ClaimError::Blocked("local mount inventory too large"));
     }
-    parse_mounts(&bytes)
+    Ok(bytes)
+}
+// Check every traversed mount before any backup pathname access. Checking only
+// the final fstatfs would already have walked a potentially blocked NFS mount.
+pub(crate) fn backup_local(path: &Path) -> Result<()> {
+    for line in mount_inventory()?
+        .split(|b| *b == b'\n')
+        .filter(|l| !l.is_empty())
+    {
+        let mount = parse_mounts(line)?.remove(0);
+        let fields: Vec<_> = line.split(|b| *b == b' ').collect();
+        let separator = fields
+            .iter()
+            .position(|f| *f == b"-")
+            .ok_or(ClaimError::Blocked("invalid mount inventory"))?;
+        let kind = fields
+            .get(separator + 1)
+            .ok_or(ClaimError::Blocked("invalid mount inventory"))?;
+        if path.starts_with(&mount)
+            && ![b"ext2".as_slice(), b"ext3", b"ext4", b"tmpfs", b"overlay"].contains(kind)
+        {
+            return Err(ClaimError::Blocked("backup requires local storage"));
+        }
+    }
+    Ok(())
 }
 fn parse_mounts(bytes: &[u8]) -> Result<Vec<std::path::PathBuf>> {
     use std::os::unix::ffi::OsStringExt;

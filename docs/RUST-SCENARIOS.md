@@ -910,3 +910,8 @@ creation, legacy readers/writers, capability refusal and ID-sequence preservatio
 checks. See [its results and limits](RUST-INCREMENT-111.md). Test-only rebuilds
 are not migration qualification. Backup/apply and UUID/v2 runtime remain gated;
 existing 194 SC and six DOC identifiers are unchanged.
+
+Increment 112 adds bounded guarded offline inspection/backup for SC-190/194,
+without changing scenario IDs: see [operator procedure](OFFLINE-STATE-BACKUP.md)
+and [implementation/evidence](RUST-INCREMENT-112.md). This does not complete
+migration apply, UUID/v2 activation or the broader compatibility qualification.

@@ -1125,3 +1125,11 @@ existing review/resume behavior: restore the original scope, inspect job status
 and use the current review epoch for an audited resume. Neither matching mount
 pins nor a free local lock prove continuity or remote settlement. There is no
 force-rebind or automatic upgrade for older NFS bindings/receipts.
+
+## Guarded state inspection and backup (increment 112)
+
+Stop the mover service before `--check-state` or `--backup-state`. Both refuse
+active daemons and surviving workers and never reconnect to/adopt old processes.
+Follow [the offline procedure](OFFLINE-STATE-BACKUP.md) for supported schemas,
+new private local backup paths, incomplete-output handling and compatible restart.
+These commands do not convert state; normal schema-11 startup still refuses.

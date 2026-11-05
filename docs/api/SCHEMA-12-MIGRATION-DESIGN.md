@@ -103,7 +103,10 @@ capability refuses the whole startup before payload access, even on schema 12.
 
 The proposed host-local interface is `--migrate-state CONFIG.json --backup-dir
 ABSOLUTE_NEW_DIRECTORY --confirm`, with a separate guarded `--check-state
-CONFIG.json` inspection. **Neither command exists.** A migration without confirm
+CONFIG.json` inspection. **Migration apply does not exist.** Increment 112 implements guarded
+`--check-state` and separate `--backup-state CONFIG.json ABSOLUTE_NEW_DIRECTORY`;
+see [the operator procedure](../OFFLINE-STATE-BACKUP.md) and
+[actual implementation/evidence](../RUST-INCREMENT-112.md). A migration without confirm
 reports eligibility and required backup location without converting. Normal
 startup never calls apply implicitly. Preview/preflight may write normal local
 guard/lifetime metadata but not job data. Configuration checking remains lexical;

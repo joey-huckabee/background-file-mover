@@ -71,6 +71,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
+    if path == "--check-state" || path == "--backup-state" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        let output = if path == "--backup-state" {
+            Some(
+                args.next()
+                    .ok_or("new absolute backup directory required")?,
+            )
+        } else {
+            None
+        };
+        if args.next().is_some() {
+            return Err("usage: file-mover --check-state CONFIG.json | --backup-state CONFIG.json NEW_DIRECTORY".into());
+        }
+        let config = read_config(&config_path)?;
+        // No bootstrap, source/destination access or workers. Lifetime admission
+        // precedes SQLite, and guard destruction follows connection closure.
+        let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
+        instance.validate_database(&config.state_database)?;
+        instance.prepare_workers()?;
+        let state = mover_store::StateInspection::open(&config.state_database)?;
+        let pairing = mover_fs::validate_inspected_state(&state)?;
+        instance.validate_database(&config.state_database)?;
+        if let Some(output) = output {
+            let mut excluded = state.payload_roots()?;
+            excluded.extend([
+                config.source_root,
+                config.destination_root,
+                instance.state_directory().into(),
+            ]);
+            let backup = mover_fs::BackupOutput::create(&output, &excluded)?;
+            backup.copy(&state)?;
+            instance.validate_database(&config.state_database)?;
+            let receipt = backup.finish(&state, pairing)?;
+            instance.validate_database(&config.state_database)?;
+            println!(
+                "{}",
+                serde_json::json!({"verified":true,"directory":output,"receipt":receipt})
+            );
+        } else {
+            println!(
+                "{}",
+                serde_json::json!({"schema_version":state.summary().schema_version,"instance_id":state.summary().instance_id,"retained_jobs":state.summary().retained_jobs,"pairing_state":pairing,"migration_apply_enabled":false,"payload_filesystem_inspected":false})
+            );
+        }
+        return Ok(());
+    }
     if path == "--clear-history" {
         let config_path = args.next().ok_or("configuration path required")?;
         let mut confirm = false;

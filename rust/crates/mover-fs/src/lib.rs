@@ -88,9 +88,11 @@ pub const fn nfs_qualification_enabled() -> bool {
 mod binding;
 mod mount_profile;
 pub use mount_profile::{MountProfile, NfsMountProfile};
+mod backup;
 mod bootstrap;
 mod custody;
 mod instance;
+pub use backup::{BackupOutput, validate_inspected_state};
 mod worker_epoch;
 pub use instance::{INSTANCE_LOCK, InstanceGuard, InstanceOwnership, instance_ownership};
 mod enrollment;

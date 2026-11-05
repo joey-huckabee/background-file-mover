@@ -15,6 +15,8 @@ use std::{
     time::Duration,
 };
 mod history;
+mod inspection;
+pub use inspection::{InspectedEnrollment, InspectionSummary, StateInspection};
 mod missing_resets;
 mod operators;
 mod retention;
@@ -645,29 +647,38 @@ fn create_dependent_tables(connection: &Connection) -> Result<()> {
     Ok(())
 }
 
+fn schema_definitions(connection: &Connection) -> Result<Vec<(String, String, String, String)>> {
+    let mut statement = connection.prepare(
+        "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name",
+    )?;
+    Ok(statement
+        .query_map([], |row| {
+            let sql: String = row.get(3)?;
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                sql.split_whitespace().collect::<Vec<_>>().join(" "),
+            ))
+        })?
+        .collect::<std::result::Result<_, _>>()?)
+}
+
 // A version label alone cannot establish compatibility. Compare the complete
 // supported DDL, allowing whitespace differences only. Unknown triggers/views/
 // indexes or changed constraints refuse; no user SQL is executed for conversion.
 fn validate_schema(connection: &Connection) -> Result<()> {
-    fn definitions(connection: &Connection) -> Result<Vec<(String, String, String, String)>> {
-        let mut statement = connection.prepare(
-            "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name",
-        )?;
-        Ok(statement
-            .query_map([], |row| {
-                let sql: String = row.get(3)?;
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    sql.split_whitespace().collect::<Vec<_>>().join(" "),
-                ))
-            })?
-            .collect::<std::result::Result<_, _>>()?)
-    }
+    validate_schema_for(connection, SCHEMA_VERSION)
+}
+fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
     let reference = Connection::open_in_memory()?;
-    create_tables(&reference)?;
-    if definitions(connection)? != definitions(&reference)? {
+    if version == 11 {
+        reference.execute_batch(include_str!("jobs_v11.sql"))?;
+        create_dependent_tables(&reference)?;
+    } else {
+        create_tables(&reference)?;
+    }
+    if schema_definitions(connection)? != schema_definitions(&reference)? {
         return Err(StoreError::UnsupportedSchema);
     }
     Ok(())
@@ -711,6 +722,60 @@ fn validate_job_sequence(connection: &Connection) -> Result<()> {
     };
     if minimum.is_some_and(|id| id <= 0) || maximum.is_some_and(|id| id > sequence) {
         return Err(StoreError::CorruptState);
+    }
+    Ok(())
+}
+
+fn validate_contents(connection: &Connection, version: i64) -> Result<String> {
+    let damaged: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs j WHERE j.file_count != (SELECT count(*) FROM files f WHERE f.job_id=j.job_id) OR (SELECT count(*) FROM reservations r WHERE r.job_id=j.job_id) != CASE WHEN j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) THEN 0 ELSE j.file_count END) OR EXISTS(SELECT 1 FROM reservations r JOIN jobs j ON j.job_id=r.job_id JOIN files f ON f.job_id=r.job_id AND f.file_index=r.file_index WHERE r.source_root_id != j.source_root_id OR r.source_relative_path != CASE WHEN j.source_relative_directory='' THEN f.relative_path ELSE j.source_relative_directory || '/' || f.relative_path END)", [], |r| r.get(0))?;
+    let foreign_key_errors: i64 =
+        connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })?;
+    if damaged || foreign_key_errors != 0 {
+        return Err(StoreError::CorruptState);
+    }
+    let ids: Vec<i64> = connection
+        .prepare("SELECT job_id FROM jobs")?
+        .query_map([], |r| r.get(0))?
+        .collect::<std::result::Result<_, _>>()?;
+    for id in ids {
+        if version == 11 {
+            load_legacy(connection, id)?;
+        } else {
+            load(connection, id)?;
+        }
+    }
+    let instance: String = connection.query_row(
+        "SELECT value FROM metadata WHERE key='instance_id'",
+        [],
+        |r| r.get(0),
+    )?;
+    if instance.len() != 32
+        || !instance
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(StoreError::CorruptState);
+    }
+    Ok(instance)
+}
+
+fn check_sqlite_options(connection: &Connection) -> Result<()> {
+    for option in [
+        "THREADSAFE=1",
+        "OMIT_LOAD_EXTENSION",
+        "DQS=0",
+        "DEFAULT_MEMSTATUS=0",
+        "ENABLE_API_ARMOR",
+    ] {
+        let enabled: i64 =
+            connection.query_row("SELECT sqlite_compileoption_used(?1)", [option], |r| {
+                r.get(0)
+            })?;
+        if enabled != 1 {
+            return Err(StoreError::UnsupportedSqliteConfiguration);
+        }
     }
     Ok(())
 }
@@ -775,21 +840,7 @@ impl Database {
         if journal != "wal" || sync != 2 || fk != 1 {
             return Err(StoreError::UnsupportedSqliteConfiguration);
         }
-        for option in [
-            "THREADSAFE=1",
-            "OMIT_LOAD_EXTENSION",
-            "DQS=0",
-            "DEFAULT_MEMSTATUS=0",
-            "ENABLE_API_ARMOR",
-        ] {
-            let enabled: i64 =
-                connection.query_row("SELECT sqlite_compileoption_used(?1)", [option], |r| {
-                    r.get(0)
-                })?;
-            if enabled != 1 {
-                return Err(StoreError::UnsupportedSqliteConfiguration);
-            }
-        }
+        check_sqlite_options(&connection)?;
         if fresh {
             let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
             create_tables(&tx)?;
@@ -808,33 +859,7 @@ impl Database {
             )?
             .sync_all()?;
         }
-        let damaged: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs j WHERE j.file_count != (SELECT count(*) FROM files f WHERE f.job_id=j.job_id) OR (SELECT count(*) FROM reservations r WHERE r.job_id=j.job_id) != CASE WHEN j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) THEN 0 ELSE j.file_count END) OR EXISTS(SELECT 1 FROM reservations r JOIN jobs j ON j.job_id=r.job_id JOIN files f ON f.job_id=r.job_id AND f.file_index=r.file_index WHERE r.source_root_id != j.source_root_id OR r.source_relative_path != CASE WHEN j.source_relative_directory='' THEN f.relative_path ELSE j.source_relative_directory || '/' || f.relative_path END)", [], |r| r.get(0))?;
-        let foreign_key_errors: i64 =
-            connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
-                r.get(0)
-            })?;
-        if damaged || foreign_key_errors != 0 {
-            return Err(StoreError::CorruptState);
-        }
-        let ids: Vec<i64> = connection
-            .prepare("SELECT job_id FROM jobs")?
-            .query_map([], |r| r.get(0))?
-            .collect::<std::result::Result<_, _>>()?;
-        for id in ids {
-            load(&connection, id)?;
-        }
-        let instance: String = connection.query_row(
-            "SELECT value FROM metadata WHERE key='instance_id'",
-            [],
-            |r| r.get(0),
-        )?;
-        if instance.len() != 32
-            || !instance
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        {
-            return Err(StoreError::CorruptState);
-        }
+        validate_contents(&connection, SCHEMA_VERSION)?;
         Ok(Self {
             connection,
             limits: None,
@@ -1119,6 +1144,10 @@ fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
         Some(1) => return Err(StoreError::UnsupportedIdentity),
         Some(_) => return Err(StoreError::CorruptState),
     }
+    load_legacy(connection, job_id)
+}
+
+fn load_legacy(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
     let header = connection.query_row("SELECT generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count FROM jobs WHERE job_id=?1",
         [job_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, AcceptanceContext {
             source_root_id: r.get(3)?, source_root_path: r.get(4)?, source_relative_directory: r.get(5)?,

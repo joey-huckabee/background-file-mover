@@ -2,6 +2,14 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-05 guarded inspection/backup authorization: the user says Proceed after
+the explanation of guarded inspection. Increment 112 adds existing-state-only
+--check-state and explicit verified --backup-state for supported schema 11 or
+legacy-only schema 12. No conversion/apply, UUID/v2 activation, deployment or
+operational-state change is authorized. Follow docs/OFFLINE-STATE-BACKUP.md; see
+docs/RUST-INCREMENT-112.md for actual gate status. Normal schema-11 Store startup
+still refuses. Hold instance/lifetime exclusion through all connection closure.
+
 2026-11-04 schema-12 foundation implementation: the user says to start the next
 bounded implementation after design review. Increment 111 adds fresh schema 12,
 legacy readers/writers and namespace/sequence preservation tests. Migration apply

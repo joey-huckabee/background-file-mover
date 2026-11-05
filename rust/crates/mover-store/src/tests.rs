@@ -2456,3 +2456,101 @@ fn assert_schema_constraint(result: rusqlite::Result<usize>) {
     };
     assert_eq!(code.code, rusqlite::ErrorCode::ConstraintViolation);
 }
+
+#[test]
+fn inspection_snapshots_committed_wal_for_both_supported_schemas_without_conversion() {
+    for version in [11, 12] {
+        let f = Fixture::new();
+        let mut c = schema_eleven_fixture(&f.db(), true);
+        if version == 12 {
+            rebuild_schema_twelve_fixture(&mut c);
+        }
+        c.pragma_update(None, "wal_autocheckpoint", 0).unwrap();
+        c.execute(
+            "INSERT INTO metadata VALUES('inspection-proof','committed WAL')",
+            [],
+        )
+        .unwrap();
+        let main = std::fs::read(f.db()).unwrap();
+        let wal_path = format!("{}-wal", f.db().display());
+        let wal = std::fs::read(&wal_path).unwrap();
+        let inspected = StateInspection::open(f.db()).unwrap();
+        assert_eq!(inspected.summary().schema_version, version);
+        assert_eq!(inspected.summary().retained_jobs, 1);
+        let backup = f.0.join("snapshot.sqlite");
+        inspected.snapshot_into(backup.to_str().unwrap()).unwrap();
+        inspected.verify_snapshot(&backup).unwrap();
+        assert_eq!(std::fs::read(f.db()).unwrap(), main);
+        assert_eq!(std::fs::read(&wal_path).unwrap(), wal);
+        assert_eq!(
+            c.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))
+                .unwrap(),
+            version
+        );
+        let snapshot = Connection::open(&backup).unwrap();
+        assert_eq!(
+            snapshot
+                .query_row(
+                    "SELECT seq FROM sqlite_sequence WHERE name='jobs'",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )
+                .unwrap(),
+            99
+        );
+        assert_eq!(
+            snapshot
+                .query_row(
+                    "SELECT value FROM metadata WHERE key='inspection-proof'",
+                    [],
+                    |r| r.get::<_, String>(0)
+                )
+                .unwrap(),
+            "committed WAL"
+        );
+        snapshot
+            .execute(
+                "UPDATE metadata SET value='altered' WHERE key='inspection-proof'",
+                [],
+            )
+            .unwrap();
+        drop(snapshot);
+        assert!(inspected.verify_snapshot(&backup).is_err());
+        let bytes = std::fs::read(&backup).unwrap();
+        assert!(inspected.snapshot_into(backup.to_str().unwrap()).is_err());
+        assert_eq!(std::fs::read(&backup).unwrap(), bytes);
+        drop(inspected);
+        if version == 11 {
+            assert!(matches!(
+                Store::open(f.db()),
+                Err(StoreError::MigrationRequired)
+            ));
+        }
+    }
+}
+
+#[test]
+fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
+    for case in [
+        "missing", "empty", "foreign", "old", "future", "trigger", "sequence", "uuid",
+    ] {
+        let f = Fixture::new();
+        if case == "empty" {
+            std::fs::write(f.db(), []).unwrap();
+        } else if case != "missing" {
+            let mut c = schema_eleven_fixture(&f.db(), true);
+            match case {
+                "foreign"=>c.pragma_update(None,"application_id",123).unwrap(),
+                "old"=>c.pragma_update(None,"user_version",10).unwrap(),
+                "future"=>c.pragma_update(None,"user_version",13).unwrap(),
+                "trigger"=>c.execute_batch("CREATE TRIGGER sqliteXblock AFTER INSERT ON jobs BEGIN SELECT RAISE(ABORT,'blocked'); END;").unwrap(),
+                "sequence"=>{c.execute("UPDATE sqlite_sequence SET seq=1 WHERE name='jobs'",[]).unwrap();},
+                "uuid"=>{rebuild_schema_twelve_fixture(&mut c); insert_uuid_fixture(&c,"g",rusqlite::types::Value::Blob(vec![1;16]),rusqlite::types::Value::Integer(1),rusqlite::types::Value::Blob(vec![2;32])).unwrap();},
+                _=>unreachable!(),
+            }
+        }
+        let before = std::fs::read(f.db()).ok();
+        assert!(StateInspection::open(f.db()).is_err(), "{case}");
+        assert_eq!(std::fs::read(f.db()).ok(), before, "{case}");
+    }
+}
