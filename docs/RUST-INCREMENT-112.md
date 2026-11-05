@@ -62,9 +62,49 @@ roots, original state/inode/manifest/replay preservation, failure boundaries and
 qualification-only kill after copying. Failure hooks are compiled out production;
 EIO/ENOSPC hooks simulate boundary errors, not actual exhausted media/power loss.
 
-Required production and qualification cargo-libc/SLES gates: NOT_RUN at this
-implementation checkpoint. Independent review: pending. Actual-version systemd,
-hard NFS, physical storage failures, migration apply/rollback, deployment and all
-eight release gates remain unqualified. This file will record final actual results.
+Both required offline cargo-libc/SLES gates PASSED against source commit
+`785c7a9deb04dbbb9b99e70c01cf36df662ac639`, Rust tree
+`6b2c0c13e0e08105d88e2c95bb635f89d0950232`:
+
+| Mode | Run | Debug | Release |
+|---|---|---|---|
+| Production | `20261105T132100Z-4c15eb0a` | 233 passed | 233 passed |
+| Qualification | `20261105T135247Z-49787542-nfs-qualification` | 236 passed | 236 passed |
+
+Each profile retains the same five pre-existing ignored tests. Formatting,
+Clippy with warnings denied, pinned provider checks, independent ELF/glibc-2.22
+and relocation audits, six negative audit controls and target execution in
+pinned SLES 12 SP5 userspace passed. Both containers ran without networking and
+cleanup completed without error. These are x86_64 WSL2/container results, not
+host-only Cargo tests, actual SLES-kernel qualification or a production deployment.
+
+Independent local verification matched all 67 archived source inputs in both
+runs to the committed Git blobs and rehashed all 40 retained executables. No
+persisted schema SQL changed from `d9c7c09`. Exact hashes, pins, counts and limits
+are in [STATE-BACKUP-EVIDENCE.json](STATE-BACKUP-EVIDENCE.json). Raw packs remain
+under `/home/joey/GIT/background-file-mover-testing/rust/validation/`, outside Git.
+
+Production run `20261105T130818Z-29193157` was intentionally interrupted after
+its debug integration (90) and filesystem (32) tests passed, to correct sidecar
+error propagation and add empty-output receipt refusal coverage. Its FAILED
+interruption report/logs are retained; it is not an acceptance run. Both passing
+gates above validate the corrected source.
+
+Actual-version systemd, hard NFS, physical storage failures, migration
+apply/rollback, deployment and all eight release gates remain unqualified.
+No operational database was inspected, backed up or converted; all runtime state
+and backup operations exercised by this work used disposable test fixtures.
+
+## Independent review and workflow
+
+The local coordinator implemented/integrated the change. Existing cloud child
+`thr_xnjapdndei` reviewed `d9c7c09..a504ebc` and the correction
+`a504ebc..785c7a9` read-only; both bounded passes found no actionable findings.
+The reviewer ran no builds/tests and provides no runtime qualification. The
+coordinator's final audit caught the sidecar-stat error handling issue before
+final validation. There was no specialist fan-out. One superseded production run
+was interrupted for that source correction; both final gates ran fresh. Delivery
+time and token/cloud cost were not separately measured; no percentage quality
+improvement is claimed.
 
 Operator procedure: [offline state backup](OFFLINE-STATE-BACKUP.md).
