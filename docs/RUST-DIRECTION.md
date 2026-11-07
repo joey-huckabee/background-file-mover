@@ -1,5 +1,11 @@
 # Rust direction and next-session handoff
 
+Current integration workflow (2026-11-07): Rust is active; C++ is deprecated
+and retained as reference. Start small feature/fix branches from reviewed `main`
+and integrate by PR. See [the agent workflow](AGENT-WORKFLOW.md) and
+[integration record](RUST-INCREMENT-113.md). This does not authorize release or
+additional runtime features.
+
 Recorded 2026-10-13 on `feature/rust-transfer-coordinator`. The user supplied
 [CONVERSATION.md](../CONVERSATION.md) as the new direction. This supersedes the
 earlier same-filesystem-only release scope and component-for-component port.

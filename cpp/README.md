@@ -1,3 +1,8 @@
+> **Deprecated (2026-11-07):** Rust in `../rust/` is the active implementation.
+> This tree and the instructions below are historical reference. Legacy C++
+> build, fuzzing and analysis workflows run only on explicit manual dispatch.
+> See [the current contributor workflow](../CONTRIBUTING.md).
+
 # background-file-mover — C++ implementation
 
 The v1.0.0 C++11 implementation: a REST-triggered durable transfer daemon for

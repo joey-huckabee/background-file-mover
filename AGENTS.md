@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-07 main integration authorization: the user explicitly requests merging
+the Rust development baseline into main, then using smaller increments. C++ is
+deprecated and retained as reference; its build/fuzz/CodeQL/Sonar workflows become
+manual-only. Use current main as the base for short-lived feature/fix branches
+and reviewed PRs, superseding historical instructions to keep developing on
+feature/rust-transfer-coordinator. Preserve source/history and qualified evidence.
+This is not release, deployment, migration-apply, UUID/v2 or production-state
+authorization. See docs/RUST-INCREMENT-113.md and docs/AGENT-WORKFLOW.md.
+
 2026-11-05 guarded inspection/backup authorization: the user says Proceed after
 the explanation of guarded inspection. Increment 112 adds existing-state-only
 --check-state and explicit verified --backup-state for supported schema 11 or

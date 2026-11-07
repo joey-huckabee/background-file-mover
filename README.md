@@ -1,5 +1,15 @@
 # Background File Mover
 
+Rust is the active implementation in `rust/`. The C++ implementation in `cpp/`
+is deprecated and retained for historical reference; its build/analysis workflows
+are manual-only. See [contributing](CONTRIBUTING.md) and the
+[main integration record](docs/RUST-INCREMENT-113.md).
+
+`main` is the reviewed development baseline. Production release/deployment is a
+separate decision: all eight release gates remain open, production NFS and source
+deletion stay disabled, and migration apply/UUID/manifest-v2 activation remain
+unimplemented. A merge does not authorize converting operational state.
+
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and
 [future roadmap](docs/ROADMAP.md). Next is the versioned API/manifest contract;

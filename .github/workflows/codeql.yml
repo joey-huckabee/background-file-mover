@@ -1,3 +1,5 @@
+# Deprecated C++ reference workflow. Explicit manual dispatch only; not a Rust release gate.
+# Historical job descriptions below do not reinstate automatic PR/push/schedules.
 # ----------------------------------------
 # CodeQL Security Scan
 # ----------------------------------------
@@ -14,16 +16,10 @@
 # heuristics do not know that.
 # ----------------------------------------
 
-name: CodeQL Security Scan
+name: Legacy C++ CodeQL (manual)
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ main, 'c*-*' ]
-  push:
-    branches: [ main, 'c*-*' ]
-  schedule:
-    - cron: '0 3 * * 1'  # weekly, Monday 03:00 UTC
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}

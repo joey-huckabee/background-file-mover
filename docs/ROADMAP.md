@@ -6,7 +6,8 @@ in the result documents, changelog and trace matrix.
 
 ## First-release finish line
 
-Work on `feature/rust-transfer-coordinator`. Use the
+Start each small reviewed increment from current `main` on its own feature/fix
+branch; see [the workflow](AGENT-WORKFLOW.md). Use the
 [first-release checklist](RUST-FIRST-RELEASE.md) and
 [release-closure matrix](RUST-RELEASE-CLOSURE.md) as the work scheduler. All eight
 FR gates require closure; each qualification package must name its finite RC

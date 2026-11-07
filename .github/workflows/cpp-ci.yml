@@ -1,4 +1,6 @@
-name: C++ CI
+# Deprecated C++ reference workflow. Explicit manual dispatch only; not a Rust release gate.
+# Historical job descriptions below do not reinstate automatic PR/push/schedules.
+name: Legacy C++ CI (manual)
 
 # Build and test the C++ tree under cpp/. Separate from the Python CI
 # (ci.yml) so the two implementations gate independently while they coexist
@@ -28,14 +30,7 @@ name: C++ CI
 # Reproduce any of this locally with:  cd cpp && make check-ci
 
 on:
-  push:
-    paths:
-      - "cpp/**"
-      - ".github/workflows/cpp-ci.yml"
-  pull_request:
-    paths:
-      - "cpp/**"
-      - ".github/workflows/cpp-ci.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read

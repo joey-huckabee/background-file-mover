@@ -10,7 +10,11 @@ does not promise a fixed quality percentage or replace executable validation.
 - Existing cloud reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`, linked
   to the coordinator. Default to independent read-only review. Any implementation
   assignment must be explicit, already authorized and have exclusive file ownership.
-- Development branch: `feature/rust-transfer-coordinator`.
+- Development baseline: `main` after the reviewed 2026-11-07 integration.
+- New work: one short-lived `feature/<increment-name>` or `fix/<issue-name>`
+  branch per bounded objective, from current `main`; integrate through a reviewed
+  PR with applicable checks passing. Avoid direct implementation commits to main.
+- C++ is deprecated and retained as reference, with manual-only legacy workflows.
 - Linux test clone: Ubuntu WSL2 at
   `/home/joey/GIT/background-file-mover-testing`. The older
   `/home/joey/GIT/background-file-mover` checkout is preserved separately.
@@ -102,6 +106,19 @@ single anecdote as proof of a 15% improvement. Keep the specialist only when its
 contribution justifies the coordination/cost. This is a workflow check, not a
 new benchmark project or an approval step for routine work.
 
+## Main integration and smaller increments
+
+The user authorizes the baseline merge in [increment 113](RUST-INCREMENT-113.md).
+Keep `main` as a reviewed development baseline, with clear unfinished/release
+limits. Preserve the old development branch/history at integration; later branch
+cleanup remains a separate reviewed task. Start the next bounded implementation
+on a new branch from current main. No task is opened merely by changing branches.
+
+A main merge runs CI, not an installer/deployment or release publication. Release
+tags and operational-state changes require their own authorized, qualified work.
+The existing eight release gates, production NFS/deletion restrictions and
+current schema/identity limitations remain unchanged.
+
 ## Current implementation boundaries
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
@@ -122,13 +139,15 @@ checkout still advances only from committed coordinator work.
 The WSL test clone has `coordinator` pointing to the D: checkout via
 `/mnt/d/GIT/GIT-GitHub/joey-huckabee/background-file-mover`, and `origin` pointing
 to GitHub. It tests committed coordinator changes. Before each run, verify the
-test clone has no local edits, then run inside Ubuntu:
+test clone has no local edits. Replace `YOUR_SOURCE_BRANCH` with the committed
+feature/fix branch being validated (or `main` when syncing an integrated baseline),
+then run inside Ubuntu:
 
 ```sh
 cd /home/joey/GIT/background-file-mover-testing
 git status --short
 git fetch coordinator
-git merge --ff-only coordinator/feature/rust-transfer-coordinator
+git merge --ff-only coordinator/YOUR_SOURCE_BRANCH
 git rev-parse HEAD
 python3 scripts/check-rust-sles.py
 python3 scripts/check-rust-sles.py --qualification
