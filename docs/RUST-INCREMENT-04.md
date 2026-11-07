@@ -130,6 +130,6 @@ do not qualify NFS, server/storage power loss or a historical SLES kernel.
 Rust evidence supports the handoff intent of L1-API-007/008/009 and actual-size/
 explicit-path requirements L1-SYS-028/029. L1-SYS-033 missing retry behavior gains
 deadline persistence and review blocking; operator resume remains unfinished.
-Historical C++ trace statuses/matrix are not promoted by these Rust tests.
+Historical trace statuses/matrix are not promoted by these Rust tests.
 Next is one copied-file transfer with streamed source hash, destination reread,
 no-clobber publication and recovery, keeping deletion disabled.

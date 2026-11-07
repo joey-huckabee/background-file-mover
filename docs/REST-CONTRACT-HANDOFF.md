@@ -160,7 +160,7 @@ situations, not new passing tests. All eight release gates remain open.
 
 - No one uses the Rust prototype API. Replace its producer wire format directly;
   do not build a compatibility adapter or deprecation system for it. Preserve
-  stored jobs/custody and the separate C++ cutover obligations.
+  stored jobs/custody and the supported stored-state compatibility obligations.
 - Request: generator_id, globally unique recording_id, full mover-visible
   source_directory and explicit relative file names in files. Preserve folders;
   destination comes from configuration, beneath a recording-ID container.

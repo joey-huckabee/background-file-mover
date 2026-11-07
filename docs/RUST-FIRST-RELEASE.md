@@ -73,7 +73,7 @@ timing and current-configuration expected-size policy. Follow API-I01-06 after r
 are resolved. API-E01-121 are acceptance situations, not new qualification passes;
 approved missing-file 409/global-ID behavior is not implemented yet. No Rust
 prototype API clients exist, so replace its old producer format directly without
-an adapter; stored-job/custody safeguards and separate C++ cutover remain.
+an adapter; stored-job/custody safeguards and stored-state compatibility obligations remain.
 
 Next: P01, freeze versioned OpenAPI, manifest validation and the supported route,
 error/retry, path/metadata and ID-retention inventory. Preserve existing behavior

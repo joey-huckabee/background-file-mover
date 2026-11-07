@@ -52,6 +52,6 @@ owner; implementation obligations are a consistent single-job transaction,
 strict job-ID/request validation, and read-only rendering of durable claim,
 transfer, deadline, review and manifest evidence. The two `operator_status_*`
 API tests and `status_snapshot_preserves_deadlines_review_and_claims_across_restart`
-storage test provide direct evidence. They do not promote historical C++ trace
+storage test provide direct evidence. They do not promote historical trace
 coverage or establish filesystem readiness, repair correctness or listing support.
 Formal Rust L2/L3 identifiers and automatic matrix discovery remain roadmap work.

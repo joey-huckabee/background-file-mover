@@ -1,10 +1,7 @@
 # Dashboard and status design notes
 
 Use these requirements and review findings when designing the Rust operator
-surface. They are distilled from C7 at
-`af7af20b51f54f98ce5f6270d1d779fecf0c28cb`, whose original source is retained
-under `archive/c7-dashboard`. No C++ implementation is adopted into the Rust tree.
-The [branch review](BRANCH-REVIEW.md) records its source inventory and provenance.
+surface. Current product approvals and the API contract bundle govern scope.
 
 ## Behaviors to retain
 
@@ -42,7 +39,7 @@ reference choices, not fixed requirements for Rust.
 The snapshot combines scheduler counts and later database reads. Define how the
 Rust API describes consistency rather than promising an atomic cross-layer view.
 Lazy construction avoids unnecessary pre-main initialization, but Rust should
-choose straightforward embedded assets without inheriting C++ initialization machinery.
+choose straightforward embedded assets with explicit initialization.
 
 ## Acceptance scenarios for the Rust implementation
 

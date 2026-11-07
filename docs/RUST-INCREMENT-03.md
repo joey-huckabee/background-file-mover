@@ -94,9 +94,9 @@ linux_latest/use-libc feature or additional application package is introduced.
 
 ## Requirement evidence boundary
 
-These are Rust evidence links, not promotion of historical C++ release status or
+These Rust evidence links do not establish broader release status or
 proof of a finished REST service. Detailed Rust L2/L3 derivations and automated
-Rust trace discovery remain roadmap work; the current C++ matrix is unchanged.
+Rust trace discovery remain roadmap work.
 
 | Requirement intent | Current evidence | Remaining qualification |
 |---|---|---|

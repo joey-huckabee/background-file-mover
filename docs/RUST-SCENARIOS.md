@@ -3,7 +3,7 @@
 This is the maintained scenario catalog for the Rust transfer coordinator. It
 backfills the behavior addressed in increments 01–18 and grows with subsequent
 increments. Read it before designing a new effect or writing user instructions.
-It describes the current Rust prototype; the historical Python/C++ user guides
+It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
 ## Release-closure scheduling (increment 105)
@@ -86,7 +86,7 @@ Producer compatibility decision (2026-10-23): no one uses the Rust prototype
 API. Replace its old producer wire format directly; no adapter/dual-schema or
 deprecation work. SC-001/005/006 still describe implemented behavior until code
 changes and their evidence is updated. Preserve existing jobs/custody and keep
-legacy C++ cutover qualification separate from this unused-client decision.
+stored-state compatibility qualification separate from this unused-client decision.
 
 The [error-scenario review](REST-ERROR-SCENARIOS.md) adds API-E01-121 as pending
 contract-review keys, not new tested SC situations. Its source/handoff cases

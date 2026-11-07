@@ -4,52 +4,32 @@ Level 1 requirements state *what* the Background File Mover system must accompli
 Each is a single SHALL statement with a declared verification method. L1 requirements
 decompose into L2 architectural derivations (`docs/L2-REQ.md`), which decompose into L3
 implementation obligations (`docs/L3-REQ.md`). Live verification status is tracked in
-the auto-generated `docs/TRACE-MATRIX.md`, not here.
+the `docs/TRACE-MATRIX.md` status record, not here.
 
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 **D** = Demonstration.
 
-## v1.0.0 scope
+## Scope and verification status
 
-Additive Rust requirements for generator submissions and configured delivery
-appear at the end of this file. They are specified, unimplemented and outside
-the historical v1.0.0 C++ coverage scope; existing SHALL statements are retained.
-
-v1.0.0 is the C++11 / REST implementation. It is **deliberately narrower** than the
-Python implementation shipped through v0.4.2: the claim-and-verify transfer semantics
-are deferred to v1.1 so that the REST control plane, the transfer engine, and the
-durability layer land first on a smaller, fully-tested surface.
-
-Every requirement below carries a **v1.0.0 Status**:
-
-| Status | Meaning |
-|---|---|
-| **Active** | In scope for v1.0.0 and verified by the trace matrix |
-| **Deferred → v1.1** | Retained verbatim, **not** implemented in v1.0.0, **not** weakened |
-| **Partial** | In scope, but a named clause is deferred |
-| **Rewritten** | ID reused; text replaced for the C++ implementation |
-
-> **Deferred requirements are not dropped.** `L1-SYS-002` through `L1-SYS-006` are the
-> safety core of the Python implementation — claim, integrity verification, conservative
-> deletion, and crash recovery. v1.0.0 does not provide them. This is recorded here
-> rather than by deleting the requirements, so that the gap between what the system
-> guarantees and what it once guaranteed stays visible in the trace matrix. Deployments
-> that depend on those guarantees should remain on the Python implementation until v1.1.
-
----
+The current Rust first-release scope and approved decisions are governed by
+[RUST-FIRST-RELEASE.md](RUST-FIRST-RELEASE.md),
+[RUST-RELEASE-CLOSURE.md](RUST-RELEASE-CLOSURE.md) and the API contract bundle.
+Existing functional requirement IDs and obligations remain. Historical version
+status annotations are not claims of implemented or verified Rust behavior.
+The [traceability status](TRACE-MATRIX.md) records the still-open mapping work.
 
 ## Platform & Runtime
 
 ### L1-SYS-009
 
-The production application shall be implemented in C++11, shall compile with GCC 4.8.5
-under `-Wall -Wextra -Werror` without warnings, and shall depend only on the C++11
-standard library, POSIX interfaces, and vendored dependencies recorded in
-`cpp/VENDORED.md`.
+The application shall be implemented in Rust using the approved pinned dependency
+graph and features, target x86_64 GNU/glibc 2.22, and pass the independent ELF audit
+and exact-target tests in pinned SLES userspace. Dependency additions require
+approval and must comply with [the license policy](LICENSE-POLICY.md).
 
 **Verification Method**: Test (T), Inspection (I)
-**v1.0.0 Status**: Rewritten — ID reused; supersedes the Python 3.10 stdlib-only
-obligation. See ADR-0001, ADR-0004, ADR-0007.
+**Rust Status**: See the named build/qualification evidence; production release
+qualification remains separate.
 
 ### L1-SYS-011
 
@@ -75,7 +55,7 @@ The system shall run as an unprivileged user.
 The system shall accept transfer job submissions over an HTTP/1.1 REST interface.
 
 **Verification Method**: Test (T)
-**v1.0.0 Status**: Active — replaces the `AF_UNIX` control socket. See ADR-0002.
+**v1.0.0 Status**: Active — replaces the `AF_UNIX` control socket. See the current REST contract.
 
 ### L1-API-002
 
@@ -104,7 +84,7 @@ The system shall reject request bodies exceeding a configured maximum size with 
 The system shall not implement TLS in-process.
 
 **Verification Method**: Inspection (I)
-**v1.0.0 Status**: Active. See ADR-0003.
+**v1.0.0 Status**: Active. See the remote API access boundary.
 
 ### L1-API-006
 
@@ -194,7 +174,7 @@ over from the inherited design's `L1-023`. Two of the three are gone:
   restricts v1.0.0 to a single filesystem. Both were Active simultaneously —
   an error introduced when the security invariants were added without
   reconciling them against this requirement. Deferred → v1.1.
-- The **external-command** clause is removed outright. See ADR-0011: it would
+- The **external-command** clause is removed outright. The transfer protocol requires this boundary: it would
   make the configuration file executable, and it voids the commit-point
   guarantees that justify the daemon existing. It was required here only
   because the inherited design required it, which is not a reason.
@@ -370,7 +350,7 @@ address space.
 **Verification Method**: Test (T)
 **v1.0.0 Status**: Active — new. `L1-ROB-001` covers unhandled exceptions but not stack
 exhaustion or memory amplification, which are the realistic denial-of-service vectors
-against a parser. See ADR-0008, ADR-0009.
+against a parser. See the strict-input contract and its bounded failure tests.
 
 ---
 
@@ -454,9 +434,9 @@ item with its own design and fault-injection suite.
 
 These additions describe the Rust contract in
 [REST-API-DRAFT.md](REST-API-DRAFT.md). **Rust Status: Specified, not implemented.**
-The v1.0.0 Deferred annotation excludes them from historical C++ scope; it does
-not schedule them for the old v1.1 release. L2/L3 derivation and Rust verification
-remain future work. Earlier requirement IDs and C++ evidence are preserved.
+Historical version annotations do not schedule these requirements or establish
+Rust verification. L2/L3 derivation and Rust verification remain explicit release
+work. Existing functional requirement IDs are preserved.
 
 ### L1-API-007
 
@@ -658,6 +638,6 @@ relative file paths and accepted destination mapping.
 **v1.0.0 Status**: Deferred — Rust optional generator grouping for filesystem paths and future S3 prefixes; default false preserves the flat-container layout.
 
 Delivery acceptance examples and proposed startup INI keys are design artifacts,
-not behavior of the current C++ service. Filesystem deletion still requires the
+not a claim of implemented runtime behavior. Filesystem deletion still requires the
 [transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
 validated object/manifest receipts and retention assumptions.

@@ -143,12 +143,12 @@ concurrency/transaction handling, login/logout/session wire, final manifest and
 supported route inventory. Do not turn these into an unbounded series of new
 requirements. Use API-I01-06 and P01-12 to finish the finite release contract.
 No one uses the Rust prototype producer API, so replace it directly without an
-old-wire adapter; preserve persisted custody and separate C++ cutover obligations.
+old-wire adapter; preserve persisted custody and supported stored-state compatibility obligations.
 
 ## What is implemented versus merely agreed
 
 Rust lives in rust/: mover-core, mover-store, mover-fs and file-mover. It is a
-durable coordinator, not a C++-shaped port. Existing work includes SQLite state,
+durable coordinator, using Rust ownership and explicit effects. Existing work includes SQLite state,
 protected claiming, copy/hash/verify/publication/manifest delivery, supervision,
 local ownership/lifetime guards, stop/status, retry/review and default-off source
 space admission. Normal copy hashes source while copying and rereads destination

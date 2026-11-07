@@ -76,8 +76,8 @@ verification, or publication operation fails.
 
 #### L2-CFG-001
 
-The software shall load runtime configuration using only C++11 standard-library and
-POSIX functionality.
+The software shall load runtime configuration using the approved Rust dependency
+graph and qualified platform interfaces.
 
 **Parent**: L1-SYS-009
 
@@ -219,26 +219,14 @@ identifier.
 
 #### L2-CLI-001
 
-The command-line interface shall be implemented using only C++11 standard-library and
-POSIX functionality, with no third-party dependency, and shall accept both short
-(`-v`) and long (`--log-level`) option forms.
+The command-line interface shall use the approved Rust dependency graph and
+qualified platform interfaces, and shall accept both short (`-v`) and long
+(`--log-level`) option forms. These remain requirements, not claims that every
+option is implemented by the current prototype.
 
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T), Inspection (I)
-
-Previously this requirement read "shall be built with **argparse** using only the
-standard library" — a Python library named in a requirement for a C++ project. It
-survived the removal of the Python implementation because the `L3-PY-*` requirements
-were where anyone thought to look for Python mechanisms, and nobody expected to find
-one at L2.
-
-Mechanism is deliberately not specified here. `getopt(3)` is POSIX but handles only
-short options; `getopt_long(3)` handles both but is a GNU extension rather than POSIX,
-so choosing it is a decision about what "POSIX only" means on this project and belongs
-in an ADR at the milestone that builds the CLI — not in a requirement that predates it.
-What this requirement fixes is the dependency constraint and the option forms operators
-will type.
 
 #### L2-CLI-002
 
@@ -661,8 +649,8 @@ Typed file metadata shall support both POSIX identity and future object identity
 
 #### L2-STO-005
 
-Optional storage adapters shall not introduce dependencies beyond the C++11 standard
-library, POSIX, and the vendored set recorded in `cpp/VENDORED.md`.
+Optional storage adapters shall use the approved pinned Rust dependency graph
+and qualified platform interfaces; new dependencies require explicit approval.
 
 **Parent**: L1-SYS-009
 
@@ -1189,9 +1177,8 @@ without opening the durable store, and without binding a socket.
 This is what lets a deployment gate on configuration before the service is
 allowed to touch anything: run it as systemd `ExecStartPre` and an invalid
 config fails the unit outright instead of half-starting a daemon that then
-dies with its state directory already created. It is the C++ counterpart of
-the Python implementation's `doctor` gate (`L2-ENV-001..003`), and shares its
-parent for that reason.
+dies with its state directory already created. The capability diagnostics
+requirements (`L2-ENV-001..003`) share the same parent.
 
 **Parent**: L1-SYS-008
 
@@ -1361,7 +1348,7 @@ other translation unit shall include the database header or embed SQL.
 A persisted job record shall carry an error description that is present and non-empty
 if and only if the recorded state is FAILED.
 
-This is the core state machine's invariant (`L3-CPP-007`, `L3-CPP-008`) carried into the
+This is the core state machine's durable-transition invariant carried into the
 durable layer, so a record that could not have been produced by a legal transition also
 cannot be stored or read back.
 
@@ -1586,7 +1573,7 @@ terminate the process.
 
 #### L2-JSON-003
 
-The parser shall accept only the strict subset defined in ADR-0009 and shall reject
+The parser shall accept only the route-specific schema and approved strictness rules in the REST contract bundle and shall reject
 every construct outside it, including trailing bytes after the top-level value,
 duplicate member names, floating-point values, and embedded NUL characters.
 
@@ -1702,14 +1689,14 @@ directory consumers watch, where cross-client visibility — not partial writing
 the hazard.
 
 This was previously written as a `**v1.0.0 Status**: Deferred → v1.1` field, which
-read as authoritative and was never honoured: `scripts/build-trace-matrix.py` scopes
+read as authoritative and was never honoured: the current scope review distinguishes
 by **L1** status only, so the deferral had no effect and the requirement counted in
 scope regardless. A status field nothing reads is worse than no field, so it is now
 ordinary prose. **Deferral is expressible only at L1**, where it is actually
 enforced — see the parenting note under COPY for how that is done.
 
 > **L2-XFR-003 was removed and its identifier is retired.** It required an
-> external-command transfer strategy launched via `fork`/`execvp`. See ADR-0011: a
+> external-command transfer strategy launched via `fork`/`execvp`. The transfer protocol requires this boundary: a
 > free-text command in configuration makes the configuration file executable, and
 > delegating the move voids the commit-point guarantees of `L1-SEC-001` and
 > `L1-SEC-002`.

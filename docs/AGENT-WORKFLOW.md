@@ -14,7 +14,6 @@ does not promise a fixed quality percentage or replace executable validation.
 - New work: one short-lived `feature/<increment-name>` or `fix/<issue-name>`
   branch per bounded objective, from current `main`; integrate through a reviewed
   PR with applicable checks passing. Avoid direct implementation commits to main.
-- C++ is deprecated and retained as reference, with manual-only legacy workflows.
 - Linux test clone: Ubuntu WSL2 at
   `/home/joey/GIT/background-file-mover-testing`. The older
   `/home/joey/GIT/background-file-mover` checkout is preserved separately.

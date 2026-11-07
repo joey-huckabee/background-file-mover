@@ -103,7 +103,7 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 - [ ] P09: Deliver shipping package/unit/account/confinement, disconnected build,
   provisioning and state-preserving upgrade/rollback/cutover procedures.
 - [ ] P10-11: Complete Rust L1/L2/L3/test traceability and DOC-01-05 user guides;
-  maintain them alongside implementation, separate from historical C++ evidence.
+  maintain them alongside implementation, separate from historical historical evidence.
 - [ ] P12: Rehearse the exact candidate, rerun both required SLES gates and close
   every FR gate before proposing production authorization or release.
 

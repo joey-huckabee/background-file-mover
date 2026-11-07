@@ -179,7 +179,7 @@ Storage continuity and private ownership remain provisioning prerequisites.
 
 ## Optional systemd activation
 
-`systemd/file-mover.service.in` is a **candidate**, not the C++ reference unit or
+`systemd/file-mover.service.in` is a **candidate**, not
 a claim of production qualification. It uses unit-scoped signals, control-group
 termination and no automatic final SIGKILL. It deliberately has `Restart=no` for
 explicit prototype activation; the shipping restart/account policy remains open.

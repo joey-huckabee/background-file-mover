@@ -116,5 +116,5 @@ are process-recovery evidence, not storage/server power-loss qualification or
 proof for an old SLES kernel. NFS effects and destructive cleanup stay deferred.
 This slice supports the copied-file integrity/publication intent of L1-SYS-003,
 004/014 and L2-DPR-001/003 plus the 3N protocol. Rust evidence does not promote
-historical C++ trace status. Next: automatic delivery scheduling, multi-file
+historical trace status. Next: automatic delivery scheduling, multi-file
 recording completion manifests and failure qualification, keeping cleanup disabled.

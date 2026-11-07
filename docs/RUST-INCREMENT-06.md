@@ -118,5 +118,5 @@ after manifest publication, and process exits at every manifest boundary. A writ
 effect before its receipt recovers the recorded owned staging; an allocation gap
 preserves the orphan and withholds commitment. Sources are retained in every case.
 Containers/process exits do not qualify storage/server power-loss durability or
-an old kernel. Historical C++ trace coverage is unchanged; Rust evidence supports
+an old kernel. Historical trace coverage is unchanged; Rust evidence supports
 L1-SYS-031/034, outage handoff intent and configurable admission obligations.

@@ -5,24 +5,10 @@ staging to verify its hash/size before publication and source cleanup. This is 3
 logical data I/O on the normal filesystem path. The prehash recommendations below
 are superseded by this agreement; see [the integrity plan](docs/INTEGRITY-DESIGN.md).
 
-Take a look at https://github.com/joey-huckabee/background-file-mover
+The material below records Rust design proposals. Current approved contracts,
+implemented behavior and qualification status are governed by AGENTS.md and the
+release-closure documents; proposals are not implementation claims.
 
-We are currently rewriting this in rust. I do not want a one for one code rewrite I would like for you to architecture around best practices and tell me how you improve this using rust and what crates we will need for this
-
-I would redesign this as a durable transfer coordinator—not as a line-for-line Rust port of the existing mover. The main improvements should be stronger transfer and recovery guarantees, simpler ownership of state, bounded resource use, and replacing custom infrastructure with well-maintained Rust libraries.
-I reviewed the public main implementation and its requirements, filesystem layer, mover, manager, persistence, and tests. That public implementation is C++; this review does not cover your unpublished Rust rewrite, and I have not executed the repository’s tests. Also, the repository distinguishes the older Python architecture from a deliberately narrower C++ release that defers cross-filesystem copying, source claiming, and some recovery behavior. I would not carry those temporary scope restrictions into the Rust architecture. GitHub
-1. What I would preserve—and what I would change
-There are useful foundations here. The existing code already takes durable state, descriptor-relative filesystem access, and crash testing seriously. In particular, the mover tests kill a child process at transfer boundaries and reopen its persistent state for recovery. Those are worth preserving rather than replacing with ordinary “copy succeeded” tests. GitHub
-However, several implementation choices deserve redesign:
-| Area | What I found | Rust redesign |
-|---|---|---|
-| Final publication | `fsops::publish()` uses plain `renameat()` for the temporary-to-final transition. That operation can replace an existing destination. | Enforce **no-clobber publication at the final transition**, not just during earlier staging.  |
-| Recovery evidence | Some recovery paths accept an existing final file as evidence that publication completed. | Require evidence that the destination belongs to this operation and has the expected content—not merely that its name exists.  |
-| Filesystem outcomes | The link/unlink fallback can successfully create the destination link, fail to remove the source, and return `false`. | Represent partially applied and uncertain operations explicitly; do not equate an error with “nothing happened.”  |
-| State ownership | The manager coordinates several shared containers and locks, with explicit precautions against holding its mutex across database work. | Give scheduling state one owner and database writes another. Communicate through bounded channels.  |
-| Protocol implementation | The project maintains custom HTTP and JSON machinery partly because of the legacy C++ environment. | Replace that machinery with Axum and Serde while retaining the existing strict-input tests.  |
-
-Rust’s biggest contribution here is not automatically faster copying. It is making resource ownership, valid transitions, and failure handling harder to get wrong.
 2. Recommended architecture: one service, clearly separated responsibilities
 I recommend one executable, one configuration file, and one systemd service, with a modular internal architecture.
 For your NFS-oriented deployment, I would use an asynchronous coordinator and a small number of supervised transfer workers:
@@ -219,7 +205,7 @@ Read destination to verify N
                            4N
 ```
 Thus, a 100 GB recording implies roughly 400 GB of logical file I/O under that model. That is a calculation, not a claim about network traffic: caching and filesystem behavior can change the physical traffic. (MY COMMENT: I dont want this we should be able to do better)
-This is why I would not promise that rewriting C++ in Rust makes transfers dramatically faster. Storage behavior, unnecessary rereads, concurrency, and recovery work may dominate.
+This is why I would not promise that a language rewrite alone makes transfers dramatically faster. Storage behavior, unnecessary rereads, concurrency, and recovery work may dominate.
 An optional copy_file_range path can come later, after filesystem-specific testing. It has kernel/filesystem restrictions and must handle partial copies and supported fallback cases correctly. It must not bypass integrity or publication rules. Man7.org
 Add resume only after restart-from-source is correct
 Initially, an interrupted file can safely restart from its retained claimed source.
@@ -305,7 +291,7 @@ The essential outcomes to test are: source retained after unsuccessful publicati
 Use proptest for generated transition sequences, tempfile for isolated test environments, and cargo-fuzz for externally supplied data and recovery inputs. Use criterion for isolated hot paths, with separate end-to-end benchmarks on the actual NFS deployment. Docs.rs
 Production staging files should have explicit durable lifecycles; I would not rely on automatically deleted temporary-file objects to represent recoverable transfers.
 9. Keep the SLES and disconnected-deployment constraints in the build design
-The repository identifies SLES 12 SP5, glibc 2.22, and an older kernel as important deployment constraints. That is separate from its C++ compiler constraint. GitHub
+The repository identifies SLES 12 SP5, glibc 2.22, and an older kernel as important deployment constraints. Compatibility is verified through the qualified target toolchain and runtime. GitHub
 Rust’s published x86_64-unknown-linux-gnu target requirements list a lower kernel/glibc baseline, but that does not establish compatibility of your final executable and every native dependency. Rust Documentation
 I would use a pinned modern Rust toolchain on the build host, a controlled target sysroot, a conservative CPU target, and native dependencies built against that same target environment. With bundled SQLite, a C compiler is still involved at build time. GitHub
 Release qualification should inspect the executable’s actual required GLIBC symbol versions and then run it on SLES with the real mounts.

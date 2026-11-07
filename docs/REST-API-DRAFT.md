@@ -36,7 +36,7 @@ response. NFS remains disabled. Remaining routes/forms are proposals.
 The user confirms that no one uses the Rust prototype API. Replace its old
 producer request format directly; an adapter, parallel old/new producer schema
 or deprecation period is unnecessary. This does not waive stored-job/custody
-preservation or the separate legacy C++ cutover gate.
+preservation or the supported stored-state compatibility gate.
 
 ```json
 {
@@ -78,21 +78,11 @@ prototype and earlier proposals, not the reviewed replacement wire schema.
 They remain reference material pending the P01 OpenAPI rewrite. Do not implement
 both forms by default or treat these older examples as frozen compatibility.
 
-## Existing interface and proposed changes
+## Proposed resource routes
 
-The C++ [submission handler](../cpp/src/router.cpp) accepts `POST /api/jobs`
-with exactly `{"source":"/absolute/file","dest":"/absolute/file"}` and returns
-`202 {"job_id":"..."}` after recording/queueing. The
-[codec](../cpp/src/api_codec.cpp) rejects unknown fields and represents a job
-with `id`, `source`, `dest`, `state`, timestamps, byte counters and a string error.
-Pause/resume/cancel/retry handlers exist; retry allocates a new job. This contract
-does not supply recording-set claims or idempotency keys.
-
-[cpp/README.md](../cpp/README.md) lists GET job/list/status routes as a **target
-shape**, rather than proof that all those read routes are implemented here.
-The Rust proposal retains those resource concepts, under a versioned prefix
-because the request/state/retry meanings change. Decide any legacy adapter
-during cutover rather than silently accepting old requests with new semantics.
+The following route inventory is a design draft, not proof of implementation or
+approval. The current contract bundle and approved behavior groups govern the
+supported release surface and compatibility obligations.
 
 | Proposed route | Purpose |
 |---|---|
@@ -242,7 +232,7 @@ and each file's source root/path. Reject mixtures and unknown fields. Explicit
 destination selection is allowed only within configured caller permissions;
 the generator workflow always uses its configured route.
 
-The historical C++ `/api/jobs` `{source, dest}` contract is unchanged by this
+The existing Rust prototype wire is unchanged by this
 addition. Only the minimal local generator subset is currently implemented;
 the advanced form and optional metadata remain proposals.
 
@@ -793,7 +783,7 @@ requirements for this contract.
 ## Startup destination configuration
 
 Illustrative INI schema for a mounted file share; this is a design example,
-not configuration accepted by the current C++ binary:
+not configuration accepted by the current Rust prototype:
 
 ```ini
 [delivery]

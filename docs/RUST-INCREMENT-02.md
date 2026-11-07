@@ -19,7 +19,7 @@ HTTP 202 or source deletion in this increment. The source/destination context is
 administrator-resolved input; physical roots, mount aliases and local-state
 placement are deployment prerequisites to enforce in upcoming effect/startup work.
 Request serialization and optional metadata beyond the current core model remain
-API work. No old C++ database is automatically adopted.
+API work. No unsupported stored state is automatically adopted.
 
 Schema version 1 uses an application ID, relational integrity and stored required
 file count. Unsupported/foreign schemas are retained and rejected. Missing file
@@ -69,7 +69,7 @@ transactions; retries can use the same original identity after correction.
 This provides lower-layer evidence for L1-API-009 and L1-SYS-025, and transaction
 failure/retention foundations for the claim protocol. The full REST/claim/transfer
 requirements remain unfinished. Rust L2/L3 and automatic test discovery still
-need deliberate integration; historical C++ coverage is not relabeled as Rust.
+need deliberate integration; historical coverage is not relabeled as Rust.
 
 Next increment: durable filesystem-operation intent and one real source claim,
 then reconciliation before release of source reservations/202. Registration and

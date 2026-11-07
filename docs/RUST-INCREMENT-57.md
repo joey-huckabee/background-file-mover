@@ -25,7 +25,7 @@ share its original local configuration, state and PID namespace. Check actual
 libc mapping, UID/GID 1000, zero capabilities, NoNewPrivs, mode/private state,
 foreign-UID CLI refusal and unprivileged systemctl denial. Root fixture control
 simulates administrator-provisioned system service control; it grants no caller
-policy. Keep the inherited C++ deployment unit unchanged.
+policy.
 
 The disposable Rust fixture unit uses Type=simple (manager active is not app
 readiness), an explicit bounded CLI ExecStop, KillMode=control-group,

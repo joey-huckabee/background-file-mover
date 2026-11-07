@@ -70,7 +70,7 @@ uses `cfg_select!`; Rust 1.99 passed. The experiment pinned the newer toolchain.
 The Zig 0.16 link emitted a warning about a deprecated linker optimization
 setting; the artifacts passed inspection and execution.
 
-The bundled SQLite version was 3.53.2, whereas the C++ baseline uses 3.53.4.
+The bundled SQLite version in this experiment was 3.53.2.
 Changing that version or the enabled features requires another check before
 repository adoption in R2/R6. The crate license review does not certify all
 components of the Rust/Zig toolchain or container distribution.

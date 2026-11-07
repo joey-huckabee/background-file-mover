@@ -481,13 +481,13 @@ are separate qualification work; no actual SLES host is required.
 
 ## Requirements and implementation handoff
 
-Keep historical C++ traceability intact until a separately reviewed Rust mapping
+Keep historical traceability intact until a separately reviewed Rust mapping
 exists. The Rust mapping must retain the intent of `L1-SYS-002/003/004/006/010/014`
 (claim release, retention, integrity, safe publication and actionable failures).
 Revise `L1-SYS-015`/`L1-SEC-007` for copied cross-filesystem transfer,
 `L1-SEC-001/002` for set visibility plus recoverable effects instead of disposable
 precommit state, and `L1-SYS-021/022` for file/job phases and orthogonal controls.
-Existing C++ evidence is not Rust verification.
+Existing Historical evidence is not current Rust verification.
 
 Before code: review this baseline with the producer/consumer interfaces, settle
 the filename encoding and metadata policy, derive schema/transition definitions
