@@ -1,0 +1,10 @@
+# The gate supplies the digest-pinned Rust base and exact cargo-libc version.
+ARG RUST_IMAGE
+FROM ${RUST_IMAGE}
+ARG CARGO_LIBC_VERSION
+RUN apt-get update && apt-get install -y --no-install-recommends clang-16 binutils \
+    && rm -rf /var/lib/apt/lists/*
+RUN rustup component add rustfmt clippy \
+    && cargo install cargo-libc --version "=${CARGO_LIBC_VERSION}" --locked \
+    && rm -rf /usr/local/cargo/registry
+ENV CARGO_BUILD_JOBS=2

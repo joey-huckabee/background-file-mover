@@ -1,0 +1,56 @@
+name: Rust SLES compatibility
+
+on:
+  push:
+    # Include the builder recipe as a qualification input.
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+  pull_request:
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-sles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [production, nfs-qualification]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check Cargo configuration and offline gate safety
+        run: python3 -m unittest discover -s scripts -p test_rust_sles.py
+      - name: Check offline package provenance and archive safety
+        run: python3 -m unittest discover -s scripts -p test_offline_bundle.py
+      - name: Pull pinned Rust base and SLES runtime
+        run: |
+          command -v podman
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          config = json.loads(Path("scripts/rust-platform.json").read_text())
+          for role in ("builder_base", "runtime"):
+              subprocess.run(["podman", "pull", config[role]], check=True)
+          PY
+      - name: Cargo-libc, ELF audit and SLES debug/release tests
+        run: python3 scripts/check-rust-sles.py ${{ matrix.mode == 'nfs-qualification' && '--qualification' || '' }}
+      - name: Retain gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: rust-sles-${{ matrix.mode }}
+          path: |
+            rust/validation/*/report.json
+            rust/validation/*/*.log
+            rust/validation/*/*.test
+            rust/validation/*/*.txt
+            rust/validation/*/*.toml
+            rust/validation/*/*image.json
+          retention-days: 14

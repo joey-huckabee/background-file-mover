@@ -1,0 +1,57 @@
+{
+  "scope": "Availability and authorization findings, not lifecycle qualification",
+  "public_source_probes": [
+    {
+      "url": "https://registry.suse.com/v2/suse/sles12sp5/tags/list",
+      "status": 401,
+      "body": "{\"errors\":[{\"code\":\"UNAUTHORIZED\",\"message\":\"authentication required\",\"detail\":[{\"Type\":\"repository\",\"Class\":\"\",\"Name\":\"suse/sles12sp5\",\"Action\":\"pull\"}]}]}\n",
+      "authenticate": "Bearer realm=\"https://scc.suse.com/api/registry/authorize\",service=\"SUSE Linux Docker Registry\",scope=\"repository:suse/sles12sp5:pull\""
+    },
+    {
+      "url": "https://download.opensuse.org/repositories/SUSE:/SLE-12-SP5:/GA/",
+      "status": 404,
+      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"\n  \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n<head>\n<title>Resource is no longer available!</title>\n<link rev=\"made\" href=\"mailto:webmaster@opensuse.org\" />\n<style type=\"text/css\"><!--/*--><![CDATA[/*><!--*/ \n    body { color: #000000; background-color: #FFFFFF; }\n    a:link { color: #0000CC; }\n    p, address {margin-left: 3em;}\n    span {font-size: smaller;}\n/*]]>*/--></style>\n</head>\n\n<body>\n<h1>Resource is no longer available!</h1>\n<p>\n\n\n    The requested URL is no longer available on this server and there is no\n    forwarding address.\n  \n  \n  \n    If you followed a link from a foreign page, please contact the\n    author of this page.\n   \n  \n  \n</p>\n<p>\nIf you think this is a server error, please contact\nthe <a href=\"mailto:webmaster@opensuse.org\">webmaster</a>.\n\n</p>\n\n<h2>Error 404</h2>\n<address>\n  <a href=\"/\">",
+      "authenticate": null
+    },
+    {
+      "url": "https://updates.suse.com/SUSE/Updates/SLE-SERVER/12-SP5/x86_64/update/repodata/repomd.xml",
+      "status": 403,
+      "body": "<html><body><h1>Access denied or Authentication failed</h1><p>Please visit <a href='https://scc.suse.com/'>SUSE Customer Center</a>.</p></body></html>",
+      "authenticate": null
+    },
+    {
+      "url": "https://download.suse.com/",
+      "status": 403,
+      "body": "error code: 1010\n",
+      "authenticate": null
+    }
+  ],
+  "official_sles_snapshots": [
+    {
+      "tag": "5.2.257",
+      "image_id": "7694379b538535754fcbc8b758bd7b63fb18d58edb15caa253e5d79ebacca184",
+      "digests": [
+        "registry.suse.com/suse/sles12sp5@sha256:71be79a1d1c1062e4e11a2c583e453220f5632062a7eef9fb88eac65ab066213",
+        "registry.suse.com/suse/sles12sp5@sha256:818fb50b1812414539b49a519061bc47effe0d7ca7ef1e8d99543d341398d661"
+      ],
+      "stdout": "NAME=\"SLES\"\nVERSION=\"12-SP5\"\nVERSION_ID=\"12.5\"\nPRETTY_NAME=\"SUSE Linux Enterprise Server 12 SP5\"\nID=\"sles\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:suse:sles:12:sp5\"\nglibc 2.22\npackage systemd is not installed\npackage systemd-sysvinit is not installed\nlibsystemd0-228-155.21.x86_64\n",
+      "stderr": ""
+    },
+    {
+      "tag": "6.5.1",
+      "image_id": "6c70f8d8fbdba61b1e195e894632ab6af5b59b40e6b5d075559025e5f9d955dd",
+      "digests": [
+        "registry.suse.com/suse/sles12sp5@sha256:1b4af666004093eb892983922020256f4e9ad38f60bc48a450c4cd1222a8d2ec",
+        "registry.suse.com/suse/sles12sp5@sha256:d148db9086a2cdaf18682cb4b2f96ae306e4fb0f6e3e0df4cca8a3e153d592bf"
+      ],
+      "stdout": "NAME=\"SLES\"\nVERSION=\"12-SP5\"\nVERSION_ID=\"12.5\"\nPRETTY_NAME=\"SUSE Linux Enterprise Server 12 SP5\"\nID=\"sles\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:suse:sles:12:sp5\"\nglibc 2.22\npackage systemd is not installed\npackage systemd-sysvinit is not installed\nlibsystemd0-228-157.9.1.x86_64\n",
+      "stderr": ""
+    }
+  ],
+  "approval_review": {
+    "action": "Privileged host-cgroup namespace plus temporary legacy-hierarchy manager bootstrap",
+    "status": "REJECTED_NOT_EXECUTED",
+    "reason": "Exceeds authorization for an isolated controlled container; host boundary is weakened"
+  },
+  "safer_replacement": "Unmodified 228 manager, fully private cgroup/PID/mount/network namespaces, no custom cgroup changes"
+}

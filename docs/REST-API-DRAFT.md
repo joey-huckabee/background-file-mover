@@ -1,0 +1,896 @@
+# Rust REST API contract draft
+
+Read the [consolidated contract proposal](REST-CONTRACT-PROPOSAL.md) for the next P01 review. It separates approved groups 1-50 from proposed routes and four remaining decision packages. Older examples below remain historical and do not enlarge release scope.
+
+The 2026-10-23 [error-scenario review](REST-ERROR-SCENARIOS.md) records the
+current discussion, approved contract groups 1-50, remaining schema decisions and
+implementation differences. Follow API-I01-06; resolve remaining schema and
+persisted-state details before freezing OpenAPI or changing runtime responses.
+The discussed global recording ID/full source directory/string-file form is
+not the implemented wire format shown below. That document labels agreed
+workflow decisions separately from pending field compatibility/error mappings.
+
+
+This proposal extends the existing job-oriented REST interface to completed
+recording sets and makes source-path release explicit. Review it alongside
+[TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). It is a starting point for producer
+integration or a frozen schema. The minimal local generator form and health
+route are implemented in [increment 04](RUST-INCREMENT-04.md); that document
+defines the implemented subset and its limits. Automatic delivery/manifests are
+implemented in [increment 06](RUST-INCREMENT-06.md); the read-only individual
+`GET /api/v2/jobs/{job_id}` response is defined in
+[increment 07](RUST-INCREMENT-07.md). That implemented status shape takes
+precedence over examples below. [Increment 08](RUST-INCREMENT-08.md) defines the
+implemented audited delivery-only resume request/receipt; the broader controls
+below remain proposals. [Increment 09](RUST-INCREMENT-09.md) defines the
+implemented exact-file `reset-missing` command.
+[Increment 10](RUST-INCREMENT-10.md) defines read-only global and per-job
+retention accounting. [Increment 15](RUST-INCREMENT-15.md) defines implemented
+startup readiness: HTTP handling and `/healthz` begin after source singleton
+custody and confirmed bootstrap child exit. A bound TCP port alone is not
+readiness; pending startup responds to shutdown signals but serves no HTTP
+response. NFS remains disabled. Remaining routes/forms are proposals.
+
+## Reviewed producer shape (implementation pending)
+
+The user confirms that no one uses the Rust prototype API. Replace its old
+producer request format directly; an adapter, parallel old/new producer schema
+or deprecation period is unnecessary. This does not waive stored-job/custody
+preservation or the separate legacy C++ cutover gate.
+
+```json
+{
+  "generator_id": "recorder-01",
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_directory": "/mnt/nfs/recordings/run-0042",
+  "files": [
+    "camera1/video.bin",
+    "camera2/video.bin",
+    "metadata.json"
+  ]
+}
+```
+
+The source directory is absolute as visible to the mover, inside the generator's
+approved scope. recording_id must be a UUID string generated once by the
+recorder; retry that same UUID/request. The mover enforces global uniqueness.
+Non-UUID new input returns 400 invalid_submission, retryable false. This
+requirement is approved but not implemented; see
+[group 17/API-E73-74](REST-ERROR-SCENARIOS.md#recording-id-must-be-a-uuid-group-17).
+Destination selection belongs to startup configuration and subfolders are
+preserved beneath the recording-ID destination folder. This minimal form does
+not require file sizes when checking is disabled (the default). The approved
+optional expected_sizes_bytes map is all-or-nothing. When checking is enabled,
+require the complete map and compare all values; when disabled, a supplied
+complete map is ignored for expected-size comparison. Partial/extra/invalid maps
+are 400 invalid_submission in either mode. Actual claim-size measurement and
+copy integrity checks remain mandatory. See
+[group 14 and its concrete 100-versus-200-byte scenario](REST-ERROR-SCENARIOS.md#expected-size-policy-group-14)
+for API-E61-66. Use current startup configuration for pending expected-size
+checks on existing work after restart, without a per-recording setting snapshot;
+see [restart cases API-E67-70](REST-ERROR-SCENARIOS.md#current-size-checking-configuration-governs-existing-work-group-15).
+Confirmed handoff replay and actual size/custody/integrity evidence remain intact.
+Exact config spelling and replay ordering still need implementation design;
+no new toggle/map is implemented yet.
+
+Examples below using submission_id/source_path/file objects describe the current
+prototype and earlier proposals, not the reviewed replacement wire schema.
+They remain reference material pending the P01 OpenAPI rewrite. Do not implement
+both forms by default or treat these older examples as frozen compatibility.
+
+## Existing interface and proposed changes
+
+The C++ [submission handler](../cpp/src/router.cpp) accepts `POST /api/jobs`
+with exactly `{"source":"/absolute/file","dest":"/absolute/file"}` and returns
+`202 {"job_id":"..."}` after recording/queueing. The
+[codec](../cpp/src/api_codec.cpp) rejects unknown fields and represents a job
+with `id`, `source`, `dest`, `state`, timestamps, byte counters and a string error.
+Pause/resume/cancel/retry handlers exist; retry allocates a new job. This contract
+does not supply recording-set claims or idempotency keys.
+
+[cpp/README.md](../cpp/README.md) lists GET job/list/status routes as a **target
+shape**, rather than proof that all those read routes are implemented here.
+The Rust proposal retains those resource concepts, under a versioned prefix
+because the request/state/retry meanings change. Decide any legacy adapter
+during cutover rather than silently accepting old requests with new semantics.
+
+| Proposed route | Purpose |
+|---|---|
+| `POST /api/v2/jobs` | Durably accept and claim all files before returning 202 |
+| `GET /api/v2/jobs/{id}` | Read milestones, claim release, progress and condition |
+| `GET /api/v2/jobs/{id}/files?limit=...&cursor=...` | Bounded file details |
+| `GET /api/v2/jobs?limit=...&cursor=...` | Bounded job summaries |
+| `POST /api/v2/jobs/{id}/pause` | Persist desired pause; settle started effects |
+| `POST /api/v2/jobs/{id}/resume` | Resume this retained job when safe |
+| `POST /api/v2/jobs/{id}/cancel` | Stop new work without discarding owned data |
+| `POST /api/v2/jobs/{id}/retry` | Request safe reconciliation/retry of this job |
+| `GET /api/v2/status` | Bounded aggregate operational status |
+| `GET /healthz` | Coordinator liveness, independent of NFS availability |
+
+There is no separate client `claim` call. Claiming starts automatically after
+acceptance under admission policy. A client cannot set a job to `Claimed`.
+
+## Generator submission with a configured destination
+
+The proposed first remote profile uses the
+[remote access contract](REMOTE-API-ACCESS-CONTRACT.md): manually provisioned
+client certificates verified by an external proxy, protected producer-only Unix
+socket, peer/principal binding and no service-issued token. This is design only;
+current loopback binding and Authorization rejection remain unchanged. The
+[registration/token proposal](GENERATOR-REGISTRATION-DRAFT.md) remains deferred;
+its future tokenless profiles are not anonymous remote permission.
+
+The additive generator form identifies the recording generator and supplies a
+source directory plus explicit file names. It contains no destination. The
+service selects the destination from configuration loaded at startup.
+
+The remote mover is confirmed to have access to the generator's source NFS
+mount. It claims the files there before 202; submission transports metadata only.
+Mount paths may differ between hosts, so confirm approved path mapping separately.
+
+```http
+POST /api/v2/jobs HTTP/1.1
+Content-Type: application/json
+
+{
+  "generator_id": "recorder-host-a",
+  "submission_id": "recording-0042",
+  "source_path": "/mnt/recordings/current",
+  "files": [
+    {"name": "video/video.bin"},
+    {"name": "telemetry/telemetry.bin"}
+  ]
+}
+```
+
+`source_path` names a directory **as visible to the mover**, inside a source root
+approved for that generator. This is a metadata request, not an upload of file
+contents or access to an arbitrary path on another computer. Each `name` is a
+relative file path beneath that directory; subfolders are permitted. Reject
+absolute paths, backslashes, empty components, `.`/`..`, NUL, duplicate paths
+and invalid encoding. Use `/` between components. Resolve paths using the protocol's safe
+descriptor traversal, not string-prefix checks. Persist both the supplied form
+and the normalized root/relative-file mapping.
+
+`submission_id`, `source_path` and `files` are required in the generator body.
+Supply `generator_id` unless a valid token or explicitly configured tokenless
+profile resolves it; any supplied identity must match the authorized identity.
+`recording_id`, `producer_handoff` and file `file_key` remain optional
+metadata/assertions. If omitted, the service uses its job ID as recording identity
+and assigns stable file IDs. The completed/immutable producer contract still
+applies when its assertion field is omitted; startup generator registration
+establishes that contract. The recorder generates one unique `submission_id`
+per recording and retains it, including across restarts, until it receives 202.
+Retries reuse that ID and the identical submission details; new recordings use
+new IDs even when their paths/names are reused. The body field is the generator
+form's idempotency key, so no separate header is required. The advanced explicit
+form retains its Idempotency-Key header. If both representations are supplied,
+they must agree; reject conflicting values rather than choosing one silently.
+
+For example, `video/video.bin` resolves beneath
+`/mnt/recordings/current/video/`. List each file explicitly: this does not request
+a recursive directory scan or relocation of its directory. Claiming preserves
+the file's original relative-path mapping while moving it into private custody.
+Parent/subfolder names must remain stable until the all-files release. The service
+does not remove empty producer directories. **Agreed generator destination layout:**
+preserve every submitted relative file path beneath a service-owned recording
+folder. For example, `video/camera.bin` becomes
+`recordings/<job-id>/video/camera.bin`. Only folders needed for listed files are
+created; empty/unlisted source folders are not discovered or copied. A future S3
+adapter preserves the same relative path in its object key beneath the configured
+prefix and unique recording prefix; these are key prefixes, not actual directories.
+
+Reject file/directory conflicts such as listing both `video` and `video/camera.bin`,
+reserved control/staging/manifest paths, and collisions under the qualified
+destination's filename semantics. Preserve paths rather than flattening them or
+silently renaming a collision. Configured naming chooses the recording's container;
+it does not change the generator's relative paths within that container. The
+advanced explicit-destination form retains its separately configured mapping.
+
+**Agreed configurable grouping:** startup `[delivery]` setting
+`group_by_generator` chooses the container layout for generator submissions:
+
+| Setting | Relative destination path |
+|---|---|
+| `false` | `<job-id>/<submitted-relative-path>` |
+| `true` | `<generator-component>/<job-id>/<submitted-relative-path>` |
+
+Paths are relative to the configured filesystem root or S3 prefix. False is the
+compatibility default for the earlier flat recording-container layout; operators
+may enable grouping. Neither setting flattens the submitted subfolders or makes
+the generator choose a destination. Build generator components from validated
+configured identities, never unchecked JSON path fragments, and reject component
+collisions under destination semantics. Snapshot the chosen grouping and resolved
+paths at acceptance; toggling it affects new jobs only, not pending-job retries.
+The manifest remains inside each recording container. This option does not alter
+the advanced explicit-destination form's separately configured mapping.
+
+### Optional expected size
+
+`size_bytes` is optional in both v2 forms. The service obtains the actual logical
+byte size from the opened regular file during claiming, confirms the same object
+and stable size after relocation, and durably records that size in the claim
+receipt before reporting release. It does not read the payload to measure size.
+Copying and verification must match this recorded claimed size.
+
+When supplied, `size_bytes` is a nonnegative integer expected-size assertion,
+including zero for an empty file, not authority to truncate/pad the transfer.
+A mismatch blocks claim confirmation for the job and reports
+`source_size_mismatch`, retaining any files already in custody. A changed size
+during claim/copy also blocks advancement. Closed writers and immutability
+remain required; measuring a size does not make a changing file safe.
+
+Before inspection, actual sizes and `copy_bytes_total` may be `null`; expose
+unknown sizes distinctly from zero. Declared expectations are separate from
+observed claim sizes. Once all claims are confirmed, the actual total is known.
+
+`generator_id` is a stable configured identity, not a credential. Bind it to the
+authenticated caller where authentication exists, or an explicitly trusted local
+deployment. An untrusted caller cannot gain another generator's source access by
+putting its ID in JSON. Reject unknown/unauthorized generators and source roots
+outside their scope before acceptance. Multiple generator instances on different
+hosts receive distinct configured identities; do not infer identity from filenames.
+
+### Additive request forms
+
+Keep the previously drafted explicit-root/destination form below as an advanced
+submission use case. The generator form is an additional alternative, not a
+requirement added to every existing request. Select the generator form by
+top-level `source_path`/`submission_id`; it requires file `name` fields and rejects
+client destination fields. The explicit form requires `destination_root_id`
+and each file's source root/path. Reject mixtures and unknown fields. Explicit
+destination selection is allowed only within configured caller permissions;
+the generator workflow always uses its configured route.
+
+The historical C++ `/api/jobs` `{source, dest}` contract is unchanged by this
+addition. Only the minimal local generator subset is currently implemented;
+the advanced form and optional metadata remain proposals.
+
+## Explicit destination submission
+
+```http
+POST /api/v2/jobs HTTP/1.1
+Content-Type: application/json
+Idempotency-Key: host-a-recording-0042
+
+{
+  "recording_id": "scenario-17-run-42",
+  "producer_handoff": "completed_immutable",
+  "destination_root_id": "archive",
+  "files": [
+    {
+      "file_key": "video",
+      "source_root_id": "recorder-a",
+      "source_path": "current/video.bin",
+      "size_bytes": 100000000000
+    },
+    {
+      "file_key": "telemetry",
+      "source_root_id": "recorder-a",
+      "source_path": "current/telemetry.bin",
+      "size_bytes": 12000000
+    }
+  ]
+}
+```
+
+Root IDs identify administrator-approved locations; source paths are relative.
+When provided, `file_key` identifies an entry within the recording; the service also assigns
+internal file IDs. Destination names follow configured naming policy and are
+resolved/persisted at acceptance. The service owns a unique recording directory
+and never overwrites a collision. No `overwrite` option is available.
+
+`completed_immutable` asserts that writes are finished and synchronized, writers
+are closed, there are no writable aliases, and entries/parents remain unchanged
+until all-files claim confirmation. A JSON field cannot prove that condition;
+the recorder must enforce it in its lifecycle.
+
+For filesystem delivery, SHA-256 during copying plus destination reread is mandatory initially. An optional
+producer expected digest can be added during schema review; this request does
+not require prehashing. Source-cleanup policy is service-controlled and returned
+in status. Initial implementation keeps sources; a submission cannot enable
+administratively disabled deletion or bypass verification.
+
+## Acceptance response
+
+**Agreed producer workflow:** submit, wait for `202`, optionally log the receipt,
+then forget the transfer. The recorder leaves submitted files and folders untouched
+until that response. No status polling or later completion acknowledgement is required.
+Internally Accepted and Claimed remain separate durable facts, but the POST's
+successful handoff response confirms both.
+
+Example response for the generator submission:
+
+```http
+HTTP/1.1 202 Accepted
+Location: /api/v2/jobs/job-0042
+Content-Type: application/json
+
+{
+  "job_id": "job-0042",
+  "generator_id": "recorder-host-a",
+  "recording_id": "job-0042",
+  "accepted": true,
+  "claim": {
+    "status": "Claimed",
+    "files_total": 2,
+    "files_claimed": 2,
+    "source_paths_released": true
+  },
+  "status_url": "/api/v2/jobs/job-0042"
+}
+```
+
+Return this only after acceptance and every required claim/receipt are durable.
+It permits immediate reuse of all submitted paths, without waiting for destination
+copying, verification or commitment. It does not release source disk capacity.
+
+**Agreed outage behavior:** destination unavailability alone does not prevent
+claiming or returning 202. If local state storage, source claiming and configured
+retention/admission limits permit handoff, claim every file, return 202 and queue
+delivery until the pinned destination recovers. The recorder has no further
+responsibility. Operators see destination unavailability separately from handoff.
+
+Retention limits cover pending jobs/bytes and source-filesystem free-space margins.
+Measure optional-size submissions in bounded source inspection before authorizing
+claims, reserve queue capacity durably, and account for partially claimed jobs.
+Claim relocation does not free payload space; limits protect capacity for future
+recordings rather than pretending a rename allocates another payload copy.
+Reconcile reservations after restart and release them only at their defined
+cleanup/archive boundary. External writers can consume space too, so checks
+are admission controls, not guarantees of future free space.
+
+If safe admission or claiming is unavailable, return a non-202 response and retain
+any already claimed data for reconciliation. Do not delete claims, reroute a job
+or issue false success to make room. The
+[source-space admission policy](SOURCE-SPACE-ADMISSION-DESIGN.md) defines
+optional/default-off byte and percentage thresholds, bounded fresh measurements
+and new-key-only gating, implemented locally in [increment 36](RUST-INCREMENT-36.md).
+503 `source_space_low` and `source_space_unavailable` create no job and release no
+paths. Cold/expired new-key requests can await a shared probe asynchronously and
+recheck once within the existing ten-second handoff budget; at most two waiters
+are allowed. Missing/error/late results remain retryable unavailable. A recorder
+need not retry faster than cache expiry. Existing-key replay/partial claims bypass
+this gate but retain ordinary safety/ledger checks. Global retention reports the
+separate cached source observation without doing filesystem I/O on GET. Delivery
+retry timing and per-job status/epochs are unchanged; wider storage qualification
+is still required.
+
+Do not hold an unbounded HTTP request during an NFS outage. Use a bounded handoff
+wait; if claiming cannot be confirmed in that time, return a non-202 transient
+response such as `503 handoff_pending`, with Retry-After. Timeout/disconnection
+does not cancel the accepted job. The recorder keeps paths untouched and retries
+the identical request/key with backoff. Waiting HTTP requests and duplicate
+requests are bounded independently of the durable claim operation.
+
+Generator jobs return `generator_id` in acceptance/status/file ownership records
+and include it in completion manifests. Explicit-form jobs may omit it until
+an authenticated submission identity is supplied. Generator idempotency keys
+are scoped to the authorized generator; define the explicit form's caller scope
+before freezing authentication. Resolve replay against the original durable
+request before selecting a new destination, so a configuration change cannot
+reroute a replayed job. Current caller authorization still applies.
+
+Repeat the same POST/key after any lost response. An equivalent normalized
+request for an already claimed job returns `202` again with the same job ID and
+release receipt, even if destination processing has since advanced or failed.
+A still-unclaimed job uses the same bounded handoff wait and returns no 202
+until claims are confirmed. Replay never opens the producer's reused paths.
+For the reviewed replacement, changed immutable content returns
+409 recording_id_conflict. JSON member order and files array order do not change
+request identity. Compare identical path membership and path-keyed size assertions;
+permutation alone replays the original job. Duplicates remain invalid. Preserve
+existing durable file IDs/claim receipts and partial-claim state on replay; this
+order-independent rule is approved but not implemented in the prototype. See
+[group 16/API-E71-72](REST-ERROR-SCENARIOS.md#request-equivalence-file-order-group-16).
+UUID recording_id is required; exact lexical canonicalization, durable global
+persistence/concurrency and ID retention still need schema/implementation design.
+The user selects full detailed history retention until an admin explicitly
+clears it through the dashboard, with no automatic expiry or compact-only
+replacement. [Group 18/API-E75](REST-ERROR-SCENARIOS.md#detailed-job-history-retained-until-admin-clears-it-group-18)
+records this policy. Explicit admin clear forgets the UUID as well as history:
+a later submission using it is new work, not old replay. Only completed or safely
+cancelled jobs may be cleared; unfinished and errored jobs require cancellation
+first. A cancellation request alone is insufficient. Require explicit history-
+clear confirmation showing selected jobs and explaining that UUIDs are forgotten
+but files remain (group 30/SC-158/API-E106); dismissing it clears nothing.
+Clear eligible selected jobs and skip others without reporting reasons; never
+cancel automatically (group 31/SC-159/API-E107). Recheck eligibility when applying
+the clear. A finished clear returns 200 OK with the number of jobs actually
+cleared, including zero if none qualify, with no skip reasons and no file changes
+(group 39/SC-167/API-E116). Exact count field/wire/transaction details remain
+to define. See
+[group 19/API-E76-80](REST-ERROR-SCENARIOS.md#admin-clear-forgets-uuids-cancel-unfinished-or-errored-jobs-first-group-19).
+Group 50 supersedes group 21 post-clear tracking: leave files but forget all
+source/destination linkage, ownership/accounting and action results. Remaining
+files leave mover management; request deletion before clear if desired. Deleting retained data
+requires a separate confirmed admin action. Group 22 permits only owned retained
+source/unfinished destination after safe stop; unclaimed originals/completed
+output stay protected. Deletion is best effort; failures leave files behind and
+are reported. Manual deletion works even when automatic cleanup is disabled
+(group 23/SC-151/API-E99); admin access and exact wire details remain open. See
+[group 21/API-E87-91](REST-ERROR-SCENARIOS.md#history-clear-keeps-files-data-deletion-is-a-separate-admin-action-group-21).
+The admin dashboard must be accessible from another computer
+(group 24/SC-152/API-E100). Keep admin authorization separate from producer
+submission identity. Group 25 selects simple admin username/password; defer
+SSO and advanced account management. Configure one admin account and change
+its password locally on the mover host (group 26/SC-154/API-E102); no remote
+account-management/password-reset workflow. Password changes sign out all
+existing dashboard sessions while background transfers continue
+(group 27/SC-155/API-E103). Sessions also expire after a configurable
+30 minutes of inactivity by default, without affecting transfers
+(group 28/SC-156/API-E104). Mover restart signs out all existing sessions;
+jobs recover normally using durable state (group 29/SC-157/API-E105). Session/request
+protection and exact
+transaction/wire design remain to settle. The dashboard cancel/clear workflow
+still needs implementation;
+no endpoint or physical deletion is implemented. Old destination content keeps
+no-clobber protection.
+
+A different key submitting a source path reserved by an unreleased job receives
+`409 source_reserved`; it cannot create a competing claim. After all-files
+release, a new key may submit the next recording at those same paths.
+
+## Optional operator status
+
+These read routes support operators and dashboards. The recorder does not need
+to call them. The successful POST already carries the source-release receipt.
+
+```http
+GET /api/v2/jobs/job-0042 HTTP/1.1
+```
+
+```json
+{
+  "job_id": "job-0042",
+  "generator_id": "recorder-host-a",
+  "recording_id": "job-0042",
+  "revision": 8,
+  "accepted": true,
+  "claim": {
+    "status": "Claimed",
+    "files_total": 2,
+    "files_claimed": 2,
+    "source_paths_released": true
+  },
+  "desired_execution": "Running",
+  "condition": "Ready",
+  "transfer_phase": "Copying",
+  "recording_committed": false,
+  "source_cleanup": "Disabled",
+  "complete": false,
+  "progress": {
+    "copy_bytes_total": 100012000000,
+    "copy_bytes_completed": 24000000000,
+    "verified_files": 0,
+    "published_files": 0
+  },
+  "error": null
+}
+```
+
+`source_paths_released: true` permits reusing **all** source names from this
+request. It requires every claim and its synchronization/receipt to be durably
+confirmed, without waiting for copying, verification, manifest publication or
+deletion. It does not mean occupied source disk space has been freed.
+
+Release is a durable monotonic fact. A later destination failure/pause does not
+revoke it. Retry uses claimed files, not the producer's newer `current/video.bin`.
+If claimed data is later quarantined, report a separate blocked condition;
+do not demand that the producer restore its old names.
+
+Before release, claim status is `Pending`, `Claiming` or `Partial`. Errors and
+`ReconcileRequired` belong to `condition`. One of two claimed files produces
+`status: "Partial"`, `files_claimed: 1`, and `source_paths_released: false`.
+This draft provides no per-file release permission; file details are diagnostic.
+
+Operator polling uses bounded intervals/backoff. A failed GET never permits reuse. Status
+responses carry `Cache-Control: no-store`; revisions help discard old snapshots.
+A bounded long-poll/event stream is a possible later addition.
+
+## Completion and errors
+
+**Agreed consumer contract:** destination consumers wait for a valid supported
+`COMMITTED.json` before using the recording. Publish that immutable marker only
+after every listed file is verified and published. It lists the exact required
+relative paths, actual sizes and integrity evidence, bound to generator/job/
+recording identity. Consumers ignore uncommitted folders and temporary entries;
+marker presence alone is insufficient if its contents are invalid. The future S3
+adapter uses a completion object with the same consumer meaning, subject to its
+separate publication/verification qualification.
+
+**Agreed cleanup policy:** production operation automatically deletes claimed
+source files after the entire recording is verified and its completion manifest
+is durably committed, when startup configuration enables deletion. Configure
+`delete_source_after_commit = true` or `false` under `[delivery]`; generators
+cannot override this setting. First implementation/test profiles explicitly use
+false until the cleanup failure gates pass. Production move profiles use true.
+
+Record the selected policy with each accepted job. Deletion also requires the
+currently loaded service setting to permit it: restarting with false inhibits
+new cleanup authorizations for existing jobs as well. It does not restore files
+already deleted. Jobs accepted in retention mode remain retained if a later
+restart enables deletion; changing their recorded policy requires an explicit,
+audited operator action, whose interface remains future work.
+
+With deletion disabled, keep claimed sources in private custody and report
+committed delivery with retained sources; never restore them automatically to
+the producer's reused paths. Retained data remains part of source-space accounting.
+With deletion enabled, cleanup failure is retried independently of delivery,
+without recopying the committed recording or touching original producer paths.
+
+`recording_committed: true` means manifest/file receipts have been reconciled
+and recorded. Consumers may see a valid manifest earlier if filesystem
+publication succeeds but SQL result persistence fails. Claim release is unaffected.
+
+The same public commitment/cleanup milestones apply to future qualified S3
+delivery. REST clients do not need to know whether publication used POSIX files
+or objects. Backend-specific verification and receipts must support those facts;
+they cannot be inferred from a successful HTTP upload alone.
+
+With deletion enabled, cleanup progresses through `Pending`, `Running` and
+`Complete`. Cleanup failures keep a committed recording with pending cleanup;
+they do not recopy it. `Disabled` means claimed sources remain retained.
+`complete: true` identifies a completed destructive move, after all enabled
+cleanup obligations; retained-source commitment is reported separately.
+
+```json
+{
+  "error": {
+    "code": "source_unavailable",
+    "message": "A required source could not be confirmed in mover custody",
+    "job_id": "job-0042",
+    "file_key": "telemetry",
+    "phase": "Claiming",
+    "retryable": true,
+    "reconciliation_required": true
+  }
+}
+```
+
+Stable codes support clients; messages explain problems without exposing private
+claim paths. `retryable` permits requesting controlled retry; it does not permit
+rewriting handed-off files. After acceptance, transfer errors appear in job
+status. HTTP 200 on GET means the query succeeded, not that the transfer did.
+
+Malformed JSON, unknown/duplicate fields, invalid paths or bounds return 400;
+oversized bodies 413; unknown jobs 404; conflicting submissions/invalid controls
+409; admission/unavailable storage 503; unexpected internal errors 500.
+An acceptance failure response cannot certify that SQL never committed; retry
+with the same key. Later source problems remain attached to the accepted job.
+
+For submission, only 202 certifies completed handoff. Transient failures/timeouts
+are retried with the same key; malformed or conflicting submissions require
+correction/operator intervention rather than an endless rapid retry loop.
+**Agreed recorder behavior:** retry network timeouts/disconnections and temporary
+service responses with the same submission ID and identical request, using bounded
+backoff and Retry-After when provided. Stop automatic retries and log errors that
+require correction or operator review, including invalid submissions, conflicting
+IDs and `recording_blocked`. Non-202 responses carry a stable error code and
+`retryable` indication; do not infer retryability from status class alone.
+Authentication/authorization errors also require correction rather than blind retries.
+
+A stop/log decision is not permission to reuse source paths. Without 202, the
+recorder must leave the submitted files/folders untouched and escalate the
+handoff problem. Already accepted jobs and partial claims remain durable; stopping
+client retries does not cancel them. Operator resolution may safely resume the
+same job, after which the recorder can retry the same ID to obtain its 202.
+Define exact backoff timing and restart-persistent pending/error records before
+implementation. A new submission ID must not be used to bypass a failed handoff.
+
+Proposed control acknowledgements persist desired execution and may return 202
+while asynchronous effects settle; this is not the producer handoff response.
+Group 32 requires cancellation confirmation showing the selected jobs only,
+without explanatory text (SC-160/API-E108). Dismiss/decline cancels nothing;
+confirm only the shown job identities. Request cancellation only for unfinished
+jobs; skip completed/already-cancelled jobs without reporting reasons
+(group 33/SC-161/API-E109). Recheck current state and preserve pending
+cancellation; exact wire/transaction details remain to settle.
+Group 34 makes cancellation final for the first release: no resume/uncancel
+or revival through retry. Preserve files and keep eligible failed-work retry
+separate (SC-162/API-E110). Eligible failed-work retry needs no confirmation
+dialog (group 35/SC-163/API-E111). An accepted admin retry returns 202 Accepted
+and the dashboard shows actual job progress, without implying execution or
+success (group 38/SC-166/API-E115); authentication, current eligibility, original
+job/custody and existing audited review checks still apply. Group 36 maps an
+authorized identical producer retry of a safely cancelled job without durable
+whole-set handoff to 409 recording_cancelled, retryable false, null retry delay
+and source_paths_released false. After completed durable handoff, preserve
+established 202 replay even if its original response was lost; this never revives
+the cancelled transfer or reclaims reused paths (SC-164/API-E112-113). Pending cancellation still requires safe settlement;
+finality does not waive worker exit or other safety checks.
+Group 20 approves preserving files on cancellation: originals, private claims,
+partial staging and published files stay in place; valid completion manifests
+are preserved. Blocked workers/uncertain publication keep cancellation pending
+and history ineligible to clear. No automatic deletion/restoration; see
+[group 20/API-E81-86](REST-ERROR-SCENARIOS.md#cancellation-preserves-files-in-place-group-20).
+Group 37 selects HTTP 202 Accepted for an accepted admin cancellation, with
+Cancellation pending until work safely stops/effects settle, then Cancelled
+(SC-165/API-E114). This is not producer custody 202 or source-path reuse
+permission. Exact body/persistence/bulk details remain to define; no new
+cancellation deadline is selected. History clear preserves files per group 21.
+[Group 22](REST-ERROR-SCENARIOS.md#confirmed-retained-data-deletion-owned-leftovers-only-after-safe-stop-group-22)
+defines disposal scope/confirmation. Group 40 selects 202 Accepted for accepted
+confirmed manual deletion with dashboard deleted-file/failed-file counts
+(SC-168/API-E117), without automatic retries or special recovery workflow.
+Acceptance is not removal success. Use existing job_id and evaluate that job's
+current stored state/eligibility for deletion; no new admin identifier scheme
+is required. Existing ownership/confirmation/protected-file rules still apply.
+Exact count/status wire remains to define.
+Keep best-effort deletion: failed files remain,
+other safe selected files can be attempted and failures are reported. No dedicated
+delete pause/resume or automatic retry workflow is required. Delivery retry
+retains job ID, resolved names, claimed sources and ownership,
+allocating new internal operation attempts only when safe. This changes the old
+new-job retry behavior, which could reopen a newer recording at a reused path.
+
+## Shared admin action selection (group 41)
+
+Cancel, failed-work retry, history clear and manual retained-data deletion each
+use a separate endpoint with the same selected-job request body:
+
+```json
+{
+  "job_ids": [42, 43]
+}
+```
+
+Use existing service job IDs and each job's current stored state. The admin must
+be signed in; authentication is separate from this body. Do not include a
+username/password in each action request. Cancel/clear/delete retain their
+confirmation requirements; retry has none. Apply existing review/custody and
+protected-file rules. Exact endpoint names/methods and list validation/limits
+remain to settle. Group 46 selects browser session-cookie transport for dashboard
+sign-in; exact login/logout wire is pending. Group 42 silently skips
+nonexistent selected job IDs and processes the rest (SC-170/API-E119); this does
+not turn unreadable state into a missing ID. Under group 50, successful clear
+forgets every source/destination linkage; old cleared IDs then silently skip. Group 43 processes repeated entries again; do not deduplicate
+or predict job state in the list handler. The per-job operation decides outcomes;
+a duplicate cancel counts as a failed cancel attempt without making the job itself
+failed or resetting cancellation progress (SC-171/API-E120). Existing single-
+resource/local-operator 404 mappings remain. See
+[group 41/API-E118/SC-169](REST-ERROR-SCENARIOS.md#shared-job_ids-request-with-separate-admin-action-endpoints-group-41).
+No runtime endpoints or authentication are implemented by this draft.
+
+## Cancellation response counts (group 44)
+
+A processed admin cancellation selection returns HTTP 202 Accepted:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+Count per-entry outcomes from the per-job action, without deduplication. Accepted
+means the cancellation request was accepted; the job remains Cancellation pending
+until safe stop, then Cancelled. Duplicate cancel attempts count as failures;
+nonexistent/completed/already-cancelled skips count as skipped, without reasons.
+These are action counts, not transfer-failure or completed-stop counts. See
+[group 44/API-E121/SC-172](REST-ERROR-SCENARIOS.md#cancellation-attempt-response-accepted-failed-and-skipped-counts-group-44).
+Whole-request authentication/validation/storage errors retain separate handling.
+
+## Retry response counts (group 45)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Failed-job
+retry returns HTTP 202 Accepted with:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+These nonnegative integer counts describe per-entry retry attempts accepted,
+failed or skipped. Acceptance is not transfer success; display actual progress
+and later outcome. Preserve eligibility, existing job/custody and review checks,
+no confirmation for eligible retry, and no cancelled-job revival. Repeated entries
+still go through the per-job operation; exact duplicate-retry outcomes and whole-
+request replay remain to settle. Authentication/validation/storage errors keep
+separate handling; exact endpoints, bounds and other wire details remain pending.
+See [group 45/API-E122/SC-173](REST-ERROR-SCENARIOS.md#retry-attempt-response-accepted-failed-and-skipped-counts-group-45).
+
+## Dashboard sign-in session cookie (group 46)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Use a browser
+session cookie to keep the dashboard admin signed in and authenticate subsequent
+admin requests. Preserve the configurable 30-minute inactivity timeout and
+all-session sign-out on password change or mover restart. Expiry/sign-out does
+not stop transfers. Admin account setup/password changes remain host-local;
+producer credentials do not authorize admin actions.
+
+Group 47 resolves manual sign-out as all-session invalidation. Cookie attributes/
+name, login/logout paths/methods/bodies, browser-restart persistence and session
+implementation details remain to settle.
+Keep ordinary HTTPS/password/session hygiene without expanding account features.
+See [group 46/API-E123/SC-174](REST-ERROR-SCENARIOS.md#browser-session-cookie-for-dashboard-sign-in-group-46).
+
+## Sign out everywhere and transfer independence (group 47)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Manual admin
+sign-out from any browser/device invalidates every admin dashboard session.
+Previously issued session cookies must no longer authorize subsequent admin
+requests; every browser/device must sign in again.
+
+The mover service owns transfers independently of dashboard credentials and
+sessions. Signing in/out, session expiry and dashboard password changes do not pause,
+cancel or restart transfers. Dashboard authentication controls access to admin
+requests; explicit job actions retain their own eligibility and custody checks.
+Group 48 selects 204 No Content after successful all-session invalidation.
+Exact logout endpoint/method, cookie handling and in-flight request ordering
+remain to finalize. See
+[group 47/API-E124/SC-175](REST-ERROR-SCENARIOS.md#manual-admin-sign-out-invalidates-all-sessions-group-47).
+
+## Login, session and logout response statuses (group 48)
+
+**Approved on 2026-11-01; implementation/qualification pending.**
+
+| Situation | HTTP response |
+|---|---|
+| Successful login | 200 OK with session cookie |
+| Incorrect credentials | 401 Unauthorized with "Invalid username or password." |
+| Missing or expired session on a protected admin request | 401 Unauthorized; require sign-in |
+| Successful manual sign-out | 204 No Content after all admin sessions are invalidated |
+
+Use the same invalid-credentials message for incorrect usernames and passwords.
+The exact error JSON/body encoding and successful-login body remain pending.
+Logout success has no body and must follow completed global session invalidation.
+Exact paths/methods, login request fields, headers/cookie attributes, already-
+signed-out logout/replay and in-flight request ordering remain to settle.
+See [group 48/API-E125-128/SC-176-179](REST-ERROR-SCENARIOS.md#dashboard-login-session-and-logout-responses-group-48).
+
+## Missing file retry and operator review
+
+**Agreed missing-file behavior:** when a listed file is confirmed absent from
+its expected source location, check again with bounded backoff for a configurable
+period. Start/persist that file's retry deadline at its first confirmed absence.
+Repeating the submission or restarting the service does not reset the deadline.
+The overall job remains unacknowledged while any required file is unclaimed.
+
+During the window, POST handoff attempts return a transient non-202 response
+such as `503 handoff_pending` if their bounded wait expires. After the missing
+file's window expires, persist `Blocked` with `source_missing_review_required`
+and require an explicit operator retry/reconciliation decision. POST returns
+`409 recording_blocked`, naming the original job for logging, rather than 202.
+The recorder stops automatic retries and logs this review-required response;
+repeating its JSON cannot silently reopen a blocked job.
+
+Never omit the missing file, publish an incomplete set, discard already claimed
+sources, release source-path reservations or restore files onto reusable names
+to settle the error. An operator can inspect the exact missing entry and resume
+the original job when safe; any reset of its retry window is explicit and audited.
+Loss of mount access or uncertain NFS results is an endpoint/reconciliation
+condition, not evidence that a file is absent. Do not certify absence from a
+cached observation alone. The agreed startup default is
+`missing_file_retry_window_seconds = 300` under `[delivery]`. Snapshot that
+duration with each accepted job; later configuration changes apply to new jobs,
+not existing deadlines. This five-minute window is independent of the shorter
+bounded HTTP handoff wait and begins at confirmed absence, not request receipt.
+
+## Remaining producer integration review
+
+- Can the recorder enforce closed writers, synchronized completed files and
+  unchanged entries/parents until all-files release?
+- Is all-files release sufficient, or does preparation need individual release?
+- Can generators provide mover-visible source directories and explicit names,
+  and can consumers honor manifest visibility and retention through cleanup?
+- Should `recording_id` be unique within a producer scope independently of keys?
+  Define authentication/producer scope before remote use.
+- Set filename encoding, naming/metadata policy, body/file/page bounds, key
+  retention and detailed control semantics before freezing the schema.
+
+Resolve relevant decisions before the dependent API/effect implementation;
+independent pure-core and storage tests can proceed now. Registration/token work
+is explicitly deferred, with a one-time setup key selected for later enrollment.
+Preserve loopback by
+default, external TLS and strict hostile-input tests while revising the REST
+requirements for this contract.
+
+## Startup destination configuration
+
+Illustrative INI schema for a mounted file share; this is a design example,
+not configuration accepted by the current C++ binary:
+
+```ini
+[delivery]
+default_destination = archive
+group_by_generator = false
+delete_source_after_commit = true
+missing_file_retry_window_seconds = 300
+
+[destination:archive]
+kind = filesystem
+path = /mnt/archive/recordings
+
+[generator:recorder-host-a]
+source_root = /mnt/recordings
+```
+
+Every configured generator uses the default destination unless an administrator
+sets an explicit per-generator `destination` override. The generator submits
+the same request either way. Validate all references/source permissions at
+startup. Unavailable storage is a readiness/health condition, not automatically
+invalid syntax or permission to use an underlying local directory.
+
+To route newly accepted jobs to S3, the future configuration could instead use:
+
+```ini
+[delivery]
+default_destination = object-archive
+group_by_generator = false
+delete_source_after_commit = true
+missing_file_retry_window_seconds = 300
+
+[destination:object-archive]
+kind = s3
+bucket = recording-archive
+region = us-east-1
+prefix = recordings/
+credential_profile = file-mover
+
+[generator:recorder-host-a]
+source_root = /mnt/recordings
+```
+
+Credentials are obtained by the service using an administrator-controlled
+provider/reference, never submitted by generators or included in job responses.
+Pin the nonsecret destination identity, backend kind, path or bucket/region/
+endpoint/prefix, naming and integrity/cleanup policy at acceptance. Restarting
+with a changed route affects new jobs only. Pending jobs keep their original
+destination; if that destination can no longer be accessed, block rather than
+reroute. Credential rotation may preserve access to the same pinned target.
+
+Mounted shares use the POSIX claim/copy/verify/publish protocol after qualification
+of their actual mount semantics. An S3 adapter needs multipart-upload ownership,
+provider-validated checksum evidence, conditional object/manifest publication,
+uncertain-completion recovery and version-bound receipts where available.
+Amazon S3 supports `If-None-Match: *` on PutObject and CompleteMultipartUpload;
+it checks the current object version and does not establish eternal immutability.
+[AWS conditional write documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
+Retention/access policy must protect delivered objects through source cleanup.
+Qualify S3-compatible providers separately and preserve the
+[checksum distinctions](INTEGRITY-DESIGN.md#future-s3-adapter).
+
+S3 is an additional destination design use case. Its adapter, SDK/TLS dependencies
+and GNU/glibc 2.22 compatibility remain unqualified. A binary without a qualified
+enabled adapter must reject `kind = s3` at startup; it must not silently fall back
+to a file destination. No S3 package experiment is started by this contract update.
+
+## Implemented prototype delivery-capacity status
+
+[Increment 33](RUST-INCREMENT-33.md) adds
+`destination_capacity_requires_review` to the existing
+`details.delivery_retry.code` vocabulary. The JSON shape is unchanged. For a
+confirmed ENOSPC during an owned payload copy, failures 1 and 2 remain `Retrying`
+with persisted 30/60-second deadlines. Failure 3 becomes `ReviewRequired`; a saved
+retry timestamp does not override that condition. This classification does not
+apply to allocation, manifest, publication sync, custody or unknown worker outcomes.
+
+Example pending-delivery fragment:
+
+```json
+{
+  "state": "Claimed",
+  "source_paths_released": true,
+  "details": {
+    "condition": "Retrying",
+    "delivery_retry": {
+      "failures": 1,
+      "retry_after": 1800000030,
+      "code": "destination_capacity_requires_review"
+    }
+  }
+}
+```
+
+This is a partial illustrative status object; `retry_after` is an absolute Unix
+seconds deadline, not an interval. A recorded pending deadline survives restart.
+Restoring capacity before review permits automatic delivery at the saved deadline;
+restoring capacity after review still requires audited resume. The recorder has no
+new polling or recovery obligation after receiving 202. See
+[the retry policy](DELIVERY-RETRY-POLICY.md) for scope and persistence limits and
+the increment for actual validation; production NFS/deletion remain disabled.

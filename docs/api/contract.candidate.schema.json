@@ -1,0 +1,2138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Background File Mover contract candidate - NOT FROZEN",
+  "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
+  "x-status": "candidate-not-frozen",
+  "x-approved-groups-through": 52,
+  "$defs": {
+    "RecordingId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "JobId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 19,
+      "pattern": "^[1-9][0-9]*$",
+      "not": {
+        "pattern": "[^0-9]"
+      },
+      "x-integer-maximum": 9223372036854775807
+    },
+    "RelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4095,
+      "allOf": [
+        {
+          "not": {
+            "pattern": "^/|/$|//"
+          }
+        },
+        {
+          "not": {
+            "pattern": "(^|/)(\\.|\\.\\.|\\.file-mover|\\.control|\\.staging|COMMITTED\\.json)(/|$)"
+          }
+        },
+        {
+          "not": {
+            "pattern": "[\\\\\\x00-\\x1f\\x7f-\\x9f]"
+          }
+        }
+      ],
+      "x-max-utf8-bytes": 4095
+    },
+    "SourceDirectory": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4095,
+      "pattern": "^/",
+      "allOf": [
+        {
+          "not": {
+            "pattern": "[\\\\\\x00-\\x1f\\x7f-\\x9f]"
+          }
+        },
+        {
+          "not": {
+            "pattern": "(^|/)(\\.|\\.\\.)(/|$)"
+          }
+        },
+        {
+          "not": {
+            "pattern": "//"
+          }
+        }
+      ],
+      "x-max-utf8-bytes": 4095,
+      "x-semantic-rules": [
+        "no trailing slash except root"
+      ]
+    },
+    "GeneratorId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "not": {
+        "pattern": "[^A-Za-z0-9._-]"
+      }
+    },
+    "ByteCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Preserved numeric u64 for existing operator/status fields and legacy manifest v1. Not the new producer/manifest v2 wire size type."
+    },
+    "Digest": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ProducerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generator_id": {
+          "$ref": "#/$defs/GeneratorId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "source_directory": {
+          "$ref": "#/$defs/SourceDirectory"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/RelativePath"
+          }
+        },
+        "expected_sizes_bytes": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 256,
+          "propertyNames": {
+            "$ref": "#/$defs/RelativePath"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/DecimalByteCount"
+          }
+        }
+      },
+      "required": [
+        "generator_id",
+        "recording_id",
+        "source_directory",
+        "files"
+      ],
+      "x-semantic-rules": [
+        "Expected-size map keys equal files exactly when supplied, regardless of checking setting.",
+        "No file path is an ancestor of another listed path.",
+        "UTF-8 byte limits and scalar validity require separate semantic validation.",
+        "Current setting requires map only before whole-set handoff; an exact confirmed replay remains 202.",
+        "Immutable identity includes supplied map presence and values, even when comparison disabled."
+      ]
+    },
+    "ProducerAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "accepted": {
+          "const": true
+        },
+        "source_paths_released": {
+          "const": true
+        }
+      },
+      "required": [
+        "job_id",
+        "recording_id",
+        "accepted",
+        "source_paths_released"
+      ]
+    },
+    "ProducerError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recording_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_paths_released": {
+          "const": false
+        }
+      },
+      "required": [
+        "recording_id",
+        "error",
+        "retryable",
+        "retry_after_seconds",
+        "source_paths_released"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "retryable": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "retry_after_seconds": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LoginRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "username",
+        "password"
+      ],
+      "x-semantic-rules": [
+        "Do not trim, normalize, echo or log credentials. Limits are candidate bounds, not password policy."
+      ]
+    },
+    "LoginSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authenticated": {
+          "const": true
+        }
+      },
+      "required": [
+        "authenticated"
+      ]
+    },
+    "InvalidCredentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "const": "invalid_credentials"
+        },
+        "message": {
+          "const": "Invalid username or password."
+        }
+      },
+      "required": [
+        "error",
+        "message"
+      ]
+    },
+    "AuthenticationRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "const": "authentication_required"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    },
+    "SessionStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authenticated": {
+          "const": true
+        },
+        "inactivity_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "authenticated",
+        "inactivity_timeout_seconds"
+      ]
+    },
+    "JobSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      },
+      "required": [
+        "job_ids"
+      ],
+      "x-semantic-rules": [
+        "Process each occurrence, in submitted order; do not deduplicate.",
+        "Clients must preserve integer precision; JSON binary64 rounding is not allowed.",
+        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header encoding and receipt design pending.",
+        "Raw job IDs are exact integer tokens: no booleans, decimal/exponent notation or binary64 rounding. JSON Schema alone does not check token spelling."
+      ]
+    },
+    "AttemptCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "skipped_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      },
+      "required": [
+        "accepted_count",
+        "failed_count",
+        "skipped_count"
+      ],
+      "x-semantic-rules": [
+        "Counts sum to number of attempted list occurrences only for a complete response.",
+        "Acceptance counts do not mean work completed."
+      ]
+    },
+    "HistoryCleared": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cleared_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      },
+      "required": [
+        "cleared_count"
+      ]
+    },
+    "RequestIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "version",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3,
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "not": {
+            "pattern": "[^0-9]"
+          },
+          "x-integer-maximum": 255
+        },
+        "path": {
+          "$ref": "#/$defs/RelativePath"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/DecimalByteCount"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "file_id",
+        "path",
+        "size_bytes",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "instance_id": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "generator_id": {
+          "$ref": "#/$defs/GeneratorId"
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "request_identity": {
+          "$ref": "#/$defs/RequestIdentity"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/ManifestFile"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "job_id",
+        "generator_id",
+        "recording_id",
+        "request_identity",
+        "files"
+      ],
+      "x-max-utf8-bytes": 131072,
+      "x-semantic-rules": [
+        "Exact original path membership and stable file IDs; no duplicates or prefix conflicts.",
+        "Measured sizes and full content SHA-256 must match verified publication evidence.",
+        "All manifest UUIDs lowercase. Stored immutable bytes, not regenerated formatting, govern recovery.",
+        "Group 52 approves v2 for new recordings with exact decimal-string measured sizes and a request-identity digest. Preserve legacy v1 bytes and recover only still-tracked jobs; no reconstruction after clear. Exact framing/bounds remain engineering candidate until P01 freeze."
+      ]
+    },
+    "InstanceId": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 32,
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "RetryReviewSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "review_epoch": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "instance_id",
+        "job_id",
+        "review_epoch"
+      ],
+      "x-status": "candidate read projection; exact integration into bounded job/detail reads pending",
+      "x-semantic-rules": [
+        "A matching epoch does not prove human inspection or authorize effects.",
+        "Copy existing reviewed state at deliberate click; no polling-based refresh of a pending request."
+      ]
+    },
+    "RetryContextDecoded": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "selection_sha256": {
+          "$ref": "#/$defs/Digest"
+        },
+        "review_epochs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "not": {
+            "pattern": "[\\x00-\\x1f\\x7f-\\x9f]"
+          },
+          "x-max-utf8-bytes": 512
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "selection_sha256",
+        "review_epochs",
+        "reason"
+      ],
+      "x-max-utf8-bytes": 4096,
+      "x-semantic-rules": [
+        "Fixed-key compact UTF-8 JSON encoding, valid scalars, integer tokens only; no duplicate or unknown keys.",
+        "Epoch array length equals ordered job_ids; repeated same IDs must have identical epoch values.",
+        "Null is nonauthorizing and never replaced with current state.",
+        "Reason is 1..512 UTF-8 bytes, nonblank, control-free; preserve exact text.",
+        "Existing instance identity and exact ordered selection digest must match; authentication and CSRF remain separate."
+      ]
+    },
+    "RetryContextHeader": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 6144,
+      "pattern": "^v1\\.[A-Za-z0-9_-]+$",
+      "not": {
+        "pattern": "[^A-Za-z0-9_.-]"
+      },
+      "x-decoded-schema": {
+        "$ref": "#/$defs/RetryContextDecoded"
+      },
+      "x-semantic-rules": [
+        "Exactly one case-insensitive Mover-Retry-Context occurrence, after HTTP OWS removal.",
+        "Canonical unpadded base64url; no comma joining, padding, whitespace or nonzero unused bits.",
+        "Decoded bytes <=4096 and canonical JSON; full raw request head still <=8192 bytes."
+      ]
+    },
+    "Epoch": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "Timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "Count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "LedgerBytes": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 39,
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "x-integer-maximum": 340282366920938463463374607431768211455,
+      "description": "Preserved u128 ledger decimal string, not physical disk measurement."
+    },
+    "FileId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10,
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "x-integer-maximum": 4294967295
+    },
+    "AuditText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\x00-\\x1f\\x7f-\\x9f]"
+      },
+      "x-max-utf8-bytes": 512
+    },
+    "CommandId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\x00-\\x1f\\x7f-\\x9f]"
+      },
+      "x-max-utf8-bytes": 128
+    },
+    "StoredPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4095,
+      "description": "Existing validated stored relative path, preserved without normalization; not reclassified as a fresh producer request."
+    },
+    "JobState": {
+      "type": "string",
+      "enum": [
+        "Accepted",
+        "Claimed",
+        "Committed",
+        "CancellationPending",
+        "Cancelled"
+      ],
+      "x-current-values": [
+        "Accepted",
+        "Claimed",
+        "Committed"
+      ],
+      "x-proposed-extension": [
+        "CancellationPending",
+        "Cancelled"
+      ]
+    },
+    "JobCondition": {
+      "type": "string",
+      "enum": [
+        "Committed",
+        "ReviewRequired",
+        "AwaitingClaims",
+        "Retrying",
+        "Ready",
+        "CancellationPending",
+        "Cancelled"
+      ]
+    },
+    "FilePhase": {
+      "type": "string",
+      "enum": [
+        "Pending",
+        "Claimed",
+        "Verified",
+        "Published",
+        "SourceRemoved"
+      ]
+    },
+    "TransferPhase": {
+      "type": "string",
+      "enum": [
+        "Intent",
+        "Copied",
+        "Verified",
+        "PublishIntent",
+        "Published"
+      ]
+    },
+    "FileStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "$ref": "#/$defs/FileId"
+        },
+        "name": {
+          "$ref": "#/$defs/StoredPath"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ByteCount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phase": {
+          "$ref": "#/$defs/FilePhase"
+        },
+        "transfer_phase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TransferPhase"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attempt": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "file_id",
+        "name",
+        "size_bytes",
+        "phase",
+        "transfer_phase",
+        "attempt"
+      ],
+      "x-preserved-from": "file-mover/src/lib.rs status_response: unknown measured size/transfer/attempt are null, never inferred from expectations."
+    },
+    "MissingStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "$ref": "#/$defs/FileId"
+        },
+        "deadline": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "blocked": {
+          "type": "boolean"
+        },
+        "deadline_elapsed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "file_id",
+        "deadline",
+        "blocked",
+        "deadline_elapsed"
+      ]
+    },
+    "DeliveryRetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "failures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "retry_after": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "delivery_requires_review",
+            "destination_unavailable",
+            "destination_binding_requires_review",
+            "destination_capacity_requires_review"
+          ]
+        }
+      },
+      "required": [
+        "failures",
+        "retry_after",
+        "code"
+      ]
+    },
+    "ResumeAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/CommandId"
+        },
+        "review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "x-max-utf8-bytes": 128
+        },
+        "reason": {
+          "$ref": "#/$defs/AuditText"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "prior_retry_after": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "prior_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "command_id",
+        "review_epoch",
+        "actor",
+        "reason",
+        "recorded_at",
+        "prior_retry_after",
+        "prior_code"
+      ],
+      "description": "review_epoch is the consumed prior epoch; do not substitute the current outer review_epoch."
+    },
+    "MissingResetAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/CommandId"
+        },
+        "review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "file_id": {
+          "$ref": "#/$defs/FileId"
+        },
+        "retry_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "x-max-utf8-bytes": 128
+        },
+        "reason": {
+          "$ref": "#/$defs/AuditText"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "prior_deadline": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "prior_blocked": {
+          "type": "boolean"
+        },
+        "new_deadline": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "command_id",
+        "review_epoch",
+        "file_id",
+        "retry_window_seconds",
+        "actor",
+        "reason",
+        "recorded_at",
+        "prior_deadline",
+        "prior_blocked",
+        "new_deadline"
+      ]
+    },
+    "CancellationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "NotRequested",
+            "Pending",
+            "Cancelled"
+          ]
+        },
+        "requested_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stopped_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "requested_at",
+        "stopped_at"
+      ],
+      "x-status": "proposed not implemented",
+      "x-semantic-rules": [
+        "Cancelled only after confirmed safe stop/reconciliation. Restart is not cancellation. File disposition stays unchanged.",
+        "Pending and terminal commitment races must preserve verified output and original custody; no success from mere request acceptance."
+      ]
+    },
+    "DeletionStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "completion_pending": {
+          "type": "boolean"
+        },
+        "deleted_count": {
+          "$ref": "#/$defs/Count"
+        },
+        "failed_count": {
+          "$ref": "#/$defs/Count"
+        }
+      },
+      "required": [
+        "completion_pending",
+        "deleted_count",
+        "failed_count"
+      ],
+      "x-approved-behavior": "Group 51: latest pass only while job tracked; one active pass; never automatic retry or post-clear results.",
+      "x-semantic-rules": [
+        "Counts are actual confirmed deleted/failed selected owned names, not freed bytes. Unknown pending outcomes are not successful deletions.",
+        "Repeated observations of the same latest pass must not double-count targets."
+      ]
+    },
+    "JobDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generator_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "submission_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "condition": {
+          "$ref": "#/$defs/JobCondition"
+        },
+        "review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "missing_review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "manifest_phase": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_cleanup_enabled": {
+          "type": "boolean"
+        },
+        "latest_missing_reset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MissingResetAudit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latest_resume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResumeAudit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/FileStatus"
+          }
+        },
+        "missing": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/MissingStatus"
+          }
+        },
+        "delivery_retry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeliveryRetry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retry_review": {
+          "$ref": "#/$defs/RetryReviewSnapshot"
+        },
+        "cancellation": {
+          "$ref": "#/$defs/CancellationStatus"
+        },
+        "deletion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeletionStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "generator_id",
+        "condition",
+        "review_epoch",
+        "missing_review_epoch",
+        "manifest_phase",
+        "source_cleanup_enabled",
+        "latest_missing_reset",
+        "latest_resume",
+        "files",
+        "missing",
+        "delivery_retry"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "submission_id"
+          ],
+          "not": {
+            "required": [
+              "recording_id"
+            ]
+          }
+        },
+        {
+          "required": [
+            "recording_id"
+          ],
+          "not": {
+            "required": [
+              "submission_id"
+            ]
+          }
+        }
+      ],
+      "x-semantic-rules": [
+        "Legacy status preserves submission_id; do not invent a UUID or rewrite persisted legacy identity. Exactly one identity shape applies.",
+        "retry_review/cancellation/deletion are proposed extensions, not current runtime fields. Existing detailed status fields remain.",
+        "retry_review existing instance/job must match the enclosing job; null epoch is nonauthorizing and must never be refreshed in a frozen request.",
+        "Private custody paths are not status fields. No new filesystem probe for these reads."
+      ]
+    },
+    "JobStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "state": {
+          "$ref": "#/$defs/JobState"
+        },
+        "source_paths_released": {
+          "type": "boolean"
+        },
+        "retryable": {
+          "const": false
+        },
+        "details": {
+          "$ref": "#/$defs/JobDetails"
+        }
+      },
+      "required": [
+        "job_id",
+        "state",
+        "source_paths_released",
+        "retryable",
+        "details"
+      ],
+      "description": "Preserves omitted outer absent fields: no null error/state/details placeholders and no HTTP status JSON field. Proposed extensions require implementation."
+    },
+    "JobSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "generator_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "submission_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "recording_id": {
+          "$ref": "#/$defs/RecordingId"
+        },
+        "state": {
+          "$ref": "#/$defs/JobState"
+        },
+        "condition": {
+          "$ref": "#/$defs/JobCondition"
+        },
+        "source_paths_released": {
+          "type": "boolean"
+        },
+        "retry_review": {
+          "$ref": "#/$defs/RetryReviewSnapshot"
+        },
+        "cancellation": {
+          "$ref": "#/$defs/CancellationStatus"
+        },
+        "deletion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeletionStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "generator_id",
+        "state",
+        "condition",
+        "source_paths_released",
+        "retry_review",
+        "cancellation",
+        "deletion"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "submission_id"
+          ],
+          "not": {
+            "required": [
+              "recording_id"
+            ]
+          }
+        },
+        {
+          "required": [
+            "recording_id"
+          ],
+          "not": {
+            "required": [
+              "submission_id"
+            ]
+          }
+        }
+      ]
+    },
+    "ConfirmationToken": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 6144,
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "x-max-utf8-bytes": 6144,
+      "description": "Proposed opaque authenticated service-issued confirmation proof, not an operation/job identifier. Client must return it unchanged. See ROUTE-SCHEMAS.candidate.md; codec is not specified by JSON Schema."
+    },
+    "DeleteTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "file_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FileId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "RetainedSource",
+            "UnfinishedDestinationStaging",
+            "UnfinishedDestinationPayload",
+            "UnfinishedManifestStaging"
+          ]
+        },
+        "relative_path": {
+          "$ref": "#/$defs/StoredPath"
+        },
+        "attempt": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ByteCount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "file_id",
+        "kind",
+        "relative_path",
+        "attempt",
+        "size_bytes"
+      ],
+      "x-semantic-rules": [
+        "Only safely owned retained source/unfinished destination may be selected. Protect originals, committed output/manifests, foreign and uncertain allocations.",
+        "Coordinates describe existing job/file/attempt/location; never a new public identifier. Full private host paths and inode authority remain internal."
+      ]
+    },
+    "ConfirmationPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "cancel",
+            "clear-history",
+            "delete-data"
+          ]
+        },
+        "job_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        },
+        "token": {
+          "$ref": "#/$defs/ConfirmationToken"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "deletion_targets": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 65536,
+          "items": {
+            "$ref": "#/$defs/DeleteTarget"
+          }
+        },
+        "complete": {
+          "const": true
+        }
+      },
+      "required": [
+        "action",
+        "job_ids",
+        "token",
+        "expires_at",
+        "deletion_targets",
+        "complete"
+      ],
+      "x-status": "proposed confirmation wire, not new product approval",
+      "x-semantic-rules": [
+        "Ordered job_ids include duplicates and exactly match the future mutation body.",
+        "Only issue a proof for a complete bounded preview. No truncation or partial deletion authority.",
+        "Deletion proof binds actual selected owned identities and per-job state; reject stale selection before new effects. Missing jobs still silently skip."
+      ]
+    },
+    "JobList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/JobSummary"
+          }
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "confirmation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConfirmationPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "items",
+        "next_cursor",
+        "confirmation"
+      ],
+      "x-semantic-rules": [
+        "Normal pages are ascending original job_id with limit default 50, maximum 256; no cross-request snapshot promise.",
+        "Cursor binds existing instance and pagination/filter semantics. Cleared rows are absent; no retained-owner listing or reconstruction.",
+        "Confirmation mode uses the same read route, not another action endpoint or confirmation dialog. Response bounds and all-selected preview rules are in ROUTE-SCHEMAS.candidate.md."
+      ]
+    },
+    "SourceSpacePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "min_available_bytes": {
+          "$ref": "#/$defs/ByteCount"
+        },
+        "min_available_percent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "max_sample_age_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "probe_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        }
+      },
+      "required": [
+        "enabled",
+        "min_available_bytes",
+        "min_available_percent",
+        "max_sample_age_seconds",
+        "probe_timeout_seconds"
+      ],
+      "x-semantic-rules": [
+        "probe_timeout_seconds <= max_sample_age_seconds; enabled requires a nonzero byte or percent margin."
+      ]
+    },
+    "SourceSpaceAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/SourceSpacePolicy"
+        },
+        "scope": {
+          "const": "SourceRoot"
+        },
+        "observation_source": {
+          "const": "supervised_child"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "Disabled",
+            "Sufficient",
+            "Low",
+            "Unknown"
+          ]
+        },
+        "observed_available_bytes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LedgerBytes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_available_bytes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LedgerBytes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sample_age_ms": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "sample_expired",
+                "probe_timeout",
+                "probe_pending",
+                "custody_refused",
+                "probe_unavailable",
+                "not_sampled"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "policy",
+        "scope",
+        "observation_source",
+        "state",
+        "observed_available_bytes",
+        "required_available_bytes",
+        "sample_age_ms",
+        "reason"
+      ],
+      "description": "Cached observation only. Global retention read does not launch a filesystem probe."
+    },
+    "RetentionLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_retained_jobs": {
+          "$ref": "#/$defs/Count"
+        },
+        "max_reserved_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        }
+      },
+      "required": [
+        "max_retained_jobs",
+        "max_reserved_bytes"
+      ]
+    },
+    "RetentionHeadroom": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "new_job_slots": {
+          "$ref": "#/$defs/Count"
+        },
+        "source_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        },
+        "destination_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        },
+        "over_limit": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "new_job_slots",
+        "source_bytes",
+        "destination_bytes",
+        "over_limit"
+      ]
+    },
+    "TransferCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Intent": {
+          "$ref": "#/$defs/Count"
+        },
+        "Copied": {
+          "$ref": "#/$defs/Count"
+        },
+        "Verified": {
+          "$ref": "#/$defs/Count"
+        },
+        "PublishIntent": {
+          "$ref": "#/$defs/Count"
+        },
+        "Published": {
+          "$ref": "#/$defs/Count"
+        }
+      },
+      "required": [
+        "Intent",
+        "Copied",
+        "Verified",
+        "PublishIntent",
+        "Published"
+      ]
+    },
+    "RetentionDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "Job",
+            "Global"
+          ]
+        },
+        "retained_jobs": {
+          "$ref": "#/$defs/Count"
+        },
+        "committed_jobs": {
+          "$ref": "#/$defs/Count"
+        },
+        "source_claims": {
+          "$ref": "#/$defs/Count"
+        },
+        "confirmed_claims": {
+          "$ref": "#/$defs/Count"
+        },
+        "unmeasured_files": {
+          "$ref": "#/$defs/Count"
+        },
+        "source_reserved_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        },
+        "destination_reserved_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        },
+        "destination_attempts_by_phase": {
+          "$ref": "#/$defs/TransferCounts"
+        },
+        "configured_limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetentionLimits"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "global_headroom": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetentionHeadroom"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "filesystem_inspected": {
+          "const": false
+        },
+        "unreceipted_allocations_accounted": {
+          "const": false
+        },
+        "automatic_reclamation_enabled": {
+          "type": "boolean"
+        },
+        "source_space_admission": {
+          "$ref": "#/$defs/SourceSpaceAdmission"
+        }
+      },
+      "required": [
+        "scope",
+        "retained_jobs",
+        "committed_jobs",
+        "source_claims",
+        "confirmed_claims",
+        "unmeasured_files",
+        "source_reserved_bytes",
+        "destination_reserved_bytes",
+        "destination_attempts_by_phase",
+        "configured_limits",
+        "global_headroom",
+        "filesystem_inspected",
+        "unreceipted_allocations_accounted",
+        "automatic_reclamation_enabled"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "Job"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "global_headroom": {
+                "type": "null"
+              }
+            },
+            "not": {
+              "required": [
+                "source_space_admission"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "source_space_admission"
+            ]
+          }
+        }
+      ],
+      "description": "Preserved reservation accounting includes every retained destination attempt; never physical free space or an inventory of unreceipted leftovers."
+    },
+    "RetentionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "source_paths_released": {
+          "const": false
+        },
+        "retryable": {
+          "const": false
+        },
+        "details": {
+          "$ref": "#/$defs/RetentionDetails"
+        }
+      },
+      "required": [
+        "source_paths_released",
+        "retryable",
+        "details"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "details": {
+                "properties": {
+                  "scope": {
+                    "const": "Job"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "job_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "job_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "HealthReady": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "const": "Running"
+        },
+        "source_paths_released": {
+          "const": false
+        },
+        "retryable": {
+          "const": false
+        }
+      },
+      "required": [
+        "state",
+        "source_paths_released",
+        "retryable"
+      ]
+    },
+    "ResumeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/CommandId"
+        },
+        "expected_review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "reason": {
+          "$ref": "#/$defs/AuditText"
+        }
+      },
+      "required": [
+        "command_id",
+        "expected_review_epoch",
+        "reason"
+      ]
+    },
+    "MissingResetRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/CommandId"
+        },
+        "expected_missing_review_epoch": {
+          "$ref": "#/$defs/Epoch"
+        },
+        "file_id": {
+          "$ref": "#/$defs/FileId"
+        },
+        "retry_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "reason": {
+          "$ref": "#/$defs/AuditText"
+        }
+      },
+      "required": [
+        "command_id",
+        "expected_missing_review_epoch",
+        "file_id",
+        "retry_window_seconds",
+        "reason"
+      ]
+    },
+    "ResumeReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "source_paths_released": {
+          "const": true
+        },
+        "retryable": {
+          "const": false
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "DeliveryResumeScheduled"
+            },
+            "command_id": {
+              "$ref": "#/$defs/CommandId"
+            },
+            "review_epoch": {
+              "$ref": "#/$defs/Epoch"
+            },
+            "replay": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action",
+            "command_id",
+            "review_epoch",
+            "replay"
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "source_paths_released",
+        "retryable",
+        "details"
+      ]
+    },
+    "MissingResetReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "source_paths_released": {
+          "const": false
+        },
+        "retryable": {
+          "const": false
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "const": "MissingDeadlineReset"
+            },
+            "command_id": {
+              "$ref": "#/$defs/CommandId"
+            },
+            "missing_review_epoch": {
+              "$ref": "#/$defs/Epoch"
+            },
+            "new_deadline": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "replay": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "action",
+            "command_id",
+            "missing_review_epoch",
+            "new_deadline",
+            "replay"
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "source_paths_released",
+        "retryable",
+        "details"
+      ]
+    },
+    "OperatorError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "error": {
+          "type": "string",
+          "enum": [
+            "invalid_job_id",
+            "invalid_resume",
+            "invalid_missing_reset",
+            "not_found",
+            "review_conflict",
+            "command_conflict",
+            "operator_audit_capacity",
+            "storage_unavailable",
+            "service_busy",
+            "service_stopping",
+            "unexpected_body",
+            "invalid_json",
+            "invalid_http",
+            "unsupported_headers",
+            "unsupported_media_type",
+            "request_timeout",
+            "request_too_large",
+            "request_headers_too_large",
+            "method_not_allowed",
+            "internal_error",
+            "idempotency_key_conflict",
+            "recording_blocked"
+          ]
+        },
+        "source_paths_released": {
+          "const": false
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "error",
+        "source_paths_released",
+        "retryable"
+      ],
+      "description": "Preserved local/operator envelope. Known job_id is optional/omitted, not null. A false release flag on an operator error does not revoke an earlier producer 202."
+    },
+    "AdminError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string",
+          "enum": [
+            "invalid_selection",
+            "invalid_confirmation",
+            "stale_confirmation",
+            "invalid_cursor",
+            "confirmation_preview_too_large",
+            "invalid_retry_context",
+            "review_conflict",
+            "admin_request_forbidden",
+            "service_busy",
+            "storage_unavailable",
+            "request_timeout",
+            "request_too_large",
+            "request_headers_too_large",
+            "invalid_http",
+            "invalid_json",
+            "unsupported_media_type",
+            "method_not_allowed",
+            "not_found",
+            "rate_limited",
+            "internal_error",
+            "service_stopping",
+            "unexpected_body"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "x-status": "candidate admin envelope; login/session 401 keep their existing separate schemas",
+      "x-semantic-rules": [
+        "Never fabricate completed counts after validation/storage/auth failure. Earlier committed occurrences may remain valid. No automatic deletion retry is implied by an error."
+      ]
+    },
+    "DeleteAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deleted_count": {
+          "$ref": "#/$defs/Count"
+        },
+        "failed_count": {
+          "$ref": "#/$defs/Count"
+        },
+        "completion_pending": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted_count",
+        "failed_count",
+        "completion_pending"
+      ],
+      "x-semantic-rules": [
+        "Actual latest-pass observations only. Acceptance does not imply completed deletion.",
+        "Dispatch every submitted occurrence; aggregate each observed latest pass/owned target once so repeated IDs cannot double-count files.",
+        "Group 51 preserves one active pass/latest results before clear. Empty/ineligible deletion-batch HTTP mapping remains proposed, not newly approved."
+      ]
+    },
+    "DecimalByteCount": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "pattern": "^(?:0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$",
+      "not": {
+        "pattern": "[^0-9]"
+      },
+      "description": "Group 52: exact canonical decimal u64, 0 through 18446744073709551615. No sign, whitespace, leading zeros, fraction or exponent. New producer and manifest v2 only; existing operator numeric fields remain numeric."
+    },
+    "ManifestV1File": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3,
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "not": {
+            "pattern": "[^0-9]"
+          },
+          "x-integer-maximum": 255
+        },
+        "path": {
+          "$ref": "#/$defs/StoredPath"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/ByteCount"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "file_id",
+        "path",
+        "size_bytes",
+        "algorithm",
+        "sha256"
+      ]
+    },
+    "ManifestV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "instance_id": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 32,
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "job_id": {
+          "$ref": "#/$defs/JobId"
+        },
+        "generator_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/ManifestV1File"
+          }
+        },
+        "submission_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "version",
+        "instance_id",
+        "job_id",
+        "generator_id",
+        "submission_id",
+        "files"
+      ],
+      "x-max-utf8-bytes": 131072,
+      "x-semantic-rules": [
+        "Recovery compatibility for still-tracked original legacy jobs only; exact stored serialized bytes/receipts govern recovery. Never rewrite v1 as v2.",
+        "Numeric u64 size_bytes is preserved; legacy identity is submission_id, not an invented recording UUID. No scanning/adoption of cleared files."
+      ]
+    }
+  },
+  "x-history-clear-policy": "Group50: after safe stop/settlement, successful eligible clear forgets all source/destination linkage, ownership/accounting/inventory and action results. Files remain unmanaged; no post-clear cleanup or reconstruction."
+}

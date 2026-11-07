@@ -1,0 +1,7 @@
+[package]
+name = "e3-control"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+publish = false
+license = "Apache-2.0"

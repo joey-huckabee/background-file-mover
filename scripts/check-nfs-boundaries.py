@@ -1,0 +1,689 @@
+"""Container-only NFS startup/lock/outage qualification; does not enable NFS.
+
+Reuses exact service artifacts from a passing mandatory SLES gate. The saved
+E2 server image and preloaded nfs/nfsd modules must be available in the engine.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+import time
+import traceback
+import uuid
+from nfs_binding import binding_for, provision
+
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG = json.loads((ROOT / "scripts/rust-platform.json").read_text())
+SERVER = "localhost/background-file-mover-e2-nfs"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("gate", type=Path, help="Passing rust/validation run directory")
+    parser.add_argument("--connection", default="podman-machine-default-root")
+    parser.add_argument("--isolated-startup", action="store_true",
+                        help="Require startup termination and child exit before NFS restoration")
+    parser.add_argument("--startup-only", action="store_true",
+                        help="Only inherited-lock/OS-outage and isolated qualification startup; transfer/state-layout scopes NOT_RUN")
+    parser.add_argument("--qualification-gate", type=Path,
+                        help="Also run normal REST transfers with audited NFS qualification artifacts")
+    parser.add_argument("--runtime", action="store_true",
+                        help="Also qualify real Rust worker interruption/outage and coordinator death")
+    parser.add_argument("--long-outages-only", action="store_true",
+                        help="With --runtime, run only the four three-minute runtime cases; retain baseline and OS checks")
+    parser.add_argument("--shutdown", action="store_true",
+                        help="Qualify local stop/status and ownership during actual hard-NFS worker stalls")
+    parser.add_argument("--coordinator-death", action="store_true",
+                        help="Qualify original-state exclusion/recovery after coordinator death with blocked/terminating NFS workers")
+    parser.add_argument("--death-scope", choices=("claim-copy-verify", "bootstrap-source-read", "bootstrap-existing-state", "publication-manifest", "both-nfs", "separate-exports", "independent-endpoints", "source-mid-copy", "both-nfs-bootstrap", "destination-startup", "publication-sync", "lost-reply", "lost-link-reply", "claim-lost-reply"),
+                        help="With --coordinator-death, select the finite worker-phase matrix (default: claim-copy-verify)")
+    parser.add_argument("--ownership", action="store_true",
+                        help="Diagnose two-client source exclusion and missing-mount startup; does not approve production NFS")
+    parser.add_argument("--enrollment-storage", action="store_true",
+                        help="Qualify real ENOSPC on a bounded disposable server export, including safe retry versus review")
+    parser.add_argument("--delivery-storage", action="store_true",
+                        help="Qualify destination-full payload copying and audited recovery, including original-state restart")
+    parser.add_argument("--source-storage", action="store_true",
+                        help="Qualify source-space admission and unchanged-policy recovery on a bounded export")
+    parser.add_argument('--sync-observe', action='store_true', help='Correlate actual worker synchronization syscalls and RPC traffic; no invented reply-loss cases')
+    parser.add_argument('--sync-capability', help='Passing independent synchronization capability report.json')
+    args = parser.parse_args()
+    assert not args.isolated_startup or args.qualification_gate, "isolated NFS startup requires the qualification gate"
+    assert not args.startup_only or (args.isolated_startup and not any((args.runtime,args.shutdown,args.coordinator_death,args.ownership,args.enrollment_storage,args.delivery_storage,args.source_storage,args.sync_observe))), "startup-only requires isolated-startup and no other matrix"
+    assert not args.sync_observe or (args.qualification_gate and args.sync_capability)
+    assert not args.sync_observe or not any((args.coordinator_death,args.shutdown,args.runtime))
+
+    assert not args.death_scope or args.coordinator_death, "death-scope requires --coordinator-death"
+    assert not args.coordinator_death or args.qualification_gate, "coordinator-death checks require qualification artifacts"
+    assert sum((args.coordinator_death, args.shutdown, args.runtime)) <= 1, "select one runtime matrix"
+    assert not args.shutdown or args.qualification_gate, "shutdown checks require qualification artifacts"
+    assert not (args.shutdown and args.runtime), "select shutdown or runtime matrix, not both"
+    assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
+    assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
+    assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
+    assert not args.enrollment_storage or args.qualification_gate, "storage probes require qualification artifacts"
+    assert not args.delivery_storage or args.qualification_gate, "delivery storage probes require qualification artifacts"
+    assert not args.source_storage or args.qualification_gate, "source storage probes require qualification artifacts"
+    engine = ["podman", "--connection", args.connection]
+    gate = args.gate.resolve()
+    evidence = json.loads((gate / "report.json").read_text())
+    assert evidence["status"] == "PASSED" and evidence["config"] == CONFIG
+    assert evidence.get("build_mode", "production") == "production", "boundary checks require production artifacts"
+    # Never reuse artifacts after changes to Rust build inputs.
+    with tarfile.open(gate / "source.tar.gz") as archive:
+        archived_files = set()
+        for member in archive.getmembers():
+            if member.isfile():
+                archived_files.add(member.name)
+                path = (ROOT / "rust" / member.name).resolve()
+                assert path.is_relative_to(ROOT / "rust")
+                assert path.read_bytes() == archive.extractfile(member).read(), member.name
+        current_files = set()
+        for child in (ROOT / "rust").iterdir():
+            if child.name not in {"target", "validation"}:
+                candidates = child.rglob("*") if child.is_dir() else [child]
+                current_files.update(p.relative_to(ROOT / "rust").as_posix()
+                                     for p in candidates if p.is_file())
+        assert current_files == archived_files, "Rust source inventory changed"
+    qualification = None
+    if args.qualification_gate:
+        qualification_gate = args.qualification_gate.resolve()
+        qualification = json.loads((qualification_gate / "report.json").read_text())
+        assert qualification["status"] == "PASSED" and qualification["config"] == CONFIG
+        assert qualification["build_mode"] == "nfs-qualification"
+        with tarfile.open(qualification_gate / "source.tar.gz") as archive:
+            entries = {m.name for m in archive.getmembers() if m.isfile()}
+            assert entries == current_files
+            for member in archive.getmembers():
+                if member.isfile():
+                    path = (ROOT / "rust" / member.name).resolve()
+                    assert path.is_relative_to(ROOT / "rust")
+                    assert path.read_bytes() == archive.extractfile(member).read(), member.name
+    label = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    output = ROOT / "rust/validation" / ("nfs-" + label)
+    output.mkdir()
+    if args.sync_observe:
+        print('NFS sync observation output: ' + str(output), flush=True)
+    report = {"status": "FAILED", "run_id": "nfs-" + label,
+              "isolated_startup_required": args.isolated_startup,
+              "gate": gate.name, "runtime": CONFIG["runtime"],
+              "source_sha256": evidence["source_sha256"], "checks": {}, "cleanup_errors": []}
+    report["coordinator_death_requested"] = args.coordinator_death
+    report["coordinator_death_scope"] = None if args.sync_observe else args.death_scope or "claim-copy-verify"
+    report["startup_only"] = args.startup_only
+    report["shutdown_requested"] = args.shutdown
+    report["runtime_requested"] = args.runtime
+    report["ownership_requested"] = args.ownership
+    report["enrollment_storage_requested"] = args.enrollment_storage
+    report["delivery_storage_requested"] = args.delivery_storage
+    report["source_storage_requested"] = args.source_storage
+    report["sync_observation_requested"] = args.sync_observe
+    report["runtime_scope"] = "sync-observe" if args.sync_observe else "coordinator-death" if args.coordinator_death else "shutdown" if args.shutdown else "long-outages-only" if args.long_outages_only else "all" if args.runtime else "none"
+    report["limitations"] = [
+        "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+        "One client and modern controlled server; no cross-client fencing or server reboot/power-loss evidence.",
+        "Lock and interrupted metadata probes use OS tools, not Rust claim/copy/publication on NFS.",
+        "Service startup rejection is measured; production NFS and source deletion remain disabled.",
+    ]
+    if args.coordinator_death:
+        report["limitations"][2] = "Selected real hard-NFS claim/copy/verification workers after coordinator SIGKILL, while blocked or following local stop. Physical flock closure is distinct from logical process-group epoch ownership; both profiles must retain exclusion with a physically closed guard. Prompt exit is distinct from a surviving kernel-blocked child. No systemd, old-kernel, NAS settlement or takeover qualification."
+    if args.coordinator_death and args.death_scope == "bootstrap-source-read":
+        report["limitations"][2] = "Eight selected bootstrap/source-read hard-NFS cases in debug/release, while blocked or following local stop. Bootstrap must stay unready without SQLite. Surviving orphans retain logical ownership until actual exit; prompt stop is distinct and does not qualify the surviving terminating branch. The original claim/copy/verification raw-lock-closure regression is retained separately. No systemd, old-kernel, NAS settlement or takeover qualification."
+    if args.coordinator_death and args.death_scope == "bootstrap-existing-state":
+        report["limitations"][2] = "Eight enrolled-empty/populated bootstrap cases, debug/release, blocked or following stop. Populated state has an accepted job, retained WAL and a 1 MiB partial. Local database/sidecar/staging and remote source/receipt evidence must remain unchanged before recovery, with no SQLite inspection or re-enrollment. NFS source/local destination, one shared modern kernel; no both-NFS crash, systemd, NAS settlement, old-kernel or takeover qualification. Prompt exit is distinct from a surviving terminating orphan."
+    if args.coordinator_death and args.death_scope == "publication-manifest":
+        report["limitations"][2] = "Twelve selected file pre-publication, durable file-link and durable manifest-link cases, debug/release, blocked or following stop. Release the local rendezvous into unavailable hard NFS and require actual D-state workers. Preserve original payload inode/attempt and existing manifest identity/hash through recovery after old exit. A durable manifest name is distinct from a SQLite Committed job. This does not identify the exact in-flight RPC, prove NAS settlement/power durability, qualify both-NFS crashes, systemd, old kernels or takeover. Prompt stop is distinct from a surviving terminating orphan."
+    if args.coordinator_death and args.death_scope == "both-nfs":
+        report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases: both private roots on the same controlled NFSv4.1 export, local database/epoch, debug/release, blocked or following stop. Require actual D-state blockage before death; distinguish prompt exit from surviving orphans. Preserve original state, source inode/receipt, reused paths and verified publication evidence. This does not qualify separate exports/NAS servers, exact in-flight RPCs, NAS settlement/power durability, systemd, old kernels or takeover."
+    if args.coordinator_death and args.death_scope == "separate-exports":
+        report["limitations"][2] = "Twenty-four selected claim/copy/verification/file-publication/file-link/manifest-link cases across two distinct tmpfs-backed NFSv4.1 exports/mounts on one server, local database/epoch, joint outage, debug/release, blocked or following stop. Preserve original custody/state and publication evidence. Distinct devices/mount IDs and refused cross-filesystem link are required. No independent NAS failure, exact in-flight RPC, remote settlement, persistent-disk/power durability, systemd, old-kernel or takeover qualification."
+    if args.coordinator_death and args.death_scope in {"independent-endpoints", "source-mid-copy", "both-nfs-bootstrap", "destination-startup", "publication-sync", "lost-reply", "lost-link-reply", "claim-lost-reply"}:
+        report["limitations"][1] = "Two controlled server containers/IPs/network namespaces and one client share a modern kernel; no physical NAS isolation, partition/reclaim, server reboot/power-loss or takeover evidence."
+        report["limitations"][2] = "Twenty-eight selected single-endpoint outages: source claim/read, destination copy/verification/publication/file-link/manifest-link, debug/release, blocked or following stop. Require failed endpoint NFSD threads zero, healthy endpoint two, actual D worker and bounded fresh healthy-endpoint write/read/metadata during outage. Preserve original state/custody/publication. No every-phase/both-side symmetry, exact in-flight RPC, remote settlement, persistent-disk, actual NAS/security/systemd or old-kernel qualification."
+    if args.coordinator_death and args.death_scope == "source-mid-copy":
+        report["limitations"][2] = "Four selected source-only outages after the first 1 MiB copy chunk, debug/release, blocked or following stop. Qualification-only source cache advice/rendezvous precedes the next read; require actual D, no read-completed marker, unchanged healthy-destination partial and healthy-peer I/O. Preserve original state/custody and partial allocation on recovery. No opposite failure directions, physical NAS isolation, exact in-flight RPC/settlement, persistent-disk, systemd or old-kernel qualification."
+    if args.coordinator_death and args.death_scope == "both-nfs-bootstrap":
+        report["limitations"][2] = "Eight enrolled-empty/populated bootstrap death/stop cases with both private roots on distinct controlled NFSv4.1 endpoints and local database/epoch. Source-only outage while destination stays usable; require actual bootstrap D, Starting/unready, unchanged local state and healthy destination evidence, surviving-orphan exclusion, original-state recovery without re-enrollment. Not destination-failure/later-startup, fresh-unenrolled bootstrap, actual NAS/mount-security/systemd, delayed RPC/settlement, persistent-disk or old-kernel qualification."
+    if args.coordinator_death and args.death_scope == "destination-startup":
+        report["limitations"][2] = "Eight selected enrolled-empty/populated destination-outage startup/recovery cases, debug/release, blocked or following local stop. Source startup and health remain available; the early supervised delivery worker blocks on destination NFS. Empty startup may accept/claim during outage. Preserve original local state/custody/partial, distinguish prompt stop from retained orphan, and require old-thread exit before recovery. Not destination-blocked source bootstrap, every later phase, exact in-flight RPC/settlement, physical NAS isolation, disk/power, systemd/account or old-kernel qualification."
+    if args.coordinator_death and args.death_scope == "publication-sync":
+        report["limitations"][2] = "Twelve file/manifest publication interruption cases: four observed in-flight x86_64 unlinkat syscalls during destination outage and eight local crashes after link/unlink returned before following sync, debug/release. Actual syscall does not prove an RPC reached the server. Pre-sync crashes are not in-flight fsync or disk/power-loss durability. Preserve owned inode/hash and attempt-one original-state recovery. Production NFS/deletion remain disabled."
+    if args.coordinator_death and args.death_scope in {"lost-reply", "lost-link-reply", "claim-lost-reply"}:
+        report["limitations"][2] = "Two real-server capability controls must prove a matched successful REMOVE reply withheld, actual server namespace change and pending client before four debug/release file/manifest unlink worker cases. Only selected NFSv4.1 REMOVE success replies are intercepted/discarded; recorded replay and original-state reconciliation are distinct from link/sync RPC loss, physical NAS, server reboot/power/disk durability, old kernel or systemd. Production NFS/deletion remain disabled."
+    if args.coordinator_death and args.death_scope == "lost-link-reply":
+        report["limitations"][2] = "Independent and repeated successful LINK-withheld controls precede four debug/release file/manifest LINK cases. Server-local original inode/two aliases, matched RPC success and pending native linkat establish completion before reply release. Discard plus connection interruption is a fixture intervention, not universal cancellation or sync/power durability. Keep production NFS/source deletion disabled."
+    if args.coordinator_death and args.death_scope == "claim-lost-reply":
+        report["limitations"][2] = "Independent source LINK/REMOVE release/drop capability precedes four debug/release real-claim cases, repeated controls in this fixture. All source mounts route through the relay from first mount. Require server completion with success withheld and native D-state syscall, Accepted/no premature 202, same-ID retry and surviving-worker exclusion through actual exit. Discard includes explicit connection interruption, not universal cancellation, sync/power/server-reboot/old-kernel or full NFS support. Production NFS/source deletion disabled."
+    if args.sync_observe:
+        proof_path = Path(args.sync_capability).resolve()
+        proof = json.loads(proof_path.read_text(encoding='utf-8'))
+        assert proof['status']=='PASSED' and not proof['cleanup_errors'] and proof['synchronization']['passed']
+        for name in ('nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_sync_support.py','nfs_syscall_trace.py'):
+            assert hashlib.sha256((ROOT/'scripts'/name).read_bytes()).hexdigest()==proof['driver_sha256'][name], name
+        report['sync_capability'] = dict(run_id=proof['run_id'],sha256=hashlib.sha256(proof_path.read_bytes()).hexdigest())
+        report['limitations'][1] = 'Two controlled NFSv4.1 server containers and one client share a modern VM kernel; external ptrace is fixture infrastructure, not a deployed dependency or physical NAS/old-kernel evidence.'
+        report['limitations'][2] = 'Four healthy debug/release claim/delivery worker sync traces on hard/noac NFSv4.1, bounded raw RPC correlation and actual syscall/descriptor evidence. External modern-kernel ptrace changes scheduling; no sync-loss, cancellation, durability, server reboot, old-kernel or production NFS/deletion approval.'
+    if args.shutdown:
+        report["limitations"][2] = "Real workers are released into hard-NFS claim/copy/verification stalls before local stop. Prompt kernel-assisted exit and deadline-held incomplete drain are distinct measured outcomes; absence of a surviving worker does not qualify the uninterruptible deadline branch. No NAS settlement, systemd, reboot or old-kernel proof."
+    if args.runtime:
+        report["limitations"][2] = "Real Rust cases cover selected claim, source-read, copy-write, verification-read, publication and claim/file/manifest-link points, including 180-second blocked claim and verification outages with live recovery. Claim/file-link crashes hold the local rendezvous during server outage and confirm two owned aliases before recovery; they do not model an in-flight unlink RPC. Longer or indefinite outages, queue saturation and export changes remain unqualified. Other lock/startup probes use OS tools."
+        if args.long_outages_only:
+            report["limitations"][2] = "Runtime cases in this report cover only 180-second blocked claim and verification outages with live recovery. A small sequential same-ID retry workload observes single-slot submission backpressure, not concurrent flooding or memory bounds. Other interruption cases are not rerun here. Longer/indefinite outages, in-flight link/unlink RPCs and export changes remain unqualified. Other lock/startup probes use OS tools."
+    if args.ownership:
+        report["limitations"][1] = "Two container clients with distinct network/mount namespaces on one shared modern kernel. Ownership probes diagnose exclusion/missing-mount gaps; they do not prove physical-host fencing, partition/reclaim or safe takeover."
+    reply_relay = None
+    sync_relays = {}
+    containers = []
+    tasks = []
+    network = volume = server = client = None
+    mounted = False
+    mounted_peers = []
+    extra_mounts = []
+    extra_servers = []
+    extra_volumes = []
+
+    def run(arguments, check=True, timeout=45):
+        result = subprocess.run(engine + arguments, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=timeout)
+        if check and result.returncode:
+            raise RuntimeError(f"{arguments}: {result.stdout}{result.stderr}")
+        return result
+
+    def execute(script, user=None, check=True, target=None):
+        return run(["exec", *(["--user", user] if user else []), target or client,
+                    "/bin/sh", "-eu", "-c", script], check=check)
+
+    def spawn(script, name, target=None):
+        log = (output / (name + ".log")).open("w", encoding="utf-8")
+        process = subprocess.Popen(engine + ["exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", target or client,
+                                   "/bin/sh", "-eu", "-c", script], stdout=log, stderr=log)
+        tasks.append((process, log))
+        return process
+
+    def await_file(path):
+        for _ in range(30):
+            if execute(f"test -f {path}", "1000:1000", check=False).returncode == 0:
+                return
+            time.sleep(0.2)
+        raise RuntimeError(f"missing rendezvous {path}")
+
+    def restore():
+        if reply_relay is not None:
+            reply_relay.release()
+        for target in [server, *extra_servers]:
+            run(["exec", target, "rpc.nfsd", "-G", "10", "-L", "10", "-V", "4", "-p", "2049", "2"])
+
+    try:
+        if args.death_scope in {"lost-reply", "lost-link-reply", "claim-lost-reply"}:
+            check = subprocess.run([sys.executable, str(ROOT / "scripts/test_nfs_rpc.py"), "-v"],
+                                   capture_output=True, text=True, timeout=20)
+            (output / "reply-decoder-tests.log").write_text(check.stdout + check.stderr, encoding="utf-8")
+            report["reply_decoder_tests"] = dict(passed=check.returncode == 0, output=check.stdout + check.stderr)
+            assert check.returncode == 0, "reply evidence decoder tests failed"
+        report["server_image"] = run(["image", "inspect", SERVER, "--format", "{{.Id}}"]).stdout.strip()
+        network = "bfm-nfs-" + label.lower()
+        volume = network + "-data"
+        run(["network", "create", "--internal", network])
+        run(["volume", "create", volume])
+        server = run(["create", "--privileged", "--network", network,
+                      "--volume", volume + ":/exports", SERVER]).stdout.strip()
+        containers.append(server)
+        run(["start", server])
+        for _ in range(40):
+            if "NFS_READY" in run(["logs", server]).stdout:
+                break
+            time.sleep(0.5)
+        else:
+            raise RuntimeError("NFS server not ready")
+        report["server_packages"] = run(["exec", server, "dpkg-query", "-W"]).stdout.splitlines()
+        ip = json.loads(run(["inspect", server]).stdout)[0]["NetworkSettings"]["Networks"][network]["IPAddress"]
+        observer = ["--cap-add", "SYS_PTRACE", "--cap-add", "DAC_READ_SEARCH"] if args.coordinator_death and args.death_scope in {"source-mid-copy", "publication-sync", "lost-reply", "lost-link-reply", "claim-lost-reply"} else []
+        report["observer_syscall_tracing"] = bool(observer)
+        report["observer_capabilities"] = ["SYS_PTRACE", "DAC_READ_SEARCH"] if observer else []
+        client = run(["create", "--network", network, "--cap-drop", "all", "--cap-add", "SYS_ADMIN", *observer,
+                      "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", CONFIG["runtime"],
+                      "-c", "exec sleep infinity"]).stdout.strip()
+        containers.append(client)
+        run(["start", client])
+        execute("mkdir /tmp/nfs")
+        execute("mkdir -p /tmp/local/state /tmp/local/destination; chmod 700 /tmp/local /tmp/local/state /tmp/local/destination", "1000:1000")
+        options = f"addr={ip},vers=4.1,proto=tcp,port=2049,hard,timeo=10,retrans=1,noac"
+        mount_ip = ip
+        if args.death_scope == "claim-lost-reply" or args.sync_observe:
+            from nfs_reply_relay import ReplyRelay
+            reply_relay = ReplyRelay(run, network, CONFIG["builder"], ip, containers, output)
+            if args.sync_observe:
+                sync_relays["source"] = reply_relay
+            mount_ip = reply_relay.address
+            report["source_mount_route"] = dict(backend_ip=ip, mount_ip=mount_ip,
+                direct_source_mount_created=False, relay=reply_relay.evidence)
+        run(["exec", client, "mount", "-i", "-t", "nfs4", "-o",
+             options.replace("addr=" + ip + ",", "addr=" + mount_ip + ","), mount_ip + ":/", "/tmp/nfs"])
+        mounted = True
+        report["mounts"] = execute("cat /proc/mounts").stdout.splitlines()
+        report["kernel"] = execute("uname -r").stdout.strip()
+        assert execute("getconf GNU_LIBC_VERSION").stdout.strip() == "glibc 2.22"
+        assert execute("stat -f -c %t /tmp/nfs").stdout.strip() == "6969"
+        assert any(" /tmp/nfs " in m and "hard" in m and "vers=4.1" in m for m in report["mounts"])
+        execute("mkdir /tmp/nfs/source /tmp/nfs/source/.file-mover; chmod 700 /tmp/nfs/source /tmp/nfs/source/.file-mover", "1000:1000")
+        before = execute("stat -c '%d:%i:%u:%a' /tmp/nfs/source /tmp/nfs/source/.file-mover", "1000:1000").stdout
+        report["root_identity_before"] = before.splitlines()
+        config = {"bind": "127.0.0.1:19876", "generator_id": "fixture",
+                  "source_root": "/tmp/nfs/source", "destination_root": "/tmp/local/destination",
+                  "state_database": "/tmp/local/state/jobs.sqlite"}
+        config["destination_binding"] = binding_for("startup-destination", False, "destination")
+        config["source_binding"] = binding_for("startup-source", True)
+        provision(run, execute, output, client, "/tmp/nfs/source", config["source_binding"])
+        config_path = output / "config.json"
+        config_path.write_text(json.dumps(config))
+        run(["cp", str(config_path), client + ":/tmp/local/config.json"])
+        report["artifacts"] = {}
+        for profile in ("debug", "release"):
+            artifact = next(a for a in evidence["profiles"][profile]["artifacts"] if not a["test"])
+            path = gate / artifact["name"]
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            assert digest == artifact["sha256"]
+            report["artifacts"][profile] = digest
+            run(["cp", str(path), client + ":/tmp/" + profile])
+            execute("chmod 755 /tmp/" + profile)
+            assert execute("sha256sum /tmp/" + profile).stdout.split()[0] == digest
+            loaded = execute("ldd -r /tmp/" + profile).stdout
+            assert "not found" not in loaded and "undefined symbol" not in loaded
+            result = execute("LD_BIND_NOW=1 /tmp/" + profile + " /tmp/local/config.json", "1000:1000", check=False)
+            assert result.returncode != 0 and any(reason in result.stderr for reason in ("filesystem not qualified", "production NFS disabled"))
+            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            report["checks"][profile + "_startup_rejected"] = result.stderr.strip()
+        if qualification and not args.startup_only:
+            from nfs_baseline import run_baseline
+            report["qualification_gate"] = qualification_gate.name
+            report["baseline"] = run_baseline(qualification_gate, qualification, run, execute, spawn, output, client)
+            if not report["baseline"]["passed"]:
+                raise RuntimeError("NFS normal-operation baseline blocked; inspect baseline cases")
+            if args.sync_observe:
+                from nfs_endpoints import Endpoints
+                from nfs_reply_relay import ReplyRelay
+                from nfs_sync_workers import qualify as observe_sync
+                from nfs_runtime import run_runtime
+                def destination_observer(address):
+                    sync_relays['destination'] = ReplyRelay(run,network,CONFIG['builder'],address,containers,output)
+                    return sync_relays['destination']
+                report['independent_endpoints'] = dict(passed=False)
+                endpoints = Endpoints(run,execute,server,client,ip,options,network,SERVER,
+                    containers,extra_volumes,extra_servers,extra_mounts,report['independent_endpoints'],
+                    destination_relay=destination_observer,source_relay=lambda address:sync_relays['source'])
+                report['sync_relays'] = {role:relay.evidence for role,relay in sync_relays.items()}
+                names=('check-nfs-boundaries.py','nfs_sync_workers.py','nfs_sync_support.py','nfs_syscall_trace.py',
+                    'nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_runtime.py','nfs_endpoints.py','nfs_binding.py','nfs_bootstrap_state.py')
+                report['synchronization'] = dict(passed=False,cases=[],driver_sha256={name:hashlib.sha256((ROOT/'scripts'/name).read_bytes()).hexdigest() for name in names})
+                hashes=dict(report['artifacts']);hashes.update({'qualification-'+c['profile']:c['binary_sha256'] for c in report['baseline']['cases']})
+                completed=run_runtime(run,execute,spawn,restore,server,output,client,hashes,report['synchronization']['cases'],
+                    endpoints=endpoints,case_runner=lambda Case:observe_sync(Case,run,execute,spawn,restore,output,client,
+                        report['synchronization']['cases'],endpoints,sync_relays,containers,CONFIG))
+                report['synchronization'].update(completed)
+                assert report['synchronization']['passed'] and len(report['synchronization']['cases'])==4
+            if args.enrollment_storage:
+                from nfs_storage import qualify_enrollment_storage
+                report["enrollment_storage"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_storage.py", "nfs_binding.py")}}
+                qualify_enrollment_storage(run, execute, spawn, output, client, server, ip, options,
+                                           extra_mounts, report["enrollment_storage"])
+                assert report["enrollment_storage"]["passed"]
+                expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
+                assert report["enrollment_storage"]["artifacts"] == expected
+            if args.delivery_storage:
+                from nfs_delivery_storage import qualify_delivery_storage
+                report["delivery_storage"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_delivery_storage.py", "nfs_binding.py")}}
+                qualify_delivery_storage(run, execute, spawn, output, client, server, ip, options,
+                                         extra_mounts, report["delivery_storage"])
+                assert report["delivery_storage"]["passed"]
+                expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
+                assert report["delivery_storage"]["artifacts"] == expected
+            if args.source_storage:
+                from nfs_source_storage import qualify_source_storage
+                report["source_storage"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_source_storage.py", "nfs_binding.py")}}
+                qualify_source_storage(run, execute, spawn, output, client, server, ip, options,
+                                       extra_mounts, report["source_storage"])
+                assert report["source_storage"]["passed"]
+                expected = {case["profile"]: case["binary_sha256"] for case in report["baseline"]["cases"]}
+                assert report["source_storage"]["artifacts"] == expected
+            if args.ownership:
+                peer = run(["create", "--network", network, "--cap-drop", "all", "--cap-add", "SYS_ADMIN",
+                            "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh", CONFIG["runtime"],
+                            "-c", "exec sleep infinity"]).stdout.strip()
+                containers.append(peer)
+                run(["start", peer])
+                execute("mkdir /tmp/nfs", target=peer)
+                run(["exec", peer, "mount", "-i", "-t", "nfs4", "-o", options, ip + ":/", "/tmp/nfs"])
+                mounted_peers.append(peer)
+                from nfs_ownership import run_ownership
+                report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
+                report["ownership"]["driver_sha256"] = {
+                    name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py", "nfs_enrollment.py")}
+                run_ownership(run, execute, spawn, output, client, peer, server,
+                              gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"], restore)
+            if args.coordinator_death:
+                endpoints = None
+                if args.death_scope == "separate-exports":
+                    from nfs_exports import prepare
+                    report["separate_exports"] = {"passed": False}
+                    prepare(run, execute, server, client, ip, options, extra_mounts, report["separate_exports"])
+                if args.death_scope in {"independent-endpoints", "source-mid-copy", "both-nfs-bootstrap", "destination-startup", "publication-sync", "lost-reply", "lost-link-reply", "claim-lost-reply"}:
+                    from nfs_endpoints import Endpoints
+                    report["independent_endpoints"] = {"passed": False}
+                    def make_relay(address):
+                        nonlocal reply_relay
+                        from nfs_reply_relay import ReplyRelay
+                        if args.death_scope != "claim-lost-reply":
+                            reply_relay = ReplyRelay(run, network, CONFIG["builder"], address, containers, output)
+                        assert reply_relay is not None
+                        return reply_relay
+                    endpoints = Endpoints(run, execute, server, client, ip, options, network, SERVER,
+                                          containers, extra_volumes, extra_servers, extra_mounts,
+                                          report["independent_endpoints"],
+                                          destination_relay=make_relay if args.death_scope in {"lost-reply", "lost-link-reply"} else None,
+                                          source_relay=make_relay if args.death_scope == "claim-lost-reply" else None)
+                    if args.death_scope == "claim-lost-reply":
+                        from nfs_reply_relay import preflight
+                        report["reply_preflights"] = {}
+                        for operation in (11, 28):
+                            proof = dict(passed=False, cases=[])
+                            report["reply_preflights"][str(operation)] = proof
+                            preflight(reply_relay, endpoints, run, execute, spawn, output, proof, operation, 'source')
+                            assert proof["passed"], "source capability unproven; do not start worker cases"
+                        from nfs_relay_restart import qualify as qualify_relay_restart
+                        report["reply_backend_restart"] = dict(passed=False)
+                        qualify_relay_restart(reply_relay, endpoints, run, execute, spawn, output, report["reply_backend_restart"])
+                        assert report["reply_backend_restart"]["passed"], "source relay recovery unproven"
+                    if args.death_scope in {"lost-reply", "lost-link-reply"}:
+                        from nfs_reply_relay import preflight
+                        report["reply_preflight"] = dict(passed=False, cases=[])
+                        preflight(reply_relay, endpoints, run, execute, spawn, output, report["reply_preflight"], 11 if args.death_scope == "lost-link-reply" else 28)
+                        assert report["reply_preflight"]["passed"], "lost-reply capability unproven; do not start worker cases"
+                from nfs_runtime import run_runtime
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["coordinator_death"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_both.py", "nfs_exports.py", "nfs_endpoints.py", "nfs_binding.py")}}
+                case_runner = None
+                if args.death_scope == "destination-startup":
+                    from nfs_destination_startup import qualify
+                    report["coordinator_death"]["driver_sha256"]["nfs_destination_startup.py"] = hashlib.sha256((ROOT / "scripts/nfs_destination_startup.py").read_bytes()).hexdigest()
+                    case_runner = lambda Case: qualify(Case, run, execute, spawn, restore, output, client,
+                                                       report["coordinator_death"]["cases"], endpoints)
+                if args.death_scope == "publication-sync":
+                    from nfs_publication_sync import qualify
+                    report["coordinator_death"]["driver_sha256"]["nfs_publication_sync.py"] = hashlib.sha256((ROOT / "scripts/nfs_publication_sync.py").read_bytes()).hexdigest()
+                    case_runner = lambda Case: qualify(Case, run, execute, spawn, restore, output, client,
+                                                       report["coordinator_death"]["cases"], endpoints)
+                if args.death_scope == "claim-lost-reply":
+                    from nfs_claim_reply import qualify
+                    for name in ("nfs_rpc.py", "nfs_reply_proxy.py", "nfs_reply_relay.py", "nfs_claim_reply.py", "test_nfs_rpc.py", "nfs_relay_restart.py"):
+                        report["coordinator_death"]["driver_sha256"][name] = hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                    case_runner = lambda Case: qualify(Case, run, execute, spawn, restore, output, client,
+                                                       report["coordinator_death"]["cases"], endpoints, reply_relay)
+                if args.death_scope in {"lost-reply", "lost-link-reply"}:
+                    from nfs_lost_reply import qualify
+                    for name in ("nfs_rpc.py", "nfs_reply_proxy.py", "nfs_reply_relay.py", "nfs_lost_reply.py", "test_nfs_rpc.py"):
+                        report["coordinator_death"]["driver_sha256"][name] = hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                    case_runner = lambda Case: qualify(Case, run, execute, spawn, restore, output, client,
+                                                       report["coordinator_death"]["cases"], endpoints, reply_relay, link=args.death_scope == "lost-link-reply")
+                completed = run_runtime(run, execute, spawn, restore, server, output, client,
+                                        artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
+                                        death_scope=args.death_scope or "claim-copy-verify", endpoints=endpoints,
+                                        case_runner=case_runner)
+                report["coordinator_death"].update(completed)
+                complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state", "both-nfs-bootstrap", "destination-startup"}
+                            else len(report["coordinator_death"]["cases"]) == 4 if args.death_scope in {"source-mid-copy", "lost-reply", "lost-link-reply", "claim-lost-reply"}
+                            else len(report["coordinator_death"]["cases"]) == 28 if args.death_scope == "independent-endpoints"
+                            else len(report["coordinator_death"]["cases"]) == 24 if args.death_scope in {"both-nfs", "separate-exports"}
+                            else len(report["coordinator_death"]["cases"]) == 12 if args.death_scope in {"publication-manifest", "publication-sync"}
+                            else 12 <= len(report["coordinator_death"]["cases"]) <= 18)
+                assert report["coordinator_death"]["passed"] or complete, "NFS coordinator-death matrix interrupted; inspect cases"
+                # A fully observed ownership defect remains a failed matrix.
+                # Run retained regressions after safe case cleanup, then fail.
+
+            if args.shutdown:
+                from nfs_runtime import run_runtime
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["shutdown"] = {"passed": False, "cases": [],
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_shutdown.py", "nfs_binding.py")}}
+                completed = run_runtime(run, execute, spawn, restore, server, output, client,
+                                        artifact_hashes, report["shutdown"]["cases"], shutdown_only=True)
+                report["shutdown"].update(completed)
+                assert report["shutdown"]["passed"], "NFS shutdown qualification failed; inspect cases"
+            if args.runtime:
+                from nfs_runtime import run_runtime
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["runtime"] = {"passed": False, "cases": []}
+                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"], long_only=args.long_outages_only)
+                report["runtime"]["passed"] = completed["passed"]
+                if not report["runtime"]["passed"]:
+                    raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
+        if not args.startup_only:
+            # Local instance state must refuse NFS in BOTH builds, before source/SQLite.
+            # All paths below belong to this disposable fixture, not user storage.
+            execute("mkdir /tmp/nfs/instance-state; chmod 700 /tmp/nfs/instance-state", "1000:1000")
+            assert execute("stat -f -c %t /tmp/nfs/instance-state").stdout.strip() == "6969"
+            bad_state = dict(config, source_root="/tmp/instance-source-must-not-be-opened",
+                             state_database="/tmp/nfs/instance-state/jobs.sqlite")
+            path = output / "nfs-state-config.json"
+            path.write_text(json.dumps(bad_state), encoding="utf-8")
+            run(["cp", str(path), client + ":/tmp/nfs-state-config.json"])
+            report["local_ownership"] = {"passed": False, "cases": [],
+                "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                  for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py")}}
+            builds = [("production", evidence, "/tmp/")]
+            if qualification:
+                builds.append(("nfs-qualification", qualification, "/tmp/qualification-"))
+            for mode, build_evidence, prefix in builds:
+                for profile in ("debug", "release"):
+                    artifact = next(a for a in build_evidence["profiles"][profile]["artifacts"] if not a["test"])
+                    assert execute("sha256sum " + prefix + profile).stdout.split()[0] == artifact["sha256"]
+                    for command in ("", "--initialize-source ", "--transfer-one "):
+                        started = time.monotonic()
+                        suffix = " 1" if command.startswith("--transfer-one") else ""
+                        result = execute("LD_BIND_NOW=1 " + prefix + profile + " " + command +
+                                         "/tmp/nfs-state-config.json" + suffix, "1000:1000", check=False)
+                        elapsed = time.monotonic() - started
+                        assert result.returncode != 0 and elapsed < 10
+                        expected = "instance state filesystem" if mode == "nfs-qualification" else "filesystem not qualified"
+                        assert expected in result.stderr, result.stderr
+                        assert execute("test -z \"$(ls -A /tmp/nfs/instance-state)\" && test ! -e /tmp/instance-source-must-not-be-opened",
+                                       "1000:1000", check=False).returncode == 0
+                        report["local_ownership"]["cases"].append({"build": mode, "profile": profile,
+                            "command": command.strip() or "service", "binary_sha256": artifact["sha256"],
+                            "elapsed_seconds": round(elapsed, 3), "stderr": result.stderr.strip(),
+                            "passed": True, "state_empty": True, "source_absent": True})
+            report["local_ownership"]["passed"] = True
+            from nfs_state_layout import qualify as qualify_state_layout
+            report["sqlite_state_layout"] = qualify_state_layout(
+                run, execute, spawn, restore, server, client, output, config, builds, extra_mounts)
+        else:
+            for scope in ("baseline", "local_ownership", "sqlite_state_layout"):
+                report[scope] = {"status":"NOT_RUN", "scope":"startup-only mode"}
+        startup_binary = "/tmp/release"
+        if args.isolated_startup:
+            artifact = next(a for a in qualification["profiles"]["release"]["artifacts"] if not a["test"])
+            path = qualification_gate / artifact["name"]
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == artifact["sha256"]
+            startup_binary = "/tmp/qualification-release"
+            run(["cp", str(path), client + ":" + startup_binary])
+            execute("chmod 555 " + startup_binary)
+            assert execute("sha256sum " + startup_binary).stdout.split()[0] == artifact["sha256"]
+            report["startup_artifact"] = {"build":"nfs-qualification","sha256":artifact["sha256"],"source_sha256":qualification["source_sha256"]}
+        # Model the actual inherited open-file-description lock with OS tools.
+        # Child holds fd 9 after coordinator death; no Rust effects are claimed.
+        holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")
+        await_file("/tmp/local/child.pid")
+        execute("kill -KILL $(cat /tmp/local/parent.pid)", "1000:1000")
+        holder.wait(timeout=10)
+        collision = execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False)
+        assert collision.returncode != 0
+        execute("touch /tmp/local/release-lock", "1000:1000")
+        for _ in range(30):
+            if execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode == 0:
+                break
+            time.sleep(0.2)
+        else:
+            raise RuntimeError("inherited source lock not released")
+        report["checks"]["inherited_lock"] = "Parent death retained lock; child exit released it"
+        interrupted = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/interrupted.pid; while test ! -e /tmp/local/interrupt-go; do sleep 0.2; done; exec stat /tmp/nfs/source", "interrupted-worker")
+        await_file("/tmp/local/interrupted.pid")
+        run(["exec", server, "rpc.nfsd", "0"])
+        execute("touch /tmp/local/interrupt-go", "1000:1000")
+        probe = spawn("echo $$ >/tmp/local/probe.pid; stat -c '%d:%i:%u:%a' /tmp/nfs/source /tmp/nfs/source/.file-mover", "outage-stat")
+        await_file("/tmp/local/probe.pid")
+        time.sleep(3)
+        assert probe.poll() is None, "hard mount unexpectedly returned during outage"
+        startup = spawn("echo $$ >/tmp/local/startup.pid; exec " + startup_binary + " /tmp/local/config.json", "outage-startup")
+        await_file("/tmp/local/startup.pid")
+        time.sleep(3)
+        if args.isolated_startup:
+            assert startup.poll() is None, "qualification startup unexpectedly returned during outage"
+        else:
+            assert startup.wait(timeout=5) != 0, "production must refuse NFS before remote metadata"
+            report["checks"]["production_early_refusal_during_outage"] = True
+        assert interrupted.poll() is None, "assigned hard-mount operation unexpectedly returned"
+        if args.isolated_startup:
+            children = execute("pid=$(cat /tmp/local/startup.pid); for task in /proc/$pid/task/*/children; do cat $task; done", "1000:1000").stdout.split()
+            assert len(children) == 1, "startup must have exactly one bounded bootstrap child"
+            report["checks"]["bootstrap_children_before_signal"] = len(children)
+            observed_at = time.monotonic()
+            lifecycle = execute("LD_BIND_NOW=1 " + startup_binary + " --status /tmp/local/config.json", "1000:1000")
+            local_status = json.loads(lifecycle.stdout)
+            assert local_status["phase"] == "Starting" and len(local_status["workers"]) == 1
+            elapsed = time.monotonic() - observed_at
+            assert elapsed < 5
+            report["checks"]["blocked_bootstrap_local_status"] = {
+                "elapsed_seconds": round(elapsed, 3), "snapshot": local_status,
+                "scope": "Local controller while actual hard-NFS bootstrap is pending; no SQLite/readiness"}
+            # A TCP listener may exist, but no HTTP readiness is served yet.
+            health = spawn("exec /bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/19876; printf \"GET /healthz HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3; cat <&3'", "startup-health")
+            time.sleep(1)
+            assert health.poll() is None, "startup served an HTTP response before custody"
+        if startup.poll() is None:
+            execute("kill -TERM $(cat /tmp/local/startup.pid)", "1000:1000")
+        time.sleep(1)
+        if args.isolated_startup:
+            assert startup.wait(timeout=5) == 0
+            assert execute("test ! -e /proc/" + children[0], "1000:1000", check=False).returncode == 0
+            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            health.wait(timeout=5)
+            report["checks"]["isolated_startup"] = "SIGTERM ended service and confirmed bootstrap child exit before server restoration; no SQLite or readiness"
+        report["checks"]["startup_sigterm"] = {"exit_observed_before_restore": startup.poll() is not None}
+        execute("kill -KILL $(cat /tmp/local/interrupted.pid)", "1000:1000")
+        time.sleep(1)
+        report["checks"]["kill_during_outage"] = {"exit_observed_before_restore": interrupted.poll() is not None}
+        report["checks"]["outage"] = "OS metadata remained pending; qualification bootstrap pending or production refused before remote I/O, as requested"
+        restore()
+        assert probe.wait(timeout=45) == 0
+        assert (startup.wait(timeout=45) == 0) == args.isolated_startup
+        assert interrupted.wait(timeout=45) != 0
+        assert execute("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9", "1000:1000", check=False).returncode == 0
+        for _, log in tasks:
+            log.flush()
+        assert (output / "outage-stat.log").read_text() == before
+        report["root_identity_after"] = (output / "outage-stat.log").read_text().splitlines()
+        startup_log = (output / "outage-startup.log").read_text()
+        assert "Ready on" not in startup_log
+        if args.isolated_startup:
+            assert "Source bootstrap termination requested" in startup_log
+        else:
+            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled"))
+        report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
+        assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect case outcomes and required closed-guard coverage"
+        report["status"] = "PASSED"
+    except Exception as error:
+        report["error"] = f"{type(error).__name__}: {error}"
+        report["traceback"] = traceback.format_exc()
+    finally:
+        # Restore first: killing a task is not evidence that NFS effects ended.
+        if server:
+            try:
+                restore()
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+        if client:
+            for name in ("parent", "child", "probe", "startup", "interrupted"):
+                try:
+                    execute(f"if test -f /tmp/local/{name}.pid; then kill -KILL $(cat /tmp/local/{name}.pid) 2>/dev/null || true; fi", "1000:1000")
+                except Exception as error:
+                    report["cleanup_errors"].append(str(error))
+        if sync_relays:
+            report['sync_relays_final'] = {}
+            for role,relay in sync_relays.items():
+                try:
+                    relay.release()
+                    report['sync_relays_final'][role] = relay.state(strict=False)
+                    assert not report['sync_relays_final'][role]['errors']
+                except Exception as error:
+                    report['cleanup_errors'].append(str(error))
+        if reply_relay is not None:
+            try:
+                report["reply_relay_final"] = reply_relay.state(strict=False)
+                report["reply_relay_log"] = run(["logs", reply_relay.container], check=False).stdout
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+        for process, log in tasks:
+            try:
+                process.wait(timeout=45)
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+            log.close()
+        for target, path in reversed(extra_mounts):
+            try:
+                run(["exec", target, "umount", path])
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+        for peer in mounted_peers:
+            try:
+                run(["exec", peer, "umount", "/tmp/nfs"])
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+        if mounted:
+            try:
+                run(["exec", client, "umount", "/tmp/nfs"])
+            except Exception as error:
+                report["cleanup_errors"].append(str(error))
+        if not report["cleanup_errors"]:
+            for target in ([server] if server else []) + extra_servers:
+                run(["exec", target, "rpc.nfsd", "0"], check=False)
+                run(["exec", target, "exportfs", "-au"], check=False)
+            for container in reversed(containers):
+                result = run(["rm", "--force", container], check=False)
+                if result.returncode:
+                    report["cleanup_errors"].append(result.stderr)
+            for kind, name in [("volume", v) for v in extra_volumes] + [("volume", volume), ("network", network)]:
+                if name:
+                    result = run([kind, "rm", name], check=False)
+                    if result.returncode:
+                        report["cleanup_errors"].append(result.stderr)
+        if report["cleanup_errors"]:
+            report["status"] = "FAILED"
+            report["recovery_resources"] = {"containers": containers, "network": network, "volume": volume,
+                                            "extra_volumes": extra_volumes, "extra_servers": extra_servers}
+        (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+        print(f"{report['status']}: {output}", flush=True)
+        if "error" in report:
+            print(report["error"], flush=True)
+    return 0 if report["status"] == "PASSED" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

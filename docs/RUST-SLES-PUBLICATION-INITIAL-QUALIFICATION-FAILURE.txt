@@ -1,0 +1,101 @@
+
+running 83 tests
+test active_source_receipt_replacement_blocks_live_claim ... ok
+test actual_executable_handoff_restart_replay_and_reused_paths ... ok
+test actual_transfer_command_publishes_but_retains_claimed_source ... ok
+test all_six_worker_modes_retain_explicit_local_ownership_without_parent_holder ... ok
+test background_multi_file_delivery_commits_after_202_without_more_requests ... ok
+test bootstrap_rejects_wrong_scope_and_invalid_requests ... ok
+test bootstrap_transfers_the_locked_description_without_reopening_source ... ok
+test claim_child_reports_missing_and_refuses_changed_observation_before_allocation ... ok
+test claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply ... ok
+test claim_worker_rejects_directory_and_readonly_lock_descriptors ... ok
+test configured_stop_deadline_survives_repeated_requests_signals_and_config_edits ... FAILED
+test control_endpoint_rejects_invalid_requests_and_preserves_unsafe_named_files ... ok
+test default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_ownership ... ok
+test delivery_session_allocates_restarts_and_commits_manifest_between_parent_receipts ... ok
+test delivery_session_checks_source_binding_and_rejects_authorization_downgrade ... ok
+test delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence_or_version ... ok
+test delivery_session_large_manifest_returns_metadata_only_receipts ... ok
+test delivery_session_rechecks_destination_marker_before_payload ... ok
+test delivery_session_refuses_oversized_frame_before_any_allocation ... ok
+test delivery_worker_refuses_replaced_destination_lock_before_payload ... ok
+test destination_binding_is_required_strict_and_coordinator_scoped ... ok
+test destination_declared_nfs_refuses_matching_marker_on_local_filesystem ... ok
+test destination_marker_custody_is_required_without_creating_or_adopting_markers ... ok
+test destination_root_replacement_is_refused_before_first_allocation ... ok
+test effect_diagnostics_preserve_uncertain_allocations_manifest_review_and_recovery ... ok
+test enabled_source_space_native_sample_allows_nested_empty_delivery_without_double_charge ... ok
+test enrollment_io_failures_preserve_prepared_state_and_production_ignores_controls ... ok
+test executable_identifies_its_compiled_filesystem_capability ... ok
+test explicit_source_enrollment_is_required_and_matching_restart_keeps_the_pair ... ok
+test fresh_database_cannot_adopt_enrolled_source_after_clean_release ... ok
+test killed_coordinator_cannot_release_local_guard_held_by_paused_claim_worker ... ok
+test live_payload_child_retains_both_locks_after_parent_descriptors_close ... ok
+test live_source_lock_replacement_blocks_claim_without_releasing_paths ... ok
+test local_controller_absence_or_surviving_holder_never_creates_state_or_reports_false_completion ... ok
+test local_controller_observes_clean_stop_without_sqlite_or_transfer_mount_access ... ok
+test local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite ... ok
+test lost_response_retry_finds_one_durable_job ... ok
+test malformed_json_scope_and_http_framing_never_claim ... ok
+test malformed_payload_assignments_preserve_stage_and_source ... ok
+test marker_change_during_runtime_blocks_claim_before_source_movement ... ok
+test missing_enrollment_receipt_reports_verification_stage_without_repair ... ok
+test missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it ... ok
+test missing_reset_expiry_requires_new_epoch_and_rejects_bad_requests ... ok
+test missing_reset_lost_response_survives_restart_and_partial_claims_complete ... ok
+test missing_reset_rejects_unexpired_claimed_and_committed_files ... ok
+test missing_unsafe_or_replaced_active_receipt_is_never_repaired ... ok
+test old_binding_versions_cannot_start_the_enrollment_protocol ... ok
+test operator_resume_keeps_collision_safe_and_reconciles_same_verified_attempt ... ok
+test operator_resume_lost_reply_survives_restart_and_invalid_requests_do_not_reset ... ok
+test operator_resume_rejects_unclaimed_and_committed_jobs ... ok
+test operator_status_observes_partial_claims_outage_and_committed_restart ... ok
+test operator_status_rejects_invalid_routes_and_reports_review_without_reset ... ok
+test partial_claim_missing_retry_and_persisted_expiry ... ok
+test payload_children_copy_verify_without_database_access_or_publication ... ok
+test payload_diagnostics_preserve_review_resume_and_production_ignores_faults ... ok
+test pending_capacity_retry_survives_restart_and_recovers_without_operator_resume ... ok
+test populated_state_without_destination_policy_refuses_service_startup ... ok
+test populated_unenrolled_state_refuses_service_startup_and_preserves_source ... ok
+test prepared_enrollment_retries_only_without_an_ambiguous_root_receipt ... ok
+test private_sqlite_files_recover_original_wal_after_coordinator_death ... ok
+test publication_child_reconciles_file_and_manifest_effects_without_database_receipts ... ok
+test replaced_source_lock_cannot_rebind_and_original_custody_can_restart ... ok
+test replacement_root_with_original_marker_cannot_rebind_existing_state ... ok
+test restart_discovers_claimed_delivery_and_keeps_original_destination ... ok
+test retention_api_charges_interrupted_attempts_and_does_not_claim_to_find_orphans ... ok
+test retention_api_reports_admission_headroom_and_committed_retained_sources ... ok
+test retention_limits_refuse_new_work_without_false_release_or_orphan ... ok
+test shutdown_setting_defaults_to_sixty_and_rejects_unbounded_or_noninteger_values ... ok
+test slow_client_does_not_block_health_and_concurrent_replays_are_bounded ... ok
+test source_binding_is_required_and_strictly_validated ... ok
+test source_enrollment_refuses_legacy_namespace_and_existing_local_enrollment ... ok
+test source_marker_and_filesystem_failures_precede_sqlite ... ok
+test source_marker_replacement_blocks_restart_without_rebinding_or_losing_claims ... ok
+test source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries ... ok
+test source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart ... ok
+test source_space_probe_faults_are_qualification_only_and_do_not_gate_existing_jobs ... ok
+test source_space_probe_timeout_preserves_responsive_replay_and_custody ... ok
+test startup_contention_never_announces_readiness_or_opens_sqlite ... ok
+test stopped_startup_exits_cleanly_without_source_or_database_access ... ok
+test unavailable_destination_claims_then_foreign_marker_requires_review_without_allocation ... ok
+test unresponsive_local_endpoint_returns_bounded_owner_unavailable ... ok
+test unsafe_sqlite_files_refuse_all_effect_commands_before_source_access ... ok
+test unsafe_startup_configuration_is_rejected ... ok
+
+failures:
+
+---- configured_stop_deadline_survives_repeated_requests_signals_and_config_edits stdout ----
+
+thread 'configured_stop_deadline_survives_repeated_requests_signals_and_config_edits' (242) panicked at crates/file-mover/tests/api.rs:3903:5:
+assertion `left == right` failed
+  left: String("Draining")
+ right: "ShutdownIncomplete"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    configured_stop_deadline_survives_repeated_requests_signals_and_config_edits
+
+test result: FAILED. 82 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 524.99s

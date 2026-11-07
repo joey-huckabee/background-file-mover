@@ -11,6 +11,10 @@ Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 
 ## v1.0.0 scope
 
+Additive Rust requirements for generator submissions and configured delivery
+appear at the end of this file. They are specified, unimplemented and outside
+the historical v1.0.0 C++ coverage scope; existing SHALL statements are retained.
+
 v1.0.0 is the C++11 / REST implementation. It is **deliberately narrower** than the
 Python implementation shipped through v0.4.2: the claim-and-verify transfer semantics
 are deferred to v1.1 so that the REST control plane, the transfer engine, and the
@@ -443,3 +447,217 @@ See section 0 of `docs/CYBERSECURITY.md`: it removes the staging directory and
 the recursive walk entirely, and avoids depending on an atomic no-clobber
 directory move that does not exist over NFS. Cross-filesystem support is a v1.1
 item with its own design and fault-injection suite.
+
+---
+
+## Additive Rust generator and delivery requirements
+
+These additions describe the Rust contract in
+[REST-API-DRAFT.md](REST-API-DRAFT.md). **Rust Status: Specified, not implemented.**
+The v1.0.0 Deferred annotation excludes them from historical C++ scope; it does
+not schedule them for the old v1.1 release. L2/L3 derivation and Rust verification
+remain future work. Earlier requirement IDs and C++ evidence are preserved.
+
+### L1-API-007
+
+The system shall provide an additive recording-set submission form containing
+generator identity, a mover-visible source directory and explicit file names,
+without requiring the generator to supply a destination.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust generator submission; preserve existing request forms.
+
+### L1-API-008
+
+The system shall return HTTP 202 for recording-set submission only after durable
+acceptance and confirmed durable claiming of every listed file, permitting source
+path reuse without requiring producer polling.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust 202 handoff; Accepted/Claimed remain separate internal facts, independent of destination commitment.
+
+### L1-API-009
+
+The system shall resolve repeated equivalent submissions under the same authorized
+generator-scoped idempotency key to the original job and its pinned destination.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust durable replay; claimed-job replays return 202 and conflicts do not replace the original job.
+
+### L1-SYS-024
+
+The system shall select each generator submission's destination from validated
+startup configuration using a default route or administrator-defined generator route.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust destination routing; no generator destination selection is required.
+
+### L1-SYS-025
+
+The system shall preserve an accepted job's resolved nonsecret destination identity,
+file mapping and delivery policies across retries, restarts and configuration changes.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust routing snapshot; unavailable original destinations block rather than reroute.
+
+### L1-SYS-026
+
+The system shall expose the same acceptance, source-claim and recording-commit
+milestones for each enabled destination backend, supported by that backend's
+qualified integrity, publication and recovery evidence.
+
+**Verification Method**: Test (T), Analysis (A)
+**v1.0.0 Status**: Deferred — Rust delivery contract; mounted filesystems first, S3 as a separate future adapter.
+
+### L1-SYS-027
+
+The system shall reject startup configuration selecting a destination backend
+that the deployed binary does not implement and qualify for the production target.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust backend capability gate; no silent fallback, including unqualified S3 delivery.
+
+### L1-SEC-008
+
+The system shall authorize a generator identity and its source scope independently
+of the identity string supplied in the submission body.
+
+For the proposed remote producer profile, the system shall bind the caller to
+an operator-approved transport identity and source scope before replay/admission
+or claim effects, shall deny producer ingress access to operator/read/control
+routes, and shall not fall back to body identity or anonymous permissions after
+credential/context refusal. Credential rotation for the same authorized generator
+shall preserve submission idempotency; current revocation shall prevent replay
+without cancelling accepted work. See [the remote contract and pending RA cases](REMOTE-API-ACCESS-CONTRACT.md).
+These are Rust design obligations, not evidence of current remote support.
+Registration and token issuance remain deferred.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust caller binding or explicitly trusted local deployment boundary.
+
+### L1-SEC-009
+
+The system shall enforce the declared ownership profile before assigning effects
+and shall preserve uncertain work until safe original-state reconciliation is
+established for every affected source and pinned destination.
+
+For the confirmed single-host first release, all supported manual/service starts
+and effect-capable commands shall use the same configuration and local state,
+with one protected host-local ownership guard inherited by relevant workers.
+Surviving holders shall block replacement. The system shall provide a configurable
+bounded shutdown wait defaulting to 60 seconds; expiration shall report incomplete
+shutdown/restart blocked without releasing live ownership or authorizing a new
+instance. Returning operator control shall not imply process or NFS cancellation.
+
+Local guard acquisition, process exit, timeouts, markers or operator assertions
+alone shall not prove delayed NFS effects are settled. Qualified owned recovery
+or preserved review shall precede conflicting effects. Prior valid 202 and
+committed manifests shall remain valid; reused producer paths shall not be
+reclaimed. Destination-only outage handoff shall retain L1-SYS-030 limits.
+
+See [the revised single-host contract](NFS-OWNERSHIP-FENCING-CONTRACT.md), SH-01–14
+and the explicit NF-01–18 mapping. Increment 41 revises this same Rust requirement
+under confirmed deployment constraints; it does not equate local exclusion with
+storage fencing. Independently enforced fencing remains required for future
+cross-host takeover/re-enrollment profiles. No force, repair, state adoption or
+source-deletion authority is granted. L2/L3 and Rust verification remain pending.
+
+**Verification Method**: Analysis (A), Test (T), Demonstration (D)
+**v1.0.0 Status**: Deferred — Rust single-host ownership/shutdown design; no new runtime support.
+
+### L1-SYS-028
+
+The system shall determine and durably record each submitted file's actual logical
+size during claiming without requiring a producer-supplied size.
+
+**Verification Method**: Test (T)
+**v1.0.0 Status**: Deferred — Rust claim evidence; optional expected sizes are validated assertions, including zero.
+
+### L1-SYS-029
+
+The system shall accept explicitly listed regular files in source subfolders using
+safe relative paths without recursively submitting, relocating or deleting directories.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust component traversal within approved source scopes; no symlink or mount escape.
+
+### L1-SYS-030
+
+The system shall permit durable claiming and HTTP 202 handoff during destination
+outages when source, local persistence and configured retention/admission limits
+allow safe custody, retaining files until delivery to the pinned target resumes.
+
+The source-space margin gate shall be startup-configurable with an explicit
+off switch, defaulting off when omitted. When enabled it shall gate only new
+submission keys against configured byte/percentage margins using fresh authorized
+source observations; unavailable measurements shall not permit new admission.
+Accepted-job replay and partial-handoff recovery shall remain subject to existing
+safety and reservation limits without being blocked by this additional gate.
+Disabling it shall not disable those limits, reset review or authorize deletion.
+See [the policy and acceptance scenarios](SOURCE-SPACE-ADMISSION-DESIGN.md) and
+[increment 36](RUST-INCREMENT-36.md) for implemented local behavior and exact test
+scope. [Increment 38](RUST-INCREMENT-38.md) adds bounded native tmpfs source
+exhaustion/restoration evidence only; physical-disk/quota, hard NFS statistics and
+broader storage qualification remain outstanding. Historical scope is unchanged.
+
+**Verification Method**: Test (T), Analysis (A)
+**v1.0.0 Status**: Deferred — Rust outage admission; unsafe capacity or claiming does not authorize 202.
+
+### L1-SYS-031
+
+The system shall preserve generator-submitted relative file paths within each
+destination recording container, creating only directories or object-key prefixes
+needed for explicitly listed files.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust generator hierarchy; reject prefix/reserved-name collisions without flattening paths.
+
+### L1-SYS-032
+
+The system shall automatically delete claimed source files after verified durable
+recording-set commitment only when the job's recorded cleanup policy and the
+currently loaded startup configuration authorize source deletion.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust configurable cleanup; disabled deletion retains/accountably protects claims, and cleanup failures do not restart delivery.
+
+### L1-SYS-033
+
+The system shall retry confirmed missing submitted files for a configurable,
+durably bounded period and then require operator review while retaining existing
+claims and withholding HTTP 202 until every required claim is confirmed.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust missing-file recovery; default 300 seconds, configurable at startup and recorded per job; submission replay/service restart do not reset the window.
+
+### L1-API-010
+
+The system shall identify whether a non-202 submission response is temporarily
+retryable or requires correction/operator review using stable machine-readable
+error information.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust recorder retry contract; no non-202 response grants source-path release.
+
+### L1-SYS-034
+
+The system shall publish an immutable recording completion manifest only after
+every required file is verified and published, identifying the exact required
+relative paths, actual sizes and integrity evidence for consumer validation.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust confirmed consumer contract; consumers wait for a valid COMMITTED.json before using a set.
+
+### L1-SYS-035
+
+The system shall support startup-configurable grouping of generator recordings
+by validated generator identity while preserving each recording's submitted
+relative file paths and accepted destination mapping.
+
+**Verification Method**: Test (T), Inspection (I)
+**v1.0.0 Status**: Deferred — Rust optional generator grouping for filesystem paths and future S3 prefixes; default false preserves the flat-container layout.
+
+Delivery acceptance examples and proposed startup INI keys are design artifacts,
+not behavior of the current C++ service. Filesystem deletion still requires the
+[transfer protocol](TRANSFER-PROTOCOL.md); future S3 cleanup needs separate
+validated object/manifest receipts and retention assumptions.

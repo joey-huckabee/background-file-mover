@@ -1,4 +1,6 @@
-name: C++ fuzz burn-in
+# Deprecated C++ reference workflow. Explicit manual dispatch only; not a Rust release gate.
+# Historical job descriptions below do not reinstate automatic PR/push/schedules.
+name: Legacy C++ fuzz burn-in (manual)
 
 # Deep libFuzzer burn-in for the untrusted-input path (ADR-0008). The PR gate
 # in cpp-ci.yml runs 60 seconds to keep pull requests fast; this scheduled job
@@ -15,14 +17,10 @@ name: C++ fuzz burn-in
 # should be readable and named for what it exercises.
 
 on:
-  schedule:
-    # Daily at 06:30 UTC — half an hour after the Python burn-in, so the two
-    # do not contend for runners.
-    - cron: "30 6 * * *"
   workflow_dispatch:
     inputs:
       seconds:
-        description: "Fuzzing duration in seconds"
+        description: "Fuzzing duration in seconds (deprecated C++ reference)"
         default: "1800"
 
 permissions:

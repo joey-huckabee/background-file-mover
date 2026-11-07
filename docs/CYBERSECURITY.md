@@ -1,5 +1,24 @@
 # Cybersecurity Architecture
 
+**Rust direction:** the same-filesystem-only scope and disposable-before-one-rename
+invariants below describe the historical C++ design. For the proposed Rust
+claim/copy/verify/manifest/cleanup model, use
+[TRANSFER-PROTOCOL.md](TRANSFER-PROTOCOL.md). Claimed sources are retained data;
+set visibility does not create an atomic transaction across SQL and filesystems.
+Reconcile security requirements explicitly before implementation.
+The proposed Rust [remote API access boundary](REMOTE-API-ACCESS-CONTRACT.md)
+uses external client-certificate verification and protected producer-only IPC;
+registration stays deferred. It is design-only and adds no current remote support.
+The proxy/local UID trust boundary is separate from NFS custody and fencing.
+The first-release [NFS authority contract](NFS-OWNERSHIP-FENCING-CONTRACT.md)
+is revised in increment 41 to the confirmed single-host/local-state profile:
+inherited local guard, proposed configurable 60-second controller wait and safe
+owned NFS recovery/refusal. [Increment 42](RUST-INCREMENT-42.md) implements the
+local guard and worker handoff with selected local evidence. [Increment 43](RUST-INCREMENT-43.md)
+adds private local lifecycle IPC and a first-deadline stop controller. Remaining
+systemd/hard-NFS drain and ownership qualification stays pending. Local locks are not NAS settlement; stronger
+cross-host fencing remains deferred. Production NFS and deletion stay off.
+
 How Background File Mover moves data safely on a filesystem it shares with
 privileged agents it does not control.
 

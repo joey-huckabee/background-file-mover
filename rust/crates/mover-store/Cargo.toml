@@ -1,0 +1,13 @@
+[package]
+name = "mover-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+mover-core = { path = "../mover-core" }
+rusqlite = { version = "=0.40.1", default-features = false, features = ["bundled"] }
+
+[lints]
+workspace = true

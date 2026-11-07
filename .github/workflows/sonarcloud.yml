@@ -1,3 +1,5 @@
+# Deprecated C++ reference workflow. Explicit manual dispatch only; not a Rust release gate.
+# Historical job descriptions below do not reinstate automatic PR/push/schedules.
 # This workflow uses actions that are not certified by GitHub. They are provided
 # by a third-party (SonarSource) and governed by separate terms of service.
 #
@@ -23,16 +25,10 @@
 # Note: SonarCloud's CFamily analyzer is free for public repositories; private
 # repositories need a paid plan. If C++ issues never appear at all, check the
 # plan before debugging the workflow.
-name: Analyze with SonarCloud
+name: Legacy C++ SonarCloud (manual)
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [ main, 'c*-*' ]
-  push:
-    branches: [ main, 'c*-*' ]
-  schedule:
-    - cron: '0 3 * * 1'  # weekly, Monday 03:00 UTC
 
 permissions:
   contents: read

@@ -1,0 +1,5 @@
+# Explicitly approved broader bootstrap; not the private-only preflight image.
+FROM localhost/background-file-mover-systemd228
+COPY boot-228-approved.sh boot-228-inner.sh enter-228.sh cleanup-228.sh /usr/local/libexec/
+RUN groupadd -g 1000 mover && usermod -g 1000 mover && chmod 755 /usr/local/libexec/*228*.sh
+CMD ["/usr/local/libexec/boot-228-approved.sh"]

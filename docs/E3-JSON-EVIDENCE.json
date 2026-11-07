@@ -1,0 +1,1035 @@
+{
+  "status": "PASS",
+  "images": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "run_id": "20261013T074919Z-b5b50210",
+  "reused_build": "20261013T074614Z-e14203ea",
+  "elf": {
+    "e3-control": {
+      "loader": "/lib64/ld-linux-x86-64.so.2",
+      "libraries": [
+        "libc.so.6",
+        "libdl.so.2",
+        "libpthread.so.0"
+      ],
+      "symbols": [
+        "__cxa_thread_atexit_impl@GLIBC_2.18",
+        "__errno_location@GLIBC_2.2.5",
+        "__fxstat64@GLIBC_2.2.5",
+        "__libc_start_main@GLIBC_2.2.5",
+        "__xpg_strerror_r@GLIBC_2.3.4",
+        "__xstat64@GLIBC_2.2.5",
+        "abort@GLIBC_2.2.5",
+        "bcmp@GLIBC_2.2.5",
+        "calloc@GLIBC_2.2.5",
+        "clock_gettime@GLIBC_2.17",
+        "clock_nanosleep@GLIBC_2.17",
+        "close@GLIBC_2.2.5",
+        "dl_iterate_phdr@GLIBC_2.2.5",
+        "dladdr@GLIBC_2.2.5",
+        "dlsym@GLIBC_2.2.5",
+        "dup@GLIBC_2.2.5",
+        "fcntl@GLIBC_2.2.5",
+        "fflush@GLIBC_2.2.5",
+        "fprintf@GLIBC_2.2.5",
+        "free@GLIBC_2.2.5",
+        "fsync@GLIBC_2.2.5",
+        "fwrite@GLIBC_2.2.5",
+        "getauxval@GLIBC_2.16",
+        "getcwd@GLIBC_2.2.5",
+        "getenv@GLIBC_2.2.5",
+        "gettid",
+        "lseek64@GLIBC_2.2.5",
+        "malloc@GLIBC_2.2.5",
+        "memcpy@GLIBC_2.14",
+        "memmove@GLIBC_2.2.5",
+        "memset@GLIBC_2.2.5",
+        "mkdir@GLIBC_2.2.5",
+        "mmap64@GLIBC_2.2.5",
+        "mprotect@GLIBC_2.2.5",
+        "munmap@GLIBC_2.2.5",
+        "open64@GLIBC_2.2.5",
+        "pause@GLIBC_2.2.5",
+        "poll@GLIBC_2.2.5",
+        "posix_memalign@GLIBC_2.2.5",
+        "pthread_attr_destroy@GLIBC_2.2.5",
+        "pthread_attr_getguardsize@GLIBC_2.2.5",
+        "pthread_attr_getstack@GLIBC_2.2.5",
+        "pthread_attr_init@GLIBC_2.2.5",
+        "pthread_attr_setstacksize@GLIBC_2.2.5",
+        "pthread_create@GLIBC_2.2.5",
+        "pthread_getattr_np@GLIBC_2.2.5",
+        "pthread_join@GLIBC_2.2.5",
+        "pthread_key_create@GLIBC_2.2.5",
+        "pthread_key_delete@GLIBC_2.2.5",
+        "pthread_rwlock_rdlock@GLIBC_2.2.5",
+        "pthread_rwlock_unlock@GLIBC_2.2.5",
+        "pthread_rwlock_wrlock@GLIBC_2.2.5",
+        "pthread_self@GLIBC_2.2.5",
+        "pthread_setname_np@GLIBC_2.12",
+        "pthread_setspecific@GLIBC_2.2.5",
+        "read@GLIBC_2.2.5",
+        "readlink@GLIBC_2.2.5",
+        "realloc@GLIBC_2.2.5",
+        "realpath@GLIBC_2.3",
+        "sigaction@GLIBC_2.2.5",
+        "sigaltstack@GLIBC_2.2.5",
+        "signal@GLIBC_2.2.5",
+        "snprintf@GLIBC_2.2.5",
+        "statx",
+        "stderr@GLIBC_2.2.5",
+        "strlen@GLIBC_2.2.5",
+        "syscall@GLIBC_2.2.5",
+        "sysconf@GLIBC_2.2.5",
+        "write@GLIBC_2.2.5",
+        "writev@GLIBC_2.2.5"
+      ],
+      "versions": [
+        "GLIBC_2.12",
+        "GLIBC_2.14",
+        "GLIBC_2.16",
+        "GLIBC_2.17",
+        "GLIBC_2.18",
+        "GLIBC_2.2.5",
+        "GLIBC_2.3",
+        "GLIBC_2.3.4"
+      ],
+      "maximum_glibc": "GLIBC_2.18"
+    },
+    "e3-json": {
+      "loader": "/lib64/ld-linux-x86-64.so.2",
+      "libraries": [
+        "libc.so.6",
+        "libdl.so.2",
+        "libpthread.so.0"
+      ],
+      "symbols": [
+        "__cxa_thread_atexit_impl@GLIBC_2.18",
+        "__errno_location@GLIBC_2.2.5",
+        "__fxstat64@GLIBC_2.2.5",
+        "__libc_start_main@GLIBC_2.2.5",
+        "__xpg_strerror_r@GLIBC_2.3.4",
+        "__xstat64@GLIBC_2.2.5",
+        "abort@GLIBC_2.2.5",
+        "bcmp@GLIBC_2.2.5",
+        "calloc@GLIBC_2.2.5",
+        "close@GLIBC_2.2.5",
+        "closedir@GLIBC_2.2.5",
+        "dirfd@GLIBC_2.2.5",
+        "dl_iterate_phdr@GLIBC_2.2.5",
+        "dladdr@GLIBC_2.2.5",
+        "dlsym@GLIBC_2.2.5",
+        "dup@GLIBC_2.2.5",
+        "fcntl@GLIBC_2.2.5",
+        "fflush@GLIBC_2.2.5",
+        "fprintf@GLIBC_2.2.5",
+        "free@GLIBC_2.2.5",
+        "fwrite@GLIBC_2.2.5",
+        "getauxval@GLIBC_2.16",
+        "getcwd@GLIBC_2.2.5",
+        "getenv@GLIBC_2.2.5",
+        "gettid",
+        "lseek64@GLIBC_2.2.5",
+        "malloc@GLIBC_2.2.5",
+        "memcmp@GLIBC_2.2.5",
+        "memcpy@GLIBC_2.14",
+        "memmove@GLIBC_2.2.5",
+        "memset@GLIBC_2.2.5",
+        "mmap64@GLIBC_2.2.5",
+        "mprotect@GLIBC_2.2.5",
+        "munmap@GLIBC_2.2.5",
+        "open64@GLIBC_2.2.5",
+        "opendir@GLIBC_2.2.5",
+        "pause@GLIBC_2.2.5",
+        "poll@GLIBC_2.2.5",
+        "posix_memalign@GLIBC_2.2.5",
+        "pthread_attr_destroy@GLIBC_2.2.5",
+        "pthread_attr_getguardsize@GLIBC_2.2.5",
+        "pthread_attr_getstack@GLIBC_2.2.5",
+        "pthread_getattr_np@GLIBC_2.2.5",
+        "pthread_key_create@GLIBC_2.2.5",
+        "pthread_key_delete@GLIBC_2.2.5",
+        "pthread_rwlock_rdlock@GLIBC_2.2.5",
+        "pthread_rwlock_unlock@GLIBC_2.2.5",
+        "pthread_rwlock_wrlock@GLIBC_2.2.5",
+        "pthread_self@GLIBC_2.2.5",
+        "pthread_setspecific@GLIBC_2.2.5",
+        "read@GLIBC_2.2.5",
+        "readdir64@GLIBC_2.2.5",
+        "readlink@GLIBC_2.2.5",
+        "realloc@GLIBC_2.2.5",
+        "realpath@GLIBC_2.3",
+        "sigaction@GLIBC_2.2.5",
+        "sigaltstack@GLIBC_2.2.5",
+        "signal@GLIBC_2.2.5",
+        "snprintf@GLIBC_2.2.5",
+        "statx",
+        "stderr@GLIBC_2.2.5",
+        "strlen@GLIBC_2.2.5",
+        "syscall@GLIBC_2.2.5",
+        "sysconf@GLIBC_2.2.5",
+        "write@GLIBC_2.2.5",
+        "writev@GLIBC_2.2.5"
+      ],
+      "versions": [
+        "GLIBC_2.14",
+        "GLIBC_2.16",
+        "GLIBC_2.18",
+        "GLIBC_2.2.5",
+        "GLIBC_2.3",
+        "GLIBC_2.3.4"
+      ],
+      "maximum_glibc": "GLIBC_2.18"
+    },
+    "e3-cumulative": {
+      "loader": "/lib64/ld-linux-x86-64.so.2",
+      "libraries": [
+        "libc.so.6",
+        "libdl.so.2",
+        "libm.so.6",
+        "libpthread.so.0"
+      ],
+      "symbols": [
+        "__cxa_thread_atexit_impl@GLIBC_2.18",
+        "__errno_location@GLIBC_2.2.5",
+        "__fxstat64@GLIBC_2.2.5",
+        "__libc_start_main@GLIBC_2.2.5",
+        "__lxstat64@GLIBC_2.2.5",
+        "__xpg_strerror_r@GLIBC_2.3.4",
+        "__xstat64@GLIBC_2.2.5",
+        "abort@GLIBC_2.2.5",
+        "access@GLIBC_2.2.5",
+        "bcmp@GLIBC_2.2.5",
+        "calloc@GLIBC_2.2.5",
+        "close@GLIBC_2.2.5",
+        "closedir@GLIBC_2.2.5",
+        "dirfd@GLIBC_2.2.5",
+        "dl_iterate_phdr@GLIBC_2.2.5",
+        "dladdr@GLIBC_2.2.5",
+        "dlsym@GLIBC_2.2.5",
+        "dup@GLIBC_2.2.5",
+        "fchmod@GLIBC_2.2.5",
+        "fchown@GLIBC_2.2.5",
+        "fcntl@GLIBC_2.2.5",
+        "fflush@GLIBC_2.2.5",
+        "fprintf@GLIBC_2.2.5",
+        "free@GLIBC_2.2.5",
+        "fsync@GLIBC_2.2.5",
+        "ftruncate64@GLIBC_2.2.5",
+        "fwrite@GLIBC_2.2.5",
+        "getauxval@GLIBC_2.16",
+        "getcwd@GLIBC_2.2.5",
+        "getenv@GLIBC_2.2.5",
+        "geteuid@GLIBC_2.2.5",
+        "getpid@GLIBC_2.2.5",
+        "gettid",
+        "gettimeofday@GLIBC_2.2.5",
+        "localtime_r@GLIBC_2.2.5",
+        "log@GLIBC_2.2.5",
+        "lseek64@GLIBC_2.2.5",
+        "malloc@GLIBC_2.2.5",
+        "memchr@GLIBC_2.2.5",
+        "memcmp@GLIBC_2.2.5",
+        "memcpy@GLIBC_2.14",
+        "memmove@GLIBC_2.2.5",
+        "memset@GLIBC_2.2.5",
+        "mkdir@GLIBC_2.2.5",
+        "mmap64@GLIBC_2.2.5",
+        "mprotect@GLIBC_2.2.5",
+        "mremap@GLIBC_2.2.5",
+        "munmap@GLIBC_2.2.5",
+        "nanosleep@GLIBC_2.2.5",
+        "open64@GLIBC_2.2.5",
+        "opendir@GLIBC_2.2.5",
+        "pause@GLIBC_2.2.5",
+        "poll@GLIBC_2.2.5",
+        "posix_memalign@GLIBC_2.2.5",
+        "pread64@GLIBC_2.2.5",
+        "pthread_attr_destroy@GLIBC_2.2.5",
+        "pthread_attr_getguardsize@GLIBC_2.2.5",
+        "pthread_attr_getstack@GLIBC_2.2.5",
+        "pthread_attr_init@GLIBC_2.2.5",
+        "pthread_attr_setstacksize@GLIBC_2.2.5",
+        "pthread_create@GLIBC_2.2.5",
+        "pthread_detach@GLIBC_2.2.5",
+        "pthread_getattr_np@GLIBC_2.2.5",
+        "pthread_join@GLIBC_2.2.5",
+        "pthread_key_create@GLIBC_2.2.5",
+        "pthread_key_delete@GLIBC_2.2.5",
+        "pthread_mutex_destroy@GLIBC_2.2.5",
+        "pthread_mutex_init@GLIBC_2.2.5",
+        "pthread_mutex_lock@GLIBC_2.2.5",
+        "pthread_mutex_trylock@GLIBC_2.2.5",
+        "pthread_mutex_unlock@GLIBC_2.2.5",
+        "pthread_mutexattr_destroy@GLIBC_2.2.5",
+        "pthread_mutexattr_init@GLIBC_2.2.5",
+        "pthread_mutexattr_settype@GLIBC_2.2.5",
+        "pthread_rwlock_rdlock@GLIBC_2.2.5",
+        "pthread_rwlock_unlock@GLIBC_2.2.5",
+        "pthread_rwlock_wrlock@GLIBC_2.2.5",
+        "pthread_self@GLIBC_2.2.5",
+        "pthread_setname_np@GLIBC_2.12",
+        "pthread_setspecific@GLIBC_2.2.5",
+        "pwrite64@GLIBC_2.2.5",
+        "qsort@GLIBC_2.2.5",
+        "read@GLIBC_2.2.5",
+        "readdir64@GLIBC_2.2.5",
+        "readlink@GLIBC_2.2.5",
+        "realloc@GLIBC_2.2.5",
+        "realpath@GLIBC_2.3",
+        "rmdir@GLIBC_2.2.5",
+        "sigaction@GLIBC_2.2.5",
+        "sigaltstack@GLIBC_2.2.5",
+        "signal@GLIBC_2.2.5",
+        "snprintf@GLIBC_2.2.5",
+        "statx",
+        "stderr@GLIBC_2.2.5",
+        "strchr@GLIBC_2.2.5",
+        "strcmp@GLIBC_2.2.5",
+        "strcspn@GLIBC_2.2.5",
+        "strlen@GLIBC_2.2.5",
+        "strncmp@GLIBC_2.2.5",
+        "strrchr@GLIBC_2.2.5",
+        "strspn@GLIBC_2.2.5",
+        "syscall@GLIBC_2.2.5",
+        "sysconf@GLIBC_2.2.5",
+        "time@GLIBC_2.2.5",
+        "unlink@GLIBC_2.2.5",
+        "utimes@GLIBC_2.2.5",
+        "write@GLIBC_2.2.5",
+        "writev@GLIBC_2.2.5"
+      ],
+      "versions": [
+        "GLIBC_2.12",
+        "GLIBC_2.14",
+        "GLIBC_2.16",
+        "GLIBC_2.18",
+        "GLIBC_2.2.5",
+        "GLIBC_2.3",
+        "GLIBC_2.3.4"
+      ],
+      "maximum_glibc": "GLIBC_2.18"
+    }
+  },
+  "audit_negative_controls": [
+    "new-glibc",
+    "private-glibc",
+    "wrong-loader",
+    "extra-shared-library",
+    "runpath",
+    "wrong-architecture"
+  ],
+  "dependencies": [
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "std"
+      ]
+    },
+    {
+      "name": "cc",
+      "version": "1.8.0",
+      "license": "MIT OR Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "std"
+      ]
+    },
+    {
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0",
+      "features": [
+        "alloc",
+        "default"
+      ]
+    },
+    {
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.14",
+      "license": "MIT OR Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "license": "MIT OR Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "libc",
+      "version": "0.2.190",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "std"
+      ]
+    },
+    {
+      "name": "libsqlite3-sys",
+      "version": "0.38.2",
+      "license": "MIT",
+      "features": [
+        "bundled",
+        "bundled_bindings",
+        "cc",
+        "default",
+        "min_sqlite_version_3_34_1",
+        "pkg-config",
+        "vcpkg"
+      ]
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "features": [
+        "auxvec",
+        "elf",
+        "errno",
+        "general",
+        "ioctl",
+        "no_std",
+        "prctl"
+      ]
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "license": "Unlicense OR MIT",
+      "features": [
+        "alloc",
+        "std"
+      ]
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "proc-macro"
+      ]
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "proc-macro"
+      ]
+    },
+    {
+      "name": "rusqlite",
+      "version": "0.40.1",
+      "license": "MIT",
+      "features": [
+        "bundled",
+        "modern_sqlite"
+      ]
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.5",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "features": [
+        "alloc",
+        "fs",
+        "process",
+        "std"
+      ]
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "derive",
+        "serde_derive",
+        "std"
+      ]
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "result",
+        "std"
+      ]
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "default"
+      ]
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.154",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "std"
+      ]
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "default",
+        "std"
+      ]
+    },
+    {
+      "name": "smallvec",
+      "version": "1.16.3",
+      "license": "MIT OR Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "syn",
+      "version": "3.0.9",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "clone-impls",
+        "derive",
+        "parsing",
+        "printing",
+        "proc-macro"
+      ]
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.27",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "features": []
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0",
+      "features": []
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "license": "MIT",
+      "features": []
+    }
+  ],
+  "macro_host_packages": [
+    "proc-macro2@1.0.107",
+    "quote@1.0.47",
+    "serde_derive@1.0.229",
+    "syn@3.0.9",
+    "unicode-ident@1.0.27"
+  ],
+  "macro_compiler_commands": [
+    "     Running `CARGO=/usr/local/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/bin/cargo CARGO_CRATE_NAME=serde_derive CARGO_MANIFEST_DIR=/usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229 CARGO_MANIFEST_PATH=/usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/Cargo.toml CARGO_PKG_AUTHORS='Erick Tryzelaar <erick.tryzelaar@gmail.com>:David Tolnay <dtolnay@gmail.com>' CARGO_PKG_DESCRIPTION='Macros 1.1 implementation of #[derive(Serialize, Deserialize)]' CARGO_PKG_HOMEPAGE='https://serde.rs' CARGO_PKG_LICENSE='MIT OR Apache-2.0' CARGO_PKG_LICENSE_FILE='' CARGO_PKG_NAME=serde_derive CARGO_PKG_README=crates-io.md CARGO_PKG_REPOSITORY='https://github.com/serde-rs/serde' CARGO_PKG_RUST_VERSION=1.71 CARGO_PKG_VERSION=1.0.229 CARGO_PKG_VERSION_MAJOR=1 CARGO_PKG_VERSION_MINOR=0 CARGO_PKG_VERSION_PATCH=229 CARGO_PKG_VERSION_PRE='' LD_LIBRARY_PATH='/work/target/release/deps:/usr/local/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/lib' /usr/local/rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/bin/rustc --crate-name serde_derive --edition=2021 /usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.229/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type proc-macro --emit=dep-info,link -C prefer-dynamic -C embed-bitcode=no -C debuginfo=1 -C debug-assertions=off --cfg 'feature=\"default\"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values(\"default\", \"deserialize_in_place\"))' -C metadata=7ccc88c5500bde03 -C extra-filename=-15c090df8c5e1ce6 --out-dir /work/target/release/deps -L dependency=/work/target/release/deps --extern proc_macro2=/work/target/release/deps/libproc_macro2-138125908b958d15.rlib --extern quote=/work/target/release/deps/libquote-aafe7c3981e5bd3f.rlib --extern syn=/work/target/release/deps/libsyn-fc471af8433f03fe.rlib --extern proc_macro --cap-lints warn`"
+  ],
+  "backend": "rustix default linux_raw in cumulative probe; serde derive macros run on builder",
+  "cpp_corpus_results": {
+    "all-scalar-types": "ACCEPT",
+    "empty-object": "ACCEPT",
+    "escapes": "ACCEPT",
+    "int64-bounds": "ACCEPT",
+    "nested-array": "ACCEPT",
+    "nested-object": "ACCEPT",
+    "one-string": "ACCEPT",
+    "r-bad-escape": "REJECT",
+    "r-bom": "REJECT",
+    "r-comment": "REJECT",
+    "r-deep-nesting": "REJECT",
+    "r-duplicate-key": "REJECT",
+    "r-escaped-nul": "ACCEPT",
+    "r-exponent": "REJECT",
+    "r-float": "REJECT",
+    "r-int-overflow": "REJECT",
+    "r-invalid-lead": "REJECT",
+    "r-leading-zero": "REJECT",
+    "r-lone-high-surrogate": "REJECT",
+    "r-lone-low-surrogate": "REJECT",
+    "r-null": "REJECT",
+    "r-overlong-utf8": "REJECT",
+    "r-raw-control": "REJECT",
+    "r-raw-nul": "REJECT",
+    "r-raw-surrogate": "REJECT",
+    "r-single-quotes": "REJECT",
+    "r-stray-continuation": "REJECT",
+    "r-top-level-array": "REJECT",
+    "r-trailing-bytes": "REJECT",
+    "r-trailing-comma": "REJECT",
+    "r-truncated-escape": "REJECT",
+    "r-unquoted-key": "REJECT",
+    "r-unterminated": "REJECT",
+    "submit-request": "ACCEPT",
+    "surrogate-pair": "ACCEPT",
+    "unicode-bmp": "ACCEPT",
+    "utf8-raw": "REJECT",
+    "whitespace-heavy": "ACCEPT"
+  },
+  "corpus_hashes": {
+    "all-scalar-types": "3de16c493cb5e75c4c6e1d38a6915fc508a76b02245d19be8a9bd31dd3e14d42",
+    "empty-object": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "escapes": "d8dcda0bb2a486c95248e10648ae22e5db62419d132ea136effb77ce64849590",
+    "int64-bounds": "161a1dcda7bae00f28f0ba32675f218fd4977065d2aa0439cf451c6d066dbbfb",
+    "nested-array": "424cf996e1fe7d460cc47b7bbb8f53e8b92446abad8ec313ecee60aafab6838a",
+    "nested-object": "7f2727a77c4fd60b5ffbbef404e642a608a1013b70d0b58ab5147d31c06143e7",
+    "one-string": "db4a7ecb114bc66c623a06c4ff6fe8daa2f49cc270ebbf7a1f81e22ab061c837",
+    "r-bad-escape": "041b42723fc36d380906104a0a6d1866296d2e68f472ad28d4a1e29ff6268911",
+    "r-bom": "5f55cd41f07af14cd76532d6d198dbd396506cc1eedd90cca8ff8cb2f3cb8c15",
+    "r-comment": "368e5313666674de1584fb25eb16c33460496b53871a247817b7a3dcb9d099e8",
+    "r-deep-nesting": "2908f1617b1a6274cf5e566f145c6fa02f5fd013de5669839e980c5cef0c6aa5",
+    "r-duplicate-key": "1c53ee0df7b12fd4d65b976120c7fa6b847dc41dffd7f0331c3237a1ceab1756",
+    "r-escaped-nul": "258555fe010df3da34b3920945d0fbc59cebbcff1878bfc2e9206f0f495d81b9",
+    "r-exponent": "165b41a343b77edfe781b12d56c0128351c187235c1065ae9c5c8c83836fe068",
+    "r-float": "3b1cb40b22933d83e9242f8ac724f114d812ddd49909917b365375c24b69a455",
+    "r-int-overflow": "73c5c9bbf82ebafd8e6cf0ee616f6233b6b1c834e8d1628c6e530e65ea80f2a9",
+    "r-invalid-lead": "dc2222acf0a31b9e965c6577a25c70f729766e07124482731257cb4bca738af7",
+    "r-leading-zero": "a12131fed26d7975d8c9ac3b44603ed2a088bb7904c711b710c4bc2b88459b92",
+    "r-lone-high-surrogate": "89f8ca88ea20e6cd48ed0ab6b731b66377cab0c8fb9a7187ea96ac6813ed24e4",
+    "r-lone-low-surrogate": "05f326659e7c6bbba06066b7512f1f9b14fd2e821289eb12c3d8ed7e06f2d655",
+    "r-null": "d091f9c83c091f79652fe8786375b3fe4ce0861a56f5bfbafedbe431877ff0e8",
+    "r-overlong-utf8": "09b59b2361970905de8c2c956123c035852bbee8e9db2ea609ee82bb576a218c",
+    "r-raw-control": "66698c0003caebed0a40253345310b332ad4580a5c018df26725a932de398482",
+    "r-raw-nul": "94c5a8b8c4629b0a5d113d6cdeee8851b7acc6cd2a5a313bf770e28a4d5fbf4c",
+    "r-raw-surrogate": "ac0c777c2228e0f9876787eb280b1871713f08f121ea791ab87ec8f832b8b9cf",
+    "r-single-quotes": "b6b2f199d1bd21672e0b4c4c87b03218d7dafd5e8b462d6f9cd57e9a303b3ec1",
+    "r-stray-continuation": "a38ed3d7237a1d133f9afc64b26571d75396dbc5b1d7f8083a17753785aa21ec",
+    "r-top-level-array": "a615eeaee21de5179de080de8c3052c8da901138406ba71c38c032845f7d54f4",
+    "r-trailing-bytes": "7bff035d11fe47ddeb5a0d2349306fd9a79e600df151e456cb318941ed6a4eb8",
+    "r-trailing-comma": "aa99a5ce3eb0dd8355f0bfb15376ea1d862ad75d0d278af1f8c280ca8c02c640",
+    "r-truncated-escape": "ee7c1e9b11b7b06c9850a45370487618e6d2efeb62153a5ad5438cde4a0063be",
+    "r-unquoted-key": "f09a9231c12685ac5f0b6f0b06c9154f13dc3a5b3548db5142c19bde1383f261",
+    "r-unterminated": "ffb38b22ee3e0ca90325ebce953a9846990f292faf44c50498771602e31cb61f",
+    "submit-request": "9c639c049e841c67234beb7a19872806896f061de1887723f87915011086ba66",
+    "surrogate-pair": "f073f1f05c0a1e01bf604e8ec5f389a64fdeb334e00f9456008269e852b1ff4a",
+    "unicode-bmp": "2450882c814bb3fce327f4d55d143a9f9fd4ac42ec79cffb22b810c471ad8e7a",
+    "utf8-raw": "eda79ce7cedd903bc29a0a4c082720a1563121a307f360c4945a8cf4aeb36941",
+    "whitespace-heavy": "7b291e5ef3e992aa704b3bce9cb35b5b0602ec19e2d40d135d084f58ae604bc2"
+  },
+  "hashes": {
+    "e3-control": "72cc4ea8186d17d4736aad602cb71e5e69c6908535dd5bee70bec3210e9cddcc",
+    "e3-json": "4773c9c80ad9a8e0b3b5d577b2f3d4f4b18107083418bd1f39091291631ba1eb",
+    "e3-cumulative": "66ce1ce3ac23ee798729a2693385f25a036807a2c2c35b176397456c51b535a4"
+  },
+  "checks": {
+    "control": [
+      "PASS std filesystem, sync, reopen, threads, monotonic/realtime clocks",
+      "RESULT PASS"
+    ],
+    "json": [
+      "PASS corpus 38 accepted/rejected fixtures",
+      "PASS signed int64, negative zero, lexical float/exponent rejection, nested/escaped duplicate keys, depth, NUL, and whole input",
+      "PASS exact input/string/member/element bounds and 10000-level adversarial input",
+      "PASS derived typed API, unknown/missing/wrong/duplicate fields and Unicode/control-character roundtrip",
+      "PASS 10000 deterministic corpus mutations without panic; accepted values serialize and reparse",
+      "RESULT PASS"
+    ],
+    "cumulative-rename": [
+      "PASS corpus 38 accepted/rejected fixtures",
+      "PASS signed int64, negative zero, lexical float/exponent rejection, nested/escaped duplicate keys, depth, NUL, and whole input",
+      "PASS exact input/string/member/element bounds and 10000-level adversarial input",
+      "PASS derived typed API, unknown/missing/wrong/duplicate fields and Unicode/control-character roundtrip",
+      "PASS 10000 deterministic corpus mutations without panic; accepted values serialize and reparse",
+      "FILESYSTEM_TYPE 0x794c7630",
+      "PASS fd-relative open/stat, trusted UID/type, CLOEXEC, and RAII close",
+      "PASS symlink and directory-component traversal rejected",
+      "PASS regular-file entry swap detected by descriptor identity",
+      "PASS advisory lock contention and release",
+      "PASS renameat2 NOREPLACE success and collision retention",
+      "PASS file/directory fsync, missing classification, and unlinkat",
+      "PASS journal_mode=wal synchronous=2 foreign_keys=1",
+      "PASS compile_option=THREADSAFE=1",
+      "PASS compile_option=OMIT_LOAD_EXTENSION",
+      "PASS compile_option=DQS=0",
+      "PASS compile_option=DEFAULT_MEMSTATUS=0",
+      "PASS compile_option=ENABLE_API_ARMOR",
+      "SQLITE_OPTION ATOMIC_INTRINSICS=1",
+      "SQLITE_OPTION COMPILER=clang-21.1.0",
+      "SQLITE_OPTION DEFAULT_AUTOVACUUM",
+      "SQLITE_OPTION DEFAULT_CACHE_SIZE=-2000",
+      "SQLITE_OPTION DEFAULT_FILE_FORMAT=4",
+      "SQLITE_OPTION DEFAULT_FOREIGN_KEYS",
+      "SQLITE_OPTION DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+      "SQLITE_OPTION DEFAULT_MEMSTATUS=0",
+      "SQLITE_OPTION DEFAULT_MMAP_SIZE=0",
+      "SQLITE_OPTION DEFAULT_PAGE_SIZE=4096",
+      "SQLITE_OPTION DEFAULT_PCACHE_INITSZ=20",
+      "SQLITE_OPTION DEFAULT_RECURSIVE_TRIGGERS",
+      "SQLITE_OPTION DEFAULT_SECTOR_SIZE=4096",
+      "SQLITE_OPTION DEFAULT_SYNCHRONOUS=2",
+      "SQLITE_OPTION DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "SQLITE_OPTION DEFAULT_WAL_SYNCHRONOUS=2",
+      "SQLITE_OPTION DEFAULT_WORKER_THREADS=0",
+      "SQLITE_OPTION DIRECT_OVERFLOW_READ",
+      "SQLITE_OPTION DQS=0",
+      "SQLITE_OPTION ENABLE_API_ARMOR",
+      "SQLITE_OPTION ENABLE_COLUMN_METADATA",
+      "SQLITE_OPTION ENABLE_DBSTAT_VTAB",
+      "SQLITE_OPTION ENABLE_FTS3",
+      "SQLITE_OPTION ENABLE_FTS3_PARENTHESIS",
+      "SQLITE_OPTION ENABLE_FTS5",
+      "SQLITE_OPTION ENABLE_LOAD_EXTENSION",
+      "SQLITE_OPTION ENABLE_MEMORY_MANAGEMENT",
+      "SQLITE_OPTION ENABLE_RTREE",
+      "SQLITE_OPTION ENABLE_STAT4",
+      "SQLITE_OPTION HAVE_ISNAN",
+      "SQLITE_OPTION MALLOC_SOFT_LIMIT=1024",
+      "SQLITE_OPTION MAX_ATTACHED=10",
+      "SQLITE_OPTION MAX_COLUMN=2000",
+      "SQLITE_OPTION MAX_COMPOUND_SELECT=500",
+      "SQLITE_OPTION MAX_DEFAULT_PAGE_SIZE=8192",
+      "SQLITE_OPTION MAX_EXPR_DEPTH=1000",
+      "SQLITE_OPTION MAX_FUNCTION_ARG=1000",
+      "SQLITE_OPTION MAX_LENGTH=1000000000",
+      "SQLITE_OPTION MAX_LIKE_PATTERN_LENGTH=50000",
+      "SQLITE_OPTION MAX_MMAP_SIZE=0x7fff0000",
+      "SQLITE_OPTION MAX_PAGE_COUNT=0xfffffffe",
+      "SQLITE_OPTION MAX_PAGE_SIZE=65536",
+      "SQLITE_OPTION MAX_SQL_LENGTH=1000000000",
+      "SQLITE_OPTION MAX_TRIGGER_DEPTH=1000",
+      "SQLITE_OPTION MAX_VARIABLE_NUMBER=32766",
+      "SQLITE_OPTION MAX_VDBE_OP=250000000",
+      "SQLITE_OPTION MAX_WORKER_THREADS=8",
+      "SQLITE_OPTION MUTEX_PTHREADS",
+      "SQLITE_OPTION OMIT_LOAD_EXTENSION",
+      "SQLITE_OPTION SOUNDEX",
+      "SQLITE_OPTION SYSTEM_MALLOC",
+      "SQLITE_OPTION TEMP_STORE=1",
+      "SQLITE_OPTION THREADSAFE=1",
+      "SQLITE_OPTION USE_URI",
+      "PASS double-quoted strings rejected; extension loading function absent",
+      "SQLITE_VERSION 3.53.2",
+      "PASS commit, rollback, and foreign-key enforcement",
+      "PASS busy timeout and successful write after lock release",
+      "PASS four concurrent connections committed 40 worker records",
+      "PASS integrity_check and WAL checkpoint",
+      "PASS separate-process reopen: 42 rows and integrity_check=ok",
+      "RESULT PASS"
+    ],
+    "cumulative-fallback": [
+      "PASS corpus 38 accepted/rejected fixtures",
+      "PASS signed int64, negative zero, lexical float/exponent rejection, nested/escaped duplicate keys, depth, NUL, and whole input",
+      "PASS exact input/string/member/element bounds and 10000-level adversarial input",
+      "PASS derived typed API, unknown/missing/wrong/duplicate fields and Unicode/control-character roundtrip",
+      "PASS 10000 deterministic corpus mutations without panic; accepted values serialize and reparse",
+      "FILESYSTEM_TYPE 0x794c7630",
+      "PASS fd-relative open/stat, trusted UID/type, CLOEXEC, and RAII close",
+      "PASS symlink and directory-component traversal rejected",
+      "PASS regular-file entry swap detected by descriptor identity",
+      "PASS advisory lock contention and release",
+      "PASS interrupted link/unlink: both names identify the same inode",
+      "PASS forced link/unlink fallback and collision retention",
+      "PASS file/directory fsync, missing classification, and unlinkat",
+      "PASS journal_mode=wal synchronous=2 foreign_keys=1",
+      "PASS compile_option=THREADSAFE=1",
+      "PASS compile_option=OMIT_LOAD_EXTENSION",
+      "PASS compile_option=DQS=0",
+      "PASS compile_option=DEFAULT_MEMSTATUS=0",
+      "PASS compile_option=ENABLE_API_ARMOR",
+      "SQLITE_OPTION ATOMIC_INTRINSICS=1",
+      "SQLITE_OPTION COMPILER=clang-21.1.0",
+      "SQLITE_OPTION DEFAULT_AUTOVACUUM",
+      "SQLITE_OPTION DEFAULT_CACHE_SIZE=-2000",
+      "SQLITE_OPTION DEFAULT_FILE_FORMAT=4",
+      "SQLITE_OPTION DEFAULT_FOREIGN_KEYS",
+      "SQLITE_OPTION DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+      "SQLITE_OPTION DEFAULT_MEMSTATUS=0",
+      "SQLITE_OPTION DEFAULT_MMAP_SIZE=0",
+      "SQLITE_OPTION DEFAULT_PAGE_SIZE=4096",
+      "SQLITE_OPTION DEFAULT_PCACHE_INITSZ=20",
+      "SQLITE_OPTION DEFAULT_RECURSIVE_TRIGGERS",
+      "SQLITE_OPTION DEFAULT_SECTOR_SIZE=4096",
+      "SQLITE_OPTION DEFAULT_SYNCHRONOUS=2",
+      "SQLITE_OPTION DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "SQLITE_OPTION DEFAULT_WAL_SYNCHRONOUS=2",
+      "SQLITE_OPTION DEFAULT_WORKER_THREADS=0",
+      "SQLITE_OPTION DIRECT_OVERFLOW_READ",
+      "SQLITE_OPTION DQS=0",
+      "SQLITE_OPTION ENABLE_API_ARMOR",
+      "SQLITE_OPTION ENABLE_COLUMN_METADATA",
+      "SQLITE_OPTION ENABLE_DBSTAT_VTAB",
+      "SQLITE_OPTION ENABLE_FTS3",
+      "SQLITE_OPTION ENABLE_FTS3_PARENTHESIS",
+      "SQLITE_OPTION ENABLE_FTS5",
+      "SQLITE_OPTION ENABLE_LOAD_EXTENSION",
+      "SQLITE_OPTION ENABLE_MEMORY_MANAGEMENT",
+      "SQLITE_OPTION ENABLE_RTREE",
+      "SQLITE_OPTION ENABLE_STAT4",
+      "SQLITE_OPTION HAVE_ISNAN",
+      "SQLITE_OPTION MALLOC_SOFT_LIMIT=1024",
+      "SQLITE_OPTION MAX_ATTACHED=10",
+      "SQLITE_OPTION MAX_COLUMN=2000",
+      "SQLITE_OPTION MAX_COMPOUND_SELECT=500",
+      "SQLITE_OPTION MAX_DEFAULT_PAGE_SIZE=8192",
+      "SQLITE_OPTION MAX_EXPR_DEPTH=1000",
+      "SQLITE_OPTION MAX_FUNCTION_ARG=1000",
+      "SQLITE_OPTION MAX_LENGTH=1000000000",
+      "SQLITE_OPTION MAX_LIKE_PATTERN_LENGTH=50000",
+      "SQLITE_OPTION MAX_MMAP_SIZE=0x7fff0000",
+      "SQLITE_OPTION MAX_PAGE_COUNT=0xfffffffe",
+      "SQLITE_OPTION MAX_PAGE_SIZE=65536",
+      "SQLITE_OPTION MAX_SQL_LENGTH=1000000000",
+      "SQLITE_OPTION MAX_TRIGGER_DEPTH=1000",
+      "SQLITE_OPTION MAX_VARIABLE_NUMBER=32766",
+      "SQLITE_OPTION MAX_VDBE_OP=250000000",
+      "SQLITE_OPTION MAX_WORKER_THREADS=8",
+      "SQLITE_OPTION MUTEX_PTHREADS",
+      "SQLITE_OPTION OMIT_LOAD_EXTENSION",
+      "SQLITE_OPTION SOUNDEX",
+      "SQLITE_OPTION SYSTEM_MALLOC",
+      "SQLITE_OPTION TEMP_STORE=1",
+      "SQLITE_OPTION THREADSAFE=1",
+      "SQLITE_OPTION USE_URI",
+      "PASS double-quoted strings rejected; extension loading function absent",
+      "SQLITE_VERSION 3.53.2",
+      "PASS commit, rollback, and foreign-key enforcement",
+      "PASS busy timeout and successful write after lock release",
+      "PASS four concurrent connections committed 40 worker records",
+      "PASS integrity_check and WAL checkpoint",
+      "PASS separate-process reopen: 42 rows and integrity_check=ok",
+      "RESULT PASS"
+    ]
+  },
+  "limitations": [
+    "Pinned SLES userspace uses the WSL2 kernel; old kernel/CPU execution remains unqualified.",
+    "Reference cargo-zigbuild; user's separate builder remains unqualified.",
+    "JSON adapter is experimental; application migration and differential fuzzing remain later work."
+  ],
+  "retained_text": {
+    "Cargo.lock": "# This file is automatically @generated by Cargo.\n# It is not intended for manual editing.\nversion = 4\n\n[[package]]\nname = \"bitflags\"\nversion = \"2.13.2\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06\"\n\n[[package]]\nname = \"cc\"\nversion = \"1.8.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"6651c9ed80effdc7db0ff72512157f901af5e3549e341e24b1dd4887d836d838\"\ndependencies = [\n \"find-msvc-tools\",\n \"shlex\",\n]\n\n[[package]]\nname = \"e3-control\"\nversion = \"0.1.0\"\n\n[[package]]\nname = \"e3-cumulative\"\nversion = \"0.1.0\"\ndependencies = [\n \"e3-json\",\n \"rusqlite\",\n \"rustix\",\n]\n\n[[package]]\nname = \"e3-json\"\nversion = \"0.1.0\"\ndependencies = [\n \"serde\",\n \"serde_json\",\n]\n\n[[package]]\nname = \"errno\"\nversion = \"0.3.14\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb\"\ndependencies = [\n \"libc\",\n \"windows-sys\",\n]\n\n[[package]]\nname = \"fallible-iterator\"\nversion = \"0.3.0\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649\"\n\n[[package]]\nname = \"fallible-streaming-iterator\"\nversion = \"0.1.9\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a\"\n\n[[package]]\nname = \"find-msvc-tools\"\nversion = \"0.1.14\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484\"\n\n[[package]]\nname = \"itoa\"\nversion = \"1.0.18\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682\"\n\n[[package]]\nname = \"libc\"\nversion = \"0.2.190\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78\"\n\n[[package]]\nname = \"libsqlite3-sys\"\nversion = \"0.38.2\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8\"\ndependencies = [\n \"cc\",\n \"pkg-config\",\n \"vcpkg\",\n]\n\n[[package]]\nname = \"linux-raw-sys\"\nversion = \"0.12.1\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53\"\n\n[[package]]\nname = \"memchr\"\nversion = \"2.8.3\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98\"\n\n[[package]]\nname = \"pkg-config\"\nversion = \"0.3.34\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548\"\n\n[[package]]\nname = \"proc-macro2\"\nversion = \"1.0.107\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9\"\ndependencies = [\n \"unicode-ident\",\n]\n\n[[package]]\nname = \"quote\"\nversion = \"1.0.47\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001\"\ndependencies = [\n \"proc-macro2\",\n]\n\n[[package]]\nname = \"rusqlite\"\nversion = \"0.40.1\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"11438310b19e3109b6446c33d1ed5e889428cf2e278407bc7896bc4aaea43323\"\ndependencies = [\n \"bitflags\",\n \"fallible-iterator\",\n \"fallible-streaming-iterator\",\n \"libsqlite3-sys\",\n \"smallvec\",\n]\n\n[[package]]\nname = \"rustix\"\nversion = \"1.1.5\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d\"\ndependencies = [\n \"bitflags\",\n \"errno\",\n \"libc\",\n \"linux-raw-sys\",\n \"windows-sys\",\n]\n\n[[package]]\nname = \"serde\"\nversion = \"1.0.229\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba\"\ndependencies = [\n \"serde_core\",\n \"serde_derive\",\n]\n\n[[package]]\nname = \"serde_core\"\nversion = \"1.0.229\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48\"\ndependencies = [\n \"serde_derive\",\n]\n\n[[package]]\nname = \"serde_derive\"\nversion = \"1.0.229\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348\"\ndependencies = [\n \"proc-macro2\",\n \"quote\",\n \"syn\",\n]\n\n[[package]]\nname = \"serde_json\"\nversion = \"1.0.154\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6\"\ndependencies = [\n \"itoa\",\n \"memchr\",\n \"serde\",\n \"serde_core\",\n \"zmij\",\n]\n\n[[package]]\nname = \"shlex\"\nversion = \"2.0.1\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba\"\n\n[[package]]\nname = \"smallvec\"\nversion = \"1.16.3\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"5b3dc8af474f516a851ff4bd12db780f948b9250ad37211e4eec0bccea54e01b\"\n\n[[package]]\nname = \"syn\"\nversion = \"3.0.9\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b\"\ndependencies = [\n \"proc-macro2\",\n \"quote\",\n \"unicode-ident\",\n]\n\n[[package]]\nname = \"unicode-ident\"\nversion = \"1.0.27\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563\"\n\n[[package]]\nname = \"vcpkg\"\nversion = \"0.2.15\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426\"\n\n[[package]]\nname = \"windows-link\"\nversion = \"0.2.1\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5\"\n\n[[package]]\nname = \"windows-sys\"\nversion = \"0.61.2\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc\"\ndependencies = [\n \"windows-link\",\n]\n\n[[package]]\nname = \"zmij\"\nversion = \"1.0.23\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b\"\n",
+    "toolchain.txt": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\ncargo 1.99.0 (5f94df478 2026-08-27)\ncargo-zigbuild 0.23.4\n0.16.0\nRUSTFLAGS=-C target-cpu=x86-64\nLIBSQLITE3_FLAGS=-USQLITE_THREADSAFE -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 -USQLITE_DEFAULT_MEMSTATUS -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_ENABLE_API_ARMOR\n",
+    "dependency-features.txt": "e3-control v0.1.0 (/work/control)\n\ne3-cumulative v0.1.0 (/work/cumulative)\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac e3-json feature \"default\" (command-line)\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac e3-json v0.1.0 (/work/probe)\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde feature \"derive\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde v1.0.229\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core feature \"result\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core v1.0.229\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_derive feature \"default\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_derive v1.0.229 (proc-macro)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 feature \"proc-macro\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 v1.0.107\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac unicode-ident feature \"default\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac unicode-ident v1.0.27\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac quote feature \"proc-macro\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac quote v1.0.47\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 v1.0.107 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 feature \"proc-macro\" (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn feature \"clone-impls\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn v3.0.9\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 v1.0.107 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac quote v1.0.47 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac unicode-ident feature \"default\" (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn feature \"derive\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn v3.0.9 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn feature \"parsing\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn v3.0.9 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn feature \"printing\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn v3.0.9 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn feature \"proc-macro\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a               \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac syn v3.0.9 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a               \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac proc-macro2 feature \"proc-macro\" (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201a               \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac quote feature \"proc-macro\" (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde feature \"serde_derive\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde v1.0.229 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde feature \"std\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde v1.0.229 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core feature \"std\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core v1.0.229\n\u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_json feature \"std\"\n\u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_json v1.0.154\n\u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac memchr v2.8.3\n\u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core v1.0.229\n\u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac itoa feature \"default\"\n\u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac itoa v1.0.18\n\u00e2\u201d\u201a           \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac zmij feature \"default\"\n\u00e2\u201d\u201a           \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac zmij v1.0.23\n\u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac serde_core feature \"std\" (*)\n\u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac memchr feature \"std\"\n\u00e2\u201d\u201a               \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac memchr v2.8.3\n\u00e2\u201d\u201a               \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac memchr feature \"alloc\"\n\u00e2\u201d\u201a                   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac memchr v2.8.3\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rusqlite feature \"bundled\"\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rusqlite v0.40.1\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac bitflags feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac bitflags v2.13.2\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-iterator feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-iterator v0.3.0\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-iterator feature \"alloc\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-iterator v0.3.0\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-streaming-iterator feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac fallible-streaming-iterator v0.1.9\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   [build-dependencies]\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac cc feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac cc v1.8.0\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac find-msvc-tools feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac find-msvc-tools v0.1.14\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac shlex feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac shlex v2.0.1\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac shlex feature \"std\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a               \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac shlex v2.0.1\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac pkg-config feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac pkg-config v0.3.34\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac vcpkg feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac vcpkg v0.2.15\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"min_sqlite_version_3_34_1\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"pkg-config\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"vcpkg\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac smallvec feature \"default\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac smallvec v1.16.3\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rusqlite feature \"modern_sqlite\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rusqlite v0.40.1 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"bundled_bindings\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"bundled\"\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"bundled_bindings\" (*)\n\u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys feature \"cc\"\n\u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac libsqlite3-sys v0.38.2 (*)\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix feature \"fs\"\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix v1.1.5\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac bitflags v2.13.2\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"auxvec\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"elf\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"errno\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"general\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201a       \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"ioctl\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"no_std\"\n\u00e2\u201d\u201a           \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix feature \"process\"\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix v1.1.5 (*)\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys feature \"prctl\"\n\u00e2\u201d\u201a       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac linux-raw-sys v0.12.1\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix feature \"std\"\n    \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix v1.1.5 (*)\n    \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac bitflags feature \"std\"\n    \u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac bitflags v2.13.2\n    \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix feature \"alloc\"\n        \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac rustix v1.1.5 (*)\n\ne3-json v0.1.0 (/work/probe) (*)\n",
+    "c-compiler-wrapper.txt": "#!/bin/sh\nexport CARGO_ZIGBUILD_ZIG_VERSION=0.16.0\nexport CARGO_ZIGBUILD_ZIG_COMMAND=/usr/local/bin/zig\nif [ -n \"$SDKROOT\" ]; then export SDKROOT; fi\nexec \"/usr/local/cargo/bin/cargo-zigbuild\" zig cc -- -g '-fno-sanitize=all' '-mcpu=x86_64' -target x86_64-linux-gnu.2.22 \"$@\"\n",
+    "sha256.txt": "72cc4ea8186d17d4736aad602cb71e5e69c6908535dd5bee70bec3210e9cddcc  evidence/artifacts/e3-control\n66ce1ce3ac23ee798729a2693385f25a036807a2c2c35b176397456c51b535a4  evidence/artifacts/e3-cumulative\n4773c9c80ad9a8e0b3b5d577b2f3d4f4b18107083418bd1f39091291631ba1eb  evidence/artifacts/e3-json\n1bb3c7759c5ee3bafedb5fb158c734d9cb1b9c3ecafcab4b881120ac13716562  evidence/Cargo.lock\n5abc085f578b9e28f386fb99471127b545fd4d6f353d4cdf18ba0bb1564b1886  evidence/probe-sources.tar.gz\na032b56bba140b654fb4f3f1088b302175ea76a171c09526ec7dcc0350074987  evidence/vendor-sources.tar.gz\n",
+    "oracle.tsv": "all-scalar-types\tACCEPT\nempty-object\tACCEPT\nescapes\tACCEPT\nint64-bounds\tACCEPT\nnested-array\tACCEPT\nnested-object\tACCEPT\none-string\tACCEPT\nr-bad-escape\tREJECT\nr-bom\tREJECT\nr-comment\tREJECT\nr-deep-nesting\tREJECT\nr-duplicate-key\tREJECT\nr-escaped-nul\tACCEPT\nr-exponent\tREJECT\nr-float\tREJECT\nr-int-overflow\tREJECT\nr-invalid-lead\tREJECT\nr-leading-zero\tREJECT\nr-lone-high-surrogate\tREJECT\nr-lone-low-surrogate\tREJECT\nr-null\tREJECT\nr-overlong-utf8\tREJECT\nr-raw-control\tREJECT\nr-raw-nul\tREJECT\nr-raw-surrogate\tREJECT\nr-single-quotes\tREJECT\nr-stray-continuation\tREJECT\nr-top-level-array\tREJECT\nr-trailing-bytes\tREJECT\nr-trailing-comma\tREJECT\nr-truncated-escape\tREJECT\nr-unquoted-key\tREJECT\nr-unterminated\tREJECT\nsubmit-request\tACCEPT\nsurrogate-pair\tACCEPT\nunicode-bmp\tACCEPT\nutf8-raw\tREJECT\nwhitespace-heavy\tACCEPT\n"
+  },
+  "runtime_inventory": "NAME=\"SLES\"\nVERSION=\"12-SP5\"\nVERSION_ID=\"12.5\"\nPRETTY_NAME=\"SUSE Linux Enterprise Server 12 SP5\"\nID=\"sles\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:suse:sles:12:sp5\"\nglibc 2.22\n6.18.33.2-microsoft-standard-WSL2\naaa_base-13.2+git20140911.61c1681-38.22.1.x86_64\nbase-container-licenses-3.0-14.4.x86_64\nbash-4.3-83.33.1.x86_64\nca-certificates-1_201403302107-15.9.1.noarch\nca-certificates-mozilla-2.68-12.46.1.noarch\ncontainer-suseconnect-2.5.0-1.17.1.x86_64\ncoreutils-8.25-13.16.1.x86_64\ncpio-2.11-36.21.1.x86_64\ncracklib-2.9.0-8.5.1.x86_64\ncracklib-dict-small-2.9.0-8.5.1.x86_64\ndiffutils-3.3-5.40.x86_64\ndirmngr-1.1.1-13.1.x86_64\nfile-magic-5.22-10.21.1.x86_64\nfilesystem-13.1-14.15.x86_64\nfillup-1.42-270.64.x86_64\nfindutils-4.5.12-7.1.x86_64\nglibc-2.22-114.34.1.x86_64\ngpg-pubkey-39db7c82-66c5d91a\ngpg-pubkey-50a3dd1c-50f35137\ngpg2-2.0.24-9.14.1.x86_64\ngrep-2.16-4.9.1.x86_64\ninfo-4.13a-37.229.x86_64\ninsserv-compat-0.1-14.6.1.noarch\nkrb5-1.16.3-46.15.1.x86_64\nkubic-locale-archive-2.22-4.5.3.noarch\nlibacl1-2.2.52-7.3.1.x86_64\nlibadns1-1.4-103.3.1.x86_64\nlibassuan0-2.1.1-3.217.x86_64\nlibattr1-2.4.47-3.143.x86_64\nlibaudit1-2.8.1-10.14.1.x86_64\nlibaugeas0-1.10.1-4.3.2.x86_64\nlibblkid1-2.33.2-4.45.2.x86_64\nlibbz2-1-1.0.6-30.14.1.x86_64\nlibcap-ng0-0.7.3-4.125.x86_64\nlibcap2-2.26-14.9.1.x86_64\nlibcom_err2-1.43.8-3.17.1.x86_64\nlibcrack2-2.9.0-8.5.1.x86_64\nlibcurl4-8.0.1-11.98.1.x86_64\nlibdw1-0.158-7.13.3.x86_64\nlibebl1-0.158-7.13.3.x86_64\nlibelf1-0.158-7.13.3.x86_64\nlibexpat1-2.1.0-21.40.1.x86_64\nlibfdisk1-2.33.2-4.45.2.x86_64\nlibffi4-5.3.1+r233831-12.1.x86_64\nlibgcc_s1-13.3.0+git8781-1.16.1.x86_64\nlibgcrypt20-1.6.1-16.83.1.x86_64\nlibgcrypt20-hmac-1.6.1-16.83.1.x86_64\nlibgmp10-5.1.3-4.3.1.x86_64\nlibgpg-error0-1.29-1.3.x86_64\nlibkeyutils1-1.5.9-5.3.1.x86_64\nlibksba8-1.3.0-24.6.1.x86_64\nlibldap-2_4-2-2.4.41-22.24.2.x86_64\nliblua5_1-5.1.5-8.3.1.x86_64\nliblzma5-5.0.5-6.7.1.x86_64\nlibmagic1-5.22-10.21.1.x86_64\nlibmodman1-2.0.1-15.75.x86_64\nlibmount1-2.33.2-4.45.2.x86_64\nlibncurses5-5.9-88.1.x86_64\nlibncurses6-5.9-88.1.x86_64\nlibnghttp2-14-1.39.2-3.18.1.x86_64\nlibopenssl1_0_0-1.0.2p-3.95.1.x86_64\nlibopenssl1_0_0-hmac-1.0.2p-3.95.1.x86_64\nlibp11-kit0-0.23.2-8.10.1.x86_64\nlibpcre1-8.45-8.12.1.x86_64\nlibpopt0-1.16-26.128.x86_64\nlibprocps3-3.3.9-11.30.1.x86_64\nlibproxy1-0.4.13-18.3.1.x86_64\nlibpth20-2.0.7-140.1.x86_64\nlibreadline6-6.3-83.33.1.x86_64\nlibsasl2-3-2.1.26-14.5.1.x86_64\nlibselinux1-2.5-8.79.x86_64\nlibsemanage1-2.5-9.3.1.x86_64\nlibsepol1-2.5-3.143.x86_64\nlibsmartcols1-2.33.2-4.45.2.x86_64\nlibsolv-tools-0.6.39-2.39.2.x86_64\nlibssh-config-0.9.8-3.12.2.x86_64\nlibssh4-0.9.8-3.12.2.x86_64\nlibstdc++6-13.3.0+git8781-1.16.1.x86_64\nlibsystemd0-228-157.63.1.x86_64\nlibtasn1-4.9-3.13.1.x86_64\nlibtasn1-6-4.9-3.13.1.x86_64\nlibudev1-228-157.63.1.x86_64\nlibusb-0_1-4-0.1.13-29.13.x86_64\nlibusb-1_0-0-1.0.20-5.3.x86_64\nlibustr-1_0-1-1.0.4-31.197.x86_64\nlibutempter0-1.1.6-5.114.x86_64\nlibuuid1-2.33.2-4.45.2.x86_64\nlibverto1-0.2.6-3.2.2.x86_64\nlibxml2-2-2.9.4-46.75.1.x86_64\nlibz1-1.2.11-11.37.1.x86_64\nlibzio1-1.00-9.188.x86_64\nlibzypp-16.22.13-65.3.x86_64\nncurses-utils-5.9-88.1.x86_64\nnetcfg-11.5-29.1.noarch\nopenssl-1.0.2p-1.13.noarch\nopenssl-1_0_0-1.0.2p-3.95.1.x86_64\np11-kit-0.23.2-8.10.1.x86_64\np11-kit-tools-0.23.2-8.10.1.x86_64\npam-1.1.8-24.59.1.x86_64\nperl-base-5.18.2-12.26.1.x86_64\npermissions-20170707-6.16.1.x86_64\npinentry-0.8.3-4.27.x86_64\nprocps-3.3.9-11.30.1.x86_64\nrpm-4.11.2-16.26.1.x86_64\nsed-4.2.2-7.3.1.x86_64\nshadow-4.2.1-36.15.1.x86_64\nsles-release-12.5-9.5.2.x86_64\nsles-release-POOL-12.5-9.5.2.x86_64\nsuse-build-key-12.0-7.19.1.noarch\nterminfo-base-5.9-88.1.x86_64\nutil-linux-2.33.2-4.45.2.x86_64\nzypper-1.13.67-21.64.1.x86_64\n",
+  "engine": {
+    "host": {
+      "arch": "amd64",
+      "buildahVersion": "1.44.1",
+      "cgroupManager": "systemd",
+      "cgroupVersion": "v2",
+      "cgroupControllers": [
+        "memory",
+        "pids"
+      ],
+      "cdiSpecDirs": [
+        "/etc/cdi",
+        "/var/run/cdi"
+      ],
+      "conmon": {
+        "package": "conmon-2.2.1-2.fc44.x86_64",
+        "path": "/usr/bin/conmon",
+        "version": "conmon version 2.2.1, commit: "
+      },
+      "cpus": 8,
+      "cpuUtilization": {
+        "userPercent": 1.86,
+        "systemPercent": 1.49,
+        "idlePercent": 96.65
+      },
+      "databaseBackend": "sqlite",
+      "distribution": {
+        "distribution": "fedora",
+        "variant": "podman-machine-os",
+        "version": "44"
+      },
+      "eventLogger": "journald",
+      "freeLocks": 2037,
+      "hostname": "DESKTOP-QREB78E",
+      "idMappings": {
+        "gidmap": [
+          {
+            "container_id": 0,
+            "host_id": 1000,
+            "size": 1
+          },
+          {
+            "container_id": 1,
+            "host_id": 524288,
+            "size": 1000000
+          }
+        ],
+        "uidmap": [
+          {
+            "container_id": 0,
+            "host_id": 1000,
+            "size": 1
+          },
+          {
+            "container_id": 1,
+            "host_id": 524288,
+            "size": 1000000
+          }
+        ]
+      },
+      "kernel": "6.18.33.2-microsoft-standard-WSL2",
+      "logDriver": "journald",
+      "memFree": 1962627072,
+      "memTotal": 12542664704,
+      "networkBackend": "netavark",
+      "networkBackendInfo": {
+        "backend": "netavark",
+        "version": "netavark 2.0.0",
+        "package": "netavark-2.0.0-2.fc44.x86_64",
+        "path": "/usr/libexec/podman/netavark",
+        "dns": {
+          "version": "aardvark-dns 2.0.0",
+          "package": "aardvark-dns-2.0.0-1.fc44.x86_64",
+          "path": "/usr/libexec/podman/aardvark-dns"
+        },
+        "defaultNetwork": "podman"
+      },
+      "ociRuntime": {
+        "name": "crun",
+        "package": "crun-1.28-1.fc44.x86_64",
+        "path": "/usr/bin/crun",
+        "version": "crun version 1.28\ncommit: 54f16ffbefcd022bf032af768b5c5ce075c18bfc\nrundir: /run/user/1000/crun\nspec: 1.0.0\n+SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +LIBKRUN +WASM:wasmedge +JSON_C"
+      },
+      "os": "linux",
+      "remoteSocket": {
+        "path": "unix:///run/user/1000/podman/podman.sock",
+        "exists": true
+      },
+      "rootlessNetworkCmd": "pasta",
+      "rootlessPortForwarder": "rootlessport",
+      "serviceIsRemote": true,
+      "security": {
+        "apparmorEnabled": false,
+        "capabilities": "CAP_CHOWN,CAP_DAC_OVERRIDE,CAP_FOWNER,CAP_FSETID,CAP_KILL,CAP_NET_BIND_SERVICE,CAP_SETFCAP,CAP_SETGID,CAP_SETPCAP,CAP_SETUID,CAP_SYS_CHROOT",
+        "rootless": true,
+        "seccompEnabled": true,
+        "seccompProfilePath": "/usr/share/containers/seccomp.json",
+        "selinuxEnabled": false
+      },
+      "pasta": {
+        "executable": "/usr/bin/pasta",
+        "package": "passt-0^20260716.g090d739-2.fc44.x86_64",
+        "version": "pasta 0^20260716.g090d739-2.fc44.x86_64\nCopyright Red Hat\nGNU General Public License, version 2 or later\n  <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n"
+      },
+      "swapFree": 8556253184,
+      "swapTotal": 8589934592,
+      "uptime": "56h 44m 39.00s (Approximately 2.33 days)",
+      "variant": "",
+      "linkmode": "dynamic"
+    },
+    "store": {
+      "containerStore": {
+        "number": 0,
+        "paused": 0,
+        "running": 0,
+        "stopped": 0
+      },
+      "graphDriverName": "overlay",
+      "graphOptions": {
+        "overlay.mountopt": "nodev"
+      },
+      "graphRoot": "/home/user/.local/share/containers/storage",
+      "graphRootAllocated": 1081101176832,
+      "graphRootUsed": 13881028608,
+      "graphStatus": {
+        "Backing Filesystem": "extfs",
+        "Native Overlay Diff": "true",
+        "Supports d_type": "true",
+        "Supports shifting": "false",
+        "Supports volatile": "true",
+        "Using metacopy": "false"
+      },
+      "imageCopyTmpDir": "/var/tmp",
+      "imageStore": {
+        "number": 308
+      },
+      "runRoot": "/run/user/1000/containers",
+      "volumePath": "/home/user/.local/share/containers/storage/volumes",
+      "transientStore": false
+    },
+    "registries": {
+      "search": [
+        "docker.io"
+      ]
+    },
+    "plugins": {
+      "volume": [
+        "local"
+      ],
+      "network": [
+        "bridge",
+        "macvlan",
+        "ipvlan"
+      ],
+      "log": [
+        "k8s-file",
+        "none",
+        "passthrough",
+        "journald"
+      ],
+      "authorization": null
+    },
+    "version": {
+      "APIVersion": "6.0.2",
+      "Version": "6.0.2",
+      "GoVersion": "go1.26.5-X:nodwarf5",
+      "GitCommit": "b28edb9ad70ce4317dc762ee9ce0a6d081d154e9",
+      "BuiltTime": "Mon Jul 20 19:00:00 2026",
+      "Built": 1784592000,
+      "BuildOrigin": "Copr: packit/podman-container-tools-podman-29249",
+      "OsArch": "linux/amd64",
+      "Os": "linux"
+    },
+    "Client": {
+      "APIVersion": "6.0.2",
+      "Version": "6.0.2",
+      "GoVersion": "go1.26.5",
+      "GitCommit": "b28edb9ad70ce4317dc762ee9ce0a6d081d154e9",
+      "BuiltTime": "Tue Jul 21 21:57:30 2026",
+      "Built": 1784689050,
+      "OsArch": "windows/amd64",
+      "Os": "windows"
+    }
+  },
+  "archives_sha256": {
+    "probe-sources.tar.gz": "5abc085f578b9e28f386fb99471127b545fd4d6f353d4cdf18ba0bb1564b1886",
+    "vendor-sources.tar.gz": "a032b56bba140b654fb4f3f1088b302175ea76a171c09526ec7dcc0350074987"
+  },
+  "reference_sources_sha256": {
+    "cpp/src/json.cpp": "1190c9291aadbb8df237ebd477346385bdc9618c03c09e7fb345ab13dbbbb60f",
+    "cpp/include/filemover/json.hpp": "64fa5614ab0029358a9b0c6a3780598508db5c089722f823d7718da9a2009e9d"
+  }
+}

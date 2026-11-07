@@ -1,0 +1,10 @@
+[package]
+name = "e5-tokio"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+tokio.workspace = true

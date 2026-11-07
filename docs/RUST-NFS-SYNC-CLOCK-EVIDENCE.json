@@ -1,0 +1,91 @@
+{
+  "status": "PASSED",
+  "run_id": "nfs-20261019T000329Z-385f192f",
+  "actors": [
+    {
+      "container": "3e0f836a64840a43c6f8bc684fe3dabc1873fb8450a7e4792a3a83b1ddbb6372",
+      "entrypoint": [
+        "/bin/sh",
+        "/usr/local/bin/e2-nfs-server"
+      ],
+      "pid_mode": "private",
+      "time_namespace": "time:[4026531834]",
+      "observer": false
+    },
+    {
+      "container": "8ab0322e4d45ebca76e072242511f7659abf589e5da8c366fe4972199deb332d",
+      "entrypoint": [
+        "/bin/sh"
+      ],
+      "pid_mode": "private",
+      "time_namespace": "time:[4026531834]",
+      "observer": false
+    },
+    {
+      "container": "c953ae68d1c9136833b89baa5e6fc30398e6b88a731d8575e283baf2dadc4185",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "private",
+      "time_namespace": "time:[4026531834]",
+      "observer": false
+    },
+    {
+      "container": "80dadce8d7cd2bc2269c8d64b0ec97237a2e384c4a7ca05181497c4b3d9c58e9",
+      "entrypoint": [
+        "/bin/sh",
+        "/usr/local/bin/e2-nfs-server"
+      ],
+      "pid_mode": "private",
+      "time_namespace": "time:[4026531834]",
+      "observer": false
+    },
+    {
+      "container": "ba6f4ad95524757d0cbfa306f72bb50ba276400a488fb1cdf81fa1a67eefa3b8",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "private",
+      "time_namespace": "time:[4026531834]",
+      "observer": false
+    },
+    {
+      "container": "44dfa77ca0750d984d5c29337dd53519697a4eb2254829591345e4a06c86e146",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "container:8ab0322e4d45ebca76e072242511f7659abf589e5da8c366fe4972199deb332d",
+      "time_namespace": "time:[4026531834]",
+      "observer": true
+    },
+    {
+      "container": "2d6be2a4e256171c538b9c385df00b3d0eb5efdec21df42340914ef09ac8bdf2",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "container:8ab0322e4d45ebca76e072242511f7659abf589e5da8c366fe4972199deb332d",
+      "time_namespace": "time:[4026531834]",
+      "observer": true
+    },
+    {
+      "container": "3cdbfaad8651b4b829f1f222b24d87a657d1f46607e5c2e584967229ed9f734c",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "container:8ab0322e4d45ebca76e072242511f7659abf589e5da8c366fe4972199deb332d",
+      "time_namespace": "time:[4026531834]",
+      "observer": true
+    },
+    {
+      "container": "930fd225724673261f48c0743c440f418b80d985717c734d2c59399f2a2b3b0a",
+      "entrypoint": [
+        "/usr/bin/python3"
+      ],
+      "pid_mode": "container:8ab0322e4d45ebca76e072242511f7659abf589e5da8c366fe4972199deb332d",
+      "time_namespace": "time:[4026531834]",
+      "observer": true
+    }
+  ],
+  "driver_sha256": "caf92496d90c7cf6961aba4ec950e8e4e3ec1b8b3287aa2e57e70d9cdfa84add",
+  "scope": "Actual /proc/self/ns/time in all four external observers and owned relay/client containers"
+}

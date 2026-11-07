@@ -1,0 +1,171 @@
+"""Owned relay provisioning and real-server proof, no production network changes."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import time
+import uuid
+
+
+class ReplyRelay:
+    def __init__(self, run, network, image, backend, containers, output):
+        self.run, self.output = run, output
+        self.counter = 0
+        self.container = run(['create', '--network', network, '--cap-drop', 'all',
+                              '--sysctl', 'net.ipv4.ip_unprivileged_port_start=0',
+                              '--security-opt', 'no-new-privileges', '--user', '1000:1000',
+                              '--entrypoint', '/usr/bin/python3', image,
+                              '/tmp/nfs_reply_proxy.py', backend]).stdout.strip()
+        containers.append(self.container)
+        files = ('nfs_rpc.py', 'nfs_reply_proxy.py')
+        for name in files:
+            run(['cp', str(Path(__file__).parent / name), self.container + ':/tmp/' + name])
+        run(['start', self.container])
+        self.address = json.loads(run(['inspect', self.container]).stdout)[0]['NetworkSettings']['Networks'][network]['IPAddress']
+        for _ in range(30):
+            value = run(['exec', self.container, 'cat', '/tmp/control/state.json'], check=False)
+            if value.returncode == 0 and json.loads(value.stdout).get('ready'):
+                break
+            time.sleep(.1)
+        else:
+            raise RuntimeError('reply relay did not become ready')
+        self.evidence = dict(container=self.container, ip=self.address, backend=backend, image=image,
+                             packages_added=False, ports_published=False,
+                             private_netns_unprivileged_port_start=0, backend_source_ports='601-1000',
+                             max_active_connections=16, max_lifetime_connections=400,
+                             backend_connect_deadline_seconds=600, backend_connect_retry_seconds=1,
+                             drivers={n: hashlib.sha256((Path(__file__).parent / n).read_bytes()).hexdigest() for n in files})
+
+    def state(self, strict=True):
+        value = json.loads(self.run(['exec', self.container, 'cat', '/tmp/control/state.json']).stdout)
+        if strict and value['errors']:
+            raise AssertionError(value['errors'])
+        return value
+
+    def command(self, action, name=None, operation=28):
+        token = uuid.uuid4().hex
+        self.counter += 1
+        local = self.output / ('relay-command-' + str(self.counter) + '.json')
+        local.write_text(json.dumps(dict(token=token, action=action, name=name, operation=operation)), encoding='utf-8')
+        self.run(['cp', str(local), self.container + ':/tmp/control/command.next'])
+        self.run(['exec', self.container, '/usr/bin/python3', '-c',
+                  "import os; os.replace('/tmp/control/command.next','/tmp/control/command.json')"])
+        for _ in range(20):
+            state = self.state(strict=action != 'release')
+            if state.get('command_token') == token:
+                return state
+            time.sleep(.1)
+        raise AssertionError('relay command not acknowledged')
+
+    def release(self):
+        state = self.state(strict=False)
+        return self.command('release') if state['armed'] else state
+
+    def await_held(self):
+        for _ in range(20):
+            value = self.state()
+            if value['held']:
+                assert value['armed'] and not value['released'] and not value['dropped']
+                # No selected target success was forwarded in this armed window.
+                assert not value['forwarded'], value
+                for row in value['held']:
+                    assert row['xid'] == row['request']['decoded']['xid'] == row['reply']['xid']
+                    assert row['reply']['status'] == 0
+                    assert any(o['op']==value['operation'] and o['status']==0 for o in row['reply']['operations'])
+                return value
+            time.sleep(.2)
+        raise AssertionError('no matched successful selected reply was withheld')
+
+
+def server_objects(run, server, old, final):
+    assert all(c.isalnum() or c in '/._-' for c in old + final)
+    script = ''
+    for label, path in (('old', old), ('final', final)):
+        script += (f"if test -e {path}; then printf '{label} '; stat -c '%d:%i:%h:%s' {path}; "
+                   f"sha256sum {path}; else printf '{label} absent\\n'; fi; ")
+    lines = iter(run(['exec', server, '/bin/sh', '-eu', '-c', script]).stdout.splitlines())
+    result = {}
+    for line in lines:
+        label, value = line.split()
+        if value == 'absent':
+            result[label] = None
+        else:
+            device, inode, links, size = map(int, value.split(':'))
+            result[label] = dict(device=device, inode=inode, links=links, size=size,
+                                 sha256=next(lines).split()[0])
+    assert set(result) == {'old', 'final'}
+    return result
+
+
+def preflight(relay, endpoints, run, execute, spawn, output, evidence, operation=28, role='destination'):
+    results = evidence['cases']
+    assert role in ('source', 'destination') and operation in (11, 28)
+    server = endpoints.servers[role]
+    for mode in ('release', 'drop'):
+        suffix = ('-' + str(operation)) if role == 'source' else ''
+        base = endpoints.mounts[role] + '/reply-preflight-' + mode + suffix
+        remote = '/exports/death-' + role + '/reply-preflight-' + mode + suffix
+        execute(f"umask 077; mkdir {base}; printf 'owned reply sentinel' >{base}/staging" +
+                (f'; ln {base}/staging {base}/final' if operation == 28 else ''), '1000:1000')
+        before = server_objects(run, server, remote + '/staging', remote + '/final')
+        assert before['old']['links'] == (2 if operation == 28 else 1)
+        assert before['final'] == (before['old'] if operation == 28 else None)
+        armed = relay.command('arm', 'staging' if operation == 28 else 'final', operation)
+        probe = f'unlink {base}/staging' if operation == 28 else f'ln {base}/staging {base}/final'
+        pidfile = '/tmp/reply-preflight-' + mode + '.pid'
+        process = spawn(f'echo $$ >{pidfile}; exec {probe}', 'reply-preflight-' + mode)
+        row = dict(mode=mode, role=role, operation=operation, passed=False, before=before, armed=armed)
+        results.append(row)
+        try:
+            held = relay.await_held()
+            row['held'] = held
+            assert process.poll() is None
+            pid = execute('cat ' + pidfile, '1000:1000').stdout.strip()
+            assert pid.isdigit()
+            process_state = execute(f'cat /proc/{pid}/stat', '1000:1000').stdout.rsplit(') ', 1)[1].split()[0]
+            command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", '1000:1000').stdout.strip()
+            assert process_state == 'D' and command == probe
+            row['pending_client'] = dict(pid=pid, state=process_state, command=command)
+            after = server_objects(run, server, remote + '/staging', remote + '/final')
+            row['server_completed_while_withheld'] = after
+            assert after['final']['links'] == (1 if operation == 28 else 2)
+            assert after['old'] == (None if operation == 28 else after['final'])
+            for key in ('device', 'inode', 'size', 'sha256'):
+                assert after['final'][key] == before['old'][key]
+            observed = relay.state()
+            assert observed['held'] and not observed['forwarded'] and process.poll() is None
+            assert execute(f'cat /proc/{pid}/stat', '1000:1000').stdout.rsplit(') ', 1)[1].split()[0] == 'D'
+            settled = relay.command(mode)
+            row.update(before_release_or_drop=observed, settled=settled)
+            assert process.wait(timeout=20) == 0
+            final = relay.state()
+            if mode == 'release':
+                assert settled['released'] and not settled['dropped']
+            else:
+                assert settled['dropped'] and not settled['released']
+                assert settled['connection_resets']
+                assert final['forwarded'], 'discarded first reply was not followed by observed kernel replay'
+                held_ids = {r['receive_id'] for r in settled['dropped']}
+                assert not held_ids & {r['receive_id'] for r in final['forwarded']}
+                identities = {json.dumps(r['request']['decoded']['operations'], sort_keys=True) for r in settled['dropped']}
+                assert {json.dumps(r['request']['decoded']['operations'], sort_keys=True) for r in final['forwarded']} <= identities
+                assert not {r['connection'] for r in settled['dropped']} & {r['connection'] for r in final['forwarded']}
+            row.update(passed=True, before_release_or_drop=observed, settled=settled, final=final)
+            print(f'NFS reply fixture op={operation} {mode}: PASS (server completion while client waits)', flush=True)
+        except Exception as error:
+            row['error'] = f'{type(error).__name__}: {error}'
+            raise
+        finally:
+            relay.release()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pid = execute('cat ' + pidfile, '1000:1000').stdout.strip()
+                assert pid.isdigit()
+                command = execute(f"tr '\\000' ' ' </proc/{pid}/cmdline", '1000:1000').stdout.strip()
+                assert command == probe
+                execute(f'kill -KILL {pid}', '1000:1000')
+                process.wait(timeout=10)
+                row['cleanup_probe_terminated'] = True
+    evidence['passed'] = len(results) == 2 and all(r['passed'] for r in results)
+    return evidence

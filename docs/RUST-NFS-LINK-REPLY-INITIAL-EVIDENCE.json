@@ -1,0 +1,3706 @@
+{
+  "status": "FAILED",
+  "run_id": "nfs-20261018T202641Z-26370719",
+  "isolated_startup_required": true,
+  "gate": "20261018T200219Z-f573e23c",
+  "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+  "source_sha256": "9c9ce486e54fc0e13082b528df45c5463567b9b4857ebd7a843de0d0e2ae55e2",
+  "checks": {
+    "debug_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\"",
+    "release_startup_rejected": "Error: \"Blocked(\\\"filesystem not qualified for local claim slice\\\")\""
+  },
+  "cleanup_errors": [],
+  "coordinator_death_requested": true,
+  "coordinator_death_scope": "lost-link-reply",
+  "shutdown_requested": false,
+  "runtime_requested": false,
+  "ownership_requested": false,
+  "enrollment_storage_requested": false,
+  "delivery_storage_requested": false,
+  "source_storage_requested": false,
+  "runtime_scope": "coordinator-death",
+  "limitations": [
+    "SLES 12 SP5 userspace on WSL2 kernel, not the SLES kernel or old CPU hardware.",
+    "Two controlled server containers/IPs/network namespaces and one client share a modern kernel; no physical NAS isolation, partition/reclaim, server reboot/power-loss or takeover evidence.",
+    "Independent and repeated successful LINK-withheld controls precede four debug/release file/manifest LINK cases. Server-local original inode/two aliases, matched RPC success and pending native linkat establish completion before reply release. Discard plus connection interruption is a fixture intervention, not universal cancellation or sync/power durability. Keep production NFS/source deletion disabled.",
+    "Service startup rejection is measured; production NFS and source deletion remain disabled."
+  ],
+  "reply_decoder_tests": {
+    "passed": true,
+    "output": "test_every_truncation_and_trailing_bytes_refused (__main__.EvidenceDecoder.test_every_truncation_and_trailing_bytes_refused) ... ok\ntest_fragmented_records_preserved_exactly (__main__.EvidenceDecoder.test_fragmented_records_preserved_exactly) ... ok\ntest_matching_remove_and_success (__main__.EvidenceDecoder.test_matching_remove_and_success) ... ok\ntest_record_bounds_and_truncation (__main__.EvidenceDecoder.test_record_bounds_and_truncation) ... ok\ntest_unknown_opcode_and_opcode_inside_handle_are_not_evidence (__main__.EvidenceDecoder.test_unknown_opcode_and_opcode_inside_handle_are_not_evidence) ... ok\ntest_wrong_protocol_auth_lengths_minor_and_counts_refused (__main__.EvidenceDecoder.test_wrong_protocol_auth_lengths_minor_and_counts_refused) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.016s\n\nOK\n"
+  },
+  "server_image": "90884509240d53671958810ac7ae1971b7cdfffda3d4135ce42cc39bf0bc3e69",
+  "server_packages": [
+    "adduser\t3.134",
+    "apt\t2.6.1",
+    "base-files\t12.4+deb12u15",
+    "base-passwd\t3.6.1",
+    "bash\t5.2.15-2+b13",
+    "bsdutils\t1:2.38.1-5+deb12u3",
+    "coreutils\t9.1-1",
+    "dash\t0.5.12-2",
+    "debconf\t1.5.82",
+    "debian-archive-keyring\t2023.3+deb12u2",
+    "debianutils\t5.7-0.5~deb12u1",
+    "diffutils\t1:3.8-4",
+    "dmsetup\t2:1.02.185-2",
+    "dpkg\t1.21.23",
+    "e2fsprogs\t1.47.0-2+b2",
+    "findutils\t4.9.0-4",
+    "gcc-12-base:amd64\t12.2.0-14+deb12u1",
+    "gpgv\t2.2.40-1.1+deb12u2",
+    "grep\t3.8-5",
+    "gzip\t1.12-1",
+    "hostname\t3.23+nmu1",
+    "init-system-helpers\t1.65.2+deb12u1",
+    "keyutils\t1.6.3-2",
+    "libacl1:amd64\t2.3.1-3",
+    "libapt-pkg6.0:amd64\t2.6.1",
+    "libattr1:amd64\t1:2.5.1-4",
+    "libaudit-common\t1:3.0.9-1",
+    "libaudit1:amd64\t1:3.0.9-1",
+    "libblkid1:amd64\t2.38.1-5+deb12u3",
+    "libbz2-1.0:amd64\t1.0.8-5+b1",
+    "libc-bin\t2.36-9+deb12u14",
+    "libc6:amd64\t2.36-9+deb12u14",
+    "libcap-ng0:amd64\t0.8.3-1+b3",
+    "libcap2:amd64\t1:2.66-4+deb12u3+b1",
+    "libcom-err2:amd64\t1.47.0-2+b2",
+    "libcrypt1:amd64\t1:4.4.33-2",
+    "libdb5.3:amd64\t5.3.28+dfsg2-1",
+    "libdebconfclient0:amd64\t0.270",
+    "libdevmapper1.02.1:amd64\t2:1.02.185-2",
+    "libevent-core-2.1-7:amd64\t2.1.12-stable-8+deb12u1",
+    "libexpat1:amd64\t2.5.0-1+deb12u4",
+    "libext2fs2:amd64\t1.47.0-2+b2",
+    "libffi8:amd64\t3.4.4-1",
+    "libgcc-s1:amd64\t12.2.0-14+deb12u1",
+    "libgcrypt20:amd64\t1.10.1-3+deb12u1",
+    "libgmp10:amd64\t2:6.2.1+dfsg1-1.1",
+    "libgnutls30:amd64\t3.7.9-2+deb12u7",
+    "libgpg-error0:amd64\t1.46-1",
+    "libgssapi-krb5-2:amd64\t1.20.1-2+deb12u5",
+    "libhogweed6:amd64\t3.8.1-2",
+    "libidn2-0:amd64\t2.3.3-1+b1",
+    "libk5crypto3:amd64\t1.20.1-2+deb12u5",
+    "libkeyutils1:amd64\t1.6.3-2",
+    "libkrb5-3:amd64\t1.20.1-2+deb12u5",
+    "libkrb5support0:amd64\t1.20.1-2+deb12u5",
+    "libldap-2.5-0:amd64\t2.5.13+dfsg-5",
+    "liblz4-1:amd64\t1.9.4-1",
+    "liblzma5:amd64\t5.4.1-1+deb12u2",
+    "libmd0:amd64\t1.0.4-2",
+    "libmount1:amd64\t2.38.1-5+deb12u3",
+    "libncursesw6:amd64\t6.4-4",
+    "libnettle8:amd64\t3.8.1-2",
+    "libnfsidmap1:amd64\t1:2.6.2-4+deb12u1",
+    "libnsl2:amd64\t1.3.0-2",
+    "libp11-kit0:amd64\t0.24.1-2",
+    "libpam-modules:amd64\t1.5.2-6+deb12u2",
+    "libpam-modules-bin\t1.5.2-6+deb12u2",
+    "libpam-runtime\t1.5.2-6+deb12u2",
+    "libpam0g:amd64\t1.5.2-6+deb12u2",
+    "libpcre2-8-0:amd64\t10.42-1+deb12u2",
+    "libpython3-stdlib:amd64\t3.11.2-1+b1",
+    "libpython3.11-minimal:amd64\t3.11.2-6+deb12u9",
+    "libpython3.11-stdlib:amd64\t3.11.2-6+deb12u9",
+    "libreadline8:amd64\t8.2-1.3",
+    "libsasl2-2:amd64\t2.1.28+dfsg-10",
+    "libsasl2-modules-db:amd64\t2.1.28+dfsg-10",
+    "libseccomp2:amd64\t2.5.4-1+deb12u1",
+    "libselinux1:amd64\t3.4-1+b6",
+    "libsemanage-common\t3.4-1",
+    "libsemanage2:amd64\t3.4-1+b5",
+    "libsepol2:amd64\t3.4-2.1",
+    "libsmartcols1:amd64\t2.38.1-5+deb12u3",
+    "libsqlite3-0:amd64\t3.40.1-2+deb12u2",
+    "libss2:amd64\t1.47.0-2+b2",
+    "libssl3:amd64\t3.0.22-1~deb12u1",
+    "libstdc++6:amd64\t12.2.0-14+deb12u1",
+    "libsystemd0:amd64\t252.39-1~deb12u2",
+    "libtasn1-6:amd64\t4.19.0-2+deb12u1",
+    "libtinfo6:amd64\t6.4-4",
+    "libtirpc-common\t1.3.3+ds-1",
+    "libtirpc3:amd64\t1.3.3+ds-1",
+    "libudev1:amd64\t252.39-1~deb12u2",
+    "libunistring2:amd64\t1.0-2",
+    "libuuid1:amd64\t2.38.1-5+deb12u3",
+    "libwrap0:amd64\t7.6.q-32",
+    "libxxhash0:amd64\t0.8.1-1",
+    "libzstd1:amd64\t1.5.4+dfsg2-5",
+    "login\t1:4.13+dfsg1-1+deb12u2",
+    "logsave\t1.47.0-2+b2",
+    "mawk\t1.3.4.20200120-3.1",
+    "media-types\t10.0.0",
+    "mount\t2.38.1-5+deb12u3",
+    "ncurses-base\t6.4-4",
+    "ncurses-bin\t6.4-4",
+    "netbase\t6.4",
+    "nfs-common\t1:2.6.2-4+deb12u1",
+    "nfs-kernel-server\t1:2.6.2-4+deb12u1",
+    "passwd\t1:4.13+dfsg1-1+deb12u2",
+    "perl-base\t5.36.0-7+deb12u3",
+    "python3\t3.11.2-1+b1",
+    "python3-minimal\t3.11.2-1+b1",
+    "python3.11\t3.11.2-6+deb12u9",
+    "python3.11-minimal\t3.11.2-6+deb12u9",
+    "readline-common\t8.2-1.3",
+    "rpcbind\t1.2.6-6+b1",
+    "sed\t4.9-1+deb12u1",
+    "sensible-utils\t0.0.17+nmu1",
+    "sysvinit-utils\t3.06-4",
+    "tar\t1.34+dfsg-1.2+deb12u1",
+    "tzdata\t2026c-0+deb12u1",
+    "ucf\t3.0043+nmu1+deb12u1",
+    "usr-is-merged\t37~deb12u1",
+    "util-linux\t2.38.1-5+deb12u3",
+    "util-linux-extra\t2.38.1-5+deb12u3",
+    "zlib1g:amd64\t1:1.2.13.dfsg-1"
+  ],
+  "observer_syscall_tracing": true,
+  "observer_capabilities": [
+    "SYS_PTRACE",
+    "DAC_READ_SEARCH"
+  ],
+  "mounts": [
+    "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/diff,workdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+    "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+    "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+    "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+    "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+    "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+    "none /etc/hosts tmpfs rw,mode=755 0 0",
+    "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+    "none /run/.containerenv tmpfs rw,mode=755 0 0",
+    "none /run/secrets tmpfs rw,mode=755 0 0",
+    "none /etc/hostname tmpfs rw,mode=755 0 0",
+    "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+    "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+    "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+    "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+    "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+    "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0"
+  ],
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "root_identity_before": [
+    "99:387766:1000:700",
+    "99:387767:1000:700"
+  ],
+  "artifacts": {
+    "debug": "ac3f23f6bbd4302fdf290d8cb94adb817fe9501cb3e72c09cd3fb90dd8b0bdce",
+    "release": "349a5c7db9eb2b09678d29acfb04e02aea144c5439ad2cd75767423223744b25"
+  },
+  "qualification_gate": "20261018T200231Z-a5394a11-nfs-qualification",
+  "baseline": {
+    "passed": true,
+    "cases": [
+      {
+        "profile": "debug",
+        "direction": "source",
+        "binary_sha256": "49b242d34a6f3f1fdc77e497c5ca09c3f344e15d2a15bbfef720911a58c497bd",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "25b5c4d96199cddd6b5671d290ef6320",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "72:33153199",
+          "coordinator_pid": 72,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "72:33153199",
+          "coordinator_pid": 72,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "destination",
+        "binary_sha256": "49b242d34a6f3f1fdc77e497c5ca09c3f344e15d2a15bbfef720911a58c497bd",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/debug-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/debug-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/debug-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "b3ae1a80159e3f8e6293abe240bfd9bc",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "136:33155876",
+          "coordinator_pid": 136,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "136:33155876",
+          "coordinator_pid": 136,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "debug",
+        "direction": "both",
+        "binary_sha256": "49b242d34a6f3f1fdc77e497c5ca09c3f344e15d2a15bbfef720911a58c497bd",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "debug-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/debug-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/debug-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/debug-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "a9a39fb8fb0397a87e2ccc454b976524",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "debug-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "200:33158515",
+          "coordinator_pid": 200,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "200:33158515",
+          "coordinator_pid": 200,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "source",
+        "binary_sha256": "2f1f3331d060a694b7786777f8343ceca8a32e15109d88c9b3cca2fc42124888",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-source"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-source/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-source/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-source/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "b8433ccadf1d8346fb2d645fbc446ab7",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-source",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "272:33161693",
+          "coordinator_pid": 272,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "272:33161693",
+          "coordinator_pid": 272,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "destination",
+        "binary_sha256": "2f1f3331d060a694b7786777f8343ceca8a32e15109d88c9b3cca2fc42124888",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-destination"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/local/release-destination/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/local/release-destination/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/local/release-destination/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "fe0619940d7b7f895a46901b2d5cdf27",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-destination",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "336:33164348",
+          "coordinator_pid": 336,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "336:33164348",
+          "coordinator_pid": 336,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      },
+      {
+        "profile": "release",
+        "direction": "both",
+        "binary_sha256": "2f1f3331d060a694b7786777f8343ceca8a32e15109d88c9b3cca2fc42124888",
+        "passed": true,
+        "handoff": {
+          "code": 202,
+          "body": {
+            "job_id": "1",
+            "state": "Claimed",
+            "source_paths_released": true,
+            "retryable": false
+          }
+        },
+        "status": [
+          200,
+          {
+            "job_id": "1",
+            "state": "Committed",
+            "source_paths_released": true,
+            "retryable": false,
+            "details": {
+              "condition": "Committed",
+              "delivery_retry": null,
+              "files": [
+                {
+                  "attempt": 1,
+                  "file_id": "0",
+                  "name": "top.txt",
+                  "phase": "Published",
+                  "size_bytes": 18,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "1",
+                  "name": "nested/data.bin",
+                  "phase": "Published",
+                  "size_bytes": 2097169,
+                  "transfer_phase": "Published"
+                },
+                {
+                  "attempt": 1,
+                  "file_id": "2",
+                  "name": "empty",
+                  "phase": "Published",
+                  "size_bytes": 0,
+                  "transfer_phase": "Published"
+                }
+              ],
+              "generator_id": "fixture",
+              "latest_missing_reset": null,
+              "latest_resume": null,
+              "manifest_phase": 4,
+              "missing": [],
+              "missing_review_epoch": 0,
+              "review_epoch": 0,
+              "source_cleanup_enabled": false,
+              "submission_id": "release-both"
+            }
+          }
+        ],
+        "private_hashes": [
+          "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49  /tmp/nfs/release-both/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs/release-both/source/.file-mover/1-1/data",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs/release-both/source/.file-mover/1-2/data"
+        ],
+        "source_retained": true,
+        "original_paths_reused": true,
+        "manifest": {
+          "version": 1,
+          "instance_id": "f027040085c3c8279818781cc1dd5d20",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "release-both",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "top.txt",
+              "size_bytes": 18,
+              "algorithm": "sha256",
+              "sha256": "bc38d41f54e0c1cfefb84886ea435df6e2ae57f733b75099e5818ae69fe1cd49"
+            },
+            {
+              "file_id": "1",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            },
+            {
+              "file_id": "2",
+              "path": "empty",
+              "size_bytes": 0,
+              "algorithm": "sha256",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          ]
+        },
+        "local_status": {
+          "version": 1,
+          "instance_id": "400:33166986",
+          "coordinator_pid": 400,
+          "phase": "Running",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": null,
+          "workers": [],
+          "message": null
+        },
+        "local_stop": {
+          "version": 1,
+          "instance_id": "400:33166986",
+          "coordinator_pid": 400,
+          "phase": "Stopped",
+          "shutdown_wait_seconds": 60,
+          "shutdown_remaining_ms": 0,
+          "workers": [],
+          "message": null
+        },
+        "service_log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19877\n"
+      }
+    ]
+  },
+  "independent_endpoints": {
+    "passed": true,
+    "servers": {
+      "source": {
+        "container": "42129362328f99cb1abbad9cb4dc4db041dcc070bf57b3606556fe826b4fa74d",
+        "ip": "10.89.0.2",
+        "export": "/exports/death-source",
+        "mount": "/tmp/nfs-source",
+        "network_namespace": "net:[4026532241]",
+        "filesystem_device": "117",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/39bd9dd675837ffd090ef4eb34df6ec0d0db283fc6adbd4b1ba3221ecb3a8d76/diff,workdir=/var/lib/containers/storage/overlay/39bd9dd675837ffd090ef4eb34df6ec0d0db283fc6adbd4b1ba3221ecb3a8d76/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-source tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ]
+      },
+      "destination": {
+        "container": "2df37db40f0ae77be524c208f104a2ddc54999cedde7e08f18dbf61d1dbbc833",
+        "ip": "10.89.0.5",
+        "export": "/exports/death-destination",
+        "mount": "/tmp/nfs-destination",
+        "network_namespace": "net:[4026532587]",
+        "filesystem_device": "123",
+        "server_mounts": [
+          "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/2bb401dc531a2dbd536420657e426eea61913ff6945e1c21eb389e64518fbe16/diff:/var/lib/containers/storage/overlay/83482be6be5ab9f265655db5d6563d9bf87ef6d987f33ee13255c61e2cda5b75/diff:/var/lib/containers/storage/overlay/e58989146fcec76699871403b9897b5c014af1ccd85f5a9300a215e7975525d7/diff,upperdir=/var/lib/containers/storage/overlay/fd25364cb9cf10a960f7dd7cefb0e37cbb30532d471988c1997effbd24b535c6/diff,workdir=/var/lib/containers/storage/overlay/fd25364cb9cf10a960f7dd7cefb0e37cbb30532d471988c1997effbd24b535c6/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+          "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+          "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+          "sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0",
+          "/dev/sdd /exports ext4 rw,nosuid,nodev,relatime,discard,errors=remount-ro,data=ordered 0 0",
+          "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+          "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+          "none /etc/hostname tmpfs rw,mode=755 0 0",
+          "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+          "none /etc/hosts tmpfs rw,mode=755 0 0",
+          "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+          "none /run/.containerenv tmpfs rw,mode=755 0 0",
+          "none /run/secrets tmpfs rw,mode=755 0 0",
+          "cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0",
+          "nfsd /proc/fs/nfsd nfsd rw,relatime 0 0",
+          "tmpfs /exports/death-destination tmpfs rw,relatime,size=131072k,nr_inodes=4096 0 0"
+        ],
+        "backend_ip": "10.89.0.4"
+      }
+    },
+    "reply_relay": {
+      "container": "17dfd39edf6f71b9fdc6f253c19b78161b63d18bae14fbdeec6aa55112d406c0",
+      "ip": "10.89.0.5",
+      "backend": "10.89.0.4",
+      "image": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+      "packages_added": false,
+      "ports_published": false,
+      "private_netns_unprivileged_port_start": 0,
+      "backend_source_ports": "601-616",
+      "drivers": {
+        "nfs_rpc.py": "66cd3dbb0388bca5cd2ab326304b8f9f968807918c4c15e788811bbd62ad6fda",
+        "nfs_reply_proxy.py": "659e09d16e841d3fb685950be074085f46578ddc51ad9ea0b34125c96893102b"
+      }
+    },
+    "mounts": [
+      "overlay / overlay rw,relatime,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/diff,workdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/work,redirect_dir=on,uuid=on,metacopy=on 0 0",
+      "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0",
+      "tmpfs /dev tmpfs rw,nosuid,size=65536k,mode=755 0 0",
+      "sysfs /sys sysfs ro,nosuid,nodev,noexec,relatime 0 0",
+      "devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666 0 0",
+      "mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0",
+      "none /etc/hosts tmpfs rw,mode=755 0 0",
+      "shm /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=64000k 0 0",
+      "none /run/.containerenv tmpfs rw,mode=755 0 0",
+      "none /run/secrets tmpfs rw,mode=755 0 0",
+      "none /etc/hostname tmpfs rw,mode=755 0 0",
+      "none /etc/resolv.conf tmpfs rw,mode=755 0 0",
+      "cgroup2 /sys/fs/cgroup cgroup2 ro,nosuid,nodev,noexec,relatime,nosymfollow,nsdelegate 0 0",
+      "none /proc/acpi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/kcore devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/keys devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/latency_stats devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /proc/scsi tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/timer_list devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "none /sys/firmware tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /sys/fs/selinux tmpfs ro,nosuid,nodev,mode=755 0 0",
+      "none /proc/interrupts devtmpfs ro,nosuid,relatime,size=6118588k,nr_inodes=1529647,mode=755 0 0",
+      "proc /proc/bus proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/fs proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/irq proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sys proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "proc /proc/sysrq-trigger proc ro,nosuid,nodev,noexec,relatime 0 0",
+      "10.89.0.2:/ /tmp/nfs nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+      "10.89.0.2:/death-source /tmp/nfs-source nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2 0 0",
+      "10.89.0.5:/death-destination /tmp/nfs-destination nfs4 rw,sync,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5 0 0"
+    ],
+    "mountinfo": [
+      "719 640 0:96 / / rw,relatime - overlay overlay rw,lowerdir=/var/lib/containers/storage/overlay/b04a2a86a841c42ec593fba446e8f7e2eed4797767f17b859f05a688b4677f69/diff,upperdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/diff,workdir=/var/lib/containers/storage/overlay/a09ff260c24c6d392766dd7c95a20c0fe2259c13a550e0b1b25b9106be6f5b77/work,redirect_dir=on,uuid=on,metacopy=on",
+      "720 719 0:101 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw",
+      "721 719 0:102 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755",
+      "722 719 0:103 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs rw",
+      "723 721 0:104 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666",
+      "724 721 0:98 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw",
+      "725 719 0:63 /containers/storage/overlay-containers/e2acec2f1d1daf22cec3943201656041d8a61c57c2ca3ba2645eddd1da85aa49/userdata/hosts /etc/hosts rw - tmpfs none rw,mode=755",
+      "726 721 0:91 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=64000k",
+      "727 719 0:63 /containers/storage/overlay-containers/e2acec2f1d1daf22cec3943201656041d8a61c57c2ca3ba2645eddd1da85aa49/userdata/.containerenv /run/.containerenv rw - tmpfs none rw,mode=755",
+      "728 719 0:63 /containers/storage/overlay-containers/e2acec2f1d1daf22cec3943201656041d8a61c57c2ca3ba2645eddd1da85aa49/userdata/run/secrets /run/secrets rw - tmpfs none rw,mode=755",
+      "729 719 0:63 /containers/storage/overlay-containers/e2acec2f1d1daf22cec3943201656041d8a61c57c2ca3ba2645eddd1da85aa49/userdata/hostname /etc/hostname rw - tmpfs none rw,mode=755",
+      "730 719 0:63 /containers/storage/overlay-containers/e2acec2f1d1daf22cec3943201656041d8a61c57c2ca3ba2645eddd1da85aa49/userdata/resolv.conf /etc/resolv.conf rw - tmpfs none rw,mode=755",
+      "731 722 0:25 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate",
+      "732 720 0:63 /crun/.empty-directory /proc/acpi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "733 720 0:6 /null /proc/kcore ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "734 720 0:6 /null /proc/keys ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "735 720 0:6 /null /proc/latency_stats ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "736 720 0:63 /crun/.empty-directory /proc/scsi ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "737 720 0:6 /null /proc/timer_list ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "738 722 0:63 /crun/.empty-directory /sys/firmware ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "739 722 0:63 /crun/.empty-directory /sys/fs/selinux ro,nosuid,nodev - tmpfs none rw,mode=755",
+      "740 720 0:6 /null /proc/interrupts ro,nosuid,relatime - devtmpfs none rw,size=6118588k,nr_inodes=1529647,mode=755",
+      "741 720 0:101 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "742 720 0:101 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "743 720 0:101 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "744 720 0:101 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "745 720 0:101 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw",
+      "653 719 0:99 / /tmp/nfs rw,relatime - nfs4 10.89.0.2:/ rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+      "808 719 0:118 / /tmp/nfs-source rw,relatime - nfs4 10.89.0.2:/death-source rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.2",
+      "810 719 0:125 / /tmp/nfs-destination rw,relatime - nfs4 10.89.0.5:/death-destination rw,sync,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=0,acregmax=0,acdirmin=0,acdirmax=0,hard,noac,fatal_neterrors=ENETDOWN:ENETUNREACH,proto=tcp,timeo=10,retrans=1,sec=sys,clientaddr=10.89.0.3,local_lock=none,addr=10.89.0.5"
+    ],
+    "client_devices": [
+      "118",
+      "125"
+    ],
+    "client_filesystems": [
+      "6969",
+      "6969"
+    ],
+    "client_mount_ids": [
+      "808",
+      "810"
+    ],
+    "scope": "Two controlled NFSv4.1 server containers/net namespaces/IPs and tmpfs exports on one modern kernel; independent NFSD thread outages, not physical NAS failures or reboot/power durability."
+  },
+  "reply_preflight": {
+    "passed": true,
+    "cases": [
+      {
+        "mode": "release",
+        "passed": true,
+        "before": {
+          "old": {
+            "device": 123,
+            "inode": 4,
+            "links": 1,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": null
+        },
+        "armed": {
+          "ready": true,
+          "token": "a8cabe53ed5a40deaf4666f8ecff0942",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 46,
+          "connection_resets": [],
+          "command_token": "a8cabe53ed5a40deaf4666f8ecff0942"
+        },
+        "held": {
+          "ready": true,
+          "token": "a8cabe53ed5a40deaf4666f8ecff0942",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "a8cabe53ed5a40deaf4666f8ecff0942"
+        },
+        "pending_client": {
+          "pid": "462",
+          "state": "D",
+          "command": "ln /tmp/nfs-destination/reply-preflight-release/staging /tmp/nfs-destination/reply-preflight-release/final"
+        },
+        "server_completed_while_withheld": {
+          "old": {
+            "device": 123,
+            "inode": 4,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": {
+            "device": 123,
+            "inode": 4,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          }
+        },
+        "before_release_or_drop": {
+          "ready": true,
+          "token": "a8cabe53ed5a40deaf4666f8ecff0942",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "a8cabe53ed5a40deaf4666f8ecff0942"
+        },
+        "settled": {
+          "ready": true,
+          "token": "a8cabe53ed5a40deaf4666f8ecff0942",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "a149fbeb31e74608bca68b68843feb2d"
+        },
+        "final": {
+          "ready": true,
+          "token": "a8cabe53ed5a40deaf4666f8ecff0942",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [
+            {
+              "connection": 1,
+              "xid": 3338314829,
+              "request": {
+                "decoded": {
+                  "xid": 3338314829,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000003e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "718a1c885795436b454175b99ccd9265da6413ba6a865b0e31254ac5d48ad520"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "42a32510d0d1b798effe8312f53595fdc4ffc3ed75b6f32c656379270abad5ac"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "162f71eeade5060537208de605d13344f4deee37e0ec7ec483b2d2bc1a214d43",
+                "payload_hex": "c6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000003e00000000000000000000000100000016000000140100010138000000288d3ccb040000000000000000000020000000160000001401000101380000008ae37e8d03000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 67,
+              "reply_sha256": "42af7d2d8ea0fb064c6cc92cb6c4fe3f0eb71a251933921bf4e858276deda7b2",
+              "wire_bytes": 308,
+              "payload_hex": "c6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000003e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b000000000000000100000000000008e800000000000008e90000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b20178e58f1000000000000001400000000000000380000000000000000000000000000000400000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c7d00aaefe5000000006ad52c7c05e9b629000000006ad52c80178e4ee4000000006ad52c7c060f76c10000000000000004",
+              "reply": {
+                "xid": 3338314829,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 67,
+          "connection_resets": [],
+          "command_token": "a149fbeb31e74608bca68b68843feb2d"
+        }
+      },
+      {
+        "mode": "drop",
+        "passed": true,
+        "before": {
+          "old": {
+            "device": 123,
+            "inode": 6,
+            "links": 1,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": null
+        },
+        "armed": {
+          "ready": true,
+          "token": "2d040463d66240969000bb2ef04073c1",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 79,
+          "connection_resets": [],
+          "command_token": "2d040463d66240969000bb2ef04073c1"
+        },
+        "held": {
+          "ready": true,
+          "token": "2d040463d66240969000bb2ef04073c1",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 100,
+          "connection_resets": [],
+          "command_token": "2d040463d66240969000bb2ef04073c1"
+        },
+        "pending_client": {
+          "pid": "470",
+          "state": "D",
+          "command": "ln /tmp/nfs-destination/reply-preflight-drop/staging /tmp/nfs-destination/reply-preflight-drop/final"
+        },
+        "server_completed_while_withheld": {
+          "old": {
+            "device": 123,
+            "inode": 6,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          },
+          "final": {
+            "device": 123,
+            "inode": 6,
+            "links": 2,
+            "size": 20,
+            "sha256": "8319d147affcaa4d25ccc7a3cf55b54f469c063b0fa1b9e93527870a71bd1e4c"
+          }
+        },
+        "before_release_or_drop": {
+          "ready": true,
+          "token": "2d040463d66240969000bb2ef04073c1",
+          "armed": true,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 1,
+          "received": 100,
+          "connection_resets": [],
+          "command_token": "2d040463d66240969000bb2ef04073c1"
+        },
+        "settled": {
+          "ready": true,
+          "token": "2d040463d66240969000bb2ef04073c1",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [
+            {
+              "connection": 2,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 102,
+              "reply_sha256": "26c0616d8f7aec02fa697986baded2868108e7c6af4b6eb549d539e51cdc30d9",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000010000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "errors": [],
+          "connections": 2,
+          "received": 102,
+          "connection_resets": [
+            1
+          ],
+          "command_token": "5bffe666484647828e75bb86867438c0"
+        },
+        "final": {
+          "ready": true,
+          "token": "2d040463d66240969000bb2ef04073c1",
+          "armed": false,
+          "name": "final",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 1,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 100,
+              "reply_sha256": "6b9ae375d43891bcc29c7b4a49a553a6f11a091fffabef64e71b08ac417a1052",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [
+            {
+              "connection": 2,
+              "xid": 3875185741,
+              "request": {
+                "decoded": {
+                  "xid": 3875185741,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b03020000000000000000005e000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "b0856d90ab85a633d45e857169bc142b2f827b059ede0bc387875270a5bb3bf6"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "ff9ea41d259171f9cfffd17b630de7e9fbc39ea05f04987734a305a31ae713e4"
+                    },
+                    {
+                      "op": 11,
+                      "name": "final"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "226f0c3d93b7cce893af156e3e6001d29b4989d8d04ed586805fc79ad7f14ae0",
+                "payload_hex": "e6faa44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b03020000000000000000005e00000000000000000000000100000016000000140100010138000000643c408506000000000000000000002000000016000000140100010138000000b7cdb5b005000000000000000000000b0000000566696e616c0000000000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 102,
+              "reply_sha256": "26c0616d8f7aec02fa697986baded2868108e7c6af4b6eb549d539e51cdc30d9",
+              "wire_bytes": 308,
+              "payload_hex": "e6faa44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b03020000000000000000005e000000000000003f0000003f000000010000001600000000000000200000000000000016000000000000000b00000000000000010000000000000a7d0000000000000a7e0000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b23c5acb80b000000000000001400000000000000380000000000000000000000000000000600000180000000020000000431303030000000043130303000000000000000000000000000001000000000006ad52c8b2a641243000000006ad52c8a2e71ab93000000006ad52c8f05aca73e000000006ad52c8a2ea12bc60000000000000006",
+              "reply": {
+                "xid": 3875185741,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "errors": [],
+          "connections": 2,
+          "received": 102,
+          "connection_resets": [
+            1
+          ],
+          "command_token": "5bffe666484647828e75bb86867438c0"
+        }
+      }
+    ]
+  },
+  "coordinator_death": {
+    "passed": false,
+    "cases": [
+      {
+        "profile": "debug",
+        "point": "file_link_rpc",
+        "production": false,
+        "passed": true,
+        "layout": "both-nfs-independent-endpoints-local-state",
+        "binary_sha256": "49b242d34a6f3f1fdc77e497c5ca09c3f344e15d2a15bbfef720911a58c497bd",
+        "filesystem_types": [
+          "6969",
+          "6969",
+          "794c7630"
+        ],
+        "filesystem_devices": [
+          "118",
+          "125",
+          "96"
+        ],
+        "source_payload_at_setup": [
+          "118:8:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/current/nested/data.bin"
+        ],
+        "scenario_id": "SC-099",
+        "paused_worker": {
+          "pid": "522",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "worker_security": {
+          "Uid": "1000\t1000\t1000\t1000",
+          "Gid": "1000\t1000\t1000\t1000",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "NoNewPrivs": "1"
+        },
+        "source_payload_before": [
+          "118:8:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/1-0/data"
+        ],
+        "database_identity_before": "96:393573\n",
+        "enrollment_receipt_before": "/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json:118:11:1000:1000:400:1:490:2026-10-18 20:31:34.276029975 +0000:2026-10-18 20:31:34.276029975 +0000\n344d4f7db6f0314b9050875fcbdcda1df4ad7fde9625b96a4ed75670e42475f1  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json\n/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-binding.json:118:10:1000:1000:600:1:238:2026-10-18 20:31:32.325441569 +0000:2026-10-18 20:31:32.327199340 +0000\n254090c0feb5b270b68d33c3ee463addbb89e62b7d222a12af97f70f123cb55c  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-binding.json\n/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock:118:9:1000:1000:600:1:0:2026-10-18 20:31:32.313594216 +0000:2026-10-18 20:31:32.319199340 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock\n",
+        "publication_before_interception": {
+          ".staging/1.part": {
+            "device": 125,
+            "inode": 15,
+            "links": 1,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          "nested/data.bin": null,
+          ".staging/COMMITTED.part": null,
+          "COMMITTED.json": null
+        },
+        "server_before": {
+          "old": {
+            "device": 123,
+            "inode": 15,
+            "links": 1,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          "final": null
+        },
+        "job_before": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Verified",
+                "size_bytes": 2097169,
+                "transfer_phase": "PublishIntent"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-file_link_rpc-lr-2hosts"
+          }
+        },
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532585",
+          "group": 503,
+          "start": 33176741,
+          "guard": "1:96:393572:1000:0:1792355494:19199170:1"
+        },
+        "relay_armed": {
+          "ready": true,
+          "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+          "armed": true,
+          "name": "data.bin",
+          "operation": 11,
+          "held": [],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 2,
+          "received": 980,
+          "connection_resets": [],
+          "command_token": "3d65431ef77d4ff2ad0ceb14bad875bd"
+        },
+        "reply_withheld": {
+          "ready": true,
+          "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+          "armed": true,
+          "name": "data.bin",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 2,
+          "received": 986,
+          "connection_resets": [],
+          "command_token": "3d65431ef77d4ff2ad0ceb14bad875bd"
+        },
+        "blocked_link_new_parent": "/tmp/nfs-destination/runtime-debug-file_link_rpc-lr-2hosts/destination/1/nested",
+        "blocked_link_syscall": {
+          "raw": "265 0x8 0x7ffcf8d69400 0xa 0x7ffcf8d690f0 0x0 0x0 0x7ffcf8d68ee0 0x613da3bfd202",
+          "fd": 8,
+          "parent": "/tmp/nfs-destination/runtime-debug-file_link_rpc-lr-2hosts/destination/1/.staging"
+        },
+        "server_completed_with_reply_withheld": {
+          "old": {
+            "device": 123,
+            "inode": 15,
+            "links": 2,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          "final": {
+            "device": 123,
+            "inode": 15,
+            "links": 2,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          }
+        },
+        "server_threads_while_withheld": {
+          "source": "2",
+          "destination": "2"
+        },
+        "healthy_source": {
+          "role": "source",
+          "elapsed_seconds": 0.86,
+          "fresh_write_read_metadata": [
+            "118:14:16",
+            "4814f3c3d6820875b97865bbc341910231db12576df82f80ef2161b4695cda4e  /tmp/nfs-source/healthy-3"
+          ]
+        },
+        "healthy_destination": {
+          "role": "destination",
+          "elapsed_seconds": 0.859,
+          "fresh_write_read_metadata": [
+            "125:16:16",
+            "4814f3c3d6820875b97865bbc341910231db12576df82f80ef2161b4695cda4e  /tmp/nfs-destination/healthy-4"
+          ]
+        },
+        "health": {
+          "seconds": 1.688,
+          "response": [
+            200,
+            {
+              "state": "Running",
+              "source_paths_released": false,
+              "retryable": false
+            }
+          ]
+        },
+        "job": {
+          "seconds": 1.687,
+          "response": [
+            200,
+            {
+              "job_id": "1",
+              "state": "Claimed",
+              "source_paths_released": true,
+              "retryable": false,
+              "details": {
+                "condition": "Ready",
+                "delivery_retry": null,
+                "files": [
+                  {
+                    "attempt": 1,
+                    "file_id": "0",
+                    "name": "nested/data.bin",
+                    "phase": "Verified",
+                    "size_bytes": 2097169,
+                    "transfer_phase": "PublishIntent"
+                  }
+                ],
+                "generator_id": "fixture",
+                "latest_missing_reset": null,
+                "latest_resume": null,
+                "manifest_phase": null,
+                "missing": [],
+                "missing_review_epoch": 0,
+                "review_epoch": 0,
+                "source_cleanup_enabled": false,
+                "submission_id": "runtime-debug-file_link_rpc-lr-2hosts"
+              }
+            }
+          ]
+        },
+        "replay": {
+          "seconds": 1.781,
+          "response": [
+            202,
+            {
+              "job_id": "1",
+              "state": "Claimed",
+              "source_paths_released": true,
+              "retryable": false
+            }
+          ]
+        },
+        "relay_before_coordinator_death": {
+          "ready": true,
+          "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+          "armed": true,
+          "name": "data.bin",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [],
+          "forwarded": [],
+          "errors": [],
+          "connections": 2,
+          "received": 986,
+          "connection_resets": [],
+          "command_token": "3d65431ef77d4ff2ad0ceb14bad875bd"
+        },
+        "old_tasks_after_coordinator_death": [
+          {
+            "tid": 522,
+            "state": "D"
+          }
+        ],
+        "orphan_status": {
+          "exit_code": 2,
+          "seconds": 0.844,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "OwnerUnavailable",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": "shutdown incomplete; restart blocked"
+          }
+        },
+        "contender_refused": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nError: \"Blocked(\\\"local instance or surviving worker already owns state\\\")\"",
+        "outcome": "surviving_worker_excludes_replacement",
+        "reply_discarded": {
+          "ready": true,
+          "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+          "armed": false,
+          "name": "data.bin",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [],
+          "errors": [],
+          "connections": 2,
+          "received": 1005,
+          "connection_resets": [
+            2
+          ],
+          "command_token": "46c27ba44cc64156933aa4022ed27fd6"
+        },
+        "worker_exit": "Z",
+        "old_threads_before_recovery": [
+          {
+            "tid": 522,
+            "state": "Z"
+          }
+        ],
+        "status_after_old_exit": {
+          "exit_code": 0,
+          "seconds": 0.906,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        },
+        "publication_after_old_exit": {
+          ".staging/1.part": {
+            "device": 125,
+            "inode": 15,
+            "links": 2,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          "nested/data.bin": {
+            "device": 125,
+            "inode": 15,
+            "links": 2,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          ".staging/COMMITTED.part": null,
+          "COMMITTED.json": null
+        },
+        "recovered_status": {
+          "job_id": "1",
+          "state": "Committed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Committed",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 4,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-file_link_rpc-lr-2hosts"
+          }
+        },
+        "hashes": [
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/1-0/data",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-destination/runtime-debug-file_link_rpc-lr-2hosts/destination/1/nested/data.bin"
+        ],
+        "manifest": {
+          "version": 1,
+          "instance_id": "babb90f673009c3656a3fdbd66fc3919",
+          "job_id": "1",
+          "generator_id": "fixture",
+          "submission_id": "runtime-debug-file_link_rpc-lr-2hosts",
+          "files": [
+            {
+              "file_id": "0",
+              "path": "nested/data.bin",
+              "size_bytes": 2097169,
+              "algorithm": "sha256",
+              "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+            }
+          ]
+        },
+        "root_identities_stable": true,
+        "source_retained": true,
+        "source_payload_after": [
+          "118:8:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/1-0/data"
+        ],
+        "database_identity_after": "96:393573\n",
+        "enrollment_receipt_after": "/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json:118:11:1000:1000:400:1:490:2026-10-18 20:31:34.276029975 +0000:2026-10-18 20:31:34.276029975 +0000\n344d4f7db6f0314b9050875fcbdcda1df4ad7fde9625b96a4ed75670e42475f1  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json\n/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-binding.json:118:10:1000:1000:600:1:238:2026-10-18 20:31:32.325441569 +0000:2026-10-18 20:31:32.327199340 +0000\n254090c0feb5b270b68d33c3ee463addbb89e62b7d222a12af97f70f123cb55c  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/source-binding.json\n/tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock:118:9:1000:1000:600:1:0:2026-10-18 20:31:32.313594216 +0000:2026-10-18 20:31:32.319199340 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs-source/runtime-debug-file_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock\n",
+        "original_source_inode_preserved": true,
+        "original_database_and_enrollment_preserved": true,
+        "publication_after_recovery": {
+          ".staging/1.part": null,
+          "nested/data.bin": {
+            "device": 125,
+            "inode": 15,
+            "links": 1,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          ".staging/COMMITTED.part": null,
+          "COMMITTED.json": {
+            "device": 125,
+            "inode": 17,
+            "links": 1,
+            "size": 325,
+            "sha256": "788d7acb9b4a9112383049b3ea1555c2bb65791157bb5ad6623b51dc00d302a8"
+          }
+        },
+        "relay_after_recovery": {
+          "ready": true,
+          "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+          "armed": false,
+          "name": "data.bin",
+          "operation": 11,
+          "held": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "released": [],
+          "dropped": [
+            {
+              "connection": 2,
+              "xid": 1526637645,
+              "request": {
+                "decoded": {
+                  "xid": 1526637645,
+                  "operations": [
+                    {
+                      "op": 53,
+                      "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+                    },
+                    {
+                      "op": 32
+                    },
+                    {
+                      "op": 22,
+                      "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+                    },
+                    {
+                      "op": 11,
+                      "name": "data.bin"
+                    },
+                    {
+                      "op": 31
+                    },
+                    {
+                      "op": 9
+                    }
+                  ]
+                },
+                "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+                "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+              },
+              "receive_id": 986,
+              "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+              "wire_bytes": 308,
+              "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+              "reply": {
+                "xid": 1526637645,
+                "status": 0,
+                "operations": [
+                  {
+                    "op": 53,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 32,
+                    "status": 0
+                  },
+                  {
+                    "op": 22,
+                    "status": 0
+                  },
+                  {
+                    "op": 11,
+                    "status": 0
+                  },
+                  {
+                    "op": 31,
+                    "status": 0
+                  },
+                  {
+                    "op": 9,
+                    "status": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "forwarded": [],
+          "errors": [],
+          "connections": 2,
+          "received": 1005,
+          "connection_resets": [
+            2
+          ],
+          "command_token": "46c27ba44cc64156933aa4022ed27fd6"
+        },
+        "original_state_recovery": true,
+        "original_publication_inode_preserved": true,
+        "producer_reused_path_preserved": true,
+        "service_logs": {
+          "runtime-debug-file_link_rpc-lr-2hosts-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n",
+          "runtime-debug-file_link_rpc-lr-2hosts-service-8.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\n"
+        },
+        "final_status": {
+          "exit_code": 0,
+          "seconds": 0.86,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        }
+      },
+      {
+        "profile": "debug",
+        "point": "manifest_link_rpc",
+        "production": false,
+        "passed": false,
+        "layout": "both-nfs-independent-endpoints-local-state",
+        "binary_sha256": "49b242d34a6f3f1fdc77e497c5ca09c3f344e15d2a15bbfef720911a58c497bd",
+        "filesystem_types": [
+          "6969",
+          "6969",
+          "794c7630"
+        ],
+        "filesystem_devices": [
+          "118",
+          "125",
+          "96"
+        ],
+        "source_payload_at_setup": [
+          "118:20:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/current/nested/data.bin"
+        ],
+        "scenario_id": "SC-099",
+        "paused_worker": {
+          "pid": "696",
+          "command": "/tmp/qualification-debug --internal-delivery-worker "
+        },
+        "worker_security": {
+          "Uid": "1000\t1000\t1000\t1000",
+          "Gid": "1000\t1000\t1000\t1000",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "NoNewPrivs": "1"
+        },
+        "source_payload_before": [
+          "118:20:2097169",
+          "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6  /tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/1-0/data"
+        ],
+        "database_identity_before": "96:393633\n",
+        "enrollment_receipt_before": "/tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json:118:23:1000:1000:400:1:501:2026-10-18 20:32:59.205937897 +0000:2026-10-18 20:32:59.205937897 +0000\nd8c28c62dd7700bd25ceefa6c9409bd8a7ded7a01ed9ca598efbbaac235335c7  /tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/source-enrollment.json\n/tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/source-binding.json:118:22:1000:1000:600:1:246:2026-10-18 20:32:57.273825408 +0000:2026-10-18 20:32:57.279192245 +0000\n7ade4bf5423fda2ac9fa292392712b8a0199208ae6add0ba9ec8612d53da34b6  /tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/source-binding.json\n/tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock:118:21:1000:1000:600:1:0:2026-10-18 20:32:57.260928981 +0000:2026-10-18 20:32:57.263192246 +0000\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/nfs-source/runtime-debug-manifest_link_rpc-lr-2hosts/source/.file-mover/coordinator.lock\n",
+        "publication_before_interception": {
+          ".staging/1.part": null,
+          "nested/data.bin": {
+            "device": 125,
+            "inode": 26,
+            "links": 1,
+            "size": 2097169,
+            "sha256": "a0ee02ef74eb31c8cc47b8247f49795a0934d1461e43878867314000e06adaa6"
+          },
+          ".staging/COMMITTED.part": {
+            "device": 125,
+            "inode": 27,
+            "links": 1,
+            "size": 329,
+            "sha256": "2590f45deb3e47ba298946b6a07533acb4d58a1d1386b227f3d2571bf124bd81"
+          },
+          "COMMITTED.json": null
+        },
+        "server_before": {
+          "old": {
+            "device": 123,
+            "inode": 27,
+            "links": 1,
+            "size": 329,
+            "sha256": "2590f45deb3e47ba298946b6a07533acb4d58a1d1386b227f3d2571bf124bd81"
+          },
+          "final": null
+        },
+        "job_before": {
+          "job_id": "1",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Ready",
+            "delivery_retry": null,
+            "files": [
+              {
+                "attempt": 1,
+                "file_id": "0",
+                "name": "nested/data.bin",
+                "phase": "Published",
+                "size_bytes": 2097169,
+                "transfer_phase": "Published"
+              }
+            ],
+            "generator_id": "fixture",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": 3,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "runtime-debug-manifest_link_rpc-lr-2hosts"
+          }
+        },
+        "worker_epoch_before_death": {
+          "version": 1,
+          "boot": "971cb001-9d00-4674-8613-cbcb9109f271",
+          "namespace": "4:4026532585",
+          "group": 677,
+          "start": 33185239,
+          "guard": "1:96:393632:1000:0:1792355578:955192114:1"
+        },
+        "error": "IndexError: list index out of range",
+        "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\nfs_lost_reply.py\", line 76, in qualify\n    result['relay_armed'] = relay.command('arm', final_name.rsplit('/', 1)[1] if link else old.rsplit('/', 1)[1], 11 if link else 28)\n                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range\n",
+        "cleanup_worker_exit": "gone",
+        "service_logs": {
+          "runtime-debug-manifest_link_rpc-lr-2hosts-service-1.log": "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\nSource-space admission policy: {\"enabled\":false,\"min_available_bytes\":0,\"min_available_percent\":0,\"max_sample_age_seconds\":5,\"probe_timeout_seconds\":2}\nReady on 127.0.0.1:19878\nDelivery 1 requires reconciliation: delivery worker exited without receipt\n"
+        },
+        "final_status": {
+          "exit_code": 0,
+          "seconds": 0.875,
+          "snapshot": {
+            "version": 1,
+            "instance_id": null,
+            "coordinator_pid": null,
+            "phase": "NoActiveOwner",
+            "shutdown_wait_seconds": null,
+            "shutdown_remaining_ms": null,
+            "workers": [],
+            "message": null
+          }
+        }
+      }
+    ],
+    "driver_sha256": {
+      "check-nfs-boundaries.py": "c6d4710feca0f38bc06b4e1ef070f881c5cea7d2f88e30d58920789cf64466d8",
+      "nfs_runtime.py": "1b33270eb8938d2ee1865c13d2926653e6e3af5dba5ed71e6b4bdb8d82d1f5bd",
+      "nfs_death.py": "3d4bed2a2c8e41c31f671cf27ffc90bae0fe412ad67e4de841a6f335bb1c36d5",
+      "nfs_bootstrap_state.py": "f4136f7e488d86d700e324bb91c72e4b4971a189b6a1b0731255c3473aff0938",
+      "nfs_publication.py": "0256e9a1979b0d2977be282c36f5ba0d43ed9d5e85507635bcead14a3c2ef776",
+      "nfs_both.py": "9a4931a0852cad9ebe2dab662822b46029ef5605bf2aa22f3e17e54290c1eb6b",
+      "nfs_exports.py": "fdd6fe55573b9aee674dd7a30ec991c9c7b7a8f62da9e92ebea45f871b109eae",
+      "nfs_endpoints.py": "f9b94f49e2ee756435f4e8eb9d9b6e511d6d5f2cb1c6b62045696f4b387b674a",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa",
+      "nfs_rpc.py": "66cd3dbb0388bca5cd2ab326304b8f9f968807918c4c15e788811bbd62ad6fda",
+      "nfs_reply_proxy.py": "659e09d16e841d3fb685950be074085f46578ddc51ad9ea0b34125c96893102b",
+      "nfs_reply_relay.py": "41f3d1501b581efa1cb1eb3fe452d07f2d7deddcd14d552b988d144c2b6ddb7f",
+      "nfs_lost_reply.py": "6d655d6071013275c32d6d03db16740dcec70bcc51fedcfa7a92f98e1d451fe8",
+      "test_nfs_rpc.py": "0fc87a65eda2109322393e841f0a381064677a6ed3503cc6e9433d53f5b7dc22"
+    }
+  },
+  "error": "AssertionError: NFS coordinator-death matrix interrupted; inspect cases",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-nfs-boundaries.py\", line 376, in main\n    assert report[\"coordinator_death\"][\"passed\"] or complete, \"NFS coordinator-death matrix interrupted; inspect cases\"\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: NFS coordinator-death matrix interrupted; inspect cases\n",
+  "reply_relay_final": {
+    "ready": true,
+    "token": "3d65431ef77d4ff2ad0ceb14bad875bd",
+    "armed": false,
+    "name": "data.bin",
+    "operation": 11,
+    "held": [
+      {
+        "connection": 2,
+        "xid": 1526637645,
+        "request": {
+          "decoded": {
+            "xid": 1526637645,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+              },
+              {
+                "op": 11,
+                "name": "data.bin"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+          "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+        },
+        "receive_id": 986,
+        "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+        "wire_bytes": 308,
+        "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+        "reply": {
+          "xid": 1526637645,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "released": [],
+    "dropped": [
+      {
+        "connection": 2,
+        "xid": 1526637645,
+        "request": {
+          "decoded": {
+            "xid": 1526637645,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "592cd56a46eb5b2b0302000000000000000003cf000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "f1fd25bfbcc468aefa6463199e06a5cdfa156b84b94ff82eea2a3e23f64e9d71"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "bdd3fc14f717c42113ce7c7fbdb2d19929109516330006d503dca78357570a1d"
+              },
+              {
+                "op": 11,
+                "name": "data.bin"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "393f99dc5d4ef377779dea5a1ea8ba0026dc7a176aaedf6d7e15c434086085ba",
+          "payload_hex": "5afea44d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b0302000000000000000003cf00000000000000000000000100000016000000140100010138000000ce2bad670f0000000000000000000020000000160000001401000101380000004e1ec1290e000000000000000000000b00000008646174612e62696e0000001f00000009000000020010011a00b4a23a"
+        },
+        "receive_id": 986,
+        "reply_sha256": "edee663bee5a98a0e27ec2f516fe59ced1410ffb68ce33ffb389df5759762ff9",
+        "wire_bytes": 308,
+        "payload_hex": "5afea44d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b0302000000000000000003cf000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000070400000000000007050000001f000000000000000900000000000000020010011a00b4a23a0000008c000000011ab54b2eae34931c000000000020001100000000000000380000000000000000000000000000000f00000100000000020000000431303030000000043130303000000000000000000000000000201000000000006ad52cb433b063b2000000006ad52caa19b391d6000000006ad52cba2e34930e000000006ad52caa2cc38efc000000000000000f",
+        "reply": {
+          "xid": 1526637645,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "forwarded": [
+      {
+        "connection": 3,
+        "xid": 772253005,
+        "request": {
+          "decoded": {
+            "xid": 772253005,
+            "operations": [
+              {
+                "op": 53,
+                "sequence_hex": "592cd56a46eb5b2b030200000000000000000c8b000000000000000000000001"
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "5d8f344286f5ea352b0ecbf4cb51936dbb6a932bc07239e789c6dac8a0718b5a"
+              },
+              {
+                "op": 32
+              },
+              {
+                "op": 22,
+                "filehandle_sha256": "30c5b2c886606f2e0e93470556fa07c2daa308caa214399f652a195e6d33c5d0"
+              },
+              {
+                "op": 11,
+                "name": "data.bin"
+              },
+              {
+                "op": 31
+              },
+              {
+                "op": 9
+              }
+            ]
+          },
+          "sha256": "c493e21c731e281184a875fcaf1b8d11f7d0d46f862a4aff1baf813ba173f4e3",
+          "payload_hex": "2e07a54d0000000000000002000186a300000004000000010000000100000024000000000000000c653261636563326631643164000003e8000003e800000001000003e8000000000000000000000000000000010000000700000035592cd56a46eb5b2b030200000000000000000c8b000000000000000000000001000000160000001401000101380000001304c1391a000000000000000000002000000016000000140100010138000000a611505219000000000000000000000b00000008646174612e62696e0000001f00000009000000020010010a00b0a008"
+        },
+        "receive_id": 3246,
+        "reply_sha256": "249ed0f2bd609e31e8a33bd396ea2d971abdd5ea13d9259d34b0a3098166aaf8",
+        "wire_bytes": 260,
+        "payload_hex": "2e07a54d00000001000000000000000000000000000000000000000000000000000000070000003500000000592cd56a46eb5b2b030200000000000000000c8b000000000000003f0000003f000000000000001600000000000000200000000000000016000000000000000b0000000000000001000000000000005200000000000000530000001f000000000000000900000000000000020010010a00b0a0080000005c000000011ab54b4010e129d100000000000000380000000000000000000000000000001a000000020000000000201000000000006ad52cff1dd4e6bb000000006ad52d0010e12988000000006ad52cff3110e8ad000000000000001a",
+        "reply": {
+          "xid": 772253005,
+          "status": 0,
+          "operations": [
+            {
+              "op": 53,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 32,
+              "status": 0
+            },
+            {
+              "op": 22,
+              "status": 0
+            },
+            {
+              "op": 11,
+              "status": 0
+            },
+            {
+              "op": 31,
+              "status": 0
+            },
+            {
+              "op": 9,
+              "status": 0
+            }
+          ]
+        }
+      }
+    ],
+    "errors": [],
+    "connections": 3,
+    "received": 3246,
+    "connection_resets": [
+      2
+    ],
+    "command_token": "46c27ba44cc64156933aa4022ed27fd6"
+  },
+  "reply_relay_log": ""
+}

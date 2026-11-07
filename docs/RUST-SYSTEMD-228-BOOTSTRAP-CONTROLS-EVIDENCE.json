@@ -1,0 +1,312 @@
+{
+  "status": "PASSED",
+  "scope": "Expected fail-closed fixture controls, not lifecycle cases",
+  "driver_sha256": "1da029abe757eec6b05a82efc3ecbf963b4d8c5b2a1b83671d35fae7c91c253f",
+  "controls": [
+    {
+      "arguments": [
+        "--manager",
+        "228"
+      ],
+      "expected_exit": 2,
+      "reply": {
+        "exit_code": 2,
+        "stdout": "",
+        "stderr": "usage: check-systemd-boundaries.py [-h] --qualification-gate\n                                   QUALIFICATION_GATE\n                                   [--connection CONNECTION]\n                                   [--manager {252,228}]\n                                   [--allow-host-cgroup-bootstrap]\n                                   gate\ncheck-systemd-boundaries.py: error: 228 bootstrap requires explicit approval and --allow-host-cgroup-bootstrap\n"
+      }
+    },
+    {
+      "arguments": [
+        "--allow-host-cgroup-bootstrap"
+      ],
+      "expected_exit": 2,
+      "reply": {
+        "exit_code": 2,
+        "stdout": "",
+        "stderr": "usage: check-systemd-boundaries.py [-h] --qualification-gate\n                                   QUALIFICATION_GATE\n                                   [--connection CONNECTION]\n                                   [--manager {252,228}]\n                                   [--allow-host-cgroup-bootstrap]\n                                   gate\ncheck-systemd-boundaries.py: error: the broader bootstrap is available only for --manager 228\n"
+      }
+    },
+    {
+      "arguments": [
+        "--manager",
+        "228",
+        "--allow-host-cgroup-bootstrap"
+      ],
+      "expected_exit": 1,
+      "reply": {
+        "exit_code": 1,
+        "stdout": "FAILED: C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\rust\\validation\\systemd-20261018T071029Z-026ef128\nRuntimeError: Refusing existing legacy hierarchy before creating a fixture\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "existing_hierarchy_refusal": {
+    "status": "FAILED",
+    "run_id": "systemd-20261018T071029Z-026ef128",
+    "gate": "20261018T055313Z-e76f2957",
+    "qualification_gate": "20261018T055326Z-dc0ed271-nfs-qualification",
+    "cases": [],
+    "cleanup_errors": [],
+    "scope": "Approved broader bootstrap; Leap 42.3 systemd 228 equivalent; pinned SLES service root; local payload/state only; no exact SLES RPM, native old kernel, hard-NFS/systemd, reboot, persistence or host account-policy qualification",
+    "manager_profile": "228",
+    "broader_bootstrap_acknowledged": true,
+    "driver_sha256": {
+      "check-systemd-boundaries.py": "1da029abe757eec6b05a82efc3ecbf963b4d8c5b2a1b83671d35fae7c91c253f",
+      "systemd_runtime.py": "3c9625bb62538a7ecf28abad485df28e42997d1c3469f8d1671fea20ce9cb6c2",
+      "nfs_runtime.py": "1b33270eb8938d2ee1865c13d2926653e6e3af5dba5ed71e6b4bdb8d82d1f5bd",
+      "nfs_binding.py": "46b48fa8b88ad33aa8f14a45332e37640d2859d5650698c20ffebed1afdcd5fa",
+      "nfs_both.py": "9a4931a0852cad9ebe2dab662822b46029ef5605bf2aa22f3e17e54290c1eb6b",
+      "nfs_bootstrap_state.py": "f4136f7e488d86d700e324bb91c72e4b4971a189b6a1b0731255c3473aff0938",
+      "systemd/Containerfile": "7c98639c71f1d4890edc3681bde95919181bc6119a134b11fc0d362a2223280a",
+      "systemd/file-mover.service.in": "ae1ebf612393b464ea458201b67d7088de8b500ad14c7715fe5e7f8f6f97fee1",
+      "systemd/Containerfile.228": "85724128d7104ab87007793262e2fd2e693fdd24ec2b001898b2c879cebd29e0",
+      "systemd/Containerfile.228-approved": "584a32df4890251581b1696291182feee1117df9b55022abec919d489c576acd",
+      "systemd/boot-228-approved.sh": "309796f4ce89e6aafa710c3b9cdf5f0a9e9fecef4f3dad0bd8768d57c19411f7",
+      "systemd/boot-228-inner.sh": "e5397cde133afa253ed203337f2d017ef008ed73dbeb41bbecb6e7b99c2aa631",
+      "systemd/enter-228.sh": "d21fff6594f15899efb1d5d9749445569e89b988060dfddf32b0e2d43bfd07e7",
+      "systemd/cleanup-228.sh": "f96a6a60a8269fd6027bda5d46ea5f39642d9af4177c3192a2626952b5436e09",
+      "systemd/file-mover-228.service.in": "0403322f57b1828434f6b612236a7dd25c2a8bed97d1fc5d013590c7c2966fee"
+    },
+    "image": {
+      "Id": "963fb250282f2f6c2d4d645c340373478d498db0f4620d65798fc783b2f89d5b",
+      "Digest": "sha256:7933e04f4b3df80d1af308763fade4ff28c6e600b0177c7ffaef4f54783ac727",
+      "RepoTags": [
+        "localhost/background-file-mover-systemd228-approved:latest"
+      ],
+      "RepoDigests": [
+        "localhost/background-file-mover-systemd228-approved@sha256:7933e04f4b3df80d1af308763fade4ff28c6e600b0177c7ffaef4f54783ac727"
+      ],
+      "Parent": "af3ce263819065b892b16d6be028a0329d8c6f88ac6aa2c52d34a7f038757f15",
+      "Comment": "",
+      "Created": "2026-10-18T07:09:40.238106603Z",
+      "Config": {
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "container=docker"
+        ],
+        "Cmd": [
+          "/usr/local/libexec/boot-228-approved.sh"
+        ],
+        "Labels": {
+          "io.buildah.version": "1.44.1",
+          "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+        },
+        "StopSignal": "SIGRTMIN+3"
+      },
+      "Version": "",
+      "Author": "SUSE Containers Team <containers@suse.com>",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "Size": 211747995,
+      "VirtualSize": 211747995,
+      "GraphDriver": {
+        "Name": "overlay",
+        "Data": {
+          "LowerDir": "/var/lib/containers/storage/overlay/815f0bec44b223a8f4786b5c79030b8dbd7e68be0c5cbfb8c449a3ad956a6787/diff:/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/diff:/var/lib/containers/storage/overlay/06fe04f193cc52e48cdd972205fa306143bf3ad99492fc23a130abc1d2173e58/diff:/var/lib/containers/storage/overlay/55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c/diff",
+          "UpperDir": "/var/lib/containers/storage/overlay/91537f1f74ae5363dab7051692209dbb55a158d8022088a6820a2be6e2b379d4/diff",
+          "WorkDir": "/var/lib/containers/storage/overlay/91537f1f74ae5363dab7051692209dbb55a158d8022088a6820a2be6e2b379d4/work"
+        }
+      },
+      "RootFS": {
+        "Type": "layers",
+        "Layers": [
+          "sha256:55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c",
+          "sha256:07b77801340e2e10b69a06f08bec4c55b559b1e012b475c44bb5b73225d66096",
+          "sha256:0c651e45a45a96218fc279e8a5be3ba377071955b8dff6115e7becc6e0a6ddcf",
+          "sha256:d87f7de03984f2a3ae6007f57fa1e6b8dc1a4b84e222376f2fb47681eaef2ff5",
+          "sha256:462c70507ab700e2c6790d4c64df5857b7d491085771ecc6f783a05ffebe7283"
+        ]
+      },
+      "Labels": {
+        "io.buildah.version": "1.44.1",
+        "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+      },
+      "Annotations": {
+        "org.opencontainers.image.base.digest": "sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529",
+        "org.opencontainers.image.base.name": "localhost/background-file-mover-systemd228:latest",
+        "org.opencontainers.image.created": "2026-10-18T07:09:40.238106603Z"
+      },
+      "ManifestType": "application/vnd.oci.image.manifest.v1+json",
+      "User": "",
+      "History": [
+        {
+          "created": "2019-08-13T08:48:40.372298552Z",
+          "created_by": "umoci config"
+        },
+        {
+          "created": "2019-08-13T08:49:10.375196393Z",
+          "created_by": "umoci config",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T05:59:55.177328682Z",
+          "created_by": "/bin/sh -c #(nop) ENV container=docker",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "comment": "FROM docker.io/opensuse/leap:42.3",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T06:00:00.211055395Z",
+          "created_by": "/bin/sh -c #(nop) COPY dir:a5c99bbee662b15152c4b5e234544dcf63714d06a7d108376ee3672b6d40ab42 in /sles/      ",
+          "author": "SUSE Containers Team <containers@suse.com>"
+        },
+        {
+          "created": "2026-10-18T06:02:45.465622359Z",
+          "created_by": "/bin/sh -c useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local",
+          "author": "SUSE Containers Team <containers@suse.com>"
+        },
+        {
+          "created": "2026-10-18T06:02:45.763900897Z",
+          "created_by": "/bin/sh -c #(nop) STOPSIGNAL SIGRTMIN+3",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T06:02:45.904638816Z",
+          "created_by": "/bin/sh -c #(nop) CMD [\"/usr/lib/systemd/systemd\", \"--system\"]",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T07:09:38.001017037Z",
+          "created_by": "/bin/sh -c #(nop) COPY multi:9d90ce82f154bb691882e93031655e6f4727f58c6b5fc0ccca630fe34056319b in /usr/local/libexec/      ",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "comment": "FROM localhost/background-file-mover-systemd228:latest"
+        },
+        {
+          "created": "2026-10-18T07:09:40.001106292Z",
+          "created_by": "/bin/sh -c groupadd -g 1000 mover && usermod -g 1000 mover && chmod 755 /usr/local/libexec/*228*.sh",
+          "author": "SUSE Containers Team <containers@suse.com>"
+        },
+        {
+          "created": "2026-10-18T07:09:40.238379931Z",
+          "created_by": "/bin/sh -c #(nop) CMD [\"/usr/local/libexec/boot-228-approved.sh\"]",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        }
+      ],
+      "NamesHistory": [
+        "localhost/background-file-mover-systemd228-approved:latest"
+      ]
+    },
+    "fixture_base_image": {
+      "Id": "2aa94a5c78f9fed22d52182f469a5b5c7aa4828ead071d2174edfea9b25776b1",
+      "Digest": "sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529",
+      "RepoTags": [
+        "localhost/background-file-mover-systemd228:latest"
+      ],
+      "RepoDigests": [
+        "localhost/background-file-mover-systemd228@sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529"
+      ],
+      "Parent": "8cefcbbbbd835e0ef72eccee503b1e2a09bf5f6265de1c062db24dc0639e1bbe",
+      "Comment": "",
+      "Created": "2026-10-18T06:02:45.90443062Z",
+      "Config": {
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "container=docker"
+        ],
+        "Cmd": [
+          "/usr/lib/systemd/systemd",
+          "--system"
+        ],
+        "Labels": {
+          "io.buildah.version": "1.44.1",
+          "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+        },
+        "StopSignal": "SIGRTMIN+3"
+      },
+      "Version": "",
+      "Author": "SUSE Containers Team <containers@suse.com>",
+      "Architecture": "amd64",
+      "Os": "linux",
+      "Size": 211714683,
+      "VirtualSize": 211714683,
+      "GraphDriver": {
+        "Name": "overlay",
+        "Data": {
+          "LowerDir": "/var/lib/containers/storage/overlay/06fe04f193cc52e48cdd972205fa306143bf3ad99492fc23a130abc1d2173e58/diff:/var/lib/containers/storage/overlay/55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c/diff",
+          "UpperDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/diff",
+          "WorkDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/work"
+        }
+      },
+      "RootFS": {
+        "Type": "layers",
+        "Layers": [
+          "sha256:55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c",
+          "sha256:07b77801340e2e10b69a06f08bec4c55b559b1e012b475c44bb5b73225d66096",
+          "sha256:0c651e45a45a96218fc279e8a5be3ba377071955b8dff6115e7becc6e0a6ddcf"
+        ]
+      },
+      "Labels": {
+        "io.buildah.version": "1.44.1",
+        "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+      },
+      "Annotations": {
+        "org.opencontainers.image.base.digest": "sha256:84d4bef2c4657b7bfb48233aa84f40e2303af0607de06562cf4afc496ec18b59",
+        "org.opencontainers.image.base.name": "docker.io/opensuse/leap:42.3",
+        "org.opencontainers.image.created": "2026-10-18T06:02:45.90443062Z"
+      },
+      "ManifestType": "application/vnd.oci.image.manifest.v1+json",
+      "User": "",
+      "History": [
+        {
+          "created": "2019-08-13T08:48:40.372298552Z",
+          "created_by": "umoci config"
+        },
+        {
+          "created": "2019-08-13T08:49:10.375196393Z",
+          "created_by": "umoci config",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T05:59:55.177328682Z",
+          "created_by": "/bin/sh -c #(nop) ENV container=docker",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "comment": "FROM docker.io/opensuse/leap:42.3",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T06:00:00.211055395Z",
+          "created_by": "/bin/sh -c #(nop) COPY dir:a5c99bbee662b15152c4b5e234544dcf63714d06a7d108376ee3672b6d40ab42 in /sles/      ",
+          "author": "SUSE Containers Team <containers@suse.com>"
+        },
+        {
+          "created": "2026-10-18T06:02:45.465622359Z",
+          "created_by": "/bin/sh -c useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local",
+          "author": "SUSE Containers Team <containers@suse.com>"
+        },
+        {
+          "created": "2026-10-18T06:02:45.763900897Z",
+          "created_by": "/bin/sh -c #(nop) STOPSIGNAL SIGRTMIN+3",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-10-18T06:02:45.904638816Z",
+          "created_by": "/bin/sh -c #(nop) CMD [\"/usr/lib/systemd/systemd\", \"--system\"]",
+          "author": "SUSE Containers Team <containers@suse.com>",
+          "empty_layer": true
+        }
+      ],
+      "NamesHistory": [
+        "localhost/background-file-mover-systemd228:latest"
+      ]
+    },
+    "pre_bootstrap_cgroups": "7:name=systemd:/\n0::/machine.slice/libpod-8a54d383d329f9dfc22499a4a003425367aa338debefbc97e3d5ac8297697a6f.scope/container\n",
+    "error": "RuntimeError: Refusing existing legacy hierarchy before creating a fixture",
+    "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Joey\\Documents\\GIT-GitHub\\joey-huckabee\\background-file-mover\\scripts\\check-systemd-boundaries.py\", line 128, in main\n    raise RuntimeError('Refusing existing legacy hierarchy before creating a fixture')\nRuntimeError: Refusing existing legacy hierarchy before creating a fixture\n"
+  },
+  "container_inventory_before": {
+    "exit_code": 0,
+    "stdout": "c436051d5a2d localhost/background-file-mover-systemd228-approved:latest\n",
+    "stderr": ""
+  },
+  "container_inventory_after": {
+    "exit_code": 0,
+    "stdout": "c436051d5a2d localhost/background-file-mover-systemd228-approved:latest\n",
+    "stderr": ""
+  }
+}

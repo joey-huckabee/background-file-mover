@@ -1,0 +1,1953 @@
+# REST error scenarios: review draft
+
+Recorded 2026-10-23. **Partially approved contract draft; implementation unchanged.**
+The user asked to review the scenarios and agree on codes before implementation.
+This document supports P01/RC-01-03 of the
+[release plan](RUST-RELEASE-CLOSURE.md); it does not add new release gates.
+No runtime, persistence, existing delivery retry/review implementation or
+NFS/deletion switch changes here.
+
+## Approved groups (2026-10-23)
+
+**Current override, 2026-11-02:** Group 50 supersedes earlier post-clear ownership/accounting rules: successful eligible clear forgets all source/destination file linkage; files stay in place, and cleared files leave mover management. See API-E130-132.
+
+The user approved the following fifty-two groups in successive review replies.
+The fifty initial outcome mappings and later envelope, retry, size-policy,
+UUID/replay and administrative data-control decisions are approved contract
+direction, not new runtime capabilities. Groups 14-52 add API-E61-143 below.
+Other rows and unresolved response/identity/compatibility details remain under
+review. An approval here does not approve every variant of its broader API-E row.
+
+| Group | Situation | Approved HTTP / application code | Automatic retry |
+|---|---|---|---|
+| 1 | Listed file confirmed missing, including partial custody | 409 `source_file_missing` | Yes, within persisted missing window |
+| 1 | Missing-file window expired | 409 `recording_blocked` | No; operator review |
+| 1 | Claim still running, outcome uncertain | 503 `handoff_pending` | Yes; identical request |
+| 1 | Recording ID reused with changed request | 409 `recording_id_conflict` | No; investigate original submission |
+| 2 | Invalid JSON | 400 `invalid_json` | No |
+| 2 | Missing/invalid fields | 400 `invalid_submission` | No |
+| 2 | Invalid file paths | 400 `invalid_file_paths` | No |
+| 2 | Valid source path outside generator scope | 403 `source_outside_scope` | No |
+| 2 | Expected size differs from observed file | 409 `source_size_mismatch` | No; review |
+| 3 | Enabled source-space check confirms insufficient margin | 503 `source_space_low` | Yes |
+| 3 | Enabled source-space check cannot obtain reliable sample | 503 `source_space_unavailable` | Yes |
+| 3 | Retained-job/byte admission limit reached | 503 `retention_capacity` | Yes |
+| 3 | Mover request queue full | 503 `service_busy` | Yes |
+| 3 | Mover shutting down | 503 `service_stopping` | Yes |
+| 4 | Source already reserved by another recording | 409 `source_reserved` | No; review |
+| 4 | File identity/size changes during claim | 409 `recording_blocked` | No; review |
+| 4 | Source mount/root identity or ownership no longer matches | 409 `recording_blocked` if HTTP response possible | No; review |
+| 4 | Service lacks filesystem permission to claim a file | 409 `recording_blocked` | No; correct permissions and review |
+| 5 | Local database temporarily unavailable | 503 `storage_unavailable` | Yes; corruption/unsafe ownership remain stop/review |
+| 5 | Request receive deadline expires | 408 `request_timeout` | Yes; fresh connection |
+| 5 | Proxy cannot obtain valid backend response | 502; proxy code/body not guaranteed | Yes |
+| 5 | Proxy times out waiting for mover | 504; proxy code/body not guaranteed | Yes |
+| 5 | Connection drops or recorder times out | No reliable response/code | Yes |
+| 6 | Wrong API endpoint | 404 `not_found` | No |
+| 6 | Wrong HTTP method | 405 `method_not_allowed`, with Allow | No |
+| 6 | Missing/unsupported Content-Type | 415 `unsupported_media_type` | No |
+| 6 | Request body exceeds bound | 413 `request_too_large` | No |
+| 6 | Request headers exceed bound | 431 `request_headers_too_large` | No |
+| 6 | Malformed HTTP framing | 400 `invalid_http` | No |
+| 7 | Unknown generator | 403 `unknown_generator` | No |
+| 7 | Caller not authorized for supplied generator | 403 `caller_not_authorized` | No |
+| 7 | Producer attempts operator-only route | 403 `producer_route_forbidden` | No |
+| 7 | Producer exceeds request limit | 429 `rate_limited` | Yes; indicated delay |
+| 7 | TLS certificate validation fails | TLS failure; no guaranteed HTTP code/body | No; correct certificate/trust configuration |
+| 8 | Destination unavailable/full after confirmed 202 | Operator status 200 with delivery retry/review condition | No recorder action |
+| 8 | Verification fails/publication blocked after confirmed 202 | Operator status 200 with existing retry/review condition | No recorder action |
+| 8 | Source cleanup disabled/fails after commitment | Operator status 200 with retained/cleanup condition when implemented | No recorder action |
+| 9 | Invalid local operator job ID/command fields | 400 `invalid_job_id`, `invalid_resume` or `invalid_missing_reset` | No |
+| 9 | Unknown operator job | 404 `not_found` | No |
+| 9 | Stale review epoch or action ineligible | 409 `review_conflict` | No; inspect status |
+| 9 | Operator command ID reused with changed parameters | 409 `command_conflict` | No |
+| 9 | Operator audit capacity reached | 409 `operator_audit_capacity` | No; review |
+| 9 | Operator queue/database temporarily unavailable | 503 `service_busy` or `storage_unavailable` | Yes; same command ID/body |
+| 10 | Body on bodyless GET | 400 `unexpected_body` | No |
+| 10 | Optional idempotency header conflicts with request/command ID | 400 `idempotency_key_conflict` | No |
+| 10 | Unsupported headers, including bearer authorization in this profile | 400 `unsupported_headers` | No |
+| 10 | Incomplete HTTP request with valid rejection received | 400 `incomplete_request` | No; correct sending problem |
+| 11 | Worker finished, source effect cannot be safely reconciled | 409 `recording_blocked` | No; operator review |
+| 11 | Unexpected internal server error | 500 `internal_error` if reply possible | Yes; backoff and persistent-failure alert |
+| 11 | Success reply has missing/wrong recording ID or invalid 202 body | Invalid acknowledgement; no trusted code | No; preserve paths and alert |
+
+Retries retain the same recording ID/body and follow the supplied delay.
+No error response grants path reuse or reverses an earlier valid 202. Existing
+accepted-job retries remain exempt from the new-job source-space admission
+check; custody/authority checks still apply. Do not bypass partial custody by
+correcting under a new ID. The new global-ID namespace and exact wire schema
+still require compatibility/persistence design before implementation.
+
+## Decisions carried forward from the discussion
+
+### Prototype client compatibility: resolved
+
+The user confirmed on 2026-10-23 that no one uses the Rust prototype API.
+Replace its producer wire format directly with the reviewed contract; do not
+add an old-request adapter, parallel producer schema or deprecation period just
+for the unused prototype. Keep POST /api/v2/jobs as the working route unless
+separately changed during schema freeze. This decision concerns the Rust
+prototype, not a blanket waiver of legacy C++ cutover or release requirements.
+
+It does not authorize discarding SQLite jobs, changing claimed-object ownership,
+reusing old IDs or renaming accepted destinations. Persisted-state migration or
+safe refusal still requires an explicit design and tests. Expected-size assertions use the approved all-or-nothing expected_sizes_bytes
+map and a default-disabled checking policy (group 14).
+
+- Recorder submits generator identity, a globally unique recording ID, the full
+  source directory as the mover sees it, and every file explicitly. Preserve
+  subfolders; do not recursively discover files. Destination is configured.
+- Generate the recording ID once; reuse it and the same request on retries.
+  Same ID with a changed generator, source folder or file list conflicts.
+- Submission 202 confirms durable custody of every file and permission to reuse
+  original paths. A partial claim, saved request or timeout is not that permission.
+  The recorder has no delivery-monitoring duty after confirmed 202.
+- Identical successful replay returns 202, including after delivery finishes,
+  subject to the authorized replay boundary. Authentication revocation does not
+  reverse an already received valid 202.
+- One missing file can leave the submission pending while other claims remain
+  protected. Temporary conditions should be distinguishable from correction or
+  review conditions. Missing input is now approved as 409 `source_file_missing`
+  with retry allowed within the existing missing-file window.
+
+The discussed minimal JSON uses `recording_id`, `source_directory` and string
+file names. The current implementation instead requires `submission_id`,
+`source_path` and file objects containing `name`, with optional `size_bytes`.
+Global recording-ID enforcement and recording-ID destination layout also differ
+from the implemented model. Do not describe the discussed JSON as usable today.
+The reviewed replacement uses expected_sizes_bytes as an all-or-nothing map
+whose keys are exactly the submitted files. Expected-size comparisons are
+configurable and disabled by default; a supplied complete map is ignored for
+those comparisons while disabled. Group 14 below defines the accepted behavior.
+The current per-file size_bytes checks do not implement this toggle or map.
+
+## Approved error envelope (group 12) and recorder retry policy (group 13)
+
+HTTP describes the broad outcome. `error` is a stable application code;
+`retryable` gives the recorder its action. Human diagnostic text is not parsed.
+A retryable result means repeat the **same ID and unchanged request**, not create
+a new recording. Review/correction means log/alert and preserve remaining source
+paths; never try a new ID to bypass a partial handoff.
+
+Approved shape for mover-generated errors; the example is an advertised delay,
+not a universal constant for all server replies:
+
+```json
+{
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "error": "source_file_missing",
+  "retryable": true,
+  "retry_after_seconds": 5,
+  "source_paths_released": false
+}
+```
+
+`recording_id` is null when unavailable or unsafe to disclose. A malformed ID
+is not echoed as a trusted identity. `retry_after_seconds` is null when automatic
+retry is disallowed. All five envelope fields are present on mover-generated
+errors; no null/omission ambiguity. Optional bounded diagnostic fields remain
+under review; they must not disclose another generator's IDs/job existence,
+absolute private paths or credentials. Proxy/TLS outcomes may lack this JSON.
+
+The approved `source_paths_released:false` means **this response grants no new
+release**, not that no file was claimed or that a previous 202 is revoked. Only
+the submission's valid, matching 202 grants the recorder release. Operator status
+or command replies are not a substitute. Error responses cannot authorize
+putting previously claimed files back under their original names.
+
+### Approved retry timing and precedence
+
+The user approved the following recorder guidance as group 13:
+
+1. Honor a usable mover `retry_after_seconds` when `retryable:true`.
+2. Without usable JSON timing, honor a valid `Retry-After` header for an otherwise
+   retryable result. The body flag `retryable:false` takes precedence and stops
+   automatic retries; a header cannot turn a refusal into permission to retry.
+3. If neither supplies a usable delay, use fallback waits of **5, 10, 20, then
+   30 seconds**, staying at 30 seconds for further fallback retries.
+4. Log a persistent-failure warning after **five minutes**, while continuing
+   permitted retries. The warning does not authorize abandonment or path reuse.
+5. Make these timing defaults configurable. Configuration belongs to the
+   component performing the retries; do not imply the mover controls an external
+   recorder's implementation. Publish this as the supported integration guidance.
+
+All retries keep the same recording ID and unchanged request. Timing never
+extends the mover's persisted missing-file window, resets review, cancels a
+worker, authorizes replacement or overrides custody checks. Existing background
+delivery retry intervals/budgets are unchanged. The five-minute warning and the
+mover's missing-file deadline are independent even if defaults happen to match.
+
+For controlled retryable mover replies, define positive bounded delay values in
+the final schema. A server's explicit valid delay takes precedence over fallback;
+30 seconds is the fallback cap, not a cap on a longer valid advertised delay.
+For 429/503 the implementation plan also includes consistent Retry-After.
+409 retry timing uses the JSON field rather than assuming generic HTTP clients
+honor that header. Exact config names/ranges and diagnostic bounds belong in the
+remaining schema work; do not silently add a new server missing-file timeout.
+
+### Transport/protocol boundaries
+
+Absent/unusable JSON does not make every HTTP result retryable. The reviewed
+transport/temporary cases (connection loss, 408/429/500/502/503/504) permit
+same-request retries using the timing precedence above. Valid rejection such as
+400 incomplete_request requires correction. TLS certificate validation failures
+require correction; never disable verification to continue retries.
+
+Wrong/missing recording ID or malformed 202 is an invalid acknowledgement:
+preserve paths and alert, without accepting success. Unexpected success codes
+and redirects remain protocol errors, not evidence of custody; no automatic
+redirect-following behavior is introduced. Exact response validation and safe
+non-JSON fallback handling must be covered by the implementation case manifest.
+No delay or local warning proves a previous POST transaction failed.
+
+`retryable:false` stops automatic recorder retries for that condition. It does
+not cancel retained work, authorize deletion, or declare the job unrecoverable.
+Operator recovery uses the original state and existing audited procedures.
+
+## Submission outcomes and source conditions
+
+The approval table above governs reviewed mappings; other rows below remain
+proposed acceptance scenarios. **None is a new passing test.**
+`Current` records code paths inspected in `file-mover/src/lib.rs` and `http.rs`
+under `rust/crates/`, plus the linked operator/remote contracts. It does not
+assert that every listed variant has been separately qualified. Scenario IDs
+API-E01-138 are review keys, not replacement requirements or SC IDs.
+
+| ID | Situation | Proposed HTTP / code | Retry? / recorder or operator action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E01 | First submission, every file durably claimed | 202; no error | Success; all original paths may be reused | Implemented, but current body uses numeric job ID and `Claimed`; discussed recording-ID response remains pending. |
+| API-E02 | Identical retry after lost 202, or after delivery completed | 202; no error | Same confirmation; never claim reused leaves | Existing replay uses generator/submission identity and custody validation. Global recording ID and exact post-delivery response need agreement/mapping. |
+| API-E03 | Same retained recording ID, changed source directory/file list/size assertion or other immutable request data | 409 `recording_id_conflict` | No; retain original body/custody, investigate | Current 409 `submission_conflict`; proposed naming/global key differs. File order currently matters in the prototype; group 16 approves order-independent comparison, unimplemented. |
+| API-E04 | Same retained recording ID submitted by another generator | 409 `recording_id_conflict` only after allowed authorization; otherwise 403 generic denial | No; no cross-generator job/detail disclosure | Global namespace change is not implemented. Authorization must precede existence disclosure; settle exact denial with the remote contract. |
+| API-E05 | One explicitly listed file is confirmed absent on an accessible authorized source | 409 `source_file_missing` | Yes, within the persisted missing-file window; preserve already claimed files | **Approved change, not implemented:** current 503 `handoff_pending`. A missing RPC reply/timeout is not absence proof. |
+| API-E06 | Several files already claimed, another listed file confirmed missing | 409 `source_file_missing` | Yes within window; whole-set release remains withheld | Same current 503 pending behavior; no change to partial-custody safety. No per-file permission for producer reuse. |
+| API-E07 | Missing-file deadline expires or persisted missing review block exists | 409 `recording_blocked` | No; operator reviews original job and, if appropriate, audited exact-file reset | Current 409 false. Restart/recorder retry never resets the deadline. Proposed dedicated code, if desired, needs evidence/schema discussion. |
+| API-E08 | A file appears after missing deadline expired | 409 `recording_blocked` | No automatic clearing; same operator workflow | Existing review boundary must remain; presence alone does not reset review. |
+| API-E09 | Expected size assertion differs from observed file size while checking is enabled | 409 `source_size_mismatch` | No; inspect original request/object; no new ID bypass | Current 409 false; service measures actual size even when no assertion provided. |
+| API-E10 | Source inode/size/parent identity changes during a pending claim | 409 `recording_blocked` | No; review custody/producer immutability violation | Current generic false refusal; selected cases in SC-138. More specific codes require typed proven causes. |
+| API-E11 | Actual source leaf is symlink/nonregular or descriptor traversal/alias checks fail | 409 `recording_blocked` | No; inspect source and configured scope | Current claim refusal is broad; syntactically invalid paths are separate API-E25. No follow-links fallback. |
+| API-E12 | Submitted source is reserved by another accepted recording | 409 `source_reserved` | No blind retry/new ID; investigate original reservation | Current 409 false; never steal custody or disclose another generator's job. |
+| API-E13 | NFS access times out or claim worker has not returned before HTTP handoff budget | 503 `handoff_pending` | Yes with same request; retain original state and exclusion through actual worker exit | Current 10-second handoff timeout returns pending. This is uncertain progress, not failure/cancellation or confirmed missing input. |
+| API-E14 | Source mount/root/enrollment identity changes, private namespace is foreign/ambiguous, or ownership guard validation fails | 409 `recording_blocked` if serving; otherwise startup refusal/no HTTP | No; preserve state, inspect configuration/custody; never rebind automatically | Current broad refusal. Root/mount availability is distinct from authority; timeout alone cannot downgrade this to a safe retry. |
+| API-E15 | Source-space admission enabled and confirmed below configured margin | 503 `source_space_low` | Yes; restore capacity; no new-job admission or false 202 | Existing; default off. Existing accepted-key replay bypasses this new-job check, not custody checks. |
+| API-E16 | Enabled source-space probe unavailable/stale/blocked | 503 `source_space_unavailable` | Yes; no unknown-as-zero/positive guess | Existing; preserve current probe wait/admission behavior and existing-job retries. |
+| API-E17 | Source metadata allocation/write/sync fails; completed worker effect cannot be safely reconciled | 409 `recording_blocked` | No; preserve original intent/custody and obtain review. Still-running worker remains pending, not this refusal. | Group 11 approves conservative initial handling; no new source-capacity-specific code or automatic effect retry. This is distinct from sampled admission margin. |
+| API-E18 | Service account cannot access source files/private areas | 409 `recording_blocked` | No blind retry; operator fixes approved permissions then reconciles | Current broad claim refusal; this is filesystem permissions, distinct from caller 403. No arbitrary-path disclosure. |
+| API-E19 | Retained job/byte accounting reaches configured admission bound | 503 `retention_capacity` | Yes; operator addresses retained capacity; preserve partial state | Existing; no cleanup is implied while deletion is disabled. |
+| API-E20 | Local SQLite transaction cannot complete; commit outcome may be unknown | 503 `storage_unavailable` | Yes with same ID; alert operator on persistent failure | Current broad retryable result. Does not prove rollback/no job; if DB is corrupt/ownership unsafe, stop effects and require review/startup refusal instead. |
+| API-E21 | Mover handoff queue is full | 503 `service_busy` | Yes with backoff; bounded queues remain | Existing. Separate from caller rate limiting (API-E39); no new 429 mapping here without review. |
+| API-E22 | Mover is draining/stopping | 503 `service_stopping` if response possible; otherwise lost connection | Yes against original owner/profile when available; no new effects after stop admission | Existing result; a stop timeout does not permit replacement while old workers/effects remain uncertain. |
+
+## Request validation, caller boundary and transport
+
+| ID | Situation | Proposed HTTP / code | Retry? / action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E23 | Invalid JSON, duplicate/unknown fields, wrong field types, missing required fields, invalid recording ID | 400 `invalid_json` for decoding failures; 400 `invalid_submission` for invalid structure/values | No; correct integration without bypassing any previously accepted ID | Existing decoder uses these codes. UUID requirement approved in group 17; current free-form prototype differs. Finalize lexical rules without silently requiring one UUID version. |
+| API-E24 | Empty file list, too many files, duplicate file paths, malformed/negative/overflow size assertions | 400 `invalid_submission` or `invalid_file_paths` according to frozen schema mapping | No; correct request; unchanged accepted request remains authoritative | Existing bounded validation, but detailed code precedence is not yet frozen for the new form. HTTP body size is API-E30. |
+| API-E25 | Relative source directory, invalid encoding, absolute file name, empty component, backslash, NUL, `.`/`..` or invalid normalized path | 400 `invalid_file_paths` for file paths; 400 `invalid_submission` for source-directory syntax | No; correct request | Existing input validation has these broad codes. No lexical string-prefix authorization. |
+| API-E26 | Well-formed source path outside configured generator scope | 403 `source_outside_scope` | No; operator-approved configuration/identity required | Existing 403; cannot grant access by changing JSON identity or supplying destination. |
+| API-E27 | Unknown generator or caller/body generator mismatch | 403 `unknown_generator` or generic `caller_not_authorized`, with non-disclosing mapping | No; fix identity/authorization | Unknown generator already 403. Remote caller binding and exact mismatch code not implemented. |
+| API-E28 | Client supplies destination or mixes old/advanced/new request forms | 400 `invalid_submission` | No; use approved form; destination is configured | Minimal generator form already rejects destination/unknown fields; explicit advanced form remains proposed. Compatibility/version choice pending. |
+| API-E29 | Missing/unsupported Content-Type for JSON endpoint | 415 `unsupported_media_type` | No; correct request | Existing exact application/json check. Charset/media parameter policy needs explicit freezing. |
+| API-E30 | Declared or actual request body exceeds bounded maximum | 413 `request_too_large` | No unchanged retry; correct request/approved limits, never split an accepted recording blindly | Current framing uses 413 `invalid_http`; more specific code proposed. Both proxy and backend must enforce bounds. |
+| API-E31 | Header bytes/count exceed bounded maximum | 431 `request_headers_too_large` | No unchanged retry; correct headers | Current oversized header bytes produce 431 `invalid_http`; header count parser failures can produce 400. Proposed precise mapping requires parser evidence. |
+| API-E32 | Malformed framing, contradictory/duplicate length, unsupported transfer encoding, duplicate header, pipelined extra bytes or bad HTTP syntax | 400 `invalid_http` | No automatic replay of malformed bytes; fix integration | Existing strict framing; no transfer-encoding fallback/request smuggling. Connection may close without a reply. |
+| API-E33 | Request read deadline expires | 408 `request_timeout` | Yes on a fresh connection with unchanged complete body | Existing five-second backend read timeout; distinguish proxy timeouts and stalled NFS handoff. |
+| API-E34 | EOF/incomplete body or connection reset during sending | 400 `incomplete_request` if obtainable; otherwise no reliable response | Correct persistent framing faults; if transport loss is uncertain, unchanged retry | Current EOF code false. Transport fallback must distinguish received valid rejection from absent/malformed response; no handoff release either way. |
+| API-E35 | Unknown API route or unknown local operator job | 404 `not_found` | No unchanged retry; correct endpoint/ID; do not reinterpret missing source files as endpoint 404 | Existing; producer remote ingress must not expose job existence. |
+| API-E36 | Wrong HTTP method on an allowed route | 405 `method_not_allowed` with required Allow header | No; correct method | Current status/code exist; required Allow header is not emitted by current response writer. |
+| API-E37 | Body on bodyless GET; conflicting optional Idempotency-Key header | 400 `unexpected_body` or `idempotency_key_conflict` | No; correct integration; header must match the authoritative request/command key | Existing. New recording-ID/header equivalence and canonicalization pending. |
+| API-E38 | Missing Host or unsupported Expect/Authorization headers on current endpoint | 400 `unsupported_headers` locally; remote auth/header-spoof mapping per RA contract | No; correct integration | Existing local behavior; bearer tokens/registration are deferred. Do not silently turn this into a new 401 challenge scheme. |
+| API-E39 | Authenticated producer exceeds per-caller/global remote connection/request budget | 429 `rate_limited` plus Retry-After when known | Yes with backoff; preserve local operator/control capacity | Remote contract RA-13 is pending; current local queue saturation uses 503, not 429. Exact rate/concurrency distinction needs package design. |
+| API-E40 | TLS server identity invalid or client certificate absent/untrusted/expired | TLS failure; no guaranteed HTTP status/body | No blind retry; correct provisioning/clock/trust, never bypass certificate verification | Remote profile design only. Do not promise JSON/401 for a TLS-handshake rejection. |
+| API-E41 | Verified client certificate unmapped/revoked, or injected identity/Authorization/reserved headers | 403 `caller_not_authorized` for caller denial; 400 `unsupported_headers` for rejected header syntax/policy | No; correct provisioning/header behavior; original work continues | Pending RA-03-06/09/10; exact non-disclosing split must be frozen with proxy selection. |
+| API-E42 | Wrong local proxy UID, missing/duplicate principal, foreign/replaced backend socket | OS/socket denial, or 403 `caller_not_authorized` if an HTTP reply is safe | No; operator fixes trusted proxy/socket boundary | Pending protected producer ingress; default unsafe configuration fails startup. No direct TCP/anonymous fallback. |
+| API-E43 | Remote producer tries status/retention/operator/registration route, path alias or query bypass | Generic 403 `producer_route_forbidden` recommended at both hops | No; producer ingress exposes exact POST only; no job existence disclosure | Pending RA-08/13; choose consistent deny status with proxy. Local authorized 404/405 behavior stays separate. |
+| API-E44 | Proxy cannot connect to backend or gets invalid upstream reply | Proxy 502, or 503 for known backend unavailability; body may be proxy-generated | Yes unchanged request with capped backoff/alert; no automatic proxy POST replay | Pending proxy qualification; preserve distinctions between transport and mover JSON. |
+| API-E45 | Proxy waits too long for backend | Proxy 504; body may not follow mover schema | Yes unchanged request; old claim work may still run | Not evidence of cancellation/no effects. Backend handoff deadline should be shorter than proxy/recorder budgets. |
+| API-E46 | Process/proxy dies, network disconnects or recorder times out after any claim phase or after 202 generation | No reliable HTTP outcome | Same-ID unchanged retry; preserve all remaining paths until confirmed 202 | Existing local durable replay; remote end-to-end qualification pending. |
+| API-E47 | Unexpected server bug returns 500 or a non-JSON failure | 500 `internal_error` if response possible | Group 11 approves same-ID retry with backoff and persistent-failure alerting; unsafe state still stops effects | No deliberate generic 500 contract in current handler; never expose stack traces/secrets or fabricate success. |
+| API-E48 | HTTP redirect, unexpected 2xx, wrong recording ID or malformed purported 202 | Protocol violation, no accepted handoff | Preserve paths; alert; do not follow POST redirects or accept a partial success indication | Proposed client contract validation/fallback; retry details need agreement. |
+
+## Local operator API and failures after handoff
+
+These routes are local operator operations; the recorder need not implement them.
+Their errors must not be exposed through the remote producer socket. Successful
+operator HTTP 200 does not grant a new recorder handoff. Background failures are
+reported in job state/diagnostics, not pushed back to a recorder that already left.
+
+| ID | Situation | Proposed HTTP / code | Retry? / action | Current behavior / difference |
+|---|---|---|---|---|
+| API-E49 | Invalid numeric job ID, resume/reset body, epoch, reason, command ID or window | 400 `invalid_job_id`, `invalid_resume` or `invalid_missing_reset` | No; correct operator request | Existing codes and bounded command validation. |
+| API-E50 | Operator reads/resumes/resets an unknown job | 404 `not_found` | No; inspect correct original state/ID | Existing; do not restore a stale DB to make the lookup succeed. |
+| API-E51 | Resume/reset uses stale review epoch, ineligible job/file or unmet review prerequisites | 409 `review_conflict` | No blind retry; inspect current status before a new audited command | Existing; wrong epoch does not reset failure budget or missing deadline. |
+| API-E52 | Reuse command ID with changed parameters | 409 `command_conflict` | No; keep original command for uncertain retry | Existing. Exact command replay succeeds with original receipt, without changing later state. |
+| API-E53 | Operator audit-record capacity reached | 409 `operator_audit_capacity` | No blind retry; operator investigates supported retention | Existing; no unaudited bypass/deletion. |
+| API-E54 | Operator queue/status storage unavailable or timeout | 503 `service_busy` or `storage_unavailable` | Yes; read retries are safe, command retries preserve command ID/body | Existing. Timeout does not prove command transaction failed. |
+| API-E55 | Destination unavailable/full after valid 202 | Status GET 200 containing retry/review condition; no new submission error | Recorder does nothing after confirmed 202; operator follows retained delivery policy | Existing destination deferral and payload ENOSPC schedules; do not change those intervals/budgets through API mapping. |
+| API-E56 | Verification mismatch, collision, changed destination/custody or uncertain publication after 202 | Status GET 200 with blocked/retrying/review diagnostic | Recorder has no duty; operator investigates original receipts/state | Existing delivery policy/receipt rules; never translate failure into revoked path release or overwrite permission. |
+| API-E57 | Source cleanup disabled or later fails after committed manifest | Status GET 200 with retained/pending/review cleanup accounting when implemented | No recorder retry; independent operator cleanup workflow | Cleanup runtime currently hard-disabled. Future effect errors do not revoke delivery/202 or trigger recopy. |
+| API-E58 | Service not ready, bootstrap blocked or startup config/ownership/state refusal | No listening/served HTTP response; supervisor/startup diagnostic | Fix unsafe config/state; for temporary startup wait retry original submission with backoff | Existing startup readiness boundary; not a guaranteed 503/readiness endpoint. No second mover takeover on timeout. |
+| API-E59 | Stop/status controller times out, owner unavailable or worker survives coordinator death | Local lifecycle protocol/exit status, not REST HTTP code | Existing bounded incomplete/restart-blocked workflow | Do not invent REST status codes for the separate Unix operator controller; preserve actual-exit exclusion. |
+| API-E60 | Consumer sees payload/manifest absent or invalid, or only a staging/partial name | Consumer contract condition, not a new mover REST endpoint/status | Wait for valid COMMITTED.json; report invalid manifest/collision to operator | Filesystem destination has no implemented artifact HTTP endpoint. Never infer completion from a visible payload alone. |
+
+## Expected-size policy (group 14)
+
+**Approved on 2026-10-23; not implemented.** The user specifically requests
+that the disabled-checking scenario remain documented. SC-139 tracks this user
+situation; API-E61-66 are its finite acceptance cases, not passing tests.
+
+A startup boolean controls comparison with the recorder's expected sizes; its
+working name is check_expected_sizes and its default is false. This is a
+checking toggle, not merely a require-optional-field toggle. The current startup
+value applies to existing unfinished handoffs as well as new recordings; do not
+store a per-recording snapshot of this setting. Group 15 below defines restart
+behavior. Exact public configuration spelling still needs schema finalization.
+
+- **Disabled:** the map may be omitted. If a complete map is supplied, ignore its
+  numeric assertions when comparing against actual files; a mismatch alone does
+  not block handoff. This lets a recorder send the same JSON across deployments
+  with size checking on or off.
+- **Enabled:** the complete map is required and every listed file's expected size
+  must match the service's actual claim observation. A mismatch returns
+  409 source_size_mismatch, retryable false; a missing required map is
+  400 invalid_submission, retryable false.
+- **All or nothing in both modes:** a supplied map must contain exactly one
+  nonnegative integer byte count for every listed path, including zero for an
+  empty file. Partial maps, extra/unlisted names and invalid numeric values are
+  400 invalid_submission, retryable false. JSON decoding/framing errors retain
+  their earlier mappings. Structural validation is distinct from comparing
+  supplied numbers against filesystem observations.
+- **Always active:** service-side actual-size measurement and stable-object
+  checks during claim, copied-size consistency, streamed source hashing,
+  destination reread verification and manifest/receipt checks. This toggle does
+  not disable copy integrity or make a file changing before 202 acceptable.
+
+Ignoring values for size comparison does not make the request mutable. Preserve
+its original complete map for recording-ID replay/conflict rules. Changing an
+assertion on a retry remains changed request content under API-E03, even when
+comparison is disabled. Do not drop the map from canonical request identity just
+because it is not used for size comparison. The current setting governs remaining expected-size checks after a config
+change, including existing partial claims (group 15). Keep original request,
+actual-size evidence and custody intact; re-evaluate the comparison instead of
+rewriting observations or pinning the old checking policy.
+
+### Concrete disabled-checking example
+
+Send the following complete request while checking is disabled:
+
+```json
+{
+  "generator_id": "recorder-01",
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_directory": "/mnt/nfs/recordings/run-0042",
+  "files": ["camera1/video.bin", "metadata.json"],
+  "expected_sizes_bytes": {
+    "camera1/video.bin": 100,
+    "metadata.json": 300
+  }
+}
+```
+
+Actual source sizes are video **200 bytes** and metadata **300 bytes**.
+With checking disabled, ignore the supplied 100-byte assertion and perform
+normal claiming. Record actual sizes 200 and 300; all other checks must pass
+before 202. Copy/verify those actual bytes, without truncation or padding.
+With checking enabled, the same mismatch blocks whole-set 202 with
+409 source_size_mismatch. Earlier claimed files remain protected; neither the
+409 nor a partial claim authorizes the recorder to reuse any original path.
+
+| ID | Situation | Approved outcome | Current implementation / acceptance status |
+|---|---|---|---|
+| API-E61 | Checking disabled, size map omitted | Normal claim processing; 202 only after whole-set durable custody | New setting/wire shape pending; ordinary no-assertion claiming already exists. |
+| API-E62 | Checking disabled, complete valid map supplied, one expected 100-byte value differs from actual 200-byte file | Ignore the expected-value mismatch; claim records 200 actual bytes; normal verified delivery and eligible 202 | **Requested documented scenario, SC-139.** New toggle/map unimplemented; no new passing test claimed. |
+| API-E63 | Checking enabled, complete map supplied, all values match actual file sizes | Normal claim processing and whole-set 202 when all other checks pass | New setting/map pending; current per-file assertions are reference behavior only. |
+| API-E64 | Checking enabled, complete map supplied, at least one size mismatches | 409 source_size_mismatch; retryable false; retain any partial custody, no new release | Existing mismatch refusal remains; new configuration/wire acceptance must be qualified. |
+| API-E65 | Checking enabled, map omitted | 400 invalid_submission; retryable false; reject before new acceptance/effects | New required-complete-map rule pending. |
+| API-E66 | Either mode, supplied map partial, has extra/unlisted keys or invalid numeric values | 400 invalid_submission; retryable false; reject before new acceptance/effects | New all-or-nothing shape pending; qualify each vector with checking off/on. |
+
+## Current size-checking configuration governs existing work (group 15)
+
+**User direction recorded 2026-10-23; implementation pending.** The user rejects
+per-recording policy snapshots as unnecessary complexity and expects the new
+configuration to govern the lifecycle of existing work. Apply that rule to
+expected-size checking: after a restart, use the current startup setting for
+remaining claim/handoff checks on every recording, including already accepted
+and partially claimed recordings. No per-job setting, configuration generation
+or policy-version migration is required for this toggle. This does not add
+live configuration reload.
+
+- **Off to on before whole-set handoff is confirmed:** require the complete
+  original map and compare its assertions with actual size evidence. Where a
+  file is already claimed, use its original private custody/claim receipts;
+  never reopen a producer-reused path. Missing map is 400 invalid_submission;
+  mismatch is 409 source_size_mismatch, both non-retryable under that setting.
+  Preserve any existing claims and original job; these failures do not discard
+  accepted work or permit a replacement ID.
+- **On to off after an expected-size-only refusal:** the next original-ID/body
+  retry uses disabled comparison, so the old expected-size mismatch alone must
+  no longer prevent progress. This needs no new operator repair command or
+  request mutation. Independent missing-file review, identity/custody refusal,
+  unsafe source changes and copy-integrity failures still retain their own rules.
+  Recorder retry being stopped by a prior response may require the operator to
+  restart that original submission; do not add autonomous claiming implicitly.
+- **A whole-set handoff already confirmed:** a current authorized identical
+  replay still returns its 202 confirmation. Changing size-check configuration
+  does not withdraw a completed handoff, require a new map for its replay,
+  reclaim producer-reused paths, retransfer committed data or revoke a valid
+  producer acknowledgement. This also covers a 202 lost on the network.
+- **Actual evidence is always authoritative:** toggling the assertion check
+  never changes the observed claimed size, pinned custody/route receipts,
+  streamed hashing, destination verification or required byte-count consistency.
+  Configuration selects pending policy; it does not erase durable facts.
+
+Replay processing must distinguish completed handoff from unfinished work before
+applying the current conditional map requirement. Keep structural JSON/path/map
+validation and caller authorization; do not return a new missing-map refusal for
+an exact, already confirmed replay solely because checking was enabled later.
+Missing/mismatching expectations for an unfinished job can be addressed by
+changing this setting back off and retrying the original request. Changing its
+map under the same recording ID remains a request conflict.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E67 | Off to on across restart, original recording partially claimed, complete assertions match all observed sizes | Current on setting applies to the original job; preserve custody and finish whole-set handoff after normal checks; no old-policy snapshot | Contract direction, implementation/qualification pending; test same ID/body and original claims. |
+| API-E68 | Off to on across restart, unfinished original request omits map or contains a complete mismatching map | Current policy returns 400 invalid_submission for missing map or 409 source_size_mismatch for mismatch, retryable false; keep original state/private claims; no false 202 | Include mismatch on an already privately claimed file as well as a pending file; never read a reused original name. |
+| API-E69 | On to off across restart after expected-size-only refusal | Original same-ID/body retry skips expected-size comparison and may progress normally; unrelated safety/review blocks remain; actual measured size and integrity checks unchanged | No new repair endpoint, new ID or rewritten request; qualify combined independent refusal control. |
+| API-E70 | Either setting changes after durable whole-set handoff, including lost 202, reused source names and delivery already complete | Authorized exact retry replays confirmed 202; no retroactive map requirement or acknowledgement revocation; no new claim/copy of reused data | Test both on-to-off and off-to-on; completed custody remains evidence, not a per-job setting snapshot. |
+
+SC-140 and DOC-01/03/04/05 must explain this restart behavior and distinguish
+configuration policy from preserved recording state. These are pending tests,
+not new Rust/NFS qualification results.
+
+## Request equivalence: file order (group 16)
+
+**Approved on 2026-10-23; implementation pending.** Reordering the same explicit
+file paths does not change recording identity. A same-recording-ID retry with
+only file-list order changed resolves to the original job, never a new recording
+or 409 conflict. Existing prototype file-list order matters; update the
+implementation and evidence before advertising this new behavior as supported.
+
+Keep generator, recording ID, source directory, file membership and expected
+size assertions unchanged. Expected sizes are matched by relative path, never
+by file-list position. Object-member order in the JSON/map is not identity.
+Adding/removing/renaming a file or changing an assertion remains a changed
+request, including when expected-size comparison is disabled. Duplicate paths
+remain invalid; treating order as immaterial does not silently deduplicate them.
+No path case folding, symlink resolution or additional path normalization is
+approved by this ordering decision.
+
+Use a deterministic canonical comparison and retain exact original job/claim
+identity. In particular, a partially claimed replay in a new order must map each
+incoming path back to its existing durable file identity; never reassign file
+IDs, claim indices, missing deadlines, custody or receipts by arrival position.
+Preserve actual pending/review response until whole-set handoff is confirmed;
+reordering cannot grant 202, reset review or alter the configured route already
+recorded for the job. Completed handoff replays its existing authorized 202;
+producer-reused leaf names are never reclaimed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E71 | Same-ID retry permutes only file order, with size map absent or complete/unchanged | Same original job, source-to-private mapping and state. Pending/partially claimed jobs retain current retry/review/202 rules; fully claimed/committed recordings replay 202. No new claims of reused leaves or duplicate transfer | Approved contract, tests pending. Qualify accepted-unclaimed, partial claim, confirmed handoff and committed states; include same path-keyed sizes with map-member order varied. |
+| API-E72 | Permuted retry also changes membership/path/expected-size value, or includes duplicate paths | Changed content remains 409 recording_id_conflict; duplicates are rejected under existing 400 path/schema rules. Original custody/deadlines/attempts remain intact | Negative controls pending. An ignored expectation remains immutable request content; do not treat permutation as permission to change it. |
+
+SC-141 tracks this situation. DOC-01/03/04 need reordered-retry examples,
+partial-claim mapping, changed-request contrasts and original-state evidence.
+No new Rust/NFS/SLES result is claimed by recording this agreement.
+
+## Recording ID must be a UUID (group 17)
+
+**Approved on 2026-10-23; implementation pending.** recording_id is a required
+UUID string, generated once by the recorder and reused for every retry. The
+reviewed example is 550e8400-e29b-41d4-a716-446655440000. Arbitrary labels such as
+recording-0042 or a numeric counter are not accepted as recording_id.
+
+A syntactically valid UUID is not proof of uniqueness, caller authorization or
+custody. Enforce the global recording-ID namespace in durable storage: identical
+replay resolves to the original job; changed content remains a conflict; caller
+checks still prevent cross-generator disclosure. New input with a non-UUID
+recording_id is 400 invalid_submission, retryable false, before new acceptance
+or filesystem effects. Malformed JSON keeps its existing invalid_json mapping.
+
+This requirement concerns recording_id only; it does not silently change
+internal job IDs, operator command IDs or generator identity format. No specific
+UUID version has been required by the user. Finalize exact lexical validation
+and canonical identity in OpenAPI/schema work; do not reinterpret two accepted
+spellings of one UUID as two globally different recordings. No new Rust package
+or dependency experiment is authorized simply by choosing this ID format.
+Preserve existing stored jobs/claims under explicit migration/refusal rules;
+rejecting a new invalid ID does not authorize deleting legacy stored work.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E73 | Recorder supplies a valid UUID recording_id and retains it across submission retries | Normal authorization/admission/claim and same-original-job replay rules; 202 only after confirmed whole-set custody | Approved contract, implementation/qualification pending. Current prototype still uses free-form submission_id. |
+| API-E74 | New request uses a non-UUID label, number, missing ID or malformed UUID recording_id | 400 invalid_submission, retryable false, before new acceptance/effects; do not replace an already accepted ID to bypass a pending claim | Invalid-field mapping approved. Cover lexical forms in the final schema/case manifest; no automatic claim that existing prototype enforces UUID. |
+
+SC-142 and DOC-01/03 must show UUID generation once, retry preservation,
+non-UUID rejection and distinction from numeric internal job IDs. Administrative history-clear/UUID semantics and concurrent replay remain the
+next contract decisions.
+
+## Detailed job history retained until admin clears it (group 18)
+
+**User direction recorded 2026-10-23; dashboard workflow unimplemented.** Keep
+full detailed job history until an administrator explicitly clears history using
+the dashboard. There is no automatic expiry, pruning or replacement of full
+history with a small permanent completion receipt. The earlier suggestion of
+indefinite compact records after automatic history removal is not the selected
+policy. Group 19 resolves explicit clearing: forget the cleared UUID too, so a
+later submission using it is processed as a new recording.
+
+Keep ordinary replay/conflict behavior for all retained recordings. Completion,
+source cleanup, elapsed time and service restart do not automatically remove
+history or free a retained UUID for another recording. Do not bypass existing
+capacity/accounting limits to implement retention implicitly; finalize how
+history storage and custody/admission accounting interact.
+
+The user requests a dashboard clear-history workflow. Incorporate it into release
+planning rather than treating this requested workflow as covered by an unchanged
+blanket dashboard deferral. Group 19 defines eligibility and UUID forgetting.
+Release placement, administrative access, separate retained-data deletion rules,
+confirmation/audit and exact endpoint behavior still need agreement.
+No generic dashboard or new admin API is implemented by this documentation.
+
+**Resolved by group 19:** explicit clear removes history and UUID recognition;
+only completed or safely cancelled jobs are eligible. Unfinished/errored jobs
+must be cancelled first. Define the cancellation/data-ownership workflow before
+implementing effects; history clear cannot silently discard ownership evidence
+needed to protect retained files. History removal is not a source/destination
+file-deletion grant. Administrative API status codes are not frozen yet.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E75 | A job completes, time passes or service restarts, with no explicit admin dashboard clear | Preserve detailed history and retained recording-ID replay/conflict behavior; no automated expiry or compact-only replacement | User-directed retention; clear/UUID eligibility is defined in group 19, with dashboard/cancellation implementation pending. Existing store retention is not proof of a delivered dashboard feature. |
+
+SC-143 and DOC-01/03/05 must explain manual full-history retention, capacity,
+administrative clearing and late-retry behavior once its scope is agreed. Do not
+promise an implemented cleanup/history clear route or silently discard state.
+
+## Admin clear forgets UUIDs; cancel unfinished or errored jobs first (group 19)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**User direction recorded 2026-10-23; implementation pending.** Explicit admin
+history clear removes the selected detailed history **and forgets its recording
+UUID**. Keep no deduplication tombstone or compact completion receipt for that
+cleared UUID. A later submission using it is a **new recording**, whether its
+request body is identical to or different from the cleared one. It does not
+replay an old 202, inherit the old job/route or receive a conflict solely because
+of that cleared history. Normal current authorization, schema, source scope,
+admission, ownership and whole-set claim requirements still apply.
+
+### Clear eligibility
+
+| Job condition | May admin clear history? | Required action |
+|---|---|---|
+| Completed | Yes, through the explicit clear operation | Preserve necessary data-ownership safety while removing history/UUID recognition. |
+| Safely cancelled | Yes, through the explicit clear operation | Cancellation must actually be complete, not merely requested. |
+| Accepted/claiming/delivering/waiting/retrying, otherwise unfinished | No | Cancel the job first, then clear after cancellation completes. |
+| Errored or review-required | No | Cancel the job first; an error alone is not clear eligibility. |
+| Cancellation requested, blocked worker still live, or old effects unresolved | No | Preserve job/history/UUID; do not pretend a request/signal/timeout completed cancellation. |
+
+The admin's request to clear data concerns this history workflow; no physical
+source/destination deletion is authorized by it. Source deletion remains disabled.
+Group 20 resolves cancellation: preserve source/staging/published files in place.
+Group 21 resolves history clear: keep files and their separate operational
+ownership/accounting records; deletion is a separate explicit admin action.
+Such operational
+facts cannot simply be lost while retained files or uncertain effects need them;
+they must not be used as a hidden UUID deduplication tombstone after a clear.
+No offline repair or data-disposal tool is added implicitly.
+
+### New submission after clear
+
+Example: UUID 550e8400-e29b-41d4-a716-446655440000 completed and an admin clears
+its history. Later the recorder sends that same UUID again. Allocate a fresh
+internal job identity and evaluate it as a new submission under current config.
+Any 202 must come from this new recording's confirmed handoff, not the deleted
+record's receipt. Reused source paths may now contain different data: this is an
+explicit consequence of forgetting the old UUID, not continued idempotent replay.
+Document that boundary prominently in DOC-01/03/05.
+
+History clear does not delete previously delivered files. The recording-ID
+folder may therefore still exist; ordinary destination no-clobber/ownership rules
+remain. A new recording is not permission to overwrite old content or adopt an
+old COMMITTED.json as new completion. Finalize collision handling in the schema/
+publication contract; do not promise a new submission must succeed merely
+because its UUID was forgotten.
+
+Serialize clear against the exact original internal job and eligibility state.
+The intended implementation must not half-clear history and leave UUID replay
+recognition behind, or accidentally clear a fresh job created under the reused
+UUID. Exact transaction/command/audit/bulk behavior and cancellation endpoints
+still need contract work; do not publish invented response codes as approved.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E76 | Admin clears a completed job's history | Remove selected detailed history and UUID recognition together; a restart preserves the cleared state; no permanent dedup tombstone | Approved workflow, implementation/qualification pending; administrative wire response still to define. |
+| API-E77 | Admin attempts clear on unfinished, retrying, errored or review-required work | Refuse/skip that ineligible job without removing its history, UUID, custody or state; require explicit cancellation first | Test each state; exact single/bulk reply policy pending. Never use blanket history truncation. |
+| API-E78 | Cancellation has only been requested or workers/effects are still unresolved | Job remains ineligible to clear; retain required ownership and state until safe cancellation completes | Signal/timeout/process lock release alone is not cancellation/remote-settlement proof. |
+| API-E79 | Admin cancels an unfinished/errored job, cancellation safely completes, then clears it | Clear becomes eligible; explicit clear removes history/UUID recognition; current data-ownership rules remain protected | File-preserving cancellation is defined in group 20; history-clear file disposition and runtime qualification remain pending. No implemented cancel/clear route claimed. |
+| API-E80 | Cleared UUID is submitted again, with same or different body, including after restart or around a concurrent clear | Treat it as a new recording with fresh internal identity and current checks; no old 202/conflict/route reuse from deleted history. Normal source/destination collision and no-clobber checks remain | Test new actual claim before 202, retained previous destination data and clear targeting the original job only. No new acceptance/overwrite shortcut. |
+
+SC-144 covers late reuse after clearing; SC-145 covers cancel-before-clear.
+DOC-01/03/04/05 must explain both, including the loss of old replay protection.
+
+## Cancellation preserves files in place (group 20)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**Approved on 2026-10-23; implementation/qualification pending.** Cancellation
+stops further transfer work and preserves existing files at their current
+locations. It is not automatic rollback, restoration or data deletion. This
+policy extends the current [transfer protocol](TRANSFER-PROTOCOL.md), not the
+prototype's implemented operator commands: cancel is not implemented yet.
+
+| File state when cancellation is requested | Required handling |
+|---|---|
+| Not yet claimed | Leave at the original source path. |
+| Claimed into private source custody | Preserve at that private path with its original identity/receipt; do not move it back automatically. |
+| Destination copy partially written | Preserve the private staging file and actual progress/effect facts. Do not mark it copied/verified/consumer-complete. |
+| Payload already published, without valid completion manifest | Preserve published files as an incomplete recording. Consumers still require valid COMMITTED.json. |
+| Valid completion manifest already published | Preserve delivered files and the manifest; cancellation cannot retract consumer visibility or undo handoff. |
+
+Do not restore claimed files over producer paths, which may have been reused
+following an earlier 202. A cancellation before 202 does not fabricate path
+release or restore missing originals. Preserve unclaimed originals and private
+claimed files; recovery/data disposition must be separately defined. An earlier
+confirmed 202 remains valid; the recorder does not have to restore old names or
+monitor delivery after that acknowledgement.
+
+Persist the stop/cancel intent before authorizing further work. Stop new claim,
+copy/publication and cleanup authorizations for the cancelled recording. Already
+authorized operations can complete; record and reconcile actual outcomes rather
+than claiming a signal reversed an NFS call. If manifest publication was already
+in flight, cancellation remains pending reconciliation and the set may become
+committed. Never delete a visible valid manifest to pretend cancellation won.
+Deletion already completed cannot be reversed; cancellation does not promise
+restoration of bytes removed before it took effect. Production deletion remains
+disabled in the current implementation.
+
+A blocked worker or unresolved old storage effect keeps cancellation pending.
+Do not mark safely cancelled or allow history clear merely because a cancel
+request was acknowledged, a timeout expired, the coordinator exited or a local
+lock became free. Reconcile the old assignment and retain ownership through
+actual worker exit. The bounded API/control response may report pending without
+pretending the filesystem operation was cancelled; exact cancellation deadline/
+status/wire fields remain contract work, not inherited automatically from stop.
+
+Preserved source and destination bytes still consume capacity. Cancellation
+must keep their ownership/receipts/accounting; it is not a way to release an
+admission budget without actual disposition. Group 21 now resolves subsequent
+history clear: keep the files with separate operational ownership/accounting,
+forget UUID recognition, and require a separate explicit admin action for data
+deletion. Group 22 now defines its owned-file scope, protected categories, safe-stop and
+confirmation requirements. Partial-failure/retry, authorization/configuration
+and exact wire semantics still need agreement. No general offline repair or
+orphan adoption is introduced by tracking known retained files.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E81 | Cancel before any claim | Originals stay at source; stop new claim authorizations; preserve original request/history until explicit eligible clear | Approved policy; cancel endpoint and qualification pending. No automatic 202 or UUID forgetting. |
+| API-E82 | Cancel a partially claimed recording or a fully claimed recording | Retain each private claim and every unclaimed original in place; preserve actual identities/receipts; no automatic restore/delete or new path release | Include before/after 202; existing 202 remains valid, partial handoff does not become complete. |
+| API-E83 | Cancel during partial destination copy | Keep staging bytes and claimed source; stop further work once authorized activity safely settles; no false copied/verified/committed state | Test progress and restart preservation, not merely desired-cancel flag. |
+| API-E84 | Cancel after payload publication but before manifest authorization | Keep published payload/staging/source; authorize no new completion manifest; consumers continue to ignore incomplete recording | Cancellation doesn't remove final files or overwrite reused source paths. Previously authorized effects remain separately reconciled. |
+| API-E85 | Cancel while manifest publication is authorized/in flight or valid COMMITTED.json is already visible | Reconcile actual publication; preserve visible recording/manifest. Do not report that cancellation kept it uncommitted when publication actually completed | Include visibility before local result receipt; no retraction of delivered data or earlier 202. |
+| API-E86 | Cancel while a worker is blocked/terminating or storage effects are unresolved | Keep cancellation pending, files/ownership/state protected and history ineligible to clear until safe settlement and actual worker exit | No timeout/signal-as-proof or unsafe replacement; group 37 selects admin 202/Cancellation pending, then Cancelled after safe stop; exact body remains to define. |
+
+SC-146 and DOC-01/02/03/04/05 must explain retained files, consumer commitment,
+cancel-pending/clear eligibility, producer-path reuse and unchanged space usage.
+These are planned contract cases; no new Rust/NFS/SLES result is claimed.
+
+## History clear keeps files; data deletion is a separate admin action (group 21)
+
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
+
+**Approved on 2026-10-23; implementation/qualification pending.** The user
+accepts keeping files when history is cleared. Clear removes selected detailed
+job history and UUID recognition, while preserving existing physical files and
+the separate operational ownership/accounting needed to manage them. Deleting
+retained data requires its own explicit admin action. Cancellation, history
+clear, elapsed time and UUID reuse do not stand in for that action.
+
+### Separation of the three actions
+
+| Action | Files | Job history / UUID recognition |
+|---|---|---|
+| Cancel | Preserve files in place; stop new work and reconcile authorized activity | Retain history/UUID; do not allow clear until safely cancelled. |
+| Clear history (eligible completed/safely cancelled jobs only) | Preserve unclaimed originals, private claimed source, staging, published payloads and completion manifests | Remove selected detailed history and forget UUID recognition; later UUID submission is new work. |
+| Delete retained data | Separate confirmed admin request limited to owned retained source/unfinished destination after safe stop (group 22); best-effort failure handling below; exact auth/wire details pending | Not triggered by cancel or clear; do not invent its history/receipt behavior before design. |
+
+Keeping files after clear does not retain an old request for idempotent replay.
+Keep only operational facts needed for retained-file ownership, safe management
+and truthful accounting, addressed by internal retained-data identity rather
+than old UUID submission recognition. This is not an indefinite completion
+tombstone or a hidden copy of full job history. Schema/transaction details are
+implementation work, not a completed new inventory feature.
+
+Preserve authorized roots, actual file identity/custody receipts, retained paths,
+bytes and any facts needed to distinguish private/incomplete data from a valid
+published recording. Do not rename files or adopt unknown objects to make clear
+succeed. Existing paths may contain an old UUID, but the presence of such a path
+is not a retained UUID replay key or permission to attach its files to a new job.
+A new submission under a forgotten UUID still uses current checks and normal
+source reservations, scope and destination no-clobber rules.
+
+Clear must preserve this operational ownership before removing detailed history
+and UUID recognition. If the transition cannot be made safely/atomically, retain
+recoverable state and report a failed/pending clear rather than deleting the
+only custody evidence. Exact admin transaction, retry receipt, bulk and endpoint
+behavior remain to finalize. A new or retried admin operation must target its
+original internal job/data identity, not accidentally act on a fresh recording
+created with a forgotten/reused UUID.
+
+Retained bytes remain occupied and must remain accounted for after clear.
+Clearing history does not make storage space available or make retained source
+files eligible for automatic deletion. Integrate retained-file versus historical
+row limits in capacity design; do not simply drop byte charges when job rows are
+removed. Source/destination automatic cleanup policies keep their separately
+agreed gates; this manual action does not silently override them.
+
+Group 22 approves the separate delete action's scope and explicit confirmation.
+Deletion failure is best effort as agreed in group 22; next settle admin access,
+configuration interaction and exact bounded wire/transaction behavior. No
+physical delete, new endpoint, error code or orphan repair tool is implemented
+or authorized to run by these contract decisions. Production source deletion
+and NFS remain disabled.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E87 | Clear completed history while source retention and/or completed destination files still exist | Files and valid manifest remain unchanged; history/UUID recognition are removed; required retained-file ownership/accounting survives separately | Approved contract; preserve content/identity and no unlink/restore effects. New operational storage design pending.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E88 | Clear safely cancelled history containing private claims, partial staging or uncommitted published data | Preserve all files and required operational receipts/bytes; forget old UUID. No data removal disguised as history clear | Cancellation must already satisfy group 20; no clearing active/error-only jobs.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E89 | Restart after clear, then submit forgotten UUID | Retained files remain safely tracked without old UUID replay recognition; new submission uses a fresh job and current checks; no adoption or overwrite of old data | Test original retained identities/accounting and absence of old replay, including old destination collisions.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E90 | Failure/restart or concurrent submission during history-to-retained-data transition | No lost ownership, false space release, half-cleared replay state or accidental clear of a new job; recover original operation against exact internal identity | Exact transaction/retry/bulk protocol pending; qualify once designed.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+| API-E91 | No explicit retained-data delete action has been requested, including after cancel/clear | Preserve files regardless of elapsed time or administrative history removal; no automatic discard from those controls | Scope and confirmation are defined in group 22; Best-effort failure behavior is defined below; access and exact responses remain pending; group 23 resolves cleanup independence. |
+
+SC-147 records file-preserving history clear and retained ownership/accounting.
+SC-148 records separate explicit data deletion. DOC-01/02/03/04/05 must distinguish
+these controls, UUID forgetting, storage occupancy and preservation of valid
+consumer output. These are pending acceptance cases, not new passing tests.
+
+## Confirmed retained-data deletion: owned leftovers only after safe stop (group 22)
+
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
+
+**Approved on 2026-10-23; implementation/qualification pending.** The separate
+admin action may delete only mover-owned retained source files and unfinished
+destination data after work has safely stopped. Protect unclaimed originals and
+completed destination recordings. Require explicit admin confirmation; cancel
+and clear history remain non-destructive and do not supply that confirmation.
+
+### Eligible versus protected data
+
+| Data category | Delete retained data action |
+|---|---|
+| Private retained source files, with original mover custody/identity evidence | Eligible after safe stop, explicit confirmation and ownership revalidation. |
+| Private unfinished destination staging and mover-owned uncommitted payload data | Eligible after safe stop and verified ownership/non-commitment; no blind directory removal. |
+| Unclaimed original source files | Protected; never part of this action. |
+| Completed destination recording, including its published files and valid COMMITTED.json | Protected; this action must not delete or retract it. |
+| Foreign/replaced/unattributable objects, unproven root scope or unknown publication outcome | Not authorized; preserve and report the uncertainty. |
+
+Deletion of private source is deliberately destructive: for cancelled work it
+may remove the only remaining copy. The admin confirmation must make that
+consequence clear. This is explicit retained-data disposal, not proof of a
+successful transfer. Automatic postcommit cleanup still requires its own
+verified-destination/authorization rules. Reconcile this distinction explicitly
+in requirements; do not weaken automatic cleanup guards to implement discard.
+Group 23 resolves configuration interaction: manual deletion remains available
+when automatic cleanup is disabled. Admin permissions remain to settle.
+Production deletion stays off.
+
+A file path or the service UID alone does not establish mover ownership. Use
+separate retained-data identity, approved roots and original actual object/
+parent/custody evidence. Revalidate before effects and refuse traversal, mount,
+symlink/identity substitution or ownership ambiguity. A cleared/reused recording
+UUID cannot select or authorize deletion of a new recording's files.
+
+Safe stop requires no live work that can use those objects and reconciliation
+of authorized/uncertain effects. A paused/idle-looking job, cancellation request,
+timeout or free local lock alone is insufficient. The admin cannot override
+unresolved workers or publication merely by confirming. Keep completed-output
+protection independent of deleted history: absence/unavailability of a manifest
+alone is not proof that data is uncommitted, and an earlier confirmed commitment
+must not be forgotten just to make a file eligible.
+
+Show the admin the selected retained files and consequences before confirmation;
+bind the confirmed operation to those exact retained-data identities, rather
+than an arbitrary path or UUID search. Changed ownership/selection requires
+revalidation and fresh confirmation as appropriate. Exact preview/token/revision
+and endpoint schemas remain implementation design, not a new agreed protocol.
+Do not turn one confirmation into blanket recursive deletion of unknown files.
+
+**Failure handling simplified by the user on 2026-10-23:** deletion is best
+effort. Attempt the eligible confirmed files; a failed deletion leaves that file
+behind and does not prevent attempts on other independently safe selected files.
+Report failures without claiming everything was deleted. No dedicated paused
+state, automatic retry schedule, resume protocol or deletion-receipt subsystem
+is required. The admin may request deletion again for remaining eligible files
+under the same confirmation and safety rules. Successfully deleted files stay
+deleted; there is no rollback. A failed or uncertain outcome is not proof of
+removal or permission to bypass ownership checks. Keep accounting for remaining
+or unresolved data; selection/history clear alone cannot release bytes.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E92 | Admin confirms deletion of selected owned retained source/unfinished destination after safe stop | Delete only the qualified selected objects under original ownership/root evidence; record actual outcomes and update retained-data accounting | Approved scope; destructive implementation/qualification pending. No current source/NFS enablement. |
+| API-E93 | Selection reaches unclaimed originals, committed output/manifest or foreign data | Protect those objects; no deletion of ineligible data. Report/refuse the protected selection according to final single/bulk contract | Include cleared-history cases, earlier committed evidence and unavailable/missing manifest observations. |
+| API-E94 | Confirmation is absent, rejected or no longer matches selected retained-data identities | No deletion authorization; require explicit matching confirmation and revalidation | Exact request/preview wire contract pending; old confirmation must not target a different/new object. |
+| API-E95 | Root/path/object/parent ownership changes or cannot be proven before deletion | Refuse unsafe effects, preserve ownership/evidence and report review/uncertainty | Do not adopt objects or infer authority from names/UID; no recursive arbitrary-path cleanup. |
+| API-E96 | Worker still active/blocked/terminating, cancellation pending or publication outcome unresolved | Deletion remains unauthorized until safe stop/settlement; confirmation cannot bypass the blocker | Existing actual-exit and remote-settlement limits apply; no signal/timeout shortcut. |
+| API-E97 | Some selected deletion succeeds, then error, lost reply or restart occurs | Best effort: leave failed files behind, attempt other independently safe confirmed files and report failures/unknown outcomes truthfully. No rollback or dedicated pause/resume/retry workflow | Approved simplified behavior; exact response shape pending. Uncertainty never grants authority to delete a different object. |
+| API-E98 | History/UUID is cleared or reused while an old retained-data delete action is confirmed/retried | Target only exact original retained-data identities; never new job/files selected by UUID/path resemblance; protected old committed output remains | Include concurrent admin/data operations; transaction/confirmation details still to qualify; repeated requests use the same ownership safeguards.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+
+SC-149 records the eligible/protected categories and SC-150 confirmed safe-stop/
+identity selection. DOC-01/02/03/04/05 must distinguish cancellation, history
+clear, explicit disposal, potential data loss and truthful partial outcomes.
+These are acceptance obligations, not new passing Rust/NFS/SLES evidence.
+
+## Manual deletion is independent of automatic cleanup (group 23)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Disabling
+automatic cleanup does not disable the separate explicitly confirmed admin
+retained-data deletion action. Automatic cleanup controls background removal
+after verified delivery; manual deletion is a deliberate admin action subject
+to group 22's eligibility, ownership, safe-stop, confirmation and protected-file
+rules. Neither cancel nor history clear supplies deletion authorization.
+
+Manual deletion remains best effort: failed files stay behind and failures are
+reported, without a dedicated pause/resume or automatic retry workflow. This
+independence does not enable automatic cleanup, delete completed recordings,
+relax verification for automatic source cleanup or enable production deletion
+in the current prototype. Admin access and exact wire/configuration names remain
+to settle; no additional manual-delete enable switch is required by this decision.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E99 | Automatic cleanup is disabled and an admin confirms deletion of eligible retained data | Allow manual deletion independently of the automatic-cleanup setting, subject to all group-22 safeguards and best-effort failure behavior. Without an explicit confirmed action, keep files | Approved policy; implementation/qualification pending. Production NFS/deletion remain disabled. |
+
+SC-151 and DOC-01/02/03/04/05 must explain the distinction between automatic
+cleanup and explicit manual disposal. No new passing test is claimed.
+
+## Admin dashboard access from another computer (group 24)
+
+**Approved access requirement on 2026-10-23; protection design pending.** The
+admin must be able to use the dashboard from another computer. A host-local-only
+UI does not meet this requirement. Include the requested cancellation,
+history-clear and retained-data deletion workflows in the remote admin design.
+
+Remote admin access is separate from recorder submission access. A generator
+identity or producer certificate must not itself grant admin privileges. The
+existing remote producer profile does not implement or qualify a dashboard or
+admin ingress. Do not expose the trusted loopback prototype or existing local
+operator interface as an unauthenticated remote admin API.
+
+Work through protection choices with the user before implementation: first
+the simple username/password choice in group 25, then the admin
+permission model, protected browser connection/session, request protection and
+confirmation details. Group 25 selects username/password; the remaining mechanism details are not selected by this access decision;
+registration remains deferred and no new account/token system is approved here.
+Previously agreed cancellation, history eligibility, deletion ownership/safe-stop,
+confirmation, protected-file and best-effort rules apply regardless of location.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E100 | Admin uses another computer to manage the mover through the dashboard | Support remote dashboard access through a separately protected admin interface; producer access alone grants no admin actions. Preserve existing admin operation rules | Remote access requirement approved; authentication/authorization, session/request protections, exact responses and implementation/qualification pending. No remote ingress enabled. |
+
+SC-152 and DOC-01/02/03/04/05 must explain remote admin access and distinguish it
+from recorder access. No new runtime or security qualification is claimed.
+
+## Simple admin username/password for the first release (group 25)
+
+**User-selected direction on 2026-10-23; implementation/qualification pending.**
+Use admin username/password sign-in for the remote dashboard. Keep the first
+release small: no SSO/Active Directory integration, self-registration, MFA,
+complex role hierarchy or account-management UI is required for this increment.
+Use a single configured admin account as the minimal implementation baseline;
+group 26 now selects local setup/password changes on the mover host. Exact
+configuration names/format remain to define. Do not
+ask for real passwords in conversation or commit credentials to the repository.
+
+A signed-in admin can use the agreed admin workflows; recorder identity alone
+never grants those rights. All admin action endpoints must enforce sign-in,
+not merely hide dashboard buttons. Authentication does not bypass safe-stop,
+ownership, protected files, clear eligibility or deletion confirmation.
+
+Keep ordinary login hygiene in the implementation design: HTTPS for remote
+browser access, a password hash rather than plaintext credential storage,
+no password logging, and a simple protected sign-in session with logout and
+basic request protection. These are implementation details to finalize, not an
+expanded cybersecurity project or a new set of release gates. Exact login/session
+wire details, expiry and error mappings remain pending; this decision does not
+select a password-hashing/TLS/session dependency or enable a remote listener.
+Registration/token enrollment for recording generators remains deferred.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E101 | Admin signs in with username/password, or a caller attempts admin actions without a valid sign-in | Support the simple configured admin login; require valid admin authentication for admin reads/actions and preserve existing operation safeguards. Invalid/missing authentication grants no admin effects | Login choice approved; credential/session/configuration and exact error mappings implementation/qualification pending. Producer credentials alone remain insufficient. |
+
+SC-153 and DOC-01/02/03/04/05 track the simple admin sign-in scope and separation
+from recorder access. No authentication or security qualification is claimed.
+
+## One admin account configured and changed on the mover host (group 26)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Configure
+one admin username/password locally on the mover host. Change that password
+locally on the same host. The first release does not need dashboard account
+creation, password-change/reset screens, self-registration or email recovery.
+Local credential administration is separate from remote dashboard sign-in.
+
+Keep credentials out of source control/logs and store the password securely as
+specified in group 25. Exact protected configuration/command/file format and
+whether a credential change requires restart remain implementation details to
+finalize. No default password, reset endpoint or remote account-management API
+is introduced by this decision. Recorder enrollment remains deferred.
+
+Group 27 now requires signing out all existing dashboard sessions on password
+change while transfers continue. Group 28 defines configurable 30-minute inactivity expiry. Credential administration
+must not implicitly cancel jobs, clear history or delete retained data.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E102 | Operator sets up the admin account or changes its password | Provide local administration on the mover host for one configured admin account; remote dashboard remains the sign-in/action interface, without remote account-management/reset workflow | Approved scope; command/config format and activation/restart mechanism remain pending; group 27 resolves existing-session invalidation. No runtime change. |
+
+SC-154 and DOC-01/02/03/04/05 must distinguish host-local credential setup/change
+from remote dashboard use. No new passing compatibility/authentication evidence.
+
+## Password changes sign out all dashboard sessions (group 27)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Changing the
+admin password signs out all existing dashboard sessions. Once the new password
+is activated, prior sessions cannot authorize further admin reads/actions; the
+admin must sign in with the new password. Apply this to every browser/computer,
+not only the browser currently in use. Session invalidation must be enforced by
+the service, not just by clearing one browser's display or cookie. Do not revive
+invalidated sessions after a restart. The exact activation/reload mechanism,
+session representation and error response remain implementation design.
+
+Background transfers continue unaffected. Password changes/session invalidation
+do not cancel, pause or restart jobs, clear history, delete files or undo admin
+actions already safely authorized. A browser losing sign-in is not evidence
+that an earlier request failed. All existing operation and confirmation rules
+remain. This does not add SSO, complex accounts or a new security workstream.
+
+Group 28 now selects a configurable 30-minute inactivity timeout. No disable
+option or absolute session lifetime has been selected.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E103 | Admin password changes while dashboard sessions and background transfers exist | Invalidate every existing dashboard session when the new password becomes active; require new-password sign-in for further admin access. Continue transfers without cancellation, pause or other job/file/history changes | Approved behavior; credential activation/session implementation and exact auth response remain pending. Include multiple browsers and restart without resurrection of invalidated sessions. |
+
+SC-155 and DOC-01/02/03/04/05 must explain password-change sign-out separately
+from transfer lifecycle. No passing runtime/authentication evidence is claimed.
+
+## Configurable 30-minute dashboard inactivity timeout (group 28)
+
+**Approved on 2026-10-23; implementation/qualification pending.** Dashboard
+sessions expire after 30 minutes of inactivity by default. Make the inactivity
+interval configurable. On expiry, require a fresh admin login before further
+admin access; leaving a dashboard open does not promise an indefinite sign-in.
+Treat inactivity as absence of admin interaction, not absence of transfer work;
+automatic dashboard refresh/background polling alone must not keep an unattended
+session signed in. Exact activity reporting/configuration name and bounds remain
+implementation details; no disable option or absolute session lifetime is agreed.
+
+Expiry affects dashboard access only. Background transfers continue; it does
+not cancel/pause/restart jobs, clear history, delete files or undo already
+authorized actions. Enforce expiry for admin endpoints, not just the displayed
+login state. Signing in again does not weaken operation eligibility or deletion
+confirmation. Password-change invalidation remains independent and signs out
+all existing sessions even if the inactivity interval has not elapsed.
+
+Group 29 requires a fresh login after mover restart while jobs use normal
+recovery. Keep the minimal username/password scope; no new security workstream.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E104 | Dashboard session reaches its configured inactivity interval while transfers continue | Default to 30 minutes, allow configuration, then require fresh login for admin access. Background transfers and already-authorized job actions continue unaffected; automatic refresh alone is not user activity | Approved timeout; configuration bounds/activity reporting and exact auth wire response implementation/qualification pending; group 29 resolves restart sign-out. |
+
+SC-156 and DOC-01/02/03/04/05 track inactivity expiry separately from transfer
+lifecycle. No new passing runtime/authentication/SLES evidence is claimed.
+
+## Mover restart signs out dashboard sessions; normal job recovery (group 29)
+
+**Approved on 2026-10-23; implementation/qualification pending.** A mover
+restart invalidates all pre-restart dashboard sessions. Require a fresh admin
+login after startup; a retained browser cookie or previously unexpired session
+must not restore signed-in access. This applies to every browser/computer and
+both normal and crash/recovery starts. Do not require persisting sessions across
+restarts; exact session representation remains implementation design.
+
+Jobs recover through the existing normal startup/recovery rules using original
+durable state and custody. Signing out dashboard sessions does not cancel,
+forget, re-create or delete jobs/data, reset retry/review deadlines, clear
+history or bypass ownership checks. Normal startup safety refusals still apply;
+this is not a promise that interrupted/unsafe work always resumes immediately.
+The dashboard must distinguish loss of sign-in from completion/failure of an
+earlier action. Previously accepted effects remain governed by their original
+operation rules, not the browser session's survival.
+
+Group 30 now requires history-clear confirmation showing selected jobs and
+explaining UUID forgetting/file preservation. Separate retained-data deletion
+confirmation remains required.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E105 | Mover restarts while browsers have signed-in dashboard sessions and durable jobs exist | Reject pre-restart sessions and require fresh login; recover jobs through normal original-state startup/recovery without implicit cancellation, history clear, deadline reset or deletion | Approved behavior; session/startup integration and exact auth response implementation/qualification pending. Existing ownership/review/startup refusals remain. |
+
+SC-157 and DOC-01/02/03/04/05 must distinguish dashboard sign-out from durable job
+recovery. No new runtime/recovery/security qualification is claimed.
+
+## Confirm selected history clear and explain UUID forgetting (group 30)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**Approved on 2026-10-24; implementation/qualification pending.** Require an
+explicit confirmation before clearing job history. Show the selected jobs and
+explain that clearing forgets their recording UUIDs but leaves their files in
+place. A later submission under a cleared UUID is new work under the existing
+rules; preserved files still retain ownership/accounting and no-clobber protection.
+
+Keep the confirmation simple. Declining or dismissing it clears nothing; merely
+selecting jobs is not confirmation. Apply the confirmed action only to the shown
+selection, not jobs that happen to appear later. Revalidate current eligibility
+when applying the clear: only completed or safely cancelled jobs may be cleared.
+Confirmation never overrides pending workers, unsafe cancellation or other clear
+restrictions. This confirms history removal, not physical data deletion, and does
+not replace the separate confirmation required for retained-data deletion.
+
+Exact endpoint/confirmation representation remains implementation design; no
+extra password prompt, typed phrase or multi-stage confirmation protocol is
+required by this decision. Group 31 resolves mixed selections: clear eligible
+selected jobs, skip others without reporting reasons, and never auto-cancel.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E106 | Admin requests clearing selected job history, confirms or dismisses the confirmation | Show selected jobs and explain UUID forgetting with file preservation; clear only after explicit confirmation and current eligibility checks. Decline/dismiss means no clear; do not include unshown/new jobs | Approved confirmation; group 31 resolves mixed eligibility handling. Exact wire and implementation/qualification pending. No authorization to delete files. |
+
+SC-158 and DOC-01/02/03/04/05 must explain the history-clear confirmation and
+its distinction from physical deletion. No new runtime/qualification pass.
+
+## Clear eligible selected history; silently skip ineligible jobs (group 31)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**Approved on 2026-10-24; implementation/qualification pending.** After the
+history-clear confirmation, clear the selected jobs that are currently eligible
+and skip the others. No per-job skip reason needs to be reported. Do not cancel
+anything automatically to make it eligible. An ineligible selected job does not
+by itself prevent clearing eligible selected jobs.
+
+Recheck eligibility when applying the clear: only completed or safely cancelled
+jobs qualify. Active, errored/review, cancellation-pending and unsafe-to-clear
+jobs retain their history/UUID recognition. Preserve their files and work state.
+Do not select later jobs or a new job under a reused UUID merely by matching the
+old UUID. Confirmed eligible clears still forget UUIDs and preserve files with
+separate ownership/accounting, as previously agreed.
+
+Skipping ineligible jobs is normal selection handling; it is not authorization
+to hide actual storage/request failures or falsely claim every selected job was
+cleared. Exact summary/wire response and transaction implementation remain to
+finalize; this decision requires neither a reason-per-job result nor all-or-
+nothing clearing of the selection. No background retries or implicit cancellation
+workflow is introduced.
+
+Group 32 requires a simple cancellation confirmation showing selected jobs,
+without explanatory text. History-clear and retained-data deletion confirmation
+remain as separately agreed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E107 | Confirmed history-clear selection contains eligible and ineligible jobs, or eligibility changes before application | Clear only currently eligible selected jobs; skip others without reporting individual reasons. Never auto-cancel, alter skipped jobs or clear unshown/new jobs. Preserve file ownership/accounting and existing cleared-UUID rules | Approved selection behavior; exact summary/transaction/wire and implementation/qualification pending. Actual storage/request failure is not a successful clear.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+
+SC-159 and DOC-01/02/03/04/05 track mixed-selection history clear without skip
+reason reporting or automatic cancellation. No new passing runtime evidence.
+
+## Confirm cancellation by showing selected jobs only (group 32)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Require
+explicit confirmation before cancelling jobs. Show the selected jobs in the
+confirmation; no explanatory text about file preservation or cancellation
+consequences is required. Keep this a simple confirmation without an additional
+password prompt, typed phrase or multi-stage interaction.
+
+Declining/dismissing the confirmation cancels nothing. Selecting jobs alone is
+not authorization. Apply confirmation only to the displayed job identities;
+do not include later/unshown jobs or new jobs under reused UUIDs. Recheck job
+state when applying the request. Group 33 now selects unfinished-only
+cancellation, skipping completed/already-cancelled jobs without reasons.
+
+This display choice does not change group 20: cancellation preserves files,
+pending workers/uncertain publication keep cancellation pending, and cancellation
+does not itself clear history or delete retained data. Confirmation does not
+bypass normal ownership, actual-exit, commitment or safe-stop rules. Preserve
+these semantics in the contract/operator documentation without requiring them
+as explanatory text in the confirmation dialog.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E108 | Admin selects jobs to cancel and confirms or dismisses the prompt | Require confirmation showing selected jobs only; no explanatory text needed. Decline/dismiss means no cancellation. Target only confirmed job identities and preserve group-20 cancellation semantics | Approved confirmation; group 33 resolves terminal/mixed selections. Exact wire and implementation/qualification pending. No implicit history clear or file deletion. |
+
+SC-160 and DOC-01/02/03/04/05 track selected-job cancellation confirmation
+without required explanation. No new runtime/recovery qualification is claimed.
+
+## Cancel unfinished selected jobs; skip completed/cancelled jobs (group 33)
+
+**Approved on 2026-10-24; implementation/qualification pending.** After the
+selected-job cancellation confirmation, request cancellation only for unfinished
+jobs. Skip completed or already safely cancelled jobs without reporting skip
+reasons. Leave skipped jobs, their completion/cancellation outcome, files,
+history and UUID recognition unchanged. Their presence in the selection does
+not prevent requests for the unfinished selected jobs.
+
+Recheck current state when applying each request. If a job completes before
+cancellation is applied, preserve its completed outcome and skip it. An errored
+or review-required unfinished job still needs explicit cancellation before
+history clear. A cancellation already pending is not safely cancelled: repeated
+requests must not restart deadlines or claim worker/effect settlement. Keep the
+existing cancellation pending rather than undoing it or inventing a new attempt.
+Confirmation targets only the displayed original job identities; do not cancel
+a new job that reused a cleared UUID.
+
+No skip reasons are required. This does not authorize hiding actual request/
+storage failures or reporting requested cancellation as safely finished while
+workers/effects remain unresolved. Preserve group-20 file retention, actual-exit,
+commitment and safe-stop rules. This action neither clears history nor deletes
+data. Exact summary/transaction/wire response remains implementation design.
+
+Group 34 makes safely completed cancellation final for the first release,
+with files preserved and eligible failed-work retry kept separate.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E109 | Confirmed cancellation selection contains unfinished, completed, already-cancelled or cancellation-pending jobs | Request cancellation only for unfinished jobs; skip completed/safely-cancelled jobs without reasons and leave them unchanged. Preserve existing pending cancellation without resetting progress/deadlines or falsely reporting safe completion | Approved selection behavior; exact summary/wire/transaction and implementation/qualification pending. Include completion racing with application and original identity/UUID reuse. |
+
+SC-161 and DOC-01/02/03/04/05 track unfinished-only cancellation without skip
+reason reporting. No new runtime or NFS/SLES qualification is claimed.
+
+## Cancellation is final for the first release; failed-work retry is separate (group 34)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Once a job
+is safely cancelled, cancellation is final for the first release. Do not offer
+resume/uncancel or allow a retry action to revive that job. Keep the files in
+place under existing ownership/accounting rules. Final cancellation is distinct
+from a cancellation request still awaiting worker exit/effect settlement; do not
+mark pending cancellation finished just to make it terminal.
+
+Retrying failed work remains a separate operation on eligible unfinished failed/
+review work, with existing safety checks and original durable custody. It must
+not adopt cancelled data, create a replacement job, discard partials, reset
+unrelated deadlines or bypass review merely because the admin requests retry.
+Exact retry UI/wire and any explicitly supported reset remain to finalize; do
+not remove the existing audited delivery-resume or missing-file-reset workflows.
+
+Service restart and producer resubmission must not resurrect a retained cancelled
+job. Previously confirmed whole-set 202 remains custody evidence, not permission
+to restart delivery or reclaim reused originals. Group 36 now maps a safely cancelled job before completed durable handoff to
+409 recording_cancelled/false and preserves established post-handoff 202 replay.
+Clearing eligible cancelled history remains a separate confirmed action that
+forgets the UUID; later submission is new work under current safety checks, not
+resumption/adoption of the cancelled job or its retained files. Physical deletion
+remains separately confirmed and scoped. No automatic source restoration occurs.
+
+Group 35 now requires no confirmation for eligible failed-work retry.
+Cancellation/history-clear/delete confirmation remains required. No new retry
+timing or automatic retry policy is introduced.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E110 | Safely cancelled job is targeted by resume/retry, producer resubmission or service restart | Keep cancellation final and preserve retained files. Do not revive the job or reuse its files through failed-work retry; preserve prior handoff evidence and separate clear/new-submission rules | Approved finality; group 36 resolves producer cancellation/handoff replay mappings. Exact admin mappings and implementation/qualification pending. Existing eligible failed-work retry/review remains separate. |
+
+SC-162 and DOC-01/02/03/04/05 must distinguish final cancellation from failed-
+work retry and clearing history. No new runtime/retry/security qualification.
+
+## Failed-work retry does not require confirmation (group 35)
+
+**Approved on 2026-10-24; implementation/qualification pending.** An admin
+request to retry eligible failed work does not need a confirmation dialog.
+Submit the retry directly from the selected job/action. Do not require a second
+confirmation click, password prompt, typed phrase or explanatory acknowledgement.
+This differs from the separately agreed cancellation, history-clear and retained-
+data deletion confirmations, which remain required.
+
+No confirmation does not waive authentication, current eligibility, original job
+identity, custody/ownership, review prerequisites or existing audited command
+checks. Retrying failed work remains separate from final cancellation: it cannot
+revive a cancelled job, change a completed recording or create a replacement job.
+Repeated requests must obey the final idempotency/command contract; this choice
+does not grant duplicate effects, reset arbitrary deadlines, or change automatic
+retry timing or persisted failure/review policy. Retain existing audited delivery
+resume and exact-file missing-window reset distinctions.
+
+Next consolidate the admin action request/response contract and remaining
+schema details for user review. Do not re-ask retry confirmation or start Rust
+implementation before P01 is settled.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E111 | Signed-in admin requests retry of eligible failed work | Submit the retry without a confirmation dialog; retain current eligibility, original identity, custody/review and audited-command checks. Do not revive final cancellation or bypass action safety | Approved no-confirmation behavior; exact request/response/idempotency and implementation/qualification pending. Other action confirmations and automatic retry/review behavior remain unchanged. |
+
+SC-163 and DOC-01/02/03/04/05 distinguish direct failed-work retry from confirmed
+cancel/clear/delete actions. No new passing runtime/qualification evidence.
+
+## Cancelled producer retry: 409 before handoff, 202 replay after handoff (group 36)
+
+**Approved on 2026-10-24; implementation/qualification pending.** For a safely
+cancelled recording whose durable whole-set handoff never completed, an
+authorized identical producer retry returns HTTP 409 `recording_cancelled`,
+`retryable:false`. Use the agreed error envelope with the recording UUID,
+`retry_after_seconds:null` and `source_paths_released:false`. The recorder logs
+the rejection and stops automatic retries. This response grants no source-path
+reuse permission; retained private files and unclaimed originals stay protected.
+
+If durable whole-set handoff completed before cancellation, preserve its 202
+replay for the authorized identical request, including a lost original response.
+The deciding evidence is durable handoff, not whether the recorder received the
+202. This acknowledges existing custody/path-reuse permission only: it does not
+resume the cancelled transfer or reopen producer-reused paths. Cancellation does
+not revoke an established 202. Preserve caller/request equivalence checks and
+existing conflict handling; changing the request is not identical replay.
+
+Do not label cancellation pending on live/uncertain workers as safely finished.
+These mappings do not change safe-stop/settlement requirements or select a new
+pending-state response. Clearing eligible history still forgets the UUID; a
+later submission is new work, not replay of the cleared cancellation/handoff.
+
+Group 37 selects admin cancellation 202 Accepted with Cancellation pending
+until safe stop, then Cancelled, distinct from producer custody 202. Exact
+endpoint/body fields remain to agree; no new runtime behavior here.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E112 | Authorized identical producer retry of safely cancelled recording without completed durable whole-set handoff | HTTP 409 recording_cancelled, retryable false, null retry delay and source_paths_released false; log/stop recorder retries. Preserve files and final cancellation | Approved mapping; implementation/qualification pending. Includes partial custody; no fabricated source-path release. |
+| API-E113 | Authorized identical producer retry after completed durable handoff, then cancellation, including lost original 202 | Replay established 202 without reviving delivery, reclaiming reused paths or revoking original custody acknowledgement | Approved mapping; implementation/qualification pending. Caller/request checks and cleared-history/new-submission rules remain. |
+
+SC-164 and DOC-01/02/03/04/05 distinguish cancelled-before-handoff rejection
+from preserved post-handoff 202 replay. No passing runtime/qualification claim.
+
+## Admin cancellation returns 202; pending until safe stop (group 37)
+
+**Approved on 2026-10-24; implementation/qualification pending.** An accepted
+admin cancellation request returns HTTP 202 Accepted. Show `Cancellation pending`
+until the selected job's work has safely stopped and authorized/uncertain effects
+are reconciled; then show `Cancelled`. The response acknowledges acceptance of
+the admin cancellation request, not completion of cancellation or transfer.
+Do not hold the HTTP request open waiting for blocked workers to exit.
+
+A 202 must reflect actual accepted cancellation intent; request/storage failures
+must not be acknowledged as success. Exact persistence/transaction/body fields
+remain to define. Pending cancellation survives normal recovery using original
+state; timeout, lost reply, dashboard sign-out or mover restart must not falsely
+finish or reverse it. A repeated request preserves the existing pending operation
+and does not reset deadlines. No new cancellation deadline or change to the
+configured shutdown wait is introduced.
+
+Keep files and ownership protected while pending. History remains ineligible
+to clear and retained-data deletion remains unauthorized until the existing safe
+stop/settlement rules permit it. Final cancellation is not reversible in the
+first release. Preserve already-completed publication as previously agreed;
+completion racing with cancellation must not retract a committed recording.
+
+This admin 202 is separate from producer whole-set custody acknowledgement.
+It grants no source-path reuse permission or completed-delivery guarantee.
+Groups 33/36 still govern silent terminal-job skips and producer 409/202 replay.
+Exact response for a selection containing only skipped jobs remains part of
+final bulk/summary design, not a claim that skipped jobs were newly cancelled.
+
+Group 38 now selects 202 Accepted for accepted failed-job retry, no confirmation,
+and display of actual progress without implying success; existing review/custody
+rules remain.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E114 | Admin cancellation is accepted while workers or effects still need to stop/settle | Return HTTP 202 Accepted; display Cancellation pending until safe stop/settlement, then Cancelled. Preserve custody/files and cancellation intent through normal recovery; no false completion or source-path release | Approved admin acknowledgement/status progression; persistence/body/bulk details and implementation/qualification pending. No change to runtime shutdown deadline or production gates. |
+
+SC-165 and DOC-01/02/03/04/05 distinguish accepted admin cancellation, pending
+safe stop and final cancellation from producer custody. No new passing test.
+
+## Accepted failed-job retry returns 202 with actual progress (group 38)
+
+**Approved on 2026-10-24; implementation/qualification pending.** An accepted
+admin retry request for eligible failed work returns HTTP 202 Accepted. No
+confirmation dialog is required. The dashboard shows the job's actual progress;
+acceptance does not mean the retry ran or succeeded, that publication committed,
+or that any source file may be removed. Do not mark the job completed merely
+because the retry request was accepted.
+
+Apply retry to the original eligible job/custody through the existing audited
+review/command rules. Authentication, current eligibility, review prerequisites,
+original identity and safe ownership still apply. Final cancellation cannot be
+revived; completion cannot be duplicated. Request acceptance is not permission
+to create replacement work, reopen producer-reused originals, discard partials,
+reset unrelated deadlines or change automatic retry timing/review policy.
+
+A 202 must reflect actual acceptance; request/storage/eligibility failures are
+not successful acceptance. Exact request receipt/body, transaction/idempotency
+and progress field names remain to define. A lost response or session sign-out
+is not proof that the retry request failed; preserve the existing exact-command
+replay rules when finalizing the remote admin wire contract. Later failure/review
+must remain visible as actual job state, not be concealed by the earlier 202.
+This admin acknowledgement is distinct from producer whole-set custody 202.
+
+Group 39 now selects 200 OK with the actual number of jobs cleared, keeping
+eligible-only selection, silent skips and file preservation.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E115 | Admin retry of eligible failed work is accepted and subsequent work is pending/running/succeeds/fails | Return HTTP 202 Accepted without confirmation; show actual job progress/outcome rather than implying success. Preserve original job/custody, authentication, eligibility and audited review checks | Approved acknowledgement; exact request/body/idempotency/progress wire and implementation/qualification pending. No automatic retry/review timing change or cancelled-job revival. |
+
+SC-166 and DOC-01/02/03/04/05 distinguish accepted retry from actual transfer
+progress/success. No new runtime/Rust/NFS/SLES qualification is claimed.
+
+## Completed history clear returns 200 and actual cleared-job count (group 39)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**Approved on 2026-10-24; implementation/qualification pending.** After applying
+a confirmed history-clear request, return HTTP 200 OK with the number of jobs
+actually cleared. Count successful eligible history/UUID removals, not the number
+selected, confirmed or attempted. Skip ineligible selected jobs without reporting
+reasons and never cancel automatically. If none are eligible, successful handling
+returns a count of zero. The exact JSON field name remains part of schema design.
+
+Leave files untouched, including retained source, unfinished destination data
+and completed recordings/manifests. Preserve separate ownership/accounting for
+retained files; cleared UUIDs are forgotten under the existing new-submission
+rules. Recheck eligibility and use original confirmed job identities so a newly
+submitted job under a reused UUID cannot be cleared by an old selection.
+
+Return this completed-operation acknowledgement only after the reported clear
+outcomes are applied. Request/storage errors or unknown outcomes must not be
+reported as completed clearing with an invented count. Exact error/partial-
+storage-failure and lost-response/idempotency wire handling remains to finalize;
+no per-job skip-reason reporting or new history-clear background worker is
+required by this decision.
+
+Group 40 selects 202 Accepted for confirmed manual deletion and dashboard
+deleted/failed file counts. Keep its best-effort policy simple, with no automatic
+retries or special recovery workflow.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E116 | Confirmed history-clear request finishes, including mixed eligibility or no eligible selected jobs | Return HTTP 200 OK with the actual number of jobs cleared (zero if none); silently skip ineligible jobs, never auto-cancel and leave files untouched. Preserve original identity and separate retained-file ownership/accounting | Approved status/count; exact JSON/error/transaction/idempotency and implementation/qualification pending. Do not count selections or unknown/failed clears as successful.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+
+SC-167 and DOC-01/02/03/04/05 explain completed history clear, its count and
+file preservation. No new passing runtime/NFS/SLES evidence is claimed.
+
+## Manual deletion returns 202 and deleted/failed file counts (group 40)
+
+**Historical post-clear rule superseded by group 50.** File preservation and
+pre-clear deletion protections remain; successful clear retains no file linkage.
+The earlier tracking-after-clear text below is historical, not a current requirement.
+
+**Approved on 2026-10-24; implementation/qualification pending.** An accepted,
+explicitly confirmed manual retained-data deletion request returns HTTP 202
+Accepted. Run the selected eligible deletion attempts without holding the HTTP
+request open for filesystem completion. The dashboard shows how many files were
+deleted and how many failed; 202 acknowledges the request, not successful removal.
+Exact response/count field names and result lookup remain schema design.
+
+Keep deletion best effort: failed files stay behind, independently safe selected
+files may still be attempted, and successfully removed files are not rolled back.
+No automatic retries, dedicated pause/resume states or special recovery workflow
+is required. An admin may explicitly request deletion again for remaining
+eligible data under the same confirmation/ownership rules. Do not broaden this
+into orphan repair or a generic recursive-path deletion tool.
+
+Count files, not jobs/directories or bytes; only actual confirmed removals count
+as deleted. Do not label still-pending/unknown outcomes as successful removal or
+show final all-success while attempts remain unresolved. Leave remaining or
+uncertain data protected/accounted; no fabricated counts after a failed request
+or interrupted observation. Ordinary status must report incomplete attempts
+honestly without introducing an automatic recovery/retry subsystem. Exact
+interruption/count representation remains implementation design.
+
+Preserve group-22 safe-stop, ownership, exact selection, confirmation and
+protected-original/completed-recording rules. Manual deletion remains available
+with automatic cleanup off. Request/auth/storage/safety failures are not accepted
+success. This admin 202 grants no producer source-path release permission.
+Production NFS and source deletion remain disabled in the current prototype.
+
+**User clarification, 2026-10-24:** use the existing `job_id` and evaluate the
+stored state of the job targeted for deletion. No additional admin identifier
+scheme is needed. Check current eligibility and mover-owned retained files for
+that job; do not look up a different/new job by recording UUID or path resemblance.
+After history clear, preserve only the previously agreed necessary retained-file
+ownership/accounting evidence, not hidden detailed history or UUID replay state.
+Do not introduce another selection-ID system to implement that requirement.
+
+Next consolidate exact admin endpoints and compact request/response/status
+schemas around existing job identity and state. Do not re-ask whether an extra
+job identifier is needed; no runtime or storage redesign is implied here.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E117 | Confirmed eligible manual deletion is accepted and file attempts succeed/fail | Return 202 Accepted; show actual deleted-file and failed-file counts. Keep best-effort handling, no automatic retries or special recovery workflow; preserve remaining files, accounting and all ownership/safe-stop/confirmation/protected-data rules. Use existing job_id and that job's current stored state; no extra identifier scheme | Approved acknowledgement/results; exact count/status/interruption wire and implementation/qualification pending. Acceptance is not successful removal; production NFS/source deletion remain disabled. |
+
+SC-168 and DOC-01/02/03/04/05 explain manual-deletion acceptance and deleted/
+failed file counts without a retry/recovery workflow. No new passing test.
+
+## Shared job_ids request with separate admin action endpoints (group 41)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Use a
+`job_ids` array for all four admin actions: cancellation, failed-work retry,
+history clear and manual retained-data deletion. Each action has its own
+endpoint. A single selected job uses a one-element array; multiple selections
+use the same shape. Use the existing service job IDs and stored state, without
+an additional identifier scheme or an action-discriminator field in the body.
+
+```json
+{
+  "job_ids": [42, 43]
+}
+```
+
+This is an authenticated admin request body, not a login or recorder submission.
+Admin authentication is checked separately before effects; a job ID is not a
+credential. Do not add username/password to each action body. Exact login/logout
+wire, endpoint paths/methods, numeric bounds, empty lists and request limits
+remain to finalize; group 42 resolves nonexistent-ID skips. Group 46 separately
+approves browser session-cookie sign-in; this was not implied by group 41.
+
+Preserve action-specific semantics: cancel/clear/delete require the agreed
+confirmations; eligible failed-work retry does not. Use each job's current state,
+apply existing eligibility/custody checks and preserve terminal cancellation,
+file protection and UUID-clear rules. Accepted cancellation/retry/deletion use
+the agreed 202 responses; completed history clear returns 200 with actual count.
+Do not bypass existing audited review/reset prerequisites because the shared
+body is compact; exact service-side command integration remains to design.
+
+Group 42 now silently skips nonexistent IDs in selected actions and processes
+remaining IDs. Distinguish missing detailed history from retained-data ownership
+that still exists after clear; do not discard that ownership.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E118 | Admin invokes cancel, failed-work retry, history clear or manual deletion for one or more selected jobs | Use a job_ids array of existing job identifiers with a separate endpoint per action. Check admin authentication independently and apply that action's current-state/confirmation/eligibility/outcome rules | Approved common body/separate endpoints; exact paths/methods/list validation/auth transport and implementation/qualification pending. No credentials in each action body or new job identifier scheme. |
+
+SC-169 and DOC-01/02/03/04/05 explain shared selected-job JSON, separate actions
+and admin authentication independent of the body. No new passing runtime test.
+
+## Silently skip nonexistent job IDs in selected admin actions (group 42)
+
+**Post-clear override:** group 50 removes all cleared-job file linkage and
+management; earlier post-clear retention wording here is historical. Other
+eligibility, file-preservation, confirmation, status and skip rules remain.
+
+**Approved on 2026-10-24; implementation/qualification pending.** For cancel,
+failed-work retry, history clear and manual retained-data deletion requests,
+silently skip job IDs that no longer exist and process the remaining IDs under
+their usual current-state/eligibility rules. A missing selected job does not
+reject the whole action or require a per-job reason/warning. Never create a
+replacement job, resolve by recording UUID/path or act on a different job to
+satisfy a stale selection.
+
+For deletion, absence of detailed history alone does not mean all associated
+data ownership is gone: use the previously agreed retained-file ownership/state
+under the targeted existing job_id after history clear. If neither relevant job
+state nor retained-data ownership exists for that target, skip it. Do not erase
+ownership or silently abandon retained files just because history was cleared.
+Do not treat inaccessible/corrupt/unreadable state as a proven nonexistent ID;
+actual request/storage/authentication errors retain their error handling.
+
+This applies to the four selected-action endpoints using job_ids, not every
+route in the API. Existing unknown-job single-resource reads and separate local
+operator command mappings remain 404 where specified. No change to malformed-ID
+validation, request-limit rules or authentication is agreed by silent skipping.
+A request containing only missing IDs performs no effects; completed history
+clear reports 200 with zero cleared. Exact no-work acknowledgement/body for the
+other actions remains to finalize; do not invent successful work/file counts.
+
+Group 43 now dispatches repeated entries again with per-job outcome decisions;
+a duplicate cancel counts as a failed attempt. Exact endpoint paths, remaining
+list validation/bounds and compact login/result schemas remain to freeze before
+implementation.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E119 | One of four selected admin actions includes nonexistent/no-longer-existing job IDs | Silently skip nonexistent targets and process remaining IDs under normal action rules; no skip reasons, replacement jobs or UUID/path fallback. Preserve retained-data ownership after clear and distinguish lookup/storage failure from nonexistence | Approved selected-action behavior; exact wire/no-work/list validation and implementation/qualification pending. Separate single-resource/local-operator 404 mappings remain.  **Post-clear linkage portion superseded by group 50/API-E130-132; retained for decision history.** |
+
+SC-170 and DOC-01/02/03/04/05 explain stale selections and silent nonexistent-ID
+skips for selected actions. No passing runtime/NFS/SLES result is claimed.
+
+## Process repeated entries; per-job cancellation decides failure (group 43)
+
+**User clarification approved on 2026-10-24; implementation/qualification
+pending.** Keep job_ids processing simple: dispatch entries as supplied, including
+repeated IDs. Do not deduplicate, reject duplicate IDs as malformed, or implement
+cancellation eligibility/state intelligence in the batch/list handler. State and
+eligibility belong to the per-job action; the handler records its outcomes.
+
+For cancellation, a duplicate attempt is processed again and counted as a failed
+cancel, not silently discarded or counted as another successful cancellation.
+For example, if job 42 can accept cancellation, job_ids [42, 42] produces one
+accepted cancel and one failed cancel attempt. This is an action-attempt result,
+not a transition of job 42 into a failed-transfer state. Do not reset cancellation
+progress/deadlines, undo the accepted request, restart work or bypass actual-exit/
+effect-settlement checks on the repeated call. Cancellation pending stays pending
+until safely stopped, then Cancelled.
+
+Group 33's normal skips for jobs already completed/cancelled remain; group 42
+still skips nonexistent targets. Apply the explicit duplicate-cancel failure
+rule inside per-job processing/outcome reporting rather than adding list-level
+state prediction or a duplicate-filtering layer. Exact distinction/outcome
+representation belongs in the per-job contract; no need to infer it from free-
+text diagnostics. No individual failure-reason display is required here.
+
+For the other actions, repeated entries likewise reach their per-job operation;
+this decision does not decree every repeated retry/clear/delete a failed cancel,
+recount files already removed or weaken their existing safety/counting rules.
+Do not confuse repetition within a list with replay of an entire transport-
+retried request; exact request replay/idempotency remains to finalize separately.
+Producer duplicate file paths remain invalid under their separate submission rule.
+
+Next consolidate compact admin result/count schemas and remaining request/login
+wire details. Do not re-propose deduplication or move state decisions into the
+batch parser. Implementation and qualification remain pending.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E120 | An admin job_ids list repeats an ID, including a second cancel after the first was accepted | Dispatch the repeated entry to the per-job action again; no batch deduplication/state intelligence. Count a duplicate cancel as a failed cancel attempt, preserving the accepted cancellation and job lifecycle. Other action outcomes follow their own per-job rules | Approved clarification; exact per-job/summary/wire and implementation/qualification pending. Failed attempt is not a failed-transfer job state; no deadline reset or extra physical effect permission. |
+
+SC-171 and DOC-01/02/03/04/05 explain per-entry processing and failed duplicate
+cancel attempts, separate from job failure and whole-request replay. No new test.
+
+## Cancellation attempt response: accepted, failed and skipped counts (group 44)
+
+**Approved on 2026-10-24; implementation/qualification pending.** Return HTTP
+202 Accepted for a processed admin cancellation selection with this JSON shape:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+All three fields are nonnegative integer counts of per-entry cancellation
+attempt outcomes. accepted_count counts newly accepted cancellation requests,
+not jobs that have safely stopped. failed_count counts failed cancel attempts,
+including a duplicate attempt processed again under group 43. skipped_count
+counts entries skipped under the existing rules, such as nonexistent or already
+completed/safely-cancelled jobs. No individual skip/failure reasons are required.
+Classify each processed entry once using its per-job outcome; do not deduplicate
+or put cancellation-state intelligence into the list handler. For [42,42], where
+the first cancel is accepted, the example above applies. An all-skipped processed
+selection returns zero accepted/failed and its actual skipped count; it does not
+claim that any cancellation was newly accepted.
+
+The dashboard still shows Cancellation pending until safe stop/effect settlement,
+then Cancelled. A failed cancel attempt does not make the transfer job failed or
+reverse/reset an already accepted cancellation. Return accurate counts, not
+invented results for authentication, malformed-request or unreadable-state
+failures. Whole-request errors retain their separate mapping. Exact endpoint,
+limits, transactions and transport-replay semantics remain to finalize.
+
+Group 45 below resolves the corresponding retry response counts; remaining
+wire/login and request-replay details are still pending.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E121 | Admin cancellation selection is processed with accepted, failed and/or skipped entries | Return 202 Accepted with accepted_count, failed_count and skipped_count. Count per-entry outcomes once; repeated cancel attempts may fail, skipped entries have no reported reasons. Acceptance is not safe-stop completion | Approved exact count fields; endpoint/limits/transaction/replay and implementation/qualification pending. No batch deduplication, job-failure transition or premature Cancelled status. |
+
+SC-172 and DOC-01/02/03/04/05 explain cancellation attempt counts separately
+from job progress. No new runtime/qualification evidence is claimed.
+
+## Retry attempt response: accepted, failed and skipped counts (group 45)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Failed-job
+retry returns HTTP 202 Accepted with the same three count fields as cancellation:
+
+```json
+{
+  "accepted_count": 1,
+  "failed_count": 1,
+  "skipped_count": 0
+}
+```
+
+All three fields are nonnegative integers describing per-entry retry attempt
+outcomes: accepted_count for accepted retry attempts, failed_count for failed
+retry attempts, and skipped_count for skipped entries. Acceptance does not mean
+the transfer has succeeded; show actual job progress and later outcome.
+Preserve existing eligibility, authentication, custody and audited review checks.
+No confirmation is required for eligible failed-work retry; cancelled jobs
+cannot be revived. Continue to process repeated entries through the per-job
+operation without batch deduplication. This approval does not assign duplicate
+retry outcomes by copying the duplicate-cancellation failure rule.
+
+Whole-request authentication/validation/storage errors retain their separate
+handling. Exact endpoints, list bounds, no-work edge cases, transaction,
+concurrency and transport-replay details remain to finalize. This changes the
+contract only, with no runtime implementation or passing qualification claim.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E122 | Admin failed-work retry selection produces accepted, failed or skipped attempts | Return 202 Accepted with accepted_count, failed_count and skipped_count describing retry attempts; show actual progress and outcome separately | Approved count fields; implementation/qualification and remaining wire/replay details pending. No transfer-success claim, cancelled-job revival or change to retry/review policy. |
+
+SC-173 and DOC-01/02/03/04/05 must distinguish retry attempt counts from actual
+transfer progress and outcome. Group 46 below resolves browser session-cookie
+transport; remaining login/logout wire details are pending.
+
+## Browser session cookie for dashboard sign-in (group 46)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Dashboard
+admin sign-in uses a browser session cookie to keep the admin signed in. The
+browser supplies that session cookie with subsequent dashboard/admin requests;
+producer credentials alone do not grant admin access.
+
+Preserve the previously agreed rules: configurable 30-minute inactivity timeout,
+all-session invalidation after password changes and mover restart, and no effect
+on background transfers when dashboard access expires or sessions are signed out.
+The single account is still configured and changed locally on the mover host.
+This approval does not settle cookie attributes/name, exact login/logout wire,
+browser-restart persistence, session storage or replay/
+concurrency details. Keep ordinary HTTPS/password/session hygiene; no broader
+account-management or registration feature is introduced.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E123 | Dashboard admin signs in and makes subsequent admin requests | Use a browser session cookie for the authenticated dashboard session, preserving existing expiry, password-change/restart sign-out and transfer-independence rules | Approved session transport; exact cookie/login/logout wire and implementation/qualification pending. Producer access does not grant admin powers. |
+
+SC-174 and DOC-01/02/03/04/05 must explain cookie-based dashboard sign-in and
+existing session invalidation without implying job cancellation. Group 47
+below resolves manual sign-out as invalidation of every admin session.
+
+## Manual admin sign-out invalidates all sessions (group 47)
+
+**Approved on 2026-11-01; implementation/qualification pending.** When the admin
+signs out from any browser/device, invalidate every dashboard session for the
+single admin account. Previously issued session cookies must no longer authorize
+subsequent admin requests; all browsers/devices must sign in again. Do not limit
+manual sign-out to the initiating browser session.
+
+Transfers belong to the mover service and run independently of dashboard user
+credentials or session lifetime. Admin authentication authorizes dashboard/admin
+requests; it does not own a transfer or determine whether an accepted transfer
+continues. Signing in/out, session expiry and dashboard password changes do not pause,
+cancel or restart transfers. Existing explicit job actions retain their separate
+authorization, eligibility and custody rules.
+
+This resolves manual logout scope while preserving password-change/restart
+all-session invalidation. Group 48 selects 204 No Content after successful
+all-session sign-out. Exact logout endpoint/method, cookie handling and in-flight
+request/concurrency details remain to finalize. No new
+runtime behavior or passing qualification evidence is claimed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E124 | Admin manually signs out while dashboard sessions exist on multiple browsers/devices | Invalidate all admin sessions; existing session cookies cannot authorize subsequent admin requests, and every browser/device must sign in again. Transfers continue independently of dashboard credentials/session lifetime | Approved global manual sign-out and clarified transfer independence; exact wire/concurrency and implementation/qualification pending. No job cancellation or transfer ownership tied to a dashboard session. |
+
+SC-175 and DOC-01/02/03/04/05 must explain sign-out everywhere and the service's
+independent ownership of transfers. Remaining login/logout wire and other finite
+P01 contract details are still pending.
+
+## Dashboard login, session and logout responses (group 48)
+
+**Approved on 2026-11-01; implementation/qualification pending.** Use these
+responses for dashboard admin authentication:
+
+| Situation | Approved response |
+|---|---|
+| Successful login | 200 OK with the dashboard session cookie |
+| Incorrect credentials | 401 Unauthorized with the generic message "Invalid username or password." |
+| Missing or expired session on a protected admin request | 401 Unauthorized; require sign-in |
+| Successful manual sign-out | 204 No Content after invalidating all admin sessions |
+
+The invalid-credentials message is shared for incorrect usernames and passwords;
+this approval does not define a JSON field name or other error-body encoding.
+Successful logout has no response body, and success is reported only after the
+all-session invalidation required by group 47. Cookie transport and previously
+agreed expiry/invalidation rules remain as approved in groups 27-29 and 46-47.
+
+Exact endpoint paths/methods, login request fields, success/error body schemas,
+headers/cookie attributes, already-signed-out logout/replay and in-flight request
+ordering remain to finalize. Do not invent successful authentication or completed
+session revocation when validation/storage/other request handling fails. No
+runtime implementation or new passing qualification is claimed.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E125 | Admin supplies correct login credentials | Return 200 OK with the authenticated dashboard session cookie | Approved status/cookie; exact endpoint/request/success body and implementation/qualification pending. |
+| API-E126 | Admin supplies incorrect login credentials | Return 401 Unauthorized with "Invalid username or password." | Approved shared message/status; exact body schema and implementation/qualification pending. |
+| API-E127 | Protected admin request has a missing or expired session | Return 401 Unauthorized and require sign-in | Approved status/sign-in requirement; exact body/headers and implementation/qualification pending. |
+| API-E128 | Manual admin sign-out successfully invalidates all admin sessions | Return 204 No Content after all-session invalidation; no response body | Approved success status and ordering; remaining endpoint/cookie/replay/concurrency and implementation/qualification pending. |
+
+SC-176-179 and DOC-01/02/03/04/05 must explain these approved outcomes. Next
+consolidate exact login/logout routes, request fields and response body schemas
+with the remaining finite P01 wire/replay decisions.
+
+## Reviewed-state retry context uses a header (group 49)
+
+**Approved on 2026-11-02; implementation/qualification pending.** Carry the
+existing job review version and required audit context in a retry request
+header while keeping the JSON body as {"job_ids":[...]}. This lets an uncertain
+transport retry identify the failure the admin deliberately chose to retry,
+without introducing another public job/operation identifier or confirmation
+dialog. Existing authentication, review and custody checks still apply.
+
+Freeze this context for that deliberate Retry action and resend it unchanged
+when retrying the same HTTP request. An old request must preserve its original
+result and must never authorize retry of a later failure/review cycle. A new
+deliberate action after inspecting a later review uses that later context.
+Polling, session renewal or looking up the latest state cannot refresh an old
+request's intent. A CSRF token alone is not a reviewed-state precondition.
+
+This approval selects the header transport for existing context, not its exact
+name, encoding, per-request size limits, batch receipt storage/retention or
+internal command-key derivation. Preserve the existing aggregate 8 KiB header
+bound, exact-command replay and audit prerequisites. Duplicate entries still
+receive per-job decisions; group 49 does not approve the proposed duplicate
+retry outcome or settle clear/delete request replay and asynchronous counts.
+[The candidate design](api/ADMIN-REPLAY.candidate.md) separates those details.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E129 | A retry response is lost, its scheduled work later fails into a newer review, and the browser resends the old request | Keep the job_ids-only body and frozen existing review-version/audit context in a request header. Preserve original exact-command replay; the old request cannot authorize the newer failure. No new job identifier or confirmation dialog | Approved header mechanism and intent boundary; exact wire, transactional receipts/retention and implementation/qualification pending. |
+
+SC-180 and DOC-01/02/03/04/05 must explain safe lost-response retry without
+adding a new user workflow. This is a contract decision, not a new passing test.
+
+## History clear forgets all file linkage (group 50)
+
+**Approved on 2026-11-02; implementation/qualification pending.** The user
+changes the earlier post-clear rule: once an eligible job is cleared, keep no
+further mover linkage to its source or destination files. Forget detailed job
+history, UUID recognition, per-job command/deletion results and all associated
+retained-file ownership, path/receipt indexes and per-job accounting records.
+Do not retain a hidden owner record or an inventory entry under the old job ID.
+
+Files remain exactly where they are. Clear is not deletion, relocation, restore
+or rewriting of payloads/committed manifests. Existing file/manifest contents do
+not become a service tracking record, authority to adopt them or a reason to
+rebuild cleared job linkage during restart. Shared root enrollment, instance
+identity and other jobs' safety state remain; these are not a cleared job's
+source/destination inventory.
+
+### Consequences
+
+- If the admin wants the mover to delete eligible retained data, request and
+  finish that separately confirmed deletion **before** clearing the job. Clearing
+  first relinquishes mover management; later cleanup is outside this service.
+- Cleared jobs and their files disappear from job-linked management/accounting
+  and any retained-data view. Old selected job IDs silently skip under group 42;
+  existing single-resource missing-job reads keep their 404 behavior. No UUID,
+  path, directory scan or immutable-manifest fallback may recreate the linkage.
+- Dropping the mover's byte accounting does not free physical disk space. Real
+  filesystem usage and source-space observations still include files left there.
+  Keep existing default-off admission policy; make no new capacity guarantee.
+- Clearing still requires completed or safely cancelled work and explicit
+  confirmation. All associated copy/delete/cleanup operations must have safely
+  stopped and uncertain effects settled. An active/unresolved deletion prevents
+  successful clear just as an unresolved transfer does. Serialize clear versus
+  new actions; success cannot leave a worker later acting for that cleared job.
+- Explain in the existing clear confirmation that files stay but the mover
+  forgets all tracking and cannot later clean them up. Keep selected-job scope,
+  silent ineligible skips, actual cleared count and no automatic cancellation.
+- Reusing the forgotten UUID is new work with a new non-reused internal job ID.
+  Normal scope/authority/no-clobber checks remain. Existing destination files
+  may still collide; forgetting them is not permission to overwrite/adopt them.
+
+This supersedes group 21's retained ownership/accounting after clear and the
+post-clear extensions in groups 19/22/30/31/39/40/42. Preserve their other rules:
+files stay; before clear, deletion is explicit, scoped and safe; missing IDs
+skip; unreadable state is not absence; confirmation/status/counts still apply.
+Group 49 exact retry replay remains for uncleared jobs. Clear removes only the
+cleared job's receipts, never another selected job's replay/ownership evidence.
+Old aggregate results are not retained through hidden cleared-job history.
+
+The implementation must qualify a transactionally recoverable forget operation,
+restart with intentionally unmanaged leftovers, exclusion of live effects,
+no automatic reacquisition and no false physical-space claim. Do not casually
+remove current SQLite/custody records or files to simulate this future feature.
+No service state was changed and no production deletion was authorized here.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E130 | Admin clears an eligible completed/safely cancelled job while source/destination files remain | Forget history, UUID recognition, command/deletion results and all job-to-file tracking/ownership/accounting; leave physical files and manifests untouched | Approved group 50; supersedes post-clear linkage in earlier cases. Transaction/restart implementation and qualification pending. |
+| API-E131 | After clear, old IDs, a restart, a later deletion request or a reused UUID encounter files left behind | No mover lookup, inventory, cleanup or automatic reconstruction of the cleared linkage. Old batch targets skip; existing missing-resource reads remain 404. Files are now outside mover management; no overwrite/adoption shortcut | Approved group 50; physical usage remains real despite removal from the mover ledger. Implementation/qualification pending. |
+| API-E132 | Clear races with a live or unresolved transfer/deletion/cleanup effect | Do not successfully clear until safe stop/settlement. Keep ineligible jobs/evidence intact, process other eligible selections normally and serialize new actions against clear | Approved group 50 safety boundary; no half-clear, pending-worker abandonment or later mover effect for a cleared job. Implementation/qualification pending. |
+
+SC-181-183 and DOC-01-05 must explain this replacement rule in plain language.
+No earlier scenario ID is deleted or repurposed; superseded expectations remain
+explicitly historical. This adds contract cases, not passing runtime evidence.
+
+## Admin retry and deletion closeout defaults (group 51)
+
+**Approved on 2026-11-03; implementation/qualification pending.** The user
+approves the specific defaults presented at P01 closeout: 202 for valid retry
+batches with no accepted attempts; failed duplicate retry after scheduling;
+per-job retry-receipt forgetting at clear; one active deletion pass per job;
+latest-pass results before clear; and fresh confirmation when the selected
+files change. This records those outcomes, not approval of every candidate
+field, header, security/session mechanism, route or compatibility proposal.
+
+Keep group 49 frozen reviewed-state context and receipt-before-current-state
+replay. Clear affects only that job's receipts/linkage; uncleared jobs retain
+exact replay protection. No automatic expiry or hidden cleared-history retention
+is introduced. Group 50 still governs complete forgetting and safe-stop eligibility.
+Deletion stays separately confirmed, best effort and limited to safely owned
+eligible retained data; committed output and producer-reused originals stay protected.
+Fresh deliberate retry after a failed deletion remains separately confirmed under
+group 40. No automatic deletion retry, post-clear inventory or new public identifier.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E133 | A valid retry batch accepts no new attempts | Return 202 with accepted_count zero and actual failed/skipped occurrence counts. Validation/storage errors remain errors; do not claim successful transfers. | Approved group 51; implementation/qualification pending. |
+| API-E134 | A retry selection repeats an eligible job, for example [42,42] | The first occurrence may schedule work; the second counts as a failed attempt after scheduling. Exact transport replay preserves the original uncleared-job outcomes and cannot release a later review. | Approved group 51; implementation/qualification pending. |
+| API-E135 | History clear follows an accepted retry | Remove the cleared job's retry receipts with all its linkage. Old cleared IDs skip; preserve other uncleared jobs' exact replay. No hidden cleared history to retain old aggregate counts. | Approved group 51; implementation/qualification pending. |
+| API-E136 | A confirmed deletion pass is already active for a tracked job | Allow one active pass per job. Repeated requests observe that pass without a second deletion or double counting. | Approved group 51; implementation/qualification pending. |
+| API-E137 | The admin inspects deletion results before history clear | Show the latest deletion pass's actual pending/deleted/failed results under the existing job_id. Clear forgets these results and all file linkage; no separate older-pass history is promised. | Approved group 51; implementation/qualification pending. |
+| API-E138 | The owned file selection changes after deletion confirmation | Reject the stale confirmation and require fresh confirmation of the current safe selection. Never broaden the deletion or let an old replay start a later pass. | Approved group 51; implementation/qualification pending. |
+
+SC-184-189 and DOC-01-05 must reflect these outcomes. Existing API/SC IDs stay
+unchanged. Cancellation transport replay, exact wire/receipt layout, remaining
+schemas, compatibility and the P01 freeze are not approved by this reply.
+No runtime, operational state, file deletion or production switch changes here.
+
+## Stored-state, manifest and wire compatibility (group 52)
+
+**Approved on 2026-11-03; implementation/qualification pending.** The user
+accepted the five compatibility recommendations presented after schema completion:
+preserve legacy custody with supported upgrades or safe refusal; use v2 for new
+recordings while preserving v1 recovery; decimal-string new producer/v2 sizes;
+strict exact UTF-8 filenames; and an explicit supported upgrade/rollback list.
+See [approved compatibility direction](api/COMPATIBILITY.md) for scope and limits.
+
+Earlier numeric new-producer/v2 examples are superseded by this decimal-string
+wire decision. Existing operator numeric formats remain unchanged. Exact supported predecessor
+versions, migration transactions, rollback procedures and consumer/runtime tests
+remain engineering deliverables; this approval claims none have passed. It does
+not approve all candidate fields/limits/framing, unrelated retry/cancellation
+choices, authentication deployment, P01 freeze or general implementation.
+Group 50 continues to prohibit all post-clear linkage or reconstruction.
+
+| ID | Situation | Required outcome | Evidence/status |
+|---|---|---|---|
+| API-E139 | New release encounters existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment and receipts. Upgrade only declared supported state formats; otherwise refuse safely before effects. Never invent UUIDs for legacy jobs. | Approved group 52; implementation/qualification pending. |
+| API-E140 | A new recording completes, or a still-tracked legacy recording recovers | New recordings use manifest v2 with UUID, measured sizes/hashes and request-identity digest. Preserve original v1 bytes and support still-tracked legacy recovery; never reconstruct cleared ownership. | Approved group 52; implementation/qualification pending. |
+| API-E141 | Producer or consumer exchanges byte sizes above ordinary browser integer precision | New producer expected sizes and manifest-v2 measured sizes use exact canonical decimal u64 strings. Preserve existing operator numeric formats and legacy-v1 numeric sizes. | Approved group 52; implementation/qualification pending. |
+| API-E142 | A producer submits a filename outside the supported new-contract encoding | Require valid UTF-8; preserve exact spelling and case. Reject unsupported names explicitly without silent renaming, case folding or Unicode normalization. | Approved group 52; implementation/qualification pending. |
+| API-E143 | An operator upgrades, rolls back or encounters incompatible state | Publish an explicit supported release/state list. Refuse incompatible binaries before effects; never restore a stale database over active custody. Exact support list and qualification remain pending. | Approved group 52; implementation/qualification pending. |
+
+SC-190-194 and DOC-01-05 must reflect this compatibility direction. Preserve all
+earlier IDs and evidence; structural schemas do not qualify state recovery.
+
+## Missing-file mapping: approved, implementation pending
+
+API-E05/E06 use 409 `source_file_missing` with `retryable:true` within the
+persisted window; API-E07/E08 retain 409 `recording_blocked` with
+`retryable:false` after expiry. Keep 503 `handoff_pending` for unresolved claim
+progress. The user approved this split in group 1. Current code still returns
+503 handoff_pending for a confirmed missing file before its deadline.
+
+This is our API mapping, not an HTTP-mandated choice. 409 does not inherently
+mean permanent failure. Earlier 503 missing-file examples are superseded as a
+contract recommendation, without changing the existing implementation/evidence.
+
+## Decisions still needed before freezing OpenAPI
+
+Use the [consolidated proposal](REST-CONTRACT-PROPOSAL.md) to review these
+remaining details in four packages. It adds no approval group or passing test.
+
+| Decision | Question to settle | Affected scenarios |
+|---|---|---|
+| ER-D01 | **Resolved:** group 1 approves missing-file 409/true within the window and 409 recording_blocked/false after expiry. Preserve existing deadline/review semantics; implementation pending. | E05-08 |
+| ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
+| ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
+| ER-D04 | **UUID and file-order requirements resolved (groups 16-17):** require UUID recording_id; permutation alone is the same request. Full history stays until admin clear, which forgets the UUID and permits a new submission (groups 18-19); unfinished/errored jobs require completed cancellation before clear. Finalize lexical canonicalization and concurrent admin/replay/cancel behavior; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-80 |
+| ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-70 |
+| ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
+| ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
+
+Groups 1-51 above record the agreed direction: fifty initial outcome mappings, the shared error
+envelope, recorder retry timing, all-or-nothing expected-size checking and
+current-configuration behavior, unordered replay, UUID recording IDs and manual
+full-history retention, eligible admin clear that forgets UUIDs, file-preserving
+cancellation/history clear and separately confirmed owned-data disposal after safe stop. The unused Rust producer wire format may
+be replaced directly; global-ID persistence/state handling and precise OpenAPI
+schema/validation details remain separate P01 work.
+Agreement on one group does not freeze remaining rows or their broader variants.
+
+## Consolidated implementation plan
+
+The error-group review is complete for the mappings/envelope/timing listed
+above. This does not freeze the entire REST API. Use the following finite work
+sequence inside P01/P02/P03 and existing release gates; remote rows remain
+pending until their protected ingress/proxy exists.
+
+| Step | Deliverable | Dependency / acceptance |
+|---|---|---|
+| API-I01 | Versioned OpenAPI plus stable error registry; map API-E01-143 to approved outcomes or explicit remaining detail/non-HTTP disposition. Freeze exact schemas, response validation and precedence. | No old-wire adapter is required. Encode group-14 size rules; resolve ID retention/equivalence, field/config bounds and current-policy replay ordering without discarding state. |
+| API-I02 | Durable globally unique recording-ID ownership and new request/layout mapping. | API-I01; transactional concurrent-duplicate handling, explicit stored-state migration/refusal and original custody/route preservation. Do not rename/reclaim accepted data casually. |
+| API-I03 | Typed source missing/pending/refusal mapping, common error envelope, reviewed 400/409/413/431/500 vocabulary, Allow/retry headers and recorder examples. | API-I01/02; keep missing deadlines, existing-job replay and background retry/review behavior. No string-parsed cause or new effect authorization. |
+| API-I04 | Protected producer ingress and selected authenticated proxy, caller binding/denials/rate limits and transport/credential tests. | P02/P03 and proxy decision; complete RA-01-16, preserve operator separation. No registration or unrestricted TCP shortcut. |
+| API-I05 | Operator/post-202 response consistency and DOC-01/03/04/05 guidance covering every reviewed action, delay/fallback and original-state recovery. | Maintain alongside API-I01-04; successful status is not delivery, and no failure revokes a confirmed 202. Cleanup remains separately scheduled/default-off. |
+| API-I06 | Exact acceptance-case manifest/results for all reviewed API-E01-143 situations, both SLES gates and changed NFS/remote boundaries. | Test incrementally with each change; audit final affected artifact set. Missing fixture/remote support stays pending, never claimed as passing. |
+
+No recorder executable is part of this repository's deliverable by assumption;
+its retry algorithm is integration guidance/examples unless separately requested.
+The mover's implementation must advertise actionable delays consistently.
+
+Implementation details and safety checks for those steps:
+
+1. Record reviewed decisions and freeze an OpenAPI response/error registry with
+   request/success schemas. Give each application code one defined condition,
+   status, retry rule, permitted details and evidence needed to select it. Define
+   precedence: framing/size, authentication/route boundary, schema/source scope,
+   identity replay/admission, then claims. Retain stronger fail-closed checks.
+2. Design durable global recording-ID ownership before changing stored keys or
+   paths. Replace the unused producer wire format directly; qualify concurrent
+   duplicate submissions and explicit stored-state migration/refusal, preserving
+   existing custody. Freeze recorder retry/retention rules.
+3. Add typed missing/pending/refusal facts through workers/store where needed;
+   select codes from proven facts, not message strings or inferred ENOENT after
+   a timeout. Keep existing missing deadlines, review, capacity and delivery
+   policies unless separately approved. No new filesystem effect authorization.
+4. Implement reviewed HTTP mapping/envelope, Allow and retry headers, and exact
+   local producer/authorized-operator route behavior. Do not expose remote TCP
+   as a shortcut; protected ingress and proxy remain P02/P03.
+5. For each approved API-E row, retain an exact fixture/input/outcome assertion
+   or explicit non-HTTP/manual disposition. Test conflicting and identical
+   concurrent requests, missing-before/after-deadline and partial claims, lost
+   response/continued work, replay after commit, malformed input, group-14/15 size-policy/restart matrices, group-16 reordered replay and error-body
+   fallback. Assert no false 202, no new path release, original state preserved,
+   no duplicate unsafe effects, no cross-generator leakage and bounded load.
+6. Run every Rust build/test through the production and retained qualification
+   [SLES/glibc-2.22 gates](RUST-SLES-GATE.md). Execute required controlled NFS
+   cases for changed source/error boundaries, not a fresh unbounded fault suite.
+   Update SC evidence, DOC-01 retry instructions, DOC-03 operator explanations
+   and DOC-04/05 limits. Mark pending remote cases until P02/P03 qualify them.
+
+This is an error-mapping plan within P01 and dependent implementation packages,
+not authorization to skip unresolved request/schema decisions or qualify all
+remote scenarios by local tests. All eight FR
+gates remain open. Production NFS and source deletion stay disabled.
+
+## Standards and review evidence
+
+The recommendations were checked against
+[HTTP semantics, RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-status-codes)
+and [429/431 definitions, RFC 6585](https://www.rfc-editor.org/rfc/rfc6585.html).
+These specify status meanings; application names, missing-file treatment and
+retry policy above are design decisions for this service, not RFC prescriptions.
+
+Current-code review covers `lib.rs`/`http.rs`,
+[missing reset](RUST-INCREMENT-09.md), [resume](RUST-INCREMENT-08.md),
+[delivery retry policy](DELIVERY-RETRY-POLICY.md),
+[remote contract](REMOTE-API-ACCESS-CONTRACT.md) and
+[scenario catalog](RUST-SCENARIOS.md). No runtime or fixture tests were run for
+this document. Existing scenario evidence remains scoped to its original inputs.

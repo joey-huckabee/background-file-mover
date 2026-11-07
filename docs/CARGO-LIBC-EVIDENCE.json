@@ -1,0 +1,4293 @@
+{
+  "status": "PASSED",
+  "scope": "Cargo-libc SLES ABI/userspace migration; no NFS/systemd fixture qualification",
+  "runs": {
+    "production": {
+      "report_sha256": "41145a1bf7cf7a64c9c9db0f01c4d554c9adb4612f1ad231733c3f3e4d81a38a",
+      "builder_image_id": "1f39cf5ffb3a1d771b2f0129bea6a74fd366a381b9d62ba585536e8401a608e9",
+      "rust_input_count": 62,
+      "report": {
+        "status": "PASSED",
+        "config": {
+          "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+          "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+          "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+          "rust": "1.99.0",
+          "cargo_libc": "0.2.4",
+          "provider_mode": "source",
+          "cc": "/usr/bin/clang-16",
+          "target": "x86_64-unknown-linux-gnu.2.22",
+          "interpreter": "/lib64/ld-linux-x86-64.so.2",
+          "allowed_libraries": [
+            "libc.so.6",
+            "libm.so.6",
+            "libpthread.so.0",
+            "librt.so.1",
+            "libdl.so.2",
+            "libgcc_s.so.1",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "profiles": {
+          "debug": {
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover",
+                "sha256": "b9de61bb3753def59f82a21c0ed521c8b8e3d534d330eb3f006fe083cfdb3dd8",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-1-api-ab3188cd9f9a01df",
+                "sha256": "1a04ad4bcf6582f1bbc4c434cb40c84af358dc9b93d8ee9ce0f6598ae0d7034e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-2-claim-1505a04b7db96b38",
+                "sha256": "565259e41d96bbe65d351d7cd214b3bbc95e35aba1af77bc1e4924ddef7e4ff9",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-3-file_mover-090efcf23ed7c083",
+                "sha256": "1d2668e0c6d7c53bbfc178896ca9eaa906847597c392c4c19988f174378c9c03",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-4-file_mover-49626955f157a41a",
+                "sha256": "f616ebc30ddda9f3d82c1cdfc0c0f1763c257f09c5e3cc1e1654141a1438d14b",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf",
+                "sha256": "2d213dd1ddfa9253729a863ef93cc0010929e78ff082291979cd2176e4cf1e04",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-6-mover_fs-62cdb39a48330930",
+                "sha256": "ddae96d76f7d5ebd69013eb5c745253301611a4f0fc768955e9ae7e15d8553b0",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-7-mover_store-827d23f8a60d7494",
+                "sha256": "e0431697820e13015ed954d8fc34b1c6922796316c97daf7f3c51abdc9a7b045",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355",
+                "sha256": "70cbeafbdd5f7b2df237d4696fa69d282716f78ad5a1b81bad291a4272b6f928",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-9-transfer-6bcc92ab4b3c2129",
+                "sha256": "17f1e4385286c237e5672d5327e9a1b59fb427477b7f113b01493bacfd016520",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 211
+          },
+          "release": {
+            "artifacts": [
+              {
+                "name": "release-0-file-mover",
+                "sha256": "6278806a6ba2a95f951e50881307ac1c36f5293153c98d73eba728136a5d8f6c",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-1-api-b0ab9b2e96a908df",
+                "sha256": "0acef9f5a5ff4951591c332e54ee78955bff3f2e52ebe2562595d5dc74e8c47e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-2-claim-10c32c0f6a3abf03",
+                "sha256": "2ceeecd83fdce86c6e6f46ac9978c25f71d4d09f737b4c3948022e3242170751",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-3-file_mover-6898046fd96bd7f2",
+                "sha256": "173cb6828819fa549dc3b84d73c1cf3af6b010e427f608223d30ef6a47eb69fe",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-4-file_mover-8fcac8bbbe7aa543",
+                "sha256": "a49b2c157abc346c646a38e6284cb67f720ca26fc30ffeb30f2732e4cdea7ad6",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf",
+                "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-6-mover_fs-ac9fecd4f03f3716",
+                "sha256": "56fef184fee825b9acd065f959164ee31b8f572f1ee025dbd979062df2b1300e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-7-mover_store-8133f98ca0746262",
+                "sha256": "1cb8fc1a22b652a2c441a9aee4a0e48d00b64d3e5aa642d94138ff75dd853e42",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e",
+                "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-9-transfer-bd16483e7f2c37db",
+                "sha256": "35d7a8d211577a14504c8b5f6b5c17a5d3f4123ea3c64165a3bed0bad52eca2d",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 211
+          }
+        },
+        "run_id": "20261101T181414Z-b2a31c1e",
+        "build_mode": "production",
+        "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+        "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+        "source_sha256": "ec7ea2102db74f0152894227fdb526fc5a17e1bb816f66d9aa047778ba0c807b",
+        "workspace_features": {
+          "file-mover": [
+            "default"
+          ],
+          "mover-fs": [
+            "default"
+          ]
+        },
+        "dependencies": [
+          {
+            "name": "bitflags",
+            "version": "2.13.2",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "block-buffer",
+            "version": "0.10.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "bytes",
+            "version": "1.12.1",
+            "license": "MIT"
+          },
+          {
+            "name": "cc",
+            "version": "1.8.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cfg-if",
+            "version": "1.0.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cpufeatures",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "crypto-common",
+            "version": "0.1.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "digest",
+            "version": "0.10.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "errno",
+            "version": "0.3.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fallible-iterator",
+            "version": "0.3.0",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "fallible-streaming-iterator",
+            "version": "0.1.9",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "find-msvc-tools",
+            "version": "0.1.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "generic-array",
+            "version": "0.14.7",
+            "license": "MIT"
+          },
+          {
+            "name": "httparse",
+            "version": "1.10.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "itoa",
+            "version": "1.0.18",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libc",
+            "version": "0.2.190",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libsqlite3-sys",
+            "version": "0.38.2",
+            "license": "MIT"
+          },
+          {
+            "name": "linux-raw-sys",
+            "version": "0.12.1",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "memchr",
+            "version": "2.8.3",
+            "license": "Unlicense OR MIT"
+          },
+          {
+            "name": "mio",
+            "version": "1.2.4",
+            "license": "MIT"
+          },
+          {
+            "name": "pin-project-lite",
+            "version": "0.2.17",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "pkg-config",
+            "version": "0.3.34",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "proc-macro2",
+            "version": "1.0.107",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "quote",
+            "version": "1.0.47",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rusqlite",
+            "version": "0.40.1",
+            "license": "MIT"
+          },
+          {
+            "name": "rustix",
+            "version": "1.1.5",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_core",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0.154",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "shlex",
+            "version": "2.0.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "signal-hook-registry",
+            "version": "1.4.8",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "smallvec",
+            "version": "1.16.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "socket2",
+            "version": "0.6.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "syn",
+            "version": "3.0.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "tokio",
+            "version": "1.53.2",
+            "license": "MIT"
+          },
+          {
+            "name": "typenum",
+            "version": "1.20.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "unicode-ident",
+            "version": "1.0.27",
+            "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+          },
+          {
+            "name": "vcpkg",
+            "version": "0.2.15",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "version_check",
+            "version": "0.9.5",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "zmij",
+            "version": "1.0.23",
+            "license": "MIT"
+          }
+        ],
+        "audit_negative_controls": [
+          "new-glibc",
+          "private-glibc",
+          "wrong-loader",
+          "unexpected-library",
+          "runpath",
+          "wrong-architecture"
+        ]
+      }
+    },
+    "nfs-qualification": {
+      "report_sha256": "5f8e386df9268c41b9f4b9e0e5ae83f390b3bdab3dca7931d6ae56e73a728a7c",
+      "builder_image_id": "1f39cf5ffb3a1d771b2f0129bea6a74fd366a381b9d62ba585536e8401a608e9",
+      "rust_input_count": 62,
+      "report": {
+        "status": "PASSED",
+        "config": {
+          "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+          "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+          "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+          "rust": "1.99.0",
+          "cargo_libc": "0.2.4",
+          "provider_mode": "source",
+          "cc": "/usr/bin/clang-16",
+          "target": "x86_64-unknown-linux-gnu.2.22",
+          "interpreter": "/lib64/ld-linux-x86-64.so.2",
+          "allowed_libraries": [
+            "libc.so.6",
+            "libm.so.6",
+            "libpthread.so.0",
+            "librt.so.1",
+            "libdl.so.2",
+            "libgcc_s.so.1",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "profiles": {
+          "debug": {
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover-nfs-qualification",
+                "sha256": "522b1ce508dbd2f4cc539ce33505a41ba9403c7d24203257d75bc67f47ed7712",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-1-api-887734b5f0415983-nfs-qualification",
+                "sha256": "6c5ee023544b1245541f5ca36baa153c9ea3d072c0707b48025e8639b988dea6",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-2-claim-c2748acf9f5fb1d1-nfs-qualification",
+                "sha256": "5246b2b8ceb7af026056f0ee5ea65a6d3506d02f6639e2824a207d7f71e475cd",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-3-file_mover-4ae60d66075b7051-nfs-qualification",
+                "sha256": "45d44b48e491c912a155d2c7f7c810b89ca04bff83c1bec320a4426a3c9dca7f",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-4-file_mover-c840487d2a23295a-nfs-qualification",
+                "sha256": "fb5606b78b991760d6875eb7bdfa6015b4d35221e80edb3eb542a792124ce3cc",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+                "sha256": "2d213dd1ddfa9253729a863ef93cc0010929e78ff082291979cd2176e4cf1e04",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-6-mover_fs-c77dc059c039cebc-nfs-qualification",
+                "sha256": "46979fc673d032d9902044bf90378873900eb5b1b7a8f49c0584548c253432cc",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-7-mover_store-827d23f8a60d7494-nfs-qualification",
+                "sha256": "e0431697820e13015ed954d8fc34b1c6922796316c97daf7f3c51abdc9a7b045",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+                "sha256": "70cbeafbdd5f7b2df237d4696fa69d282716f78ad5a1b81bad291a4272b6f928",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-9-transfer-1b8a6efa042b9dec-nfs-qualification",
+                "sha256": "4dc00cbf6062107ea5492951f6ff9ce8c3761a345704eb247053e4bbc99c7858",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 213
+          },
+          "release": {
+            "artifacts": [
+              {
+                "name": "release-0-file-mover-nfs-qualification",
+                "sha256": "fec631b515ac91e2658a1c153b4538b1fbdbaa47f4933ddf9ad823d2619c3658",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-1-api-3627f16ff37a4ff3-nfs-qualification",
+                "sha256": "7f44bed7ac8e454ac10955a3c16317db379f95429b73b326370e224d3183b9b1",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-2-claim-3d0ea7073ed6477c-nfs-qualification",
+                "sha256": "2fb52623dddd614d59fe6a7bd570239001cbe12313be5bf09be6b9ee672db09b",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-3-file_mover-628e1688f80646d6-nfs-qualification",
+                "sha256": "746549d9d74606fa6bd401f1d8ea449ecd4ce6af8122483e104c74c2f0f6f20e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-4-file_mover-ae822951cc700921-nfs-qualification",
+                "sha256": "d269c9ccda5a5e284c8e27793df7cd919440053beb95613d96894fc57e83edd6",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+                "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-6-mover_fs-cb594efb59a2eff7-nfs-qualification",
+                "sha256": "e9560481714a0a894d9de9d17788010f6837aec263e50df5bbabbb4d534a1e90",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-7-mover_store-8133f98ca0746262-nfs-qualification",
+                "sha256": "1cb8fc1a22b652a2c441a9aee4a0e48d00b64d3e5aa642d94138ff75dd853e42",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+                "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-9-transfer-3c451284762565a6-nfs-qualification",
+                "sha256": "e35d9c278f0293a733277db56edeb336dd32255bf166a1c1188fe3ec1e5262f0",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 213
+          }
+        },
+        "run_id": "20261101T184249Z-346c7961-nfs-qualification",
+        "build_mode": "nfs-qualification",
+        "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+        "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+        "source_sha256": "da69f8a0cab6b4722c138c1e57892f02f6d2a0b1fd28cbd149263d1328d90b2a",
+        "workspace_features": {
+          "file-mover": [
+            "default",
+            "nfs-qualification"
+          ],
+          "mover-fs": [
+            "default",
+            "nfs-qualification"
+          ]
+        },
+        "dependencies": [
+          {
+            "name": "bitflags",
+            "version": "2.13.2",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "block-buffer",
+            "version": "0.10.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "bytes",
+            "version": "1.12.1",
+            "license": "MIT"
+          },
+          {
+            "name": "cc",
+            "version": "1.8.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cfg-if",
+            "version": "1.0.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cpufeatures",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "crypto-common",
+            "version": "0.1.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "digest",
+            "version": "0.10.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "errno",
+            "version": "0.3.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fallible-iterator",
+            "version": "0.3.0",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "fallible-streaming-iterator",
+            "version": "0.1.9",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "find-msvc-tools",
+            "version": "0.1.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "generic-array",
+            "version": "0.14.7",
+            "license": "MIT"
+          },
+          {
+            "name": "httparse",
+            "version": "1.10.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "itoa",
+            "version": "1.0.18",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libc",
+            "version": "0.2.190",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libsqlite3-sys",
+            "version": "0.38.2",
+            "license": "MIT"
+          },
+          {
+            "name": "linux-raw-sys",
+            "version": "0.12.1",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "memchr",
+            "version": "2.8.3",
+            "license": "Unlicense OR MIT"
+          },
+          {
+            "name": "mio",
+            "version": "1.2.4",
+            "license": "MIT"
+          },
+          {
+            "name": "pin-project-lite",
+            "version": "0.2.17",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "pkg-config",
+            "version": "0.3.34",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "proc-macro2",
+            "version": "1.0.107",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "quote",
+            "version": "1.0.47",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rusqlite",
+            "version": "0.40.1",
+            "license": "MIT"
+          },
+          {
+            "name": "rustix",
+            "version": "1.1.5",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_core",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0.154",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "shlex",
+            "version": "2.0.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "signal-hook-registry",
+            "version": "1.4.8",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "smallvec",
+            "version": "1.16.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "socket2",
+            "version": "0.6.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "syn",
+            "version": "3.0.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "tokio",
+            "version": "1.53.2",
+            "license": "MIT"
+          },
+          {
+            "name": "typenum",
+            "version": "1.20.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "unicode-ident",
+            "version": "1.0.27",
+            "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+          },
+          {
+            "name": "vcpkg",
+            "version": "0.2.15",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "version_check",
+            "version": "0.9.5",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "zmij",
+            "version": "1.0.23",
+            "license": "MIT"
+          }
+        ],
+        "audit_negative_controls": [
+          "new-glibc",
+          "private-glibc",
+          "wrong-loader",
+          "unexpected-library",
+          "runpath",
+          "wrong-architecture"
+        ]
+      }
+    }
+  },
+  "retained_initial_failure": {
+    "report_sha256": "d04dce505b2de672695033ea6648fc3e660e526cede7d8c397a6f0ea69b9fddb",
+    "report": {
+      "status": "FAILED",
+      "config": {
+        "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+        "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+        "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+        "rust": "1.99.0",
+        "cargo_libc": "0.2.4",
+        "provider_mode": "source",
+        "cc": "/usr/bin/clang-16",
+        "target": "x86_64-unknown-linux-gnu.2.22",
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "allowed_libraries": [
+          "libc.so.6",
+          "libm.so.6",
+          "libpthread.so.0",
+          "librt.so.1",
+          "libdl.so.2",
+          "libgcc_s.so.1",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "profiles": {},
+      "run_id": "20261101T181211Z-de05dc4d",
+      "build_mode": "production",
+      "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+      "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+      "source_sha256": "bea91f1029cccf910d45afdf2b69777f00d65aaf0ba3bf11d89d2301b9f7ba59",
+      "workspace_features": {
+        "file-mover": [
+          "default"
+        ],
+        "mover-fs": [
+          "default"
+        ]
+      },
+      "dependencies": [
+        {
+          "name": "bitflags",
+          "version": "2.13.2",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "block-buffer",
+          "version": "0.10.4",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "bytes",
+          "version": "1.12.1",
+          "license": "MIT"
+        },
+        {
+          "name": "cc",
+          "version": "1.8.0",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "cfg-if",
+          "version": "1.0.5",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "cpufeatures",
+          "version": "0.2.17",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "crypto-common",
+          "version": "0.1.7",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "digest",
+          "version": "0.10.7",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "errno",
+          "version": "0.3.14",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "fallible-iterator",
+          "version": "0.3.0",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "fallible-streaming-iterator",
+          "version": "0.1.9",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "find-msvc-tools",
+          "version": "0.1.14",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "generic-array",
+          "version": "0.14.7",
+          "license": "MIT"
+        },
+        {
+          "name": "httparse",
+          "version": "1.10.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "itoa",
+          "version": "1.0.18",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "libc",
+          "version": "0.2.190",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "libsqlite3-sys",
+          "version": "0.38.2",
+          "license": "MIT"
+        },
+        {
+          "name": "linux-raw-sys",
+          "version": "0.12.1",
+          "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        },
+        {
+          "name": "memchr",
+          "version": "2.8.3",
+          "license": "Unlicense OR MIT"
+        },
+        {
+          "name": "mio",
+          "version": "1.2.4",
+          "license": "MIT"
+        },
+        {
+          "name": "pin-project-lite",
+          "version": "0.2.17",
+          "license": "Apache-2.0 OR MIT"
+        },
+        {
+          "name": "pkg-config",
+          "version": "0.3.34",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "proc-macro2",
+          "version": "1.0.107",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "quote",
+          "version": "1.0.47",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "rusqlite",
+          "version": "0.40.1",
+          "license": "MIT"
+        },
+        {
+          "name": "rustix",
+          "version": "1.1.5",
+          "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        },
+        {
+          "name": "serde",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_core",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_derive",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_json",
+          "version": "1.0.154",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "sha2",
+          "version": "0.10.9",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "shlex",
+          "version": "2.0.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "signal-hook-registry",
+          "version": "1.4.8",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "smallvec",
+          "version": "1.16.3",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "socket2",
+          "version": "0.6.5",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "syn",
+          "version": "3.0.9",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "tokio",
+          "version": "1.53.2",
+          "license": "MIT"
+        },
+        {
+          "name": "typenum",
+          "version": "1.20.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "unicode-ident",
+          "version": "1.0.27",
+          "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+        },
+        {
+          "name": "vcpkg",
+          "version": "0.2.15",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "version_check",
+          "version": "0.9.5",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "zmij",
+          "version": "1.0.23",
+          "license": "MIT"
+        }
+      ],
+      "error": "command failed (101): ['podman', 'exec', '--workdir']\nerror: failed to load config from `/work/cargo-libc.toml`\n\nCaused by:\n  could not parse TOML configuration in `/work/cargo-libc.toml`\n\nCaused by:\n  TOML parse error at line 26, column 7\n     |\n  26 | glibc 2.22 provider (source mode, prepared): /usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/provider.txt\n     |       ^\n  key with no value, expected `=`\n"
+    }
+  },
+  "local_gate_commit": "bdd24d8e9a318f24da9a0dbddbee0ca0c0c526e9",
+  "ci": {
+    "workflow_id": 41340296012,
+    "workflow_url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/41340296012",
+    "commit": "b6d90ac22a1220c973b1265738c9c3db2d998065",
+    "status": "PASSED",
+    "runs": {
+      "production": {
+        "report_sha256": "c6a559528600d0296b047536b0f015cc65412316f8b64e4977c11f486b57ade8",
+        "builder_image_id": "450f694887c313dd072034dcadda4a0d51507690e99fb24d8d93d94d77fe2ca6",
+        "tool_versions": [
+          "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "cargo 1.99.0 (5f94df478 2026-08-27)",
+          "cargo-libc 0.2.4",
+          "Debian clang version 16.0.6 (15~deb12u1)",
+          "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+          "GNU ld (GNU Binutils for Debian) 2.40"
+        ],
+        "report": {
+          "status": "PASSED",
+          "config": {
+            "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+            "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+            "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+            "rust": "1.99.0",
+            "cargo_libc": "0.2.4",
+            "provider_mode": "source",
+            "cc": "/usr/bin/clang-16",
+            "target": "x86_64-unknown-linux-gnu.2.22",
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "allowed_libraries": [
+              "libc.so.6",
+              "libm.so.6",
+              "libpthread.so.0",
+              "librt.so.1",
+              "libdl.so.2",
+              "libgcc_s.so.1",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "profiles": {
+            "debug": {
+              "artifacts": [
+                {
+                  "name": "debug-0-file-mover",
+                  "sha256": "963528f968bd6b910034d683da6be9f3e4b851156be92d8625428016aeca8c91",
+                  "test": false,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-1-api-ab3188cd9f9a01df",
+                  "sha256": "fabc4eabb86406ea11542bc05f92fbade666258ac2ba5d88a95b7f46c265fc8a",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-2-claim-1505a04b7db96b38",
+                  "sha256": "c82e703c7e67ebcac6677358af47863292b8e36fb0ffafd54a313a5ca6cc1bed",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-3-file_mover-090efcf23ed7c083",
+                  "sha256": "5d0c4505cbfc8f8115185e6fdc5a19476ed2eb5cbc433c90d15ef42a448356b0",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-4-file_mover-49626955f157a41a",
+                  "sha256": "339508b0e3821f77b1e4bd93952710039b2e9670af8289fcd5ed9051652d713d",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-5-mover_core-b12b493fdf9744cf",
+                  "sha256": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-6-mover_fs-62cdb39a48330930",
+                  "sha256": "7d902dbf849042ec144ee39430120c018b61743f1a7e7dd864daa66a311eafa9",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-7-mover_store-827d23f8a60d7494",
+                  "sha256": "61ac6244cdaab9c4174e0ffac4d942669e23fc24b14d32f7a8733c0a607790eb",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-8-protocol-2f28a09de9f6d355",
+                  "sha256": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-9-transfer-6bcc92ab4b3c2129",
+                  "sha256": "41445b8e239cf7278b007d7f594d2e81d477bdeab76cb83d3bc168027e44d0d2",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.6",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                }
+              ],
+              "tests_passed": 211
+            },
+            "release": {
+              "artifacts": [
+                {
+                  "name": "release-0-file-mover",
+                  "sha256": "6278806a6ba2a95f951e50881307ac1c36f5293153c98d73eba728136a5d8f6c",
+                  "test": false,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-1-api-b0ab9b2e96a908df",
+                  "sha256": "0acef9f5a5ff4951591c332e54ee78955bff3f2e52ebe2562595d5dc74e8c47e",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-2-claim-10c32c0f6a3abf03",
+                  "sha256": "2ceeecd83fdce86c6e6f46ac9978c25f71d4d09f737b4c3948022e3242170751",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-3-file_mover-6898046fd96bd7f2",
+                  "sha256": "173cb6828819fa549dc3b84d73c1cf3af6b010e427f608223d30ef6a47eb69fe",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-4-file_mover-8fcac8bbbe7aa543",
+                  "sha256": "a49b2c157abc346c646a38e6284cb67f720ca26fc30ffeb30f2732e4cdea7ad6",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-5-mover_core-437b6f9cd965a8bf",
+                  "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-6-mover_fs-ac9fecd4f03f3716",
+                  "sha256": "56fef184fee825b9acd065f959164ee31b8f572f1ee025dbd979062df2b1300e",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-7-mover_store-8133f98ca0746262",
+                  "sha256": "1cb8fc1a22b652a2c441a9aee4a0e48d00b64d3e5aa642d94138ff75dd853e42",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-8-protocol-dd549649cfc5a27e",
+                  "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-9-transfer-bd16483e7f2c37db",
+                  "sha256": "35d7a8d211577a14504c8b5f6b5c17a5d3f4123ea3c64165a3bed0bad52eca2d",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.6",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                }
+              ],
+              "tests_passed": 211
+            }
+          },
+          "run_id": "20261101T191036Z-6f8759d4",
+          "build_mode": "production",
+          "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+          "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+          "source_sha256": "f7c0b3181a7abbd7425f241e48a17e55a224c0ea03c05bbac921c207f9be7f36",
+          "workspace_features": {
+            "file-mover": [
+              "default"
+            ],
+            "mover-fs": [
+              "default"
+            ]
+          },
+          "dependencies": [
+            {
+              "name": "bitflags",
+              "version": "2.13.2",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "block-buffer",
+              "version": "0.10.4",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "bytes",
+              "version": "1.12.1",
+              "license": "MIT"
+            },
+            {
+              "name": "cc",
+              "version": "1.8.0",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "cfg-if",
+              "version": "1.0.5",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "cpufeatures",
+              "version": "0.2.17",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "crypto-common",
+              "version": "0.1.7",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "digest",
+              "version": "0.10.7",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "errno",
+              "version": "0.3.14",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "fallible-iterator",
+              "version": "0.3.0",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "fallible-streaming-iterator",
+              "version": "0.1.9",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "find-msvc-tools",
+              "version": "0.1.14",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "generic-array",
+              "version": "0.14.7",
+              "license": "MIT"
+            },
+            {
+              "name": "httparse",
+              "version": "1.10.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "itoa",
+              "version": "1.0.18",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "libc",
+              "version": "0.2.190",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "libsqlite3-sys",
+              "version": "0.38.2",
+              "license": "MIT"
+            },
+            {
+              "name": "linux-raw-sys",
+              "version": "0.12.1",
+              "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+            },
+            {
+              "name": "memchr",
+              "version": "2.8.3",
+              "license": "Unlicense OR MIT"
+            },
+            {
+              "name": "mio",
+              "version": "1.2.4",
+              "license": "MIT"
+            },
+            {
+              "name": "pin-project-lite",
+              "version": "0.2.17",
+              "license": "Apache-2.0 OR MIT"
+            },
+            {
+              "name": "pkg-config",
+              "version": "0.3.34",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "proc-macro2",
+              "version": "1.0.107",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "quote",
+              "version": "1.0.47",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "rusqlite",
+              "version": "0.40.1",
+              "license": "MIT"
+            },
+            {
+              "name": "rustix",
+              "version": "1.1.5",
+              "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+            },
+            {
+              "name": "serde",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_core",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_derive",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_json",
+              "version": "1.0.154",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "sha2",
+              "version": "0.10.9",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "shlex",
+              "version": "2.0.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "signal-hook-registry",
+              "version": "1.4.8",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "smallvec",
+              "version": "1.16.3",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "socket2",
+              "version": "0.6.5",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "syn",
+              "version": "3.0.9",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "tokio",
+              "version": "1.53.2",
+              "license": "MIT"
+            },
+            {
+              "name": "typenum",
+              "version": "1.20.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "unicode-ident",
+              "version": "1.0.27",
+              "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+            },
+            {
+              "name": "vcpkg",
+              "version": "0.2.15",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "version_check",
+              "version": "0.9.5",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "zmij",
+              "version": "1.0.23",
+              "license": "MIT"
+            }
+          ],
+          "runtime_session": {
+            "pid": 4,
+            "pgid": 4,
+            "sid": 4
+          },
+          "audit_negative_controls": [
+            "new-glibc",
+            "private-glibc",
+            "wrong-loader",
+            "unexpected-library",
+            "runpath",
+            "wrong-architecture"
+          ]
+        }
+      },
+      "nfs-qualification": {
+        "report_sha256": "a754acb41a50ab09e10636d750a663337385741fdbd8f73723d6f307fc93bee0",
+        "builder_image_id": "f2c549f6affec1ce801bb9c859c26601c0e738068d714cc9a6b902768f85810c",
+        "tool_versions": [
+          "rustc 1.99.0 (b940084d7 2026-09-28)",
+          "cargo 1.99.0 (5f94df478 2026-08-27)",
+          "cargo-libc 0.2.4",
+          "Debian clang version 16.0.6 (15~deb12u1)",
+          "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+          "GNU ld (GNU Binutils for Debian) 2.40"
+        ],
+        "report": {
+          "status": "PASSED",
+          "config": {
+            "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+            "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+            "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+            "rust": "1.99.0",
+            "cargo_libc": "0.2.4",
+            "provider_mode": "source",
+            "cc": "/usr/bin/clang-16",
+            "target": "x86_64-unknown-linux-gnu.2.22",
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "allowed_libraries": [
+              "libc.so.6",
+              "libm.so.6",
+              "libpthread.so.0",
+              "librt.so.1",
+              "libdl.so.2",
+              "libgcc_s.so.1",
+              "ld-linux-x86-64.so.2"
+            ]
+          },
+          "profiles": {
+            "debug": {
+              "artifacts": [
+                {
+                  "name": "debug-0-file-mover-nfs-qualification",
+                  "sha256": "2893a76600ed3e223a38532e76da6ee4cee0109adaccf1718fafc789e8b6f17b",
+                  "test": false,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-1-api-887734b5f0415983-nfs-qualification",
+                  "sha256": "e31752e398b5b154d858515922d9f82d08f8a5e4922c216711fe923f99f1e7f2",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-2-claim-c2748acf9f5fb1d1-nfs-qualification",
+                  "sha256": "000b0b839daae54b866dfa44fb4e8ef10ac97f6a016fd4b03f91eb99ecaf974d",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-3-file_mover-4ae60d66075b7051-nfs-qualification",
+                  "sha256": "25c849acfa568037286e4905c6d30ec766b73d8c8081e8b3383a264b8633801f",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-4-file_mover-c840487d2a23295a-nfs-qualification",
+                  "sha256": "7cb22145ac964832435850df18fdf1bbb8e9193cdc4c76aa4a1a36e42d772887",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+                  "sha256": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-6-mover_fs-c77dc059c039cebc-nfs-qualification",
+                  "sha256": "c05be86540ab91c2393f0fe6cb5e10851aa7e69ae29d7b778966dc776c3ecc03",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-7-mover_store-827d23f8a60d7494-nfs-qualification",
+                  "sha256": "61ac6244cdaab9c4174e0ffac4d942669e23fc24b14d32f7a8733c0a607790eb",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+                  "sha256": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "debug-9-transfer-1b8a6efa042b9dec-nfs-qualification",
+                  "sha256": "04d59d65881c9e5e06692374f95955a77dd9b0cf42ffb998377b4fe6757cfdb0",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.6",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                }
+              ],
+              "tests_passed": 213
+            },
+            "release": {
+              "artifacts": [
+                {
+                  "name": "release-0-file-mover-nfs-qualification",
+                  "sha256": "fec631b515ac91e2658a1c153b4538b1fbdbaa47f4933ddf9ad823d2619c3658",
+                  "test": false,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-1-api-3627f16ff37a4ff3-nfs-qualification",
+                  "sha256": "7f44bed7ac8e454ac10955a3c16317db379f95429b73b326370e224d3183b9b1",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.10",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-2-claim-3d0ea7073ed6477c-nfs-qualification",
+                  "sha256": "2fb52623dddd614d59fe6a7bd570239001cbe12313be5bf09be6b9ee672db09b",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-3-file_mover-628e1688f80646d6-nfs-qualification",
+                  "sha256": "746549d9d74606fa6bd401f1d8ea449ecd4ce6af8122483e104c74c2f0f6f20e",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.2",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.7",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-4-file_mover-ae822951cc700921-nfs-qualification",
+                  "sha256": "d269c9ccda5a5e284c8e27793df7cd919440053beb95613d96894fc57e83edd6",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+                  "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-6-mover_fs-cb594efb59a2eff7-nfs-qualification",
+                  "sha256": "e9560481714a0a894d9de9d17788010f6837aec263e50df5bbabbb4d534a1e90",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-7-mover_store-8133f98ca0746262-nfs-qualification",
+                  "sha256": "1cb8fc1a22b652a2c441a9aee4a0e48d00b64d3e5aa642d94138ff75dd853e42",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+                  "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                },
+                {
+                  "name": "release-9-transfer-3c451284762565a6-nfs-qualification",
+                  "sha256": "e35d9c278f0293a733277db56edeb336dd32255bf166a1c1188fe3ec1e5262f0",
+                  "test": true,
+                  "elf": {
+                    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                    "libraries": [
+                      "libc.so.6",
+                      "libdl.so.2",
+                      "libgcc_s.so.1",
+                      "libm.so.6",
+                      "libpthread.so.0",
+                      "librt.so.1"
+                    ],
+                    "versions": [
+                      "GCC_3.0",
+                      "GCC_3.3",
+                      "GCC_4.2.0",
+                      "GLIBC_2.12",
+                      "GLIBC_2.14",
+                      "GLIBC_2.15",
+                      "GLIBC_2.16",
+                      "GLIBC_2.18",
+                      "GLIBC_2.2.5",
+                      "GLIBC_2.3",
+                      "GLIBC_2.3.4",
+                      "GLIBC_2.4",
+                      "GLIBC_2.6",
+                      "GLIBC_2.9"
+                    ],
+                    "maximum_glibc": "GLIBC_2.18"
+                  }
+                }
+              ],
+              "tests_passed": 213
+            }
+          },
+          "run_id": "20261101T191037Z-d223cf0b-nfs-qualification",
+          "build_mode": "nfs-qualification",
+          "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+          "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+          "source_sha256": "764a3bc516f7b6aecede334ed24c0c3d0f22f5af954ba764e5d5d6bc8ea05922",
+          "workspace_features": {
+            "file-mover": [
+              "default",
+              "nfs-qualification"
+            ],
+            "mover-fs": [
+              "default",
+              "nfs-qualification"
+            ]
+          },
+          "dependencies": [
+            {
+              "name": "bitflags",
+              "version": "2.13.2",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "block-buffer",
+              "version": "0.10.4",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "bytes",
+              "version": "1.12.1",
+              "license": "MIT"
+            },
+            {
+              "name": "cc",
+              "version": "1.8.0",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "cfg-if",
+              "version": "1.0.5",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "cpufeatures",
+              "version": "0.2.17",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "crypto-common",
+              "version": "0.1.7",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "digest",
+              "version": "0.10.7",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "errno",
+              "version": "0.3.14",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "fallible-iterator",
+              "version": "0.3.0",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "fallible-streaming-iterator",
+              "version": "0.1.9",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "find-msvc-tools",
+              "version": "0.1.14",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "generic-array",
+              "version": "0.14.7",
+              "license": "MIT"
+            },
+            {
+              "name": "httparse",
+              "version": "1.10.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "itoa",
+              "version": "1.0.18",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "libc",
+              "version": "0.2.190",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "libsqlite3-sys",
+              "version": "0.38.2",
+              "license": "MIT"
+            },
+            {
+              "name": "linux-raw-sys",
+              "version": "0.12.1",
+              "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+            },
+            {
+              "name": "memchr",
+              "version": "2.8.3",
+              "license": "Unlicense OR MIT"
+            },
+            {
+              "name": "mio",
+              "version": "1.2.4",
+              "license": "MIT"
+            },
+            {
+              "name": "pin-project-lite",
+              "version": "0.2.17",
+              "license": "Apache-2.0 OR MIT"
+            },
+            {
+              "name": "pkg-config",
+              "version": "0.3.34",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "proc-macro2",
+              "version": "1.0.107",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "quote",
+              "version": "1.0.47",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "rusqlite",
+              "version": "0.40.1",
+              "license": "MIT"
+            },
+            {
+              "name": "rustix",
+              "version": "1.1.5",
+              "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+            },
+            {
+              "name": "serde",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_core",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_derive",
+              "version": "1.0.229",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "serde_json",
+              "version": "1.0.154",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "sha2",
+              "version": "0.10.9",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "shlex",
+              "version": "2.0.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "signal-hook-registry",
+              "version": "1.4.8",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "smallvec",
+              "version": "1.16.3",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "socket2",
+              "version": "0.6.5",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "syn",
+              "version": "3.0.9",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "tokio",
+              "version": "1.53.2",
+              "license": "MIT"
+            },
+            {
+              "name": "typenum",
+              "version": "1.20.1",
+              "license": "MIT OR Apache-2.0"
+            },
+            {
+              "name": "unicode-ident",
+              "version": "1.0.27",
+              "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+            },
+            {
+              "name": "vcpkg",
+              "version": "0.2.15",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "version_check",
+              "version": "0.9.5",
+              "license": "MIT/Apache-2.0"
+            },
+            {
+              "name": "zmij",
+              "version": "1.0.23",
+              "license": "MIT"
+            }
+          ],
+          "runtime_session": {
+            "pid": 4,
+            "pgid": 4,
+            "sid": 4
+          },
+          "audit_negative_controls": [
+            "new-glibc",
+            "private-glibc",
+            "wrong-loader",
+            "unexpected-library",
+            "runpath",
+            "wrong-architecture"
+          ]
+        }
+      }
+    }
+  },
+  "retained_ci_failure": {
+    "workflow_id": 41339844179,
+    "workflow_url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/41339844179",
+    "report_sha256": "36ee8c6bdf6c7054734b42fc49389526e7e8bd1319915b92223d59cff16b0ea4",
+    "api_log_sha256": "164cc995b6098335f6445459a5973f7dc2744e446719f21617261518f83cd76f",
+    "failure": "rustix getpgrp assertion failed: pgid > 0",
+    "report": {
+      "status": "FAILED",
+      "config": {
+        "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+        "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+        "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+        "rust": "1.99.0",
+        "cargo_libc": "0.2.4",
+        "provider_mode": "source",
+        "cc": "/usr/bin/clang-16",
+        "target": "x86_64-unknown-linux-gnu.2.22",
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "allowed_libraries": [
+          "libc.so.6",
+          "libm.so.6",
+          "libpthread.so.0",
+          "librt.so.1",
+          "libdl.so.2",
+          "libgcc_s.so.1",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "profiles": {
+        "debug": {
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "963528f968bd6b910034d683da6be9f3e4b851156be92d8625428016aeca8c91",
+              "test": false,
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            },
+            {
+              "name": "debug-1-api-ab3188cd9f9a01df",
+              "sha256": "fabc4eabb86406ea11542bc05f92fbade666258ac2ba5d88a95b7f46c265fc8a",
+              "test": true,
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            }
+          ],
+          "tests_passed": 0
+        }
+      },
+      "run_id": "20261101T190456Z-b7f39f7c",
+      "build_mode": "production",
+      "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+      "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+      "source_sha256": "d6928706751074123df70f9b6cbf163a8b5d519a5af32deae71627027a06bf2a",
+      "workspace_features": {
+        "file-mover": [
+          "default"
+        ],
+        "mover-fs": [
+          "default"
+        ]
+      },
+      "dependencies": [
+        {
+          "name": "bitflags",
+          "version": "2.13.2",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "block-buffer",
+          "version": "0.10.4",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "bytes",
+          "version": "1.12.1",
+          "license": "MIT"
+        },
+        {
+          "name": "cc",
+          "version": "1.8.0",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "cfg-if",
+          "version": "1.0.5",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "cpufeatures",
+          "version": "0.2.17",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "crypto-common",
+          "version": "0.1.7",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "digest",
+          "version": "0.10.7",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "errno",
+          "version": "0.3.14",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "fallible-iterator",
+          "version": "0.3.0",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "fallible-streaming-iterator",
+          "version": "0.1.9",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "find-msvc-tools",
+          "version": "0.1.14",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "generic-array",
+          "version": "0.14.7",
+          "license": "MIT"
+        },
+        {
+          "name": "httparse",
+          "version": "1.10.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "itoa",
+          "version": "1.0.18",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "libc",
+          "version": "0.2.190",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "libsqlite3-sys",
+          "version": "0.38.2",
+          "license": "MIT"
+        },
+        {
+          "name": "linux-raw-sys",
+          "version": "0.12.1",
+          "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        },
+        {
+          "name": "memchr",
+          "version": "2.8.3",
+          "license": "Unlicense OR MIT"
+        },
+        {
+          "name": "mio",
+          "version": "1.2.4",
+          "license": "MIT"
+        },
+        {
+          "name": "pin-project-lite",
+          "version": "0.2.17",
+          "license": "Apache-2.0 OR MIT"
+        },
+        {
+          "name": "pkg-config",
+          "version": "0.3.34",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "proc-macro2",
+          "version": "1.0.107",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "quote",
+          "version": "1.0.47",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "rusqlite",
+          "version": "0.40.1",
+          "license": "MIT"
+        },
+        {
+          "name": "rustix",
+          "version": "1.1.5",
+          "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+        },
+        {
+          "name": "serde",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_core",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_derive",
+          "version": "1.0.229",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "serde_json",
+          "version": "1.0.154",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "sha2",
+          "version": "0.10.9",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "shlex",
+          "version": "2.0.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "signal-hook-registry",
+          "version": "1.4.8",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "smallvec",
+          "version": "1.16.3",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "socket2",
+          "version": "0.6.5",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "syn",
+          "version": "3.0.9",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "tokio",
+          "version": "1.53.2",
+          "license": "MIT"
+        },
+        {
+          "name": "typenum",
+          "version": "1.20.1",
+          "license": "MIT OR Apache-2.0"
+        },
+        {
+          "name": "unicode-ident",
+          "version": "1.0.27",
+          "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+        },
+        {
+          "name": "vcpkg",
+          "version": "0.2.15",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "version_check",
+          "version": "0.9.5",
+          "license": "MIT/Apache-2.0"
+        },
+        {
+          "name": "zmij",
+          "version": "1.0.23",
+          "license": "MIT"
+        }
+      ],
+      "audit_negative_controls": [
+        "new-glibc",
+        "private-glibc",
+        "wrong-loader",
+        "unexpected-library",
+        "runpath",
+        "wrong-architecture"
+      ],
+      "error": "command failed (101): ['podman', 'exec', '--user']\nding_is_required_strict_and_coordinator_scoped\n    destination_declared_nfs_refuses_matching_marker_on_local_filesystem\n    destination_marker_custody_is_required_without_creating_or_adopting_markers\n    destination_root_replacement_is_refused_before_first_allocation\n    effect_diagnostics_preserve_uncertain_allocations_manifest_review_and_recovery\n    enabled_source_space_native_sample_allows_nested_empty_delivery_without_double_charge\n    enrollment_io_failures_preserve_prepared_state_and_production_ignores_controls\n    explicit_source_enrollment_is_required_and_matching_restart_keeps_the_pair\n    fresh_database_cannot_adopt_enrolled_source_after_clean_release\n    live_payload_child_retains_both_locks_after_parent_descriptors_close\n    live_source_lock_replacement_blocks_claim_without_releasing_paths\n    local_controller_observes_clean_stop_without_sqlite_or_transfer_mount_access\n    local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite\n    lost_response_retry_finds_one_durable_job\n    malformed_json_scope_and_http_framing_never_claim\n    malformed_payload_assignments_preserve_stage_and_source\n    marker_change_during_runtime_blocks_claim_before_source_movement\n    missing_enrollment_receipt_reports_verification_stage_without_repair\n    missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it\n    missing_reset_expiry_requires_new_epoch_and_rejects_bad_requests\n    missing_reset_lost_response_survives_restart_and_partial_claims_complete\n    missing_reset_rejects_unexpired_claimed_and_committed_files\n    missing_unsafe_or_replaced_active_receipt_is_never_repaired\n    old_binding_versions_cannot_start_the_enrollment_protocol\n    operator_resume_keeps_collision_safe_and_reconciles_same_verified_attempt\n    operator_resume_lost_reply_survives_restart_and_invalid_requests_do_not_reset\n    operator_resume_rejects_unclaimed_and_committed_jobs\n    operator_status_observes_partial_claims_outage_and_committed_restart\n    operator_status_rejects_invalid_routes_and_reports_review_without_reset\n    partial_claim_missing_retry_and_persisted_expiry\n    payload_children_copy_verify_without_database_access_or_publication\n    payload_diagnostics_preserve_review_resume_and_production_ignores_faults\n    pending_capacity_retry_survives_restart_and_recovers_without_operator_resume\n    populated_state_without_destination_policy_refuses_service_startup\n    populated_unenrolled_state_refuses_service_startup_and_preserves_source\n    prepared_enrollment_retries_only_without_an_ambiguous_root_receipt\n    private_sqlite_files_recover_original_wal_after_coordinator_death\n    publication_child_reconciles_file_and_manifest_effects_without_database_receipts\n    replaced_source_lock_cannot_rebind_and_original_custody_can_restart\n    replacement_root_with_original_marker_cannot_rebind_existing_state\n    restart_discovers_claimed_delivery_and_keeps_original_destination\n    retention_api_charges_interrupted_attempts_and_does_not_claim_to_find_orphans\n    retention_api_reports_admission_headroom_and_committed_retained_sources\n    retention_limits_refuse_new_work_without_false_release_or_orphan\n    slow_client_does_not_block_health_and_concurrent_replays_are_bounded\n    source_marker_and_filesystem_failures_precede_sqlite\n    source_marker_replacement_blocks_restart_without_rebinding_or_losing_claims\n    source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries\n    source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart\n    source_space_probe_faults_are_qualification_only_and_do_not_gate_existing_jobs\n    source_space_probe_timeout_preserves_responsive_replay_and_custody\n    startup_contention_never_announces_readiness_or_opens_sqlite\n    stopped_startup_exits_cleanly_without_source_or_database_access\n    unavailable_destination_claims_then_foreign_marker_requires_review_without_allocation\n\ntest result: FAILED. 12 passed; 72 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s\n\n"
+    }
+  },
+  "verification_scope": "Local source archives, all 40 local binary hashes and inspections were independently verified. CI gate reports, counts, configuration, private sessions and cleanup were verified from downloaded diagnostics. CI binaries/source archives are not uploaded."
+}

@@ -7,6 +7,202 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Record approved group-51 retry/deletion defaults (API-E133-138/SC-184-189),
+  preserving uncleared exact replay and full forgetting at clear. Contract only;
+  remaining candidate wire, runtime implementation and qualification stay open.
+
+- Add a versioned offline Rust prototype installation bundle, gated executable
+  provenance, locked dependency source/license material, integrity/dependency
+  verification, non-overwriting installation and produce/use/recovery instructions.
+  Service activation remains explicit; shipping deployment qualification stays open.
+
+- Add strict `--offline` Cargo-libc/SLES validation using cached pinned images
+  and locked sources, with no image/download fallback or online provisioner;
+  retain full build/test/audit coverage and record observed container networks.
+
+- Consolidate Rust restart/shutdown recovery into a user runbook, covering
+  normal and interrupted transfers, systemd timeouts, surviving workers, startup
+  refusals, upgrades/reboots, exact handling steps and qualification limits.
+
+- Implement guarded host-local `--clear-history CONFIG JOB_ID... [--confirm]`
+  for committed jobs: one transaction forgets every per-job record/replay link
+  without touching source/destination payloads or manifests. Refuse active
+  daemon/surviving workers and fresh/legacy state; preserve shared enrollment
+  and non-reused IDs. Cancellation/admin HTTP integration remains pending.
+  See increment 107 for actual validation and limits.
+
+- Approve full file-linkage forgetting on eligible job clear (group 50/
+  API-E130-132/SC-181-183), superseding earlier post-clear owner retention.
+  Leave files in place but remove mover ownership/accounting/inventories and
+  action results. Delete through the mover before clear; later cleanup is
+  outside the service. Require every file effect safely stopped before clear.
+  Contract only; no runtime/state or physical-file changes performed.
+
+- Consolidate remaining admin-action behavior into a short closeout table:
+  distinguish existing approvals from proposed retry/no-work, post-clear receipt
+  and latest-deletion-result defaults. Reduce further encoding-only planning;
+  no new approval group, runtime implementation or qualification is claimed.
+
+- Specify the candidate Mover-Retry-Context header with canonical encoding,
+  ordered lossless job-ID binding, existing-instance precondition and unchanged
+  8 KiB aggregate head bound. Add four wire known answers, 52 codec cases and a
+  reproducible standard-library checker; extend schema fixtures to 57 and the
+  partial OpenAPI to admin retry. Encoding/artifact checks only; outcome/receipt
+  policy and API freeze remain pending, with no Rust/service effects.
+
+- Approve existing review-version/audit context in a retry request header
+  (group 49/API-E129/SC-180), preserving the job_ids-only body and exact-command
+  replay so a delayed request cannot retry a later failure. No new job identifier
+  or confirmation dialog. Exact wire/receipt design and implementation pending.
+
+- Add executable P01 contract candidates: partial OpenAPI, 21 JSON Schema
+  definitions, 50 structural fixtures, seven immutable-request identity vectors
+  and an index of all 128 API cases. Document the reviewed-state retry-context
+  recommendation and remaining freeze blockers. Artifact checks only; groups
+  1-48, runtime behavior and all release gates retain their existing status.
+
+- Add a consolidated P01 REST route/schema review proposal and four remaining
+  decision packages. Preserve groups 1-48 and existing evidence; no runtime
+  implementation, OpenAPI freeze or release qualification is claimed.
+
+- Approve dashboard authentication response statuses (group 48/API-E125-128/
+  SC-176-179): login 200 with cookie; incorrect credentials 401 with shared
+  "Invalid username or password." message; missing/expired session 401 requiring
+  sign-in; successful global logout 204 with no body after invalidation. Contract
+  documentation only; exact routes/body schemas and implementation pending.
+
+- Approve manual admin sign-out everywhere (group 47/API-E124/SC-175).
+  Invalidate every dashboard session across browsers/devices. Clarify that the
+  mover service owns transfers independently of dashboard credentials or session
+  lifetime; sign-in/out and dashboard credential events do not pause/cancel/restart them.
+  Contract documentation only; implementation/qualification and exact wire pending.
+
+- Approve browser session-cookie dashboard sign-in (group 46/API-E123/SC-174).
+  Preserve agreed expiry, password-change/restart sign-out and transfer independence.
+  Exact cookie/login/logout wire and implementation/qualification remain pending.
+
+- Approve failed-work retry HTTP 202 with accepted_count, failed_count and
+  skipped_count for per-entry attempts. Add planned API-E122/SC-173 (group 45);
+  preserve actual progress, custody and existing retry/review checks. Contract
+  documentation only; remaining wire/login details and implementation pending.
+
+- Replace Rust ZigBuild with pinned cargo-libc 0.2.4 and a digest-pinned Rust
+  1.99.0 builder base. Preserve locked dependencies, glibc 2.22, independent
+  ELF audits, debug/release SLES tests and retained qualification features.
+  Add configuration-stream regression checks and retained CI diagnostics;
+  normalize target test sessions to fix the pre-existing CI process-group-zero
+  startup failure. Retain the separate Zig C fixture compiler and document
+  non-PIE/reproducibility limits. Runtime code and REST decisions are unchanged.
+
+- Capture a portable development handoff with exact pending REST decision,
+  release/verification reading map, cloud setup steps and testing limits. Add
+  a hash inventory of 205 tracked evidence reports and both retained SLES
+  source/artifact baselines. Document that ignored raw packs/caches are not
+  transferred by Git; no runtime or new qualification change.
+
+- Approve cancellation HTTP 202 with accepted_count, failed_count and skipped_count for per-entry attempts. Add planned API-E121/SC-172; preserve pending safe-stop status, duplicate failures and silent skips. Documentation only.
+
+- Process duplicate admin job_ids entries again without batch deduplication/state prediction. Per-job cancellation decides the result; a duplicate cancel counts as a failed attempt without failing the job or resetting cancellation. Add planned API-E120/SC-171. Documentation only.
+
+- Approve silently skipping nonexistent job IDs in all four selected admin actions while processing remaining targets. Add planned API-E119/SC-170; preserve retained-data ownership, actual lookup errors and separate single-resource 404 mappings. Documentation only.
+
+- Approve a shared job_ids request for cancel, retry, history clear and manual deletion, each at its own endpoint. Add planned API-E118/SC-169; admin authentication remains separate from action bodies and exact wire/login details are pending. Documentation only.
+
+- Clarify that manual deletion uses the existing job_id and the targeted job's stored state/eligibility; no additional admin identifier scheme is required. Preserve agreed file ownership, confirmation and protection rules. Documentation only.
+
+- Approve manual deletion 202 Accepted with deleted/failed file counts, no automatic retries or special recovery workflow. Add planned API-E117/SC-168 and preserve confirmed scope, ownership/safe-stop and protected-file rules. Documentation only.
+
+- Approve completed history-clear 200 OK with the actual number of jobs cleared, silent ineligible skips and files untouched. Add planned API-E116/SC-167; exact wire/transaction implementation remains pending. Documentation only.
+
+- Approve 202 Accepted for accepted failed-job retry without confirmation; dashboard shows actual progress without implying success. Add planned API-E115/SC-166 and retain original job/custody/review rules. Documentation only.
+
+- Approve admin cancellation HTTP 202 Accepted with Cancellation pending until safe stop, then Cancelled. Add planned API-E114/SC-165; preserve custody/recovery rules and distinguish producer handoff acknowledgement. Documentation only.
+
+- Approve 409 recording_cancelled with retryable false for cancelled producer retries before durable handoff; preserve established 202 replay after handoff. Add planned API-E112/113 and SC-164; no transfer revival or new path release. Documentation only.
+
+- Require no confirmation for eligible failed-work retry. Add planned API-E111/SC-163; retain authentication, original job/custody and existing review checks. Cancel/clear/delete confirmations remain. Documentation only.
+
+- Make cancellation final for the first release, preserving files and keeping eligible failed-work retry separate. Add planned API-E110/SC-162; response mappings and implementation remain pending. Documentation only.
+
+- Approve requesting cancellation only for unfinished selected jobs, skipping completed/already-cancelled jobs without reasons. Add planned API-E109/SC-161; preserve existing pending cancellation and file/history safeguards. Documentation only.
+
+- Require cancellation confirmation displaying selected jobs without explanatory text. Add planned API-E108/SC-160 and preserve file/custody/pending-worker safeguards; terminal/mixed-selection and exact wire behavior remain pending. Documentation only.
+
+- Approve clearing eligible selected history while skipping others without individual reasons or automatic cancellation. Add planned API-E107/SC-159; preserve eligibility/file/UUID rules. Documentation only.
+
+- Require confirmation before history clear, showing selected jobs and explaining forgotten UUIDs with files preserved. Add planned API-E106/SC-158; mixed-selection and exact wire behavior remain pending. Documentation only.
+
+- Approve dashboard sign-out on mover restart while jobs use normal durable recovery. Add planned API-E105/SC-157; session implementation remains pending and runtime/recovery behavior is unchanged.
+
+- Approve configurable dashboard inactivity sign-out, default 30 minutes, without affecting background transfers. Add planned API-E104/SC-156; implementation and session behavior across mover restart remain pending.
+
+- Require password changes to sign out all existing admin dashboard sessions while background transfers continue unaffected. Add planned API-E103/SC-155; activation/session implementation and inactivity timeout remain pending.
+
+- Approve local setup/password changes on the mover host for one admin account. Add planned API-E102/SC-154; remote account-management/reset screens are not required. Session handling and implementation remain pending.
+
+- Select simple admin username/password for the first-release remote dashboard; defer SSO and advanced account management. Add planned API-E101/SC-153, retain action safeguards and leave minimal login/session implementation pending.
+
+- Require admin dashboard access from another computer, separate from recorder access. Add planned API-E100/SC-152 and begin sign-in/authorization design; no authentication method or remote admin listener implemented.
+
+- Approve manual retained-data deletion independently of the automatic-cleanup setting. Add planned API-E99/SC-151; preserve confirmation, safe-stop, file protections and best-effort failure behavior. Documentation only; no production deletion enabled.
+
+- Simplify confirmed retained-data deletion failure handling: best effort, leave failed files and report failures while attempting other safe selected files. No dedicated pause/resume or automatic retry workflow; existing ownership, safe-stop, confirmation and protected-file rules remain. Documentation only.
+- Approve confirmed retained-data disposal scope: owned retained source and unfinished destination after safe stop, protecting unclaimed originals and completed output. Add planned SC-149/150 and API-E92-98 for confirmation, ownership, protected data, workers, partial results and UUID reuse. Retry/failure and exact admin access/wire rules remain pending; no physical deletion enabled.
+
+- Approve file preservation on history clear, with separate retained-file ownership/accounting and forgotten UUID recognition. Require a separate explicit admin data-deletion action; add planned SC-147/148 and API-E87-91 for capacity, restart and transition safety. Deletion scope/authorization/recovery and runtime implementation remain pending.
+
+- Approve file-preserving cancellation and document planned SC-146/API-E81-86: keep original/private source, partial staging and published files; reconcile in-flight publication and blocked workers before safe cancellation/clear. Preserve valid manifest/202 and retained capacity. File disposition at history clear remains undecided; no runtime changes.
+
+- Define admin clear as removing detailed history and forgetting its UUID, so later reuse is a new recording. Protect unfinished/errored jobs until cancellation safely completes; only completed or cancelled jobs may clear. Add planned SC-144/145 and API-E76-80 with late-retry, worker and no-clobber cases. Administrative cancellation/data/wire design remains pending; no runtime changes.
+
+- Record manual full detailed-job-history retention until an admin clears it through the dashboard; no automatic expiry or compact-only replacement. Add planned SC-143/API-E75 and scope the requested clear workflow, with post-clear UUID/retry and eligibility still undecided. No runtime/dashboard implementation or qualification changes.
+
+- Approve required UUID recording_id and document planned SC-142/API-E73-74, non-UUID 400 rejection and same-ID retry. Durable uniqueness and precise lexical/schema/state handling remain implementation work; runtime and qualification evidence unchanged. Next review ID retention/concurrency.
+
+- Approve order-independent file-list replay and document planned SC-141/API-E71-72. Preserve original path-to-file/claim mapping and changed-content conflicts; update the handoff to remaining ID syntax/retention/concurrency. No runtime or qualification changes.
+
+- Save the REST contract shutdown handoff with approved groups 1-15, current-size-policy correction, unresolved replay/schema decisions and exact next step. Documentation only; runtime and qualification evidence remain unchanged.
+
+- Define current startup expected-size configuration for existing unfinished recordings, without per-job setting snapshots. Document off-to-on/on-to-off recovery and confirmed-handoff replay in planned SC-140/API-E67-70; preserve actual custody/size/integrity evidence. No runtime or qualification changes.
+
+- Document approved default-disabled expected-size checking: ignore complete supplied expected_sizes_bytes assertions when off; require and compare every listed size when on. Preserve all-or-nothing map validation and actual-size/copy integrity checks. Add planned SC-139 and API-E61-66, including expected 100 versus actual 200 bytes; no runtime or qualification changes.
+
+- Record that the Rust prototype API has no clients: replace its producer wire format directly with the reviewed recording-ID/source-directory/explicit-file form, without a compatibility adapter or deprecation period. Preserve persistent custody and separate legacy C++ cutover requirements; exact schema and optional-size representation remain pending. No runtime changes.
+
+- Record approved REST recorder retry timing: honor server delay, then valid Retry-After, then configurable 5/10/20/30-second fallback and five-minute persistent-failure warning. Consolidate API-I01-06 implementation/qualification steps while preserving pending request/schema compatibility. No runtime, retry/review deadline or qualification changes.
+
+- Record REST review groups 10-12: remaining request errors, conservative source-effect refusal, unexpected-server/invalid-success handling and the five-field error envelope. Fifty outcome mappings plus the error format are approved; timing and remaining API schema compatibility details stay open. Runtime and qualification evidence are unchanged.
+
+- Record REST review groups 7-9: remote caller/rate/TLS failures, post-202 delivery/cleanup status, and local operator commands. Nine groups now contain 43 approved outcome mappings; remaining request/response details stay under review. No runtime, registration, NFS enablement or qualification changes.
+
+- Record REST review groups 4-6: custody/permission refusals, temporary database and transport failures, and HTTP request errors. Groups 1-6 now define 29 approved mappings; remaining scenarios/response details stay under review. No runtime or qualification changes.
+
+- Record approval of the first three REST error groups (fourteen mappings), including retryable missing-file 409, validation/source-scope failures and temporary capacity/service errors. Other mappings and wire compatibility remain under review; runtime responses and existing qualification evidence are unchanged.
+
+- Draft sixty REST outcome/error scenarios for user review before implementation. Record current versus proposed codes, same-ID retry and partial-custody behavior, remote/transport/operator distinctions and a bounded implementation sequence. Missing-file 409 and global-ID wire changes remain pending review; no runtime, retry/review, production NFS or source-deletion changes.
+
+- Review all eight Rust release gates against implementation and retained evidence. Establish RC-01-24 acceptance families, P01-12 execution order and explicit profile/capability decisions; next freeze the versioned API/manifest contract. Preserve historical checklist evidence, keep the roadmap forward looking and clarify that default-off source cleanup is required for release. No new runtime behavior or qualification result; production NFS and deletion remain disabled.
+
+- Qualify pre-effect source inode/size refusal after a partial two-file handoff. Preserve existing non-retryable 409, original intent/private custody and no delivery through two unpaused restarts; independently audit sixteen SQLite/WAL snapshots. Document SC-138 and step-by-step testing limits. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
+
+- Qualify two-file partial handoff replay with first claim complete and second LINK/REMOVE pending. Add a qualification-only file-index pause selector; preserve whole-set 202, retry/review behavior and original-state recovery. Document SC-137 and step-by-step testing limits; both SLES/glibc-2.22 gates pass. Production NFS/private-source cleanup remain disabled.
+
+- Qualify one-file source LINK/REMOVE replay and finite queue refusal before HTTP 202; preserve custody, worker ownership and confirmed handoff before producer reuse. Document SC-136, infrastructure and testing limits. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
+
+- Qualify claimed replay, source revalidation and a six-request burst during joint NFS outage with source-space admission off/on. Preserve original custody/recovery and bounded non-release queue refusals; document SC-135, infrastructure and timeout/queued-work limits. Both SLES gates pass; production NFS/private-source cleanup remain disabled.
+
+- Qualify original-file claim sync discovery before LINK/HTTP 202 in four healthy/stopped-NFSD cases, preserving one-link custody and confirmed retry before reuse. Document SC-134, raw RPC limits, infrastructure and retained setup failure. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
+
+- Discover exact source-claim private-file/directory synchronization behavior before HTTP 202 in eight healthy/stopped-NFSD cases; audit raw RPC intervals separately from artificial holds and preserve confirmed retry before recorder reuse. Document SC-133 and step-by-step infrastructure/testing limits. Both SLES/glibc-2.22 gates pass; production NFS/postcommit private-source cleanup remain disabled.
+
+- Qualify source-claim REMOVE coordinator-death recovery before HTTP 202, with original two-name/private custody, pending raw SQLite/WAL receipt proof and confirmed same-ID retry before producer reuse. Retain the initial pre-mount Podman connection failure, SC-132 and step-by-step infrastructure/limits. Both SLES/glibc-2.22 gates pass; production NFS/postcommit private-source cleanup remain disabled.
+
+- Qualify source-claim LINK coordinator-death recovery before HTTP 202, retaining pending local claim evidence, old-worker exclusion and original custody; require confirmed identical-ID retry before producer reuse. Document SC-131, raw proof and step-by-step infrastructure. Both SLES/glibc-2.22 gates pass; production NFS/private-source cleanup remain disabled.
+
+- Qualify selected manifest-LINK coordinator-death recovery across controlled NFS restart, retaining original custody and old-worker exclusion; preserve and independently audit local SQLite/WAL phase evidence. Document SC-130 and the step-by-step lab. Both SLES/glibc-2.22 gates pass; production NFS/source deletion remain disabled.
+
+- Qualify selected payload-LINK coordinator-death recovery across controlled NFS server restart, retaining old-worker exclusion and original-state custody; document SC-129, step-by-step fixture procedure and testing limitations. Both GNU/glibc-2.22 SLES gates pass; production NFS/source deletion remain disabled.
+
 Work toward the C++11 / REST **v1.0.0**, on one branch per milestone off `main`
 (currently `c4-job-manager`). The `v2-cpp` branch these entries were originally written
 against merged into `main` at the C0 boundary and was retired.

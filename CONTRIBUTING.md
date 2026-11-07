@@ -1,5 +1,34 @@
 # Contributing to Background File Mover
 
+## Current Rust workflow (2026-11-07)
+
+Rust in `rust/` is the active implementation. C++ is deprecated; the original
+C++ guide below is retained as historical reference, including its old branch,
+toolchain and deployment statements. It is not the current development procedure.
+
+- Start each bounded increment on a short-lived `feature/<increment-name>` or
+  `fix/<issue-name>` branch from current `main`. Keep one reviewable objective.
+- Read `AGENTS.md`, [Rust direction](docs/RUST-DIRECTION.md), and the
+  [agent workflow](docs/AGENT-WORKFLOW.md). Follow existing product approvals
+  and release gates; a merge does not grant runtime/deployment authorization.
+- The Windows checkout coordinates work. Sync committed source into the
+  Linux-native WSL2 test clone as described in the agent workflow.
+- Every Rust build/test uses `python3 scripts/check-rust-sles.py` and its
+  `--qualification` mode (or the documented WSL wrapper). Both pinned SLES
+  debug/release gates and independent ELF audits remain mandatory. Host-only
+  Cargo tests do not qualify changes.
+- Open a PR into `main`; complete independent review for substantial changes,
+  address findings and wait for applicable checks to pass. Preserve validated
+  commits/evidence and merge with a merge commit. Keep production releases and
+  deployment approvals separate. Do not push implementation directly to `main`.
+- C++ build, fuzzing, CodeQL and Sonar workflows are manual reference tools.
+  No C++ source is removed or represented as the shipping Rust implementation.
+
+Current limits and validated results: [increment 112](docs/RUST-INCREMENT-112.md)
+and [integration baseline](docs/RUST-INCREMENT-113.md).
+
+## Historical C++ development guide (deprecated)
+
 This document is the complete development setup. If a step here is wrong or
 incomplete, fix it in the same change that discovers the problem — a setup
 document that has drifted is worse than none, because it is trusted.

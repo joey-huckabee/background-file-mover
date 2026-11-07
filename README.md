@@ -1,5 +1,229 @@
 # Background File Mover
 
+Rust is the active implementation in `rust/`. The C++ implementation in `cpp/`
+is deprecated and retained for historical reference; its build/analysis workflows
+are manual-only. See [contributing](CONTRIBUTING.md) and the
+[main integration record](docs/RUST-INCREMENT-113.md).
+
+`main` is the reviewed development baseline. Production release/deployment is a
+separate decision: all eight release gates remain open, production NFS and source
+deletion stay disabled, and migration apply/UUID/manifest-v2 activation remain
+unimplemented. A merge does not authorize converting operational state.
+
+Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
+[first-release checklist](docs/RUST-FIRST-RELEASE.md) and
+[future roadmap](docs/ROADMAP.md). Next is the versioned API/manifest contract;
+production NFS and source deletion remain disabled.
+
+The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
+producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
+for the finite results and preserved-state/operator implications.
+
+The [partial-handoff lab](docs/NFS-PARTIAL-HANDOFF-LAB.md) explains two-file
+retries when one claim is complete but the whole set still has no 202. See
+[increment 103](docs/RUST-INCREMENT-103.md) for results and testing limits.
+
+The [pre-202 replay lab](docs/NFS-PRE202-REPLAY-LAB.md) documents retries and queue
+refusal during incomplete source LINK/REMOVE, before producer paths may be reused.
+Read [increment 102](docs/RUST-INCREMENT-102.md) for results and testing limits.
+
+The [joint-outage lab](docs/NFS-JOINT-OUTAGE-LAB.md) documents same-ID replay,
+source revalidation and finite queue refusal while both NFS shares are unavailable.
+Read [increment 101](docs/RUST-INCREMENT-101.md) for results and testing limits.
+
+The [original-file claim sync lab](docs/NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-LAB.md)
+documents synchronization before LINK/HTTP 202 and its measured RPC limits.
+Read [increment 100](docs/RUST-INCREMENT-100.md) for results and retained evidence.
+
+The [source-claim sync discovery lab](docs/NFS-CLAIM-SYNC-DISCOVERY-LAB.md)
+documents exact file/directory sync observations before HTTP 202 and their RPC
+limits. Read [increment 99](docs/RUST-INCREMENT-99.md) for the eight cases and results.
+
+The [source-claim REMOVE coordinator-death lab](docs/NFS-CLAIM-REMOVE-DEATH-RECOVERY-LAB.md)
+documents pending original-name removal before HTTP 202, retained private custody
+and safe retry/reuse. Read [increment 98](docs/RUST-INCREMENT-98.md) for results and limits.
+
+The [source-claim LINK coordinator-death lab](docs/NFS-CLAIM-LINK-DEATH-RECOVERY-LAB.md)
+documents recovery before HTTP 202, retained custody and safe recorder retry/reuse.
+Read [increment 97](docs/RUST-INCREMENT-97.md) for the four selected cases and limits.
+
+The [manifest LINK coordinator-death lab](docs/NFS-MANIFEST-LINK-DEATH-RECOVERY-LAB.md)
+documents original-manifest custody, surviving-worker exclusion and read-only
+local receipt evidence. Read [increment 96](docs/RUST-INCREMENT-96.md) for the
+four selected recoveries and remaining limits.
+
+The [publication sync discovery lab](docs/NFS-PUBLICATION-SYNC-DISCOVERY-LAB.md)
+documents exact actual-worker fsync entry/exit controls, RPC attribution,
+retained storage, build/audit commands and testing limits. Read
+[increment 94](docs/RUST-INCREMENT-94.md) for measured outcomes. Production NFS
+and source deletion remain disabled.
+
+The [payload LINK coordinator-death lab](docs/NFS-PAYLOAD-LINK-DEATH-RECOVERY-LAB.md)
+documents surviving-worker exclusion, independent custody observations, controlled
+server restoration and original-state recovery. Read
+[increment 95](docs/RUST-INCREMENT-95.md) for the four selected cases and limits.
+
+For what the current tests prove and what remains unqualified, read
+[testing limitations](docs/TESTING-LIMITATIONS.md). The
+[systemd lifecycle lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md) documents controlled
+infrastructure setup, individual test steps, evidence and cleanup.
+
+The [NFS mount-profile contract](docs/NFS-MOUNT-PROFILE.md) selects a buffered
+first-release qualification candidate and preserves noac diagnostics separately.
+[Increment 68](docs/RUST-INCREMENT-68.md) and its
+[lab procedure](docs/NFS-MOUNT-PROFILE-LAB.md) validate read-only model decisions;
+increment 69 adds Rust enforcement as described below. Matching mount pins cannot
+prove continuity or server availability. Production NFS and source deletion stay off.
+
+[Increment 64](docs/RUST-INCREMENT-64.md) proves selected server-completed NFS
+REMOVE replies can be withheld, then tests file/manifest recovery after reply loss
+and connection interruption. The [lab](docs/NFS-LOST-REPLY-LAB.md) records capability,
+initial failure, exact evidence and cleanup; production NFS/deletion stay disabled.
+
+[Increment 63](docs/RUST-INCREMENT-63.md) tests selected file/manifest unlink
+interruptions and crashes before synchronization, preserving owned inode/content
+on recovery. The [lab guide](docs/NFS-PUBLICATION-SYNC-LAB.md) explains the twelve
+cases and syscall/RPC/durability limits; production NFS/deletion stay disabled.
+
+[Increment 62](docs/RUST-INCREMENT-62.md) qualifies selected destination-outage
+startup/early-recovery cases: source/control readiness and confirmed custody 202
+can succeed while delivery waits. The [dedicated lab](docs/NFS-DESTINATION-STARTUP-LAB.md)
+records each test/infrastructure step; production NFS/deletion remain disabled.
+
+[Increment 61](docs/RUST-INCREMENT-61.md) adds selected restart-after-incomplete-stop
+qualification with real hard-NFS workers, repeated manager requests and original-state
+recovery. Read actual intervention outcomes and finite limits; production NFS and
+source deletion remain disabled.
+
+[Cooperative lock custody](docs/RUST-INCREMENT-25.md) now uses preprovisioned
+regular lock files and version-2 bindings, including actual worker inheritance.
+This is separate from the remaining takeover/partition fencing. Preserve old
+state for explicit enrollment; mixed lock-protocol versions are unsupported.
+
+[Destination binding](docs/RUST-INCREMENT-24.md) now pins policy at acceptance
+and validates destination custody before effects, preserving source handoff
+during outages. Provision both configured root markers; legacy jobs without a
+destination policy require future explicit enrollment.
+
+The [first Rust release checklist](docs/RUST-FIRST-RELEASE.md) defines the
+bounded scope, eight remaining release gates and next qualification increment.
+Production NFS and source deletion remain disabled pending those gates.
+The [remote API access contract](docs/REMOTE-API-ACCESS-CONTRACT.md) defines a
+proposed external client-certificate/protected-proxy profile; registration remains
+deferred and current remote access is not enabled.
+The [NFS ownership/fencing contract](docs/NFS-OWNERSHIP-FENCING-CONTRACT.md)
+defines the confirmed single-host/local-state profile. [Increment 42](docs/RUST-INCREMENT-42.md)
+implements its shared local guard and explicit worker handoff with selected local
+evidence. [Increment 43](docs/RUST-INCREMENT-43.md) adds shutdown_wait_seconds
+(default 60, integer 1–3600) and bounded local --stop/--status commands. Timeout
+returns incomplete/restart-blocked while ownership remains held. Remaining SH
+qualification and delayed-operation recovery stay pending; no takeover is enabled.
+[Increment 44](docs/RUST-INCREMENT-44.md) adds SQLite file/sidecar safety and
+individual mount checks, preserving existing state on refusal and normal WAL
+recovery after process death. [Increment 45](docs/RUST-INCREMENT-45.md)
+qualifies selected actual hard-NFS worker shutdown, retained-copy deadlines and
+original-state recovery; other lifecycle/deployment gates remain open.
+[Increment 46](docs/RUST-INCREMENT-46.md) extends selected coordinator-death
+qualification to blocked and terminating NFS workers. It exposes an ownership
+gap during termination. [Increment 47](docs/RUST-INCREMENT-47.md) adds a persisted
+local process-group lifetime check alongside the lock so kernel cleanup cannot
+hide a surviving worker. Production NFS and deletion remain disabled.
+[Increment 48](docs/RUST-INCREMENT-48.md) extends the selected death-phase fixture
+to fresh bootstrap and accepted source-read workers; see its results and limits.
+[Increment 49](docs/RUST-INCREMENT-49.md) adds selected enrolled/populated
+bootstrap cases with original database/WAL, receipt and partial preservation;
+read its actual results and limits. [Increment 50](docs/RUST-INCREMENT-50.md)
+adds selected file-publication and manifest coordinator-death cases, requiring
+original inode/attempt and manifest preservation through normal recovery.
+[Increment 51](docs/RUST-INCREMENT-51.md) stabilizes the post-stop status test
+within its existing bound, preserving runtime shutdown deadlines and failure
+history. [Increment 52](docs/RUST-INCREMENT-52.md) adds selected both-NFS
+coordinator-death/recovery cases on one controlled export, preserving original
+state, custody and publication evidence. [Increment 53](docs/RUST-INCREMENT-53.md)
+adds selected distinct-export/filesystem death cases on one controlled server.
+[Increment 54](docs/RUST-INCREMENT-54.md) adds selected independently interrupted
+source/destination endpoints with healthy-peer probes and original-state recovery.
+[Increment 55](docs/RUST-INCREMENT-55.md) adds selected source failure midway
+through copying with the destination usable. Remaining endpoint directions/phases,
+remote settlement, durability and systemd/deployment gates stay open.
+[Increment 56](docs/RUST-INCREMENT-56.md) adds selected enrolled startup recovery
+with both endpoints on NFS, preserving original state and retained partials.
+[Increment 57](docs/RUST-INCREMENT-57.md) qualifies selected manual/systemd
+coordination in a private systemd 252 container with the mover inside pinned
+SLES 12 SP5/glibc 2.22 userspace. This is local lifecycle evidence; native SLES
+systemd, hard-NFS/systemd, installation/account policy and durability remain open.
+Production NFS and source deletion remain disabled.
+[Increment 58](docs/RUST-INCREMENT-58.md) records a blocked private-container
+systemd-228 preflight: compiled directive checks are separate from the ten
+unexecuted lifecycle cases and pending SLES-maintenance RPM qualification.
+[Increment 59](docs/RUST-INCREMENT-59.md) passes ten local 228-equivalent
+lifecycle records using the separately approved Podman-VM bootstrap. Read its actual
+results and limits, the [step-by-step lab guide](docs/SYSTEMD-LIFECYCLE-LAB.md)
+and [testing limitations](docs/TESTING-LIMITATIONS.md). Historical blocked and
+failed reports remain separate; production NFS and source deletion stay off.
+
+[Increment 60](docs/RUST-INCREMENT-60.md) passes four selected managed
+stop/death cases with actual hard-NFS blocking, separate controlled exports,
+local state and the 228-equivalent manager. Read actual outcomes and remaining
+limits; production NFS and source deletion stay disabled.
+
+**Rust redesign work:** E1–E5 compatibility experiments and the next-session
+direction are on `feature/rust-transfer-coordinator`. Read
+[the handoff](docs/RUST-DIRECTION.md) and [CONVERSATION.md](CONVERSATION.md).
+Experiments are stopped. The first dependency-free [Rust core slice](rust/README.md)
+has executable protocol tests and [SQLite acceptance](docs/RUST-INCREMENT-02.md).
+It now has [protected local claims](docs/RUST-INCREMENT-03.md) and a
+[local submission endpoint](docs/RUST-INCREMENT-04.md), plus a
+[verified single-file transfer command](docs/RUST-INCREMENT-05.md) and
+[automatic local delivery/manifests](docs/RUST-INCREMENT-06.md) and
+[operator job status](docs/RUST-INCREMENT-07.md), plus
+[audited delivery resume](docs/RUST-INCREMENT-08.md) and
+[audited missing-file deadline reset](docs/RUST-INCREMENT-09.md).
+Read-only [retention accounting](docs/RUST-INCREMENT-10.md) is also implemented.
+Use the current [Rust operator guide](docs/RUST-OPERATOR-GUIDE.md) for status,
+audited resume/missing reset, command replay and capacity/recovery triage.
+[Source-space admission](docs/SOURCE-SPACE-ADMISSION-DESIGN.md) is configurable
+and off by default; it gates new keys while preserving existing-job recovery.
+See [increment 36](docs/RUST-INCREMENT-36.md) for implementation and
+[increment 38](docs/RUST-INCREMENT-38.md) for bounded native NFS source-space
+refusal, accepted-job recovery and unchanged-policy restoration evidence.
+Background copy/verification now uses [supervised child workers](docs/RUST-INCREMENT-11.md).
+[Claim and publication operations](docs/RUST-INCREMENT-12.md) now use children too.
+[Recording sessions](docs/RUST-INCREMENT-13.md) isolate runtime destination opening,
+allocation, manifest writing and custody checks.
+[Hard-mount boundary checks](docs/RUST-INCREMENT-14.md) exposed source bootstrap
+blocking during outages. [Startup isolation](docs/RUST-INCREMENT-15.md) now keeps
+signal handling responsive while custody is pending.
+The [retained NFS qualification build](docs/NFS-QUALIFICATION.md) exercises the
+same worker code in an isolated fixture; production NFS remains disabled.
+[Owned no-clobber fallback and diagnostics](docs/RUST-INCREMENT-17.md) resolve
+the fixture's rename refusals and retain explicit interrupted-link recovery.
+[Runtime qualification](docs/RUST-INCREMENT-18.md) now exercises selected Rust
+worker outages, partial-copy recovery and custody after coordinator death.
+The maintained [Rust scenario catalog](docs/RUST-SCENARIOS.md) explains producer,
+consumer and operator situations addressed so far and tracks the remaining user
+guides. Update it as each increment adds or changes behavior.
+[Source-read and verification-read qualification](docs/RUST-INCREMENT-19.md)
+also passes in both profiles with observed blocked readers and validated recovery.
+[Claim/file link interruption](docs/RUST-INCREMENT-20.md) now preserves and
+reconciles the exact two-name NFS intermediates in both profiles; see catalog
+scenarios SC-049/050 for producer and consumer behavior.
+[Longer outage qualification](docs/RUST-INCREMENT-21.md) adds three-minute blocked
+claim/verification checks, same-ID retry/backpressure observations and live recovery.
+See SC-051/052 and the increment evidence for the qualified scope.
+[Root/ownership diagnostics](docs/RUST-INCREMENT-22.md) add separate-client and
+missing-mount startup probes; [the binding/fencing design](docs/ROOT-OWNERSHIP-DESIGN.md)
+defines the next implementation steps. Diagnostic completion is not production approval.
+[Source binding/enrollment](docs/RUST-INCREMENT-23.md) now requires explicit
+source identity and a preprovisioned private marker, records strict pins in schema 8
+and refuses changed bindings or populated unbound legacy state before readiness.
+See its migration limits and provisioning instructions before using older configs.
+Offline inspection and repair are deferred; prioritize remaining worker isolation
+and controlled NFS qualification. Preserve [the repair design](docs/RETENTION-REPAIR-DESIGN.md).
+Every Rust build/test uses the [cargo-libc/SLES gate](docs/RUST-SLES-GATE.md).
+Registration/authentication is deferred while tested increments develop. The C++
+implementation described below remains the reference, not the intended Rust architecture.
+
 A durable background transfer coordinator for large simulation recordings, written in
 **C++11** with a **REST** control plane.
 
@@ -68,3 +292,165 @@ for the rewrite and each opens with a banner saying so.
 ## License
 
 Apache-2.0 — see `LICENSE`.
+
+Increment 65 adds server-completed publication LINK reply-loss qualification; see [results](docs/RUST-INCREMENT-65.md). Keep production NFS/deletion disabled and maintain SC-099, the step-by-step lab and remaining reply-loss/durability limits.
+
+Increment 66 adds source-claim LINK/REMOVE success-reply-loss qualification; see [results](docs/RUST-INCREMENT-66.md). Keep production NFS/source deletion disabled, preserve SC-100 and the simple same-ID JSON-until-202 producer workflow, and maintain the step-by-step source lab and testing limits.
+
+Increment 67 records synchronization RPC capability and actual worker observations; see [results](docs/RUST-INCREMENT-67.md) and [lab](docs/NFS-SYNC-LAB.md). No COMMIT/mover sync-loss support follows from buffered OS controls. Preserve SC-101/102, GNU/glibc-2.22 checks and production NFS/source deletion disabled.
+
+[Increment 69](docs/RUST-INCREMENT-69.md) adds supervised Rust mount-profile
+enforcement alongside existing descriptor/enrollment custody. NFS qualification
+bindings require explicit nfs_mount declarations; local bindings remain unchanged.
+The [extended lab](docs/NFS-MOUNT-PROFILE-LAB.md#supervised-rust-authorization-extension)
+checks real worker refusal/restoration/replay without enabling production NFS or
+source deletion. Matching mount observations still prove neither continuity nor
+remote settlement; remaining buffered interruption/synchronization gates stay open.
+
+[Increment 70](docs/RUST-INCREMENT-70.md) adds selected buffered same-share transfer
+and process-crash recovery qualification; the [lab](docs/NFS-SAME-SHARE-LAB.md)
+documents exact steps and limits. Production NFS and source deletion remain
+disabled; the remaining fault/synchronization and first-release gates stay open.
+
+[Increment 71](docs/RUST-INCREMENT-71.md) adds buffered copy/verification
+interruption and recovery qualification on same/separate shares; see the
+[step-by-step lab](docs/NFS-BUFFERED-READS-LAB.md) for actual blocked-read proof,
+original-state recovery and limits. Production NFS and source deletion remain
+disabled.
+
+[Increment 72](docs/RUST-INCREMENT-72.md) extends buffered qualification to
+file publication and manifest commitment interruption/recovery on both share
+layouts. The [lab](docs/NFS-BUFFERED-PUBLICATION-LAB.md) distinguishes
+returned-LINK/pre-sync crashes from actual blocked staging unlinkat, and checks
+old-worker exclusion and original allocation/replay preservation. Production NFS
+and source deletion remain disabled; remaining first-release gates stay open.
+
+[Increment 73](docs/RUST-INCREMENT-73.md) adds eight buffered after-staging-unlink,
+before-directory-sync recovery cases across both share layouts and build profiles.
+The [lab](docs/NFS-BUFFERED-POST-UNLINK-LAB.md) documents absent-staging/original-
+allocation evidence, old-worker exclusion, original-state recovery and replay.
+Production NFS and source deletion remain disabled; pending sync/RPC and physical
+durability qualification remain separate.
+
+[Increment 74](docs/RUST-INCREMENT-74.md) adds eight buffered source-claim
+interruption/recovery cases before HTTP 202, across both share layouts and
+profiles. The [lab](docs/NFS-BUFFERED-CLAIM-LAB.md) specifies actual blocked
+linkat/unlinkat proof, unreleased-path/503 behavior, surviving-worker exclusion
+and original-state custody/delivery/replay. Production NFS and source deletion
+remain disabled; full release qualification stays open.
+
+[Increment 75](docs/RUST-INCREMENT-75.md) adds eight buffered enrolled/populated
+startup interruption/recovery cases across both share layouts and profiles.
+The [lab](docs/NFS-BUFFERED-BOOTSTRAP-LAB.md) documents cache aging, actual blocked
+bootstrap, Starting/readiness, surviving-worker exclusion and preserved original
+state/WAL/source/partial recovery. Production NFS and source deletion remain
+disabled; the finite matrix does not close full release qualification.
+
+[Increment 76](docs/RUST-INCREMENT-76.md) observes buffered claim/delivery
+synchronization on both share layouts and profiles. The
+[step-by-step lab](docs/NFS-BUFFERED-SYNC-LAB.md) retains raw syscall/RPC evidence
+and conditional native withholding controls. These observations do not qualify
+service reply-loss recovery or physical durability. Production NFS/deletion stay off.
+
+[Increment 77](docs/RUST-INCREMENT-77.md) adds retained buffered worker I/O
+observation, matching descriptor metadata and captured write bytes to NFS
+filehandle evidence where proven. The [step-by-step lab](docs/NFS-BUFFERED-IO-LAB.md)
+separates identity/interval matches from unknown traffic and future fault tests.
+Production NFS and source deletion remain disabled.
+
+[Increment 78](docs/RUST-INCREMENT-78.md) adds a finite payload-fchmod COMMIT
+reply-withholding and recovery matrix. The [step-by-step lab](docs/NFS-BUFFERED-COMMIT-LAB.md)
+documents native capability prerequisites, actual pending descriptor/server proof,
+release/coordinator-death cases, original-state recovery, audit and cleanup.
+Production NFS and source deletion remain disabled.
+
+[Increment 79](docs/RUST-INCREMENT-79.md) adds the separate buffered
+UNSTABLE WRITE reply-withholding matrix. The
+[complete lab procedure](docs/NFS-BUFFERED-UNSTABLE-LAB.md) documents native
+capability, every-range retransmission and COMMIT proof, selected service recovery,
+initial validator failure and cleanup. Production NFS/source deletion stay off.
+
+[Increment 80](docs/RUST-INCREMENT-80.md)/SC-114 adds twelve native controls and
+eight live-coordinator payload reply-loss cases: COMMIT/UNSTABLE WRITE across
+both buffered share layouts and debug/release profiles. The same coordinator
+remains responsive, same-ID replay stays 202, and each case commits attempt 1
+without replacement, restart, review or manual state changes. The
+[step-by-step procedure](docs/NFS-BUFFERED-LIVE-LOSS-LAB.md) accounts separately for
+payload retransmissions and later other-handle traffic, retaining all raw bytes.
+This supplies selected FR-03/05 evidence; all eight release gates remain open.
+Production NFS/source deletion, retry/review policy and deadlines stay unchanged.
+Longer losses, other phases, reboot/verifier changes and deployment/NAS/kernel/
+physical-durability qualification remain open.
+
+[Increment 81](docs/RUST-INCREMENT-81.md) establishes manifest-specific successful-
+reply withholding through eight actual-worker cases. Read the
+[complete procedure](docs/NFS-MANIFEST-CAPABILITY-LAB.md) for identity/byte/RPC
+proof, discrete API checks, cleanup and limits. Production NFS/deletion remain off;
+selected manifest reply-loss/death recovery is covered by increment 82.
+
+
+[Increment 82](docs/RUST-INCREMENT-82.md)/SC-116 qualifies eight finite manifest WRITE
+reply-loss recoveries after eight repeated discovery/release controls, across both
+buffered NMP-41B layouts and debug/release profiles. Live-coordinator replay and
+post-death application recovery from immutable SQLite intent are checked
+separately. The latter confirms coordinator exit, orphan guard retention, actual
+old-worker exit before restart, original staging inode/bytes before republication
+and phase-1 to phase-4 durable intent preservation. All cases commit with payload
+attempt 1 and preserve source/state/enrollment and producer-path reuse.
+Read [the complete loss/recovery procedure](docs/NFS-MANIFEST-LOSS-LAB.md) and retained
+raw/audit evidence. This supplies selected FR-03/05 evidence; all eight release
+gates stay open. Production NFS/source deletion, Rust inputs/dependencies,
+retry/review and deadlines stay unchanged. Other workload/phases, server/verifier
+recovery, delayed-effect settlement, NAS/kernel/power and deployment qualification
+remain open. Maintain DOC-01–05; DOC-06 stays deferred.
+
+
+[Increment 83](docs/RUST-INCREMENT-83.md)/SC-117 adds buffered actual source-claim LINK
+and REMOVE successful-reply hold/release controls, with the
+[step-by-step procedure](docs/NFS-CLAIM-CAPABILITY-LAB.md). Server-side namespace
+completion does not authorize recorder path reuse before confirmed 202. Keep
+selected capability/release evidence separate from increment 84's selected
+reply-discard/replay/death evidence. Production NFS/source deletion stay off;
+Rust behavior/dependencies and retry/review/deadline policy remain unchanged.
+All eight release gates and DOC-01/02/04/05 completion remain open; maintain
+DOC-03 and defer DOC-06.
+
+
+[Increment 84](docs/RUST-INCREMENT-84.md)/SC-118 qualifies sixteen finite buffered
+source-claim LINK/REMOVE reply-loss recoveries after eight repeated release
+controls across both share layouts and build profiles. Live cases prove successful
+cached namespace session replay with full raw request-byte checks and the same
+coordinator. Death cases prove orphan exclusion, actual exit and unchanged server
+aliases before original-state restart. Every case commits attempt 1 while
+preserving source/state/enrollment and newer producer bytes. The
+[step-by-step lab](docs/NFS-CLAIM-LOSS-LAB.md) documents infrastructure, proof, cleanup
+and limits. Rust/dependencies, retry/review/deadlines and production NFS/deletion
+stay unchanged. All eight release gates remain open; maintain DOC-01–05 and
+defer DOC-06. Server recovery, delayed effects, pending source synchronization,
+other workloads and NAS/kernel/power/deployment qualification remain future work.
+
+
+[Increment 85](docs/RUST-INCREMENT-85.md)/SC-119 isolates source synchronization:
+four actual buffered claim workers pass 32 source fsync calls, with no captured
+request/reply inside those intervals or captured pair spanning entry. Separate
+source-export native probes prove FILE_SYNC WRITE success withholding, release
+and drop/reconnect recovery on both share layouts. The actual-service/native
+operation intersection is empty, so zero mover source-sync reply-loss/death
+cases are qualified. Read the [step-by-step lab](docs/NFS-SOURCE-SYNC-LAB.md) and raw
+scope/limitations; broader-window traffic is not source-sync attribution.
+Server recovery/delayed settlement and other workloads remain open. Production
+NFS/source deletion, Rust behavior/dependencies, retry/review and deadlines stay
+unchanged. Maintain DOC-01–05 and defer DOC-06; all eight release gates stay open.
+
+
+[Increment 86](docs/RUST-INCREMENT-86.md)/SC-120 establishes native server-recovery
+fixture capability after two retained failed acquisitions. Four original-FD
+probes pass NFSD stop/start and confirmed same-container SIGKILL/exit/start on
+source/destination exports, preserving opaque handles/backing inodes while
+observing BADSESSION, new sessions and changed write verifiers. Network namespace
+and VM kernel boot ID remain unchanged; this is not VM/NAS reboot or Rust mover
+recovery qualification. The [step-by-step lab](docs/NFS-SERVER-RECOVERY-LAB.md)
+records pinned private IP, actual exit, live trace checkpoints, WSL clocks,
+raw proof, rescue/normal cleanup and limits. Both SLES gates and independent
+36-control proof audit pass. Production NFS/source deletion and runtime policy
+remain unchanged; maintain DOC-01–05, defer DOC-06 and keep all eight gates open.

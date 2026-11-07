@@ -1,0 +1,17 @@
+[package]
+name = "e5-cumulative"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.99"
+publish = false
+license = "Apache-2.0"
+
+[dependencies]
+e5-tokio = { path = "../probe" }
+e5-http = { path = "../http" }
+e5-json = { path = "../json" }
+rustix.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

@@ -1,0 +1,380 @@
+{
+  "scope": "Increment 107: guarded offline committed-job history clear; no payload deletion or authenticated HTTP clear.",
+  "validated_commit": "426f4be05ef8ceeccaa903b9683b7fd165e55db4",
+  "validated_rust_tree": "29d1244f9cfc6172addf98cdb9c048fa60963ea0",
+  "host": "Ubuntu WSL2 x86_64; exact binaries tested in pinned SLES 12 SP5 containers.",
+  "raw_evidence_directory": "/home/joey/GIT/background-file-mover-testing/rust/validation",
+  "raw_evidence_transferred_by_git": false,
+  "pins": {
+    "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_libc": "0.2.4",
+    "provider_mode": "source",
+    "cc": "/usr/bin/clang-16",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2"
+  },
+  "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+  "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+  "source_input_count": 63,
+  "source_inputs_sha256": {
+    ".gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+    "Cargo.lock": "5dafb4f7f397fc3b44323f8e6b5e2fa0164991a8077a2b57f3fce6422b0155e6",
+    "Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+    "README.md": "69cd988e885f46356dca1c359e29b027b01afc867ad77e40f0b4db579ade9ceb",
+    "config/local.example.json": "60361a53728365d969c62a4696fe6cdccd37edfc890fccc01d81ef8a0080ac77",
+    "crates/file-mover/Cargo.toml": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27",
+    "crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+    "crates/file-mover/src/claim_worker.rs": "c40448eef5adbd19984c0573cfbd447b8fdfc234d4ef417b9d35014127e80441",
+    "crates/file-mover/src/control.rs": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf",
+    "crates/file-mover/src/delivery_worker.rs": "156423185220df8e7a75c0bad57e0138983cbedeca5180dc44526fc5f2b1ef21",
+    "crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+    "crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+    "crates/file-mover/src/http.rs": "36e715e93fb6816967e8507f72ca33b38f953ff7e54eca0abefa9cae61578a1a",
+    "crates/file-mover/src/lib.rs": "a00291c88e7632c7703844a317523d0d7150a0ea5e005a587387daeba50c04ce",
+    "crates/file-mover/src/main.rs": "c2227995cafead12fcbf2c337184da0797d6f903806017cff0593f8fba60f7ef",
+    "crates/file-mover/src/payload.rs": "3eea1904fd3d3921d31623e91556d5ed3ce1308e92c08835fc96991db34a80a1",
+    "crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+    "crates/file-mover/tests/api.rs": "5a99ff47d88e1dc56d6334c97977ca8045a1298374ffb28b410f79e056a324e6",
+    "crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+    "crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+    "crates/mover-core/src/lib.rs": "7913455d94ef0698e0c1f5c0ccaaad99be59e80b2b82c3ac073953f103556814",
+    "crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+    "crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+    "crates/mover-core/src/transfer.rs": "5356b62597ba876a2c000a89432d9296491f2862187089e142665560372f7786",
+    "crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+    "crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+    "crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+    "crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+    "crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+    "crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+    "crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+    "crates/mover-fs/src/instance.rs": "1ccf002e17e5d79b36e606eb4e2876a3f26481b9ce4744eb51d20b69d5664f40",
+    "crates/mover-fs/src/lib.rs": "0c369b6391787fc30c0d2dc6988daed2c136f276b98361e0fabd2135299ff7e7",
+    "crates/mover-fs/src/manifest.rs": "a4d26dab80a4fba935a0a5788d5703f0bb42472b18144bcc7336b35aea941359",
+    "crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+    "crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+    "crates/mover-fs/src/qualification.rs": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb",
+    "crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+    "crates/mover-fs/src/transfer.rs": "113419d962c8724e3e19a6f62b15ee1d3dac3e2f9fa61b745def675bb73cf67c",
+    "crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+    "crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+    "crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+    "crates/mover-store/Cargo.toml": "4e7dccebcb8dfe02701cb60ed9289784fff4fcf9ce96fa83a0efc427b7559928",
+    "crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+    "crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+    "crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+    "crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+    "crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+    "crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+    "crates/mover-store/src/lib.rs": "afcdd261a5f67e6798ade3a1d40eff3dfb1ae42bcb80fdcaf63f5917d03c769b",
+    "crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+    "crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+    "crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+    "crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+    "crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+    "crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+    "crates/mover-store/src/schema.sql": "d0e9a5da5bdedeb4a4985e4c8acd196166fb1542dde6465daed9e18322b5ceaa",
+    "crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+    "crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+    "crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+    "crates/mover-store/src/tests.rs": "39c2646c9b22aaecd33742eed6cca6ad97532f209ce8fa95e9470a349a44fd96",
+    "crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+    "rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+  },
+  "runs": [
+    {
+      "run_id": "20261103T060450Z-23c5ba73",
+      "mode": "production",
+      "status": "PASSED",
+      "report_sha256": "1b33fb86770d7ec9b85342f08412a3ad9251363f0ed408c8a278943cbaa2d0a5",
+      "source_archive_sha256": "cc667b47b67b1d0be30e572fd9d733ea5565110316f439e486be4b59545ee73a",
+      "profiles": {
+        "debug": {
+          "tests_passed": 218,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "12fd156016f67ee43327efd554b86fe7c92dad76ee8f9e2ad4afc5ec03070c52",
+              "test": false
+            },
+            {
+              "name": "debug-1-api-ab3188cd9f9a01df",
+              "sha256": "08d20d98df204584640646745d3d463a7315ef8b90bd46075191f64d4b7c6396",
+              "test": true
+            },
+            {
+              "name": "debug-2-claim-1505a04b7db96b38",
+              "sha256": "bad8480b69589195c8bcd81bd5462e05ccd257a00b64b34874c1333b64317b25",
+              "test": true
+            },
+            {
+              "name": "debug-3-file_mover-090efcf23ed7c083",
+              "sha256": "eb40b47239503c0bfeb92cfba621e57eb2b2705701250228da5b3fd882141e08",
+              "test": true
+            },
+            {
+              "name": "debug-4-file_mover-49626955f157a41a",
+              "sha256": "f616ebc30ddda9f3d82c1cdfc0c0f1763c257f09c5e3cc1e1654141a1438d14b",
+              "test": true
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf",
+              "sha256": "2d213dd1ddfa9253729a863ef93cc0010929e78ff082291979cd2176e4cf1e04",
+              "test": true
+            },
+            {
+              "name": "debug-6-mover_fs-62cdb39a48330930",
+              "sha256": "e8b82c3c0357fc108d9e6b6a14444f6ae4751bebdbf2f7c43993cd76e2d08f97",
+              "test": true
+            },
+            {
+              "name": "debug-7-mover_store-827d23f8a60d7494",
+              "sha256": "92ebcc99fd3369456019a1909405fd1f628d58a3e4722337c72602898ff42e7e",
+              "test": true
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355",
+              "sha256": "70cbeafbdd5f7b2df237d4696fa69d282716f78ad5a1b81bad291a4272b6f928",
+              "test": true
+            },
+            {
+              "name": "debug-9-transfer-6bcc92ab4b3c2129",
+              "sha256": "6d43301e6edd08cc3ebf320c19efb73612107ad362a665e2ea23f669e1afa7b5",
+              "test": true
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 218,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover",
+              "sha256": "d2ebff704d0ebd5ac6f185287fb199586bc95a887d64048d684a28e6288e2822",
+              "test": false
+            },
+            {
+              "name": "release-1-api-b0ab9b2e96a908df",
+              "sha256": "a7aa50f0257db215bfe33826c0ede85060ee2adabb4cb0a4bc0c3727ac161909",
+              "test": true
+            },
+            {
+              "name": "release-2-claim-10c32c0f6a3abf03",
+              "sha256": "c41c45374a53af2da1d480c22649daeb0a0edeaeb2b8654d0ff1f801d07b6b73",
+              "test": true
+            },
+            {
+              "name": "release-3-file_mover-6898046fd96bd7f2",
+              "sha256": "7d7879aeacc4cb02787c0678ce09d27be7ff9a364c4ae2791c25ee08ce792987",
+              "test": true
+            },
+            {
+              "name": "release-4-file_mover-8fcac8bbbe7aa543",
+              "sha256": "a49b2c157abc346c646a38e6284cb67f720ca26fc30ffeb30f2732e4cdea7ad6",
+              "test": true
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf",
+              "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+              "test": true
+            },
+            {
+              "name": "release-6-mover_fs-ac9fecd4f03f3716",
+              "sha256": "1cc9fc95b1233075bd4ac9b9d4a89dae058a6ac341399aa48843184b2ea2910a",
+              "test": true
+            },
+            {
+              "name": "release-7-mover_store-8133f98ca0746262",
+              "sha256": "42e4a36b6b6dc0c8546429572ba8f6c19a7203b64caa836ecd761216bf6774d6",
+              "test": true
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e",
+              "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+              "test": true
+            },
+            {
+              "name": "release-9-transfer-bd16483e7f2c37db",
+              "sha256": "ab4c8950469961b29a1c7ddcc85ab1995b156e1a42197bc6a646a256ee2540dc",
+              "test": true
+            }
+          ]
+        }
+      },
+      "audit_negative_controls": [
+        "new-glibc",
+        "private-glibc",
+        "wrong-loader",
+        "unexpected-library",
+        "runpath",
+        "wrong-architecture"
+      ],
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261103T063347Z-a9292bff-nfs-qualification",
+      "mode": "nfs-qualification",
+      "status": "PASSED",
+      "report_sha256": "b37f33261c85a66496d67b2ac3aeed18cd9cb84258c9031bb3b88d0925ec82a2",
+      "source_archive_sha256": "81259df12b15fe1d367a92e0ebad636363c0c2cc4aac1db568615589e46403f3",
+      "profiles": {
+        "debug": {
+          "tests_passed": 220,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover-nfs-qualification",
+              "sha256": "155d9bff66149fb3691c23d6abb534dc89d8ee1d4d333008748f73646227a597",
+              "test": false
+            },
+            {
+              "name": "debug-1-api-887734b5f0415983-nfs-qualification",
+              "sha256": "af12c6e8a233023b4109a2717c5a331c5b6c08712076fbb57cb37072b6444fe1",
+              "test": true
+            },
+            {
+              "name": "debug-2-claim-c2748acf9f5fb1d1-nfs-qualification",
+              "sha256": "932610ffc3f8bf4125084216ac34ab51564eee1ec94f79610b334ef633bc66a3",
+              "test": true
+            },
+            {
+              "name": "debug-3-file_mover-4ae60d66075b7051-nfs-qualification",
+              "sha256": "45d44b48e491c912a155d2c7f7c810b89ca04bff83c1bec320a4426a3c9dca7f",
+              "test": true
+            },
+            {
+              "name": "debug-4-file_mover-c840487d2a23295a-nfs-qualification",
+              "sha256": "ad4b36a15b4bfe148c422cf77ee06e605ce06bee97922cb69ecf0a29ece48c5a",
+              "test": true
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+              "sha256": "2d213dd1ddfa9253729a863ef93cc0010929e78ff082291979cd2176e4cf1e04",
+              "test": true
+            },
+            {
+              "name": "debug-6-mover_fs-c77dc059c039cebc-nfs-qualification",
+              "sha256": "19a62a541636ac257a1166fbc60f85c84248526ebfab6bbafbcbd060e843ca8b",
+              "test": true
+            },
+            {
+              "name": "debug-7-mover_store-827d23f8a60d7494-nfs-qualification",
+              "sha256": "92ebcc99fd3369456019a1909405fd1f628d58a3e4722337c72602898ff42e7e",
+              "test": true
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+              "sha256": "70cbeafbdd5f7b2df237d4696fa69d282716f78ad5a1b81bad291a4272b6f928",
+              "test": true
+            },
+            {
+              "name": "debug-9-transfer-1b8a6efa042b9dec-nfs-qualification",
+              "sha256": "8e3545a01681af9bf95fb93573caeb37a90cffd709a0931ffe4a5c8cc7ef9638",
+              "test": true
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 220,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover-nfs-qualification",
+              "sha256": "1ac2ff6423ad5db27dc2b5ba9b76bf44bbe8180c82329670c3c472d174ca47f6",
+              "test": false
+            },
+            {
+              "name": "release-1-api-3627f16ff37a4ff3-nfs-qualification",
+              "sha256": "03305b93070dd82e89d9e419d29961ca07cafb3c741866badf9274a572bcf321",
+              "test": true
+            },
+            {
+              "name": "release-2-claim-3d0ea7073ed6477c-nfs-qualification",
+              "sha256": "27b9ba3cfba3c65b0527d8410224f4b48a9d3c301ac70b4717dd75b4262ec2f0",
+              "test": true
+            },
+            {
+              "name": "release-3-file_mover-628e1688f80646d6-nfs-qualification",
+              "sha256": "406108a076e550cda614e11e3372e581fe1dd0bba5f5318d56c847d78d2fbfe7",
+              "test": true
+            },
+            {
+              "name": "release-4-file_mover-ae822951cc700921-nfs-qualification",
+              "sha256": "d269c9ccda5a5e284c8e27793df7cd919440053beb95613d96894fc57e83edd6",
+              "test": true
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+              "sha256": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+              "test": true
+            },
+            {
+              "name": "release-6-mover_fs-cb594efb59a2eff7-nfs-qualification",
+              "sha256": "c96629a5e3f924f4c1c22dc4538e6d3e5166aaa2bfeb1dbd0ec7bf060273a0c1",
+              "test": true
+            },
+            {
+              "name": "release-7-mover_store-8133f98ca0746262-nfs-qualification",
+              "sha256": "42e4a36b6b6dc0c8546429572ba8f6c19a7203b64caa836ecd761216bf6774d6",
+              "test": true
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+              "sha256": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+              "test": true
+            },
+            {
+              "name": "release-9-transfer-3c451284762565a6-nfs-qualification",
+              "sha256": "e60ad3d28f4a78ba4fd5004876fd03010f3851d5410dddc8443fff4e365c984e",
+              "test": true
+            }
+          ]
+        }
+      },
+      "audit_negative_controls": [
+        "new-glibc",
+        "private-glibc",
+        "wrong-loader",
+        "unexpected-library",
+        "runpath",
+        "wrong-architecture"
+      ],
+      "cleanup_error": null
+    }
+  ],
+  "preserved_earlier_attempts": [
+    {
+      "run_id": "20261103T051435Z-1aa593a0",
+      "status": "FAILED",
+      "report_sha256": "4dc22fff5879ba6eb84ddda4982b41d38e1b18b6d0a093f203910876891445a7",
+      "reason": "Interrupted for stronger coordinator-exit orphan test.",
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261103T051755Z-90160623",
+      "status": "FAILED",
+      "report_sha256": "04b30139e405e1480e81bdff5c976c46f288e7341938f0219d09158cbf94bf1b",
+      "reason": "Interrupted to make helper PID marker unambiguous.",
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261103T052158Z-bf9d1e90",
+      "status": "FAILED",
+      "report_sha256": "5767a8fbc75608fc44ea76268d7d13c4ba74f0a18991a74d71676a1418815281",
+      "reason": "Failed three Store fixtures using unsupported grouped delivery policy; fixture corrected without relaxing validation.",
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261103T053634Z-1f51ef6c",
+      "status": "FAILED",
+      "report_sha256": "1e2abea469e6434d41c4008568aad150fd338761d4b5a6db49d2894b09cbae63",
+      "reason": "Debug passed; release interrupted for clear-command process lifetime registration before SQLite.",
+      "cleanup_error": null
+    }
+  ],
+  "limits": [
+    "Only load-validated committed jobs; safely-cancelled state and authenticated dashboard integration remain pending.",
+    "Local userspace/SQLite behavior and SLES compatibility only; no new hard-NFS, systemd, delayed-RPC or power-failure qualification.",
+    "All eight release gates remain open. Production NFS, source deletion and automatic cleanup remain disabled.",
+    "Historical NFS/systemd artifacts are not requalified by these runs."
+  ]
+}

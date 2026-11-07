@@ -1,5 +1,84 @@
 # CLAUDE.md
 
+## Current direction (2026-10-13)
+
+2026-11-07 main integration authorization: the user explicitly requests merging
+the Rust development baseline into main, then using smaller increments. C++ is
+deprecated and retained as reference; its build/fuzz/CodeQL/Sonar workflows become
+manual-only. Use current main as the base for short-lived feature/fix branches
+and reviewed PRs, superseding historical instructions to keep developing on
+feature/rust-transfer-coordinator. Preserve source/history and qualified evidence.
+This is not release, deployment, migration-apply, UUID/v2 or production-state
+authorization. See docs/RUST-INCREMENT-113.md and docs/AGENT-WORKFLOW.md.
+
+The user now wants a durable Rust transfer coordinator, not a C++-shaped port.
+Work on `feature/rust-transfer-coordinator`; read `docs/RUST-DIRECTION.md`,
+`CONVERSATION.md` and the roadmap handoff first. Experiments are stopped after
+E1–E5; do not automatically start E6. Follow `docs/INTEGRITY-DESIGN.md`: hash the
+source during copying and reread destination staging for verification (3N logical
+data I/O). Develop short tested increments from the revised protocol in `rust/`.
+Registration/token work is deferred; its enrollment choice is a one-time setup key.
+See `docs/RUST-INCREMENT-01.md` and future-only `docs/ROADMAP.md`.
+SQLite acceptance/replay is in `mover-store`; see `docs/RUST-INCREMENT-02.md`.
+Protected local source claiming is in `mover-fs`; see `docs/RUST-INCREMENT-03.md`.
+The local endpoint is in `file-mover`; see `docs/RUST-INCREMENT-04.md`.
+The single-file transfer command is documented in `docs/RUST-INCREMENT-05.md`.
+Automatic local delivery/manifests are documented in `docs/RUST-INCREMENT-06.md`.
+Read-only operator job status is documented in `docs/RUST-INCREMENT-07.md`.
+Audited delivery resume is documented in `docs/RUST-INCREMENT-08.md`.
+Audited missing-file deadline reset is documented in `docs/RUST-INCREMENT-09.md`.
+Read-only retention accounting is documented in `docs/RUST-INCREMENT-10.md`.
+Offline inspection/repair is deferred by the user. Prioritize supervised workers
+and controlled NFS testing. Increment 13 isolates runtime delivery filesystem
+access in recording sessions and handoff scope checks in claim children.
+Increment 14 measures hard-mount startup blocking and OS lock/interruption behavior;
+see `docs/RUST-INCREMENT-14.md`. Increment 15 isolates source singleton bootstrap
+and qualifies startup shutdown; see `docs/RUST-INCREMENT-15.md`.
+Retain the opt-in NFS qualification feature and fixture capability permanently;
+see `docs/NFS-QUALIFICATION.md` and `docs/RUST-INCREMENT-16.md`.
+Increment 17 diagnoses the NFS no-clobber rename refusal and adds owned link/unlink
+recovery; see `docs/RUST-INCREMENT-17.md`. Increment 18 adds deterministic
+qualification-only pause controls and selected real-worker NFS outage/death cases;
+see `docs/RUST-INCREMENT-18.md`. Increment 19 qualifies source-read/verification
+interruption and introduces the maintained scenario catalog; see
+`docs/RUST-INCREMENT-19.md`. Increment 20 qualifies durable two-name NFS claim/file
+link interruption; see `docs/RUST-INCREMENT-20.md`. Increment 21 adds three-minute
+blocked claim/verification and live-recovery checks, including submission backpressure;
+see `docs/RUST-INCREMENT-21.md` and the separate long-outage evidence report.
+Increment 22 adds two-client ownership/missing-mount diagnostics; see
+`docs/RUST-INCREMENT-22.md` and `docs/ROOT-OWNERSHIP-DESIGN.md`. Diagnostic
+completion is not protection or production approval. Increment 23 implements
+required source_binding/provisioned marker checks, strict schema-8 enrollment,
+source authorization in bootstrap/claim/delivery children and the single-file CLI;
+see `docs/RUST-INCREMENT-23.md`. Existing populated unbound state refuses startup;
+no rebind/override is provided. Increment 24 adds required destination_binding,
+per-job schema-9 policy/observation pins, worker/CLI validation and immediate
+binding review while preserving outage handoff; see docs/RUST-INCREMENT-24.md.
+Legacy jobs without destination policy refuse startup. Increment 25 replaces
+directory custody with a preprovisioned empty mode-0600 regular coordinator.lock,
+version-2 bindings and bootstrap receipts, and actual worker descriptor checks;
+see docs/RUST-INCREMENT-25.md. Two-client tests distinguish cooperative exclusion
+from lost-lock/partition/reclaim fencing. Do not mix old/new lock protocols or
+auto-rebind existing observations. Next qualify fencing and explicit enrollment.
+Do not auto-enroll missing/foreign
+markers, treat directory locks as distributed fences, or enable automatic takeover.
+Next qualify in-flight link/unlink RPCs, other sync boundaries, outages beyond
+those selected cases, stable root/export
+authorization and cross-client ownership. If Ubuntu user startup prevents rootless
+Podman, use the documented Windows/Podman WSL2 gate fallback in
+`docs/NFS-QUALIFICATION.md`; preserve all compatibility checks.
+Keep production NFS and deletion disabled.
+Maintain `docs/RUST-SCENARIOS.md` with every increment: stable user-situation IDs,
+plain behavior/action explanations, actual evidence/scope and DOC-01–06 backlog.
+Backfill prior scenarios and do not describe pending qualification as supported.
+Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
+Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
+cargo-zigbuild target GNU/glibc 2.22, ELF audit and exact target tests in pinned
+SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical
+C++ toolchain/scope/branch guidance below applies to the reference code, and
+does not override this direction. Keep production glibc 2.22 and container-only
+compatibility qualification. Future branch cleanup requires the branch review.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

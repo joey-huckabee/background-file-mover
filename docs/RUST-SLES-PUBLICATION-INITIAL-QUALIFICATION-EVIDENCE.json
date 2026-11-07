@@ -1,0 +1,326 @@
+{
+  "status": "FAILED",
+  "config": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_zigbuild": "0.23.4",
+    "zig": "0.16.0",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "profiles": {
+    "debug": {
+      "artifacts": [
+        {
+          "name": "debug-0-file-mover-nfs-qualification",
+          "sha256": "b97cf10ec3ef5ea25578b09acfe939bd8bcb7841683178dc8aa2819d438baa46",
+          "test": false,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        },
+        {
+          "name": "debug-1-api-f77fd3690b2c8be0-nfs-qualification",
+          "sha256": "a7cd772b04386b4c905873a99ff3a3de4d4a457ae104f2134d9870d85576937c",
+          "test": true,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "ld-linux-x86-64.so.2",
+              "libc.so.6",
+              "libdl.so.2",
+              "libm.so.6",
+              "libpthread.so.0"
+            ],
+            "versions": [
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.17",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        }
+      ],
+      "tests_passed": 0
+    }
+  },
+  "run_id": "20261017T214615Z-2f632f73-nfs-qualification",
+  "build_mode": "nfs-qualification",
+  "source_sha256": "d16b9d230a56b6fbb2c49cf121f0c06c56feec23eb838b5f314013e8bd8aaa87",
+  "workspace_features": {
+    "file-mover": [
+      "default",
+      "nfs-qualification"
+    ],
+    "mover-fs": [
+      "default",
+      "nfs-qualification"
+    ]
+  },
+  "dependencies": [
+    {
+      "name": "bitflags",
+      "version": "2.13.2",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.10.4",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "license": "MIT"
+    },
+    {
+      "name": "cc",
+      "version": "1.8.0",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.5",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.1.7",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "digest",
+      "version": "0.10.7",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.14",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "generic-array",
+      "version": "0.14.7",
+      "license": "MIT"
+    },
+    {
+      "name": "httparse",
+      "version": "1.10.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.190",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "libsqlite3-sys",
+      "version": "0.38.2",
+      "license": "MIT"
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "license": "Unlicense OR MIT"
+    },
+    {
+      "name": "mio",
+      "version": "1.2.4",
+      "license": "MIT"
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "license": "Apache-2.0 OR MIT"
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "rusqlite",
+      "version": "0.40.1",
+      "license": "MIT"
+    },
+    {
+      "name": "rustix",
+      "version": "1.1.5",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+    },
+    {
+      "name": "serde",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.154",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "sha2",
+      "version": "0.10.9",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "signal-hook-registry",
+      "version": "1.4.8",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "smallvec",
+      "version": "1.16.3",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "syn",
+      "version": "3.0.9",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "tokio",
+      "version": "1.53.2",
+      "license": "MIT"
+    },
+    {
+      "name": "typenum",
+      "version": "1.20.1",
+      "license": "MIT OR Apache-2.0"
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.27",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+    },
+    {
+      "name": "vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
+      "license": "MIT/Apache-2.0"
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "license": "MIT"
+    }
+  ],
+  "audit_negative_controls": [
+    "new-glibc",
+    "private-glibc",
+    "wrong-loader",
+    "unexpected-library",
+    "runpath",
+    "wrong-architecture"
+  ],
+  "error": "command failed (101): ['podman', 'exec', '--user']\nion_stage_without_repair ... ok\ntest missing_or_unsafe_source_lock_refuses_before_sqlite_and_never_repairs_it ... ok\ntest missing_reset_expiry_requires_new_epoch_and_rejects_bad_requests ... ok\ntest missing_reset_lost_response_survives_restart_and_partial_claims_complete ... ok\ntest missing_reset_rejects_unexpired_claimed_and_committed_files ... ok\ntest missing_unsafe_or_replaced_active_receipt_is_never_repaired ... ok\ntest old_binding_versions_cannot_start_the_enrollment_protocol ... ok\ntest operator_resume_keeps_collision_safe_and_reconciles_same_verified_attempt ... ok\ntest operator_resume_lost_reply_survives_restart_and_invalid_requests_do_not_reset ... ok\ntest operator_resume_rejects_unclaimed_and_committed_jobs ... ok\ntest operator_status_observes_partial_claims_outage_and_committed_restart ... ok\ntest operator_status_rejects_invalid_routes_and_reports_review_without_reset ... ok\ntest partial_claim_missing_retry_and_persisted_expiry ... ok\ntest payload_children_copy_verify_without_database_access_or_publication ... ok\ntest payload_diagnostics_preserve_review_resume_and_production_ignores_faults ... ok\ntest pending_capacity_retry_survives_restart_and_recovers_without_operator_resume ... ok\ntest populated_state_without_destination_policy_refuses_service_startup ... ok\ntest populated_unenrolled_state_refuses_service_startup_and_preserves_source ... ok\ntest prepared_enrollment_retries_only_without_an_ambiguous_root_receipt ... ok\ntest private_sqlite_files_recover_original_wal_after_coordinator_death ... ok\ntest publication_child_reconciles_file_and_manifest_effects_without_database_receipts ... ok\ntest replaced_source_lock_cannot_rebind_and_original_custody_can_restart ... ok\ntest replacement_root_with_original_marker_cannot_rebind_existing_state ... ok\ntest restart_discovers_claimed_delivery_and_keeps_original_destination ... ok\ntest retention_api_charges_interrupted_attempts_and_does_not_claim_to_find_orphans ... ok\ntest retention_api_reports_admission_headroom_and_committed_retained_sources ... ok\ntest retention_limits_refuse_new_work_without_false_release_or_orphan ... ok\ntest shutdown_setting_defaults_to_sixty_and_rejects_unbounded_or_noninteger_values ... ok\ntest slow_client_does_not_block_health_and_concurrent_replays_are_bounded ... ok\ntest source_binding_is_required_and_strictly_validated ... ok\ntest source_enrollment_refuses_legacy_namespace_and_existing_local_enrollment ... ok\ntest source_marker_and_filesystem_failures_precede_sqlite ... ok\ntest source_marker_replacement_blocks_restart_without_rebinding_or_losing_claims ... ok\ntest source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries ... ok\ntest source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart ... ok\ntest source_space_probe_faults_are_qualification_only_and_do_not_gate_existing_jobs ... ok\ntest source_space_probe_timeout_preserves_responsive_replay_and_custody ... ok\ntest startup_contention_never_announces_readiness_or_opens_sqlite ... ok\ntest stopped_startup_exits_cleanly_without_source_or_database_access ... ok\ntest unavailable_destination_claims_then_foreign_marker_requires_review_without_allocation ... ok\ntest unresponsive_local_endpoint_returns_bounded_owner_unavailable ... ok\ntest unsafe_sqlite_files_refuse_all_effect_commands_before_source_access ... ok\ntest unsafe_startup_configuration_is_rejected ... ok\n\nfailures:\n\n---- configured_stop_deadline_survives_repeated_requests_signals_and_config_edits stdout ----\n\nthread 'configured_stop_deadline_survives_repeated_requests_signals_and_config_edits' (242) panicked at crates/file-mover/tests/api.rs:3903:5:\nassertion `left == right` failed\n  left: String(\"Draining\")\n right: \"ShutdownIncomplete\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    configured_stop_deadline_survives_repeated_requests_signals_and_config_edits\n\ntest result: FAILED. 82 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 524.99s\n\n"
+}

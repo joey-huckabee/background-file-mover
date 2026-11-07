@@ -1,0 +1,2588 @@
+{
+  "recorded_on": "2026-11-01",
+  "basis_commit": "686e15c3f232a6e3c12729c31a8c8e755d27118b",
+  "scope": "Documentation/evidence portability inventory; no new Rust build, test or fixture qualification. Hashes describe historical tracked evidence and local retained artifacts, not universal passes.",
+  "tracked_evidence_reports": [
+    {
+      "path": "docs/BRANCH-REVIEW-EVIDENCE.json",
+      "bytes": 18446,
+      "sha256": "5a1d9d42483d47b559441749e8b1de69a7a77f5520e66a4b617bc13398c8cd75",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/E1-SQLITE-EVIDENCE.json",
+      "bytes": 20519,
+      "sha256": "23c75edc8959cc3c573615ad850740e65f932718a23b6848bd018daf2eb6f29d",
+      "recorded_status": "PASS",
+      "run_id": "20261013T025810Z-d77f6c83"
+    },
+    {
+      "path": "docs/E2-RUSTIX-EVIDENCE.json",
+      "bytes": 60127,
+      "sha256": "86c0d5734762b02894bf6c4b544a52943493aefc9b692901103f5eb84ec57eaa",
+      "recorded_status": "PASS",
+      "run_id": "20261013T033910Z-f4cb8494"
+    },
+    {
+      "path": "docs/E3-JSON-EVIDENCE.json",
+      "bytes": 66241,
+      "sha256": "8cae46ede9f9e7db3cd2fe064784913a4edba0190299acf08fc0c00446803505",
+      "recorded_status": "PASS",
+      "run_id": "20261013T074919Z-b5b50210"
+    },
+    {
+      "path": "docs/E4-HTTP-EVIDENCE.json",
+      "bytes": 85715,
+      "sha256": "2ddecaa5289fba7d31950181aed3e6580e66214b5258f6c670520ce39517a84a",
+      "recorded_status": "PASS",
+      "run_id": "20261013T084531Z-415f4830"
+    },
+    {
+      "path": "docs/E5-TOKIO-EVIDENCE.json",
+      "bytes": 93467,
+      "sha256": "c34f692a137035631f99be2ff0af3101f846371a42c585adbede257efbb112df",
+      "recorded_status": "PASS",
+      "run_id": "20261013T091043Z-5dbc1e45"
+    },
+    {
+      "path": "docs/RUST-NFS-BASELINE-EVIDENCE.json",
+      "bytes": 31881,
+      "sha256": "7e559388dde1dc7e2ef1b379389f9926015d2a8af4c033dd05fd9b104ef83970",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T004040Z-b4ba6821",
+      "source_sha256": "0c5eecc3046be6b98cd60c1870b19f26e8a5c673f43020b606fe0994e5940b63"
+    },
+    {
+      "path": "docs/RUST-NFS-BOTH-BOOTSTRAP-DEATH-EVIDENCE.json",
+      "bytes": 371382,
+      "sha256": "2580e3f356f84adf76e40e5d78366871c0994c5eedf6c402ba1d11764c92c86c",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T043705Z-456435eb",
+      "source_sha256": "b1903ab2ecc41b92acd7fefd6baa4d172e405aaa4d775a4fab59cf6cf672b0d2"
+    },
+    {
+      "path": "docs/RUST-NFS-BOTH-ENDPOINT-DEATH-EVIDENCE.json",
+      "bytes": 517421,
+      "sha256": "71d552750e66538eeca1a4c5a62a95471726c32174f1908f9abdb039bbf0b6f7",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T231054Z-3ef61c70",
+      "source_sha256": "3554a7eb03ecee151e46026ed48de0e272ccfdc020130fb423ca466a5498b546"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-BOOTSTRAP-EVIDENCE.json",
+      "bytes": 817963,
+      "sha256": "65ec17f79ff3049045440631616b0f74c5441cfb96efc45bb149c2c6c22bd2fc",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T130338Z-1a6b077c"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-BOOTSTRAP-INPUT-EVIDENCE.json",
+      "bytes": 437522,
+      "sha256": "82b92f782c64f6b2fe145cba987c7999b60d5919b9bd65cec50b4f6fd7251772",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-CLAIM-EVIDENCE.json",
+      "bytes": 620437,
+      "sha256": "3ba8feef21dfc4880fe884077bd2fe33b307d36efb1aeb61d87cb6f3487f3a9a",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T122856Z-0866afa8"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-CLAIM-INPUT-EVIDENCE.json",
+      "bytes": 436259,
+      "sha256": "7b733462346376f2e11a7bffa552598aff4917700c2a8b494ac6313f3c0f8355",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-COMMIT-EVIDENCE.json",
+      "bytes": 2458990,
+      "sha256": "44f911779538dcbdb5e021cc65f52acc6154054ecec822fee8a11ddeea709a21",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-COMMIT-INPUT-EVIDENCE.json",
+      "bytes": 507176,
+      "sha256": "6bfdf025c806ddc654f89eaea11ae54b1e7fd47f69b6b871da849233b0ff5608",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-COMMIT-LIVE-LOSS-EVIDENCE.json",
+      "bytes": 1397574,
+      "sha256": "40710583ce78362a2078084aff48d00d2cf681cf16eb263d96c81a78c0bce2ca",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-COMMIT-LIVE-LOSS-INPUT-EVIDENCE.json",
+      "bytes": 527390,
+      "sha256": "109259a76ada153d0d4e1921a479110ae5615554dd4c992b012f537aff8286db",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-IO-EVIDENCE.json",
+      "bytes": 3209102,
+      "sha256": "b76cd76169ca83a16bc319bc0ef15068174525eded23431700731afce96da20b",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-IO-INITIAL-EVIDENCE.json",
+      "bytes": 662818,
+      "sha256": "e18c6893405ce94fd190a531467296a08ad438d3b9000af4a0eda5cdcc15cef0",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-IO-INPUT-EVIDENCE.json",
+      "bytes": 519600,
+      "sha256": "1c766e8d1365c8b3013db85ec14e43b467845bce8e204119beddeb37adf69935",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-LIVE-LOSS-CANCELLED-EVIDENCE.json",
+      "bytes": 154529,
+      "sha256": "b427ae471f5ea959565a44f4d0f8b6d7f33fadeed422ebfbdc0f0e82f063aa54",
+      "recorded_status": null,
+      "run_id": "mount-profile-20261020T000717Z-b8cc851a"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-LIVE-LOSS-PRELIMINARY-EVIDENCE.json",
+      "bytes": 1381868,
+      "sha256": "ef3b71ac5193bc7ca96225fd2354db2fd1da7273eaffb969a6f81a7c9a735104",
+      "recorded_status": null,
+      "run_id": "mount-profile-20261019T235348Z-9b4b5d20"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-POST-UNLINK-EVIDENCE.json",
+      "bytes": 592389,
+      "sha256": "f1035115a6a94cbe05d6d3cd5c7bf383cda56c6a3df60597edaf1173413c2ebb",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T113736Z-cdc838f9"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-POST-UNLINK-INITIAL-EVIDENCE.json",
+      "bytes": 468745,
+      "sha256": "e6c31a996800d55f4e4ad80715c2915ffc170c227f7497c96f494b63f6a4c471",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T112925Z-55fc2173"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-POST-UNLINK-INPUT-EVIDENCE.json",
+      "bytes": 438144,
+      "sha256": "f508f0c94f861bd8bb689593af6a365d97139c56b6a4a74ab45087143179d318",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-PUBLICATION-EVIDENCE.json",
+      "bytes": 748308,
+      "sha256": "c1b98de0a53e0c8bc1cea796888e5e25df8b3b8d739b11d6bfda32ccd3042e3b",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T044147Z-f2a623d7"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-PUBLICATION-INITIAL-EVIDENCE.json",
+      "bytes": 444693,
+      "sha256": "d6b04cccb00c1dd7b2cf42c9f7690747308e7f92c9be3c0b82059c831d9e6f0b",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T043626Z-cbfb180d"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-PUBLICATION-INPUT-EVIDENCE.json",
+      "bytes": 434784,
+      "sha256": "c27598c7d2371cdfaf2f283dd6adfe1896d4e51ca413db1215ab32568caa65d4",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-READS-EVIDENCE.json",
+      "bytes": 544904,
+      "sha256": "9feda94ad119c023a07985f9020c1709f0f862924c4ba3c0deea91d6b44acd6a",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T034903Z-cdc1b1b3"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-READS-INITIAL-EVIDENCE.json",
+      "bytes": 415356,
+      "sha256": "9d6c24de142e5c0705534ed4c6991866479043e0759ebb0c8d8a34756d564c2b",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T033752Z-0a2651a3"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-READS-INPUT-EVIDENCE.json",
+      "bytes": 431119,
+      "sha256": "abcf475957fa9313fb412d7c1f0db18578e85d348b5ebebb1b5a10f46540f9c2",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-READS-OBSERVER-EVIDENCE.json",
+      "bytes": 7098,
+      "sha256": "51b1025d27c46949376585e6207df035ae50f00181f205d130fa34416581e1e2",
+      "recorded_status": "PASSED"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-READS-OBSERVER-INITIAL-EVIDENCE.json",
+      "bytes": 415658,
+      "sha256": "7065ccc96c2c19d815de986db6ff8210f632e1a5004956f77a33c9d9b6ddaddf",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T034235Z-f51895cb"
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-SYNC-EVIDENCE.json",
+      "bytes": 1797726,
+      "sha256": "70eb8129f6ff6c0d8512ae2d963103f057541e0cd3029f6df7e4d059e623b5ba",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-SYNC-INITIAL-EVIDENCE.json",
+      "bytes": 2137437,
+      "sha256": "d643682c02b62016e5edb055d9e8a71688efc8f6143fb178da14bb220761ec13",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-SYNC-INPUT-EVIDENCE.json",
+      "bytes": 497338,
+      "sha256": "78a504ccbe9159afa29a2757d99a104e2aa411efbf9166eafd0a268c3d249cc7",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-UNSTABLE-EVIDENCE.json",
+      "bytes": 4246110,
+      "sha256": "880b39bba43f4c3dfec3b1201a96fbeffc3712a53d0209067eae1373825de0cb",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-UNSTABLE-INITIAL-EVIDENCE.json",
+      "bytes": 372553,
+      "sha256": "bf024eb469609381826c0c18d002aaff40302301ce2d2783643677083e7e13f7",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-UNSTABLE-INPUT-EVIDENCE.json",
+      "bytes": 515598,
+      "sha256": "e84098023266507d21b8a67369f7c76c89066543b8136b7dd04e779a600ced2f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-UNSTABLE-LIVE-LOSS-EVIDENCE.json",
+      "bytes": 2239578,
+      "sha256": "f2df76edf147674185b69374515537dcc54eb2a1d826a3e28b25cfef9ee21a14",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-BUFFERED-UNSTABLE-LIVE-LOSS-INPUT-EVIDENCE.json",
+      "bytes": 535952,
+      "sha256": "b37a3d1a56902e0182356d8328eabbdf85619a0604ec747cca9afc4ccaa54f36",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CAPACITY-BACKOFF-EVIDENCE.json",
+      "bytes": 249613,
+      "sha256": "0bac6fb037ce9a551ba26a2de53112515afd2ae6f1090493639eb185a95c7e0f",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261016T115844Z-35fdd61d",
+      "source_sha256": "46c1e437091ba02d569bf82fb42c20154e3296ac7781293214bbd7e5c9d59065"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-CAPABILITY-EVIDENCE.json",
+      "bytes": 2896934,
+      "sha256": "0f93bee49e324d836a1074e942dbe3a5a484b4d833f6bedb39a10b539817a777",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-CAPABILITY-INPUT-EVIDENCE.json",
+      "bytes": 519290,
+      "sha256": "f673cea9d2f94800112b651edb111ac9a8efa849530bccada67374a3764c7124",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-LINK-DEATH-RECOVERY-EVIDENCE.json",
+      "bytes": 2260058,
+      "sha256": "b522187f5f324591e162f1880c16430ffdcce7c8c88b5f9f26b009d4f3612c8f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-LINK-DEATH-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1040298,
+      "sha256": "24cddbf628f1d73ed262201ec2e1780db7c4c6181a00931e4ae935cf513cbb15",
+      "recorded_status": null,
+      "run_id": "claim-link-death-recovery-20261022T021745Z-83f504a6"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-LOSS-EVIDENCE.json",
+      "bytes": 7938590,
+      "sha256": "e3390a787caa5628eb65ea033560adc9eda709ec02fee7f79bc899c4fd6b85ca",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-LOSS-INPUT-EVIDENCE.json",
+      "bytes": 547049,
+      "sha256": "a681fc64ca3b757adba0bdecb196a6b29084ae662764f249fab3292f9fb0f0fe",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-REMOVE-DEATH-RECOVERY-AUDIT-INITIAL-EVIDENCE.json",
+      "bytes": 2339495,
+      "sha256": "38ccef22717956dddd1b21cf07c50db9f92c3d4371f4b6188efe63d1e54be173",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "claim-remove-death-recovery-20261022T030922Z-e2cd734f"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-REMOVE-DEATH-RECOVERY-EVIDENCE.json",
+      "bytes": 2325678,
+      "sha256": "a99eab2c5d5c13408a69047a14d49e07e18950f21d5b16764e1d5c2441c4daa8",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-REMOVE-DEATH-RECOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 177924,
+      "sha256": "69a4d693ef5cbdae92f9fb0630d1329b8842121bd90ab90548f96bb041d805f1",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "claim-remove-death-recovery-20261022T030637Z-8cbf6de4"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-REMOVE-DEATH-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1051515,
+      "sha256": "c7353ebb6957892434394179e88494d4d7fed25b47f6e40a27d56ea75b071594",
+      "recorded_status": null,
+      "run_id": "claim-remove-death-recovery-20261022T030922Z-e2cd734f"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-SYNC-DISCOVERY-EVIDENCE.json",
+      "bytes": 3784198,
+      "sha256": "03a5eec8575ea74167720d6ddcc03fce329d451e4fae5f437f016a07b0e717ba",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-SYNC-DISCOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 3870011,
+      "sha256": "65cb02eb3dd4e3c11d9a69fda3b59bb6f9b675491025ff601b8cdde763ce785a",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "claim-sync-discovery-20261022T034258Z-d9c31988"
+    },
+    {
+      "path": "docs/RUST-NFS-CLAIM-SYNC-DISCOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1075449,
+      "sha256": "fba9695088188149566870cf793cda3603dc39eb3ca16bdfdba4b71e6a79f7e2",
+      "recorded_status": null,
+      "run_id": "claim-sync-discovery-20261022T040936Z-6ea91cfe"
+    },
+    {
+      "path": "docs/RUST-NFS-COORDINATOR-DEATH-EVIDENCE.json",
+      "bytes": 231754,
+      "sha256": "6a99cbff70dcf4c20988769cb0108c70c7cab510d49c9a1ed205ecc60d388ea5",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261017T151430Z-61596339",
+      "source_sha256": "05dd11077e2c290ff403bbe6be60119cf309f158899e8c2f177bdcd0e37eb742"
+    },
+    {
+      "path": "docs/RUST-NFS-COORDINATOR-DEATH-INITIAL-EVIDENCE.json",
+      "bytes": 87536,
+      "sha256": "360f021bf06c174cf25c63b4d7890e398b53569f1c15a727590845a5ab2ae3fe",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261017T145718Z-15712af3",
+      "source_sha256": "9161b7ad91015c9f99359550c5637ef082797de528770f910e20a723e590de21"
+    },
+    {
+      "path": "docs/RUST-NFS-CUSTODY-EVIDENCE.json",
+      "bytes": 223089,
+      "sha256": "0ba1e5612eed0e983c86af8f5f4a34b8319bd1fc086301ce510deee51396906d",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T113434Z-21fea880",
+      "source_sha256": "d6f33d2260d2cfc69ed2f13afcc56bc3ef192584eb4d41b8922adc432526dbfe"
+    },
+    {
+      "path": "docs/RUST-NFS-DELIVERY-SPACE-EVIDENCE.json",
+      "bytes": 90776,
+      "sha256": "7a794c98b6ecaf893f5359704f509cf3322780e86050f430f07065f1240cc78b",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261016T004810Z-270ebf6e",
+      "source_sha256": "7b1da34d4adfa75df1ea97c6f8b6b7f3e278aa89e3f7a51fa12a72895e1ed513"
+    },
+    {
+      "path": "docs/RUST-NFS-DESTINATION-BINDING-EVIDENCE.json",
+      "bytes": 205389,
+      "sha256": "11b9791161bded8c2d32b4fa699b51385aa490defcd0592c961371c2257e2b20",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T085325Z-edda377b",
+      "source_sha256": "83e30524fcf0529f7b3b8d4b1cdc0c25dc3cf43c342a1128acb5576b6dcb45c6"
+    },
+    {
+      "path": "docs/RUST-NFS-DESTINATION-STARTUP-EVIDENCE.json",
+      "bytes": 409485,
+      "sha256": "6b52d95bd9a77ff6cab8ca46a9d289d94866ea49f3b1b92b0314f103982f3ec7",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T152804Z-44b85521",
+      "source_sha256": "61d92a789db034ed1d52b0aca8492c166722f5009bb8417b80b1e93a14b4c350"
+    },
+    {
+      "path": "docs/RUST-NFS-DIAGNOSTIC-EVIDENCE.json",
+      "bytes": 26463,
+      "sha256": "a78456fd3e0d2ad58837f5633b44cf80555485e6cb22262dd020b4b713031303",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261014T115111Z-cd0adc32",
+      "source_sha256": "8fb665eb270bd5efe7db3e274c4df413ccbabbc56f3a639c4a5f4bfc266e9d1e"
+    },
+    {
+      "path": "docs/RUST-NFS-DISTINCT-RECOVERY-EVIDENCE.json",
+      "bytes": 2252786,
+      "sha256": "b477502f16772045bf61d20a84c4ae728e1ecd2d98bc4278edc90f494928e656",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-DISTINCT-RECOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 87989,
+      "sha256": "e6f2fe1f07b43f99a1981318b0a9bfa1e953993aae5da3113cfcd7785ab2d186",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "distinct-server-recovery-20261020T232551Z-355b5dc3"
+    },
+    {
+      "path": "docs/RUST-NFS-DISTINCT-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 983633,
+      "sha256": "cfc2c5f88a826f1b2890e867275a0c1b958d11e22ba776cec360565517046cac",
+      "recorded_status": null,
+      "run_id": "distinct-server-recovery-20261020T233014Z-9cb6d7f4"
+    },
+    {
+      "path": "docs/RUST-NFS-ENROLLED-BOOTSTRAP-EVIDENCE.json",
+      "bytes": 327553,
+      "sha256": "cf541658aeeb3ef4d48582ae3d24a6435d8c8dba42413213e5270e481e44a0c0",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T210948Z-199f41fd",
+      "source_sha256": "60249323a5aa7851c0991c38b0be9cc63ab9a96e4d116a4777ac86f50165d77c"
+    },
+    {
+      "path": "docs/RUST-NFS-ENROLLED-BOOTSTRAP-INITIAL-EVIDENCE.json",
+      "bytes": 100791,
+      "sha256": "f885a7c832c6ea0cb077dc89845b2ad3767b5c697f59f6c290c1fb5a53900b9c",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261017T205820Z-1afa98b1",
+      "source_sha256": "60249323a5aa7851c0991c38b0be9cc63ab9a96e4d116a4777ac86f50165d77c"
+    },
+    {
+      "path": "docs/RUST-NFS-ENROLLMENT-EVIDENCE.json",
+      "bytes": 243637,
+      "sha256": "55a19012e402f2ad4eb77446ed5ea43ed24d4689363c0f18cd935a14c535f039",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T131554Z-4baea72b",
+      "source_sha256": "582d5bb376e65e6b705814bbf8ae927ecec471a9e2c0ab4ca677cbc50afe63de"
+    },
+    {
+      "path": "docs/RUST-NFS-ENROLLMENT-IO-EVIDENCE.json",
+      "bytes": 248323,
+      "sha256": "0d85a83c4a9ac4bac5685c220121368d62671863a888e5d57946b66b0931398e",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T211759Z-87d109b2",
+      "source_sha256": "db8240c6ded6a27eb6bf21ca0926235cdefd9ccda9bf5ef0cc97fa82e3981d64"
+    },
+    {
+      "path": "docs/RUST-NFS-ENROLLMENT-SPACE-EVIDENCE.json",
+      "bytes": 45956,
+      "sha256": "872a34ee36328d1360ec7f060782e7adcbdda8c581f85bb346313792768596c4",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T224853Z-d63a88e0",
+      "source_sha256": "1b34e417705015c685b57e39a8ff2179f0661d203fd45fd9dcbd0df96124d625"
+    },
+    {
+      "path": "docs/RUST-NFS-EVIDENCE.json",
+      "bytes": 9026,
+      "sha256": "e330b146c31380ffd10760761d198ad1953b9ca2e32ec9a7273f3700de56d2d9",
+      "recorded_status": "PASSED",
+      "source_sha256": "8793df6e27891da649b08251c7e2ea7d5e4ebbcefce661cb6469c3e61b4ab4a6"
+    },
+    {
+      "path": "docs/RUST-NFS-INDEPENDENT-ENDPOINT-DEATH-EVIDENCE.json",
+      "bytes": 597476,
+      "sha256": "7452bb7b6ca7e858f6341cb01b596b0af88b6e66006f37580f1749baf071dfc5",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T021606Z-942892cd",
+      "source_sha256": "3ae7add904e4494cf9e633854f34254823b92d706f36c48c5dbba9b8e44b3f58"
+    },
+    {
+      "path": "docs/RUST-NFS-JOINT-OUTAGE-EVIDENCE.json",
+      "bytes": 1827190,
+      "sha256": "2fd1f5fbfa9c1596b8b0e3165371848b7bfad466d55b0cc3002d724b1824b74d",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-JOINT-OUTAGE-INITIAL-EVIDENCE.json",
+      "bytes": 395090,
+      "sha256": "08ec877a24224e3b43ab105a894485eb9bf8f8a81abd1d1c688f27b1bfde3bb3",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "joint-outage-20261022T052739Z-066aed04"
+    },
+    {
+      "path": "docs/RUST-NFS-JOINT-OUTAGE-INPUT-EVIDENCE.json",
+      "bytes": 1019149,
+      "sha256": "a1801b34e83c6b05d0f37bf4ea5a165f8b51e53aec1ca5d08d14ca50d228b7c0",
+      "recorded_status": null,
+      "run_id": "joint-outage-20261022T055804Z-115f4bb2"
+    },
+    {
+      "path": "docs/RUST-NFS-JOINT-OUTAGE-SECOND-EVIDENCE.json",
+      "bytes": 802768,
+      "sha256": "e2ad1de251556149abad7ca3e385e1dbae71d71d54be8815422ba610f38af0fa",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "joint-outage-20261022T054142Z-bfcd3fd4"
+    },
+    {
+      "path": "docs/RUST-NFS-LIFECYCLE-EVIDENCE.json",
+      "bytes": 43006,
+      "sha256": "6e7b6d271e5bbaf89153b9e186e63c3171aaef0a898c43cf5e16897ffdcf1c30",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T051627Z-eca582e6",
+      "source_sha256": "03d317c987d9cb22d9a9654aefe396ef24cc535c1fdc8167a2f1df7535ff20a8"
+    },
+    {
+      "path": "docs/RUST-NFS-LINK-REPLY-CAPABILITY-EVIDENCE.json",
+      "bytes": 82296,
+      "sha256": "d3973323ec1317a13869ac16027e761a3eb53190f8d1d8427b7b76e7923f08d9",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T200112Z-fb530318"
+    },
+    {
+      "path": "docs/RUST-NFS-LINK-REPLY-INITIAL-EVIDENCE.json",
+      "bytes": 163237,
+      "sha256": "0e707835a81a8a221a248aa63a73e95e134cab301b2e459b121d6a520607b671",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T202641Z-26370719",
+      "source_sha256": "9c9ce486e54fc0e13082b528df45c5463567b9b4857ebd7a843de0d0e2ae55e2"
+    },
+    {
+      "path": "docs/RUST-NFS-LOCAL-INSTANCE-EVIDENCE.json",
+      "bytes": 38865,
+      "sha256": "32f591a0e32fc17cd44026e4b9029c8d7cfb03c744d29b84286fb8c3bf6d8286",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T042414Z-5fb4bcda",
+      "source_sha256": "6e0ed14aebf12f17f2537ef3394b976a1535bd058a42db3c891ff45b4345298f"
+    },
+    {
+      "path": "docs/RUST-NFS-LONG-OUTAGE-EVIDENCE.json",
+      "bytes": 102163,
+      "sha256": "4384903aa6e2b6132d123635dec159550492964db934dec543c44c369e42b95f",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T020953Z-dfbd3a1b",
+      "source_sha256": "0d86d7d3755c7c9cdb9167311ea63457302a1be2353c2772041f36d92e5e0796"
+    },
+    {
+      "path": "docs/RUST-NFS-LOST-LINK-REPLY-EVIDENCE.json",
+      "bytes": 381568,
+      "sha256": "11c0d06f15c1cd6a1cc12313590fb108d5f6edc62a01f643f7c0ebef6598b37d",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T203516Z-eb5b56b7",
+      "source_sha256": "9c9ce486e54fc0e13082b528df45c5463567b9b4857ebd7a843de0d0e2ae55e2"
+    },
+    {
+      "path": "docs/RUST-NFS-LOST-REPLY-EVIDENCE.json",
+      "bytes": 331438,
+      "sha256": "f9ac85e1dc9fc45cbc3633a11e8fc92f66ebb677a053cba0e34806206df08bb7",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T191725Z-ec359051",
+      "source_sha256": "f7e96780f55e73ccf8c916ff0112879fc496e3eec0f890a70fa4a4c2d584500b"
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-CAPABILITY-EVIDENCE.json",
+      "bytes": 4112850,
+      "sha256": "dfbac3efc77208a5bda91493991c17c392e727c22cbdc0cfe1135c46c2e7fa15",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-CAPABILITY-INPUT-EVIDENCE.json",
+      "bytes": 506006,
+      "sha256": "dfeb8ecbe0dfb283ec6744dee68c320925342e01cda20758888492d6f1dab94d",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LINK-DEATH-RECOVERY-AUDIT-INITIAL-EVIDENCE.json",
+      "bytes": 3554956,
+      "sha256": "293a8e9213a9ad02b4346e42ac974ce324dc0c7c8fb4a3936732238e7485748c",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "manifest-link-death-recovery-20261022T014422Z-4ecc4f2c"
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LINK-DEATH-RECOVERY-EVIDENCE.json",
+      "bytes": 3541510,
+      "sha256": "5212c4a5a1abb34923df5332304a55eb30930ea4aeb4b8d2ee3328f5a00b0085",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LINK-DEATH-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1042861,
+      "sha256": "7c4d81d2e4b514387281170d50968b2b795662ad26064e4e2ba5e5c207faec28",
+      "recorded_status": null,
+      "run_id": "manifest-link-death-recovery-20261022T014422Z-4ecc4f2c"
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LINK-RECOVERY-EVIDENCE.json",
+      "bytes": 3051054,
+      "sha256": "e206b4b2cb815d655d10c5cf0239760dc4ca116fa5230e38117c282fa1d0545f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LINK-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1029063,
+      "sha256": "daa60a1bf889e5f31e6e0b2217bd04213531469f23da847d80ab0e49e97cd3c3",
+      "recorded_status": null,
+      "run_id": "manifest-link-server-recovery-20261021T115541Z-4464ca9d"
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LOSS-EVIDENCE.json",
+      "bytes": 8919778,
+      "sha256": "75f22174ae2cc64a56144008bf2b1087af51170e1442cfa95778eaa2303c905d",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LOSS-INITIAL-EVIDENCE.json",
+      "bytes": 3510950,
+      "sha256": "78d0875f2cefcb9ec4d5ff61f76e6466ccd48cc22bf994987745d4a8d2943f7c",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LOSS-INPUT-EVIDENCE.json",
+      "bytes": 549201,
+      "sha256": "5b3e7305218e6fa1322a720181e0e7c5d4b940c6fbb90426ffc59907405e058f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-LOSS-REACQUISITION-EVIDENCE.json",
+      "bytes": 3792278,
+      "sha256": "62a30b94854415d053a7c73dc09ca0c7e8579c7991734deef3b0aef342eb53fb",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-RECOVERY-EVIDENCE.json",
+      "bytes": 3080638,
+      "sha256": "7ffafb8392c37712ba05f0f2667ce2ea4ccfc928312824e2662d7ce89c3fe0de",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MANIFEST-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1023294,
+      "sha256": "8e4a5fbed3aa8badaaa46f7eeffe740965d53acd0150774032a41e306ec410c7",
+      "recorded_status": null,
+      "run_id": "manifest-server-recovery-20261021T011415Z-16aad95b"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-BOUNDARY-INITIAL-EVIDENCE.json",
+      "bytes": 141976,
+      "sha256": "5c96345e05623af9c1e5d7eef0b45aae36ee88d49a7a7be8a7105c0123fe2df9",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261019T015840Z-49e49051",
+      "source_sha256": "9737669850c7ce3f336152453ad41a2bf9db634798ce0123211169bc26d35ab2"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-BOUNDARY-RECOVERY-EVIDENCE.json",
+      "bytes": 4103,
+      "sha256": "74430bc97a8ac021358151ba91a120b9c7967a33ae18df667c98524fc20b22ec",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-CAPABILITY-EVIDENCE.json",
+      "bytes": 290314,
+      "sha256": "cf9ed92db1a3ed3949034262b915fd4102f45dd39a36b8508882248abe75482e",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T014128Z-afce9bd4"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-DRIVER-EVIDENCE.json",
+      "bytes": 580147,
+      "sha256": "731bb5de5dee58250332cfd39a54904b98ba3cd46d7e5d6772222f68e4559271",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-EVIDENCE.json",
+      "bytes": 393674,
+      "sha256": "88a1648bec5b6b07d83a835a686f18461b2d3c4b695087689ce9847b014339ec",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T020832Z-1bcbed6f"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-INITIAL-EVIDENCE.json",
+      "bytes": 455888,
+      "sha256": "02d7fa292b88077d91e45362412571a9bbbd381556c5076bf71c7919186c5cba",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-SETUP-INITIAL-EVIDENCE.json",
+      "bytes": 320434,
+      "sha256": "2c8e5faad7b905bb167e56ae4ac93988ebb577aa308ea783037953396b564d7f",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T015542Z-b5fe60d7"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-STARTUP-EVIDENCE.json",
+      "bytes": 10531,
+      "sha256": "fbdc1d5d1f99c56060fa5bf1166b893cd491cc0b02192a3478f1f9260cdbf474",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261019T021731Z-41c53fb1",
+      "source_sha256": "9737669850c7ce3f336152453ad41a2bf9db634798ce0123211169bc26d35ab2"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-AUTH-TRAVERSAL-INITIAL-EVIDENCE.json",
+      "bytes": 329067,
+      "sha256": "4ee81a698f8764eb74acd10dee4ef931c7c4db122666f12c49f2cc310404fed0",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T020046Z-201ec229"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-PROFILE-EVIDENCE.json",
+      "bytes": 288017,
+      "sha256": "041189b3f44b31db62adcc8a88602992345c3e355e1dc6498b7a5cec2916db3f",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T005139Z-e8c53b13"
+    },
+    {
+      "path": "docs/RUST-NFS-MOUNT-PROFILE-INITIAL-EVIDENCE.json",
+      "bytes": 158687,
+      "sha256": "b34f77d070df77188d5440b7ced3d543e2141f3f494bfe83c4827b17ada0f3dd",
+      "recorded_status": "FAILED",
+      "run_id": "mount-profile-20261019T004903Z-4d74cf97"
+    },
+    {
+      "path": "docs/RUST-NFS-NAMESPACE-DIAGNOSTICS-EVIDENCE.json",
+      "bytes": 308766,
+      "sha256": "7e5f35b067539f5a23b7c96eaa214f0d2ca50d485ea69e9f4dec35ae7cee42b3",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261016T032042Z-ded65186",
+      "source_sha256": "88812c3182bb86f77771556f37f43f2f6f3f4fcbd2203e065d3000cad51d75da"
+    },
+    {
+      "path": "docs/RUST-NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-EVIDENCE.json",
+      "bytes": 1970062,
+      "sha256": "6b1e6ae73502692a7087cddfd0f7db83dfd418610d00871b48e54002b4494849",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 174329,
+      "sha256": "e77085a5b1e92e369d3faab0118e138c512f822f79a700f813087ab165647b5a",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "original-claim-sync-discovery-20261022T044055Z-fd0f232d"
+    },
+    {
+      "path": "docs/RUST-NFS-ORIGINAL-CLAIM-SYNC-DISCOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1048309,
+      "sha256": "bb0f179814f7cfd2711fa63e60f91c3800935fcb2f6756cca459a63f1c910d4c",
+      "recorded_status": null,
+      "run_id": "original-claim-sync-discovery-20261022T044424Z-baf067ab"
+    },
+    {
+      "path": "docs/RUST-NFS-OWNERSHIP-EVIDENCE.json",
+      "bytes": 46866,
+      "sha256": "99b4bdb862311a0e4adda33b6d4f7e0b1c28cf76f9e8dfd5034816b8dcd69eb3",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T025958Z-71e9bee8",
+      "source_sha256": "3e22966bfc84a93049a4c0fe58085a2e9c7112c0caadb70f2603450650f92f30"
+    },
+    {
+      "path": "docs/RUST-NFS-OWNERSHIP-EXIT-EVIDENCE.json",
+      "bytes": 285620,
+      "sha256": "befea0bdaac7c6d76fdd6afd73e6c3576f5f4aa5090b1919b799ffbf861e19c4",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T171335Z-f7f5c7e2",
+      "source_sha256": "ae4e87b8453f945112a2142a31067870680fa05cc2bc5db1260e568d81e4d9e8"
+    },
+    {
+      "path": "docs/RUST-NFS-OWNERSHIP-EXIT-INITIAL-EVIDENCE.json",
+      "bytes": 158492,
+      "sha256": "e5d453d02eff6a2a6996fb408146b6d4d9a4fc82bc80d79a9d29df5eebca6070",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261017T164541Z-f88063e6",
+      "source_sha256": "ae4e87b8453f945112a2142a31067870680fa05cc2bc5db1260e568d81e4d9e8"
+    },
+    {
+      "path": "docs/RUST-NFS-PARTIAL-HANDOFF-EVIDENCE.json",
+      "bytes": 2514318,
+      "sha256": "edf2761ec1558726a824d46d0b987b10406673c34eca8105589cc2fdd16f2521",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PARTIAL-HANDOFF-INITIAL-EVIDENCE.json",
+      "bytes": 421864,
+      "sha256": "cf615b0012d3852ff988641b94f1b617ca307000f5eda7e64c3308445f970bd2",
+      "recorded_status": "FAILED_RETAINED"
+    },
+    {
+      "path": "docs/RUST-NFS-PARTIAL-HANDOFF-INPUT-EVIDENCE.json",
+      "bytes": 1028803,
+      "sha256": "c9c5858b3911091ade1678859cd7aec4b9ba937e3ba0007d4e82b53fe05a9a73",
+      "recorded_status": null,
+      "run_id": "partial-handoff-replay-20261022T165236Z-abbc4e46"
+    },
+    {
+      "path": "docs/RUST-NFS-PARTIAL-HANDOFF-SECOND-EVIDENCE.json",
+      "bytes": 230410,
+      "sha256": "2a3085253b129f0fcb084ecb4b640cdff5388ef885356dd83abecd2ad19b80d1",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "partial-handoff-replay-20261022T164239Z-a6358c8b"
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-DIAGNOSTICS-EVIDENCE.json",
+      "bytes": 307428,
+      "sha256": "694fe7a7aabd646ead75c51f632b2976753e1ef9be014470c2157a70afebdf47",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261016T013801Z-a01edfff",
+      "source_sha256": "7c4dfec68ee6a14c32437bed47456764cc858bc574673ad7e46a2eff544b0a23"
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-LINK-DEATH-RECOVERY-EVIDENCE.json",
+      "bytes": 2826914,
+      "sha256": "4dc669e3fee8594cdafe338738a20c392b4bb7511afec9d7857475ab3d7e2e2b",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-LINK-DEATH-RECOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 728637,
+      "sha256": "09b1f3f95ab38521f620bf1433f5bb180a638fe0d9f0e8711484ef0e5c40424e",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "payload-link-death-recovery-20261021T234223Z-d472a3a7"
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-LINK-DEATH-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1030292,
+      "sha256": "88577900c9bfe6a36c59db5610fa6fa99c02856a8230d0e54090a23e1106bc5e",
+      "recorded_status": null,
+      "run_id": "payload-link-death-recovery-20261021T235453Z-9a8b079a"
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-LINK-RECOVERY-EVIDENCE.json",
+      "bytes": 3489810,
+      "sha256": "35cc53754cdc6a9cf33c9fe8e95cecc266c8deb67adf8b5d60ae3fd87e970d53",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PAYLOAD-LINK-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1029022,
+      "sha256": "1d9a19a7579fc016f9bba4ebb4d0fff9fb3bc5523a837967e3ecbd61d8653366",
+      "recorded_status": null,
+      "run_id": "payload-link-server-recovery-20261021T014222Z-0d700c9e"
+    },
+    {
+      "path": "docs/RUST-NFS-PRE202-REPLAY-EVIDENCE.json",
+      "bytes": 1715190,
+      "sha256": "5c39b53d5af5d62fba5d9c19a38c2d9158bb3d1ba67d5adeec59a1118b930849",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PRE202-REPLAY-INITIAL-EVIDENCE.json",
+      "bytes": 371634,
+      "sha256": "3c3a25b38162c56ca936aba2f5dff17631de138777386eeb54629c594a235e88",
+      "recorded_status": "FAILED_RETAINED"
+    },
+    {
+      "path": "docs/RUST-NFS-PRE202-REPLAY-INPUT-EVIDENCE.json",
+      "bytes": 1019662,
+      "sha256": "4c7c6ec80715aa87aff207787a350d0b893527fa0c7c1254fb9aa2579cd7738f",
+      "recorded_status": null,
+      "run_id": "pre202-replay-20261022T122119Z-04f7bf67"
+    },
+    {
+      "path": "docs/RUST-NFS-PRE202-REPLAY-SECOND-EVIDENCE.json",
+      "bytes": 671696,
+      "sha256": "1398ad0435f53a77a092bd277ebf7ada9498b3649a6a3cb3225805cc12d6516f",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "pre202-replay-20261022T120751Z-0f02aee5"
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-DEATH-EVIDENCE.json",
+      "bytes": 326695,
+      "sha256": "0ada5cc1c6a3b3cdef25e7d70bc91d4fa73e72d3f607d9b1ade9bc5c9bbbb0c6",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T214723Z-07ac9666",
+      "source_sha256": "b05d308880f8e06d106bf9a26d161abb3ccc9b43fe28a728323c10df8352048a"
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-RECOVERY-EVIDENCE.json",
+      "bytes": 3474586,
+      "sha256": "0cf43f55bba4bd36326c77c0d922c86b69fca1da6604fb083f23bb95c3e3bfd7",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1022701,
+      "sha256": "d6ee804b10525620ca4a2db2a7f2eb6ad4bcc00d8cabf6a4e886fe026d7f1b34",
+      "recorded_status": null,
+      "run_id": "publication-server-recovery-20261021T004154Z-2663618b"
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-SYNC-DISCOVERY-EVIDENCE.json",
+      "bytes": 5894094,
+      "sha256": "d9e07d99068a4993e2d96b8c75ad7d3bf90d38321492190421834d29c196f62b",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-SYNC-DISCOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 5909106,
+      "sha256": "6543aa85b98a461938025d331ad2f830e369497a1d11ff06be06cbe04a202d73",
+      "recorded_status": "FAILED_AUDIT_RETAINED",
+      "run_id": "publication-sync-discovery-20261021T122751Z-949e73c6"
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-SYNC-DISCOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1060533,
+      "sha256": "88015340f90e9b314d9a74282d35c3eef01ac63cab35f94b3dd07fb959aeb6f9",
+      "recorded_status": null,
+      "run_id": "publication-sync-discovery-20261021T122751Z-949e73c6"
+    },
+    {
+      "path": "docs/RUST-NFS-PUBLICATION-SYNC-EVIDENCE.json",
+      "bytes": 312502,
+      "sha256": "6ff3a818b239925eed3cdb6508b0e674f4a10be96e93a21df9b7ba8de17058f9",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T174712Z-059936f1",
+      "source_sha256": "c0f76fdea2d1f336cdb9ad12ea7b3ad87b9f189410e4b32f85f7b68af73f34cb"
+    },
+    {
+      "path": "docs/RUST-NFS-REMOVE-REPLY-REGRESSION-EVIDENCE.json",
+      "bytes": 60107,
+      "sha256": "55019209d118a8add0a174532871281cec8736253717576c4ce7729cc045214f",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T200427Z-a948eee5"
+    },
+    {
+      "path": "docs/RUST-NFS-REPLY-CAPABILITY-EVIDENCE.json",
+      "bytes": 59781,
+      "sha256": "4b4342f64f4a4c600b33df06b1e43f3b8c4588882f7dd7e1700c7c22d4b52690",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T190840Z-2467b9d6"
+    },
+    {
+      "path": "docs/RUST-NFS-REPLY-CAPABILITY-INITIAL-EVIDENCE.json",
+      "bytes": 43370,
+      "sha256": "effb0fe7b00cb29eac87aeb410e81686c3f4d86a1b6d404d409408977d927251",
+      "recorded_status": "FAILED",
+      "run_id": "reply-capability-20261018T190256Z-ea2fb73d"
+    },
+    {
+      "path": "docs/RUST-NFS-RUNTIME-EVIDENCE.json",
+      "bytes": 119402,
+      "sha256": "bd2811b7a2f8d134383480ca2e599e0b9697f98a8d7528be20d0f95b9f8633cd",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T004040Z-b4ba6821",
+      "source_sha256": "0c5eecc3046be6b98cd60c1870b19f26e8a5c673f43020b606fe0994e5940b63"
+    },
+    {
+      "path": "docs/RUST-NFS-SAME-SHARE-EVIDENCE.json",
+      "bytes": 459954,
+      "sha256": "117f6649b5e928bec39fc31c2a537adb6e1898f2204669b71ab9315a98c5a302",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T030103Z-1445a1a6"
+    },
+    {
+      "path": "docs/RUST-NFS-SAME-SHARE-INPUT-EVIDENCE.json",
+      "bytes": 428055,
+      "sha256": "8f9aa70f17b8fdd29e3f0ee4a0119642abdb3a31fe0ab42217cd046174f435ea",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SAME-SHARE-PRELIMINARY-EVIDENCE.json",
+      "bytes": 462539,
+      "sha256": "cc1e077dcba45899069d38ba4a47312b47ce3e52a12f4d09709902d055916691",
+      "recorded_status": "PASSED",
+      "run_id": "mount-profile-20261019T024946Z-04cceeed"
+    },
+    {
+      "path": "docs/RUST-NFS-SEPARATE-EXPORT-DEATH-EVIDENCE.json",
+      "bytes": 532002,
+      "sha256": "5ff74554fa969e1931032e3684fefaf6312c6e482b2a698d086847d041f40851",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T005553Z-66d9a470",
+      "source_sha256": "21aea8a3fed2c3407e03206e3db0c8b95144b4825197227d59eb6cdc131393f2"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-AUDIT-INITIAL-EVIDENCE.json",
+      "bytes": 29134,
+      "sha256": "531f4b413f30b95bdf0eef8d3a07c7c6db43d97f5b9c15624c523dcf91d2d5bb",
+      "recorded_status": "REJECTED_AUDIT_ASSUMPTION",
+      "run_id": "server-mover-recovery-20261020T163452Z-023afe5c"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-EVIDENCE.json",
+      "bytes": 2223410,
+      "sha256": "1fdebe541986c73b5527e69d1a420477b3d6ee6dd9ef5bc74f2f00dfcf69b9f1",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-FOURTH-EVIDENCE.json",
+      "bytes": 173374,
+      "sha256": "6c588da4d1c5a77be75039af6211a5c645654a807a534caac5c87742c0380cf4",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-mover-recovery-20261020T162326Z-190c2b69"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-INITIAL-EVIDENCE.json",
+      "bytes": 136452,
+      "sha256": "9535384e39114fecd922d1d2636cc02a8ef356da49dbff1d09221724c1f69e51",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-mover-recovery-20261020T155528Z-8c83749d"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-INPUT-EVIDENCE.json",
+      "bytes": 963067,
+      "sha256": "04c67841382a8877ec101b1285a52469252b795b3cfe25ee495269b111db5413",
+      "recorded_status": null,
+      "run_id": "server-mover-recovery-20261020T163452Z-023afe5c"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-SECOND-EVIDENCE.json",
+      "bytes": 280862,
+      "sha256": "6e45ee829539d926ff85cff7a388bc2276771c9ce8c6277763734ab44c278410",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-mover-recovery-20261020T160217Z-a6ae253a"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-MOVER-THIRD-EVIDENCE.json",
+      "bytes": 176961,
+      "sha256": "97ea7c8626e0c0d5850137cff7278e37b10f8f7ac213c0c9b2d5d9d119053b42",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-mover-recovery-20261020T161123Z-b3b77cb2"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-RECOVERY-EVIDENCE.json",
+      "bytes": 82986,
+      "sha256": "aba21856d6ab2ada6b842e67c6a15590241d0dc078b004c44344cf7f9d2b0840",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-RECOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 88343,
+      "sha256": "54babfc4ccd395ecb8effaec573f2bd08eb4831e50b8fab3856e6411fd6e4850",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-recovery-20261020T123719Z-15e3fab8"
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 507734,
+      "sha256": "9dfb33a71076f208e930e251ec9c796654c27f3983d1ee4f98623bf65b1340c0",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SERVER-RECOVERY-SECOND-EVIDENCE.json",
+      "bytes": 83636,
+      "sha256": "d0ef474d07b5e82467d638e96da21eff669dacddb0df3dcd867d1a873ba88111",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "server-recovery-20261020T124744Z-49eec43d"
+    },
+    {
+      "path": "docs/RUST-NFS-SHUTDOWN-EVIDENCE.json",
+      "bytes": 228252,
+      "sha256": "e7f47195dbfd21b534d6af1301809a7cb3180c2c91d5a345dbb6a15d187757cd",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T140003Z-a5a59522",
+      "source_sha256": "9161b7ad91015c9f99359550c5637ef082797de528770f910e20a723e590de21"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-BINDING-EVIDENCE.json",
+      "bytes": 205377,
+      "sha256": "9b658736ce2f31179681ea71da94ea72eb839f98c04d82c875aada9feb7f1101",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261015T073324Z-30fcffe1",
+      "source_sha256": "990996cd8e2d4d4b46adf273f9678c675c42b6eed16cdefbe499fb0e7daaf457"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CHANGE-AUDIT-INITIAL-EVIDENCE.json",
+      "bytes": 1114451,
+      "sha256": "4acf9101240d9bf82f603ac17b8d0671c8e64335b7a995ebcb17244d7aef174d",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "source-change-refusal-20261022T183501Z-32382412"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CHANGE-EVIDENCE.json",
+      "bytes": 1068862,
+      "sha256": "c808e1087d05adb574e06d0430f761b6600e608217981daa454ca1cbb0026d40",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CHANGE-INPUT-EVIDENCE.json",
+      "bytes": 1020136,
+      "sha256": "65efa0975460f563092058e47df59cc79f4050a6db434a2910a85545e78ea34b",
+      "recorded_status": null,
+      "run_id": "source-change-refusal-20261022T183501Z-32382412"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CLAIM-REPLY-DRIVER-EVIDENCE.json",
+      "bytes": 688236,
+      "sha256": "5caaa08bd8a6c946be34a7e752d7f46a3e8e68faad570f78a07d2782f3a6c045",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CLAIM-REPLY-EVIDENCE.json",
+      "bytes": 441422,
+      "sha256": "5d76699ece7efb04f8f6c0beb9dae8002f59b8424e12af5a9ecf98ef9b205d3c",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T221850Z-7e29f816",
+      "source_sha256": "9afd97926ce50d5e6e4251a07187d8bd05c706e9de0b6d95f48f6612d5af3d69"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-CLAIM-REPLY-INITIAL-EVIDENCE.json",
+      "bytes": 302953,
+      "sha256": "48bcf8d6f5b934e5b25319f796a270fdbd8fb27c0010d2ed007a19527a1003c4",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T212855Z-a5332c36",
+      "source_sha256": "9afd97926ce50d5e6e4251a07187d8bd05c706e9de0b6d95f48f6612d5af3d69"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-MID-COPY-DEATH-EVIDENCE.json",
+      "bytes": 220470,
+      "sha256": "d7d80de4ccdf33c8d68ff9ee452a5ce2bf41f3bbe71b326b1f3f215318105f52",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261018T041151Z-347d27e7",
+      "source_sha256": "b1903ab2ecc41b92acd7fefd6baa4d172e405aaa4d775a4fab59cf6cf672b0d2"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-MID-COPY-INSTRUMENTATION-FAILURE-EVIDENCE.json",
+      "bytes": 57130,
+      "sha256": "8ec538df3371da269b14fe94434380e068e0325ed06eef8a3cb775fddec99687",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T040358Z-fe4dc59b",
+      "source_sha256": "b1903ab2ecc41b92acd7fefd6baa4d172e405aaa4d775a4fab59cf6cf672b0d2"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-RELAY-RESTART-INITIAL-EVIDENCE.json",
+      "bytes": 422287,
+      "sha256": "07eda612e079fae54c3bf5efe3aecc944f8c3165104f79f74626ad66f58909ac",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-REPLY-CAPABILITY-EVIDENCE.json",
+      "bytes": 140483,
+      "sha256": "4121afd852d50b77404d113bcbb15a4a2a92057d9bf6edac6f36daedcdef0ba5",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T221446Z-6be218f4"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-REPLY-CAPABILITY-INITIAL-EVIDENCE.json",
+      "bytes": 121057,
+      "sha256": "b2434464b4c0ea638a7ee7cd0912bf45178bb9fbd3607e6eef8bcf92f30d39c1",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T210448Z-a26c0981"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-SPACE-EVIDENCE.json",
+      "bytes": 50747,
+      "sha256": "5934e254df500d1e74a7520d13f1e9c9d58abf7d08a4372c16d61db28e423d12",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T021532Z-82d1b058",
+      "source_sha256": "4526f359f116140272850688c38375ff690fdeb03462cf4eb271d3670cf58f94"
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-SYNC-EVIDENCE.json",
+      "bytes": 1341310,
+      "sha256": "25715be7589479ddbad7d667a24f5299e9b7914f2dac90425243bb61a2aa7af5",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SOURCE-SYNC-INPUT-EVIDENCE.json",
+      "bytes": 515344,
+      "sha256": "92f6fce04c3e663d801e81d30253125a8f1a08dd771f03de0c26832c8a7f7014",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-STARTUP-EVIDENCE.json",
+      "bytes": 9315,
+      "sha256": "41d64d4e3214172c7ad06170a79abe3ef2291768db70471dd6b4e174c7a6c09c",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261014T031938Z-ee834aa2",
+      "source_sha256": "6ebb7341ec623664aa37a9a035faea3156129798c2dc45831a9fdf10aafd1010"
+    },
+    {
+      "path": "docs/RUST-NFS-STARTUP-READ-DEATH-EVIDENCE.json",
+      "bytes": 215261,
+      "sha256": "82348fd7b32fd9eb4fae1f63b640e47f12a667e694453f67299be5b8c771bea7",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T200408Z-cafee8b6",
+      "source_sha256": "ae4e87b8453f945112a2142a31067870680fa05cc2bc5db1260e568d81e4d9e8"
+    },
+    {
+      "path": "docs/RUST-NFS-STATE-LAYOUT-EVIDENCE.json",
+      "bytes": 109976,
+      "sha256": "941febeb18e3bc2bcda906af9a2caf40f4e41c31a47d9bea0ff4a22d62d4ea38",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261017T114805Z-60f221d4",
+      "source_sha256": "9161b7ad91015c9f99359550c5637ef082797de528770f910e20a723e590de21"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-CAPABILITY-EVIDENCE.json",
+      "bytes": 426873,
+      "sha256": "cfa51d63e27f473074125b4063bcf4bd5310f8af48f44477bcab65df4efe279a",
+      "recorded_status": "PASSED",
+      "run_id": "reply-capability-20261018T235849Z-99eef171"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-CAPTURE-OVERHEAD-INITIAL-EVIDENCE.json",
+      "bytes": 742140,
+      "sha256": "024f00fc0d7ea1915bce8c1336952f5f1e07128ee66b09bdb41cf093722b5c73",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T234804Z-cff73590"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-CLOCK-EVIDENCE.json",
+      "bytes": 2901,
+      "sha256": "968af9ce24d160fb4458df16cf055e89bc9642f24130946f966b8cf175a7c7d1",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261019T000329Z-385f192f"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-CLOCK-INITIAL-EVIDENCE.json",
+      "bytes": 3632,
+      "sha256": "955cdb8f4630ab7d6e17e2178c1d798ce380b070da96c0ca1b08703c3f777569",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T233339Z-cf78a52c",
+      "source_sha256": "18983f3bfbe73c67453011ad74402caa4b67bd9bab3a52de3cc3da101981b15a"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-DRIVER-EVIDENCE.json",
+      "bytes": 680404,
+      "sha256": "af30c84a445d6ae5dc0cdda052442400499cd9a19fdbe477f5be58d071a920c7",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.json",
+      "bytes": 973,
+      "sha256": "a0b256e91d301f190482175489ca2365f1dbec223b6837a3b3d25a869b85789b",
+      "recorded_status": "PASSED",
+      "run_id": "nfs-20261019T000329Z-385f192f"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.part-01.json",
+      "bytes": 700045,
+      "sha256": "c9bd21e9dcde4ab992cd55de1ed6d272e84588bfa2d7477e35077ac353c3c7ff",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.part-02.json",
+      "bytes": 700045,
+      "sha256": "49c231b2982c441c86e3db16e1b78d3cca661de77192686b960aa7abf86f1bcc",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.part-03.json",
+      "bytes": 700045,
+      "sha256": "1cd149b95dc4865e1fefec24ee9ad6210d4513c81d33a0adb4e3aaab65f625b7",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.part-04.json",
+      "bytes": 700045,
+      "sha256": "676e93ba18f52bf3dd7657907de127c7b0632df41b06aa80fa4d3d7ed665728f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-EVIDENCE.part-05.json",
+      "bytes": 112505,
+      "sha256": "c7a20e500e38b570a04b7c67a89bcfcb467385569a7faddfc9d553169589be4f",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-INITIAL-EVIDENCE.json",
+      "bytes": 194233,
+      "sha256": "be778c7d5e076fca2f0ce2697e2d4cc2297b68fd9372a34a1d36453b38bc4c95",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-TRACE-BOUND-INITIAL-EVIDENCE.json",
+      "bytes": 604281,
+      "sha256": "471548eb591a925fbb55c525d576e013d5fb29e95450e8f6daae187849089b94",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T233339Z-cf78a52c"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-WORKER-INITIAL-EVIDENCE.json",
+      "bytes": 608841,
+      "sha256": "d74216ef107ff4f163636d9e3005a5134fdcda1aa42151473ccc1c32721eaec7",
+      "recorded_status": "FAILED",
+      "run_id": "nfs-20261018T231856Z-f5ca18ee"
+    },
+    {
+      "path": "docs/RUST-NFS-SYNC-WRITE-REPLAY-INITIAL-EVIDENCE.json",
+      "bytes": 533606,
+      "sha256": "a9a06c98d9b8d95636505cdedb92bfae7a605c82365a925be35fc27eb04da90e",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-VERIFY-RECOVERY-EVIDENCE.json",
+      "bytes": 3585310,
+      "sha256": "4904a5ef3fe5e251dc541db7a80fa45645cdf1c300d607d3e357379d5239e255",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-NFS-VERIFY-RECOVERY-INITIAL-EVIDENCE.json",
+      "bytes": 159976,
+      "sha256": "e2fb730c25c55909756fc9e5d3f5f4ecc665b61039bca0c241e7ee2a95bff8a1",
+      "recorded_status": "FAILED_RETAINED",
+      "run_id": "verify-server-recovery-20261020T235918Z-be604a20"
+    },
+    {
+      "path": "docs/RUST-NFS-VERIFY-RECOVERY-INPUT-EVIDENCE.json",
+      "bytes": 1022538,
+      "sha256": "ef5db1b345ea206567d3d177e281c186708379e49ff0df11223a60a0c7206204",
+      "recorded_status": null,
+      "run_id": "verify-server-recovery-20261021T000724Z-389c6597"
+    },
+    {
+      "path": "docs/RUST-SLES-EVIDENCE.json",
+      "bytes": 22803,
+      "sha256": "874a70a73bbcae8e319a2839c39948c1a3b4b6dfe580c4fbb8f377b38d4de775",
+      "recorded_status": "PASSED",
+      "run_id": "20261022T182946Z-dfe48216",
+      "build_mode": "production",
+      "source_sha256": "0302461ffa27e63c1c4aeb490f238ee51f4eabfa8b1f6c9171aa6a6a5e846f52"
+    },
+    {
+      "path": "docs/RUST-SLES-PUBLICATION-INITIAL-QUALIFICATION-EVIDENCE.json",
+      "bytes": 11980,
+      "sha256": "576f72d5660c7f4c2b395dc19efabf349a15404eabc810497e067127e5c858f3",
+      "recorded_status": "FAILED",
+      "run_id": "20261017T214615Z-2f632f73-nfs-qualification",
+      "build_mode": "nfs-qualification",
+      "source_sha256": "d16b9d230a56b6fbb2c49cf121f0c06c56feec23eb838b5f314013e8bd8aaa87"
+    },
+    {
+      "path": "docs/RUST-SLES-QUALIFICATION-EVIDENCE.json",
+      "bytes": 23242,
+      "sha256": "83496288dcfcb34ccddd5f3bbdae5f52632891139e1c7b45c27dd24366e19980",
+      "recorded_status": "PASSED",
+      "run_id": "20261022T182945Z-5f06a0b5-nfs-qualification",
+      "build_mode": "nfs-qualification",
+      "source_sha256": "0302461ffa27e63c1c4aeb490f238ee51f4eabfa8b1f6c9171aa6a6a5e846f52"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-ACCESS-EVIDENCE.json",
+      "bytes": 4219,
+      "sha256": "3905f723bd1b0baa84d34b96dfd95dda3027f02f7285878d9d726a505fa4be2e",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-BOOTSTRAP-CONTROLS-EVIDENCE.json",
+      "bytes": 16340,
+      "sha256": "58e2ea58eaa946d0d2af18cf08168da9500bcdcaf64dbf9364eafbe34e063993",
+      "recorded_status": "PASSED"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-LIFECYCLE-EVIDENCE.json",
+      "bytes": 554171,
+      "sha256": "0f3eb606e91862c92092359c07e312ce9dd6e6a7c9634aef7f027887ce4458e8",
+      "recorded_status": "PASSED",
+      "run_id": "systemd-20261018T070942Z-d22d7cb1"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-LIFECYCLE-FAILURE-EVIDENCE.json",
+      "bytes": 1616825,
+      "sha256": "cb492ff2fd6afadf87f204922f21b9aed6ca5fc73fd0d9b827f29647b6db1abf",
+      "recorded_status": null
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-PREFLIGHT-EVIDENCE.json",
+      "bytes": 32072,
+      "sha256": "573bb631f74284a28524cfefa8436334bff834bdcf0d5c2662e3c9dc8e135e42",
+      "recorded_status": "BLOCKED",
+      "run_id": "systemd228-20261018T060937Z-d102c85a"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-PRIVATE-RECHECK-EVIDENCE.json",
+      "bytes": 32297,
+      "sha256": "d56d16e6e04f4f2e3d11e93d4d5072badcda2b393e8175f1eedb263563081b04",
+      "recorded_status": "BLOCKED",
+      "run_id": "systemd228-20261018T072947Z-a3c48787"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-228-SETUP-FAILURE-EVIDENCE.json",
+      "bytes": 13849,
+      "sha256": "7409d0c73980beeaf47a1f9d218f046369e8f3c48e71fa00652913709affea9f",
+      "recorded_status": "FAILED",
+      "run_id": "systemd228-20261018T060622Z-38c5e25b"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-EVIDENCE.json",
+      "bytes": 551760,
+      "sha256": "568e8b172dbbfe9ba81c961563909885d90ad866c1cf7df5b680b31cd04df303",
+      "recorded_status": "PASSED",
+      "run_id": "systemd-20261018T053029Z-e9981052"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-NFS-EVIDENCE.json",
+      "bytes": 474661,
+      "sha256": "4565697c71c628464d22b19c6e87dc662d0a6c1fa66d0fc93e7eaf2ed4d0460d",
+      "recorded_status": "PASSED",
+      "run_id": "systemd-20261018T135226Z-2f68b790"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-RESTART-EVIDENCE.json",
+      "bytes": 546389,
+      "sha256": "35172765c5db84c6f9f2e9aee621afbe3a32c1980c07749abd30029b48ed5515",
+      "recorded_status": "PASSED",
+      "run_id": "systemd-20261018T144555Z-aa983032"
+    },
+    {
+      "path": "docs/RUST-SYSTEMD-SETUP-FAILURE-EVIDENCE.json",
+      "bytes": 1878192,
+      "sha256": "494da5b0ddcb73673a2bb19a8088b458bcd40803784490cc20d8af027187c6d7",
+      "recorded_status": null
+    }
+  ],
+  "retained_sles_gates": [
+    {
+      "report": "docs/RUST-SLES-EVIDENCE.json",
+      "run_id": "20261022T182946Z-dfe48216",
+      "raw_directory": "rust/validation/20261022T182946Z-dfe48216",
+      "raw_directory_git_tracked": false,
+      "source_archive_sha256": "0302461ffa27e63c1c4aeb490f238ee51f4eabfa8b1f6c9171aa6a6a5e846f52",
+      "source_files_match_current": true,
+      "source_files": [
+        {
+          "path": "rust/.gitignore",
+          "sha256": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2"
+        },
+        {
+          "path": "rust/Cargo.lock",
+          "sha256": "5dafb4f7f397fc3b44323f8e6b5e2fa0164991a8077a2b57f3fce6422b0155e6"
+        },
+        {
+          "path": "rust/Cargo.toml",
+          "sha256": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91"
+        },
+        {
+          "path": "rust/config/local.example.json",
+          "sha256": "ccbc6b6e1c0432219c572405b91ce88f71162b4dc8b2e29f4c9a3b84e38310c2"
+        },
+        {
+          "path": "rust/crates/file-mover/Cargo.toml",
+          "sha256": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27"
+        },
+        {
+          "path": "rust/crates/file-mover/src/bootstrap.rs",
+          "sha256": "1a0fbc64e4d44dac236ef512a861172b92a152f829ea1c6bf2bc3a4de0363afa"
+        },
+        {
+          "path": "rust/crates/file-mover/src/claim_worker.rs",
+          "sha256": "c40448eef5adbd19984c0573cfbd447b8fdfc234d4ef417b9d35014127e80441"
+        },
+        {
+          "path": "rust/crates/file-mover/src/control.rs",
+          "sha256": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf"
+        },
+        {
+          "path": "rust/crates/file-mover/src/delivery_worker.rs",
+          "sha256": "156423185220df8e7a75c0bad57e0138983cbedeca5180dc44526fc5f2b1ef21"
+        },
+        {
+          "path": "rust/crates/file-mover/src/diagnostic.rs",
+          "sha256": "689236cbcef5202561f115934d5eac6a8363bbfca6e33a62b6870ad096e49a68"
+        },
+        {
+          "path": "rust/crates/file-mover/src/enrollment.rs",
+          "sha256": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe"
+        },
+        {
+          "path": "rust/crates/file-mover/src/http.rs",
+          "sha256": "36e715e93fb6816967e8507f72ca33b38f953ff7e54eca0abefa9cae61578a1a"
+        },
+        {
+          "path": "rust/crates/file-mover/src/lib.rs",
+          "sha256": "df5d46191752ef09fa8fafdc016deb7a3f26d942bf2f8bcf0c47c130b6a9fbc4"
+        },
+        {
+          "path": "rust/crates/file-mover/src/main.rs",
+          "sha256": "76c94b7d835f3495e2c81c6db8405d19104c76fb4cce1f1720e534cb3bd3f36d"
+        },
+        {
+          "path": "rust/crates/file-mover/src/payload.rs",
+          "sha256": "3eea1904fd3d3921d31623e91556d5ed3ce1308e92c08835fc96991db34a80a1"
+        },
+        {
+          "path": "rust/crates/file-mover/src/source_space.rs",
+          "sha256": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255"
+        },
+        {
+          "path": "rust/crates/file-mover/tests/api.rs",
+          "sha256": "927e1dba844c7c2e8f7bde0e3e9975bda17c8aa76acdfd7886133ed8085f1d34"
+        },
+        {
+          "path": "rust/crates/mover-core/Cargo.toml",
+          "sha256": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb"
+        },
+        {
+          "path": "rust/crates/mover-core/src/claim.rs",
+          "sha256": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04"
+        },
+        {
+          "path": "rust/crates/mover-core/src/lib.rs",
+          "sha256": "d263a20aec6cdeed2ffd4934bb48801cfa492e9c1694956fb0e1df330038c345"
+        },
+        {
+          "path": "rust/crates/mover-core/src/retry.rs",
+          "sha256": "769de50645ec02403490f9160f0b8d9db904c78f0027c1d05988fc4932c64083"
+        },
+        {
+          "path": "rust/crates/mover-core/src/space.rs",
+          "sha256": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c"
+        },
+        {
+          "path": "rust/crates/mover-core/src/transfer.rs",
+          "sha256": "5356b62597ba876a2c000a89432d9296491f2862187089e142665560372f7786"
+        },
+        {
+          "path": "rust/crates/mover-core/tests/protocol.rs",
+          "sha256": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79"
+        },
+        {
+          "path": "rust/crates/mover-fs/Cargo.toml",
+          "sha256": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/binding.rs",
+          "sha256": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/bootstrap.rs",
+          "sha256": "983e184fbb4c7398925a1a2e5667817dc72819c7cb9af0f20f426aface980b41"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/custody.rs",
+          "sha256": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/enrollment.rs",
+          "sha256": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/enrollment_io.rs",
+          "sha256": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/instance.rs",
+          "sha256": "1ccf002e17e5d79b36e606eb4e2876a3f26481b9ce4744eb51d20b69d5664f40"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/lib.rs",
+          "sha256": "0c369b6391787fc30c0d2dc6988daed2c136f276b98361e0fabd2135299ff7e7"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/manifest.rs",
+          "sha256": "a4d26dab80a4fba935a0a5788d5703f0bb42472b18144bcc7336b35aea941359"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/mount_profile.rs",
+          "sha256": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/payload_io.rs",
+          "sha256": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/qualification.rs",
+          "sha256": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/relocate.rs",
+          "sha256": "1ab7dbf2b69d889aaf24eaf1398d007dcc5f12b13d5976c4b16b424aee86579f"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/transfer.rs",
+          "sha256": "113419d962c8724e3e19a6f62b15ee1d3dac3e2f9fa61b745def675bb73cf67c"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/worker_epoch.rs",
+          "sha256": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3"
+        },
+        {
+          "path": "rust/crates/mover-fs/tests/claim.rs",
+          "sha256": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4"
+        },
+        {
+          "path": "rust/crates/mover-fs/tests/transfer.rs",
+          "sha256": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3"
+        },
+        {
+          "path": "rust/crates/mover-store/Cargo.toml",
+          "sha256": "4e7dccebcb8dfe02701cb60ed9289784fff4fcf9ce96fa83a0efc427b7559928"
+        },
+        {
+          "path": "rust/crates/mover-store/README.md",
+          "sha256": "70810e630c8b6f865ecd319d48acd9a6b1ee5ad795c330b60e443a701f246378"
+        },
+        {
+          "path": "rust/crates/mover-store/src/capacity_retries.sql",
+          "sha256": "06d25a74de4c6dc83982aee969fa00296e7d07e2beda9b404c3196c970733412"
+        },
+        {
+          "path": "rust/crates/mover-store/src/claims.sql",
+          "sha256": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5"
+        },
+        {
+          "path": "rust/crates/mover-store/src/coordination.sql",
+          "sha256": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93"
+        },
+        {
+          "path": "rust/crates/mover-store/src/destination_bindings.sql",
+          "sha256": "7abd122d0976bfe6fe11ebc991796015d4641729df82b2bba86ec1fa332acbee"
+        },
+        {
+          "path": "rust/crates/mover-store/src/lib.rs",
+          "sha256": "03d091c928405164100441cb7ed1406f36fe8515121ca3dc841090e543178e6f"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing.sql",
+          "sha256": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing_resets.rs",
+          "sha256": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing_resets.sql",
+          "sha256": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c"
+        },
+        {
+          "path": "rust/crates/mover-store/src/operators.rs",
+          "sha256": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c"
+        },
+        {
+          "path": "rust/crates/mover-store/src/operators.sql",
+          "sha256": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662"
+        },
+        {
+          "path": "rust/crates/mover-store/src/retention.rs",
+          "sha256": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325"
+        },
+        {
+          "path": "rust/crates/mover-store/src/schema.sql",
+          "sha256": "d0e9a5da5bdedeb4a4985e4c8acd196166fb1542dde6465daed9e18322b5ceaa"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_enrollment.sql",
+          "sha256": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_ownership.rs",
+          "sha256": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_ownership.sql",
+          "sha256": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715"
+        },
+        {
+          "path": "rust/crates/mover-store/src/tests.rs",
+          "sha256": "c21efc68deb2f212542212dc4e6b298908463c19590eaf792a3c9cd5a0ccf593"
+        },
+        {
+          "path": "rust/crates/mover-store/src/transfers.sql",
+          "sha256": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db"
+        },
+        {
+          "path": "rust/README.md",
+          "sha256": "7cc8434b96051b317e5b6600a2eb7d0715c01118ae366fa4c766165226dc7da3"
+        },
+        {
+          "path": "rust/rust-toolchain.toml",
+          "sha256": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+        }
+      ],
+      "artifacts_checked": [
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-0-file-mover",
+          "sha256": "00ff7c2fca853e15fedf3b86354d22d86874622ac36f4b3ac92d0e738b0ee09c"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-1-api-eda771dfb4961b33",
+          "sha256": "be6c1859d52c619e92f5c49246037de301c13e7b4f9b82294c1b95f6d3e05118"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-2-claim-ac270e05a26f1634",
+          "sha256": "97e15deb2fd21ed9ae1dd3a91c657d99ddb66b2f0fd3c838359858c14718e8ad"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-3-file_mover-0b1393a96cc4f5d4",
+          "sha256": "d1f4419e47dfe072fc2e9f416bdcb15df05f882cbe87090aac6f34596adfd578"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-4-file_mover-65f8a4913577e01a",
+          "sha256": "1032a66eafcdd06b0093dce422c81fba2b6e89516006a2e9329c16038e695ff4"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-5-mover_core-bdc9ec3705a39bcc",
+          "sha256": "ab5f6992d14baa1008eab9500714e3731e32c36dbc8b23fb49f7b0d25392f2b6"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-6-mover_fs-6300e5b09427af3c",
+          "sha256": "675a6163287639b9a923737d6cbe052028b2d84e66a615b505858ae5ca365fae"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-7-mover_store-52fc9e31f7fc5465",
+          "sha256": "26c45775fa7dfce54f44d8fd165bf23cdc75c8ae22cefe32956f46ca43cb4075"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-8-protocol-69c581cc870a90c2",
+          "sha256": "803141c432c17b3d735cea2535c8b613316a70f91a9079a1e814c50ccbd73558"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182946Z-dfe48216/debug-9-transfer-423b1b1792e4812a",
+          "sha256": "b856b4077e7e3b583ad7d8ded83147ae69290a54d8d84cf7d8f1379a64028927"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-0-file-mover",
+          "sha256": "9645fa7b923836732a44f4297a10138089c9cfb79dc6399146bb0250a865a361"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-1-api-d9d238b27d6db4ff",
+          "sha256": "4ec0bc9716b20acde04da40d302de2619f5efd19374ba41cbc9b17eac10273b6"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-2-claim-3db7954e61c40e58",
+          "sha256": "028fe2bd5315b459def9384cb17035a3b710528b51afb69708d94c3b9b208a83"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-3-file_mover-324ba247a25be589",
+          "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-4-file_mover-ee241b23812981c0",
+          "sha256": "ace2549b6cfa95092ba32177485006968858718c0153ddb96fceb4da289381a6"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-5-mover_core-2b23f1aa286bb95f",
+          "sha256": "461ffcde1a318b1bb779ef313172b4254a9f3e3531355efc9fb557459452dd1e"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-6-mover_fs-54c74ac1c414828d",
+          "sha256": "50339d5f592404ca5b61b4966c198c49c03e60e1da34c39b4b982305aed60e3d"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-7-mover_store-07ff9c894a9c2599",
+          "sha256": "2ce985bd35d1935fbeefeb05fc7d6ca8e60a1fb3855b488e6815f53411ffe808"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-8-protocol-2716b18f41ea3254",
+          "sha256": "4a8680ca2201d8d65e3fa7ab75662a373524843070c38b16b576b2ba0bb3ddbf"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182946Z-dfe48216/release-9-transfer-ead25c7c19d56177",
+          "sha256": "46eb35c487f5c621617fc554825f24d4e6a4471b4ba3fb42ddf4ec2723f33f5b"
+        }
+      ],
+      "tests_passed_per_profile": {
+        "debug": 211,
+        "release": 211
+      }
+    },
+    {
+      "report": "docs/RUST-SLES-QUALIFICATION-EVIDENCE.json",
+      "run_id": "20261022T182945Z-5f06a0b5-nfs-qualification",
+      "raw_directory": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification",
+      "raw_directory_git_tracked": false,
+      "source_archive_sha256": "0302461ffa27e63c1c4aeb490f238ee51f4eabfa8b1f6c9171aa6a6a5e846f52",
+      "source_files_match_current": true,
+      "source_files": [
+        {
+          "path": "rust/.gitignore",
+          "sha256": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2"
+        },
+        {
+          "path": "rust/Cargo.lock",
+          "sha256": "5dafb4f7f397fc3b44323f8e6b5e2fa0164991a8077a2b57f3fce6422b0155e6"
+        },
+        {
+          "path": "rust/Cargo.toml",
+          "sha256": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91"
+        },
+        {
+          "path": "rust/config/local.example.json",
+          "sha256": "ccbc6b6e1c0432219c572405b91ce88f71162b4dc8b2e29f4c9a3b84e38310c2"
+        },
+        {
+          "path": "rust/crates/file-mover/Cargo.toml",
+          "sha256": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27"
+        },
+        {
+          "path": "rust/crates/file-mover/src/bootstrap.rs",
+          "sha256": "1a0fbc64e4d44dac236ef512a861172b92a152f829ea1c6bf2bc3a4de0363afa"
+        },
+        {
+          "path": "rust/crates/file-mover/src/claim_worker.rs",
+          "sha256": "c40448eef5adbd19984c0573cfbd447b8fdfc234d4ef417b9d35014127e80441"
+        },
+        {
+          "path": "rust/crates/file-mover/src/control.rs",
+          "sha256": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf"
+        },
+        {
+          "path": "rust/crates/file-mover/src/delivery_worker.rs",
+          "sha256": "156423185220df8e7a75c0bad57e0138983cbedeca5180dc44526fc5f2b1ef21"
+        },
+        {
+          "path": "rust/crates/file-mover/src/diagnostic.rs",
+          "sha256": "689236cbcef5202561f115934d5eac6a8363bbfca6e33a62b6870ad096e49a68"
+        },
+        {
+          "path": "rust/crates/file-mover/src/enrollment.rs",
+          "sha256": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe"
+        },
+        {
+          "path": "rust/crates/file-mover/src/http.rs",
+          "sha256": "36e715e93fb6816967e8507f72ca33b38f953ff7e54eca0abefa9cae61578a1a"
+        },
+        {
+          "path": "rust/crates/file-mover/src/lib.rs",
+          "sha256": "df5d46191752ef09fa8fafdc016deb7a3f26d942bf2f8bcf0c47c130b6a9fbc4"
+        },
+        {
+          "path": "rust/crates/file-mover/src/main.rs",
+          "sha256": "76c94b7d835f3495e2c81c6db8405d19104c76fb4cce1f1720e534cb3bd3f36d"
+        },
+        {
+          "path": "rust/crates/file-mover/src/payload.rs",
+          "sha256": "3eea1904fd3d3921d31623e91556d5ed3ce1308e92c08835fc96991db34a80a1"
+        },
+        {
+          "path": "rust/crates/file-mover/src/source_space.rs",
+          "sha256": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255"
+        },
+        {
+          "path": "rust/crates/file-mover/tests/api.rs",
+          "sha256": "927e1dba844c7c2e8f7bde0e3e9975bda17c8aa76acdfd7886133ed8085f1d34"
+        },
+        {
+          "path": "rust/crates/mover-core/Cargo.toml",
+          "sha256": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb"
+        },
+        {
+          "path": "rust/crates/mover-core/src/claim.rs",
+          "sha256": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04"
+        },
+        {
+          "path": "rust/crates/mover-core/src/lib.rs",
+          "sha256": "d263a20aec6cdeed2ffd4934bb48801cfa492e9c1694956fb0e1df330038c345"
+        },
+        {
+          "path": "rust/crates/mover-core/src/retry.rs",
+          "sha256": "769de50645ec02403490f9160f0b8d9db904c78f0027c1d05988fc4932c64083"
+        },
+        {
+          "path": "rust/crates/mover-core/src/space.rs",
+          "sha256": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c"
+        },
+        {
+          "path": "rust/crates/mover-core/src/transfer.rs",
+          "sha256": "5356b62597ba876a2c000a89432d9296491f2862187089e142665560372f7786"
+        },
+        {
+          "path": "rust/crates/mover-core/tests/protocol.rs",
+          "sha256": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79"
+        },
+        {
+          "path": "rust/crates/mover-fs/Cargo.toml",
+          "sha256": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/binding.rs",
+          "sha256": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/bootstrap.rs",
+          "sha256": "983e184fbb4c7398925a1a2e5667817dc72819c7cb9af0f20f426aface980b41"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/custody.rs",
+          "sha256": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/enrollment.rs",
+          "sha256": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/enrollment_io.rs",
+          "sha256": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/instance.rs",
+          "sha256": "1ccf002e17e5d79b36e606eb4e2876a3f26481b9ce4744eb51d20b69d5664f40"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/lib.rs",
+          "sha256": "0c369b6391787fc30c0d2dc6988daed2c136f276b98361e0fabd2135299ff7e7"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/manifest.rs",
+          "sha256": "a4d26dab80a4fba935a0a5788d5703f0bb42472b18144bcc7336b35aea941359"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/mount_profile.rs",
+          "sha256": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/payload_io.rs",
+          "sha256": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/qualification.rs",
+          "sha256": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/relocate.rs",
+          "sha256": "1ab7dbf2b69d889aaf24eaf1398d007dcc5f12b13d5976c4b16b424aee86579f"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/transfer.rs",
+          "sha256": "113419d962c8724e3e19a6f62b15ee1d3dac3e2f9fa61b745def675bb73cf67c"
+        },
+        {
+          "path": "rust/crates/mover-fs/src/worker_epoch.rs",
+          "sha256": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3"
+        },
+        {
+          "path": "rust/crates/mover-fs/tests/claim.rs",
+          "sha256": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4"
+        },
+        {
+          "path": "rust/crates/mover-fs/tests/transfer.rs",
+          "sha256": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3"
+        },
+        {
+          "path": "rust/crates/mover-store/Cargo.toml",
+          "sha256": "4e7dccebcb8dfe02701cb60ed9289784fff4fcf9ce96fa83a0efc427b7559928"
+        },
+        {
+          "path": "rust/crates/mover-store/README.md",
+          "sha256": "70810e630c8b6f865ecd319d48acd9a6b1ee5ad795c330b60e443a701f246378"
+        },
+        {
+          "path": "rust/crates/mover-store/src/capacity_retries.sql",
+          "sha256": "06d25a74de4c6dc83982aee969fa00296e7d07e2beda9b404c3196c970733412"
+        },
+        {
+          "path": "rust/crates/mover-store/src/claims.sql",
+          "sha256": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5"
+        },
+        {
+          "path": "rust/crates/mover-store/src/coordination.sql",
+          "sha256": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93"
+        },
+        {
+          "path": "rust/crates/mover-store/src/destination_bindings.sql",
+          "sha256": "7abd122d0976bfe6fe11ebc991796015d4641729df82b2bba86ec1fa332acbee"
+        },
+        {
+          "path": "rust/crates/mover-store/src/lib.rs",
+          "sha256": "03d091c928405164100441cb7ed1406f36fe8515121ca3dc841090e543178e6f"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing.sql",
+          "sha256": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing_resets.rs",
+          "sha256": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686"
+        },
+        {
+          "path": "rust/crates/mover-store/src/missing_resets.sql",
+          "sha256": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c"
+        },
+        {
+          "path": "rust/crates/mover-store/src/operators.rs",
+          "sha256": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c"
+        },
+        {
+          "path": "rust/crates/mover-store/src/operators.sql",
+          "sha256": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662"
+        },
+        {
+          "path": "rust/crates/mover-store/src/retention.rs",
+          "sha256": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325"
+        },
+        {
+          "path": "rust/crates/mover-store/src/schema.sql",
+          "sha256": "d0e9a5da5bdedeb4a4985e4c8acd196166fb1542dde6465daed9e18322b5ceaa"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_enrollment.sql",
+          "sha256": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_ownership.rs",
+          "sha256": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce"
+        },
+        {
+          "path": "rust/crates/mover-store/src/source_ownership.sql",
+          "sha256": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715"
+        },
+        {
+          "path": "rust/crates/mover-store/src/tests.rs",
+          "sha256": "c21efc68deb2f212542212dc4e6b298908463c19590eaf792a3c9cd5a0ccf593"
+        },
+        {
+          "path": "rust/crates/mover-store/src/transfers.sql",
+          "sha256": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db"
+        },
+        {
+          "path": "rust/README.md",
+          "sha256": "7cc8434b96051b317e5b6600a2eb7d0715c01118ae366fa4c766165226dc7da3"
+        },
+        {
+          "path": "rust/rust-toolchain.toml",
+          "sha256": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+        }
+      ],
+      "artifacts_checked": [
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-0-file-mover-nfs-qualification",
+          "sha256": "301c455a6b8b2540695b5ccf567c7b322007ab958d92d62ecf0c0c10758120fc"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-1-api-f77fd3690b2c8be0-nfs-qualification",
+          "sha256": "4f7a493d1b496c576717673443669055870561cdf3f30cf4a36aacd507cc40cd"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-2-claim-ffc3c443ff2dc8b2-nfs-qualification",
+          "sha256": "b34cc1049a03b0581e02e0f72992c6464e0f31b1acd40e759a2d1ff5c3bdd16c"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-3-file_mover-96a9c5c3d72588c5-nfs-qualification",
+          "sha256": "b0355d55b0b68770b0c64f9fa739a9e7e21352defcc827acfac259a29ccca044"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-4-file_mover-bfac9492c71a7ba9-nfs-qualification",
+          "sha256": "3f3c9abaa7e5322551484a1655868e3e46071c0bf5e48a1a05729b960d8b5d45"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-5-mover_core-bdc9ec3705a39bcc-nfs-qualification",
+          "sha256": "ab5f6992d14baa1008eab9500714e3731e32c36dbc8b23fb49f7b0d25392f2b6"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-6-mover_fs-8c7da1a12a2d2fe4-nfs-qualification",
+          "sha256": "147ea85cf2bc7cb4a2041f20d5eb6a8ffcdb205cc22499d710a8022f390c7fdd"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-7-mover_store-52fc9e31f7fc5465-nfs-qualification",
+          "sha256": "26c45775fa7dfce54f44d8fd165bf23cdc75c8ae22cefe32956f46ca43cb4075"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-8-protocol-69c581cc870a90c2-nfs-qualification",
+          "sha256": "803141c432c17b3d735cea2535c8b613316a70f91a9079a1e814c50ccbd73558"
+        },
+        {
+          "profile": "debug",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/debug-9-transfer-77abd6d92045e0d7-nfs-qualification",
+          "sha256": "073c91d304d2dae71ad92ba829c4382a82c9c3d7dc23bd841a5927fafc611149"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-0-file-mover-nfs-qualification",
+          "sha256": "399f99c3cf38e1102ead09f892831c10ccb9837f530cf4cbaceadd5239baf516"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-1-api-451078537942845e-nfs-qualification",
+          "sha256": "5a84e2ae9fae67b06ac0c9ef38f45585c7898cf753feef06f1bb798f0dcbdc74"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-2-claim-e661669281a1f7e0-nfs-qualification",
+          "sha256": "7f57cec544c9c05a20e0fab14d0b1a59e474c9984732d8ed0fd88a8a0c3c7e75"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-3-file_mover-6e4435f2ccf9b956-nfs-qualification",
+          "sha256": "7c8de95d24d83c0e73ad18fcef66b51a16bbf2d5d93386ae882f6793e9e8b254"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-4-file_mover-a2eba9771895b281-nfs-qualification",
+          "sha256": "758d300c9165f5cca281421be73015a7bce1834bf1212ce1e885b6bac3ce3150"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-5-mover_core-2b23f1aa286bb95f-nfs-qualification",
+          "sha256": "461ffcde1a318b1bb779ef313172b4254a9f3e3531355efc9fb557459452dd1e"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-6-mover_fs-3fe3f6c3bd0134c1-nfs-qualification",
+          "sha256": "04b49aa9e0ef74d5f256d220f5f144e37d8c4c3e62ec75077dd3f883a9232e5b"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-7-mover_store-07ff9c894a9c2599-nfs-qualification",
+          "sha256": "2ce985bd35d1935fbeefeb05fc7d6ca8e60a1fb3855b488e6815f53411ffe808"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-8-protocol-2716b18f41ea3254-nfs-qualification",
+          "sha256": "4a8680ca2201d8d65e3fa7ab75662a373524843070c38b16b576b2ba0bb3ddbf"
+        },
+        {
+          "profile": "release",
+          "path": "rust/validation/20261022T182945Z-5f06a0b5-nfs-qualification/release-9-transfer-427f6c67a16a3f66-nfs-qualification",
+          "sha256": "504442f60a89ccd723b132e382725813676d269d750791e5a57ee11d3654dde1"
+        }
+      ],
+      "tests_passed_per_profile": {
+        "debug": 213,
+        "release": 213
+      }
+    }
+  ],
+  "local_untracked_validation_directories": [
+    "20261013T123003Z-eaf4e704",
+    "20261013T123239Z-40a9d8af",
+    "20261013T123436Z-c59d88ef",
+    "20261013T134024Z-c0e3a19b",
+    "20261013T134058Z-b6afce98",
+    "20261013T134308Z-5fbcb3e0",
+    "20261013T134639Z-5262f7f7",
+    "20261013T135730Z-b2390b04",
+    "20261013T145309Z-900eb926",
+    "20261013T145831Z-c12fcb63",
+    "20261013T150151Z-27653919",
+    "20261013T154501Z-5d410994",
+    "20261013T154808Z-502ce5bf",
+    "20261013T155144Z-f55c4b2e",
+    "20261013T171411Z-3eb8f262",
+    "20261013T171937Z-e7ac0188",
+    "20261013T180234Z-df20b46a",
+    "20261013T180928Z-a5b48586",
+    "20261013T181226Z-61dc430d",
+    "20261013T181424Z-cd1650a3",
+    "20261013T182138Z-8b4dd2ed",
+    "20261013T192032Z-eb962856",
+    "20261013T192109Z-fca48a5e",
+    "20261013T192233Z-202e1055",
+    "20261013T211920Z-a8a0fdde",
+    "20261013T212242Z-355f0981",
+    "20261013T212607Z-397dedb9",
+    "20261013T215656Z-44f75a74",
+    "20261013T231719Z-814af77a",
+    "20261014T000223Z-bb583c02",
+    "20261014T000348Z-19b307e8",
+    "20261014T003211Z-7bd784b6",
+    "20261014T003656Z-cd890708",
+    "20261014T012617Z-ff61cb92",
+    "20261014T014428Z-8bcb1a54",
+    "20261014T021610Z-7cc8e5ee",
+    "20261014T024916Z-d106b273",
+    "20261014T025109Z-a946ef6f",
+    "20261014T030232Z-1f39b638",
+    "20261014T102804Z-c60dca93",
+    "20261014T102818Z-a9f7fb37-nfs-qualification",
+    "20261014T112321Z-aefc3705-nfs-qualification",
+    "20261014T112342Z-3631b9ed",
+    "20261014T112527Z-29c5fdf2",
+    "20261014T112527Z-38e99421-nfs-qualification",
+    "20261014T112710Z-16604e26-nfs-qualification",
+    "20261014T112710Z-674d976e",
+    "20261014T115643Z-212484d9-nfs-qualification",
+    "20261014T115643Z-793de052",
+    "20261014T115830Z-7ec7a5b5-nfs-qualification",
+    "20261014T115830Z-d52244e7",
+    "20261014T120045Z-c23e0a5e",
+    "20261014T120046Z-91b1f651-nfs-qualification",
+    "20261014T131044Z-2a3b1bf2-nfs-qualification",
+    "20261014T131044Z-813d8d20",
+    "20261014T131403Z-aba44f6e",
+    "20261014T131404Z-59ecf22c-nfs-qualification",
+    "20261014T144611Z-287c12db",
+    "20261014T144611Z-97ffc0ea-nfs-qualification",
+    "20261015T002658Z-d8d475c2",
+    "20261015T002658Z-f0edfa36-nfs-qualification",
+    "20261015T003101Z-95c3a6d4",
+    "20261015T003249Z-3f413ad7-nfs-qualification",
+    "20261015T012700Z-dd52806f",
+    "20261015T012712Z-556e5ee0-nfs-qualification",
+    "20261015T024021Z-c93b14b0",
+    "20261015T024033Z-df962b10-nfs-qualification",
+    "20261015T071538Z-aa269a7b",
+    "20261015T071549Z-ae3bf25e-nfs-qualification",
+    "20261015T071816Z-3877e178",
+    "20261015T071828Z-28a25232-nfs-qualification",
+    "20261015T072020Z-b6754bcb",
+    "20261015T072032Z-0d370d31-nfs-qualification",
+    "20261015T072431Z-437f6016",
+    "20261015T072444Z-fc49c311-nfs-qualification",
+    "20261015T072538Z-919959d7",
+    "20261015T072550Z-cc93e911-nfs-qualification",
+    "20261015T083828Z-419dbae8",
+    "20261015T083829Z-944cb667-nfs-qualification",
+    "20261015T084111Z-4768c7ba",
+    "20261015T084111Z-517c2867-nfs-qualification",
+    "20261015T084447Z-e5519464",
+    "20261015T084448Z-845f7344-nfs-qualification",
+    "20261015T112215Z-44725f6f",
+    "20261015T112215Z-a17c701d-nfs-qualification",
+    "20261015T112605Z-e8a6835a",
+    "20261015T112605Z-f8739448-nfs-qualification",
+    "20261015T124442Z-41e73fde",
+    "20261015T124650Z-cbeca12c",
+    "20261015T124703Z-2ad4394e-nfs-qualification",
+    "20261015T125109Z-a20d31e8",
+    "20261015T125120Z-4d553542-nfs-qualification",
+    "20261015T125334Z-23fc2e1b",
+    "20261015T125346Z-22db336c-nfs-qualification",
+    "20261015T210811Z-015a69bd",
+    "20261015T210822Z-d4eacbc6-nfs-qualification",
+    "20261015T223307Z-f161c275",
+    "20261015T223308Z-69cd89a4-nfs-qualification",
+    "20261016T003846Z-09b7dc3d",
+    "20261016T003847Z-be3ef32f-nfs-qualification",
+    "20261016T012557Z-12a0b124",
+    "20261016T012557Z-361d9522-nfs-qualification",
+    "20261016T030357Z-9dd76f22-nfs-qualification",
+    "20261016T030357Z-fc759659",
+    "20261016T112215Z-c5d2e609-nfs-qualification",
+    "20261016T112215Z-e4895c4f",
+    "20261016T112333Z-9f79cb37-nfs-qualification",
+    "20261016T112333Z-c58784cb",
+    "20261016T112937Z-9df15912",
+    "20261016T112937Z-e443a674-nfs-qualification",
+    "20261016T113703Z-11000334-nfs-qualification",
+    "20261016T113703Z-30e9cda0",
+    "20261016T234438Z-dec4edf1",
+    "20261016T234448Z-719497b9",
+    "20261016T234542Z-ebf963f5-nfs-qualification",
+    "20261017T000117Z-63f45582-nfs-qualification",
+    "20261017T000119Z-33ae7fa9",
+    "20261017T000923Z-833766e7",
+    "20261017T000924Z-2ecefab1-nfs-qualification",
+    "20261017T021546Z-70e2fc33",
+    "20261017T021558Z-a71f1387-nfs-qualification",
+    "20261017T035622Z-a3d3b8b0",
+    "20261017T035635Z-690bd479-nfs-qualification",
+    "20261017T035846Z-7d85bacc",
+    "20261017T035847Z-d496cb9d-nfs-qualification",
+    "20261017T040106Z-8fbdce84-nfs-qualification",
+    "20261017T040107Z-17833d2d",
+    "20261017T040242Z-aec7b704",
+    "20261017T040243Z-1cf25089-nfs-qualification",
+    "20261017T044526Z-4067a8e0-nfs-qualification",
+    "20261017T044526Z-eb6a4727",
+    "20261017T045307Z-95a26796",
+    "20261017T045309Z-f98126bd-nfs-qualification",
+    "20261017T110958Z-d4b5e233",
+    "20261017T111009Z-21e18760",
+    "20261017T111149Z-60d70ee1-nfs-qualification",
+    "20261017T111519Z-1ecdab26",
+    "20261017T111519Z-8fa9a462-nfs-qualification",
+    "20261017T145042Z-b718db7b",
+    "20261017T145053Z-11bb8adc-nfs-qualification",
+    "20261017T161027Z-1cecc71a",
+    "20261017T161205Z-6de5e208",
+    "20261017T161452Z-d7bd86c9-nfs-qualification",
+    "20261017T161939Z-20a91f42",
+    "20261017T162009Z-edfefb1c-nfs-qualification",
+    "20261017T162146Z-b28d902b",
+    "20261017T162159Z-32bce9a2-nfs-qualification",
+    "20261017T195308Z-0fbd983f",
+    "20261017T195309Z-ea5be268-nfs-qualification",
+    "20261017T205538Z-83e00d79-nfs-qualification",
+    "20261017T205538Z-a820f9e4",
+    "20261017T214602Z-869cf81f",
+    "20261017T214615Z-2f632f73-nfs-qualification",
+    "20261017T215827Z-3df72cb2-nfs-qualification",
+    "20261017T223628Z-210e8bd1",
+    "20261017T223629Z-a96b200b-nfs-qualification",
+    "20261017T231054Z-44eb94d4",
+    "20261017T231054Z-7f99fe60-nfs-qualification",
+    "20261018T005552Z-19547ccf",
+    "20261018T005553Z-3e07ad26-nfs-qualification",
+    "20261018T021600Z-b1b4dbae",
+    "20261018T021600Z-cb955ad5-nfs-qualification",
+    "20261018T034035Z-f07bc86c",
+    "20261018T034048Z-9fd95a19-nfs-qualification",
+    "20261018T043528Z-c2d48e76",
+    "20261018T043539Z-c5a06856-nfs-qualification",
+    "20261018T051247Z-3ef185bc",
+    "20261018T051258Z-97f50a4f-nfs-qualification",
+    "20261018T055313Z-e76f2957",
+    "20261018T055326Z-dc0ed271-nfs-qualification",
+    "20261018T062735Z-b652d2e4",
+    "20261018T062748Z-a7f2f84c-nfs-qualification",
+    "20261018T132844Z-481c0a54",
+    "20261018T132844Z-ee663085-nfs-qualification",
+    "20261018T142203Z-f3516f7e",
+    "20261018T142214Z-790fc1f9-nfs-qualification",
+    "20261018T150353Z-150c28c0",
+    "20261018T150406Z-a56f9df3-nfs-qualification",
+    "20261018T172247Z-44e075c7",
+    "20261018T172302Z-f4ecf60d-nfs-qualification",
+    "20261018T185200Z-dff8da3a",
+    "20261018T185211Z-1eb3bd24-nfs-qualification",
+    "20261018T200219Z-f573e23c",
+    "20261018T200231Z-a5394a11-nfs-qualification",
+    "20261018T210500Z-62e140fa",
+    "20261018T210513Z-351487b3-nfs-qualification",
+    "20261018T225503Z-f7dd92d6",
+    "20261018T225515Z-26264095-nfs-qualification",
+    "20261019T004550Z-7fabb2df",
+    "20261019T004602Z-f678ae07-nfs-qualification",
+    "20261019T012744Z-b7ec9a6e",
+    "20261019T012849Z-a1f597ee-nfs-qualification",
+    "20261019T013332Z-b0301f9f",
+    "20261019T013345Z-9af2676b-nfs-qualification",
+    "20261019T024518Z-217cc08d",
+    "20261019T024519Z-8839b997-nfs-qualification",
+    "20261019T033428Z-dca3f6f6",
+    "20261019T033430Z-125e507b-nfs-qualification",
+    "20261019T043611Z-20b3d700",
+    "20261019T043611Z-3152e430-nfs-qualification",
+    "20261019T112807Z-23cb6dbb-nfs-qualification",
+    "20261019T112807Z-9869189f",
+    "20261019T122734Z-bb8afef9",
+    "20261019T122745Z-65ab87ea-nfs-qualification",
+    "20261019T130033Z-364dcdf8",
+    "20261019T130033Z-937f3a7c-nfs-qualification",
+    "20261019T145853Z-d68cd378",
+    "20261019T145854Z-ed6461b6-nfs-qualification",
+    "20261019T165453Z-40a41e13-nfs-qualification",
+    "20261019T165455Z-174a25c2",
+    "20261019T173137Z-19b04219",
+    "20261019T173137Z-494536dd-nfs-qualification",
+    "20261019T175931Z-e1557bde",
+    "20261019T175932Z-5a3a166d-nfs-qualification",
+    "20261019T235321Z-4aa4b43e",
+    "20261019T235332Z-7199cd27-nfs-qualification",
+    "20261020T002842Z-6d4269f8",
+    "20261020T002853Z-f8c942db-nfs-qualification",
+    "20261020T012047Z-f928ee63",
+    "20261020T012058Z-32359582-nfs-qualification",
+    "20261020T031717Z-75c40674",
+    "20261020T031729Z-99b34e7c-nfs-qualification",
+    "20261020T042206Z-19f43768-nfs-qualification",
+    "20261020T042206Z-929446e1",
+    "20261020T052240Z-1881a9ce",
+    "20261020T052251Z-b68877ed-nfs-qualification",
+    "20261020T123438Z-001c4e03",
+    "20261020T123450Z-1941e981-nfs-qualification",
+    "20261020T155338Z-60cd625d",
+    "20261020T155338Z-6fcc6168-nfs-qualification",
+    "20261020T232331Z-593cf8a0-nfs-qualification",
+    "20261020T232331Z-a6d39e23",
+    "20261020T235746Z-958b37dc",
+    "20261020T235746Z-ab768da5-nfs-qualification",
+    "20261021T004015Z-9d622c3f-nfs-qualification",
+    "20261021T004016Z-1a2c9253",
+    "20261021T011257Z-2bcc0865",
+    "20261021T011309Z-205562b7-nfs-qualification",
+    "20261021T014052Z-4515af42",
+    "20261021T014106Z-2e610510-nfs-qualification",
+    "20261021T115432Z-15017b8f",
+    "20261021T115444Z-214b3423-nfs-qualification",
+    "20261021T122341Z-1808cc95",
+    "20261021T122353Z-2234b939-nfs-qualification",
+    "20261021T234105Z-26f8c073",
+    "20261021T234105Z-c04cf59a-nfs-qualification",
+    "20261022T014158Z-d16b39b5-nfs-qualification",
+    "20261022T014158Z-d251952e",
+    "20261022T021442Z-e33c1bbd",
+    "20261022T021443Z-4a54ee5d-nfs-qualification",
+    "20261022T030533Z-8c88590f",
+    "20261022T030535Z-240bc029-nfs-qualification",
+    "20261022T034051Z-a7d5fba9",
+    "20261022T034052Z-297b65c8-nfs-qualification",
+    "20261022T043950Z-74404df5",
+    "20261022T043950Z-b945b597-nfs-qualification",
+    "20261022T052425Z-2201a405",
+    "20261022T052425Z-ee79348b-nfs-qualification",
+    "20261022T120247Z-1274b13b",
+    "20261022T120248Z-f719327c-nfs-qualification",
+    "20261022T120740Z-d57040d7",
+    "20261022T162659Z-25158fef-nfs-qualification",
+    "20261022T162700Z-48042e6d",
+    "20261022T162835Z-8d5858f4",
+    "20261022T162835Z-9416b889-nfs-qualification",
+    "20261022T182945Z-5f06a0b5-nfs-qualification",
+    "20261022T182946Z-dfe48216",
+    "__pycache__",
+    "claim-link-death-recovery-20261022T021745Z-83f504a6",
+    "claim-remove-death-recovery-20261022T030637Z-8cbf6de4",
+    "claim-remove-death-recovery-20261022T030922Z-e2cd734f",
+    "claim-sync-discovery-20261022T034258Z-d9c31988",
+    "claim-sync-discovery-20261022T040936Z-6ea91cfe",
+    "distinct-server-recovery-20261020T232551Z-355b5dc3",
+    "distinct-server-recovery-20261020T233014Z-9cb6d7f4",
+    "joint-outage-20261022T052739Z-066aed04",
+    "joint-outage-20261022T054142Z-bfcd3fd4",
+    "joint-outage-20261022T055804Z-115f4bb2",
+    "manifest-link-death-recovery-20261022T014422Z-4ecc4f2c",
+    "manifest-link-server-recovery-20261021T115541Z-4464ca9d",
+    "manifest-server-recovery-20261021T011415Z-16aad95b",
+    "mount-profile-20261019T004903Z-4d74cf97",
+    "mount-profile-20261019T005139Z-e8c53b13",
+    "mount-profile-20261019T014128Z-afce9bd4",
+    "mount-profile-20261019T015542Z-b5fe60d7",
+    "mount-profile-20261019T020046Z-201ec229",
+    "mount-profile-20261019T020832Z-1bcbed6f",
+    "mount-profile-20261019T024946Z-04cceeed",
+    "mount-profile-20261019T030103Z-1445a1a6",
+    "mount-profile-20261019T033752Z-0a2651a3",
+    "mount-profile-20261019T034235Z-f51895cb",
+    "mount-profile-20261019T034903Z-cdc1b1b3",
+    "mount-profile-20261019T043626Z-cbfb180d",
+    "mount-profile-20261019T044147Z-f2a623d7",
+    "mount-profile-20261019T112925Z-55fc2173",
+    "mount-profile-20261019T113736Z-cdc838f9",
+    "mount-profile-20261019T122856Z-0866afa8",
+    "mount-profile-20261019T130338Z-1a6b077c",
+    "mount-profile-20261019T150239Z-dda8b1b6",
+    "mount-profile-20261019T151733Z-90641161",
+    "mount-profile-20261019T170008Z-7f3ebe92",
+    "mount-profile-20261019T170553Z-a1550460",
+    "mount-profile-20261019T173217Z-194661a2",
+    "mount-profile-20261019T180234Z-e444c48b",
+    "mount-profile-20261019T180934Z-a6179534",
+    "mount-profile-20261019T235348Z-9b4b5d20",
+    "mount-profile-20261020T000717Z-b8cc851a",
+    "mount-profile-20261020T001044Z-b3e25a22",
+    "mount-profile-20261020T001129Z-f98e856d",
+    "mount-profile-20261020T003252Z-2b24f98a",
+    "mount-profile-20261020T012953Z-261a2261",
+    "mount-profile-20261020T014416Z-9ffaf0f3",
+    "mount-profile-20261020T020019Z-94c531c6",
+    "mount-profile-20261020T031958Z-ba7907a6",
+    "mount-profile-20261020T042611Z-6249dd19",
+    "mount-profile-20261020T052303Z-25849c5e",
+    "nfs-20261014T021547Z-2342db1a",
+    "nfs-20261014T021703Z-2d99920d",
+    "nfs-20261014T021822Z-f1146de9",
+    "nfs-20261014T022035Z-2fa78f8d",
+    "nfs-20261014T022308Z-9df298c4",
+    "nfs-20261014T031938Z-ee834aa2",
+    "nfs-20261014T105226Z-71cdf499",
+    "nfs-20261014T110057Z-4ae7639d",
+    "nfs-20261014T115111Z-cd0adc32",
+    "nfs-20261014T122721Z-d9131152",
+    "nfs-20261014T134428Z-8668ff8f",
+    "nfs-20261014T135218Z-8b830af8",
+    "nfs-20261014T151123Z-329f30d1",
+    "nfs-20261015T004040Z-b4ba6821",
+    "nfs-20261015T013433Z-42fc54d6",
+    "nfs-20261015T020953Z-dfbd3a1b",
+    "nfs-20261015T024809Z-669ad4ee",
+    "nfs-20261015T025358Z-34a0f768",
+    "nfs-20261015T025958Z-71e9bee8",
+    "nfs-20261015T073324Z-30fcffe1",
+    "nfs-20261015T085325Z-edda377b",
+    "nfs-20261015T113434Z-21fea880",
+    "nfs-20261015T130311Z-3e81bc4c",
+    "nfs-20261015T131554Z-4baea72b",
+    "nfs-20261015T211759Z-87d109b2",
+    "nfs-20261015T224231Z-5df606ee",
+    "nfs-20261015T224853Z-d63a88e0",
+    "nfs-20261016T004810Z-270ebf6e",
+    "nfs-20261016T013801Z-a01edfff",
+    "nfs-20261016T032042Z-ded65186",
+    "nfs-20261016T115844Z-35fdd61d",
+    "nfs-20261017T021532Z-82d1b058",
+    "nfs-20261017T042414Z-5fb4bcda",
+    "nfs-20261017T051627Z-eca582e6",
+    "nfs-20261017T113841Z-37a83b7a",
+    "nfs-20261017T114805Z-60f221d4",
+    "nfs-20261017T140003Z-a5a59522",
+    "nfs-20261017T145718Z-15712af3",
+    "nfs-20261017T151430Z-61596339",
+    "nfs-20261017T164541Z-f88063e6",
+    "nfs-20261017T171335Z-f7f5c7e2",
+    "nfs-20261017T200408Z-cafee8b6",
+    "nfs-20261017T205820Z-1afa98b1",
+    "nfs-20261017T210948Z-199f41fd",
+    "nfs-20261017T214723Z-07ac9666",
+    "nfs-20261017T231054Z-3ef61c70",
+    "nfs-20261018T005553Z-66d9a470",
+    "nfs-20261018T021606Z-942892cd",
+    "nfs-20261018T040358Z-fe4dc59b",
+    "nfs-20261018T041151Z-347d27e7",
+    "nfs-20261018T043705Z-456435eb",
+    "nfs-20261018T152804Z-44b85521",
+    "nfs-20261018T174712Z-059936f1",
+    "nfs-20261018T191725Z-ec359051",
+    "nfs-20261018T202641Z-26370719",
+    "nfs-20261018T203516Z-eb5b56b7",
+    "nfs-20261018T212855Z-a5332c36",
+    "nfs-20261018T221850Z-7e29f816",
+    "nfs-20261018T231856Z-f5ca18ee",
+    "nfs-20261018T233339Z-cf78a52c",
+    "nfs-20261018T234804Z-cff73590",
+    "nfs-20261019T000329Z-385f192f",
+    "nfs-20261019T015840Z-49e49051",
+    "nfs-20261019T021731Z-41c53fb1",
+    "original-claim-sync-discovery-20261022T044055Z-fd0f232d",
+    "original-claim-sync-discovery-20261022T044424Z-baf067ab",
+    "partial-handoff-replay-20261022T164239Z-a6358c8b",
+    "partial-handoff-replay-20261022T165236Z-abbc4e46",
+    "payload-link-death-recovery-20261021T234223Z-d472a3a7",
+    "payload-link-death-recovery-20261021T235453Z-9a8b079a",
+    "payload-link-server-recovery-20261021T014222Z-0d700c9e",
+    "pre202-replay-20261022T120432Z-c3d24a46",
+    "pre202-replay-20261022T120751Z-0f02aee5",
+    "pre202-replay-20261022T122119Z-04f7bf67",
+    "publication-server-recovery-20261021T004154Z-2663618b",
+    "publication-sync-discovery-20261021T122751Z-949e73c6",
+    "reply-capability-20261018T190256Z-ea2fb73d",
+    "reply-capability-20261018T190840Z-2467b9d6",
+    "reply-capability-20261018T200112Z-fb530318",
+    "reply-capability-20261018T200427Z-a948eee5",
+    "reply-capability-20261018T210448Z-a26c0981",
+    "reply-capability-20261018T220027Z-2f69ba7e",
+    "reply-capability-20261018T220524Z-6397e75d",
+    "reply-capability-20261018T221446Z-6be218f4",
+    "reply-capability-20261018T225831Z-9000d3c9",
+    "reply-capability-20261018T230141Z-b294ec05",
+    "reply-capability-20261018T230752Z-2a5c5ed0",
+    "reply-capability-20261018T232842Z-68ef110b",
+    "reply-capability-20261018T234326Z-ebaffd37",
+    "reply-capability-20261018T235849Z-99eef171",
+    "server-mover-recovery-20261020T155528Z-8c83749d",
+    "server-mover-recovery-20261020T160217Z-a6ae253a",
+    "server-mover-recovery-20261020T161123Z-b3b77cb2",
+    "server-mover-recovery-20261020T162326Z-190c2b69",
+    "server-mover-recovery-20261020T163452Z-023afe5c",
+    "server-recovery-20261020T123719Z-15e3fab8",
+    "server-recovery-20261020T124744Z-49eec43d",
+    "server-recovery-20261020T125911Z-b656baec",
+    "source-change-refusal-20261022T183501Z-32382412",
+    "systemd-20261018T051904Z-cf32f8be",
+    "systemd-20261018T052041Z-506cce6c",
+    "systemd-20261018T052300Z-6167720e",
+    "systemd-20261018T052532Z-05d668e6",
+    "systemd-20261018T052828Z-636e1b25",
+    "systemd-20261018T053029Z-e9981052",
+    "systemd-20261018T063103Z-0f349f56",
+    "systemd-20261018T065414Z-d478a598",
+    "systemd-20261018T065623Z-213c7d48",
+    "systemd-20261018T065827Z-1ac6587c",
+    "systemd-20261018T070226Z-6c2ec3fe",
+    "systemd-20261018T070942Z-d22d7cb1",
+    "systemd-20261018T071029Z-026ef128",
+    "systemd-20261018T135226Z-2f68b790",
+    "systemd-20261018T144555Z-aa983032",
+    "systemd228-20261018T060622Z-38c5e25b",
+    "systemd228-20261018T060714Z-fb7c27e1",
+    "systemd228-20261018T060937Z-d102c85a",
+    "systemd228-20261018T072947Z-a3c48787",
+    "verify-server-recovery-20261020T235918Z-be604a20",
+    "verify-server-recovery-20261021T000724Z-389c6597"
+  ],
+  "raw_artifacts_uploaded_by_this_handoff": false
+}

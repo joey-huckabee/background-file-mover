@@ -1,0 +1,426 @@
+{
+  "status": "BLOCKED",
+  "run_id": "systemd228-20261018T072947Z-a3c48787",
+  "gate": "20261018T055313Z-e76f2957",
+  "qualification_gate": "20261018T055326Z-dc0ed271-nfs-qualification",
+  "cleanup_errors": [],
+  "native_sles_rpm_qualified": false,
+  "lifecycle_qualified": false,
+  "scope": "Leap 42.3 equivalent manager; pinned SLES service root; private cgroup v2 preflight only",
+  "lifecycle_cases": [
+    {
+      "production": true,
+      "profile": "debug",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": true,
+      "profile": "release",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "incomplete",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "manual-orphan",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "debug",
+      "kind": "managed-crash",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "basic",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "incomplete",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "manual-orphan",
+      "status": "NOT_RUN"
+    },
+    {
+      "production": false,
+      "profile": "release",
+      "kind": "managed-crash",
+      "status": "NOT_RUN"
+    }
+  ],
+  "driver_sha256": {
+    "check-systemd228-preflight.py": "8045d32ceb313cdbc12b7c2e332a335eacb9b73733fa5555623063fde82a1f79",
+    "systemd/Containerfile.228": "85724128d7104ab87007793262e2fd2e693fdd24ec2b001898b2c879cebd29e0",
+    "systemd/file-mover-228.service.in": "0403322f57b1828434f6b612236a7dd25c2a8bed97d1fc5d013590c7c2966fee",
+    "systemd/file-mover.service.in": "ae1ebf612393b464ea458201b67d7088de8b500ad14c7715fe5e7f8f6f97fee1"
+  },
+  "image": {
+    "Id": "2aa94a5c78f9fed22d52182f469a5b5c7aa4828ead071d2174edfea9b25776b1",
+    "Digest": "sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529",
+    "RepoTags": [
+      "localhost/background-file-mover-systemd228:latest"
+    ],
+    "RepoDigests": [
+      "localhost/background-file-mover-systemd228@sha256:c7309a4ce5ea8b77ba2add31298b8243bcf55aff01f718a59edd388ca009f529"
+    ],
+    "Parent": "8cefcbbbbd835e0ef72eccee503b1e2a09bf5f6265de1c062db24dc0639e1bbe",
+    "Comment": "",
+    "Created": "2026-10-18T06:02:45.90443062Z",
+    "Config": {
+      "Env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "container=docker"
+      ],
+      "Cmd": [
+        "/usr/lib/systemd/systemd",
+        "--system"
+      ],
+      "Labels": {
+        "io.buildah.version": "1.44.1",
+        "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+      },
+      "StopSignal": "SIGRTMIN+3"
+    },
+    "Version": "",
+    "Author": "SUSE Containers Team <containers@suse.com>",
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 211714683,
+    "VirtualSize": 211714683,
+    "GraphDriver": {
+      "Name": "overlay",
+      "Data": {
+        "LowerDir": "/var/lib/containers/storage/overlay/06fe04f193cc52e48cdd972205fa306143bf3ad99492fc23a130abc1d2173e58/diff:/var/lib/containers/storage/overlay/55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c/diff",
+        "UpperDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/diff",
+        "WorkDir": "/var/lib/containers/storage/overlay/dfaec14aff5b5374def3aa8dfd43845b09456ab5e958abc5202382328163e6cc/work"
+      }
+    },
+    "RootFS": {
+      "Type": "layers",
+      "Layers": [
+        "sha256:55e4cf12579297bd6b98a41e0f22e56241508b5f697dcc43ab9a3d7c546acb3c",
+        "sha256:07b77801340e2e10b69a06f08bec4c55b559b1e012b475c44bb5b73225d66096",
+        "sha256:0c651e45a45a96218fc279e8a5be3ba377071955b8dff6115e7becc6e0a6ddcf"
+      ]
+    },
+    "Labels": {
+      "io.buildah.version": "1.44.1",
+      "org.openbuildservice.disturl": "'obs://build.opensuse.org/Virtualization:containers:images:openSUSE-Leap-42.3/containers/e855437d458198eb2a8cf9d551fc66c3-openSUSE-Leap-42.3-container-image:docker'"
+    },
+    "Annotations": {
+      "org.opencontainers.image.base.digest": "sha256:84d4bef2c4657b7bfb48233aa84f40e2303af0607de06562cf4afc496ec18b59",
+      "org.opencontainers.image.base.name": "docker.io/opensuse/leap:42.3",
+      "org.opencontainers.image.created": "2026-10-18T06:02:45.90443062Z"
+    },
+    "ManifestType": "application/vnd.oci.image.manifest.v1+json",
+    "User": "",
+    "History": [
+      {
+        "created": "2019-08-13T08:48:40.372298552Z",
+        "created_by": "umoci config"
+      },
+      {
+        "created": "2019-08-13T08:49:10.375196393Z",
+        "created_by": "umoci config",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T05:59:55.177328682Z",
+        "created_by": "/bin/sh -c #(nop) ENV container=docker",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "comment": "FROM docker.io/opensuse/leap:42.3",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T06:00:00.211055395Z",
+        "created_by": "/bin/sh -c #(nop) COPY dir:a5c99bbee662b15152c4b5e234544dcf63714d06a7d108376ee3672b6d40ab42 in /sles/      ",
+        "author": "SUSE Containers Team <containers@suse.com>"
+      },
+      {
+        "created": "2026-10-18T06:02:45.465622359Z",
+        "created_by": "/bin/sh -c useradd -u 1000 -m mover && mkdir -p /sles/proc /sles/dev /sles/sys /sles/run /sles/tmp/local && chmod 1777 /sles/tmp && chown 1000:1000 /sles/tmp/local && chmod 700 /sles/tmp/local",
+        "author": "SUSE Containers Team <containers@suse.com>"
+      },
+      {
+        "created": "2026-10-18T06:02:45.763900897Z",
+        "created_by": "/bin/sh -c #(nop) STOPSIGNAL SIGRTMIN+3",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-18T06:02:45.904638816Z",
+        "created_by": "/bin/sh -c #(nop) CMD [\"/usr/lib/systemd/systemd\", \"--system\"]",
+        "author": "SUSE Containers Team <containers@suse.com>",
+        "empty_layer": true
+      }
+    ],
+    "NamesHistory": [
+      "localhost/background-file-mover-systemd228:latest"
+    ]
+  },
+  "manager_version": "systemd 228\n+PAM -AUDIT +SELINUX -IMA +APPARMOR -SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT -GNUTLS +ACL +XZ -LZ4 +SECCOMP +BLKID +ELFUTILS +KMOD -IDN\n",
+  "manager_os": "NAME=\"openSUSE Leap\"\nVERSION=\"42.3\"\nID=opensuse\nID_LIKE=\"suse\"\nVERSION_ID=\"42.3\"\nPRETTY_NAME=\"openSUSE Leap 42.3\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:opensuse:leap:42.3\"\nBUG_REPORT_URL=\"https://bugs.opensuse.org\"\nHOME_URL=\"https://www.opensuse.org/\"\n",
+  "manager_packages": [
+    "aaa_base-13.2+git20140911.61c1681-28.9.1.x86_64",
+    "acl-2.2.52-11.3.1.x86_64",
+    "bash-4.3-83.15.1.x86_64",
+    "blog-2.19-3.3.1.x86_64",
+    "bzip2-1.0.6-34.15.x86_64",
+    "ca-certificates-1_201403302107-12.3.noarch",
+    "ca-certificates-mozilla-2.30-21.1.noarch",
+    "coreutils-8.25-5.1.x86_64",
+    "cpio-2.11-38.3.1.x86_64",
+    "cracklib-2.9.0-9.15.x86_64",
+    "cracklib-dict-small-2.9.0-9.15.x86_64",
+    "device-mapper-1.02.97-80.1.x86_64",
+    "diffutils-3.3-10.3.x86_64",
+    "dirmngr-1.1.1-18.1.x86_64",
+    "elfutils-0.158-12.15.x86_64",
+    "expat-2.1.0-24.1.x86_64",
+    "file-5.22-16.1.x86_64",
+    "file-magic-5.22-16.1.x86_64",
+    "filesystem-13.1-9.5.x86_64",
+    "fillup-1.42-275.3.x86_64",
+    "findutils-4.5.12-13.15.x86_64",
+    "gawk-4.1.3-7.15.x86_64",
+    "glibc-2.22-25.1.x86_64",
+    "gpg-pubkey-307e3d54-5aaa90a5",
+    "gpg-pubkey-39db7c82-5847eb1f",
+    "gpg-pubkey-3dbdc284-53674dd4",
+    "gpg2-2.0.24-9.3.1.x86_64",
+    "grep-2.16-7.3.x86_64",
+    "gzip-1.6-14.1.x86_64",
+    "hardlink-1.0-11.3.x86_64",
+    "info-4.13a-42.18.x86_64",
+    "insserv-compat-0.1-18.2.noarch",
+    "iputils-s20121221-6.3.x86_64",
+    "kbd-legacy-2.0.3-3.14.noarch",
+    "kmod-compat-17-19.1.x86_64",
+    "krb5-1.12.5-25.1.x86_64",
+    "libacl1-2.2.52-11.3.1.x86_64",
+    "libadns1-1.4-106.3.x86_64",
+    "libaio1-0.3.109-22.3.x86_64",
+    "libapparmor1-2.10.4-19.1.x86_64",
+    "libasm1-0.158-12.15.x86_64",
+    "libassuan0-2.1.1-6.13.x86_64",
+    "libattr1-2.4.47-8.15.x86_64",
+    "libaudit1-2.3.6-8.1.x86_64",
+    "libaugeas0-1.2.0-13.3.1.x86_64",
+    "libblkid1-2.29.2-8.1.x86_64",
+    "libbz2-1-1.0.6-34.15.x86_64",
+    "libcap-ng0-0.7.3-6.15.x86_64",
+    "libcap2-2.22-18.16.x86_64",
+    "libcom_err2-1.42.11-15.1.x86_64",
+    "libcrack2-2.9.0-9.15.x86_64",
+    "libcryptsetup4-1.6.4-7.5.x86_64",
+    "libcurl4-7.37.0-51.1.x86_64",
+    "libdbus-1-3-1.8.22-5.1.x86_64",
+    "libdw1-0.158-12.15.x86_64",
+    "libelf1-0.158-12.15.x86_64",
+    "libexpat1-2.1.0-24.1.x86_64",
+    "libfdisk1-2.29.2-8.1.x86_64",
+    "libffi4-5.3.1+r233831-10.1.x86_64",
+    "libfipscheck1-1.2.0-10.3.x86_64",
+    "libgcc_s1-8.2.1+r264010-2.3.x86_64",
+    "libgcrypt20-1.6.1-48.1.x86_64",
+    "libgmp10-5.1.3-7.15.x86_64",
+    "libgpg-error0-1.27-1.3.x86_64",
+    "libidn11-1.28-9.6.1.x86_64",
+    "libkeyutils1-1.5.9-7.13.x86_64",
+    "libkmod2-17-19.1.x86_64",
+    "libksba8-1.3.0-10.4.x86_64",
+    "libldap-2_4-2-2.4.44-18.1.x86_64",
+    "liblua5_1-5.1.5-16.1.x86_64",
+    "liblzma5-5.2.2-3.15.x86_64",
+    "libmagic1-5.22-16.1.x86_64",
+    "libmodman1-2.0.1-20.3.x86_64",
+    "libmount1-2.29.2-8.1.x86_64",
+    "libncurses5-5.9-70.1.x86_64",
+    "libncurses6-5.9-70.1.x86_64",
+    "libopenssl1_0_0-1.0.2j-38.1.x86_64",
+    "libp11-kit0-0.20.7-1.2.x86_64",
+    "libpcre1-8.39-11.1.x86_64",
+    "libpopt0-1.16-31.15.x86_64",
+    "libprocps3-3.3.9-23.1.x86_64",
+    "libproxy1-0.4.13-4.3.x86_64",
+    "libpth20-2.0.7-144.3.x86_64",
+    "libqrencode3-3.4.3-7.5.x86_64",
+    "libreadline6-6.3-83.15.1.x86_64",
+    "libsasl2-3-2.1.26-14.1.x86_64",
+    "libseccomp2-2.3.1-6.3.x86_64",
+    "libselinux1-2.5-4.17.x86_64",
+    "libsemanage1-2.5-6.3.1.x86_64",
+    "libsepol1-2.5-3.15.x86_64",
+    "libsgutils2-2-1.43+46.4b09c76-21.1.x86_64",
+    "libsmartcols1-2.29.2-8.1.x86_64",
+    "libsolv-tools-0.6.34-9.1.x86_64",
+    "libssh2-1-1.4.3-19.9.1.x86_64",
+    "libstdc++6-8.2.1+r264010-2.3.x86_64",
+    "libsystemd0-228-71.1.x86_64",
+    "libtasn1-4.9-6.1.x86_64",
+    "libtasn1-6-4.9-6.1.x86_64",
+    "libudev1-228-71.1.x86_64",
+    "libusb-0_1-4-0.1.13-34.3.x86_64",
+    "libusb-1_0-0-1.0.20-5.5.x86_64",
+    "libustr-1_0-1-1.0.4-37.15.x86_64",
+    "libutempter0-1.1.6-9.16.x86_64",
+    "libuuid1-2.29.2-8.1.x86_64",
+    "libverto1-0.2.6-10.3.x86_64",
+    "libxml2-2-2.9.4-18.1.x86_64",
+    "libz1-1.2.8-14.3.1.x86_64",
+    "libzio1-1.00-14.15.x86_64",
+    "libzypp-16.19.0-30.1.x86_64",
+    "ncurses-utils-5.9-70.1.x86_64",
+    "netcfg-11.5-30.3.noarch",
+    "openSUSE-build-key-1.0-36.3.1.noarch",
+    "openSUSE-release-42.3-2.1.x86_64",
+    "openSUSE-release-ftp-42.3-2.1.x86_64",
+    "openssl-1.0.2j-38.1.x86_64",
+    "p11-kit-0.20.7-1.2.x86_64",
+    "p11-kit-tools-0.20.7-1.2.x86_64",
+    "pam-1.3.0-19.1.x86_64",
+    "pam-config-0.91-3.3.x86_64",
+    "perl-base-5.18.2-15.2.x86_64",
+    "permissions-2015.09.28.1626-22.1.x86_64",
+    "pigz-2.3-8.3.x86_64",
+    "procps-3.3.9-23.1.x86_64",
+    "rpm-4.11.2-14.13.1.x86_64",
+    "sed-4.2.2-11.1.x86_64",
+    "shadow-4.2.1-20.1.x86_64",
+    "suse-module-tools-12.4-5.3.x86_64",
+    "systemd-228-71.1.x86_64",
+    "systemd-presets-branding-openSUSE-12.2-1.3.noarch",
+    "sysvinit-tools-2.88+-103.3.1.x86_64",
+    "terminfo-base-5.9-70.1.x86_64",
+    "update-alternatives-1.18.4-4.15.x86_64",
+    "util-linux-2.29.2-8.1.x86_64",
+    "xz-5.2.2-3.15.x86_64",
+    "zypper-1.13.45-20.1.x86_64"
+  ],
+  "manager_glibc": "glibc 2.22",
+  "manager_binary_sha256": "48487ec7a9c037d634a233d7fc52fc9961dc5a4dc44e46a035cc643ca57b3761",
+  "compiled_directive_inventory": "[Unit]\nDescription=STRING\nDocumentation=URL\nSourcePath=PATH\nRequires=UNIT [...]\nRequisite=UNIT [...]\nWants=UNIT [...]\nBindsTo=UNIT [...]\nBindTo=UNIT [...]\nConflicts=UNIT [...]\nBefore=UNIT [...]\nAfter=UNIT [...]\nOnFailure=UNIT [...]\nPropagatesReloadTo=UNIT [...]\nPropagateReloadTo=UNIT [...]\nReloadPropagatedFrom=UNIT [...]\nPropagateReloadFrom=UNIT [...]\nPartOf=UNIT [...]\nJoinsNamespaceOf=UNIT [...]\nRequiresOverridable=OTHER\nRequisiteOverridable=OTHER\nRequiresMountsFor=PATH [...]\nStopWhenUnneeded=BOOLEAN\nRefuseManualStart=BOOLEAN\nRefuseManualStop=BOOLEAN\nAllowIsolate=BOOLEAN\nDefaultDependencies=BOOLEAN\nOnFailureJobMode=MODE\nOnFailureIsolate=BOOLEAN\nIgnoreOnIsolate=BOOLEAN\nIgnoreOnSnapshot=NOTSUPPORTED\nJobTimeoutSec=OTHER\nJobRunningTimeoutSec=OTHER\nJobTimeoutAction=ACTION\nJobTimeoutRebootArgument=STRING\nConditionPathExists=CONDITION\nConditionPathExistsGlob=CONDITION\nConditionPathIsDirectory=CONDITION\nConditionPathIsSymbolicLink=CONDITION\nConditionPathIsMountPoint=CONDITION\nConditionPathIsReadWrite=CONDITION\nConditionDirectoryNotEmpty=CONDITION\nConditionFileNotEmpty=CONDITION\nConditionFileIsExecutable=CONDITION\nConditionNeedsUpdate=CONDITION\nConditionFirstBoot=CONDITION\nConditionKernelCommandLine=CONDITION\nConditionArchitecture=CONDITION\nConditionVirtualization=CONDITION\nConditionSecurity=CONDITION\nConditionCapability=CONDITION\nConditionHost=CONDITION\nConditionACPower=CONDITION\nConditionNull=CONDITION\nAssertPathExists=CONDITION\nAssertPathExistsGlob=CONDITION\nAssertPathIsDirectory=CONDITION\nAssertPathIsSymbolicLink=CONDITION\nAssertPathIsMountPoint=CONDITION\nAssertPathIsReadWrite=CONDITION\nAssertDirectoryNotEmpty=CONDITION\nAssertFileNotEmpty=CONDITION\nAssertFileIsExecutable=CONDITION\nAssertNeedsUpdate=CONDITION\nAssertFirstBoot=CONDITION\nAssertKernelCommandLine=CONDITION\nAssertArchitecture=CONDITION\nAssertVirtualization=CONDITION\nAssertSecurity=CONDITION\nAssertCapability=CONDITION\nAssertHost=CONDITION\nAssertACPower=CONDITION\nAssertNull=CONDITION\n\n[Service]\nPIDFile=PATH\nExecStartPre=PATH [ARGUMENT [...]]\nExecStart=PATH [ARGUMENT [...]]\nExecStartPost=PATH [ARGUMENT [...]]\nExecReload=PATH [ARGUMENT [...]]\nExecStop=PATH [ARGUMENT [...]]\nExecStopPost=PATH [ARGUMENT [...]]\nRestartSec=SECONDS\nTimeoutSec=SECONDS\nTimeoutStartSec=SECONDS\nTimeoutStopSec=SECONDS\nWatchdogSec=SECONDS\nStartLimitInterval=SECONDS\nStartLimitBurst=UNSIGNED\nStartLimitAction=ACTION\nRebootArgument=STRING\nFailureAction=ACTION\nType=SERVICETYPE\nRestart=SERVICERESTART\nPermissionsStartOnly=BOOLEAN\nRootDirectoryStartOnly=BOOLEAN\nRemainAfterExit=BOOLEAN\nGuessMainPID=BOOLEAN\nRestartPreventExitStatus=STATUS\nRestartForceExitStatus=STATUS\nSuccessExitStatus=STATUS\nSysVStartPriority=NOTSUPPORTED\nNonBlocking=BOOLEAN\nBusName=OTHER\nFileDescriptorStoreMax=UNSIGNED\nNotifyAccess=ACCESS\nSockets=SOCKETS\nBusPolicy=OTHER\nUSBFunctionDescriptors=PATH\nUSBFunctionStrings=PATH\nWorkingDirectory=OTHER\nRootDirectory=PATH\nUser=STRING\nGroup=STRING\nSupplementaryGroups=STRING [...]\nNice=NICE\nOOMScoreAdjust=OOMSCOREADJUST\nIOSchedulingClass=IOCLASS\nIOSchedulingPriority=IOPRIORITY\nCPUSchedulingPolicy=CPUSCHEDPOLICY\nCPUSchedulingPriority=CPUSCHEDPRIO\nCPUSchedulingResetOnFork=BOOLEAN\nCPUAffinity=CPUAFFINITY\nUMask=MODE\nEnvironment=ENVIRON\nEnvironmentFile=FILE\nPassEnvironment=OTHER\nStandardInput=INPUT\nStandardOutput=OUTPUT\nStandardError=OUTPUT\nTTYPath=PATH\nTTYReset=BOOLEAN\nTTYVHangup=BOOLEAN\nTTYVTDisallocate=BOOLEAN\nSyslogIdentifier=STRING\nSyslogFacility=FACILITY\nSyslogLevel=LEVEL\nSyslogLevelPrefix=BOOLEAN\nCapabilities=CAPABILITIES\nSecureBits=SECUREBITS\nCapabilityBoundingSet=BOUNDINGSET\nTimerSlackNSec=NANOSECONDS\nNoNewPrivileges=OTHER\nSystemCallFilter=SYSCALLS\nSystemCallArchitectures=ARCHS\nSystemCallErrorNumber=ERRNO\nRestrictAddressFamilies=FAMILIES\nLimitCPU=OTHER\nLimitFSIZE=OTHER\nLimitDATA=OTHER\nLimitSTACK=OTHER\nLimitCORE=OTHER\nLimitRSS=OTHER\nLimitNOFILE=LIMIT\nLimitAS=OTHER\nLimitNPROC=LIMIT\nLimitMEMLOCK=OTHER\nLimitLOCKS=LIMIT\nLimitSIGPENDING=LIMIT\nLimitMSGQUEUE=OTHER\nLimitNICE=LIMIT\nLimitRTPRIO=LIMIT\nLimitRTTIME=OTHER\nReadWriteDirectories=PATH [...]\nReadOnlyDirectories=PATH [...]\nInaccessibleDirectories=PATH [...]\nPrivateTmp=BOOLEAN\nPrivateNetwork=BOOLEAN\nPrivateDevices=BOOLEAN\nProtectSystem=OTHER\nProtectHome=OTHER\nMountFlags=MOUNTFLAG [...]\nPersonality=PERSONALITY\nRuntimeDirectoryMode=MODE\nRuntimeDirectory=OTHER\nPAMName=STRING\nIgnoreSIGPIPE=BOOLEAN\nUtmpIdentifier=STRING\nUtmpMode=OTHER\nSELinuxContext=LABEL\nAppArmorProfile=OTHER\nSmackProcessLabel=NOTSUPPORTED\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\nSendSIGKILL=BOOLEAN\nSendSIGHUP=BOOLEAN\nKillMode=KILLMODE\nKillSignal=SIGNAL\n\n[Socket]\nListenStream=SOCKET [...]\nListenDatagram=SOCKET [...]\nListenSequentialPacket=SOCKET [...]\nListenFIFO=SOCKET [...]\nListenNetlink=SOCKET [...]\nListenSpecial=SOCKET [...]\nListenMessageQueue=SOCKET [...]\nListenUSBFunction=SOCKET [...]\nBindIPv6Only=SOCKETBIND\nBacklog=UNSIGNED\nBindToDevice=NETWORKINTERFACE\nExecStartPre=PATH [ARGUMENT [...]]\nExecStartPost=PATH [ARGUMENT [...]]\nExecStopPre=PATH [ARGUMENT [...]]\nExecStopPost=PATH [ARGUMENT [...]]\nTimeoutSec=SECONDS\nSocketUser=STRING\nSocketGroup=STRING\nSocketMode=MODE\nDirectoryMode=MODE\nAccept=BOOLEAN\nWritable=BOOLEAN\nMaxConnections=UNSIGNED\nKeepAlive=BOOLEAN\nKeepAliveTimeSec=SECONDS\nKeepAliveIntervalSec=SECONDS\nKeepAliveProbes=UNSIGNED\nDeferAcceptSec=SECONDS\nNoDelay=BOOLEAN\nPriority=INTEGER\nReceiveBuffer=SIZE\nSendBuffer=SIZE\nIPTOS=TOS\nIPTTL=INTEGER\nMark=INTEGER\nPipeSize=SIZE\nFreeBind=BOOLEAN\nTransparent=BOOLEAN\nBroadcast=BOOLEAN\nPassCredentials=BOOLEAN\nPassSecurity=BOOLEAN\nTCPCongestion=STRING\nReusePort=BOOLEAN\nMessageQueueMaxMessages=LONG\nMessageQueueMessageSize=LONG\nRemoveOnStop=BOOLEAN\nSymlinks=OTHER\nFileDescriptorName=OTHER\nService=SERVICE\nSmackLabel=NOTSUPPORTED\nSmackLabelIPIn=NOTSUPPORTED\nSmackLabelIPOut=NOTSUPPORTED\nSELinuxContextFromNet=BOOLEAN\nWorkingDirectory=OTHER\nRootDirectory=PATH\nUser=STRING\nGroup=STRING\nSupplementaryGroups=STRING [...]\nNice=NICE\nOOMScoreAdjust=OOMSCOREADJUST\nIOSchedulingClass=IOCLASS\nIOSchedulingPriority=IOPRIORITY\nCPUSchedulingPolicy=CPUSCHEDPOLICY\nCPUSchedulingPriority=CPUSCHEDPRIO\nCPUSchedulingResetOnFork=BOOLEAN\nCPUAffinity=CPUAFFINITY\nUMask=MODE\nEnvironment=ENVIRON\nEnvironmentFile=FILE\nPassEnvironment=OTHER\nStandardInput=INPUT\nStandardOutput=OUTPUT\nStandardError=OUTPUT\nTTYPath=PATH\nTTYReset=BOOLEAN\nTTYVHangup=BOOLEAN\nTTYVTDisallocate=BOOLEAN\nSyslogIdentifier=STRING\nSyslogFacility=FACILITY\nSyslogLevel=LEVEL\nSyslogLevelPrefix=BOOLEAN\nCapabilities=CAPABILITIES\nSecureBits=SECUREBITS\nCapabilityBoundingSet=BOUNDINGSET\nTimerSlackNSec=NANOSECONDS\nNoNewPrivileges=OTHER\nSystemCallFilter=SYSCALLS\nSystemCallArchitectures=ARCHS\nSystemCallErrorNumber=ERRNO\nRestrictAddressFamilies=FAMILIES\nLimitCPU=OTHER\nLimitFSIZE=OTHER\nLimitDATA=OTHER\nLimitSTACK=OTHER\nLimitCORE=OTHER\nLimitRSS=OTHER\nLimitNOFILE=LIMIT\nLimitAS=OTHER\nLimitNPROC=LIMIT\nLimitMEMLOCK=OTHER\nLimitLOCKS=LIMIT\nLimitSIGPENDING=LIMIT\nLimitMSGQUEUE=OTHER\nLimitNICE=LIMIT\nLimitRTPRIO=LIMIT\nLimitRTTIME=OTHER\nReadWriteDirectories=PATH [...]\nReadOnlyDirectories=PATH [...]\nInaccessibleDirectories=PATH [...]\nPrivateTmp=BOOLEAN\nPrivateNetwork=BOOLEAN\nPrivateDevices=BOOLEAN\nProtectSystem=OTHER\nProtectHome=OTHER\nMountFlags=MOUNTFLAG [...]\nPersonality=PERSONALITY\nRuntimeDirectoryMode=MODE\nRuntimeDirectory=OTHER\nPAMName=STRING\nIgnoreSIGPIPE=BOOLEAN\nUtmpIdentifier=STRING\nUtmpMode=OTHER\nSELinuxContext=LABEL\nAppArmorProfile=OTHER\nSmackProcessLabel=NOTSUPPORTED\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\nSendSIGKILL=BOOLEAN\nSendSIGHUP=BOOLEAN\nKillMode=KILLMODE\nKillSignal=SIGNAL\n\n[BusName]\nName=STRING\nActivating=BOOLEAN\nService=OTHER\nAllowUser=OTHER\nAllowGroup=OTHER\nAllowWorld=OTHER\nSELinuxContext=LABEL\nAcceptFileDescriptors=BOOLEAN\n\n[Mount]\nWhat=STRING\nWhere=PATH\nOptions=STRING\nType=STRING\nTimeoutSec=SECONDS\nDirectoryMode=MODE\nSloppyOptions=BOOLEAN\nWorkingDirectory=OTHER\nRootDirectory=PATH\nUser=STRING\nGroup=STRING\nSupplementaryGroups=STRING [...]\nNice=NICE\nOOMScoreAdjust=OOMSCOREADJUST\nIOSchedulingClass=IOCLASS\nIOSchedulingPriority=IOPRIORITY\nCPUSchedulingPolicy=CPUSCHEDPOLICY\nCPUSchedulingPriority=CPUSCHEDPRIO\nCPUSchedulingResetOnFork=BOOLEAN\nCPUAffinity=CPUAFFINITY\nUMask=MODE\nEnvironment=ENVIRON\nEnvironmentFile=FILE\nPassEnvironment=OTHER\nStandardInput=INPUT\nStandardOutput=OUTPUT\nStandardError=OUTPUT\nTTYPath=PATH\nTTYReset=BOOLEAN\nTTYVHangup=BOOLEAN\nTTYVTDisallocate=BOOLEAN\nSyslogIdentifier=STRING\nSyslogFacility=FACILITY\nSyslogLevel=LEVEL\nSyslogLevelPrefix=BOOLEAN\nCapabilities=CAPABILITIES\nSecureBits=SECUREBITS\nCapabilityBoundingSet=BOUNDINGSET\nTimerSlackNSec=NANOSECONDS\nNoNewPrivileges=OTHER\nSystemCallFilter=SYSCALLS\nSystemCallArchitectures=ARCHS\nSystemCallErrorNumber=ERRNO\nRestrictAddressFamilies=FAMILIES\nLimitCPU=OTHER\nLimitFSIZE=OTHER\nLimitDATA=OTHER\nLimitSTACK=OTHER\nLimitCORE=OTHER\nLimitRSS=OTHER\nLimitNOFILE=LIMIT\nLimitAS=OTHER\nLimitNPROC=LIMIT\nLimitMEMLOCK=OTHER\nLimitLOCKS=LIMIT\nLimitSIGPENDING=LIMIT\nLimitMSGQUEUE=OTHER\nLimitNICE=LIMIT\nLimitRTPRIO=LIMIT\nLimitRTTIME=OTHER\nReadWriteDirectories=PATH [...]\nReadOnlyDirectories=PATH [...]\nInaccessibleDirectories=PATH [...]\nPrivateTmp=BOOLEAN\nPrivateNetwork=BOOLEAN\nPrivateDevices=BOOLEAN\nProtectSystem=OTHER\nProtectHome=OTHER\nMountFlags=MOUNTFLAG [...]\nPersonality=PERSONALITY\nRuntimeDirectoryMode=MODE\nRuntimeDirectory=OTHER\nPAMName=STRING\nIgnoreSIGPIPE=BOOLEAN\nUtmpIdentifier=STRING\nUtmpMode=OTHER\nSELinuxContext=LABEL\nAppArmorProfile=OTHER\nSmackProcessLabel=NOTSUPPORTED\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\nSendSIGKILL=BOOLEAN\nSendSIGHUP=BOOLEAN\nKillMode=KILLMODE\nKillSignal=SIGNAL\n\n[Automount]\nWhere=PATH\nDirectoryMode=MODE\nTimeoutIdleSec=SECONDS\n\n[Swap]\nWhat=PATH\nPriority=INTEGER\nOptions=STRING\nTimeoutSec=SECONDS\nWorkingDirectory=OTHER\nRootDirectory=PATH\nUser=STRING\nGroup=STRING\nSupplementaryGroups=STRING [...]\nNice=NICE\nOOMScoreAdjust=OOMSCOREADJUST\nIOSchedulingClass=IOCLASS\nIOSchedulingPriority=IOPRIORITY\nCPUSchedulingPolicy=CPUSCHEDPOLICY\nCPUSchedulingPriority=CPUSCHEDPRIO\nCPUSchedulingResetOnFork=BOOLEAN\nCPUAffinity=CPUAFFINITY\nUMask=MODE\nEnvironment=ENVIRON\nEnvironmentFile=FILE\nPassEnvironment=OTHER\nStandardInput=INPUT\nStandardOutput=OUTPUT\nStandardError=OUTPUT\nTTYPath=PATH\nTTYReset=BOOLEAN\nTTYVHangup=BOOLEAN\nTTYVTDisallocate=BOOLEAN\nSyslogIdentifier=STRING\nSyslogFacility=FACILITY\nSyslogLevel=LEVEL\nSyslogLevelPrefix=BOOLEAN\nCapabilities=CAPABILITIES\nSecureBits=SECUREBITS\nCapabilityBoundingSet=BOUNDINGSET\nTimerSlackNSec=NANOSECONDS\nNoNewPrivileges=OTHER\nSystemCallFilter=SYSCALLS\nSystemCallArchitectures=ARCHS\nSystemCallErrorNumber=ERRNO\nRestrictAddressFamilies=FAMILIES\nLimitCPU=OTHER\nLimitFSIZE=OTHER\nLimitDATA=OTHER\nLimitSTACK=OTHER\nLimitCORE=OTHER\nLimitRSS=OTHER\nLimitNOFILE=LIMIT\nLimitAS=OTHER\nLimitNPROC=LIMIT\nLimitMEMLOCK=OTHER\nLimitLOCKS=LIMIT\nLimitSIGPENDING=LIMIT\nLimitMSGQUEUE=OTHER\nLimitNICE=LIMIT\nLimitRTPRIO=LIMIT\nLimitRTTIME=OTHER\nReadWriteDirectories=PATH [...]\nReadOnlyDirectories=PATH [...]\nInaccessibleDirectories=PATH [...]\nPrivateTmp=BOOLEAN\nPrivateNetwork=BOOLEAN\nPrivateDevices=BOOLEAN\nProtectSystem=OTHER\nProtectHome=OTHER\nMountFlags=MOUNTFLAG [...]\nPersonality=PERSONALITY\nRuntimeDirectoryMode=MODE\nRuntimeDirectory=OTHER\nPAMName=STRING\nIgnoreSIGPIPE=BOOLEAN\nUtmpIdentifier=STRING\nUtmpMode=OTHER\nSELinuxContext=LABEL\nAppArmorProfile=OTHER\nSmackProcessLabel=NOTSUPPORTED\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\nSendSIGKILL=BOOLEAN\nSendSIGHUP=BOOLEAN\nKillMode=KILLMODE\nKillSignal=SIGNAL\n\n[Timer]\nOnCalendar=TIMER\nOnActiveSec=TIMER\nOnBootSec=TIMER\nOnStartupSec=TIMER\nOnUnitActiveSec=TIMER\nOnUnitInactiveSec=TIMER\nPersistent=BOOLEAN\nWakeSystem=BOOLEAN\nRemainAfterElapse=BOOLEAN\nAccuracySec=SECONDS\nUnit=UNIT\n\n[Path]\nPathExists=PATH\nPathExistsGlob=PATH\nPathChanged=PATH\nPathModified=PATH\nDirectoryNotEmpty=PATH\nUnit=UNIT\nMakeDirectory=BOOLEAN\nDirectoryMode=MODE\n\n[Slice]\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\n\n[Scope]\nSlice=SLICE\nCPUAccounting=BOOLEAN\nCPUShares=SHARES\nStartupCPUShares=SHARES\nCPUQuota=OTHER\nMemoryAccounting=BOOLEAN\nMemoryLimit=LIMIT\nDeviceAllow=DEVICE\nDevicePolicy=POLICY\nBlockIOAccounting=BOOLEAN\nBlockIOWeight=WEIGHT\nStartupBlockIOWeight=WEIGHT\nBlockIODeviceWeight=DEVICEWEIGHT\nBlockIOReadBandwidth=BANDWIDTH\nBlockIOWriteBandwidth=BANDWIDTH\nTasksAccounting=BOOLEAN\nTasksMax=OTHER\nDelegate=BOOLEAN\nNetClass=OTHER\nSendSIGKILL=BOOLEAN\nSendSIGHUP=BOOLEAN\nKillMode=KILLMODE\nKillSignal=SIGNAL\nTimeoutStopSec=SECONDS\n\n[Install]\nAlias=OTHER\nWantedBy=OTHER\nRequiredBy=OTHER\nAlso=OTHER\nDefaultInstance=OTHER\n",
+  "service_os": "NAME=\"SLES\"\nVERSION=\"12-SP5\"\nVERSION_ID=\"12.5\"\nPRETTY_NAME=\"SUSE Linux Enterprise Server 12 SP5\"\nID=\"sles\"\nANSI_COLOR=\"0;32\"\nCPE_NAME=\"cpe:/o:suse:sles:12:sp5\"\n",
+  "service_glibc": "glibc 2.22",
+  "kernel": "6.18.33.2-microsoft-standard-WSL2",
+  "private_cgroup_layout": "0::/\n63677270\n",
+  "artifacts": {
+    "debug": "282611a3ea3e35bd48a4287c1db3ed4a9aa35acd1d5c7b28b4b908ee705c0716",
+    "release": "349a5c7db9eb2b09678d29acfb04e02aea144c5439ad2cd75767423223744b25",
+    "qualification-debug": "bb2a1e288c123087cbb992f24638fc581c6e1a65ca5f1f1921663378c1e2d952",
+    "qualification-release": "904ac9aacd92c388a7cebf78a3f379f1d6d2748f46b658e23109712d4683344d"
+  },
+  "unit_checks": [
+    {
+      "kind": "legacy_candidate",
+      "text": "# Disposable equivalent-v228 fixture; not a SLES production unit.\n[Unit]\nDescription=File mover lifecycle qualification\n\n[Service]\n# v228 rate-limit directives belong in Service and use the old spelling.\nStartLimitInterval=10\nStartLimitBurst=2\nType=simple\nUser=mover\nGroup=mover\nRootDirectory=/sles\nEnvironmentFile=/run/fm-228.env\nSyslogIdentifier=fm-228-legacy-candidate.service\nExecStartPre=/bin/sh -eu -c 'true'\nExecStart=/tmp/release /tmp/fixture-config.json\n# A failed contender can reach ExecStop in v228. Never run the global --stop\n# controller here: it could stop an owner belonging to another unit/manual start.\n# Default SIGTERM/control-group targets only this unit's processes.\nKillMode=control-group\nSendSIGKILL=no\nTimeoutStopSec=75\nRestart=on-failure\nRestartSec=1\nCapabilityBoundingSet=\nNoNewPrivileges=yes\nUMask=0077\nPrivateTmp=no\n",
+      "unsupported_directives": [],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Cannot determine cgroup we are running in: Exec format error\nFailed to initialize manager: Exec format error\n"
+    },
+    {
+      "kind": "modern_negative_control",
+      "text": "# Disposable qualification unit; not a production installation template.\n[Unit]\nDescription=File mover lifecycle qualification\nStartLimitIntervalSec=10\nStartLimitBurst=2\n\n[Service]\nType=simple\nUser=mover\nGroup=mover\nRootDirectory=/sles\nEnvironmentFile=/run/fm-228.env\nExecStartPre=/bin/sh -eu -c 'true'\nExecStart=/tmp/release /tmp/fixture-config.json\nExecStop=/tmp/release --stop /tmp/fixture-config.json\nKillMode=control-group\nSendSIGKILL=no\nTimeoutStopSec=75\nRestart=on-failure\nRestartSec=1\nCapabilityBoundingSet=\nNoNewPrivileges=yes\nUMask=0077\nPrivateTmp=no\n",
+      "unsupported_directives": [
+        "Unit.StartLimitIntervalSec",
+        "Unit.StartLimitBurst"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Cannot determine cgroup we are running in: Exec format error\nFailed to initialize manager: Exec format error\n"
+    }
+  ],
+  "boot_arguments": [
+    "--systemd=always",
+    "--cgroupns=private",
+    "--privileged",
+    "--network=none"
+  ],
+  "boot_container": "6f8aee3200d3e2df5a33e8294f18b37b478e380093c94563f3cea1aceb3ff623",
+  "manager_probes": [
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    },
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    },
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    },
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    },
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    },
+    {
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Failed to connect to bus: No such file or directory\n"
+    }
+  ],
+  "startup_probe_seconds": 10.703,
+  "manager_ready": false,
+  "boot_logs": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "boot_state": {
+    "OciVersion": "1.3.0",
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 3554718,
+    "ConmonPid": 3554716,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-18T02:30:17.154034181-05:00",
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "CgroupPath": "/machine.slice/libpod-6f8aee3200d3e2df5a33e8294f18b37b478e380093c94563f3cea1aceb3ff623.scope",
+    "CheckpointedAt": "0001-01-01T00:00:00Z",
+    "RestoredAt": "0001-01-01T00:00:00Z"
+  },
+  "boot_layout": {
+    "exit_code": 0,
+    "stdout": "systemd\n0::/\n63677270\n",
+    "stderr": ""
+  },
+  "blocked_reason": "The unmodified equivalent 228 manager did not expose its control bus in the fully private cgroup-v2 container; lifecycle matrix not run."
+}
