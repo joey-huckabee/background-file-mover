@@ -1,7 +1,9 @@
-# Immutable request identity v1 - candidate
+# Immutable request identity v1 - producer engineering baseline
 
-This encoding is proposed, not an approved or implemented producer requirement.
-It supplies the missing request binding in proposed manifest v2. It is not a
+Increment 116 fixes this encoding for the scoped producer/manifest engineering
+contract in PRODUCER-MANIFEST-CONTRACT.md. It is not runtime implementation,
+consumer qualification or a full P01 freeze. It supplies the request binding in
+manifest v2. It is not a
 new job ID, user credential, content hash or proof of filesystem custody.
 
 ## Exact encoding
@@ -25,7 +27,9 @@ Build this byte sequence, without JSON whitespace or platform line endings:
    emit its value as unsigned 64-bit big-endian, in the same
    sorted path order. The validated map must have exactly these keys.
 
-Compute SHA-256 over the entire sequence; use 64 lowercase hexadecimal digits.
+The frame is bounded by validated request fields/body, with no platform-native
+integer layout or Unicode normalization. Compute SHA-256 over the entire sequence;
+use 64 lowercase hexadecimal digits.
 The manifest request_identity object contains version:1, algorithm:"sha256"
 and that sha256 value. The current size-check setting is deliberately absent;
 changing configuration must not change immutable request identity.
@@ -53,7 +57,8 @@ implementation, collision handling, consumer compatibility or storage durability
 
 Group 52 approves v2 for new recordings, unchanged v1 recovery for still-tracked
 jobs and decimal-string u64 sizes on the new JSON wire. The precise framing
-above remains an engineering candidate until P01 freeze. The existing seven
+above is now fixed for the increment-116 engineering slice; the other P01
+candidates and runtime activation remain separate. The existing seven
 vectors now spell supplied sizes as strings; their frames and digests are
 unchanged because framing encodes parsed integers, never JSON spelling.
 No runtime, consumer or migration/rollback qualification is claimed.

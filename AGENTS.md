@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-07 producer/manifest contract closeout: the user authorizes step 1 of
+the next recommendation. Finalize the bounded producer/manifest-v2 engineering
+contract using approved groups 1-52, reconcile migration status, and prepare the
+next two small implementation increments. See docs/api/PRODUCER-MANIFEST-CONTRACT.md
+and docs/RUST-INCREMENT-116.md. This authorizes documentation/schema/reference
+checks only, not Rust codecs, UUID admission, v2 runtime, full P01 freeze,
+operational conversion or deployment. Preserve the seven identity vectors and
+legacy custody/v1 bytes; do not add another encoding-only fixture workstream.
+
 2026-11-07 migration implementation authorization: the user says "ok, go ahead
 with the migration" after the guarded schema-11 to schema-12 recommendation.
 Implement and qualify the explicit offline command on a short-lived branch,

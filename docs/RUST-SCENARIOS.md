@@ -6,6 +6,15 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 116 producer/manifest engineering baseline
+
+SC-139-142/164/190-194 keep approved behavior and gain a fixed codec contract in
+[PRODUCER-MANIFEST-CONTRACT](api/PRODUCER-MANIFEST-CONTRACT.md): strict producer
+validation, immutable identity/replay ordering and exact v2 writer bytes. Existing
+reference cases/vectors are reused, without new SC/API IDs or runtime evidence.
+Increment 115 migration/pair status is reconciled; UUID/v2 activation remains
+separately gated. See [increment 116](RUST-INCREMENT-116.md) for check scope.
+
 ## Increment 115 compatibility implementation
 
 SC-190/191/194 gain an explicit guarded schema-11 to legacy-only schema-12

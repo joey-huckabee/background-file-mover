@@ -33,6 +33,121 @@ def walk(value):
             yield from walk(child)
 
 
+def scalar_bytes(value):
+    # Python accepts escaped lone surrogates during json.loads; the wire does not.
+    return value.encode("utf-8", errors="strict")
+
+
+def strict_wire_json(raw, limit):
+    require(len(raw) <= limit, "wire byte limit")
+    require(not raw.startswith(b"\xef\xbb\xbf"), "BOM is not allowed")
+
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result, "duplicate JSON key")
+            result[key] = value
+        return result
+
+    def constant(value):
+        raise ValueError("non-JSON constant: " + value)
+
+    value = json.loads(raw.decode("utf-8", errors="strict"),
+                       object_pairs_hook=pairs, parse_constant=constant)
+
+    def scalars(node):
+        if isinstance(node, str):
+            scalar_bytes(node)
+        elif isinstance(node, dict):
+            for key, item in node.items():
+                scalar_bytes(key)
+                scalars(item)
+        elif isinstance(node, list):
+            for item in node:
+                scalars(item)
+    scalars(value)
+    return value
+
+
+def manifest_bytes(value):
+    # Deterministic writer, independent of the parsed object's key insertion order.
+    fields = ("version", "instance_id", "job_id", "generator_id", "recording_id")
+    result = {key: value[key] for key in fields}
+    result["request_identity"] = {key: value["request_identity"][key]
+                                  for key in ("version", "algorithm", "sha256")}
+    result["files"] = [{key: entry[key] for key in
+                        ("file_id", "path", "size_bytes", "algorithm", "sha256")}
+                       for entry in value["files"]]
+    return json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def lexical_semantics(name, value):
+    # Contract reference checks only: never source authority/custody/effect proof.
+    try:
+        if name == "JobId":
+            return 0 < int(value) <= 9223372036854775807
+        if name not in ("ProducerRequest", "ManifestV2"):
+            raise ValueError("no semantic checker for " + name)
+        paths = value["files"] if name == "ProducerRequest" else [e["path"] for e in value["files"]]
+        if len(set(paths)) != len(paths):
+            return False
+        if any(len(scalar_bytes(path)) > 4095 for path in paths):
+            return False
+        if any(other.startswith(path + "/") for path in paths for other in paths if path != other):
+            return False
+        if name == "ProducerRequest":
+            source = value["source_directory"]
+            if len(scalar_bytes(source)) > 4095 or (source != "/" and source.endswith("/")):
+                return False
+            sizes = value.get("expected_sizes_bytes")
+            return sizes is None or set(sizes) == set(paths)
+        return (0 < int(value["job_id"]) <= 9223372036854775807
+                and [e["file_id"] for e in value["files"]] == [str(i) for i in range(len(paths))]
+                and len(manifest_bytes(value)) <= 131072)
+    except (UnicodeError, ValueError, TypeError):
+        return False
+
+
+def check_producer_manifest(schema, fixtures, vectors):
+    checked = 0
+    for case in fixtures:
+        if "semantic_valid" in case:
+            require(lexical_semantics(case["schema"], case["value"]) == case["semantic_valid"],
+                    "semantic expectation: " + case["id"])
+            checked += 1
+    for vector in vectors:
+        require(lexical_semantics("ProducerRequest", vector["request"]), "vector semantic bounds")
+    case = next(c for c in fixtures if c["id"] == "manifest-v2")
+    value = case["value"]
+    encoded = manifest_bytes(value)
+    require(len(encoded) == case["serialized_utf8_length"], "manifest golden length")
+    require(hashlib.sha256(encoded).hexdigest() == case["serialized_utf8_sha256"], "manifest golden bytes")
+    require(strict_wire_json(encoded, 131072) == value, "strict manifest round trip")
+    request = next(v for v in vectors if v["id"] == "minimal")["request"]
+    require(set(request["files"]) == {e["path"] for e in value["files"]}, "golden membership")
+    require(value["request_identity"]["sha256"] == vectors[0]["sha256"], "golden request binding")
+    # These parser checks require no new stored fixture/vector collection.
+    for bad in (b'{"x":1,"x":2}', b'{"x":"\\ud800"}', b'{"x":NaN}'):
+        try:
+            strict_wire_json(bad, 65536)
+        except (AssertionError, ValueError, UnicodeError):
+            pass
+        else:
+            raise AssertionError("invalid raw JSON accepted")
+    require(strict_wire_json(json.dumps(request).encode("utf-8"), 65536) == request,
+            "strict producer round trip")
+    upper = dict(value, job_id="9223372036854775807", generator_id="A" * 128, files=[])
+    overhead = len(manifest_bytes(upper))
+    entry = dict(value["files"][0], file_id="255", path="", size_bytes="18446744073709551615")
+    per_file = len(json.dumps(entry, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) - 2
+    maximum = overhead + 256 * per_file + 65536 + 255
+    require(maximum <= 131072, "valid request can overflow manifest bound")
+    producer = schema["$defs"]["ProducerError"]
+    require(producer["properties"]["retry_after_seconds"]["anyOf"][0]["minimum"] == 1,
+            "usable delays must be positive")
+    print(f"PASS: {checked} existing semantic fixtures, existing manifest golden and {maximum}-byte conservative manifest bound")
+
+
 def main():
     schema = read("contract.candidate.schema.json")
     fixtures = read("contract.candidate.fixtures.json")["cases"]
@@ -80,6 +195,8 @@ def main():
         require(hashlib.sha256(frame).hexdigest() == vector["sha256"],
                 "identity hash changed: " + vector["id"])
 
+    check_producer_manifest(schema, fixtures, vectors)
+
     expected = {
         ("post", "/api/v2/jobs"), ("get", "/healthz"),
         ("post", "/api/v2/admin/login"), ("post", "/api/v2/admin/logout"),
@@ -94,6 +211,13 @@ def main():
     actual = {(method, path) for path, item in api["paths"].items()
               for method in item if method in ("get", "post", "put", "delete", "patch")}
     require(actual == expected, "route inventory differs: " + str(actual ^ expected))
+    producer_op = api["paths"]["/api/v2/jobs"]["post"]
+    registry = {code for response in producer_op["responses"].values()
+                for code in response.get("x-error-codes", [])}
+    require(registry == set(schema["$defs"]["ProducerError"]["properties"]["error"]["enum"]),
+            "producer error enum/registry differ")
+    require(any(p["name"] == "Idempotency-Key" and not p["required"]
+                for p in producer_op["parameters"]), "producer optional UUID header missing")
     ids = set()
     for method, path in sorted(actual):
         op = api["paths"][path][method]
@@ -136,7 +260,7 @@ def main():
     print(f"PASS: {len(schema['$defs'])} definitions, {len(fixtures)} structural fixtures, "
           f"{len(actual)} route operations and reference/access checks")
     print(f"PASS: {len(vectors)} existing request-identity frames/hashes with decimal-string size inputs")
-    print("NOT RUN: semantic annotations, full OpenAPI conformance, HTTP/SQL/security/runtime qualification")
+    print("NOT RUN: other semantic annotations, full OpenAPI conformance, HTTP/SQL/security/runtime/consumer qualification")
 
 
 if __name__ == "__main__":

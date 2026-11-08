@@ -11,6 +11,11 @@ The explicit [offline schema migration](docs/OFFLINE-STATE-MIGRATION.md) is
 implemented; see [increment 115](docs/RUST-INCREMENT-115.md) for actual gate status.
 A merge does not authorize converting operational state.
 
+The next producer/manifest codec work is bounded by the
+[final engineering contract](docs/api/PRODUCER-MANIFEST-CONTRACT.md). It fixes
+that slice's validation/identity/serialization; full P01 and runtime activation
+remain separate. See [increment 116](docs/RUST-INCREMENT-116.md).
+
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and
 [future roadmap](docs/ROADMAP.md). Next is the versioned API/manifest contract;
