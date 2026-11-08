@@ -467,10 +467,13 @@ mod tests {
         assert_eq!(body["converted"], false);
         assert_eq!(body["conversion_required"], false);
         assert_eq!(
-            StateInspection::open(f.path("snapshot/state.sqlite"))
-                .unwrap()
-                .summary()
-                .schema_version,
+            rusqlite::Connection::open_with_flags(
+                f.path("snapshot/state.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+            )
+            .unwrap()
+            .pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
             11
         );
     }

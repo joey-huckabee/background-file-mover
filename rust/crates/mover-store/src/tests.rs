@@ -2560,6 +2560,9 @@ fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
 fn migration_history_fixture(path: &Path) {
     let f = Fixture::new();
     let store = Store::open(f.db()).unwrap();
+    store
+        .prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
     for phase in 0..=4 {
         history_job(&store, &format!("manifest-{phase}"), phase);
     }
