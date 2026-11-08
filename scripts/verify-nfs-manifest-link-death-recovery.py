@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit coordinator-death manifest LINK recovery, exact builds and normal cleanup."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -75,7 +76,7 @@ def analyze(c):
     assert len(set(devices))==3 and c['filesystem_types'][:2]==['6969','6969'] and c['filesystem_types'][2]!='6969'
     assert c['final_identity']==':'.join(c['staging_before'].split(':')[:2]) and c['staging_absent_after']
     assert c['worker_pid']==c['paused_worker']['pid'] and '--internal-delivery-worker' in c['paused_worker']['command']
-    blocked=c['blocked_link'];fields=blocked['syscall'].split();parent=c['config']['destination_root']+'/1/.staging';final_parent=c['config']['destination_root']+'/1'
+    blocked=c['blocked_link'];fields=blocked['syscall'].split();parent=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging';final_parent=c['config']['destination_root']+'/' + evidence_component(c)
     assert blocked['state']=='D' and len(fields)==9 and fields[0]=='265' and int(fields[1],16)==blocked['fd'] and int(fields[3],16)==blocked['newfd'] and int(fields[5],16)==0
     assert blocked['path']==parent and blocked['newpath']==final_parent
     security=dict(line.split(':',1) for line in c['worker_security'].splitlines() if ':' in line)
@@ -164,8 +165,8 @@ def analyze(c):
     assert not any(e['syscall'] in (264,265,316) and e.get('result')==0 and e.get('second_pathname')=='data.bin' for e in trace['events'])
     committed=c['committed'];assert committed['state']=='Committed' and committed['details']['manifest_phase']==4 and not committed['details']['source_cleanup_enabled'] and committed['details']['files'][0]['attempt']==1
     assert [x.split()[0] for x in c['hashes']]==[expected,expected]
-    manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture' and manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture' and validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     return dict(profile=c['profile'],kind=c['kind'],pending_link=True,coordinator_killed=True,orphan_exclusion=True,original_attempt=1,devices=devices,
         old_worker_wait_status=trace['exit_status'],old_link_result=event.get('result'),old_link_return_observed='exit_ns' in event,old_sync_count=len(trace['syncs']),final_present_after_old_exit=c['settlement_final'] is not None,
         database=db_proof,post_restore_write_count=len(post_restore_writes),raw_records=len(wire['trace']),unknown_records=unknown,successful_links=links,original_pending_links=original_links,protocol_errors=errors,raw_guard_closed_samples=sum(s['guard_exit']==0 for s in c['orphan_samples']))

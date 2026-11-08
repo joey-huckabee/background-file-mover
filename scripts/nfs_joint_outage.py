@@ -1,4 +1,5 @@
 """Finite claimed replay/revalidation/backpressure qualification during joint NFS outage."""
+from nfs_fixture_contract import RECORDING_ID, SECOND_RECORDING_ID, producer_request
 import json
 import posixpath
 import time
@@ -56,7 +57,7 @@ def qualify(Case,run,execute,spawn,client,server,output,config,relay,state,resto
                 r['status_before']=c.request('GET','/api/v2/jobs/1')[1]
                 assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']=='Copied'
                 r['source_before']=snapshot('/e/profile-source/'+c.label+'/source/.file-mover/1-0/data')
-                r['destination_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/.staging/1.part')
+                r['destination_before']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/.staging/1.part')
                 assert r['source_before']['sha256']==r['destination_before']['sha256']
                 r['before_server']=state();run(['exec',server,'rpc.nfsd','0']);down=True;r['stopped_server']=state();assert r['stopped_server']['threads']=='0'
                 r['outage_started_ns']=clock();execute(': >'+c.rendezvous+'/go','1000:1000')
@@ -64,13 +65,13 @@ def qualify(Case,run,execute,spawn,client,server,output,config,relay,state,resto
                     if c.state(c.worker)=='D':break
                     time.sleep(.1)
                 r['delivery_blocked']=blocked(c,c.worker)
-                assert r['delivery_blocked']['number']==0 and r['delivery_blocked']['path']==c.destination+'/1/.staging/1.part'
+                assert r['delivery_blocked']['number']==0 and r['delivery_blocked']['path']==c.destination+'/' + RECORDING_ID + '/.staging/1.part'
                 # Age this fixture's cached source metadata; actual blocked validation
                 # below, not the delay itself, is the required evidence.
                 began=time.monotonic()
                 while time.monotonic()-began<65:time.sleep(1)
                 r['aged_seconds']=time.monotonic()-began;r['after_age_ns']=clock()
-                new=dict(c.body,submission_id=c.label+'-new',files=[dict(name='nested/missing.bin')]);r['new_body']=new
+                new=producer_request(c.source+'/current', {'nested/missing.bin': 0}, SECOND_RECORDING_ID);r['new_body']=new
                 if enabled:
                     began=time.monotonic();code,body=c.request('POST','/api/v2/jobs',new)
                     r['new_probe_reply']=dict(code=code,body=body,seconds=time.monotonic()-began)
@@ -91,7 +92,7 @@ def qualify(Case,run,execute,spawn,client,server,output,config,relay,state,resto
                 r['responses']=[]
                 for body,(process,log) in pending:
                     process.wait(timeout=18);raw=log.read_text(encoding='utf-8');code,response=c.parse(raw)
-                    r['responses'].append(dict(submission_id=body['submission_id'],raw=raw,code=code,body=response,exit_code=process.returncode))
+                    r['responses'].append(dict(recording_id=body['recording_id'],raw=raw,code=code,body=response,exit_code=process.returncode))
                     assert process.returncode==0 and code==503 and response['error'] in ('handoff_pending','service_busy') and response['retryable'] and not response['source_paths_released']
                 assert any(x['body']['error']=='service_busy' for x in r['responses'])
                 r['children_after_burst']=children(c)
@@ -109,8 +110,8 @@ def qualify(Case,run,execute,spawn,client,server,output,config,relay,state,resto
                 assert r['retention_during']['details']['retained_jobs']==1
                 r['guard_exit']=execute('flock -n -E 73 '+c.base+'/state/instance.lock true','1000:1000',False).returncode;assert r['guard_exit']==73
                 r['source_during']=snapshot('/e/profile-source/'+c.label+'/source/.file-mover/1-0/data');assert r['source_during']==r['source_before']
-                r['destination_during']=snapshot('/e/profile-destination/'+c.label+'/destination/1/.staging/1.part');assert r['destination_during']==r['destination_before']
-                assert run(['exec',report['storage_reader'],'test','!','-e','/e/profile-destination/'+c.label+'/destination/1/COMMITTED.json'],False).returncode==0
+                r['destination_during']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/.staging/1.part');assert r['destination_during']==r['destination_before']
+                assert run(['exec',report['storage_reader'],'test','!','-e','/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/COMMITTED.json'],False).returncode==0
                 r['manifest_absent_during']=True;r['still_stopped_server']=state();assert r['still_stopped_server']['threads']=='0'
                 r['restore_started_ns']=clock();restore('nfsd');down=False;r['after_server']=state()
                 r['committed']=c.recover(restart=False);assert r['committed']['details']['files'][0]['attempt']==1 and not r['committed']['details']['source_cleanup_enabled']

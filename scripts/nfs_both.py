@@ -1,4 +1,5 @@
 """Owned source/state/payload evidence for controlled both-NFS fixtures."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 from nfs_bootstrap_state import receipt_evidence
 
@@ -23,7 +24,7 @@ def before(case, execute):
     result["database_identity_before"] = execute(f"stat -c '%d:%i' {case.base}/state/jobs.sqlite", "1000:1000").stdout
     result["enrollment_receipt_before"] = receipt_evidence(case, execute)
     if case.point in {"copy_chunk", "source_read", "source_copy"}:
-        result["copy_partial_before"] = payload(case, execute, case.destination + "/1/.staging/1.part")
+        result["copy_partial_before"] = payload(case, execute, case.destination + "/" + RECORDING_ID + "/.staging/1.part")
 
 
 def recovered(case, execute):
@@ -36,7 +37,7 @@ def recovered(case, execute):
     assert result["database_identity_after"] == result["database_identity_before"]
     assert result["enrollment_receipt_after"] == result["enrollment_receipt_before"]
     if case.point in {"copy_chunk", "source_read", "source_copy"}:
-        result["copy_partial_after"] = payload(case, execute, case.destination + "/1/.staging/1.part")
+        result["copy_partial_after"] = payload(case, execute, case.destination + "/" + RECORDING_ID + "/.staging/1.part")
         # The blocked old worker may finish its authorized write before exit.
         # Recovery must retain that old allocation, never overwrite or reuse it.
         old_size = int(result["copy_partial_after"][0].split(":")[-1])

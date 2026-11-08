@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit retained actual mover/server-recovery proofs, exact builds and cleanup."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -40,7 +41,7 @@ def _analyze(c):
     blocked=c['blocked_read'];raw=blocked['syscall'].split()
     assert blocked['state']=='D' and not blocked['read_completed']
     assert raw[0]=='0' and int(raw[1],16)==blocked['fd'] and int(raw[3],16)==1048576
-    assert blocked['path']==c['config']['destination_root']+'/1/.staging/1.part'
+    assert blocked['path']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
     assert c['worker_pid']==c['paused_worker']['pid'] and c['epoch_before']['group']==int(c['coordinator_pid'])
     assert '--internal-delivery-worker' in c['paused_worker']['command']
     assert c['guard_exit']==73 and c['contender']['exit_code']!=0
@@ -69,15 +70,15 @@ def _analyze(c):
         assert before['pid']!=after['pid'] and before['started_at']!=after['started_at']
     trace=c['trace'];assert trace['passed'] and not trace.get('cleanup_error') and trace['pid']==int(c['worker_pid'])
     assert trace['exit_status'] in (0,9) and all(s['result']==0 for s in trace['syncs'])
-    stage=c['config']['destination_root']+'/1/.staging/1.part'
+    stage=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
     assert trace['syncs'] and all(s['enter_ns']>=c['restore_started_ns'] for s in trace['syncs'])
     verify_read_proof(c)
     committed=c['committed'];assert committed['state']=='Committed' and not committed['details']['source_cleanup_enabled']
     assert committed['details']['files'][0]['attempt']==1
     assert [line.split()[0] for line in c['hashes']]==[expected,expected]
     manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture'
-    assert manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow']
     assert c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
@@ -117,7 +118,7 @@ analyze_storage=_storage.analyze_storage
 
 
 def verify_read_proof(c):
-    trace=c['trace'];stage=c['config']['destination_root']+'/1/.staging/1.part'
+    trace=c['trace'];stage=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
     assert trace['syncs']==[e for e in trace['events'] if e['syscall'] in (74,75)]
     blocked=c['blocked_read'];fdinfo=dict(line.split(':',1) for line in blocked['fdinfo'].splitlines())
     assert int(fdinfo['pos'])==0
@@ -135,7 +136,7 @@ def verify_read_proof(c):
     assert {e['second_pathname'] for e in publications}=={'data.bin','COMMITTED.json'}
     assert all(e['enter_ns']>=first[-1]['exit_ns'] for e in publications)
     for e in publications:
-        expected=c['config']['destination_root']+'/1'+('/nested' if e['second_pathname']=='data.bin' else '')
+        expected=c['config']['destination_root']+'/' + evidence_component(c)+('/nested' if e['second_pathname']=='data.bin' else '')
         assert e['second_directory']['path']==expected and e['second_directory']['filesystem']=='nfs4'
     assert c['destination_backing_before']==c['destination_backing_stopped']==c['destination_backing_after']
     assert c['destination_backing_before']['sha256']==c['source_backing_before']['sha256']
@@ -228,7 +229,7 @@ def main():
                     if label=='missing_publication':e['result']=-1
                     else:e['enter_ns']=0
             elif label in ('short_read','read_clock','read_offset','read_inode','missing_eof','missing_publication','early_namespace'):
-                stage=changed['config']['destination_root']+'/1/.staging/1.part'
+                stage=changed['config']['destination_root']+'/' + evidence_component(changed) + '/.staging/1.part'
                 events=[e for e in changed['trace']['events'] if e['syscall']==0 and e.get('descriptor') and e['descriptor']['path']==stage and e['descriptor']['fd']==changed['blocked_read']['fd']]
                 if label=='short_read':events[0]['result']=1
                 elif label=='read_clock':events[0]['exit_ns']=changed['restore_started_ns']-1

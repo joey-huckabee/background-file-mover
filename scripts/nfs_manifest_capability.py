@@ -1,4 +1,5 @@
 """Actual manifest RPC discovery, positive controls and optional finite reply-loss recovery."""
+from nfs_fixture_contract import RECORDING_ID, manifest_size, validate_writer_bytes
 import base64
 import hashlib
 import json
@@ -22,10 +23,18 @@ def manifest_data(obj, submission):
     data=base64.b64decode(obj['base64'],validate=True)
     assert sha(data)==obj['sha256'] and len(data)==int(obj['identity'].split(':')[3])
     value=json.loads(data)
-    assert value['version']==1 and value['job_id']=='1' and value['generator_id']=='fixture'
-    assert value['submission_id']==submission and value['instance_id']
-    assert value['files']==[dict(file_id='0',path='nested/data.bin',size_bytes=2097169,
-        algorithm='sha256',sha256=sha(bytes(2097152)+b'0123456789abcdefg'))]
+    if value['version'] == 1:
+        assert isinstance(submission, str) and value['submission_id']==submission and value['instance_id']
+    else:
+        assert isinstance(submission, dict), 'v2 bytes require original producer assertions'
+        validate_writer_bytes(data, submission)
+    assert value['job_id']=='1' and value['generator_id']=='fixture'
+    assert len(value['files'])==1
+    entry=value['files'][0]
+    assert set(entry)=={'file_id','path','size_bytes','algorithm','sha256'}
+    assert entry['file_id']=='0' and entry['path']=='nested/data.bin'
+    assert manifest_size(entry,value)==2097169 and entry['algorithm']=='sha256'
+    assert entry['sha256']==sha(bytes(2097152)+b'0123456789abcdefg')
     return data
 
 
@@ -151,7 +160,7 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                     r['database_before']=execute(f"stat -c '%d:%i' {c.base}/state/jobs.sqlite",'1000:1000')
                     r['enrollment_before']=receipt_evidence(c,adapted)
                     execute(f"printf 'next recording' >{c.source}/current/nested/data.bin",'1000:1000')
-                    target=c.destination+'/1/.staging/COMMITTED.part';r['target']=target
+                    target=c.destination+'/' + RECORDING_ID + '/.staging/COMMITTED.part';r['target']=target
                     if action=='discovery':
                         observer=start_trace(run,client,int(pid),containers,config,expected_exit='supervised-delivery',io=True)
                         r['clock_namespaces']={actor:run(['exec',actor,'readlink','/proc/self/ns/time']).stdout.strip()
@@ -175,7 +184,7 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                         assert execute(f'readlink /proc/{pid}/fd/{fd}').strip()==target and c.state(pid)=='D'
                         if args[0]=='91':assert int(args[2],16)==0o400
                         r['pending']=dict(syscall=raw,fd=fd,path=target,state='D',fdinfo=execute(f'cat /proc/{pid}/fdinfo/{fd}'))
-                        r['server_while_withheld']=obj(target);manifest_data(r['server_while_withheld'],c.label)
+                        r['server_while_withheld']=obj(target);manifest_data(r['server_while_withheld'],c.body)
                         assert r['server_while_withheld']['nfsd_threads']=='2'
                         info=dict(l.split(':',1) for l in r['pending']['fdinfo'].splitlines() if ':' in l)
                         assert int(info['ino'])==int(r['server_while_withheld']['identity'].split(':')[1])
@@ -263,8 +272,8 @@ def qualify_manifest(run,execute,client,server,output,unmount_all,report,binarie
                     if action.endswith('drop'):
                         r['wire']=dict(forwarded=r['wires'][role]['forwarded'])
                         r['resend_validation']=validate_manifest_resend(r,restarted=action=='death-drop')
-                    r['server_final']=obj(c.destination+'/1/COMMITTED.json')
-                    data=manifest_data(r['server_final'],c.label)
+                    r['server_final']=obj(c.destination+'/' + RECORDING_ID + '/COMMITTED.json')
+                    data=manifest_data(r['server_final'],c.body)
                     assert json.loads(data)==r['manifest']
                     if action=='discovery':
                         r['discovery']=discover(r['trace'],r['wires'],target,r['server_final'])

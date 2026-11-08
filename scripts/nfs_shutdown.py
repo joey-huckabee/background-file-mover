@@ -1,4 +1,5 @@
 """Actual hard-NFS shutdown observations; never synthesize a kernel-held child."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 import traceback
@@ -59,7 +60,7 @@ def run_shutdown(Case, run, execute, spawn, restore, server, output, client, res
                     result["status_before_outage"] = before
                     assert before["state"] == ("Accepted" if point == "claim_apply" else "Claimed")
                     if point == "copy_chunk":
-                        assert execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip() == "1048576"
+                        assert execute(f"stat -c %s {case.destination}/{RECORDING_ID}/.staging/1.part", "1000:1000").stdout.strip() == "1048576"
                     competing = dict(case.config, bind="127.0.0.1:0", shutdown_wait_seconds=3600)
                     local = output / (case.label + "-next-config.json")
                     local.write_text(json.dumps(competing), encoding="utf-8")
@@ -168,7 +169,7 @@ def run_shutdown(Case, run, execute, spawn, restore, server, output, client, res
                         execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
                     elif point == "copy_chunk":
                         assert recovered["details"]["files"][0]["attempt"] == 2
-                        assert execute(f"test -f {case.destination}/1/.staging/1.part", "1000:1000", check=False).returncode == 0
+                        assert execute(f"test -f {case.destination}/{RECORDING_ID}/.staging/1.part", "1000:1000", check=False).returncode == 0
                         result["old_partial_preserved"] = True
                     else:
                         assert recovered["details"]["files"][0]["attempt"] == 1

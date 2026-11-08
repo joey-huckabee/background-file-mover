@@ -1,4 +1,5 @@
 """Finite same-ID replay and queue refusal during multi-file partial source handoff."""
+from nfs_fixture_contract import RECORDING_ID, SECOND_RECORDING_ID, manifest_size, producer_request, validate_v2
 import json
 import hashlib
 import time
@@ -12,7 +13,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
         present=run(['exec','--user','1000:1000',report['storage_reader'],'test','-e',base+'/.file-mover/1-1/data'],False).returncode==0
         private=snapshot(base+'/.file-mover/1-1/data') if present else None
         destination='/e/profile-destination/'+c.label+'/destination'
-        run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c','test -d '+destination+'; test ! -e '+destination+'/1'])
+        run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c','test -d '+destination+'; test ! -e '+destination+'/' + RECORDING_ID])
         if c.point=='claim_link_rpc':assert private is None and original['identity'].split(':')[2:]==['1','2097169']
         else:assert original==private and original['identity'].split(':')[2:]==['2','2097169']
         run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c','test -d '+base+'/current/earlier; test ! -e '+base+'/current/earlier/first.bin'])
@@ -25,12 +26,12 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
         expected=[hashlib.sha256(b'first recording payload').hexdigest(),hashlib.sha256(bytes(2097152)+b'0123456789abcdefg').hexdigest()]
         names=['earlier/first.bin','nested/data.bin']
         for index,name in enumerate(names):
-            lines=execute('sha256sum '+c.source+'/.file-mover/1-'+str(index)+'/data '+c.destination+'/1/'+name,'1000:1000').stdout.splitlines()
+            lines=execute('sha256sum '+c.source+'/.file-mover/1-'+str(index)+'/data '+c.destination+'/' + RECORDING_ID + '/'+name,'1000:1000').stdout.splitlines()
             assert [x.split()[0] for x in lines]==[expected[index]]*2
             hashes.append(lines)
-        manifest=json.loads(execute('cat '+c.destination+'/1/COMMITTED.json','1000:1000').stdout)
-        assert manifest['version']==1 and manifest['submission_id']==c.label and manifest['generator_id']=='fixture' and manifest['job_id']=='1'
-        assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[(names[0],23,'sha256',expected[0]),(names[1],2097169,'sha256',expected[1])]
+        manifest=json.loads(execute('cat '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout)
+        validate_v2(manifest,c.body);assert manifest['job_id']=='1'
+        assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[(names[0],23,'sha256',expected[0]),(names[1],2097169,'sha256',expected[1])]
         assert execute(f"stat -c '%d:%i:%u:%a' {c.source} {c.source}/.file-mover {c.destination} {c.destination}/.file-mover",'1000:1000').stdout==c.identities
         assert snapshot('/e/profile-source/'+c.label+'/source/.file-mover/1-0/data')==c.result['first_before']
         c.result.update(hashes=hashes,manifest=manifest,root_identities_stable=True,source_retained=True,first_private_preserved=True)
@@ -42,7 +43,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
             r=c.result;report['mover_cases'].append(r);report['rust_executed']=True
             c.qualification_claim_index=1
             execute('mkdir -p '+c.source+"/current/earlier; printf 'first recording payload' >"+c.source+'/current/earlier/first.bin','1000:1000')
-            c.body['files'].insert(0,dict(name='earlier/first.bin'))
+            c.body['files'].insert(0,'earlier/first.bin');c.body['expected_sizes_bytes']['earlier/first.bin']='23'
             r['submission']=c.body
             r['first_before']=snapshot('/e/profile-source/'+c.label+'/source/current/earlier/first.bin')
             r['qualification_claim_index']=1
@@ -74,7 +75,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
                 r['security']=execute(f'cat /proc/{c.worker}/status').stdout
                 r['children_before']=c.children();assert r['children_before']==[c.worker]
                 r['epoch_before']=json.loads(execute('cat '+c.base+'/state/workers.json','1000:1000').stdout)
-                new=dict(c.body,submission_id=c.label+'-new',files=[dict(name='nested/missing.bin')]);r['new_body']=new
+                new=producer_request(c.source+'/current', {'nested/missing.bin': 0}, SECOND_RECORDING_ID);r['new_body']=new
                 pending=[(c.body,posted)]
                 for i in range(6):
                     body=new if i%2==0 else c.body
@@ -82,7 +83,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
                 r['responses']=[]
                 for body,(process,log) in pending:
                     process.wait(timeout=18);text=log.read_text(encoding='utf-8');code,response=c.parse(text)
-                    r['responses'].append(dict(submission_id=body['submission_id'],raw=text,code=code,body=response,exit_code=process.returncode))
+                    r['responses'].append(dict(recording_id=body['recording_id'],raw=text,code=code,body=response,exit_code=process.returncode))
                     assert process.returncode==0 and code==503 and response['error'] in ('handoff_pending','service_busy') and response['retryable'] and not response['source_paths_released']
                 assert any(x['body']['error']=='service_busy' for x in r['responses'])
                 r['children_during']=c.children();assert r['children_during']==[c.worker] and c.state(c.worker)=='D'
@@ -113,12 +114,12 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
                 code,response=c.request('POST','/api/v2/jobs',new);r['new_after']=[code,response];assert code==503 and response['error']=='retention_capacity' and not response['source_paths_released'] and response['retryable']
                 assert c.request('GET','/api/v2/jobs/2')[0]==404
                 r['wire']=relay.command('stop_observe')
-                r['manifest_sha256']=execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]
+                r['manifest_sha256']=execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]
                 assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0
                 c.worker=None;c.start(False);code,response=c.request('POST','/api/v2/jobs',c.body);r['replay']=response
                 assert code==202 and response['job_id']=='1' and response['source_paths_released'] and c.request('GET','/api/v2/jobs/1')[1]['state']=='Committed'
                 assert execute('cat '+original,'1000:1000').stdout=='next recording';assert execute('cat '+c.source+'/current/earlier/first.bin','1000:1000').stdout=='next first recording';verify(c)
-                assert execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]==r['manifest_sha256']
+                assert execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]==r['manifest_sha256']
                 assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0
                 r['original_state_preserved']=True;r['passed']=True;print('Partial handoff replay '+profile+' '+phase+': PASS',flush=True)
             finally:

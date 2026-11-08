@@ -2,6 +2,7 @@
 
 No outage, lock loss or independent-state takeover is authorized by these probes.
 """
+from nfs_fixture_contract import RECORDING_ID, producer_request, validate_v2
 import hashlib
 import json
 import time
@@ -66,8 +67,7 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                               initialize=True,
                               binding_label=label, destination=destination, pause=(point, rendezvous))
                 assert owner["ready"]
-                body = {"generator_id": "fixture", "submission_id": label,
-                        "source_path": source + "/current", "files": [{"name": "data.bin"}]}
+                body = producer_request(source + "/current", {"data.bin": len(b"inherited custody payload")})
                 posted = request(label+"-post", "POST", "/api/v2/jobs", body, background=True)
                 for _ in range(100):
                     ready = observe(client, "cat " + rendezvous + "/ready", check=False)
@@ -138,10 +138,11 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                     assert time.monotonic() < deadline, status
                     time.sleep(0.2)
                 expected = hashlib.sha256(b"inherited custody payload").hexdigest()
-                hashes = observe(client, f"sha256sum {source}/.file-mover/1-0/data {destination}/1/data.bin").stdout.splitlines()
+                hashes = observe(client, f"sha256sum {source}/.file-mover/1-0/data {destination}/{RECORDING_ID}/data.bin").stdout.splitlines()
                 assert [h.split()[0] for h in hashes] == [expected, expected]
-                manifest = json.loads(observe(client, f"cat {destination}/1/COMMITTED.json").stdout)
-                assert manifest["submission_id"] == label and manifest["files"][0]["sha256"] == expected
+                manifest = json.loads(observe(client, f"cat {destination}/{RECORDING_ID}/COMMITTED.json").stdout)
+                validate_v2(manifest, body)
+                assert manifest["files"][0]["sha256"] == expected
                 result.update({"same_original_state_recovered": True, "recovered_status": status,
                                "source_retained": True, "hashes": hashes, "probe_completed": True})
                 stop(recovered)
@@ -151,7 +152,7 @@ def qualify_inherited_custody(run, execute, spawn, output, client, peer,
                 fresh_config = "/tmp/local/ownership-"+label+"-fresh-state/config.json"
                 rejected = observe(peer, f"/tmp/ownership-qualification-{profile} --initialize-source {fresh_config}", check=False)
                 assert rejected.returncode != 0
-                assert observe(client, f"sha256sum {source}/.file-mover/1-0/data {destination}/1/data.bin").stdout.splitlines() == hashes
+                assert observe(client, f"sha256sum {source}/.file-mover/1-0/data {destination}/{RECORDING_ID}/data.bin").stdout.splitlines() == hashes
                 result["populated_source_fresh_state_refused"] = snapshot(fresh)
                 result["explicit_fresh_initialization_refused"] = True
                 (output / (label+"-result.json")).write_text(json.dumps(result, indent=2)+"\n")

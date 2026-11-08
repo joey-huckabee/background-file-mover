@@ -1,4 +1,5 @@
 """Worker recovery only after real-server reply-withholding capability passes."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 import traceback
@@ -59,7 +60,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 payload = initial['.staging/1.part'] if link and not manifest else initial['nested/data.bin']
                 assert initial[old] == expected and expected['links'] == (1 if link else 2)
                 assert initial[final_name] == (None if link else expected)
-                remote = c.destination.replace('/tmp/nfs-destination/', '/exports/death-destination/', 1) + '/1/'
+                remote = c.destination.replace('/tmp/nfs-destination/', '/exports/death-destination/', 1) + '/' + RECORDING_ID + '/'
                 original = server_objects(run, server, remote + old, remote + final_name)
                 result['server_before'] = original
                 assert original['old']['links'] == (1 if link else 2)
@@ -82,11 +83,11 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 assert len(words) == 9 and words[0] == ('265' if link else '263'), raw
                 descriptor = int(words[1], 16)
                 parent = execute(f'readlink /proc/{worker}/fd/{descriptor}', '1000:1000').stdout.strip()
-                assert parent == c.destination + '/1/.staging'
+                assert parent == c.destination + '/' + RECORDING_ID + '/.staging'
                 if link:
                     new_fd = int(words[3], 16)
                     new_parent = execute(f'readlink /proc/{worker}/fd/{new_fd}', '1000:1000').stdout.strip()
-                    assert new_parent == c.destination + '/1' + ('' if manifest else '/nested')
+                    assert new_parent == c.destination + '/' + RECORDING_ID + ('' if manifest else '/nested')
                     assert int(words[5], 16) == 0
                     result['blocked_link_new_parent'] = new_parent
                 else:
@@ -173,7 +174,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 assert observed['.staging/1.part'] is None and observed['.staging/COMMITTED.part'] is None
                 assert observed['nested/data.bin']['links'] == observed['COMMITTED.json']['links'] == 1
                 assert execute(f'cat {c.source}/current/nested/data.bin', '1000:1000').stdout == 'next recording'
-                assert execute(f'test ! -e {c.destination}/1/.staging/2.part', '1000:1000', check=False).returncode == 0
+                assert execute(f'test ! -e {c.destination}/{RECORDING_ID}/.staging/2.part', '1000:1000', check=False).returncode == 0
                 result.update(relay_after_recovery=relay.state(), original_state_recovery=True,
                               original_publication_inode_preserved=True, producer_reused_path_preserved=True, passed=True)
             except Exception as error:

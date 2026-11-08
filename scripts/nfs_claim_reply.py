@@ -1,4 +1,5 @@
 """Selected source-claim reply loss; preserve the producer's unconfirmed handoff."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 import traceback
@@ -109,7 +110,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 result['job_after_retry']=dict(seconds=round(time.monotonic()-began,3),response=after_retry)
                 assert result['job_after_retry']['seconds']<5 and after_retry[0]==200
                 assert after_retry[1]['state']=='Accepted' and after_retry[1]['source_paths_released'] is False
-                assert execute(f'test ! -e {c.destination}/1','1000:1000',check=False).returncode==0
+                assert execute(f'test ! -e {c.destination}/{RECORDING_ID}','1000:1000',check=False).returncode==0
                 assert c.children()==[worker] and c.state(worker)=='D'
                 result['relay_before_coordinator_death']=relay.await_held()
                 c.signal(main,'KILL'); assert c.service.wait(timeout=10)!=0
@@ -166,7 +167,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 result['enrollment_receipt_after']=receipt_evidence(c,execute)
                 assert result['database_identity_after']==result['database_identity_before']
                 assert result['enrollment_receipt_after']==result['enrollment_receipt_before']
-                assert execute(f'test ! -e {c.source}/.file-mover/2-0 && test ! -e {c.destination}/1/.staging/2.part','1000:1000',check=False).returncode==0
+                assert execute(f'test ! -e {c.source}/.file-mover/2-0 && test ! -e {c.destination}/{RECORDING_ID}/.staging/2.part','1000:1000',check=False).returncode==0
                 result.update(original_claim_inode_preserved=True,original_state_recovery=True,passed=True,relay_after_recovery=relay.state())
             except Exception as error:
                 result.update(error=f'{type(error).__name__}: {error}',traceback=traceback.format_exc())

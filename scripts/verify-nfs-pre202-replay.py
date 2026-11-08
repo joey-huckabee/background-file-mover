@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit incomplete source-claim replay, custody and bounded requests before HTTP 202."""
+from nfs_fixture_contract import manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -54,7 +55,7 @@ def analyze(c,inventory):
     for row in c['responses']:
         head,body=row['raw'].replace('\r\n','\n').split('\n\n',1);assert int(head.split()[1])==row['code']==503 and json.loads(body)==row['body']
         assert row['exit_code']==0 and row['body']['error'] in ('handoff_pending','service_busy') and row['body']['retryable'] and not row['body']['source_paths_released']
-        assert row['submission_id'] in (c['config']['source_binding']['root_id'],c['new_body']['submission_id'])
+        assert (row['recording_id'] in (c['submission']['recording_id'],c['new_body']['recording_id']) if 'recording_id' in c['new_body'] else row['submission_id'] in (c['config']['source_binding']['root_id'],c['new_body']['submission_id']))
     assert any(r['body']['error']=='service_busy' for r in c['responses'])
     assert c['retry_responses'][-1]==[202,c['handoff']] and c['handoff']['job_id']==c['replay']['job_id']=='1' and c['handoff']['source_paths_released'] and c['replay']['source_paths_released']
     for code,body in c['retry_responses'][:-1]:assert code==503 and body['error'] in ('handoff_pending','service_busy') and body['retryable'] and not body['source_paths_released']
@@ -63,8 +64,8 @@ def analyze(c,inventory):
     assert c['new_after'][0]==503 and c['new_after'][1]['error']=='retention_capacity' and c['new_after'][1]['retryable'] and not c['new_after'][1]['source_paths_released']
     assert c['committed']['state']=='Committed' and c['committed']['details']['files'][0]['attempt']==1 and not c['committed']['details']['source_cleanup_enabled']
     assert [x.split()[0] for x in c['hashes']]==[expected,expected] and c['manifest']['job_id']=='1'
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
-    assert c['manifest']['submission_id']==c['config']['source_binding']['root_id'] and c['manifest']['generator_id']=='fixture'
+    assert [(f['path'],manifest_size(f,c['manifest']),f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert validate_evidence_manifest(c) and c['manifest']['generator_id']=='fixture'
     assert sha(json.dumps(c['manifest'],separators=(',',':'),ensure_ascii=False).encode())==c['manifest_sha256']
     mounts=[covering(parse(inventory),c['config'][r+'_root']) for r in ('source','destination')]
     assert mounts[0]['device']!=mounts[1]['device'] and c['filesystem_types'][:2]==['6969','6969'] and c['filesystem_types'][2]!='6969'

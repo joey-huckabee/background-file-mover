@@ -1,4 +1,5 @@
 """Destination-only outage before startup; source/control remain available."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 import traceback
@@ -186,7 +187,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                     assert result['source_custody_after_exit'] == result['source_custody_while_blocked']
                     result['local_files_after_old_exit'] = local_evidence(c, execute, both_nfs=True)
                     result['destination_after_old_exit'] = destination_evidence(c, execute)
-                    execute(f'test ! -e {c.destination}/1/COMMITTED.json; test ! -e {c.destination}/1/nested/data.bin', '1000:1000')
+                    execute(f'test ! -e {c.destination}/{RECORDING_ID}/COMMITTED.json; test ! -e {c.destination}/{RECORDING_ID}/nested/data.bin', '1000:1000')
                     if point == 'bootstrap_populated':
                         assert partial_evidence(c, execute) == result['seed_partial']
                     recovered = c.recover()

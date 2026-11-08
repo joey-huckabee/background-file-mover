@@ -1,4 +1,5 @@
 """Selected actual mover restart recoveries, following independent native controls."""
+from nfs_fixture_contract import RECORDING_ID
 import base64
 import hashlib
 import json
@@ -56,7 +57,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
         return int(run(['exec',relay.container,'python3','-c','import time; print(time.monotonic_ns())']).stdout)
 
     def unpublished(c):
-        parent='/e/profile-destination/'+c.label+'/destination/1'
+        parent='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
                     'test -d '+parent+'; test ! -e '+parent+'/nested/data.bin; test ! -e '+parent+
                     '/COMMITTED.json; printf absent']).stdout
@@ -64,7 +65,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
         return dict(final_absent=True,manifest_absent=True,observation='independent read-only backing filesystem')
 
     def aliases(c):
-        parent='/e/profile-destination/'+c.label+'/destination/1'
+        parent='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
                     'test -d '+parent+'; test ! -e '+parent+'/COMMITTED.json; '+
                     "stat -c '%d:%i:%h:%s' "+parent+'/.staging/1.part '+parent+'/nested/data.bin; '+
@@ -75,7 +76,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     final=dict(identity=result[1],sha256=result[3].split()[0]),manifest_absent=True)
 
     def manifest_aliases(c):
-        parent='/e/profile-destination/'+c.label+'/destination/1'
+        parent='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
                     'test ! -e '+parent+'/.staging/1.part; '+
                     "stat -c '%d:%i:%h:%s' "+parent+'/.staging/COMMITTED.part '+parent+'/COMMITTED.json; '+
@@ -89,7 +90,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     bytes=raw,payload_staging_absent=True)
 
     def manifest_staging(c):
-        parent='/e/profile-destination/'+c.label+'/destination/1'
+        parent='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         result=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
                     'test ! -e '+parent+'/COMMITTED.json; test ! -e '+parent+'/.staging/1.part; '+
                     "stat -c '%d:%i:%h:%s' "+parent+'/.staging/COMMITTED.part; '+
@@ -181,9 +182,9 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     r['status_before']=c.request('GET','/api/v2/jobs/1')[1]
                     assert r['status_before']['state']=='Claimed' and r['status_before']['details']['files'][0]['transfer_phase']==('Published' if manifest or manifest_link else 'PublishIntent' if publication or payload_link else 'Copied' if verification else 'Intent')
                     if manifest or manifest_link:assert r['status_before']['details']['manifest_phase']==3
-                    stage=c.destination+'/1/.staging/1.part'
+                    stage=c.destination+'/' + RECORDING_ID + '/.staging/1.part'
                     # For manifest cases the payload has already left staging; retain its final identity.
-                    r['staging_before']=execute("stat -c '%d:%i:%s' "+(c.destination+'/1/nested/data.bin' if manifest or manifest_link else stage),'1000:1000').stdout.strip()
+                    r['staging_before']=execute("stat -c '%d:%i:%s' "+(c.destination+'/' + RECORDING_ID + '/nested/data.bin' if manifest or manifest_link else stage),'1000:1000').stdout.strip()
                     assert r['staging_before'].split(':')[-1]==('2097169' if verification or publication or manifest or payload_link or manifest_link else '1048576')
                     if distinct:
                         assert r['original_source'][0].split(':')[0]!=r['staging_before'].split(':')[0]
@@ -194,7 +195,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     r['source_backing_before']=snapshot(backing)
                     assert r['source_backing_before']['sha256']==r['original_source'][1].split()[0]
                     if verification or payload_link:
-                        stage_backing='/e/profile-destination/'+c.label+'/destination/1/.staging/1.part'
+                        stage_backing='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/.staging/1.part'
                         r['destination_backing_before']=snapshot(stage_backing)
                         assert r['destination_backing_before']['sha256']==r['source_backing_before']['sha256']
                         if payload_link:assert r['destination_backing_before']['identity'].split(':')[2:]==['1','2097169']
@@ -204,14 +205,14 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         assert r['aliases_before']['staging']['sha256']==r['source_backing_before']['sha256']
                     if manifest:
                         r['aliases_before']=manifest_aliases(c)
-                        r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
                     if manifest_link:
                         r['manifest_staging_before']=manifest_staging(c)
-                        r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['payload_before']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['payload_before']['sha256']==r['source_backing_before']['sha256'] and r['payload_before']['identity'].split(':')[2]=='1'
                         if manifest_death:
-                            stage_backing='/e/profile-destination/'+c.label+'/destination/1/.staging/COMMITTED.part'
+                            stage_backing='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/.staging/COMMITTED.part'
                             before=r['manifest_staging_before']
                             r['destination_backing_before']=dict(identity=before['identity'],sha256=before['sha256'])
                     observer=start_trace(run,client,c.worker,containers,config,expected_exit='coordinator-death' if death else 'supervised-delivery',io=verification or publication or manifest or payload_link or manifest_link)
@@ -241,11 +242,11 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         assert r['aliases_stopped']==r['aliases_before']
                     if manifest:
                         r['aliases_stopped']=manifest_aliases(c)
-                        r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['aliases_stopped']==r['aliases_before'] and r['payload_stopped']==r['payload_before']
                     if manifest_link:
                         r['manifest_staging_stopped']=manifest_staging(c)
-                        r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['payload_stopped']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['manifest_staging_stopped']==r['manifest_staging_before'] and r['payload_stopped']==r['payload_before']
                         if manifest_death:r['destination_backing_stopped']=snapshot(stage_backing)
                     execute(': >'+c.rendezvous+'/go','1000:1000')
@@ -258,7 +259,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         assert len(fields)==9 and fields[0]=='265' and int(fields[5],16)==0,raw
                         fd=int(fields[1],16);newfd=int(fields[3],16)
                         paths=execute(f'readlink /proc/{c.worker}/fd/{fd}; readlink /proc/{c.worker}/fd/{newfd}').stdout.splitlines()
-                        assert paths==[c.destination+'/1/.staging',c.destination+('/1' if manifest_link else '/1/nested')] and c.children()==[c.worker]
+                        assert paths==[c.destination+'/' + RECORDING_ID + '/.staging',c.destination+'/'+RECORDING_ID+('' if manifest_link else '/nested')] and c.children()==[c.worker]
                         r['blocked_link']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=paths[0],newfd=newfd,newpath=paths[1],
                             fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout,
                             newfdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{newfd}').stdout)
@@ -267,7 +268,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         raw=execute(f'cat /proc/{c.worker}/syscall').stdout.strip();fields=raw.split()
                         assert len(fields)==9 and fields[0]=='263',raw
                         fd=int(fields[1],16);path=execute(f'readlink /proc/{c.worker}/fd/{fd}').stdout.strip()
-                        assert path==c.destination+'/1/.staging' and c.children()==[c.worker]
+                        assert path==c.destination+'/' + RECORDING_ID + '/.staging' and c.children()==[c.worker]
                         r['blocked_unlink']=dict(state=c.state(c.worker),syscall=raw,fd=fd,path=path,
                             fdinfo=execute(f'cat /proc/{c.worker}/fdinfo/{fd}').stdout)
                         assert r['blocked_unlink']['state']=='D'
@@ -326,7 +327,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                         assert r['orphan_epoch']==r['epoch_before']
                         r['orphan_source']=snapshot(backing);r['orphan_staging']=snapshot(stage_backing);r['orphan_publication']=manifest_staging(c) if manifest_death else unpublished(c)
                         if manifest_death:
-                            r['orphan_payload']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                            r['orphan_payload']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                             assert r['orphan_payload']==r['payload_before'] and r['orphan_publication']==r['manifest_staging_before']
                         assert r['orphan_source']==r['source_backing_before'] and r['orphan_staging']==r['destination_backing_before']
                     if manifest_death:r['database_before_restore']=frozen_local_database(c,'before-restore')
@@ -341,7 +342,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                                 'if test -e '+path+'; then stat -c %d:%i:%h:%s '+path+'; sha256sum '+path+'; fi']).stdout.splitlines()
                             return dict(identity=lines[0],sha256=lines[1].split()[0]) if lines else None
                         r['settlement_stage']=optional_snapshot(stage_backing)
-                        parent='/e/profile-destination/'+c.label+'/destination/1'
+                        parent='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
                         r['settlement_final']=optional_snapshot(parent+('/COMMITTED.json' if manifest_death else '/nested/data.bin'))
                         if manifest_death:
                             r['settlement_manifest_absent']=r['settlement_final'] is None
@@ -385,40 +386,40 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     if not (publication or manifest or payload_link or manifest_link):execute('test -f '+c.rendezvous+'/read-completed','1000:1000')
                     c.verify()
                     r['source_backing_after']=snapshot(backing);assert r['source_backing_after']==r['source_backing_before']
-                    r['final_identity']=execute("stat -c '%d:%i' "+c.destination+'/1/nested/data.bin','1000:1000').stdout.strip()
+                    r['final_identity']=execute("stat -c '%d:%i' "+c.destination+'/' + RECORDING_ID + '/nested/data.bin','1000:1000').stdout.strip()
                     assert r['final_identity']==':'.join(r['staging_before'].split(':')[:2])
                     if payload_link:
                         r['staging_absent_after']=execute('test ! -e '+stage,'1000:1000',False).returncode==0
                         assert r['staging_absent_after']
                     if verification or payload_link:
-                        r['destination_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['destination_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['destination_backing_after']==r['destination_backing_before']
                     if publication:
-                        r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         expected=r['aliases_before']['final'];old=expected['identity'].split(':')
                         assert r['final_backing_after']==dict(identity=':'.join(old[:2]+['1',old[3]]),sha256=expected['sha256'])
                         r['staging_absent_after']=execute('test ! -e '+stage,'1000:1000',False).returncode==0
                         assert r['staging_absent_after']
                     if manifest:
-                        r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/COMMITTED.json')
+                        r['final_backing_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/COMMITTED.json')
                         expected=r['aliases_before']['final'];old=expected['identity'].split(':')
                         assert r['final_backing_after']==dict(identity=':'.join(old[:2]+['1',old[3]]),sha256=expected['sha256'])
-                        r['staging_absent_after']=execute('test ! -e '+c.destination+'/1/.staging/COMMITTED.part','1000:1000',False).returncode==0
-                        r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['staging_absent_after']=execute('test ! -e '+c.destination+'/' + RECORDING_ID + '/.staging/COMMITTED.part','1000:1000',False).returncode==0
+                        r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['staging_absent_after'] and r['payload_after']==r['payload_before']
                     if manifest_link:
-                        r['manifest_final_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/COMMITTED.json')
+                        r['manifest_final_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/COMMITTED.json')
                         before=r['manifest_staging_before']
                         assert r['manifest_final_after']==dict(identity=before['identity'],sha256=before['sha256'])
-                        r['staging_absent_after']=execute('test ! -e '+c.destination+'/1/.staging/COMMITTED.part','1000:1000',False).returncode==0
-                        r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                        r['staging_absent_after']=execute('test ! -e '+c.destination+'/' + RECORDING_ID + '/.staging/COMMITTED.part','1000:1000',False).returncode==0
+                        r['payload_after']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                         assert r['staging_absent_after'] and r['payload_after']==r['payload_before']
                     r['local_state_after']=execute(local_command,'1000:1000').stdout
                     r['enrollment_after']=execute(enrollment_command,'1000:1000').stdout
                     assert r['local_state_after']==r['original_local_state']
                     assert r['enrollment_after']==r['original_enrollment']
                     r['wire']=relay.command('stop_observe')
-                    manifest_hash=execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]
+                    manifest_hash=execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]
                     stopped_reply=json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)
                     assert stopped_reply['phase']=='Stopped' and c.service.wait(timeout=30)==0
                     c.worker=None;c.start(False)
@@ -426,7 +427,7 @@ def qualify_mover(root,production_gate,qualification_gate,run,execute,client,ser
                     assert code==202 and replay['job_id']=='1' and replay['source_paths_released']
                     assert c.request('GET','/api/v2/jobs/1')[1]['state']=='Committed'
                     assert execute('cat '+original,'1000:1000').stdout=='next recording'
-                    assert execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
+                    assert execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
                     assert execute(local_command,'1000:1000').stdout==r['original_local_state']
                     c.verify();r['replay']=replay;r['original_state_preserved']=True
                     assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped'

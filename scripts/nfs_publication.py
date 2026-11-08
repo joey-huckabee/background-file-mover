@@ -1,9 +1,10 @@
 """Evidence for selected file/manifest publication deaths; no SQLite inspection."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 
 
 def objects(case, execute):
-    root = case.destination + "/1/"
+    root = case.destination + "/" + RECORDING_ID + "/"
     names = (".staging/1.part", "nested/data.bin", ".staging/COMMITTED.part", "COMMITTED.json")
     # All names come from fixed ASCII fixture paths, never user input.
     assert all(c.isalnum() or c in "/._-" for c in root)
@@ -92,7 +93,7 @@ def recovered(case, execute, status):
     if case.point == "manifest_link":
         same_object(value["COMMITTED.json"], original["COMMITTED.json"])
     assert status["state"] == "Committed" and status["details"]["files"][0]["attempt"] == 1
-    assert execute(f"test ! -e {case.destination}/1/.staging/2.part", "1000:1000", check=False).returncode == 0
+    assert execute(f"test ! -e {case.destination}/{RECORDING_ID}/.staging/2.part", "1000:1000", check=False).returncode == 0
     case.result["publication_after_recovery"] = value
     case.result["original_payload_inode_preserved"] = True
     case.result["publication_recovered_on_attempt_one"] = True

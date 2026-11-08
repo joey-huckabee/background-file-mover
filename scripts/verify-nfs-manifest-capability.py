@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independently audit actual manifest discovery/withholding and SLES provenance."""
+from nfs_fixture_contract import evidence_component
 import argparse
 import base64
 import copy
@@ -148,12 +149,12 @@ def main():
         assert all(int(sec[k],16)==0 for k in ('CapInh','CapPrm','CapEff'))
         assert sec['Pid'].strip()==c['paused_worker']['pid'] and sec['PPid'].strip()==c['coordinator_pid'] and sec['Threads'].strip()=='1'
         assert '/tmp/qualification-'+c['profile'] in c['paused_worker']['command'] and '--internal-delivery-worker' in c['paused_worker']['command']
-        assert c['target']==c['config']['destination_root']+'/1/.staging/COMMITTED.part'
+        assert c['target']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/COMMITTED.part'
         assert set(c['wires'])==({'source'} if c['layout']=='same-share' else {'source','destination'})
         for wire in c['wires'].values():common.wire_check(wire)
-        final=c['server_final'];data=manifest_data(final,c['manifest']['submission_id'])
+        final=c['server_final'];data=manifest_data(final,c['submission'] if c['manifest']['version']==2 else c['manifest']['submission_id'])
         assert 0<len(data)<=131072 and json.loads(data)==c['manifest'] and final['nfsd_threads']=='2'
-        assert c['manifest']['submission_id']==c['committed']['details']['submission_id']
+        assert (c['manifest']['recording_id']==c['committed']['details']['recording_id'] if c['manifest']['version']==2 else c['manifest']['submission_id']==c['committed']['details']['submission_id'])
         assert c['source_identity_after']==c['original_source'][0] and c['original_source'][1].split()[0]==expected
         assert c['database_before']==c['database_after'] and c['enrollment_before']==c['enrollment_after']
         assert [v.split()[0] for v in c['hashes']]==[expected,expected]
@@ -187,7 +188,7 @@ def main():
         else:
             assert key in discoveries,'healthy discovery must precede its control'
             original=discoveries[key];observed=original['discovery']['write']
-            obj=c['server_while_withheld'];assert manifest_data(obj,c['manifest']['submission_id'])==data
+            obj=c['server_while_withheld'];assert manifest_data(obj,c['submission'] if c['manifest']['version']==2 else c['manifest']['submission_id'])==data
             assert obj['nfsd_threads']=='2' and obj['identity'].split(':')[:2]==final['identity'].split(':')[:2]
             proof=held_bytes(c['held'],obj);assert held_bytes(c['before_release'],obj)==proof==c['held_proof']
             assert proof['requested_stable']==observed['operation']['stable'] and proof['committed']==observed['result']['committed']

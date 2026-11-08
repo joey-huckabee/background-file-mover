@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit initial payload LINK recovery, exact builds and normal cleanup."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -40,7 +41,7 @@ def _analyze(c):
     blocked=c['blocked_link'];raw=blocked['syscall'].split()
     assert blocked['state']=='D'
     assert raw[0]=='265' and int(raw[1],16)==blocked['fd'] and int(raw[3],16)==blocked['newfd'] and int(raw[5],16)==0
-    assert blocked['path']==c['config']['destination_root']+'/1/.staging'
+    assert blocked['path']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
     assert c['worker_pid']==c['paused_worker']['pid'] and c['epoch_before']['group']==int(c['coordinator_pid'])
     assert '--internal-delivery-worker' in c['paused_worker']['command']
     assert c['guard_exit']==73 and c['contender']['exit_code']!=0
@@ -75,8 +76,8 @@ def _analyze(c):
     assert committed['details']['files'][0]['attempt']==1
     assert [line.split()[0] for line in c['hashes']]==[expected,expected]
     manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture'
-    assert manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow']
     assert c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
@@ -121,8 +122,8 @@ analyze_storage=_storage.analyze_storage
 
 
 def verify_link_proof(c):
-    trace=c['trace'];parent=c['config']['destination_root']+'/1/.staging'
-    final_parent=c['config']['destination_root']+'/1/nested'
+    trace=c['trace'];parent=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
+    final_parent=c['config']['destination_root']+'/' + evidence_component(c) + '/nested'
     assert trace['syncs']==[e for e in trace['events'] if e['syscall'] in (74,75)]
     blocked=c['blocked_link']
     assert blocked['newpath']==final_parent
@@ -148,7 +149,7 @@ def verify_link_proof(c):
     prior=[x['path'] for x in trace['syncs'] if e['exit_ns']<=x['enter_ns'] and x['exit_ns']<=unlink['enter_ns']]
     assert prior==[final_parent+'/data.bin',final_parent]
     pubs=[x for x in trace['events'] if x['syscall'] in (264,265,316) and x.get('result')==0 and x.get('second_pathname')=='COMMITTED.json']
-    assert pubs and all(x['enter_ns']>=unlink['exit_ns'] and x['second_directory']['path']==c['config']['destination_root']+'/1' for x in pubs)
+    assert pubs and all(x['enter_ns']>=unlink['exit_ns'] and x['second_directory']['path']==c['config']['destination_root']+'/' + evidence_component(c) for x in pubs)
     assert any(x['path']==parent and unlink['exit_ns']<=x['enter_ns']<=x['exit_ns']<=pubs[0]['enter_ns'] for x in trace['syncs'])
     return e
 

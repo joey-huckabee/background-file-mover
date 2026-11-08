@@ -2,6 +2,7 @@
 
 All paths, signals and PIDs belong to that fixture. No production NFS enablement.
 """
+from nfs_fixture_contract import RECORDING_ID, manifest_size, producer_request, validate_producer_response, validate_writer_bytes
 import hashlib
 import json
 import time
@@ -86,8 +87,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             run(["cp", str(local), client + ":" + self.config_path])
             if point != "bootstrap":
                 execute(f"{self.binary} --initialize-source {self.config_path}", "1000:1000")
-            self.body = {"generator_id": "fixture", "submission_id": self.label, "source_path": self.source + "/current",
-                         "files": [{"name": "nested/data.bin"}]}
+            self.body = producer_request(self.source + "/current", {"nested/data.bin": 2097169})
+            self.result["submission"] = self.body
 
         def request(self, method, path, body=None, asynchronous=False, connected_marker=None):
             self.counter += 1
@@ -107,7 +108,10 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             response = execute(script, "1000:1000", check=False)
             if response.returncode:
                 raise RuntimeError(response.stderr)
-            return self.parse(response.stdout)
+            code, body_response = self.parse(response.stdout)
+            if method == "POST" and path == "/api/v2/jobs":
+                validate_producer_response(code, body_response, body)
+            return code, body_response
 
         @staticmethod
         def parse(text):
@@ -192,7 +196,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if self.point == "claim_link":
                 return self.source + "/current/nested/data.bin", self.source + "/.file-mover/1-0/data"
             assert self.point == "file_link"
-            return self.destination + "/1/.staging/1.part", self.destination + "/1/nested/data.bin"
+            return self.destination + "/" + RECORDING_ID + "/.staging/1.part", self.destination + "/" + RECORDING_ID + "/nested/data.bin"
 
         def owned_aliases(self):
             old, new = self.link_names()
@@ -304,17 +308,17 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
 
         def verify(self):
             private = self.source + "/.file-mover/1-0/data"
-            final = self.destination + "/1/nested/data.bin"
+            final = self.destination + "/" + RECORDING_ID + "/nested/data.bin"
             hashes = execute(f"sha256sum {private} {final}", "1000:1000").stdout.splitlines()
             assert [line.split()[0] for line in hashes] == [expected, expected]
-            manifest = json.loads(execute(f"cat {self.destination}/1/COMMITTED.json", "1000:1000").stdout)
-            assert manifest["version"] == 1 and manifest["submission_id"] == self.label
+            manifest_text = execute(f"cat {self.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout
+            manifest = validate_writer_bytes(manifest_text.encode("utf-8"), self.body)
             assert manifest["generator_id"] == "fixture" and manifest["job_id"] == "1"
-            assert [(f["path"], f["size_bytes"], f["algorithm"], f["sha256"]) for f in manifest["files"]] == [("nested/data.bin", 2 * 1048576 + 17, "sha256", expected)]
+            assert [(f["path"], manifest_size(f, manifest), f["algorithm"], f["sha256"]) for f in manifest["files"]] == [("nested/data.bin", 2 * 1048576 + 17, "sha256", expected)]
             assert execute(f"stat -c '%d:%i:%u:%a' {self.source} {self.source}/.file-mover {self.destination} {self.destination}/.file-mover", "1000:1000").stdout == self.identities
             self.result.update({"hashes": hashes, "manifest": manifest, "root_identities_stable": True, "source_retained": True})
             if "manifest_hash_before_outage" in self.result:
-                assert execute(f"sha256sum {self.destination}/1/COMMITTED.json", "1000:1000").stdout.split()[0] == self.result["manifest_hash_before_outage"]
+                assert execute(f"sha256sum {self.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout.split()[0] == self.result["manifest_hash_before_outage"]
 
         def cleanup(self):
             restore()  # Always restore before trying to terminate/reap hard-mount users.
@@ -385,21 +389,21 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     expected_phase = {"source_read": "Intent", "copy_chunk": "Intent", "verify_read": "Copied", "publish": "PublishIntent", "file_link": "PublishIntent", "manifest_link": "Published"}[point]
                     assert status["details"]["files"][0]["transfer_phase"] == expected_phase
                 if point == "copy_chunk":
-                    size = int(execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout)
+                    size = int(execute(f"stat -c %s {case.destination}/{RECORDING_ID}/.staging/1.part", "1000:1000").stdout)
                     assert size == 1048576
                     case.result["partial_bytes_before_outage"] = size
                 if point == "manifest_link":
                     assert status["details"]["manifest_phase"] == 3
-                    aliases = execute(f"stat -c '%d:%i:%h:%s' {case.destination}/1/.staging/COMMITTED.part {case.destination}/1/COMMITTED.json", "1000:1000").stdout.splitlines()
+                    aliases = execute(f"stat -c '%d:%i:%h:%s' {case.destination}/{RECORDING_ID}/.staging/COMMITTED.part {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout.splitlines()
                     assert len(aliases) == 2 and aliases[0] == aliases[1] and aliases[0].split(":")[2] == "2"
                     case.result["manifest_aliases_before_outage"] = aliases
-                    case.result["manifest_hash_before_outage"] = execute(f"sha256sum {case.destination}/1/COMMITTED.json", "1000:1000").stdout.split()[0]
+                    case.result["manifest_hash_before_outage"] = execute(f"sha256sum {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout.split()[0]
                 if point in link_points:
                     case.result["owned_aliases_before_outage"] = case.owned_aliases()
-                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    assert execute(f"test ! -e {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000", check=False).returncode == 0
                     case.result["completion_manifest_absent_at_pause"] = True
                 if prolonged:
-                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    assert execute(f"test ! -e {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000", check=False).returncode == 0
                     case.result["completion_manifest_absent_at_pause"] = True
                 run(["exec", server, "rpc.nfsd", "0"])
                 # Keep new link cases at the exact durable two-name boundary.
@@ -449,7 +453,7 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                     case.result["coordinator_death"] = "Actual assigned child retained source custody; competing startup refused before SQLite/readiness"
                     case.signal(case.worker, "CONT")
                     case.result["worker_exit_after_restore"] = case.await_exit(case.worker)
-                    final = case.destination + "/1/nested/data.bin"
+                    final = case.destination + "/" + RECORDING_ID + "/nested/data.bin"
                     present = execute(f"test -f {final}", "1000:1000", check=False).returncode == 0
                     case.result["publication_present_before_restart"] = present
                     if present:
@@ -479,21 +483,21 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                 if point in link_points:
                     case.result["owned_aliases_before_recovery"] = case.owned_aliases()
                     assert case.result["owned_aliases_before_recovery"] == case.result["owned_aliases_before_outage"]
-                    assert execute(f"test ! -e {case.destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    assert execute(f"test ! -e {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000", check=False).returncode == 0
                     case.result["completion_manifest_absent_before_recovery"] = True
                 recovered = case.recover()
                 assert recovered["details"]["source_cleanup_enabled"] is False
                 attempt = recovered["details"]["files"][0]["attempt"]
                 if point in {"source_read", "copy_chunk"}:
                     assert attempt == 2
-                    old = case.destination + "/1/.staging/1.part"
+                    old = case.destination + "/" + RECORDING_ID + "/.staging/1.part"
                     assert execute(f"test -f {old}", "1000:1000", check=False).returncode == 0
                     case.result["preserved_partial_bytes"] = int(execute(f"stat -c %s {old}", "1000:1000").stdout)
                 else:
                     assert attempt == 1
                 if point == "manifest_link":
-                    assert execute(f"test ! -e {case.destination}/1/.staging/COMMITTED.part", "1000:1000", check=False).returncode == 0
-                    assert execute(f"stat -c %h {case.destination}/1/COMMITTED.json", "1000:1000").stdout.strip() == "1"
+                    assert execute(f"test ! -e {case.destination}/{RECORDING_ID}/.staging/COMMITTED.part", "1000:1000", check=False).returncode == 0
+                    assert execute(f"stat -c %h {case.destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout.strip() == "1"
                 if point in link_points:
                     old, new = case.link_names()
                     assert execute(f"test ! -e {old}", "1000:1000", check=False).returncode == 0

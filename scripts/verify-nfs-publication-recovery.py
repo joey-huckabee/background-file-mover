@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit retained actual mover/server-recovery proofs, exact builds and cleanup."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -40,7 +41,7 @@ def _analyze(c):
     blocked=c['blocked_unlink'];raw=blocked['syscall'].split()
     assert blocked['state']=='D'
     assert raw[0]=='263' and int(raw[1],16)==blocked['fd'] and int(raw[3],16)==0
-    assert blocked['path']==c['config']['destination_root']+'/1/.staging'
+    assert blocked['path']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
     assert c['worker_pid']==c['paused_worker']['pid'] and c['epoch_before']['group']==int(c['coordinator_pid'])
     assert '--internal-delivery-worker' in c['paused_worker']['command']
     assert c['guard_exit']==73 and c['contender']['exit_code']!=0
@@ -69,15 +70,15 @@ def _analyze(c):
         assert before['pid']!=after['pid'] and before['started_at']!=after['started_at']
     trace=c['trace'];assert trace['passed'] and not trace.get('cleanup_error') and trace['pid']==int(c['worker_pid'])
     assert trace['exit_status'] in (0,9) and all(s['result']==0 for s in trace['syncs'])
-    stage=c['config']['destination_root']+'/1/.staging/1.part'
+    stage=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
     assert trace['syncs'] and all(s['enter_ns']>=c['restore_started_ns'] for s in trace['syncs'])
     unlink=verify_publication_proof(c)
     committed=c['committed'];assert committed['state']=='Committed' and not committed['details']['source_cleanup_enabled']
     assert committed['details']['files'][0]['attempt']==1
     assert [line.split()[0] for line in c['hashes']]==[expected,expected]
     manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture'
-    assert manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow']
     assert c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
@@ -120,7 +121,7 @@ analyze_storage=_storage.analyze_storage
 
 
 def verify_publication_proof(c):
-    trace=c['trace'];parent=c['config']['destination_root']+'/1/.staging'
+    trace=c['trace'];parent=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
     assert trace['syncs']==[e for e in trace['events'] if e['syscall'] in (74,75)]
     blocked=c['blocked_unlink'];fdinfo=dict(line.split(':',1) for line in blocked['fdinfo'].splitlines())
     events=[e for e in trace['events'] if e['syscall']==263 and e.get('descriptor') and e['descriptor']['path']==parent and e.get('pathname')=='1.part']
@@ -137,7 +138,7 @@ def verify_publication_proof(c):
     assert c['final_backing_after']==dict(identity=':'.join(identity[:2]+['1',identity[3]]),sha256=aliases['final']['sha256'])
     assert c['staging_absent_after']
     pubs=[x for x in trace['events'] if x['syscall'] in (264,265,316) and x.get('result')==0 and x.get('second_pathname')=='COMMITTED.json']
-    assert pubs and all(x['enter_ns']>=e['exit_ns'] and x['second_directory']['path']==c['config']['destination_root']+'/1' for x in pubs)
+    assert pubs and all(x['enter_ns']>=e['exit_ns'] and x['second_directory']['path']==c['config']['destination_root']+'/' + evidence_component(c) for x in pubs)
     assert not any(x['syscall'] in (264,265,316) and x.get('result')==0 and x.get('second_pathname')=='data.bin' for x in trace['events'])
     return e
 
