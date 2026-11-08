@@ -64,11 +64,26 @@ The bounded cases are:
 
 ## Actual evidence
 
-Current compatibility-run results will be recorded here after execution.
+Both debug and release compatibility runs **passed** using checker source
+`a44c24991d50ac2a521ad013e0e41881e45e8aba`. Raw output:
+`/home/joey/GIT/background-file-mover-testing/rust/validation/release-119-pair-3`.
+The run lasted 19:10:16-19:18:36 UTC. Both profiles preserved all original columns
+in 15 tables (including sqlite_sequence), recovered job 2 from Claimed/Retrying
+to committed v1, allocated fresh UUID job 3, preserved original v1/v2 files and
+receipts, and passed both live exclusion directions. Both cleanups succeeded;
+no fixture containers remain. [Recorded evidence](RELEASE-CHECK-EVIDENCE.json)
+contains the exact report/source/executable hashes, raw paths, snapshots and
+limits, plus reverified local build/bundle evidence.
+
+These are actual disposable executable-pair results, not a shipping systemd,
+remote-access, physical durability, surviving-worker cross-version matrix or
+positive working-downgrade qualification.
 The first driver run (`release-119-pair-1`) failed its readiness observation:
 the HTTP helper omitted request transport into the container. The daemon had
 reached readiness; the driver is corrected and the failed report retained with
-clean container removal. Independent review also found missing known-input
+clean container removal. The second run (`release-119-pair-2`) correctly failed
+when its same-port contender hit AddrInUse; contenders now use a separate port
+and require the actual durable-guard refusal. Independent review also found missing known-input
 payload assertions; those are added before recording passing evidence.
 
 Reference checks passed: 70 schema definitions, 108 structural cases, 11 semantic
@@ -81,8 +96,9 @@ acceptance qualification.
 PR 6 records both local SLES modes: 264 production and 268 qualification tests
 per debug/release profile, five existing ignored helpers per profile, strict
 Clippy and ELF audits. All 73 Rust inputs and 40 executable hashes were checked;
-cleanup was clean. Both final-head CI modes passed. No Rust input changes here
-justify repeating those long suites solely for documentation/fixture changes.
+cleanup was clean. Both final-head CI modes passed. Because the Rust inputs are unchanged, the exact-input build evidence is reused;
+no new Rust build or full-suite rerun is claimed for these documentation/fixture
+changes. GitHub path filters do not trigger the Rust workflow for this delta.
 
 The prototype offline bundle passed pinned-SLES network-disabled install,
 verification, UUID/v2 transfer, restart/replay and tamper/refusal checks. Windows
@@ -94,7 +110,9 @@ This is a prototype artifact, not a published release or installed service.
 
 The coordinator owns the runner, disposable checks and integration. The existing
 cloud reviewer independently audits blockers and the new driver; its concrete
-payload-verification finding is addressed. Review/test results remain scoped to
+payload-verification finding is addressed. Bounded follow-up review found no
+actionable issues in that fix or the separate-port exclusion delta. Review/test
+results remain scoped to
 the exact inputs recorded above. Costs are unknown; no fixed fan-out improvement
 is claimed. Production NFS/deletion, deployment and operational conversion remain
 unauthorized. Missing release features require their own bounded implementation.
