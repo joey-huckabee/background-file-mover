@@ -124,15 +124,15 @@ fn request(
         stop,
         LIMIT as u64,
     )
-    .map_err(|_| ClaimError::Blocked("claim worker outcome uncertain"))?;
+    .map_err(|_| ClaimError::OutcomeUncertain)?;
     let reply: Receipt =
-        serde_json::from_slice(&bytes).map_err(|_| ClaimError::Blocked("invalid claim receipt"))?;
+        serde_json::from_slice(&bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
     if reply.version != 1 {
-        return Err(ClaimError::Blocked("invalid claim receipt version"));
+        return Err(ClaimError::OutcomeUncertain);
     }
     if let Some(detail) = &reply.diagnostic {
         if reply.error.is_none() || reply.claim.is_some() || !super::diagnostic::valid(detail) {
-            return Err(ClaimError::Blocked("invalid failure diagnostic"));
+            return Err(ClaimError::OutcomeUncertain);
         }
         eprintln!("Claim worker: {detail}");
     }

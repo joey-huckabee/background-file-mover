@@ -409,6 +409,19 @@ impl Drop for Worker {
         }
     }
 }
+fn claim_error(failure: mover_fs::ClaimError, id: i64) -> Response {
+    match failure {
+        mover_fs::ClaimError::OutcomeUncertain => error(503, "handoff_pending", true, Some(id)),
+        mover_fs::ClaimError::ExpectedSizeMismatch => {
+            error(409, "source_size_mismatch", false, Some(id))
+        }
+        mover_fs::ClaimError::Store(StoreError::AdmissionFull) => {
+            error(503, "retention_capacity", true, Some(id))
+        }
+        mover_fs::ClaimError::Store(_) => error(503, "storage_unavailable", true, Some(id)),
+        _ => error(409, "recording_blocked", false, Some(id)),
+    }
+}
 fn process(
     store: &Store,
     guard: &mover_fs::LocalClaimLock,
@@ -465,8 +478,8 @@ fn process(
             Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
             Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
         }
-        if claim_worker::validate_existing(store, guard, stop, job.job_id, false).is_err() {
-            return error(409, "recording_blocked", false, Some(job.job_id));
+        if let Err(e) = claim_worker::validate_existing(store, guard, stop, job.job_id, false) {
+            return claim_error(e, job.job_id);
         }
         if check_expected_sizes
             && job
@@ -487,24 +500,15 @@ fn process(
                         Err(_) => error(503, "storage_unavailable", true, Some(job.job_id)),
                     };
                 }
-                Err(mover_fs::ClaimError::ExpectedSizeMismatch) => {
-                    return error(409, "source_size_mismatch", false, Some(job.job_id));
-                }
-                Err(mover_fs::ClaimError::Store(StoreError::AdmissionFull)) => {
-                    return error(503, "retention_capacity", true, Some(job.job_id));
-                }
-                Err(mover_fs::ClaimError::Store(_)) => {
-                    return error(503, "storage_unavailable", true, Some(job.job_id));
-                }
-                Err(_) => return error(409, "recording_blocked", false, Some(job.job_id)),
+                Err(e) => return claim_error(e, job.job_id),
             }
         }
     }
     if job.recording.handoff() != Handoff::Ready202 {
         return error(503, "handoff_pending", true, Some(job.job_id));
     }
-    if claim_worker::validate_handoff(store, guard, stop, job.job_id).is_err() {
-        return error(409, "recording_blocked", false, Some(job.job_id));
+    if let Err(e) = claim_worker::validate_handoff(store, guard, stop, job.job_id) {
+        return claim_error(e, job.job_id);
     }
     Response {
         status: 202,

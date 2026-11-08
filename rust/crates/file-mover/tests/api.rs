@@ -5341,3 +5341,68 @@ fn explicit_initialization_retries_preserved_empty_database_but_refuses_sidecars
         }
     }
 }
+
+#[test]
+fn exited_claim_worker_without_receipt_is_retryable_pending_and_recovers_original_intent() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(300);
+    f.stop();
+    f.write("data", b"retained original");
+    let rendezvous = f.root.join("receipt-loss-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut cmd = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    cmd.env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_apply")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(cmd);
+    let body = f.input("lost-worker-receipt", json!(["data"]));
+    let bytes = post_bytes(&body);
+    let addr = f.address;
+    let pending = std::thread::spawn(move || exchange(addr, &bytes));
+    let until = Instant::now() + Duration::from_secs(5);
+    while !rendezvous.join("ready").exists() {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let marker = std::fs::read_to_string(rendezvous.join("ready")).unwrap();
+    let worker: u32 = marker.split_whitespace().next().unwrap().parse().unwrap();
+    let command = std::fs::read(format!("/proc/{worker}/cmdline")).unwrap();
+    assert!(String::from_utf8_lossy(&command).contains("--internal-claim-worker"));
+    let status = std::fs::read_to_string(format!("/proc/{worker}/status")).unwrap();
+    assert!(status.lines().any(|line| {
+        line.strip_prefix("PPid:")
+            .is_some_and(|p| p.trim() == f.child.as_ref().unwrap().id().to_string())
+    }));
+    let killed = Instant::now();
+    assert!(
+        Command::new("/bin/kill")
+            .args(["-KILL", &worker.to_string()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let reply = pending.join().unwrap();
+    assert!(killed.elapsed() < Duration::from_secs(5));
+    assert_eq!(reply.0, 503);
+    assert_eq!(reply.1["error"], "handoff_pending");
+    assert_eq!(reply.1["retryable"], true);
+    assert_eq!(reply.1["source_paths_released"], false);
+    assert_producer_error(&reply.1);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"retained original"
+    );
+    f.stop();
+    let s = mover_store::Store::open_read_only(f.root.join("state/jobs.sqlite")).unwrap();
+    assert!(!s.claim_intent(1, 0).unwrap().unwrap().1);
+    drop(s);
+    f.start();
+    assert_eq!(f.post(&body).0, 202);
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"retained original"
+    );
+    f.stop();
+}
