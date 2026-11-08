@@ -24,12 +24,17 @@ def producer_request(source_directory, sizes, recording_id=RECORDING_ID, generat
 def validate_producer_response(code, response, request):
     if code == 202:
         assert type(response['job_id']) is str and re.fullmatch(r'[1-9][0-9]*', response['job_id'])
+        assert int(response['job_id']) <= 2**63-1
+        assert response['accepted'] is True and response['source_paths_released'] is True
         assert response == dict(job_id=response['job_id'], recording_id=request['recording_id'],
                                 accepted=True, source_paths_released=True)
     else:
         assert set(response) == {'recording_id', 'error', 'retryable', 'retry_after_seconds', 'source_paths_released'}
         assert response['recording_id'] in (None, request['recording_id'])
         assert response['source_paths_released'] is False and type(response['retryable']) is bool
+        assert type(response['error']) is str
+        delay = response['retry_after_seconds']
+        assert delay is None or (type(delay) is int and 1 <= delay <= 2147483647)
     return code, response
 
 
@@ -71,6 +76,7 @@ def validate_v2(manifest, request):
     assert re.fullmatch(r'[1-9][0-9]*', manifest['job_id']) and int(manifest['job_id']) <= 2**63-1
     assert manifest['recording_id'] == str(uuid.UUID(request['recording_id']))
     assert manifest['generator_id'] == request['generator_id']
+    assert type(manifest['request_identity']) is dict and type(manifest['request_identity'].get('version')) is int
     assert manifest['request_identity'] == dict(version=1, algorithm='sha256', sha256=request_digest(request))
     assert len(manifest['files']) == len(request['files'])
     for index, entry in enumerate(manifest['files']):

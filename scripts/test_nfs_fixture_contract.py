@@ -64,9 +64,10 @@ class FixtureContract(unittest.TestCase):
 
     def test_v2_rejects_bad_size_identity_mapping_and_fields(self):
         request, manifest = fixture()
-        for mode in ('numeric_size', 'leading_zero', 'overflow', 'wrong_uuid', 'wrong_digest', 'wrong_id', 'extra', 'wrong_path'):
+        for mode in ('boolean_identity_version', 'numeric_size', 'leading_zero', 'overflow', 'wrong_uuid', 'wrong_digest', 'wrong_id', 'extra', 'wrong_path'):
             value = copy.deepcopy(manifest)
-            if mode == 'numeric_size': value['files'][0]['size_bytes'] = 2097169
+            if mode == 'boolean_identity_version': value['request_identity']['version'] = True
+            elif mode == 'numeric_size': value['files'][0]['size_bytes'] = 2097169
             elif mode == 'leading_zero': value['files'][0]['size_bytes'] = '02097169'
             elif mode == 'overflow': value['files'][0]['size_bytes'] = str(2**64)
             elif mode == 'wrong_uuid': value['recording_id'] = SECOND_RECORDING_ID
@@ -75,6 +76,19 @@ class FixtureContract(unittest.TestCase):
             elif mode == 'extra': value['submission_id'] = 'old-label'
             else: value['files'][0]['path'] = 'other'
             with self.subTest(mode=mode), self.assertRaises(AssertionError): validate_v2(value, request)
+
+    def test_boolean_integer_aliases_cannot_validate_writer_or_receipt(self):
+        request, manifest = fixture()
+        manifest['request_identity']['version'] = True
+        raw = json.dumps(manifest, ensure_ascii=False, separators=(',', ':')).encode()
+        with self.assertRaises(AssertionError): validate_writer_bytes(raw, request)
+        accepted = dict(job_id='1', recording_id=RECORDING_ID, accepted=True, source_paths_released=True)
+        for key in ('accepted', 'source_paths_released'):
+            bad = dict(accepted); bad[key] = 1
+            with self.subTest(key=key), self.assertRaises(AssertionError): validate_producer_response(202, bad, request)
+        error = dict(recording_id=RECORDING_ID, error='handoff_pending', retryable=True,
+                     retry_after_seconds=True, source_paths_released=False)
+        with self.assertRaises(AssertionError): validate_producer_response(503, error, request)
 
     def test_v1_stays_historical_and_uses_numeric_directory_and_sizes(self):
         obj, _, _, _ = historical_fixture()
