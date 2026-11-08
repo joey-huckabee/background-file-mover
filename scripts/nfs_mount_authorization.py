@@ -1,4 +1,5 @@
 """Actual supervised service checks; called only inside the owned profile lab."""
+from nfs_fixture_contract import RECORDING_ID, producer_request, validate_v2
 import base64
 from contextlib import contextmanager
 import re
@@ -204,7 +205,8 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
                 assert process.wait(timeout=30)==0
             try:
                 service = start('service')
-                body = dict(generator_id='fixture',submission_id=label,source_path=source+'/current',files=[dict(name='nested/data')])
+                body = producer_request(source+'/current', {'nested/data': len(b'original profile payload')})
+                case['submission'] = body
                 for root_path in (source,destination):
                     point = root_path+'/unexpected'
                     execute('mkdir -m 755 '+point,'1000:1000')
@@ -225,7 +227,7 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
                 refused = await_state(lambda s:(s.get('details',{}).get('delivery_retry') or {}).get('code')=='destination_binding_requires_review',service)
                 case['destination_mount_refusal'] = refused
                 assert refused['state']=='Claimed' and not refused['details']['source_cleanup_enabled']
-                execute(f'test ! -e {destination}/1/COMMITTED.json','1000:1000')
+                execute(f'test ! -e {destination}/{RECORDING_ID}/COMMITTED.json','1000:1000')
                 with control_traversal(execute,destination+'/unexpected'):
                     run(['exec',client,'umount',destination+'/unexpected'])
                     mounts.remove(destination+'/unexpected')
@@ -238,8 +240,9 @@ def qualify(root, production_gate, qualification_gate, run, execute, client,
                 case['private_source'] = execute(f"stat -c '%d:%i:%s' {source}/.file-mover/1-0/data; sha256sum {source}/.file-mover/1-0/data",'1000:1000').splitlines()
                 assert case['private_source'][0]==case['original_source'][0]
                 assert case['private_source'][1].split()[0]==expected_hash
-                case['manifest'] = json.loads(execute('cat '+destination+'/1/COMMITTED.json','1000:1000'))
-                assert execute('sha256sum '+destination+'/1/nested/data','1000:1000').split()[0]==expected_hash
+                case['manifest'] = json.loads(execute('cat '+destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000'))
+                assert execute('sha256sum '+destination+'/' + RECORDING_ID + '/nested/data','1000:1000').split()[0]==expected_hash
+                validate_v2(case['manifest'], body)
                 assert case['manifest']['files'][0]['sha256']==expected_hash
                 assert committed['details']['files'][0]['attempt']==1
                 stop(service)

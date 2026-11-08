@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independently verify and retain buffered pre-202 source-claim and fresh SLES evidence."""
+from nfs_fixture_contract import validate_evidence_manifest
 import argparse
 import base64
 import hashlib
@@ -110,6 +111,7 @@ def main():
         assert c['committed']['state'] == 'Committed' and c['committed']['details']['files'][0]['attempt'] == 1
         assert not c['committed']['details']['source_cleanup_enabled']
         assert c['replay']['job_id'] == '1' and c['replay']['source_paths_released']
+        assert validate_evidence_manifest(c)
         assert c['manifest']['files'][0]['sha256'] == expected_hash
         after = c['publication_after_recovery']
         assert after['.staging/1.part'] is None and after['.staging/COMMITTED.part'] is None

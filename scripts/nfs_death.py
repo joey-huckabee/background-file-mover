@@ -1,4 +1,5 @@
 """Selected actual hard-NFS coordinator-death checks in a disposable fixture."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 import json
 import time
@@ -154,7 +155,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 result["status_before_outage"] = case.request("GET", "/api/v2/jobs/1")[1]
                 assert result["status_before_outage"]["state"] == ("Accepted" if point == "claim_apply" else "Claimed")
                 if point in {"copy_chunk", "source_read", "source_copy"}:
-                    size = execute(f"stat -c %s {case.destination}/1/.staging/1.part", "1000:1000").stdout.strip()
+                    size = execute(f"stat -c %s {case.destination}/{RECORDING_ID}/.staging/1.part", "1000:1000").stdout.strip()
                     assert size == ("0" if point == "source_read" else "1048576")
                     result["partial_bytes_before_outage"] = int(size)
                 if both_nfs:
@@ -263,7 +264,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                     assert case.state(worker) == "D"
             if point == "source_copy":
                 from nfs_both import payload
-                result["partial_while_source_unavailable"] = payload(case, execute, case.destination + "/1/.staging/1.part")
+                result["partial_while_source_unavailable"] = payload(case, execute, case.destination + "/" + RECORDING_ID + "/.staging/1.part")
                 assert result["partial_while_source_unavailable"] == result["copy_partial_before"]
                 assert execute(f"test ! -e {case.rendezvous}/read-completed", "1000:1000", check=False).returncode == 0
                 result["read_not_completed_before_restore"] = True
@@ -318,7 +319,7 @@ def run_death(Case, run, execute, spawn, restore, server, output, client, result
                 execute(f"printf 'next recording' >{case.source}/current/nested/data.bin", "1000:1000")
             if point in {"copy_chunk", "source_read", "source_copy", "bootstrap_populated"}:
                 assert recovered["details"]["files"][0]["attempt"] == 2
-                assert execute(f"test -f {case.destination}/1/.staging/1.part", "1000:1000", check=False).returncode == 0
+                assert execute(f"test -f {case.destination}/{RECORDING_ID}/.staging/1.part", "1000:1000", check=False).returncode == 0
                 result["old_partial_preserved"] = True
             if point in {"verify_read", "bootstrap", "bootstrap_enrolled"}:
                 assert recovered["details"]["files"][0]["attempt"] == 1

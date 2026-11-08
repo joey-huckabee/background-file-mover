@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit manifest staging-removal recovery, exact builds and normal cleanup."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -41,7 +42,7 @@ def _analyze(c):
     blocked=c['blocked_unlink'];raw=blocked['syscall'].split()
     assert blocked['state']=='D'
     assert raw[0]=='263' and int(raw[1],16)==blocked['fd'] and int(raw[3],16)==0
-    assert blocked['path']==c['config']['destination_root']+'/1/.staging'
+    assert blocked['path']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
     assert c['worker_pid']==c['paused_worker']['pid'] and c['epoch_before']['group']==int(c['coordinator_pid'])
     assert '--internal-delivery-worker' in c['paused_worker']['command']
     assert c['guard_exit']==73 and c['contender']['exit_code']!=0
@@ -76,8 +77,8 @@ def _analyze(c):
     assert committed['details']['files'][0]['attempt']==1
     assert [line.split()[0] for line in c['hashes']]==[expected,expected]
     manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture'
-    assert manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow']
     assert c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
@@ -120,7 +121,7 @@ analyze_storage=_storage.analyze_storage
 
 
 def verify_manifest_proof(c):
-    trace=c['trace'];parent=c['config']['destination_root']+'/1/.staging'
+    trace=c['trace'];parent=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
     assert trace['syncs']==[e for e in trace['events'] if e['syscall'] in (74,75)]
     blocked=c['blocked_unlink'];fdinfo=dict(line.split(':',1) for line in blocked['fdinfo'].splitlines())
     events=[e for e in trace['events'] if e['syscall']==263 and e.get('descriptor') and e['descriptor']['path']==parent and e.get('pathname')=='COMMITTED.part']
@@ -144,7 +145,7 @@ def verify_manifest_proof(c):
     after=[x for x in trace['syncs'] if x['enter_ns']>=e['exit_ns']]
     assert after==trace['syncs'] and len(after)==4
     paths=[x['descriptor']['path'] for x in after]
-    area=c['config']['destination_root']+'/1'
+    area=c['config']['destination_root']+'/' + evidence_component(c)
     assert paths==[parent,area+'/COMMITTED.json',parent,area]
     assert all(x['result']==0 for x in after)
     return e

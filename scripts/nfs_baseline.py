@@ -3,6 +3,7 @@
 Called only after the owning runner establishes its isolated hard NFS fixture.
 All shell paths are fixed fixture paths; no producer/user paths are interpolated.
 """
+from nfs_fixture_contract import RECORDING_ID, manifest_size, producer_request, validate_v2
 import hashlib
 import json
 import time
@@ -79,8 +80,8 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
                         time.sleep(0.2)
                 else:
                     raise RuntimeError("no startup health response")
-                body = {"generator_id": "fixture", "submission_id": label, "source_path": source + "/current",
-                        "files": [{"name": name} for name in names]}
+                body = producer_request(source + "/current", dict(zip(names, sizes)))
+                result["submission"] = body
                 code, response = request("POST", "/api/v2/jobs", body)
                 result["handoff"] = {"code": code, "body": response}
                 if code != 202:
@@ -88,7 +89,7 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
                     result["status"] = request("GET", "/api/v2/jobs/1")
                     result["original_hashes"] = execute("sha256sum " + " ".join(source + "/current/" + n for n in names), "1000:1000").stdout.splitlines()
                     result["source_intact"] = [line.split()[0] for line in result["original_hashes"]] == expected
-                    result["manifest_absent"] = execute(f"test ! -e {destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    result["manifest_absent"] = execute(f"test ! -e {destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000", check=False).returncode == 0
                     continue
                 assert request("POST", "/api/v2/jobs", body)[0] == 202
                 for name in names:
@@ -111,17 +112,17 @@ def run_baseline(gate, evidence, run, execute, spawn, output, client):
                     assert execute(f"cat {source}/current/{name}", "1000:1000").stdout == "next recording"
                 result["original_paths_reused"] = True
                 if result.get("stage") == "delivery":
-                    result["manifest_absent"] = execute(f"test ! -e {destination}/1/COMMITTED.json", "1000:1000", check=False).returncode == 0
-                    stage = destination + "/1/.staging/1.part"
+                    result["manifest_absent"] = execute(f"test ! -e {destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000", check=False).returncode == 0
+                    stage = destination + "/" + RECORDING_ID + "/.staging/1.part"
                     if execute(f"test -f {stage}", "1000:1000", check=False).returncode == 0:
                         result["first_stage_hash"] = execute(f"sha256sum {stage}", "1000:1000").stdout.split()[0]
                         result["first_stage_intact"] = result["first_stage_hash"] == expected[0]
                         assert result["first_stage_intact"]
                     continue
-                manifest = json.loads(execute(f"cat {destination}/1/COMMITTED.json", "1000:1000").stdout)
-                assert manifest["version"] == 1 and manifest["submission_id"] == label
-                assert [(f["path"], f["size_bytes"], f["algorithm"], f["sha256"]) for f in manifest["files"]] == list(zip(names, sizes, ["sha256"] * 3, expected))
-                actual = execute("sha256sum " + " ".join(destination + "/1/" + n for n in names), "1000:1000").stdout.splitlines()
+                manifest = json.loads(execute(f"cat {destination}/{RECORDING_ID}/COMMITTED.json", "1000:1000").stdout)
+                validate_v2(manifest, body)
+                assert [(f["path"], manifest_size(f, manifest), f["algorithm"], f["sha256"]) for f in manifest["files"]] == list(zip(names, sizes, ["sha256"] * 3, expected))
+                actual = execute("sha256sum " + " ".join(destination + "/" + RECORDING_ID + "/" + n for n in names), "1000:1000").stdout.splitlines()
                 assert [line.split()[0] for line in actual] == expected
                 result["manifest"] = manifest
                 lifecycle = execute(f"LD_BIND_NOW=1 {remote_binary} --status /tmp/baseline-config.json", "1000:1000")

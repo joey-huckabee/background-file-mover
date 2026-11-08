@@ -1,4 +1,5 @@
 """Selected unlink syscall and pre-directory-sync deaths, never power-loss proof."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 import traceback
@@ -84,7 +85,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                     assert len(fields) == 9 and fields[0] == '263', raw
                     fd = int(fields[1], 16)
                     target = execute(f'readlink /proc/{worker}/fd/{fd}', '1000:1000').stdout.strip()
-                    assert target == c.destination + '/1/.staging', target
+                    assert target == c.destination + '/' + RECORDING_ID + '/.staging', target
                     assert int(fields[3], 16) == 0, raw
                     result['blocked_unlink_syscall'] = dict(raw=raw, fd=fd, parent=target)
                     result['interruption_kind'] = 'in_flight_unlinkat_syscall'
@@ -164,7 +165,7 @@ def qualify(Case, run, execute, spawn, restore, output, client, results, endpoin
                 assert after['.staging/1.part'] is None and after['.staging/COMMITTED.part'] is None
                 assert after['nested/data.bin']['links'] == after['COMMITTED.json']['links'] == 1
                 assert execute(f'cat {c.source}/current/nested/data.bin', '1000:1000').stdout == 'next recording'
-                assert execute(f'test ! -e {c.destination}/1/.staging/2.part', '1000:1000', check=False).returncode == 0
+                assert execute(f'test ! -e {c.destination}/{RECORDING_ID}/.staging/2.part', '1000:1000', check=False).returncode == 0
                 result.update(original_state_recovery=True, original_publication_inode_preserved=True,
                               producer_reused_path_preserved=True, restart_only_after_restore_and_exit=True, passed=True)
             except Exception as error:

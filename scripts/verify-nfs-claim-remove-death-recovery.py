@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit source-claim REMOVE coordinator death before 202 recovery, exact builds and normal cleanup."""
+from nfs_fixture_contract import manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -39,13 +40,16 @@ def analyze_database(record,c):
         claims=[list(row) for row in db.execute('SELECT job_id,file_index,source_name,private_name,source_identity,done FROM claims ORDER BY job_id,file_index')]
         jobs=[list(row) for row in db.execute('SELECT job_id,generator_id,submission_id FROM jobs ORDER BY job_id')]
         counts=[db.execute('SELECT count(*) FROM '+table).fetchone()[0] for table in ('transfers','manifests')]
+        if c['manifest']['version']==2:
+            identity=db.execute('SELECT identity_kind,recording_uuid FROM jobs WHERE job_id=1').fetchone()
+            assert identity==(1,uuid.UUID(c['submission']['recording_id']).bytes)
     finally:
         if db is not None:db.close()
         assert folder.resolve().parent==scratch and folder.name.startswith('bfm-claim-proof-');shutil.rmtree(folder)
     assert claims==record['claims'] and len(claims)==1 and claims[0][:4]==[1,0,'current/nested/data.bin','1-0'] and claims[0][5]==0
     source=claims[0][4].split(':');original=c['original_source'][0].split(':')
     assert len(source)==8 and source[:3]==['1',*original[:2]] and source[3:5]==['1000','2097169'] and source[7]=='1'
-    assert jobs==record['jobs']==[[1,'fixture',c['config']['source_binding']['root_id']]] and counts==record['transfer_manifest_counts']==[0,0]
+    assert jobs==record['jobs']==[[1,'fixture',None if c['manifest']['version']==2 else c['config']['source_binding']['root_id']]] and counts==record['transfer_manifest_counts']==[0,0]
     return dict(claim_done=0,job_count=1,transfer_count=0,manifest_count=0,reconstructed_from_raw_database=True)
 
 
@@ -153,8 +157,8 @@ def analyze(c):
     assert c['final_payload']['sha256']==expected and c['final_payload']['identity'].split(':')[2:]==['1','2097169']
     committed=c['committed'];assert committed['state']=='Committed' and committed['details']['manifest_phase']==4 and not committed['details']['source_cleanup_enabled'] and committed['details']['files'][0]['attempt']==1
     assert [x.split()[0] for x in c['hashes']]==[expected,expected]
-    manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture' and manifest['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    manifest=c['manifest'];assert manifest['job_id']=='1' and manifest['generator_id']=='fixture' and validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,manifest),f['algorithm'],f['sha256']) for f in manifest['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     return dict(profile=c['profile'],kind=c['kind'],pending_remove=True,coordinator_killed=True,orphan_exclusion=True,original_attempt=1,devices=devices,
         old_worker_wait_status=trace['exit_status'],old_remove_result=event.get('result'),old_sync_count=len(trace['syncs']),private_only_after_old_exit=old is None and new is not None,
         database=db_proof,raw_records=len(wire['trace']),unknown_records=unknown,prior_successful_links=links,successful_removes=removes,original_pending_removes=original_removes,protocol_errors=errors,

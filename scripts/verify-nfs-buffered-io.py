@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independently verify and retain buffered worker I/O/RPC attribution and fresh SLES evidence."""
+from nfs_fixture_contract import validate_evidence_manifest
 import argparse
 import base64
 import hashlib
@@ -250,6 +251,7 @@ def main():
         assert (initial[0]==202 and initial[1]['source_paths_released']) or (initial[0]==503 and initial[1]['retryable'] and not initial[1]['source_paths_released'])
         assert c['confirmed_response'][0]==202 and c['confirmed_response'][1]['job_id']=='1' and c['confirmed_response'][1]['source_paths_released']
         assert c['committed']['state']=='Committed' and c['committed']['details']['files'][0]['attempt']==1
+        assert validate_evidence_manifest(c)
         assert not c['committed']['details']['source_cleanup_enabled'] and c['manifest']['files'][0]['sha256']==expected_hash
     assert clients and len(clients)==1 and len(observer_ids-clients)==8
     assert not live['authorization']['capabilities']

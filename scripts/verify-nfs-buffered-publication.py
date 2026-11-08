@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independently verify and retain buffered-publication and fresh SLES evidence."""
+from nfs_fixture_contract import evidence_component, validate_evidence_manifest
 import argparse
 import base64
 import hashlib
@@ -93,7 +94,7 @@ def main():
             fields = blocked['syscall'].split()
             assert blocked['state'] == 'D' and blocked['nfsd_threads'] == 0
             assert len(fields) == 9 and fields[0] == '263' and int(fields[3], 16) == 0
-            assert blocked['parent'] == c['config']['destination_root']+'/1/.staging'
+            assert blocked['parent'] == c['config']['destination_root']+'/' + evidence_component(c) + '/.staging'
         else:
             assert c['interruption_kind'] == ('unlink_returned_following_directory_sync_not_called' if args.post_unlink
                                                else 'link_returned_following_sync_not_called')
@@ -107,6 +108,7 @@ def main():
         assert c['committed']['state'] == 'Committed' and c['committed']['details']['files'][0]['attempt'] == 1
         assert not c['committed']['details']['source_cleanup_enabled']
         assert c['replay']['job_id'] == '1' and c['replay']['source_paths_released']
+        assert validate_evidence_manifest(c)
         assert c['manifest']['files'][0]['sha256'] == expected_hash
     inputs = dict(live_run_id=live['run_id'], matrix='buffered-post-unlink' if args.post_unlink else 'buffered-publication',
                   rust_input_count=len(current),

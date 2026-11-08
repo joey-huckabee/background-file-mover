@@ -3,6 +3,7 @@
 Uses existing qualification pauses after returned durable LINK operations. No
 RPC loss, outage, remote-settlement, physical durability or production claim.
 """
+from nfs_fixture_contract import RECORDING_ID
 import json
 import subprocess
 from nfs_mount_profile import covering, parse
@@ -67,7 +68,7 @@ def qualify_same_share(run, execute, client, output, mount, unmount_all, report,
                         assert all(int(security[key], 16) == 0 for key in ('CapInh', 'CapPrm', 'CapEff'))
                         r['owned_aliases_before_crash'] = c.owned_aliases()
                         r['status_before_crash'] = c.request('GET', '/api/v2/jobs/1')[1]
-                        execute(f'test ! -e {c.destination}/1/COMMITTED.json', '1000:1000')
+                        execute(f'test ! -e {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000')
                         r['manifest_absent_before_crash'] = True
                         assert r['status_before_crash']['source_paths_released'] == (point == 'file_link')
                         if point == 'file_link':
@@ -96,7 +97,7 @@ def qualify_same_share(run, execute, client, output, mount, unmount_all, report,
                     assert execute(f"stat -c '%d:%i:%s' {c.source}/.file-mover/1-0/data", '1000:1000') == original
                     r['private_source_identity'] = execute(f"stat -c '%d:%i:%h:%s' {c.source}/.file-mover/1-0/data", '1000:1000').strip()
                     assert r['private_source_identity'].split(':')[2] == '1'
-                    r['destination_identity'] = execute(f"stat -c '%d:%i:%h:%s' {c.destination}/1/nested/data.bin", '1000:1000').strip()
+                    r['destination_identity'] = execute(f"stat -c '%d:%i:%h:%s' {c.destination}/{RECORDING_ID}/nested/data.bin", '1000:1000').strip()
                     final = r['destination_identity'].split(':')
                     assert final[0] == original.split(':')[0] and final[1] != original.split(':')[1]
                     assert final[2] == '1'
@@ -105,7 +106,7 @@ def qualify_same_share(run, execute, client, output, mount, unmount_all, report,
                     c.verify()
                     r['committed'] = status
                     r['claimed_source_identity'] = original.strip()
-                    manifest_hash = execute(f'sha256sum {c.destination}/1/COMMITTED.json', '1000:1000').split()[0]
+                    manifest_hash = execute(f'sha256sum {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000').split()[0]
                     stop = adapted_execute(c.binary+' --stop '+c.config_path, '1000:1000')
                     r['stop_before_replay'] = json.loads(stop.stdout)
                     assert r['stop_before_replay']['phase'] == 'Stopped' and c.service.wait(timeout=30) == 0
@@ -115,8 +116,8 @@ def qualify_same_share(run, execute, client, output, mount, unmount_all, report,
                     assert code == 202 and replay['job_id'] == '1' and replay['source_paths_released']
                     assert c.request('GET', '/api/v2/jobs/1')[1]['state'] == 'Committed'
                     assert execute(f'cat {c.source}/current/nested/data.bin', '1000:1000') == 'next recording'
-                    assert execute(f'sha256sum {c.destination}/1/COMMITTED.json', '1000:1000').split()[0] == manifest_hash
-                    assert execute(f"stat -c '%d:%i:%h:%s' {c.destination}/1/nested/data.bin", '1000:1000').strip() == r['destination_identity']
+                    assert execute(f'sha256sum {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000').split()[0] == manifest_hash
+                    assert execute(f"stat -c '%d:%i:%h:%s' {c.destination}/{RECORDING_ID}/nested/data.bin", '1000:1000').strip() == r['destination_identity']
                     assert execute(f"stat -c '%d:%i:%h:%s' {c.source}/.file-mover/1-0/data", '1000:1000').strip() == r['private_source_identity']
                     assert execute(state_command, '1000:1000') == r['original_local_state']
                     c.verify()

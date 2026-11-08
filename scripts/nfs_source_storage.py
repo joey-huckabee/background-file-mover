@@ -3,6 +3,7 @@
 Only the fixture-owned filler is removed. Never change state, policy or claimed
 sources to restore admission. Reuse exact artifacts from the mandatory SLES gate.
 """
+from nfs_fixture_contract import RECORDING_ID, SECOND_RECORDING_ID, THIRD_RECORDING_ID, manifest_size, producer_request, validate_v2
 import hashlib
 import json
 import time
@@ -82,8 +83,9 @@ def qualify_source_storage(run, execute, spawn, output, client, server, ip, opti
             return int(head.split()[1]), json.loads(content)
 
         def submission(key, names):
-            return {"generator_id": "fixture", "submission_id": label+"-"+key,
-                    "source_path": source+"/current", "files": [{"name": "nested/"+n} for n in names]}
+            sizes = {"first": 14, "a": 14, "b": 19, "new": 10}
+            recording = {"claimed": RECORDING_ID, "partial": SECOND_RECORDING_ID, "new": THIRD_RECORDING_ID}[key]
+            return producer_request(source+"/current", {"nested/"+n: sizes[n] for n in names}, recording)
 
         def snapshot():
             code, body = request("GET", "/api/v2/retention")
@@ -133,7 +135,7 @@ def qualify_source_storage(run, execute, spawn, output, client, server, ip, opti
             assert first_reply["job_id"] == "1" and first_reply["source_paths_released"]
             committed("1")
             code, pending = request("POST", "/api/v2/jobs", partial)
-            assert code == 503 and pending["error"] == "handoff_pending", pending
+            assert code == 409 and pending["error"] == "source_file_missing", pending
             assert not pending["source_paths_released"]
             assert observe("stat -c '%d:%i:%u:%a:%s' "+source+"/.file-mover/2-0/data").stdout == originals["a"]
             observe(f"printf 'producer next first' >{source}/current/nested/first")
@@ -162,7 +164,7 @@ def qualify_source_storage(run, execute, spawn, output, client, server, ip, opti
             code, replay = request("POST", "/api/v2/jobs", first)
             assert code == 202 and replay["job_id"] == "1" and replay["source_paths_released"]
             code, missing = request("POST", "/api/v2/jobs", partial)
-            assert code == 503 and missing["error"] == "handoff_pending"
+            assert code == 409 and missing["error"] == "source_file_missing"
             assert not missing["source_paths_released"]
             observe(f"printf 'late partial source' >{source}/current/nested/b")
             code, finished = request("POST", "/api/v2/jobs", partial)
@@ -188,15 +190,19 @@ def qualify_source_storage(run, execute, spawn, output, client, server, ip, opti
                         "2": [("a", "partial source", "2-0"), ("b", "late partial source", "2-1")],
                         "3": [("new", "new source", "3-0")]}
             manifests = {}
+            requests = {"1": first, "2": partial, "3": new}
+            result["submissions"] = requests
             for job, files in expected.items():
-                manifest = json.loads(observe(f"cat {destination}/{job}/COMMITTED.json").stdout)
-                assert manifest["job_id"] == job and manifest["version"] == 1
+                recording = requests[job]["recording_id"]
+                manifest = json.loads(observe(f"cat {destination}/{recording}/COMMITTED.json").stdout)
+                validate_v2(manifest, requests[job])
+                assert manifest["job_id"] == job
                 for name, content, private in files:
                     digest = hashlib.sha256(content.encode()).hexdigest()
                     assert observe(f"sha256sum {source}/.file-mover/{private}/data").stdout.split()[0] == digest
-                    assert observe(f"sha256sum {destination}/{job}/nested/{name}").stdout.split()[0] == digest
+                    assert observe(f"sha256sum {destination}/{recording}/nested/{name}").stdout.split()[0] == digest
                     entry = next(f for f in manifest["files"] if f["path"] == "nested/"+name)
-                    assert entry["size_bytes"] == len(content) and entry["sha256"] == digest and entry["algorithm"] == "sha256"
+                    assert manifest_size(entry, manifest) == len(content) and entry["sha256"] == digest and entry["algorithm"] == "sha256"
                     if name in originals:
                         assert observe(f"stat -c '%d:%i:%u:%a:%s' {source}/.file-mover/{private}/data").stdout == originals[name]
                 manifests[job] = manifest
