@@ -136,10 +136,10 @@ impl ProducerRequest {
         if paths.is_empty() || paths.len() > 256 {
             return Err(RequestValidationError::InvalidFileCount);
         }
-        if let Some(sizes) = &sizes {
-            if sizes.len() != paths.len() || paths.iter().any(|p| !sizes.contains_key(p)) {
-                return Err(RequestValidationError::InvalidSizeMap);
-            }
+        if let Some(sizes) = &sizes
+            && (sizes.len() != paths.len() || paths.iter().any(|p| !sizes.contains_key(p)))
+        {
+            return Err(RequestValidationError::InvalidSizeMap);
         }
         let names: BTreeSet<&str> = paths.iter().map(String::as_str).collect();
         if names.len() != paths.len()
