@@ -16,6 +16,7 @@ use std::{
 };
 mod history;
 mod inspection;
+mod migration;
 pub use inspection::{InspectedEnrollment, InspectionSummary, StateInspection};
 mod missing_resets;
 mod operators;

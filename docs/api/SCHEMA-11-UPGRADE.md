@@ -1,5 +1,11 @@
 # Schema-11 upgrade specification
 
+Current implementation update: [increment 115](../RUST-INCREMENT-115.md)
+implements explicit guarded conversion after new user authorization. Its actual
+gate status and [operator procedure](../OFFLINE-STATE-MIGRATION.md) supersede
+historical apply-disabled statements below only for this bounded path. UUID/v2
+activation, deployment and operational-state conversion remain outside scope.
+
 Approved scope: 2026-11-04. The user accepted the recommendation to define one
 explicit offline upgrade path from validated schema 11, preserving legacy
 recovery and refusing state outside the declared matrix. This document completes

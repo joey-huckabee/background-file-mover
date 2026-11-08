@@ -15,14 +15,14 @@ pub struct InspectedEnrollment {
     pub state_instance_id: String,
 }
 pub struct StateInspection {
-    connection: Connection,
-    summary: InspectionSummary,
+    pub(super) connection: Connection,
+    pub(super) summary: InspectionSummary,
 }
 impl StateInspection {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Self::open_mode(path.as_ref(), true)
     }
-    fn open_mode(path: &Path, source: bool) -> Result<Self> {
+    pub(super) fn open_mode(path: &Path, source: bool) -> Result<Self> {
         let c = Connection::open_with_flags(
             path,
             OpenFlags::SQLITE_OPEN_READ_ONLY
@@ -124,46 +124,63 @@ impl StateInspection {
         if self.summary != snapshot.summary {
             return Err(StoreError::CorruptState);
         }
-        for (table, order) in [
-            ("jobs", "job_id"),
-            ("files", "job_id,file_index"),
-            ("reservations", "source_root_id,source_relative_path"),
-            ("claims", "job_id,file_index"),
-            ("missing", "job_id,file_index"),
-            ("transfers", "job_id,file_index,attempt"),
-            ("metadata", "key"),
-            ("manifests", "job_id"),
-            ("delivery_failures", "job_id"),
-            ("operator_resumes", "job_id,command_id"),
-            ("missing_resets", "job_id,command_id"),
-            ("source_enrollment", "singleton"),
-            ("destination_bindings", "job_id"),
-            ("source_ownership", "singleton"),
-            ("sqlite_sequence", "name,seq"),
-        ] {
-            let sql = format!("SELECT * FROM {table} ORDER BY {order}");
-            let mut a = self.connection.prepare(&sql)?;
-            let mut b = snapshot.connection.prepare(&sql)?;
-            let width = a.column_count();
-            if width != b.column_count() {
-                return Err(StoreError::CorruptState);
-            }
-            let mut ar = a.query([])?;
-            let mut br = b.query([])?;
-            loop {
-                match (ar.next()?, br.next()?) {
-                    (None, None) => break,
-                    (Some(a), Some(b)) => {
-                        for i in 0..width {
-                            if a.get_ref(i)? != b.get_ref(i)? {
-                                return Err(StoreError::CorruptState);
-                            }
+        compare_rows(&self.connection, &snapshot.connection, false)
+    }
+}
+
+pub(super) const LEGACY_COLUMNS: &str = "job_id,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count";
+
+// Stream exact typed values. Target jobs project only the original columns;
+// require_legacy_identities separately validates the four new columns.
+pub(super) fn compare_rows(
+    source: &Connection,
+    snapshot: &Connection,
+    legacy_projection: bool,
+) -> Result<()> {
+    for (table, order) in [
+        ("jobs", "job_id"),
+        ("files", "job_id,file_index"),
+        ("reservations", "source_root_id,source_relative_path"),
+        ("claims", "job_id,file_index"),
+        ("missing", "job_id,file_index"),
+        ("transfers", "job_id,file_index,attempt"),
+        ("metadata", "key"),
+        ("manifests", "job_id"),
+        ("delivery_failures", "job_id"),
+        ("operator_resumes", "job_id,command_id"),
+        ("missing_resets", "job_id,command_id"),
+        ("source_enrollment", "singleton"),
+        ("destination_bindings", "job_id"),
+        ("source_ownership", "singleton"),
+        ("sqlite_sequence", "name,seq"),
+    ] {
+        let columns = if table == "jobs" && legacy_projection {
+            LEGACY_COLUMNS
+        } else {
+            "*"
+        };
+        let sql = format!("SELECT {columns} FROM {table} ORDER BY {order}");
+        let mut a = source.prepare(&sql)?;
+        let mut b = snapshot.prepare(&sql)?;
+        let width = a.column_count();
+        if width != b.column_count() {
+            return Err(StoreError::CorruptState);
+        }
+        let mut ar = a.query([])?;
+        let mut br = b.query([])?;
+        loop {
+            match (ar.next()?, br.next()?) {
+                (None, None) => break,
+                (Some(a), Some(b)) => {
+                    for i in 0..width {
+                        if a.get_ref(i)? != b.get_ref(i)? {
+                            return Err(StoreError::CorruptState);
                         }
                     }
-                    _ => return Err(StoreError::CorruptState),
                 }
+                _ => return Err(StoreError::CorruptState),
             }
         }
-        Ok(())
     }
+    Ok(())
 }
