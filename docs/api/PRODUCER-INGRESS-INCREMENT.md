@@ -33,7 +33,7 @@ Require explicit absolute producer/operator socket paths, proxy UID/GID and the
 configured generator. Proxy UID must be non-root and distinct from the mover.
 Use preprovisioned local directories, distinct from source/destination custody:
 both ingress parents must be disjoint from the local state directory as well
-as source/destination scopes. Producer parent owned by mover, mode0750, dedicated
+as source/destination scopes. Producer parent owned by mover, mode 0750, dedicated
 proxy group; producer socket
 0660, matching owner/group. Operator parent stays mover-private 0700 and socket
 0600. Do not create users/groups, install a service, chmod foreign files or gain

@@ -6,6 +6,14 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 121 protected ingress
+
+SC-043/082-086 gain the bounded protected local Unix producer/operator transport
+implementation; exact gate/checker evidence and remaining RA obligations are in
+[increment 121](RUST-INCREMENT-121.md). This is not TLS/proxy deployment or full
+remote-access qualification. Group 53 appends SC-195-198; admin action runtime is
+still pending. No scenario ID is reused and no production NFS/deletion enabled.
+
 ## Increment 118 UUID runtime integration
 
 SC-139-142/164/190-194 retain existing approved IDs and gain implementation
@@ -65,7 +73,7 @@ all mover linkage and management. Historical post-clear owner/accounting wording
 below is superseded. Delete through the mover before clear; afterward cleanup is
 outside the service. This is approved direction, not implemented support.
 
-Current catalog: 194 stable SC IDs and six DOC IDs. SC-190-194 record approved
+Current catalog: 198 stable SC IDs and six DOC IDs. SC-190-194 record approved
 group-52 compatibility, awaiting implementation/qualification. SC-184-189 record
 group-51 admin defaults. SC-181-183 record group 50:
 eligible clear forgets all source/destination linkage while leaving files,
@@ -965,11 +973,11 @@ Increment 120 reconciles the existing API/admin acceptance obligations into the
 Four visible defaults still need approval. Existing SC/API/DOC identifiers and
 qualified runtime evidence are unchanged; no new runtime support is claimed.
 
-## Group53 action defaults
+## Group 53 action defaults
 
 | Situation ID | User situation | Approved behavior | Evidence/limit |
 |---|---|---|---|
-| SC-195 | Retry selects a completed job | Skip it; keep duplicate-after-scheduling failure distinct. | Group53/API-E144; admin runtime pending. |
-| SC-196 | Retry has no captured eligible review | Frozen null permanently skips; fresh deliberate intent is needed. | Group53/API-E145; admin runtime pending. |
-| SC-197 | Cancellation response is lost | Current-state redispatch; pending duplicate fails, completed/cancelled/missing skip. | Group53/API-E146; runtime pending. |
-| SC-198 | Valid deletion selects nothing eligible | 202/zero/not pending; no filesystem removal. | Group53/API-E147; runtime/deletion qualification pending. |
+| SC-195 | Retry selects a completed job | Skip it; keep duplicate-after-scheduling failure distinct. | Group 53/API-E144; admin runtime pending. |
+| SC-196 | Retry has no captured eligible review | Frozen null permanently skips; fresh deliberate intent is needed. | Group 53/API-E145; admin runtime pending. |
+| SC-197 | Cancellation response is lost | Current-state redispatch; pending duplicate fails, completed/cancelled/missing skip. | Group 53/API-E146; runtime pending. |
+| SC-198 | Valid deletion selects nothing eligible | 202/zero/not pending; no filesystem removal. | Group 53/API-E147; runtime/deletion qualification pending. |

@@ -2,11 +2,11 @@
 
 ## Current contract and implementation (2026-11-08)
 
-Group53 explicitly approves all four closeout defaults. The [written v2 contract](API-CONTRACT-CLOSEOUT.md)
-is frozen as2.0.0; existing candidate filename suffixes remain for provenance.
+Group 53 explicitly approves all four closeout defaults. The [written v2 contract](API-CONTRACT-CLOSEOUT.md)
+is frozen as 2.0.0; existing candidate filename suffixes remain for provenance.
 This is a specification freeze, not a declaration that all fifteen routes or
 security boundaries are implemented/qualified. Producer/manifest runtime and
-bounded compatibility evidence remain increments118/119. The user authorizes
+bounded compatibility evidence remain increments 118/119. The user authorizes
 [protected producer ingress](PRODUCER-INGRESS-INCREMENT.md) as the next bounded
 implementation; TLS/proxy deployment, admin/session/action runtime, operational
 conversion and production NFS/deletion remain separate. Historical pending/

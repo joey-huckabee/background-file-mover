@@ -15,6 +15,11 @@ current engineering closeout and protected-ingress specification. Four visible
 action defaults still await approval; P01 is not declared frozen. It changes no
 runtime or gate qualification.
 
+Group 53 now freezes the written v2 contract; [increment 121](RUST-INCREMENT-121.md)
+implements bounded protected local producer/operator ingress. Check its actual
+validation status. Remote TLS/proxy, admin/actions and remaining release gates
+are not closed by this implementation.
+
 Reviewed 2026-10-22 against commit `d9c2f2d` on
 `feature/rust-transfer-coordinator`. This is a documentation review, not a new
 qualification run. All eight release gates remain open. The next increment is

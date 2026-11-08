@@ -6,13 +6,13 @@ increment. This document is the current engineering authority over conflicting
 candidate wording. **Engineering contract frozen as v2.0.0 on 2026-11-08 after group53 approval.**
 The user explicitly approved the four defaults and proceeding with protected ingress.
 This freeze does not implement admin/access features, select a proxy,
-publish a release or authorize operational changes. Groups1-53 are the approval baseline.
+publish a release or authorize operational changes. Groups 1-53 are the approval baseline.
 
-## Approved closeout defaults (group53)
+## Approved closeout defaults (group 53)
 
 The user accepted all four defaults with "Approved, Proceed":
 
-| Situation | Recommendation | Operator-visible result |
+| Situation | Approved behavior | Operator-visible result |
 |---|---|---|
 | Retry selects a completed job | Skip it. | `skipped_count` increases; nothing is scheduled. The approved second duplicate after an accepted retry still counts as failed. |
 | Retry has a frozen null review epoch | Always skip that occurrence. | It stays skipped even if the job later becomes retryable. A fresh deliberate Retry must capture an eligible review epoch. |

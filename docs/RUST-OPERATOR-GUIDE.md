@@ -37,6 +37,76 @@ controller. `shutdown_wait_seconds` now defaults to 60 and accepts integer value
 1–3600. It bounds the separate stop command; it does not promise that the daemon,
 blocked workers or NFS operations exit by that deadline.
 
+## Opt-in protected local HTTP ingress
+
+Increment 121 adds a development-only protected transport; see
+[its actual gate/checker results](RUST-INCREMENT-121.md) before using it. The
+default remains the explicit trusted-loopback prototype. This is not a remote
+TLS deployment, authenticated admin dashboard or shipping installation guide.
+
+An optional configuration block selects protected mode:
+
+```json
+"protected_ingress": {
+  "producer_socket": "/run/file-mover-producer/producer.sock",
+  "operator_socket": "/run/file-mover-operator/operator.sock",
+  "proxy_uid": 1001,
+  "proxy_gid": 1001
+}
+```
+
+The IDs are examples: use the actual dedicated non-root proxy UID/GID provisioned
+by the host administrator. Proxy UID must differ from the mover UID; the mover
+must itself be non-root. Its existing account must already be allowed to create
+a socket in the proxy group. The service creates no accounts/groups and does not
+elevate privileges or change foreign directory permissions.
+
+Preprovision separate local parents before daemon startup. The producer parent
+must be owned by the mover UID, mode 0750 and configured proxy GID. The operator
+parent must be owned by the mover UID, mode 0700 and the mover's effective primary
+GID. Both must be separate from the local state directory, source/destination
+trees and each other. Do not place sockets at jobs.sqlite-journal, workers.next
+or anywhere else inside state. Ancestors must be safe and symlink-free; only
+qualified local filesystems are accepted, without bind-mount aliases or direct
+endpoint/parent mounts. A root-owned sticky /tmp ancestor is allowed for local
+fixtures. Full socket paths are canonical absolute UTF-8 and at most 107 bytes.
+
+The daemon creates producer mode 0660 and operator mode 0600 sockets only when
+the requested names do not exist. Protected mode starts **no TCP listener**;
+the retained `bind` value is unused. Real Unix peer credentials must match the
+proxy UID before its request context is accepted. Only POST /api/v2/jobs is
+allowed on producer ingress, with exactly one X-File-Mover-Generator matching
+the configured generator and JSON body. Backend Host is exactly localhost;
+cookies and Authorization are refused. A claimed identity header on another
+transport grants no permission. Producer ingress never serves health, status,
+retention or operator controls.
+
+Run private operator HTTP clients under the mover account, using the operator
+socket and the existing routes/envelopes. Submissions to that socket return 404;
+it is not a producer fallback. Existing audit actor text
+`trusted-loopback-operator` is retained for command-replay compatibility; that
+historical label does not mean a TCP listener exists in protected mode.
+The independent --status/--stop control.sock commands are unchanged.
+
+At most six producer connections use the shared eight-connection budget, leaving
+two slots available to local HTTP operations. Excess producer connections get
+429 rate_limited, Retry-After: 1 and a one-second JSON delay. Partial requests
+retain the five-second read timeout; existing handoff timing/custody rules stay
+unchanged. A non-202 or lost reply still grants no new path-release evidence.
+
+Clean exit closes ingress and removes only the exact created socket inodes.
+Existing/stale names, changed parents or substituted names refuse or stop the
+service without deleting replacements. After a crash, an old socket may remain:
+preserve it and the original state, stop ingress and follow the restart runbook
+to confirm the old daemon/workers have exited. Do not blindly unlink endpoints,
+instance.lock or workers.json, reset state, or start a competing mover. Automatic
+stale-socket repair and shipping crash-restart behavior are not qualified by
+this bounded increment; seek review rather than bypassing the refusal.
+
+TLS/certificate proxy selection, permission/confinement deployment and remote
+recorder access remain separate P03 work. This backend alone is not authorized
+for production remote exposure. Source deletion and production NFS stay off.
+
 ## State compatibility before startup
 
 [Increment 111](RUST-INCREMENT-111.md) creates schema 12 for fresh explicit

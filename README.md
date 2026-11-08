@@ -13,15 +13,18 @@ A merge does not authorize converting operational state.
 
 Producer/manifest work follows the
 [final engineering contract](docs/api/PRODUCER-MANIFEST-CONTRACT.md). It fixes
-that slice's validation/identity/serialization; full P01, deployment and
-operational conversion remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) qualified the pure
+that slice's validation/identity/serialization. Group53 freezes the written
+[fifteen-route v2 contract](docs/api/API-CONTRACT-CLOSEOUT.md); implementation
+and deployment qualification remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) qualified the pure
 codecs; [increment 118](docs/RUST-INCREMENT-118.md) records runtime integration,
 its exact activation/legacy matrix and actual qualification status.
 
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and
-[future roadmap](docs/ROADMAP.md). Next is the versioned API/manifest contract;
-production NFS and source deletion remain disabled.
+[future roadmap](docs/ROADMAP.md). [Increment121](docs/RUST-INCREMENT-121.md)
+adds opt-in protected local producer/operator ingress; use its actual gate and
+checker results. TLS proxy, admin/security/action runtime and production shipping
+remain separate. Production NFS and source deletion stay disabled.
 
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
