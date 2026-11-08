@@ -618,8 +618,10 @@ def main():
         report['network'] = network
         require(runner.execute('getconf', 'GNU_LIBC_VERSION').stdout.strip() == b'glibc 2.22', 'not pinned glibc 2.22 runtime')
         runner.execute('/usr/bin/perl', '-MSocket', '-e', 'print "ready"')
-        # Engine-side tar copy preserves numeric ownership with zero target capabilities.
-        runner.command(['podman', 'cp', '--archive=true', '-', runner.container+':/tmp'], data=archive)
+        # Podman's archive=true CHOWNS to the destination container's primary
+        # account (root here). False retains the tar's numeric 1000:1001 IDs;
+        # no target CHOWN capability or widened executable mode is needed.
+        runner.command(['podman', 'cp', '--archive=false', '-', runner.container+':/tmp'], data=archive)
         report['identities'] = {}
         for user in (APP_USER, PROXY_USER, '1002:1001', '0:1001'):
             row = runner.execute('cat', '/proc/self/status', user=user).stdout.decode()
