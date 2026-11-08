@@ -71,6 +71,70 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
+    if path == "--migrate-state" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        if args.next().as_deref() != Some("--backup-dir") {
+            return Err("usage: file-mover --migrate-state CONFIG.json --backup-dir NEW_ABSOLUTE_DIRECTORY [--confirm]".into());
+        }
+        let output = args
+            .next()
+            .ok_or("new absolute backup directory required")?;
+        let confirm = match args.next().as_deref() {
+            None => false,
+            Some("--confirm") => true,
+            _ => return Err("unexpected migration argument".into()),
+        };
+        if args.next().is_some() {
+            return Err("unexpected migration argument".into());
+        }
+        let config = read_config(&config_path)?;
+        let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
+        instance.validate_database(&config.state_database)?;
+        instance.prepare_workers()?;
+        let state = mover_store::StateInspection::open(&config.state_database)?;
+        let pairing = mover_fs::validate_inspected_state(&state)?;
+        let version = state.summary().schema_version;
+        let mut excluded = state.payload_roots()?;
+        excluded.extend([
+            config.source_root,
+            config.destination_root,
+            instance.state_directory().into(),
+        ]);
+        // Preview validates lexical/local placement, without creating output.
+        mover_fs::BackupOutput::check_location(&output, &excluded)?;
+        if !confirm || version == 12 {
+            println!(
+                "{}",
+                serde_json::json!({"schema_version":version,"target_schema":12,"conversion_required":version==11,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+            );
+            return Ok(());
+        }
+        let backup = mover_fs::BackupOutput::create(&output, &excluded)?;
+        backup.copy(&state)?;
+        instance.validate_database(&config.state_database)?;
+        let snapshot = backup.database_path();
+        let receipt = backup.finish(&state, pairing)?;
+        instance.validate_database(&config.state_database)?;
+        let summary = state.migrate_legacy(&config.state_database,&snapshot,|stage| {
+            instance.validate_database(&config.state_database).map_err(|e|std::io::Error::other(e.to_string()))?;
+            mover_fs::qualification_pause(stage).map_err(|e|std::io::Error::other(e.to_string()))?;
+            #[cfg(feature="nfs-qualification")]
+            if std::env::var("FILE_MOVER_QUALIFICATION_MIGRATION_FAULT").ok().as_deref()==Some(stage) {
+                return Err(std::io::Error::from_raw_os_error(5));
+            }
+            Ok(())
+        }).map_err(|e|format!("migration failed ({e}); preserve original state and backup, run guarded --check-state; commit may have completed; never automatically restore"))?;
+        let target = mover_store::StateInspection::open(&config.state_database)?;
+        if mover_fs::validate_inspected_state(&target)? != pairing {
+            return Err("postmigration pairing mismatch; preserve state and inspect".into());
+        }
+        instance.validate_database(&config.state_database)?;
+        println!(
+            "{}",
+            serde_json::json!({"converted":true,"schema_version":summary.schema_version,"instance_id":summary.instance_id,"retained_jobs":summary.retained_jobs,"backup_directory":output,"backup_receipt":receipt,"payload_filesystem_inspected":false})
+        );
+        return Ok(());
+    }
     if path == "--check-state" || path == "--backup-state" {
         let config_path = args.next().ok_or("configuration path required")?;
         let output = if path == "--backup-state" {

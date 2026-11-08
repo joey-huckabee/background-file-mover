@@ -86,7 +86,7 @@ pub struct BackupOutput {
 impl BackupOutput {
     /// Exclusions are checked lexically before touching the output. Include all
     /// configured and stored payload roots and the entire live state directory.
-    pub fn create(path: &str, excluded: &[String]) -> BackupResult<Self> {
+    pub fn check_location(path: &str, excluded: &[String]) -> BackupResult<()> {
         let p = canonical(path)?;
         for root in excluded {
             let root = canonical(root)?;
@@ -95,6 +95,11 @@ impl BackupOutput {
             }
         }
         instance::backup_local(p)?;
+        Ok(())
+    }
+    pub fn create(path: &str, excluded: &[String]) -> BackupResult<Self> {
+        Self::check_location(path, excluded)?;
+        let p = canonical(path)?;
         let parent_path = p
             .parent()
             .and_then(Path::to_str)
@@ -358,5 +363,237 @@ mod tests {
             );
         }
         assert_eq!(receipt["migration_apply_enabled"], false);
+    }
+    fn migration_fixture(f: &Fixture) {
+        std::fs::create_dir(f.path("state")).unwrap();
+        std::fs::set_permissions(f.path("state"), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let c = rusqlite::Connection::open(f.path("state/jobs.sqlite")).unwrap();
+        c.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
+            .unwrap();
+        for sql in [
+            include_str!("../../mover-store/src/jobs_v11.sql"),
+            include_str!("../../mover-store/src/schema.sql"),
+            include_str!("../../mover-store/src/claims.sql"),
+            include_str!("../../mover-store/src/missing.sql"),
+            include_str!("../../mover-store/src/transfers.sql"),
+            include_str!("../../mover-store/src/coordination.sql"),
+            include_str!("../../mover-store/src/operators.sql"),
+            include_str!("../../mover-store/src/missing_resets.sql"),
+            include_str!("../../mover-store/src/source_enrollment.sql"),
+            include_str!("../../mover-store/src/destination_bindings.sql"),
+            include_str!("../../mover-store/src/source_ownership.sql"),
+            include_str!("../../mover-store/src/capacity_retries.sql"),
+        ] {
+            c.execute_batch(sql).unwrap();
+        }
+        c.execute_batch("PRAGMA application_id=1111903570; PRAGMA user_version=11;
+            INSERT INTO metadata VALUES('instance_id','0123456789abcdef0123456789abcdef');
+            INSERT INTO jobs VALUES(7,'g','11111111-2222-3333-4444-555555555555','/unavailable-source/current','recordings','/unavailable-source','current','archive','/unavailable-destination',0,0,300,1);
+            INSERT INTO files VALUES(7,0,'Data',NULL);
+            INSERT INTO reservations VALUES('recordings','current/Data',7,0);
+            INSERT INTO missing VALUES(7,0,400,1);
+            UPDATE sqlite_sequence SET seq=99 WHERE name='jobs';").unwrap();
+        drop(c);
+        std::fs::set_permissions(
+            f.path("state/jobs.sqlite"),
+            std::fs::Permissions::from_mode(0o600),
+        )
+        .unwrap();
+        let binding = serde_json::json!({"version":3,"coordinator_id":"test-owner","root_id":"local-source","endpoint_id":"test-local","marker_id":"test-marker","filesystem":"local","role":"source"});
+        let destination = serde_json::json!({"version":3,"coordinator_id":"test-owner","root_id":"configured-local","endpoint_id":"test-local-destination","marker_id":"test-destination-marker","filesystem":"local","role":"destination"});
+        std::fs::write(f.path("config.json"),serde_json::to_vec(&serde_json::json!({"bind":"127.0.0.1:0","generator_id":"g","source_root":"/unavailable-source","source_binding":binding,"destination_binding":destination,"destination_root":"/unavailable-destination","state_database":f.path("state/jobs.sqlite")})).unwrap()).unwrap();
+    }
+    fn migrate_command(f: &Fixture, confirm: bool) -> std::process::Command {
+        let mut c = std::process::Command::new(
+            std::env::var("FILE_MOVER_TEST_EXECUTABLE").expect("audited SLES executable"),
+        );
+        c.args([
+            "--migrate-state",
+            &f.path("config.json"),
+            "--backup-dir",
+            &f.path("snapshot"),
+        ]);
+        if confirm {
+            c.arg("--confirm");
+        }
+        c.stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        c
+    }
+    #[test]
+    fn migration_cli_previews_converts_once_and_preserves_original_job_without_payload_roots() {
+        let f = Fixture::new();
+        migration_fixture(&f);
+        let original = std::fs::read(f.path("state/jobs.sqlite")).unwrap();
+        let preview = migrate_command(&f, false).output().unwrap();
+        assert!(preview.status.success(), "{preview:?}");
+        assert_eq!(
+            std::fs::read(f.path("state/jobs.sqlite")).unwrap(),
+            original
+        );
+        assert!(!Path::new(&f.path("snapshot")).exists());
+        let result = migrate_command(&f, true)
+            .env(
+                "FILE_MOVER_QUALIFICATION_MIGRATION_FAULT",
+                if nfs_qualification_enabled() {
+                    "unused"
+                } else {
+                    "after_drop"
+                },
+            )
+            .output()
+            .unwrap();
+        assert!(result.status.success(), "{result:?}");
+        let body: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(body["converted"], true);
+        assert_eq!(body["schema_version"], 12);
+        assert!(Path::new(&f.path("snapshot/VERIFIED.json")).exists());
+        let s = Store::open(f.path("state/jobs.sqlite")).unwrap();
+        let job = s.get(7).unwrap().unwrap();
+        assert_eq!(
+            job.recording.submission().submission_id(),
+            "11111111-2222-3333-4444-555555555555"
+        );
+        assert_eq!(
+            s.accept(job.recording.submission(), &job.context)
+                .unwrap()
+                .job_id,
+            7
+        );
+        drop(s);
+        let again = migrate_command(&f, true).output().unwrap();
+        assert!(again.status.success(), "{again:?}");
+        let body: serde_json::Value = serde_json::from_slice(&again.stdout).unwrap();
+        assert_eq!(body["converted"], false);
+        assert_eq!(body["conversion_required"], false);
+        assert_eq!(
+            rusqlite::Connection::open_with_flags(
+                f.path("snapshot/state.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+            )
+            .unwrap()
+            .pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
+            11
+        );
+    }
+    #[test]
+    fn migration_cli_requires_fresh_verified_backup_and_ignores_fault_controls_in_production() {
+        for stage in [
+            "copy",
+            "copy_enospc",
+            "file_sync",
+            "receipt_write",
+            "directory_sync",
+            "postpublish_sync",
+        ] {
+            let f = Fixture::new();
+            migration_fixture(&f);
+            let out = migrate_command(&f, true)
+                .env("FILE_MOVER_QUALIFICATION_BACKUP_FAULT", stage)
+                .output()
+                .unwrap();
+            assert_eq!(
+                out.status.success(),
+                !nfs_qualification_enabled(),
+                "{stage}: {out:?}"
+            );
+            assert_eq!(
+                StateInspection::open(f.path("state/jobs.sqlite"))
+                    .unwrap()
+                    .summary()
+                    .schema_version,
+                if nfs_qualification_enabled() { 11 } else { 12 }
+            );
+            if nfs_qualification_enabled() {
+                assert!(!migrate_command(&f, true).output().unwrap().status.success());
+            }
+        }
+    }
+    #[cfg(feature = "nfs-qualification")]
+    #[test]
+    fn migration_cli_kill_reopens_original_or_committed_state_without_restore() {
+        use std::time::{Duration, Instant};
+        for stage in [
+            "before_create",
+            "after_create",
+            "after_copy",
+            "after_drop",
+            "after_rename",
+            "after_indexes",
+            "after_sequence",
+            "after_validation",
+            "before_commit",
+            "after_commit",
+        ] {
+            let f = Fixture::new();
+            migration_fixture(&f);
+            std::fs::create_dir(f.path("rendezvous")).unwrap();
+            std::fs::set_permissions(f.path("rendezvous"), std::fs::Permissions::from_mode(0o700))
+                .unwrap();
+            let mut child = migrate_command(&f, true)
+                .env("FILE_MOVER_QUALIFICATION_PAUSE", stage)
+                .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", f.path("rendezvous"))
+                .spawn()
+                .unwrap();
+            let until = Instant::now() + Duration::from_secs(10);
+            while !Path::new(&f.path("rendezvous/ready")).exists() {
+                if let Some(status) = child.try_wait().unwrap() {
+                    panic!("migration exited before {stage}: {status}");
+                }
+                if Instant::now() > until {
+                    let _ = child.kill();
+                    let output = child.wait_with_output().unwrap();
+                    panic!("no checkpoint {stage}: {output:?}");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            assert!(
+                !migrate_command(&f, true).output().unwrap().status.success(),
+                "live owner at {stage}"
+            );
+            child.kill().unwrap();
+            child.wait().unwrap();
+            let recovered = StateInspection::open(f.path("state/jobs.sqlite")).unwrap();
+            let version = if stage == "after_commit" { 12 } else { 11 };
+            assert_eq!(recovered.summary().schema_version, version, "{stage}");
+            if version == 11 {
+                recovered
+                    .verify_snapshot(f.path("snapshot/state.sqlite"))
+                    .unwrap();
+            }
+            let original = rusqlite::Connection::open(f.path("snapshot/state.sqlite")).unwrap();
+            let current = rusqlite::Connection::open(f.path("state/jobs.sqlite")).unwrap();
+            for sql in [
+                "SELECT job_id,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count FROM jobs ORDER BY job_id",
+                "SELECT * FROM files ORDER BY job_id,file_index",
+                "SELECT * FROM missing ORDER BY job_id,file_index",
+                "SELECT * FROM reservations ORDER BY job_id,file_index",
+                "SELECT * FROM sqlite_sequence ORDER BY name",
+            ] {
+                fn values(c: &rusqlite::Connection, sql: &str) -> Vec<Vec<rusqlite::types::Value>> {
+                    let mut s = c.prepare(sql).unwrap();
+                    let n = s.column_count();
+                    s.query_map([], |r| (0..n).map(|i| r.get(i)).collect())
+                        .unwrap()
+                        .collect::<rusqlite::Result<_>>()
+                        .unwrap()
+                }
+                assert_eq!(
+                    values(&current, sql),
+                    values(&original, sql),
+                    "{stage} {sql}"
+                );
+            }
+            drop(current);
+            drop(original);
+            drop(recovered);
+            let retry = migrate_command(&f, true).output().unwrap();
+            assert_eq!(
+                retry.status.success(),
+                version == 12,
+                "same output cannot be reused before commit: {retry:?}"
+            );
+        }
     }
 }

@@ -2554,3 +2554,167 @@ fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
         assert_eq!(std::fs::read(f.db()).ok(), before, "{case}");
     }
 }
+
+// Build genuine schema 11 from typed fixture values, never by relabeling a v12
+// header. This reverse copy exists only in tests and is not a recovery tool.
+fn migration_history_fixture(path: &Path) {
+    let f = Fixture::new();
+    let store = Store::open(f.db()).unwrap();
+    store
+        .prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    for phase in 0..=4 {
+        history_job(&store, &format!("manifest-{phase}"), phase);
+    }
+    drop(store);
+    let source = Connection::open(f.db()).unwrap();
+    let mut rows = retained_table_rows(&source);
+    let mut target = schema_eleven_fixture(path, false);
+    target.pragma_update(None, "foreign_keys", "OFF").unwrap();
+    let tx = target.transaction().unwrap();
+    for (table, values) in &mut rows {
+        tx.execute(&format!("DELETE FROM {table}"), []).unwrap();
+        for row in values {
+            if table == "jobs" {
+                row.truncate(13);
+            }
+            let marks = vec!["?"; row.len()].join(",");
+            tx.execute(
+                &format!("INSERT INTO {table} VALUES({marks})"),
+                rusqlite::params_from_iter(row.iter()),
+            )
+            .unwrap();
+        }
+    }
+    tx.execute("UPDATE sqlite_sequence SET seq=99 WHERE name='jobs'", [])
+        .unwrap();
+    tx.commit().unwrap();
+}
+fn migration_snapshot(f: &Fixture) -> PathBuf {
+    let snapshot = f.db().with_file_name("snapshot.sqlite");
+    let state = StateInspection::open(f.db()).unwrap();
+    state.snapshot_into(snapshot.to_str().unwrap()).unwrap();
+    state.verify_snapshot(&snapshot).unwrap();
+    snapshot
+}
+#[test]
+fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water() {
+    let f = Fixture::new();
+    migration_history_fixture(&f.db());
+    let snapshot = migration_snapshot(&f);
+    let state = StateInspection::open(f.db()).unwrap();
+    let summary = state.migrate_legacy(f.db(), &snapshot, |_| Ok(())).unwrap();
+    assert_eq!(summary.schema_version, 12);
+    let target = Connection::open(f.db()).unwrap();
+    let original = Connection::open(&snapshot).unwrap();
+    inspection::compare_rows(&target, &original, true).unwrap();
+    validate_schema(&target).unwrap();
+    drop(target);
+    let store = Store::open(f.db()).unwrap();
+    for id in 1..=5 {
+        let job = store.get(id).unwrap().unwrap();
+        assert_eq!(
+            store
+                .accept(job.recording.submission(), &job.context)
+                .unwrap()
+                .job_id,
+            id
+        );
+        assert_eq!(store.manifest(id).unwrap().unwrap().phase, id - 1);
+    }
+    assert_eq!(
+        store
+            .accept(&input("g", "after-upgrade", "new"), &context())
+            .unwrap()
+            .job_id,
+        100
+    );
+}
+#[test]
+fn explicit_migration_rolls_back_every_precommit_boundary_and_reports_postcommit_error() {
+    for stage in [
+        "before_create",
+        "after_create",
+        "after_copy",
+        "after_drop",
+        "after_rename",
+        "after_indexes",
+        "after_sequence",
+        "after_validation",
+        "before_commit",
+        "after_commit",
+    ] {
+        let f = Fixture::new();
+        migration_history_fixture(&f.db());
+        let snapshot = migration_snapshot(&f);
+        let state = StateInspection::open(f.db()).unwrap();
+        assert!(
+            state
+                .migrate_legacy(f.db(), &snapshot, |at| if at == stage {
+                    Err(std::io::Error::from_raw_os_error(5))
+                } else {
+                    Ok(())
+                })
+                .is_err(),
+            "{stage}"
+        );
+        let source = StateInspection::open(f.db()).unwrap();
+        assert_eq!(
+            source.summary().schema_version,
+            if stage == "after_commit" { 12 } else { 11 },
+            "{stage}"
+        );
+        let original = Connection::open(&snapshot).unwrap();
+        inspection::compare_rows(&source.connection, &original, stage == "after_commit").unwrap();
+    }
+}
+#[test]
+fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() {
+    for high_water in [None, Some(99)] {
+        let f = Fixture::new();
+        let c = schema_eleven_fixture(&f.db(), false);
+        if let Some(seq) = high_water {
+            c.execute("INSERT INTO sqlite_sequence VALUES('jobs',?1)", [seq])
+                .unwrap();
+        }
+        drop(c);
+        let snapshot = migration_snapshot(&f);
+        StateInspection::open(f.db())
+            .unwrap()
+            .migrate_legacy(f.db(), snapshot, |_| Ok(()))
+            .unwrap();
+        assert_eq!(
+            Store::open(f.db())
+                .unwrap()
+                .accept(&input("g", "fresh", "new"), &context())
+                .unwrap()
+                .job_id,
+            high_water.unwrap_or(0) + 1
+        );
+    }
+}
+#[test]
+fn explicit_migration_refuses_changed_backup_or_source_before_conversion() {
+    for change_source in [false, true] {
+        let f = Fixture::new();
+        drop(schema_eleven_fixture(&f.db(), true));
+        let snapshot = migration_snapshot(&f);
+        let state = StateInspection::open(f.db()).unwrap();
+        let c = Connection::open(if change_source {
+            f.db()
+        } else {
+            snapshot.clone()
+        })
+        .unwrap();
+        c.execute("UPDATE missing SET deadline=401", []).unwrap();
+        drop(c);
+        assert!(state.migrate_legacy(f.db(), snapshot, |_| Ok(())).is_err());
+        assert_eq!(
+            StateInspection::open(f.db())
+                .unwrap()
+                .summary()
+                .schema_version,
+            11
+        );
+    }
+}

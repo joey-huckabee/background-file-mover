@@ -6,6 +6,15 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 115 compatibility implementation
+
+SC-190/191/194 gain an explicit guarded schema-11 to legacy-only schema-12
+migration, preserving custody/IDs/v1 bytes and refusing unsupported state. See
+[RUST-INCREMENT-115](RUST-INCREMENT-115.md) for actual gate status and
+[operator migration instructions](OFFLINE-STATE-MIGRATION.md). No new scenario
+IDs or UUID/v2 activation are introduced. Actual predecessor/target executable
+qualification and broader release/deployment gates remain distinct.
+
 ## Release-closure scheduling (increment 105)
 
 The [closure review](RUST-RELEASE-CLOSURE.md) maps existing situations/evidence

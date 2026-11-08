@@ -1,5 +1,5 @@
 -- Schema 12: the same create/rename/index recipe is used by fresh state and
--- test-only rebuild fixtures. No runtime migration/apply path is enabled.
+-- explicit guarded migrations and test fixtures.
 CREATE TABLE jobs_v12 (
     job_id INTEGER PRIMARY KEY AUTOINCREMENT,
     generator_id TEXT NOT NULL,

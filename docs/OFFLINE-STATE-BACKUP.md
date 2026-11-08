@@ -1,6 +1,6 @@
 # Offline state inspection and backup
 
-These commands prepare for a later explicit migration. They do not convert or
+These commands support the separately explicit [migration](OFFLINE-STATE-MIGRATION.md). They do not convert or
 restore a database. Use a production build; qualification builds are lab-only.
 
 1. Schedule downtime. Stop the mover service with your installed systemd unit:
@@ -44,7 +44,7 @@ restore a database. Use a production build; qualification builds are lab-only.
    (permissions, local capacity, unsupported state or surviving processes) and
    retry using a different new directory. No automatic cleanup, resume or overwrite
    occurs. Even if VERIFIED.json exists after a sync error, the failed command
-   did not establish successful durable publication. There is no apply command.
+   did not establish successful durable publication. Apply uses the separate migration command and creates its own new backup under continuous exclusion; it never adopts an earlier receipt.
 7. Restart only with software compatible with the unchanged original schema.
    This foundation build still refuses normal schema-11 service startup; keep
    its original compatible binary until a qualified migration is available.

@@ -1,5 +1,11 @@
 # Transactional schema-11 to schema-12 migration design
 
+Current implementation update: [increment 115](../RUST-INCREMENT-115.md)
+implements explicit guarded conversion after new user authorization. Its actual
+gate status and [operator procedure](../OFFLINE-STATE-MIGRATION.md) supersede
+historical apply-disabled statements below only for this bounded path. UUID/v2
+activation, deployment and operational-state conversion remain outside scope.
+
 2026-11-04. User authorization: start migration design after increment 110.
 **Design only: no runtime schema change, migration command, backup operation or
 new producer/manifest implementation is authorized or executed here.** Schema 12

@@ -2,6 +2,16 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-07 migration implementation authorization: the user says "ok, go ahead
+with the migration" after the guarded schema-11 to schema-12 recommendation.
+Implement and qualify the explicit offline command on a short-lived branch,
+with verified backup under continuous instance/lifetime exclusion, transactional
+legacy preservation and independent review before merge. This supersedes earlier
+apply-disabled implementation limits only for this path. No operational database
+conversion, deployment, UUID admission or manifest-v2 activation is authorized.
+See docs/RUST-INCREMENT-115.md and docs/OFFLINE-STATE-MIGRATION.md for actual
+validation status and operating limits; normal startup still refuses schema 11.
+
 2026-11-07 source cleanup authorization: the user requests a branch, removal of
 the retired implementation and all project references to it, then merge to main.
 Keep Rust runtime requirements, validated evidence and current C-based fixtures.

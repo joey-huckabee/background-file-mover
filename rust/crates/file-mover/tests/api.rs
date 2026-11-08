@@ -4232,6 +4232,9 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
     let backup_refused = offline_state_command(&f, "--backup-state", Some(&orphan_backup))
         .output()
         .unwrap();
+    let migration_refused = migration_command(&f, &orphan_backup, true)
+        .output()
+        .unwrap();
     assert!(
         Command::new("/bin/kill")
             .args(["-TERM", &worker.to_string()])
@@ -4250,6 +4253,7 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
         "{inspection_refused:?}"
     );
     assert!(!backup_refused.status.success(), "{backup_refused:?}");
+    assert!(!migration_refused.status.success(), "{migration_refused:?}");
     assert!(!orphan_backup.exists());
     assert!(
         String::from_utf8_lossy(&refused.stderr)
@@ -4649,4 +4653,51 @@ fn interrupted_backup_leaves_no_completion_and_new_attempt_requires_new_director
         .output()
         .unwrap();
     assert!(result.status.success(), "{result:?}");
+}
+
+fn migration_command(f: &Fixture, output: &std::path::Path, confirm: bool) -> Command {
+    let mut c = offline_state_command(f, "--migrate-state", None);
+    c.arg("--backup-dir").arg(output);
+    if confirm {
+        c.arg("--confirm");
+    }
+    c
+}
+#[test]
+fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validates_v12_noop() {
+    let mut f = Fixture::new(300);
+    let backup = f.root.join("migration-backup");
+    let before = retention(&f, None).1;
+    let result = migration_command(&f, &backup, true).output().unwrap();
+    assert!(!result.status.success(), "{result:?}");
+    assert!(!backup.exists());
+    assert_eq!(retention(&f, None).1, before);
+    f.stop();
+    for confirm in [false, true] {
+        let result = migration_command(&f, &backup, confirm).output().unwrap();
+        assert!(result.status.success(), "{result:?}");
+        let value: Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(value["converted"], false);
+        assert_eq!(value["schema_version"], 12);
+        assert!(!backup.exists());
+    }
+    for args in [
+        vec!["--confirm"],
+        vec!["--backup-dir"],
+        vec!["--backup-dir", "relative", "--confirm", "extra"],
+        vec!["--backup-dir", "relative", "--confirm", "--confirm"],
+    ] {
+        let result = offline_state_command(&f, "--migrate-state", None)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(!result.status.success(), "{result:?}");
+    }
+    let fresh = Fixture::uninitialized(300);
+    let result = migration_command(&fresh, &fresh.root.join("backup"), true)
+        .output()
+        .unwrap();
+    assert!(!result.status.success(), "{result:?}");
+    assert!(!fresh.root.join("state/jobs.sqlite").exists());
+    assert!(!fresh.root.join("backup").exists());
 }

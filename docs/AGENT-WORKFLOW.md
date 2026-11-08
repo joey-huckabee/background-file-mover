@@ -122,10 +122,13 @@ current schema/identity limitations remain unchanged.
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
 The coordinator owns the draft and integration; the cloud child reviews contract
-consistency. Groups 1-51 remain approved; unsettled API implementation awaits
+consistency. Groups 1-52 remain approved; unsettled API implementation awaits
 remaining decisions. Separately authorized work includes bounded offline history
 clear and the build/packaging increments [107](RUST-INCREMENT-107.md),
-[108](RUST-INCREMENT-108.md) and [109](RUST-INCREMENT-109.md). This agent workflow
+[108](RUST-INCREMENT-108.md) and [109](RUST-INCREMENT-109.md), compatibility/backup
+foundations, and the explicit guarded migration in [115](RUST-INCREMENT-115.md).
+Operational conversion, UUID/v2 activation and deployment remain separate.
+This agent workflow
 does not expand their scope or approve the remaining API/deployment contract.
 
 For P01 schema work, see the [candidate bundle](api/README.md). Cloud review

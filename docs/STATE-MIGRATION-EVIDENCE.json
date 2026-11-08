@@ -1,0 +1,314 @@
+{
+  "scope": "Increment 115 explicit guarded schema-11 to legacy-only schema-12 migration on disposable fixtures. No operational conversion, UUID/v2 activation, deployment or broader release qualification.",
+  "validated_commit": "ff096225d648d2bde787d20da7acc6ff062c3d7a",
+  "validated_rust_tree": "ce45cf6bddb72e0cd9cec5665773907ba80947ea",
+  "source_inputs_sha256": {
+    "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+    "rust/Cargo.lock": "5dafb4f7f397fc3b44323f8e6b5e2fa0164991a8077a2b57f3fce6422b0155e6",
+    "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+    "rust/README.md": "69cd988e885f46356dca1c359e29b027b01afc867ad77e40f0b4db579ade9ceb",
+    "rust/config/local.example.json": "60361a53728365d969c62a4696fe6cdccd37edfc890fccc01d81ef8a0080ac77",
+    "rust/crates/file-mover/Cargo.toml": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27",
+    "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+    "rust/crates/file-mover/src/claim_worker.rs": "c40448eef5adbd19984c0573cfbd447b8fdfc234d4ef417b9d35014127e80441",
+    "rust/crates/file-mover/src/control.rs": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf",
+    "rust/crates/file-mover/src/delivery_worker.rs": "156423185220df8e7a75c0bad57e0138983cbedeca5180dc44526fc5f2b1ef21",
+    "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+    "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+    "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+    "rust/crates/file-mover/src/lib.rs": "0370fc463b1356e4b600dc0119e9d62cc2cdf3566f12fc76f0f1b72e3d15b7e6",
+    "rust/crates/file-mover/src/main.rs": "f2461225b8feb486b8c2a748f3eda383408dc35718061fbb503dcf11283835a7",
+    "rust/crates/file-mover/src/payload.rs": "3eea1904fd3d3921d31623e91556d5ed3ce1308e92c08835fc96991db34a80a1",
+    "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+    "rust/crates/file-mover/tests/api.rs": "e67645f0b31f981abf409b51f353d7473d7d7139cfe89d70c8c5806fe3014a75",
+    "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+    "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+    "rust/crates/mover-core/src/lib.rs": "7913455d94ef0698e0c1f5c0ccaaad99be59e80b2b82c3ac073953f103556814",
+    "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+    "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+    "rust/crates/mover-core/src/transfer.rs": "5356b62597ba876a2c000a89432d9296491f2862187089e142665560372f7786",
+    "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+    "rust/crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+    "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+    "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+    "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+    "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+    "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+    "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+    "rust/crates/mover-fs/src/instance.rs": "2de23ad051066f8d38b7a48ef799ba74eaf4b491f93f426aaee9485fa4a2f6c1",
+    "rust/crates/mover-fs/src/lib.rs": "e0d2113e1cb8fe14638ea7d7c429da94f0b319f653f56edfe65064fe368b77d5",
+    "rust/crates/mover-fs/src/manifest.rs": "8944dfd185bbf32c0f25a3b525eb0c1fd3fdfca2c9acbb0c34eb72d4f4a3154f",
+    "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+    "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+    "rust/crates/mover-fs/src/qualification.rs": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb",
+    "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+    "rust/crates/mover-fs/src/transfer.rs": "113419d962c8724e3e19a6f62b15ee1d3dac3e2f9fa61b745def675bb73cf67c",
+    "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+    "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+    "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+    "rust/crates/mover-store/Cargo.toml": "4e7dccebcb8dfe02701cb60ed9289784fff4fcf9ce96fa83a0efc427b7559928",
+    "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+    "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+    "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+    "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+    "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+    "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+    "rust/crates/mover-store/src/inspection.rs": "013113618cb3ad3191d43791b8db1536aee5394fc3d855f32591102c448c8770",
+    "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+    "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+    "rust/crates/mover-store/src/lib.rs": "d70f843b96eb62c99df40bce41573dad59a3ce3f9a857189faa6c57895899db3",
+    "rust/crates/mover-store/src/migration.rs": "be5f77196361c108211f1e574bc9975f50ab7a595559d19f9a7eac83a7eb825c",
+    "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+    "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+    "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+    "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+    "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+    "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+    "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+    "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+    "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+    "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+    "rust/crates/mover-store/src/tests.rs": "b3d818f74d6e82db93af2f86093510631df1cabcceadd060bd34f4f611d92ae3",
+    "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+    "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+  },
+  "runs": [
+    {
+      "actions_run": 42430766430,
+      "artifact_id": 13598171482,
+      "mode": "nfs-qualification",
+      "report_sha256": "fc5ec774091b6295c70b61d643123825ebe38cb5807b4dc5bebe4adf0c0d4a2d",
+      "source_archive_sha256": "fb001f340afa7bd67aa2b51d1e9cc2a748e73270b8dac1e67950582c878e159e",
+      "dependency_pins_sha256": "c7fcb5ebe525a6c465470944a9700d39f80ec99418aced4ad81a26319a868bfd",
+      "status": "PASSED",
+      "cleanup_error": null,
+      "profiles": {
+        "debug": {
+          "tests_passed": 244,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "debug-0-file-mover-nfs-qualification": "5b7f51b066c87b1d8dc5937f5c420ecfb8793d61451fc8b00b7999864b86d9c5",
+            "debug-1-api-887734b5f0415983-nfs-qualification": "5700e5ffde5c39a59dff6c4a671079a6e2d42929a0bc3357bd20c77421bdfdee",
+            "debug-2-claim-c2748acf9f5fb1d1-nfs-qualification": "4cd63225ce8f14f785c4bb4fd668b87bfb7697f53268091a69b03f07f62096df",
+            "debug-3-file_mover-4ae60d66075b7051-nfs-qualification": "25c849acfa568037286e4905c6d30ec766b73d8c8081e8b3383a264b8633801f",
+            "debug-4-file_mover-c840487d2a23295a-nfs-qualification": "b02c33e02ea394beb0469a1ec964e81f8e0e3512730fce0a787d94ae00fc424d",
+            "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+            "debug-6-mover_fs-c77dc059c039cebc-nfs-qualification": "908473993ca3a9e4d80f34465777188deaa45a60aa45dded2a7836c1bda8a88b",
+            "debug-7-mover_store-827d23f8a60d7494-nfs-qualification": "d1884609be56342c6fb380cacc36c2edd97eafdcba5f84adb46291837e6a1030",
+            "debug-8-protocol-2f28a09de9f6d355-nfs-qualification": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+            "debug-9-transfer-1b8a6efa042b9dec-nfs-qualification": "7a25aade88441324f7e4842877db8ca461decaaee06aa33802add62076404a46"
+          }
+        },
+        "release": {
+          "tests_passed": 244,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "release-0-file-mover-nfs-qualification": "3d190f96c7f3eb43b4371f63784f8d6c60719d80bb1eba38612137e520ceda32",
+            "release-1-api-3627f16ff37a4ff3-nfs-qualification": "084d0c6a7526ffdd75baa955bde0f0bba16bc846f73d1bed0d1422ad4356e4c4",
+            "release-2-claim-3d0ea7073ed6477c-nfs-qualification": "bb5fa41e872d983cc312d4dae72b434cbb3d2ae7cb3296869bfabc00d53d9462",
+            "release-3-file_mover-628e1688f80646d6-nfs-qualification": "0ebd4779d884692798f31d1bd08d9980d27d04729d047dc85315b7c85f9b27da",
+            "release-4-file_mover-ae822951cc700921-nfs-qualification": "d269c9ccda5a5e284c8e27793df7cd919440053beb95613d96894fc57e83edd6",
+            "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+            "release-6-mover_fs-cb594efb59a2eff7-nfs-qualification": "dd29280a30afee1af306ff649771be7efdd327720ca7c979423040d98f5a789e",
+            "release-7-mover_store-8133f98ca0746262-nfs-qualification": "41bb368d779bee5580bf9e772eb447a61657b7d6e3d67bf6cd97c39528a264d1",
+            "release-8-protocol-dd549649cfc5a27e-nfs-qualification": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+            "release-9-transfer-3c451284762565a6-nfs-qualification": "c2dd8677bdb5f4d025d4eeada6b81fe79d45a445b785489d46237ab2eb5c0b19"
+          }
+        }
+      }
+    },
+    {
+      "actions_run": 42430766430,
+      "artifact_id": 13596689386,
+      "mode": "production",
+      "report_sha256": "dd3c36684757c5c8121ba1c3eb9c919a0819f3cb0ca33255ff139ef7fac9478d",
+      "source_archive_sha256": "f980c2b4a36ec25db5c9ce60508d1d17f48c074817aaea1519fbb16a4208aa9c",
+      "dependency_pins_sha256": "c7fcb5ebe525a6c465470944a9700d39f80ec99418aced4ad81a26319a868bfd",
+      "status": "PASSED",
+      "cleanup_error": null,
+      "profiles": {
+        "debug": {
+          "tests_passed": 240,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "debug-0-file-mover": "eb3579d8ecf34b9a8c25b8481cfb663386647a663faa793236bfc2b2e861598d",
+            "debug-1-api-ab3188cd9f9a01df": "bfcb80ecb867087ea50af69c45b0ce120230e55455214e22789724a371892ca7",
+            "debug-2-claim-1505a04b7db96b38": "667fa6c12d2be6d505f48976dc641e878302af0af05fe3a3a1b9fde5bab5df06",
+            "debug-3-file_mover-090efcf23ed7c083": "11dae812805d4cccc928fb982f6d029ea70dd6beba4d3929a7a7bc19c89dddf9",
+            "debug-4-file_mover-49626955f157a41a": "339508b0e3821f77b1e4bd93952710039b2e9670af8289fcd5ed9051652d713d",
+            "debug-5-mover_core-b12b493fdf9744cf": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+            "debug-6-mover_fs-62cdb39a48330930": "d300e8d23926acc0a944c137111c67af1d9e483a0ec98cdfa091189b442c64fc",
+            "debug-7-mover_store-827d23f8a60d7494": "d1884609be56342c6fb380cacc36c2edd97eafdcba5f84adb46291837e6a1030",
+            "debug-8-protocol-2f28a09de9f6d355": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+            "debug-9-transfer-6bcc92ab4b3c2129": "a0b56ce515e834fa808bbd61f21594271b6f9f10a17c080f644458302cb98eb2"
+          }
+        },
+        "release": {
+          "tests_passed": 240,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "release-0-file-mover": "8992e623320bfce962b94f993e448ee72d04e2a7b582dece1e70b7c8bdddf8fc",
+            "release-1-api-b0ab9b2e96a908df": "667b9b1b27bb9fffaf793493aa13cac6c7561572bd2b5cb2ef5bc093fb781a13",
+            "release-2-claim-10c32c0f6a3abf03": "6e31c2ddb929ca57504dd82027942d1a20eeddec6c329fcb6383e4071bf5a027",
+            "release-3-file_mover-6898046fd96bd7f2": "7cc80d2cceeeb55e7645a2822d7bce06f7fbe9717f2a1fbe57cbcc2cedfca628",
+            "release-4-file_mover-8fcac8bbbe7aa543": "a49b2c157abc346c646a38e6284cb67f720ca26fc30ffeb30f2732e4cdea7ad6",
+            "release-5-mover_core-437b6f9cd965a8bf": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+            "release-6-mover_fs-ac9fecd4f03f3716": "f6a4a4bb1b571c7e22cbb771afff1230179ac972cf70867a39e5fa54fb4c7a75",
+            "release-7-mover_store-8133f98ca0746262": "41bb368d779bee5580bf9e772eb447a61657b7d6e3d67bf6cd97c39528a264d1",
+            "release-8-protocol-dd549649cfc5a27e": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+            "release-9-transfer-bd16483e7f2c37db": "f0dd9da39691f33f03cfd9f96a562e8704d6989e90a5f99af952c23e38805b23"
+          }
+        }
+      }
+    },
+    {
+      "actions_run": 42430769482,
+      "artifact_id": 13598206541,
+      "mode": "nfs-qualification",
+      "report_sha256": "db7e168d78bd1967fbff6d3a10185fc7f51e4ee6dd88c9b36770acab8d2543c0",
+      "source_archive_sha256": "f615f959953912d51a886dc66a6a946db82df391bcd0e972bd54207cf9580d56",
+      "dependency_pins_sha256": "c7fcb5ebe525a6c465470944a9700d39f80ec99418aced4ad81a26319a868bfd",
+      "status": "PASSED",
+      "cleanup_error": null,
+      "profiles": {
+        "debug": {
+          "tests_passed": 244,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "debug-0-file-mover-nfs-qualification": "5b7f51b066c87b1d8dc5937f5c420ecfb8793d61451fc8b00b7999864b86d9c5",
+            "debug-1-api-887734b5f0415983-nfs-qualification": "5700e5ffde5c39a59dff6c4a671079a6e2d42929a0bc3357bd20c77421bdfdee",
+            "debug-2-claim-c2748acf9f5fb1d1-nfs-qualification": "4cd63225ce8f14f785c4bb4fd668b87bfb7697f53268091a69b03f07f62096df",
+            "debug-3-file_mover-4ae60d66075b7051-nfs-qualification": "25c849acfa568037286e4905c6d30ec766b73d8c8081e8b3383a264b8633801f",
+            "debug-4-file_mover-c840487d2a23295a-nfs-qualification": "b02c33e02ea394beb0469a1ec964e81f8e0e3512730fce0a787d94ae00fc424d",
+            "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+            "debug-6-mover_fs-c77dc059c039cebc-nfs-qualification": "908473993ca3a9e4d80f34465777188deaa45a60aa45dded2a7836c1bda8a88b",
+            "debug-7-mover_store-827d23f8a60d7494-nfs-qualification": "d1884609be56342c6fb380cacc36c2edd97eafdcba5f84adb46291837e6a1030",
+            "debug-8-protocol-2f28a09de9f6d355-nfs-qualification": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+            "debug-9-transfer-1b8a6efa042b9dec-nfs-qualification": "7a25aade88441324f7e4842877db8ca461decaaee06aa33802add62076404a46"
+          }
+        },
+        "release": {
+          "tests_passed": 244,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "release-0-file-mover-nfs-qualification": "3d190f96c7f3eb43b4371f63784f8d6c60719d80bb1eba38612137e520ceda32",
+            "release-1-api-3627f16ff37a4ff3-nfs-qualification": "084d0c6a7526ffdd75baa955bde0f0bba16bc846f73d1bed0d1422ad4356e4c4",
+            "release-2-claim-3d0ea7073ed6477c-nfs-qualification": "bb5fa41e872d983cc312d4dae72b434cbb3d2ae7cb3296869bfabc00d53d9462",
+            "release-3-file_mover-628e1688f80646d6-nfs-qualification": "0ebd4779d884692798f31d1bd08d9980d27d04729d047dc85315b7c85f9b27da",
+            "release-4-file_mover-ae822951cc700921-nfs-qualification": "d269c9ccda5a5e284c8e27793df7cd919440053beb95613d96894fc57e83edd6",
+            "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+            "release-6-mover_fs-cb594efb59a2eff7-nfs-qualification": "dd29280a30afee1af306ff649771be7efdd327720ca7c979423040d98f5a789e",
+            "release-7-mover_store-8133f98ca0746262-nfs-qualification": "41bb368d779bee5580bf9e772eb447a61657b7d6e3d67bf6cd97c39528a264d1",
+            "release-8-protocol-dd549649cfc5a27e-nfs-qualification": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+            "release-9-transfer-3c451284762565a6-nfs-qualification": "c2dd8677bdb5f4d025d4eeada6b81fe79d45a445b785489d46237ab2eb5c0b19"
+          }
+        }
+      }
+    },
+    {
+      "actions_run": 42430769482,
+      "artifact_id": 13597259309,
+      "mode": "production",
+      "report_sha256": "90676d9c6b911e798f905355d57088714597efd3ff2d820a53dc7195ce20a894",
+      "source_archive_sha256": "c047b00c39fdf4d0a31a71eda845cbda73e79cfe958c9b102dc8fd5b011421ba",
+      "dependency_pins_sha256": "c7fcb5ebe525a6c465470944a9700d39f80ec99418aced4ad81a26319a868bfd",
+      "status": "PASSED",
+      "cleanup_error": null,
+      "profiles": {
+        "debug": {
+          "tests_passed": 240,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "debug-0-file-mover": "eb3579d8ecf34b9a8c25b8481cfb663386647a663faa793236bfc2b2e861598d",
+            "debug-1-api-ab3188cd9f9a01df": "bfcb80ecb867087ea50af69c45b0ce120230e55455214e22789724a371892ca7",
+            "debug-2-claim-1505a04b7db96b38": "667fa6c12d2be6d505f48976dc641e878302af0af05fe3a3a1b9fde5bab5df06",
+            "debug-3-file_mover-090efcf23ed7c083": "11dae812805d4cccc928fb982f6d029ea70dd6beba4d3929a7a7bc19c89dddf9",
+            "debug-4-file_mover-49626955f157a41a": "339508b0e3821f77b1e4bd93952710039b2e9670af8289fcd5ed9051652d713d",
+            "debug-5-mover_core-b12b493fdf9744cf": "46af6522c1beecf0d33d5791f5c36f38242309fbeac4c7749236e6eb6397ce7c",
+            "debug-6-mover_fs-62cdb39a48330930": "d300e8d23926acc0a944c137111c67af1d9e483a0ec98cdfa091189b442c64fc",
+            "debug-7-mover_store-827d23f8a60d7494": "d1884609be56342c6fb380cacc36c2edd97eafdcba5f84adb46291837e6a1030",
+            "debug-8-protocol-2f28a09de9f6d355": "93a16291df705567569e5cb55fd686cbe225abc9f9d609a1d707257c622f5103",
+            "debug-9-transfer-6bcc92ab4b3c2129": "a0b56ce515e834fa808bbd61f21594271b6f9f10a17c080f644458302cb98eb2"
+          }
+        },
+        "release": {
+          "tests_passed": 240,
+          "artifacts_audited": 10,
+          "executables_sha256": {
+            "release-0-file-mover": "8992e623320bfce962b94f993e448ee72d04e2a7b582dece1e70b7c8bdddf8fc",
+            "release-1-api-b0ab9b2e96a908df": "667b9b1b27bb9fffaf793493aa13cac6c7561572bd2b5cb2ef5bc093fb781a13",
+            "release-2-claim-10c32c0f6a3abf03": "6e31c2ddb929ca57504dd82027942d1a20eeddec6c329fcb6383e4071bf5a027",
+            "release-3-file_mover-6898046fd96bd7f2": "7cc80d2cceeeb55e7645a2822d7bce06f7fbe9717f2a1fbe57cbcc2cedfca628",
+            "release-4-file_mover-8fcac8bbbe7aa543": "a49b2c157abc346c646a38e6284cb67f720ca26fc30ffeb30f2732e4cdea7ad6",
+            "release-5-mover_core-437b6f9cd965a8bf": "ddcfb05e1ef307e2280565cbde7484fb0c0a63f6604599ad8889921201ca1b08",
+            "release-6-mover_fs-ac9fecd4f03f3716": "f6a4a4bb1b571c7e22cbb771afff1230179ac972cf70867a39e5fa54fb4c7a75",
+            "release-7-mover_store-8133f98ca0746262": "41bb368d779bee5580bf9e772eb447a61657b7d6e3d67bf6cd97c39528a264d1",
+            "release-8-protocol-dd549649cfc5a27e": "3614ad1e5fcff81d9bc045be0379cb176a98ef0d266022b0533da49d2009f9f8",
+            "release-9-transfer-bd16483e7f2c37db": "f0dd9da39691f33f03cfd9f96a562e8704d6989e90a5f99af952c23e38805b23"
+          }
+        }
+      }
+    }
+  ],
+  "independent_review": [
+    "a85f39e..5a08b48: no actionable findings",
+    "5a08b48..ff09622: no actionable findings; snapshot assertion and shared-row fixture follow-up"
+  ],
+  "failed_or_superseded": [
+    {
+      "actions_runs": [
+        42430260865,
+        42430435875
+      ],
+      "source": "5a08b48",
+      "outcome": "Production test failed by opening DELETE-mode backup through WAL-only live-state inspector; corrected test assertion in ff09622. Old run groups cancelled by newer push; preserve diagnostics."
+    },
+    {
+      "local_run": "20261108T003308Z-b5aec76b",
+      "outcome": "Intentionally interrupted after CI identified that same test error; report FAILED, cleanup_error null, no passing claim."
+    }
+  ],
+  "additional_evidence": "Local coordinator gate runs and exact predecessor/target executable recovery results are recorded in PR 3 before merge; raw packs remain on the WSL evidence host.",
+  "limits": [
+    "Production NFS/source deletion remain disabled; all eight release gates stay open.",
+    "Qualification faults and process kills do not establish hardware power-loss or SQLite-internal commit/sync failure behavior.",
+    "No reverse conversion, stale backup restore, automatic takeover or hostile same-UID/root mutation support."
+  ],
+  "executable_pair_debug": {
+    "raw_directory": "/home/joey/GIT/background-file-mover-testing/rust/validation/migration-pair-115-debug-4",
+    "report_sha256": "6ce83b97573a3108f257aa43a2dae51f1d1c6650f96d1d1f6b36cd0cae9efa36",
+    "driver_sha256": "44f85a2fef90bef19244e65e5ce6c7f7d476f1cf49464e4636ce258a152a354d",
+    "local_target_gate": "20261108T004020Z-2a943e7b",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "predecessor_commit": "2a31f233982669a8821bee42bf9691b27c1f39e7",
+    "result": {
+      "status": "PASSED",
+      "predecessor_sha256": "f3fb777e772f467b2fcfabe757466265ae76a53da148c278c8a88dacbf12e86f",
+      "target_sha256": "06a73d0c213e1e3541b4c6dd1eedaa99cbfe9bdd9ca78275def2efb2dd40047a",
+      "preserved_files": {
+        "source/.file-mover/1-0/data": {
+          "identity": "141:838767:28",
+          "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f"
+        },
+        "destination/1/data": {
+          "identity": "141:838797:28",
+          "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f"
+        },
+        "destination/1/COMMITTED.json": {
+          "identity": "141:838346:281",
+          "sha256": "bf6e5130f0d2b38478be1bb188ff52b261d5e886fc60d2ec241bc94427f8f51e"
+        },
+        "source/.file-mover/source-enrollment.json": {
+          "identity": "141:838775:465",
+          "sha256": "9ce0322442cb573af9548ed56279bf55f349fb9e8e65e1935868e158e9075d43"
+        }
+      },
+      "completed_job_id": "1",
+      "recovered_job_id": "2",
+      "recovered_manifest_version": 1,
+      "predecessor_refused_schema12": true,
+      "source_created_by_actual_predecessor": true
+    },
+    "scope": "Disposable state created/enrolled by actual predecessor; migration and target recovery in the same pinned SLES container/host/account/PID namespace. Full local gate finalization and release pair are recorded in PR 3 before merge."
+  }
+}
