@@ -117,7 +117,7 @@ class Portable(unittest.TestCase):
             worker = threading.Thread(target=serve, daemon=True)
             worker.start()
             raw = CHECK.wire(body={'large': 'x'*65536})
-            result = subprocess.run(['perl', '-e', CHECK.CLIENT, endpoint, raw.hex()], capture_output=True, timeout=5)
+            result = subprocess.run(['perl', '-e', CHECK.CLIENT, endpoint, *CHECK.client_arguments(raw)], capture_output=True, timeout=5)
             worker.join(timeout=2)
             server.close()
             self.assertFalse(worker.is_alive())

@@ -37,7 +37,7 @@ use strict; use warnings; use Socket;
 $SIG{PIPE}='IGNORE'; alarm 12;
 socket(my $s,PF_UNIX,SOCK_STREAM,0) or die "socket: $!";
 connect($s,sockaddr_un($ARGV[0])) or die "connect: $!";
-my $r=pack('H*',$ARGV[1]); my $sent=0;
+my $r=pack('H*',join('',@ARGV[1..$#ARGV])); my $sent=0;
 while($sent<length($r)) {
     my $n=syswrite($s,$r,length($r)-$sent,$sent);
     last unless defined($n) && $n>0; $sent+=$n;
@@ -77,6 +77,13 @@ for my $s (@s) {
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def client_arguments(raw):
+    # Linux limits each individual argv string. Preserve full 64KiB requests
+    # while requiring only core Perl, available in the pinned minimal image.
+    data = raw.hex()
+    return [data[offset:offset+60000] for offset in range(0, len(data), 60000)] or ['']
 
 
 def require(condition, message):
@@ -245,7 +252,7 @@ class Runner:
 
     def http(self, endpoint, raw, user=PROXY_USER):
         started = time.monotonic()
-        result = self.execute('/usr/bin/perl', '-e', CLIENT, endpoint, raw.hex(),
+        result = self.execute('/usr/bin/perl', '-e', CLIENT, endpoint, *client_arguments(raw),
                               user=user, ok=False, timeout=15)
         record = dict(user=user, request_base64=base64.b64encode(raw).decode(), endpoint=endpoint,
                       exit_code=result.returncode, stderr=result.stderr.decode(errors='replace'),
@@ -384,7 +391,7 @@ def run_profile(runner, profile, config, artifact_sha):
     # durable custody before the next POST, then recover its original receipt.
     lost_raw = wire(body=request, headers=principal)
     lost = runner.execute('/usr/bin/perl', '-e', LOST_CLIENT, producer,
-                          lost_raw.hex(), user=PROXY_USER)
+                          *client_arguments(lost_raw), user=PROXY_USER)
     report['lost_response'] = dict(exit_code=lost.returncode, read_response=False,
                                   request_base64=base64.b64encode(lost_raw).decode())
     def lost_handoff():
