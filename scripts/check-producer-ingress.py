@@ -433,8 +433,8 @@ def run_profile(runner, profile, config, artifact_sha):
     error_reply(method, 405, {'method_not_allowed'})
     require(method['headers'].get('allow') == ['POST'], 'wrong/missing producer Allow')
     operator_submit = runner.http(operator, wire(body=request, headers=principal), APP_USER)
-    require(operator_submit.get('code') == 403 and operator_submit['body'].get('error') in
-            {'producer_route_forbidden', 'caller_not_authorized'} and operator_submit['body'].get('source_paths_released') is False,
+    require(operator_submit.get('code') == 404 and operator_submit['body'] ==
+            {'error': 'not_found', 'source_paths_released': False, 'retryable': False},
             'operator transport admitted a producer submission')
     # Framing/body limits remain enforced after peer and principal authorization.
     for raw, code, errors in (
