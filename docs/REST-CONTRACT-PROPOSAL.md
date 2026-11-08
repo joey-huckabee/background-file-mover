@@ -1,5 +1,12 @@
 # Consolidated REST contract proposal
 
+Current bounded closeout: [increment 116](RUST-INCREMENT-116.md) fixes the
+[producer/manifest engineering slice](api/PRODUCER-MANIFEST-CONTRACT.md), superseding
+proposed lexical/framing/serialization details in packages 2/4 only. The approved
+policies remain groups 1-52; other packages and full P01 remain unfrozen. Explicit
+legacy migration is implemented/qualified in increment 115; earlier design-only
+migration wording below is historical. UUID/v2 runtime is not activated.
+
 2026-11-01. Review draft for P01; updated 2026-11-03 through approved group 52.
 This is a proposal, not a frozen API, runtime change or qualification result.
 The [approved error review](REST-ERROR-SCENARIOS.md) remains authoritative for

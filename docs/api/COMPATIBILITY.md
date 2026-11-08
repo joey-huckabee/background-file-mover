@@ -7,11 +7,34 @@ an upgrade/recovery qualification result.
 
 | Decision | Approved behavior | Engineering work still required |
 |---|---|---|
-| Existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment, receipts and worker lifetime evidence. Upgrade only supported state formats; refuse unsupported state safely before effects. Never invent recording UUIDs for legacy jobs. | Declare and qualify exact predecessor/schema combinations; implement and test transactional preservation or refusal. |
-| Completion manifests | New recordings use v2 with recording UUID, measured sizes, file SHA-256 and request-identity digest. Existing v1 bytes stay unchanged; support recovery of still-tracked legacy jobs. | Finalize exact v2 serialization/bounds and recovery integration. Existing candidate framing/fixtures are engineering proposals, not separately approved algorithms. |
+| Existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment, receipts and worker lifetime evidence. Upgrade only supported state formats; refuse unsupported state safely before effects. Never invent recording UUIDs for legacy jobs. | Increment 115 qualifies the bounded 11 to legacy-only 12 path. Mixed UUID/legacy admission and activation support remain to implement/qualify. |
+| Completion manifests | New recordings use v2 with recording UUID, measured sizes, file SHA-256 and request-identity digest. Existing v1 bytes stay unchanged; support recovery of still-tracked legacy jobs. | Finalize exact v2 serialization/bounds and recovery integration. Increment 116 fixes encoding/bounds for the producer/v2 engineering slice; actual codecs, recovery and consumer validation remain pending. |
 | Size representation | New producer expected-size values and manifest-v2 measured sizes are canonical decimal strings representing u64. Preserve existing operator/status numeric fields and v1 numeric sizes. | Implement lossless parsing and publication; validate consumers and actual-size evidence. |
 | Filenames | Require valid UTF-8 for the new contract; retain exact spelling and case. Reject unsupported names explicitly. Never silently rename, case-fold or normalize Unicode. | Check Unicode scalars and byte limits before filesystem effects; preserve existing custody rather than applying new admission rules destructively to legacy records. |
-| Upgrade/rollback | Publish an explicit list of supported release/state combinations. An incompatible binary refuses before effects. Never restore a stale database over active transfers. | Populate and qualify the list using exact binaries/state fixtures. No predecessor, rollback or migration is declared supported merely by this approval. |
+| Upgrade/rollback | Publish an explicit list of supported release/state combinations. An incompatible binary refuses before effects. Never restore a stale database over active transfers. | Increment 115/PR 3 supplies exact legacy migration pairs and predecessor refusal. Arbitrary rollback and future mixed-identity support remain unqualified. |
+
+## Current qualified migration and new-contract baseline
+
+Increment 115, main merge 25202943138db5e7a852c762d6070758c10001bc, implements
+explicit guarded schema-11 to legacy-only schema-12 migration with a new verified
+backup. [PR 3](https://github.com/joey-huckabee/background-file-mover/pull/3) records
+both local/PR SLES modes and debug/release actual predecessor/target recovery.
+[Evidence](../STATE-MIGRATION-EVIDENCE.json) and the
+[operator procedure](../OFFLINE-STATE-MIGRATION.md) bound that support. The known
+predecessor at 2a31f23 refuses actual migrated state; this is not general binary
+rollback, reverse conversion, hardware durability or deployment qualification.
+No operational state was converted. Normal startup still refuses schema 11.
+
+Increment 116 fixes the producer/v2 engineering serialization and bounds in
+[the scoped contract](PRODUCER-MANIFEST-CONTRACT.md). Full P01 and actual
+consumer/runtime activation remain separate. UUID-bearing state still refuses
+in the current binary. Legacy partial-custody continuation/refusal must be
+qualified before replacing prototype producer admission, without an old-wire
+adapter, invented UUID or abandoned custody.
+
+The sections below preserve earlier approval/design checkpoints. Where they
+say migration is unimplemented/unqualified, that historical limit is superseded
+ONLY by the explicitly bounded increment-115 path above.
 
 ## Approved initial migration scope
 
@@ -60,7 +83,7 @@ comparison policy or immutable complete-map assertions.
 
 The latest foundation implementation creates schema 12 for fresh explicit setup
 and supports legacy manifest v1; see [increment 111](../RUST-INCREMENT-111.md).
-Existing schema 11 requires the still-unimplemented explicit upgrader. The candidate
+Existing schema 11 requires the explicit increment-115 offline upgrader; normal startup refuses it. The candidate
 schemas now describe v1 separately from v2; a shape check does not prove valid
 ownership, receipts, commitment, or recovery. A legacy non-UUID submission stays
 a legacy record; it must not silently become a new global recording UUID.
@@ -81,8 +104,9 @@ dispositions rather than invented support claims:
 
 Existing enrollment/binding and instance/lifetime checks remain mandatory. The
 unused prototype producer format may be replaced directly without an old-wire
-adapter; this does not permit abandoning persisted jobs. Runtime migration,
-coexistence and rollback results are pending, not established by schema tests.
+adapter; this does not permit abandoning persisted jobs. Increment-115 migration and exact predecessor refusal have actual executable
+evidence; mixed legacy/UUID runtime, new-wire continuation and arbitrary rollback
+remain unqualified and are not established by schema tests.
 
 Group 50 remains authoritative after clear: files and manifests are left in
 place, but all service linkage is forgotten. Legacy recovery support must never

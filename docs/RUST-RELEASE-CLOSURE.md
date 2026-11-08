@@ -1,5 +1,12 @@
 # First Rust release: closure review
 
+Current bounded progress: increment 115 implements/qualifies explicit schema-11
+to legacy-only schema-12 migration (part of RC-20); this is not all P09 or an
+FR gate closure. Increment 116 fixes the producer/manifest engineering slice
+of RC-01/P01; other routes, runtime, consumers and full freeze remain separate.
+See [the scoped contract](api/PRODUCER-MANIFEST-CONTRACT.md). All eight release
+gates remain open, with production NFS/source deletion disabled.
+
 Reviewed 2026-10-22 against commit `d9c2f2d` on
 `feature/rust-transfer-coordinator`. This is a documentation review, not a new
 qualification run. All eight release gates remain open. The next increment is
@@ -126,7 +133,7 @@ is implementation of the fixed row, not permission to grow its scope indefinitel
 | RC-17 | FR-05/06; SH-09/13 | Shipping account/local persistent state: manager failure or MainPID zero with surviving worker, restart after incomplete stop, host/container service restart with original state, wrong config/state refusal. Unit-scoped actions and bounded status remain safe. | Partial; P07/09 |
 | RC-18 | FR-04 | Job cleanup policy off/on crossed with current startup authorization off/on. Only both on permits cleanup after whole-manifest/receipt validation; producer-reused paths and other jobs remain untouched. Retained accounting remains correct. | Missing; P08 |
 | RC-19 | FR-04/05 | Owned claimed-source unlink: before effect, applied/unrecorded reply, crash/restart; destination changed, custody changed and foreign leftovers. Persist/reconcile progress independently, preserve review, no recopy or unsafe removal. Both NFS layouts after required storage gates. | Missing; P08 |
-| RC-20 | FR-05/06 | Supported fresh state and each declared writable schema migration to 11 (update target if changed), interrupted upgrade, supported binary rollback and unsupported-version refusal. Preserve DB/WAL/custody; stale backup restoration is prohibited. | Partial; P09, D05 |
+| RC-20 | FR-05/06 | Supported fresh schema 12 and declared explicit schema-11 to legacy-only-12 migration, interrupted upgrade, supported binary rollback and unsupported-version refusal. Preserve DB/WAL/custody; stale backup restoration is prohibited. | Partial; bounded migration/pairs qualified in increment 115; remaining shipping/mixed-identity support P09, D05 |
 | RC-21 | FR-06 | Disconnected locked build, licenses/notices, exact native dependencies, install/uninstall preserving state, service-account permissions and actual confinement denials. Qualify the chosen proxy and shipping unit, not only their lab substitutes. | Missing shipping package; P09 |
 | RC-22 | FR-07; SH-14 | Production and qualification SLES gates: target GNU/glibc 2.22, exact ELF/interpreter/library audit and target tests; retained sources/hashes. Update CI input coverage/artifact retention and explicit specialized fixture execution procedure. | Passing baseline, RC rerun required; P10/12 |
 | RC-23 | FR-07/08 | Current L1 to Rust L2/L3 to discovered meaningful test/evidence mapping, all RC/RA/SH/MP dispositions reviewed; DOC-01-05 complete and DOC-06 deferred tools distinguished from required cleanup instructions. | Missing release trace/docs; P10-11 |

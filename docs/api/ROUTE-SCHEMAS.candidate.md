@@ -8,6 +8,13 @@ JSON response and request references the accompanying strict object schemas.
 The per-response `x-error-codes` entries are the route error registry candidate,
 not declarations that every mapping is already approved.
 
+Producer-only update: increment 116 fixes POST /api/v2/jobs and manifest v2 in
+[the scoped engineering contract](PRODUCER-MANIFEST-CONTRACT.md), including
+canonical response UUIDs, positive usable delays and optional producer UUID
+header equivalence. The other fourteen route candidates and operator byte-exact
+command headers below remain separate. Increment 115 supplies the bounded actual
+migration/pair evidence; mixed UUID runtime/activation remain unimplemented.
+
 ## Read views and preserved operator wire
 
 Detailed status preserves current fields and enum spellings. Unknown actual

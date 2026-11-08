@@ -56,7 +56,7 @@
             }
           },
           "400": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76,7 +76,7 @@
             ]
           },
           "403": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -92,7 +92,7 @@
             ]
           },
           "404": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -105,7 +105,7 @@
             ]
           },
           "405": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -125,7 +125,7 @@
             }
           },
           "408": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -138,7 +138,7 @@
             ]
           },
           "409": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -156,7 +156,7 @@
             ]
           },
           "413": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -169,7 +169,7 @@
             ]
           },
           "415": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -182,7 +182,7 @@
             ]
           },
           "429": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -195,7 +195,7 @@
             ]
           },
           "431": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -208,7 +208,7 @@
             ]
           },
           "500": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -221,7 +221,7 @@
             ]
           },
           "503": {
-            "description": "Candidate route registry; approved individual outcomes remain governed by REST-ERROR-SCENARIOS.md. No durable-custody success implied.",
+            "description": "Producer engineering registry finalized by PRODUCER-MANIFEST-CONTRACT.md; runtime and selected ingress qualification remain pending.",
             "content": {
               "application/json": {
                 "schema": {
@@ -304,7 +304,20 @@
           "API-E72",
           "API-E73",
           "API-E74"
-        ]
+        ],
+        "x-contract-baseline": "PRODUCER-MANIFEST-CONTRACT.md (step 1 only; not implemented or full P01 freeze)",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "At most one occurrence; UUID syntax/canonical equivalence to body recording_id. Malformed/mismatched value: 400 idempotency_key_conflict; duplicate headers: 400 invalid_http. No separate identity.",
+            "schema": {
+              "$ref": "./contract.candidate.schema.json#/$defs/RecordingId"
+            }
+          }
+        ],
+        "x-header-max-count": 64
       }
     },
     "/api/v2/admin/login": {
