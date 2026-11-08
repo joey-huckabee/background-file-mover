@@ -1,4 +1,5 @@
 """Exact actual-worker publication fsync entry/exit capability controls."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 from nfs_sync_support import start_trace, finish_trace
@@ -9,7 +10,7 @@ def qualify(Case,run,execute,client,server,output,containers,config,relay,state,
         return int(run(['exec',relay.container,'python3','-c','import time; print(time.monotonic_ns())']).stdout)
 
     def custody(c,phase):
-        area='/e/profile-destination/'+c.label+'/destination/1'
+        area='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         source='/e/profile-source/'+c.label+'/source/.file-mover/1-0/data'
         paths=[source,area+'/.staging/'+('1.part' if phase=='payload' else 'COMMITTED.part'),
                area+('/nested/data.bin' if phase=='payload' else '/COMMITTED.json')]
@@ -53,7 +54,7 @@ def qualify(Case,run,execute,client,server,output,containers,config,relay,state,
                     assert code==202 and handoff['job_id']=='1' and handoff['source_paths_released'];r['handoff']=handoff
                     c.await_pause();r['coordinator_pid']=c.service_pid();r['worker_pid']=c.worker
                     execute("printf 'next recording' >"+original,'1000:1000')
-                    target=c.destination+'/1/'+('nested/data.bin' if phase=='payload' else 'COMMITTED.json')
+                    target=c.destination+'/' + RECORDING_ID + '/'+('nested/data.bin' if phase=='payload' else 'COMMITTED.json')
                     observer=start_trace(run,client,c.worker,containers,config,expected_exit='supervised-delivery',io=True,gate=dict(path=target))
                     r['clock_namespaces']={x:run(['exec',x,'readlink','/proc/self/ns/time']).stdout.strip() for x in (client,observer,relay.container)}
                     assert len(set(r['clock_namespaces'].values()))==1
@@ -119,18 +120,18 @@ def qualify(Case,run,execute,client,server,output,containers,config,relay,state,
                     r['local_after']=execute(local,'1000:1000').stdout
                     r['enrollment_after']=execute(enrollment,'1000:1000').stdout
                     assert r['local_after']==r['local_before'] and r['enrollment_after']==r['enrollment_before']
-                    final='/e/profile-destination/'+c.label+'/destination/1/'+('nested/data.bin' if phase=='payload' else 'COMMITTED.json')
+                    final='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/'+('nested/data.bin' if phase=='payload' else 'COMMITTED.json')
                     r['final_after']=snapshot(final);old=r['custody_before']['final'];parts=old['identity'].split(':')
                     assert r['final_after']==dict(identity=':'.join(parts[:2]+['1',parts[3]]),sha256=old['sha256'])
-                    r['staging_absent']=execute('test ! -e '+c.destination+'/1/.staging/'+('1.part' if phase=='payload' else 'COMMITTED.part'),'1000:1000',False).returncode==0
+                    r['staging_absent']=execute('test ! -e '+c.destination+'/' + RECORDING_ID + '/.staging/'+('1.part' if phase=='payload' else 'COMMITTED.part'),'1000:1000',False).returncode==0
                     assert r['staging_absent']
-                    manifest_hash=execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]
+                    manifest_hash=execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]
                     assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped'
                     assert c.service.wait(timeout=30)==0;c.worker=None;c.start(False)
                     code,replay=c.request('POST','/api/v2/jobs',c.body);r['replay']=replay
                     assert code==202 and replay['job_id']=='1' and replay['source_paths_released'] and c.request('GET','/api/v2/jobs/1')[1]['state']=='Committed'
                     assert execute('cat '+original,'1000:1000').stdout=='next recording'
-                    assert execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
+                    assert execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
                     assert execute(local,'1000:1000').stdout==r['local_before'];c.verify()
                     assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped'
                     assert c.service.wait(timeout=30)==0;r['original_state_preserved']=True;r['passed']=True

@@ -2,6 +2,7 @@
 
 No production enablement, deadline changes or claims of physical durability.
 """
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 import json
 import subprocess
@@ -182,7 +183,7 @@ def qualify_buffered_commit(run, execute, client, server, output, unmount_all, r
                     assert r['before']['details']['files'][0]['transfer_phase']=='Intent'
                     arm(active);execute('touch '+c.rendezvous+'/go','1000:1000')
                     role,r['held']=held_relay(active);r['relay_role']=role
-                    target=c.destination+'/1/.staging/1.part'
+                    target=c.destination+'/' + RECORDING_ID + '/.staging/1.part'
                     r['pending']=pending(pid,target)
                     r['server_while_withheld']=server_object(target)
                     started=time.monotonic();assert c.request('GET','/healthz')[0]==200

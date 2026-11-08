@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independently check COMMIT/UNSTABLE withholding, recovery and SLES inputs."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -243,7 +244,7 @@ def main():
         assert c['filesystem_types'][:2]==['6969','6969'] and c['filesystem_types'][2]!='6969'
         assert c['root_identities_stable']
         assert all(c['config'][role+'_binding']['nfs_mount']['profile']=='NMP-41B' for role in ('source','destination'))
-        target=c['config']['destination_root']+'/1/.staging/1.part'
+        target=c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
         protocol=check_pending(dict(c,target=target))
         sec=dict(line.split(':',1) for line in c['worker_security'].splitlines() if ':' in line)
         assert sec['Uid'].split()==sec['Gid'].split()==['1000']*4
@@ -257,8 +258,8 @@ def main():
         assert c['accepted'][0]==c['replay'][0]==202 and c['accepted'][1]['job_id']==c['replay'][1]['job_id']=='1'
         assert c['accepted'][1]['source_paths_released'] and c['replay'][1]['source_paths_released']
         assert c['committed']['state']=='Committed' and not c['committed']['details']['source_cleanup_enabled']
-        assert c['manifest']['version']==1 and c['manifest']['job_id']=='1' and c['manifest']['generator_id']=='fixture'
-        assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2*1048576+17,'sha256',expected)]
+        assert c['manifest']['version'] in (1,2) and validate_evidence_manifest(c) and c['manifest']['job_id']=='1' and c['manifest']['generator_id']=='fixture'
+        assert [(f['path'],manifest_size(f,c['manifest']),f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2*1048576+17,'sha256',expected)]
         assert [line.split()[0] for line in c['hashes']]==[expected,expected]
         death=c['action']=='death-drop'
         assert c['committed']['details']['files'][0]['attempt']==(2 if death else 1)

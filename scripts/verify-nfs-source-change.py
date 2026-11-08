@@ -61,7 +61,7 @@ def analyze(c,inventory):
     databases=[c['pending_database'],c['stopped_database']]
     for row in c['restarts']:
         assert row['coordinator_pid']!=c['coordinator_pid'] and len(row['responses'])==3
-        for code,body in row['responses']:assert code==409 and body['error']=='recording_blocked' and not body['retryable'] and not body['source_paths_released'] and body['job_id']=='1'
+        for code,body in row['responses']:assert code==409 and body['error']=='recording_blocked' and not body['retryable'] and not body['source_paths_released'] and (body['recording_id']==c['submission']['recording_id'] if 'recording_id' in c['submission'] else body['job_id']=='1')
         assert row['custody']==custody and row['identity']==c['identity_changed'] and row['stop']['phase']=='Stopped'
         assert row['status']==c['after_refusal']['status'];status(row);databases.append(row['database'])
     assert c['restarts'][0]['coordinator_pid']!=c['restarts'][1]['coordinator_pid']

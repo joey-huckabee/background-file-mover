@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit claimed replay, source revalidation and bounded requests during joint NFS outage."""
+from nfs_fixture_contract import evidence_component, manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -43,7 +44,7 @@ def analyze(c,inventory):
         assert all(state[k]==before[k] for k in ('container','pid','started_at','boot_id','netns','address','mounts'))
     delivery=c['delivery_blocked'];validation=c['validation_blocked']
     assert delivery['pid']==c['delivery_pid']==c['paused_worker']['pid'] and delivery['state']==validation['state']=='D'
-    assert delivery['number']==int(delivery['syscall'].split()[0])==0 and delivery['path']==c['config']['destination_root']+'/1/.staging/1.part'
+    assert delivery['number']==int(delivery['syscall'].split()[0])==0 and delivery['path']==c['config']['destination_root']+'/' + evidence_component(c) + '/.staging/1.part'
     assert int(delivery['syscall'].split()[1],16)==delivery['fd']
     assert validation['number']==int(validation['syscall'].split()[0]) and (validation['path']=='/tmp/recovery-source' or validation['path'].startswith('/tmp/recovery-source/'))
     source=c['config']['source_root'];path=validation['path']
@@ -76,15 +77,15 @@ def analyze(c,inventory):
         head,body=row['raw'].replace('\r\n','\n').split('\n\n',1);assert int(head.split()[1])==row['code']==503 and json.loads(body)==row['body']
         assert row['exit_code']==0 and row['body']['retryable'] and not row['body']['source_paths_released']
         assert row['body']['error'] in ('handoff_pending','service_busy')
-        assert row['submission_id'] in (c['config']['source_binding']['root_id'],c['new_body']['submission_id'])
+        assert (row['recording_id'] in (c['submission']['recording_id'],c['new_body']['recording_id']) if 'recording_id' in c['new_body'] else row['submission_id'] in (c['config']['source_binding']['root_id'],c['new_body']['submission_id']))
     assert any(row['body']['error']=='service_busy' for row in c['responses'])
     assert c['new_after'][0]==503 and c['new_after'][1]['error']=='retention_capacity' and c['new_after'][1]['retryable'] and not c['new_after'][1]['source_paths_released']
     assert c['retention_during']['details']['retained_jobs']==c['retention_after']['details']['retained_jobs']==1
     assert c['committed']['state']=='Committed' and c['committed']['details']['files'][0]['attempt']==1 and not c['committed']['details']['source_cleanup_enabled']
     assert c['delivery_exit'] in ('gone','Z') and c['validation_exit'] in ('gone','Z')
     assert [x.split()[0] for x in c['hashes']]==[expected,expected]
-    assert c['manifest']['job_id']=='1' and c['manifest']['submission_id']==c['config']['source_binding']['root_id']
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert c['manifest']['job_id']=='1' and validate_evidence_manifest(c)
+    assert [(f['path'],manifest_size(f,c['manifest']),f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     mounts=[covering(parse(inventory),c['config'][r+'_root']) for r in ('source','destination')]
     assert mounts[0]['device']!=mounts[1]['device'] and all(m['filesystem']=='nfs4' for m in mounts)
     assert c['filesystem_types'][:2]==['6969','6969'] and c['filesystem_types'][2]!='6969'

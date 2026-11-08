@@ -1,4 +1,5 @@
 """Owned enrolled/bootstrap fixture evidence; snapshots never open SQLite."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 
 
@@ -14,8 +15,8 @@ def file_evidence(execute, paths):
 def destination_evidence(case, execute):
     return file_evidence(execute, [
         case.destination + "/.file-mover/destination-binding.json",
-        case.destination + "/1/.staging/1.part", case.destination + "/1/.staging/2.part",
-        case.destination + "/1/nested/data.bin", case.destination + "/1/COMMITTED.json"])
+        case.destination + "/" + RECORDING_ID + "/.staging/1.part", case.destination + "/" + RECORDING_ID + "/.staging/2.part",
+        case.destination + "/" + RECORDING_ID + "/nested/data.bin", case.destination + "/" + RECORDING_ID + "/COMMITTED.json"])
 
 
 def local_evidence(case, execute, both_nfs=False):
@@ -24,9 +25,9 @@ def local_evidence(case, execute, both_nfs=False):
         return file_evidence(execute, [database + s for s in ("", "-wal", "-shm", "-journal")] + [case.config_path])
     return file_evidence(execute, [database + s for s in ("", "-wal", "-shm", "-journal")] + [
         case.config_path, case.destination + "/.file-mover/destination-binding.json",
-        case.destination + "/1/.staging/1.part", case.destination + "/1/.staging/2.part",
-        case.destination + "/1/nested/data.bin",
-        case.destination + "/1/COMMITTED.json"])
+        case.destination + "/" + RECORDING_ID + "/.staging/1.part", case.destination + "/" + RECORDING_ID + "/.staging/2.part",
+        case.destination + "/" + RECORDING_ID + "/nested/data.bin",
+        case.destination + "/" + RECORDING_ID + "/COMMITTED.json"])
 
 
 def receipt_evidence(case, execute):
@@ -40,7 +41,7 @@ def source_evidence(case, execute):
 
 
 def partial_evidence(case, execute):
-    path = case.destination + "/1/.staging/1.part"
+    path = case.destination + "/" + RECORDING_ID + "/.staging/1.part"
     return execute(f"stat -c '%d:%i:%s' {path}; sha256sum {path}", "1000:1000").stdout
 
 
@@ -74,7 +75,7 @@ def prepare(case, execute, status, both_nfs=False):
         result["seed_worker_exit"] = case.await_exit(case.worker)
         case.worker = None
         status(case, "NoActiveOwner")
-        names = execute(f"ls -A1 {case.destination}/1/.staging", "1000:1000").stdout
+        names = execute(f"ls -A1 {case.destination}/{RECORDING_ID}/.staging", "1000:1000").stdout
         assert names == "1.part\n", "seed left an unintended allocation"
         result["seed_staging_names"] = names.splitlines()
         execute(f"test -s {case.base}/state/jobs.sqlite-wal", "1000:1000")

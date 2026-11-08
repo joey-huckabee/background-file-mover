@@ -1,9 +1,18 @@
 # Offline schema-11 to schema-12 migration
 
+Current runtime checkpoint: [increment 118](RUST-INCREMENT-118.md) records UUID/v2
+integration and exact gate status. Validated mixed schema-12 state can be inspected
+and backed up; schema-11 conversion still preserves only original legacy state.
+Finish partial legacy handoff with a compatible predecessor before starting the
+new runtime. Older legacy-only/activation-disabled statements below describe the
+original increment's qualification, not authority to deploy or convert live state.
+
+
 This command converts validated legacy state without opening payload roots. It
 preserves job IDs, file indices, claims, transfer attempts, audits, enrollment,
-manifest-v1 bytes and the job-ID high-water mark. UUID admission and manifest v2
-remain disabled. No automatic migration or reverse conversion is provided.
+manifest-v1 bytes and the job-ID high-water mark. This command never assigns
+UUIDs or rewrites v1 data; current runtime support is described in increment 118.
+No automatic migration or reverse conversion is provided.
 See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits.
 
 1. Schedule downtime. Stop your installed mover service:

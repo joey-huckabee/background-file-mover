@@ -288,7 +288,14 @@ def main() -> int:
                 item = {"name": name, "sha256": digest, "test": is_test, "elf": elf_report}
                 profile_report["artifacts"].append(item)
                 if is_test:
-                    test_output = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--test-threads=1"], results / f"{name}.test")
+                    # Qualification API cases include bounded fault/backoff waits.
+                    # With 103 cases, measured local production + qualification-only
+                    # waits exceed the old 900s whole-process ceiling. Individual
+                    # test/runtime deadlines stay unchanged; run every assertion.
+                    test_timeout = 1200 if options.qualification and Path(path).name.startswith("api-") else 900
+                    if test_timeout != 900:
+                        profile_report["api_suite_timeout_seconds"] = test_timeout
+                    test_output = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--test-threads=1"], results / f"{name}.test", timeout=test_timeout)
                     counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed", test_output)
                     if not counts or any(int(failed) for _, failed in counts):
                         raise ValueError("missing successful test result")

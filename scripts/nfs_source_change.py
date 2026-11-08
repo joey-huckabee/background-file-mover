@@ -1,4 +1,5 @@
 """Finite healthy-NFS source identity/size refusal after a partial handoff."""
+from nfs_fixture_contract import RECORDING_ID
 import base64
 import hashlib
 import json
@@ -18,7 +19,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
         base='/e/profile-source/'+c.label+'/source';reader=report['storage_reader']
         run(['exec','--user','1000:1000',reader,'/bin/sh','-eu','-c','test -d '+base+'/current/earlier; test ! -e '+base+'/current/earlier/first.bin; test -d '+base+'/.file-mover/1-1; test ! -e '+base+'/.file-mover/1-1/data'])
         dest='/e/profile-destination/'+c.label+'/destination'
-        run(['exec','--user','1000:1000',reader,'/bin/sh','-eu','-c','test -d '+dest+'; test ! -e '+dest+'/1'])
+        run(['exec','--user','1000:1000',reader,'/bin/sh','-eu','-c','test -d '+dest+'; test ! -e '+dest+'/'+RECORDING_ID])
         first=snapshot(base+'/.file-mover/1-0/data');assert first==c.result['first_before']
         return dict(first=first,original=snapshot(base+'/current/nested/data.bin'),saved=snapshot(base+'/fixture-original'),first_original_absent=True,second_private_absent=True,delivery_absent=True)
     def database(c,tag):
@@ -60,7 +61,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
             r.update(scenario_id='SC-138',phase=phase,config=c.config,qualification_claim_index=1)
             c.qualification_claim_index=1
             execute('mkdir -p '+c.source+"/current/earlier; printf 'first recording payload' >"+c.source+'/current/earlier/first.bin','1000:1000')
-            c.body['files'].insert(0,dict(name='earlier/first.bin'));r['submission']=c.body
+            c.body['files'].insert(0,'earlier/first.bin');c.body['expected_sizes_bytes']['earlier/first.bin']='23';r['submission']=c.body
             base='/e/profile-source/'+c.label+'/source';original=c.source+'/current/nested/data.bin';saved=c.source+'/fixture-original'
             r['first_before']=snapshot(base+'/current/earlier/first.bin')
             try:
@@ -93,7 +94,7 @@ def qualify(Case,run,execute,client,server,output,relay,state,restore,snapshot,r
                     c.start(False);row=dict(coordinator_pid=c.service_pid(),responses=[]);r['restarts'].append(row)
                     for _ in range(3):
                         code,body=c.request('POST','/api/v2/jobs',c.body);row['responses'].append([code,body])
-                        assert code==409 and body['error']=='recording_blocked' and not body['retryable'] and not body['source_paths_released'] and body['job_id']=='1'
+                        assert code==409 and body['error']=='recording_blocked' and not body['retryable'] and not body['source_paths_released'] and body['recording_id']==c.body['recording_id']
                     row.update(check_status(c));row['custody']=custody(c);assert row['custody']==r['changed_custody']
                     row['identity']=metadata(original);assert row['identity']==r['identity_changed']
                     row['stop']=stop(c);row['database']=database(c,'restart-'+str(index));assert row['database']['claims']==r['pending_database']['claims']

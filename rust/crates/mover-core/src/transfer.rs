@@ -23,6 +23,7 @@ impl TransferPhase {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Transfer {
     pub job_id: i64,
+    pub recording_directory: String,
     pub file_index: usize,
     pub attempt: i64,
     pub destination_root: String,

@@ -2,6 +2,7 @@
 
 Only owned fixture processes/mounts. No lost-reply or physical durability claim.
 """
+from nfs_fixture_contract import RECORDING_ID
 import json
 import subprocess
 import time
@@ -108,7 +109,7 @@ def qualify_buffered_claims(run, execute, client, server, output, mount, unmount
                         assert initial['custody'] is None and expected['links'] == 1
                     else:
                         assert initial['custody'] == expected and expected['links'] == 2
-                    assert adapted(f'test ! -e {c.destination}/1', '1000:1000', check=False).returncode == 0
+                    assert adapted(f'test ! -e {c.destination}/{RECORDING_ID}', '1000:1000', check=False).returncode == 0
                     job = c.request('GET', '/api/v2/jobs/1')[1]
                     assert job['state'] == 'Accepted' and not job['source_paths_released']
                     assert not job['details']['source_cleanup_enabled']
@@ -204,7 +205,7 @@ def qualify_buffered_claims(run, execute, client, server, output, mount, unmount
                     for obj in aliases:
                         same_object(obj, expected)
                         assert obj['links'] == len(aliases)
-                    assert adapted(f'test ! -e {c.destination}/1', '1000:1000', check=False).returncode == 0
+                    assert adapted(f'test ! -e {c.destination}/{RECORDING_ID}', '1000:1000', check=False).returncode == 0
                     c.start(False)
                     code, handoff = c.request('POST', '/api/v2/jobs', c.body)
                     assert code == 202 and handoff['source_paths_released'] and handoff['job_id'] == '1'

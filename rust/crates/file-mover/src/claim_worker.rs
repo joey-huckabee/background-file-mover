@@ -124,23 +124,26 @@ fn request(
         stop,
         LIMIT as u64,
     )
-    .map_err(|_| ClaimError::Blocked("claim worker outcome uncertain"))?;
-    let reply: Receipt =
-        serde_json::from_slice(&bytes).map_err(|_| ClaimError::Blocked("invalid claim receipt"))?;
+    .map_err(|_| ClaimError::OutcomeUncertain)?;
+    decode_receipt(&bytes)
+}
+fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
+    let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
     if reply.version != 1 {
-        return Err(ClaimError::Blocked("invalid claim receipt version"));
+        return Err(ClaimError::OutcomeUncertain);
     }
     if let Some(detail) = &reply.diagnostic {
         if reply.error.is_none() || reply.claim.is_some() || !super::diagnostic::valid(detail) {
-            return Err(ClaimError::Blocked("invalid failure diagnostic"));
+            return Err(ClaimError::OutcomeUncertain);
         }
         eprintln!("Claim worker: {detail}");
     }
     match (reply.claim, reply.error) {
-        (Some(c), None) => c.decode(),
+        (Some(c), None) => c.decode().map_err(|_| ClaimError::OutcomeUncertain),
         (None, Some(Failure::MissingSource)) => Err(ClaimError::MissingSource),
         (None, Some(Failure::ExpectedSizeMismatch)) => Err(ClaimError::ExpectedSizeMismatch),
-        _ => Err(ClaimError::Blocked("claim operation blocked")),
+        (None, Some(Failure::Blocked)) => Err(ClaimError::Blocked("claim operation blocked")),
+        _ => Err(ClaimError::OutcomeUncertain),
     }
 }
 pub(crate) fn claim(
@@ -149,12 +152,26 @@ pub(crate) fn claim(
     stop: &AtomicBool,
     job_id: i64,
     index: usize,
+    check_expected_sizes: bool,
 ) -> Result<Accepted, ClaimError> {
     let job = store
         .get(job_id)?
         .ok_or(ClaimError::Blocked("unknown job"))?;
     if !guard.matches_path(&job.context.source_root_path) {
         return Err(ClaimError::Blocked("source scope changed"));
+    }
+    let check_sizes = job.recording.submission().producer().is_none() || check_expected_sizes;
+    if check_sizes
+        && let Some((intent, done)) = store.claim_intent(job_id, index)?
+        && job.recording.submission().files()[index]
+            .expected_size()
+            .is_some_and(|n| n != intent.source.size)
+    {
+        return Err(if done {
+            ClaimError::ExpectedSizeMismatch
+        } else {
+            ClaimError::Blocked("unfinished claim requires reconciliation")
+        });
     }
     let intent = match store.claim_intent(job_id, index)? {
         Some((_, true)) => return Ok(job), // Never reopen a producer's reused path.
@@ -182,7 +199,11 @@ pub(crate) fn claim(
                     file_index: index,
                     root_path: job.context.source_root_path.clone(),
                     source_name: name.clone(),
-                    expected_size: file.expected_size(),
+                    expected_size: if check_sizes {
+                        file.expected_size()
+                    } else {
+                        None
+                    },
                 },
                 guard,
                 stop,
@@ -191,9 +212,10 @@ pub(crate) fn claim(
                 || observed.file_index != index
                 || observed.root_path != job.context.source_root_path
                 || observed.source_name != name
-                || file
-                    .expected_size()
-                    .is_some_and(|n| n != observed.source.size)
+                || (check_sizes
+                    && file
+                        .expected_size()
+                        .is_some_and(|n| n != observed.source.size))
             {
                 return Err(ClaimError::Blocked("observation receipt mismatch"));
             }
@@ -289,7 +311,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(c)
             }),
             Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
-                mover_fs::validate_claim_scope(&c)?;
+                mover_fs::validate_claimed_object(&c)?;
                 Ok(c)
             }),
         };
@@ -329,28 +351,72 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     channel.write_all(&bytes)?;
     Ok(())
 }
+pub(crate) fn validate_existing(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    id: i64,
+    complete: bool,
+) -> Result<(), ClaimError> {
+    let job = store.get(id)?.ok_or(ClaimError::Blocked("missing job"))?;
+    for index in 0..job.recording.submission().files().len() {
+        match store.claim_intent(id, index)? {
+            Some((intent, true)) => {
+                if !guard.matches_path(&intent.root_path) {
+                    return Err(ClaimError::Blocked("source scope changed"));
+                }
+                let reply = request(
+                    &Assignment::Validate {
+                        version: 1,
+                        claim: ClaimWire::new(&intent),
+                    },
+                    guard,
+                    stop,
+                )?;
+                if reply != intent {
+                    return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
+                }
+            }
+            _ if complete => return Err(ClaimError::Blocked("incomplete handoff")),
+            _ => (),
+        }
+    }
+    Ok(())
+}
 pub(crate) fn validate_handoff(
     store: &Store,
     guard: &LocalClaimLock,
     stop: &AtomicBool,
     id: i64,
 ) -> Result<(), ClaimError> {
-    let (intent, done) = store
-        .claim_intent(id, 0)?
-        .ok_or(ClaimError::Blocked("missing handoff claim"))?;
-    if !done || !guard.matches_path(&intent.root_path) {
-        return Err(ClaimError::Blocked("incomplete handoff"));
+    validate_existing(store, guard, stop, id, true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unusable_receipts_are_pending_but_explicit_unsafe_receipts_block() {
+        for bytes in [
+            br#"{"version":1,"claim":null,"error":null,"diagnostic":null}"#.as_slice(),
+            br#"{"version":2,"claim":null,"error":"blocked","diagnostic":null}"#,
+            b"not-json",
+            br#"{"version":1,"claim":{},"error":null,"diagnostic":null}"#,
+        ] {
+            assert!(matches!(
+                decode_receipt(bytes),
+                Err(ClaimError::OutcomeUncertain)
+            ));
+        }
+        assert!(matches!(
+            decode_receipt(br#"{"version":1,"claim":null,"error":"blocked","diagnostic":null}"#),
+            Err(ClaimError::Blocked(_))
+        ));
+        assert!(matches!(
+            decode_receipt(
+                br#"{"version":1,"claim":null,"error":"missing_source","diagnostic":null}"#
+            ),
+            Err(ClaimError::MissingSource)
+        ));
     }
-    let reply = request(
-        &Assignment::Validate {
-            version: 1,
-            claim: ClaimWire::new(&intent),
-        },
-        guard,
-        stop,
-    )?;
-    if reply != intent {
-        return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
-    }
-    Ok(())
 }

@@ -77,7 +77,7 @@ impl StateInspection {
         }
         checkpoint("after_sequence")?;
         validate_schema(&tx)?;
-        require_legacy_identities(&tx)?;
+        validate_identities(&tx)?;
         validate_job_sequence(&tx)?;
         validate_contents(&tx, 12)?;
         let integrity: String = tx.query_row("PRAGMA integrity_check", [], |r| r.get(0))?;

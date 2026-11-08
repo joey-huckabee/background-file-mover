@@ -203,6 +203,7 @@ fn retention_counts_old_attempts_and_committed_sources_without_releasing_capacit
     s.finish_claim(&intent).unwrap();
     let mut t = Transfer {
         job_id: j.job_id,
+        recording_directory: j.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,
@@ -681,6 +682,7 @@ fn schema_ten_refusal_preserves_every_populated_table_and_saved_deadline() {
         .unwrap();
     let mut transfer = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: context.destination_path.clone(),
@@ -918,6 +920,7 @@ fn transfer_phase_skips_and_failed_commit_cannot_advance_publication() {
     db.finish_claim(&intent).unwrap();
     let mut t = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,
@@ -1857,6 +1860,7 @@ fn history_job(store: &Store, name: &str, phase: i64) -> Accepted {
     store.delivery_deferred(job.job_id, 140).unwrap();
     let mut transfer = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,
@@ -2393,7 +2397,7 @@ fn schema_twelve_namespace_constraints_are_global_and_close_null_loopholes() {
 }
 
 #[test]
-fn schema_twelve_uuid_capability_refuses_before_writable_store_admission() {
+fn schema_twelve_invalid_uuid_digest_refuses_before_writable_store_admission() {
     use rusqlite::types::Value::{Blob, Integer};
     let f = Fixture::new();
     drop(Store::open(f.db()).unwrap());
@@ -2415,10 +2419,7 @@ fn schema_twelve_uuid_capability_refuses_before_writable_store_admission() {
         Store::open_for_history_clear(f.db()).err(),
         Store::check_compatibility(f.db(), false).err(),
     ] {
-        assert!(
-            matches!(error, Some(StoreError::UnsupportedIdentity)),
-            "{error:?}"
-        );
+        assert!(matches!(error, Some(StoreError::CorruptState)), "{error:?}");
         assert_eq!(std::fs::read(f.db()).unwrap(), before);
     }
 }
@@ -2716,5 +2717,137 @@ fn explicit_migration_refuses_changed_backup_or_source_before_conversion() {
                 .schema_version,
             11
         );
+    }
+}
+
+fn uuid_input(
+    generator: &str,
+    paths: &[&str],
+    sizes: Option<std::collections::BTreeMap<String, u64>>,
+) -> Submission {
+    Submission::from_producer(
+        ProducerRequest::new(
+            generator.into(),
+            RecordingId::parse("ABCDEF01-2345-6789-abcd-0123456789ab").unwrap(),
+            "/mnt/recordings/current".into(),
+            paths.iter().map(|s| s.to_string()).collect(),
+            sizes,
+        )
+        .unwrap(),
+    )
+}
+#[test]
+fn uuid_transaction_races_keep_winning_mapping_and_global_assertions() {
+    let f = Fixture::new();
+    let a = Arc::new(Store::open(f.db()).unwrap());
+    let b = Arc::new(Store::open(f.db()).unwrap());
+    let barrier = Arc::new(std::sync::Barrier::new(8));
+    let mut tasks = Vec::new();
+    for i in 0..8 {
+        let s = if i % 2 == 0 { a.clone() } else { b.clone() };
+        let barrier = barrier.clone();
+        tasks.push(std::thread::spawn(move || {
+            let r = uuid_input(
+                "g",
+                if i % 2 == 0 { &["b", "a"] } else { &["a", "b"] },
+                None,
+            );
+            barrier.wait();
+            s.accept(&r, &context()).unwrap()
+        }));
+    }
+    let rows: Vec<_> = tasks.into_iter().map(|t| t.join().unwrap()).collect();
+    for row in &rows {
+        assert_eq!(row.job_id, rows[0].job_id);
+        assert_eq!(
+            row.recording.submission().files(),
+            rows[0].recording.submission().files()
+        );
+    }
+    assert_eq!(a.job_count().unwrap(), 1);
+    for r in [
+        uuid_input("other", &["b", "a"], None),
+        uuid_input("g", &["other", "a"], None),
+        uuid_input(
+            "g",
+            &["b", "a"],
+            Some([("a".into(), 0), ("b".into(), 0)].into()),
+        ),
+    ] {
+        assert!(matches!(
+            a.accept(&r, &context()),
+            Err(StoreError::Protocol(_))
+        ));
+    }
+    let uuid = rows[0].recording.submission().submission_id();
+    let legacy = Submission::new(
+        "g",
+        uuid,
+        "/mnt/recordings/current",
+        vec![FileSpec::new("legacy", None).unwrap()],
+    )
+    .unwrap();
+    assert!(
+        a.accept(&legacy, &context())
+            .unwrap()
+            .recording
+            .submission()
+            .producer()
+            .is_none()
+    );
+    assert_eq!(a.job_count().unwrap(), 2);
+    drop(a);
+    drop(b);
+    let s = Store::open(f.db()).unwrap();
+    assert!(s.replay(&uuid_input("g", &["a", "b"], None)).unwrap());
+}
+#[test]
+fn uuid_measured_facts_do_not_snapshot_expected_size_policy() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let r = uuid_input("g", &["data"], Some([("data".into(), 99)].into()));
+    let j = s.accept(&r, &context()).unwrap();
+    let claim = intent_for(&j, 0, 3);
+    s.begin_claim(&claim).unwrap();
+    s.finish_claim(&claim).unwrap();
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    let j = s.get(j.job_id).unwrap().unwrap();
+    assert_eq!(j.recording.file_size(0), Some(3));
+    assert_eq!(
+        j.recording.submission().files()[0].expected_size(),
+        Some(99)
+    );
+    assert_eq!(j.recording.handoff(), Handoff::Ready202);
+    assert!(matches!(
+        s.accept(&uuid_input("g", &["data"], None), &context()),
+        Err(StoreError::Protocol(_))
+    ));
+}
+#[test]
+fn uuid_digest_and_complete_map_corruption_refuse_reopen_without_repair() {
+    for sql in [
+        "UPDATE jobs SET request_identity_sha256=zeroblob(32)",
+        "UPDATE files SET expected_size=NULL WHERE file_index=0",
+    ] {
+        let f = Fixture::new();
+        let s = Store::open(f.db()).unwrap();
+        s.accept(
+            &uuid_input(
+                "g",
+                &["a", "b"],
+                Some([("a".into(), 1), ("b".into(), 2)].into()),
+            ),
+            &context(),
+        )
+        .unwrap();
+        drop(s);
+        let c = Connection::open(f.db()).unwrap();
+        c.execute_batch(sql).unwrap();
+        drop(c);
+        let before = std::fs::read(f.db()).unwrap();
+        assert!(Store::check_compatibility(f.db(), false).is_err());
+        assert!(Store::open(f.db()).is_err());
+        assert_eq!(std::fs::read(f.db()).unwrap(), before);
     }
 }

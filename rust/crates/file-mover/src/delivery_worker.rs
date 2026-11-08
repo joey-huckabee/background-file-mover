@@ -72,6 +72,8 @@ impl ManifestWire {
 enum Operation {
     Open {
         job_id: i64,
+        #[serde(default)]
+        recording_directory: Option<String>,
         source_root: String,
         destination_root: String,
         #[serde(default)]
@@ -332,6 +334,7 @@ pub(crate) fn deliver(
     let opened = session.call(
         Operation::Open {
             job_id: id,
+            recording_directory: Some(job.recording.submission().destination_component(id)),
             source_root: job.context.source_root_path.clone(),
             destination_root: job.context.destination_path.clone(),
             destination_binding: job
@@ -394,6 +397,7 @@ pub(crate) fn deliver(
                 } else {
                     Transfer {
                         job_id: id,
+                        recording_directory: job.recording.submission().destination_component(id),
                         file_index: index,
                         attempt: 1,
                         destination_root: job.context.destination_path.clone(),
@@ -425,6 +429,7 @@ pub(crate) fn deliver(
                     || next.file_index != index
                     || next.attempt != 1
                     || next.destination_root != template.destination_root
+                    || next.recording_directory != template.recording_directory
                     || next.relative_name != template.relative_name
                     || next.phase != TransferPhase::Intent
                     || next.sha256.is_some()
@@ -550,7 +555,7 @@ pub fn worker() -> Result<()> {
     let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
     channel.set_read_timeout(None)?; // Preserve the existing session assignment wait.
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
-    let mut context: Option<(i64, String, LocalClaimLock)> = None;
+    let mut context: Option<(i64, String, String, LocalClaimLock)> = None;
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
@@ -584,6 +589,7 @@ pub fn worker() -> Result<()> {
             match request.command {
                 Operation::Open {
                     job_id,
+                    recording_directory,
                     source_root,
                     destination_root,
                     destination_binding,
@@ -591,6 +597,10 @@ pub fn worker() -> Result<()> {
                 } => {
                     if context.is_some() || job_id <= 0 {
                         return Err("invalid open assignment".into());
+                    }
+                    let component = recording_directory.unwrap_or_else(|| job_id.to_string());
+                    if !mover_core::valid_recording_directory(job_id, &component) {
+                        return Err("invalid recording scope".into());
                     }
                     mover_fs::validate_worker_source(
                         &source_root,
@@ -629,11 +639,11 @@ pub fn worker() -> Result<()> {
                     destination.validate()?;
                     reply.destination_authorization =
                         destination.destination_authorization().cloned();
-                    context = Some((job_id, source_root, destination));
+                    context = Some((job_id, component, source_root, destination));
                     source_authorization = Some(request.source_authorization.clone());
                 }
                 command => {
-                    let (id, source, destination) =
+                    let (id, component, source, destination) =
                         context.as_ref().ok_or("delivery not opened")?;
                     mover_fs::validate_worker_source(
                         source,
@@ -655,7 +665,8 @@ pub fn worker() -> Result<()> {
                         _ => unreachable!(),
                     };
                     let (t, c, embedded) = assignment.decode()?;
-                    if t.job_id != *id
+                    if t.recording_directory != *component
+                        || t.job_id != *id
                         || c.job_id != *id
                         || t.file_index != c.file_index
                         || c.root_path != *source

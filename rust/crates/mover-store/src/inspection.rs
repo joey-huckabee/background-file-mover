@@ -38,7 +38,7 @@ impl StateInspection {
         }
         validate_schema_for(&c, version)?;
         if version == 12 {
-            require_legacy_identities(&c)?;
+            validate_identities(&c)?;
         }
         check_sqlite_options(&c)?;
         let journal: String = c.pragma_query_value(None, "journal_mode", |r| r.get(0))?;
@@ -102,7 +102,12 @@ impl StateInspection {
         let mut rows = s.query([])?;
         while let Some(row) = rows.next()? {
             let id = row.get(0)?;
-            let job = load_legacy(&self.connection, id)?.ok_or(StoreError::CorruptState)?;
+            let job = if self.summary.schema_version == 11 {
+                load_legacy(&self.connection, id)?
+            } else {
+                load(&self.connection, id)?
+            }
+            .ok_or(StoreError::CorruptState)?;
             let manifest = load_manifest(&self.connection, id)?;
             let transfers = (0..job.recording.submission().files().len())
                 .map(|i| load_transfer(&self.connection, id, i))
@@ -131,7 +136,7 @@ impl StateInspection {
 pub(super) const LEGACY_COLUMNS: &str = "job_id,generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count";
 
 // Stream exact typed values. Target jobs project only the original columns;
-// require_legacy_identities separately validates the four new columns.
+// validate_identities separately validates the four new columns.
 pub(super) fn compare_rows(
     source: &Connection,
     snapshot: &Connection,

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise an offline bundle in a disposable pinned SLES container, without downloads."""
+from nfs_fixture_contract import RECORDING_ID, producer_request, validate_writer_bytes
 import argparse
 import hashlib
 import json
@@ -114,22 +115,24 @@ def main():
             report["last_health"] = {"code": code, "body": data}
             return code == 200
         wait_for(healthy, "installed service not ready")
-        submission = {"generator_id": config["generator_id"], "submission_id": "offline-bundle", "source_path": base + "/source/input", "files": [{"name": "data"}]}
+        submission = producer_request(base + "/source/input", {"data": len(b"offline bundle payload")}, generator_id=config["generator_id"])
+        report["submission"] = submission
         status, body = http("POST", "/api/v2/jobs", submission)
         if status != 202:
             raise RuntimeError(f"submission failed {status}: {body}")
         accepted = json.loads(body)
+        assert accepted == dict(job_id=accepted["job_id"], recording_id=RECORDING_ID, accepted=True, source_paths_released=True)
         job = str(accepted["job_id"])
         def committed():
             code, data = http("GET", "/api/v2/jobs/" + job)
             return code == 200 and json.loads(data).get("state") == "Committed"
         wait_for(committed, "installed service did not commit payload")
-        payload = execute("cat", base + "/destination/" + job + "/data").stdout
+        payload = execute("cat", base + "/destination/" + RECORDING_ID + "/data").stdout
         assert payload == "offline bundle payload"
-        manifest_bytes = execute("cat", base + "/destination/" + job + "/COMMITTED.json").stdout
-        manifest = json.loads(manifest_bytes)
+        manifest_bytes = execute("cat", base + "/destination/" + RECORDING_ID + "/COMMITTED.json").stdout
+        manifest = validate_writer_bytes(manifest_bytes.encode("utf-8"), submission)
         entry = manifest["files"][0]
-        assert entry["path"] == "data" and entry["size_bytes"] == len(payload)
+        assert entry["path"] == "data" and entry["size_bytes"] == str(len(payload.encode("utf-8")))
         assert entry["algorithm"] == "sha256" and entry["sha256"] == hashlib.sha256(payload.encode()).hexdigest()
         assert execute("cat", base + "/source/.file-mover/" + job + "-0/data").stdout == payload
         execute(binary, "--stop", base + "/config.json")
@@ -137,8 +140,8 @@ def main():
         wait_for(healthy, "installed service did not restart")
         assert committed()
         code, replay = http("POST", "/api/v2/jobs", submission)
-        assert code == 202 and str(json.loads(replay)["job_id"]) == job
-        assert execute("cat", base + "/destination/" + job + "/COMMITTED.json").stdout == manifest_bytes
+        assert code == 202 and json.loads(replay) == accepted
+        assert execute("cat", base + "/destination/" + RECORDING_ID + "/COMMITTED.json").stdout == manifest_bytes
         execute(binary, "--stop", base + "/config.json")
         execute("sh", installed + "/verify.sh")
         report["checks"].append("installed executable initializes, serves HTTP, commits exact payload/manifest SHA-256, retains source, stops/restarts and replays the same job without changing its manifest")

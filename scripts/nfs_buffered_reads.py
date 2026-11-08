@@ -1,4 +1,5 @@
 """Actual buffered payload-read blockage/death/recovery in the owned NFS lab."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 import json
 import subprocess
@@ -83,12 +84,12 @@ def qualify_buffered_reads(run, execute, client, server, output, mount, unmount_
                     r['status_before_outage'] = c.request('GET', '/api/v2/jobs/1')[1]
                     assert r['status_before_outage']['state'] == 'Claimed'
                     assert r['status_before_outage']['details']['files'][0]['transfer_phase'] == ('Intent' if point == 'source_copy' else 'Copied')
-                    stage = c.destination+'/1/.staging/1.part'
+                    stage = c.destination+'/' + RECORDING_ID + '/.staging/1.part'
                     r['staging_before_outage'] = execute(f"stat -c '%d:%i:%s' {stage}", '1000:1000').strip()
                     size = int(r['staging_before_outage'].split(':')[-1])
                     assert size == (1048576 if point == 'source_copy' else 2*1048576+17)
                     assert execute(f"stat -c '%d:%i:%s' {c.source}/.file-mover/1-0/data", '1000:1000').strip() == r['original_source'][0]
-                    execute(f'test ! -e {c.destination}/1/COMMITTED.json', '1000:1000')
+                    execute(f'test ! -e {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000')
                     r['manifest_absent_before_outage'] = True
                     # Never hash the target after its cache advice/rendezvous.
                     epoch_path = c.base+'/state/workers.json'
@@ -158,7 +159,7 @@ def qualify_buffered_reads(run, execute, client, server, output, mount, unmount_
                     assert size <= after_size <= 2*1048576+17
                     expected = bytes(min(after_size, 2*1048576))+b'0123456789abcdefg'[:max(0,after_size-2*1048576)]
                     assert r['staging_after_exit'][1].split()[0] == hashlib.sha256(expected).hexdigest()
-                    execute(f'test ! -e {c.destination}/1/COMMITTED.json', '1000:1000')
+                    execute(f'test ! -e {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000')
                     committed = c.recover()
                     assert committed['state'] == 'Committed' and not committed['details']['source_cleanup_enabled']
                     assert committed['details']['files'][0]['attempt'] == (2 if point == 'source_copy' else 1)
@@ -166,7 +167,7 @@ def qualify_buffered_reads(run, execute, client, server, output, mount, unmount_
                     r['committed'] = committed
                     assert execute(state_command, '1000:1000') == r['original_state']
                     assert execute(f"stat -c '%d:%i:%s' {c.source}/.file-mover/1-0/data", '1000:1000').strip() == r['original_source'][0]
-                    r['final_identity'] = execute(f"stat -c '%d:%i' {c.destination}/1/nested/data.bin", '1000:1000').strip()
+                    r['final_identity'] = execute(f"stat -c '%d:%i' {c.destination}/{RECORDING_ID}/nested/data.bin", '1000:1000').strip()
                     assert r['final_identity'] != ':'.join(r['original_source'][0].split(':')[:2])
                     if point == 'source_copy':
                         assert execute(f"stat -c '%d:%i:%s' {stage}; sha256sum {stage}", '1000:1000').splitlines() == r['staging_after_exit']
@@ -175,7 +176,7 @@ def qualify_buffered_reads(run, execute, client, server, output, mount, unmount_
                     else:
                         assert r['final_identity'] == ':'.join(r['staging_before_outage'].split(':')[:2])
                         r['verified_allocation_preserved'] = True
-                    manifest_hash = execute(f'sha256sum {c.destination}/1/COMMITTED.json', '1000:1000').split()[0]
+                    manifest_hash = execute(f'sha256sum {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000').split()[0]
                     stop = adapted(c.binary+' --stop '+c.config_path, '1000:1000')
                     assert json.loads(stop.stdout)['phase'] == 'Stopped' and c.service.wait(timeout=30) == 0
                     c.start(False)
@@ -183,8 +184,8 @@ def qualify_buffered_reads(run, execute, client, server, output, mount, unmount_
                     assert code == 202 and replay['job_id'] == '1' and replay['source_paths_released']
                     assert c.request('GET', '/api/v2/jobs/1')[1]['state'] == 'Committed'
                     assert execute(f'cat {c.source}/current/nested/data.bin', '1000:1000') == 'next recording'
-                    assert execute(f'sha256sum {c.destination}/1/COMMITTED.json', '1000:1000').split()[0] == manifest_hash
-                    assert execute(f"stat -c '%d:%i' {c.destination}/1/nested/data.bin", '1000:1000').strip() == r['final_identity']
+                    assert execute(f'sha256sum {c.destination}/{RECORDING_ID}/COMMITTED.json', '1000:1000').split()[0] == manifest_hash
+                    assert execute(f"stat -c '%d:%i' {c.destination}/{RECORDING_ID}/nested/data.bin", '1000:1000').strip() == r['final_identity']
                     assert execute(state_command, '1000:1000') == r['original_state']
                     c.verify()
                     r['replay'] = replay

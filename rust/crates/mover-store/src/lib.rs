@@ -6,7 +6,9 @@ use mover_core::{
     Recording, Submission,
 };
 use mover_core::{ManifestRecord, Transfer, TransferPhase};
+use mover_core::{ProducerRequest, RecordingId};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
+use sha2::{Digest, Sha256};
 use std::{
     fmt,
     path::{Path, PathBuf},
@@ -68,11 +70,11 @@ impl fmt::Display for StoreError {
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: schema 11 state is preserved; explicit migration to schema 12 is required and apply is not enabled in this build. Do not reinitialize or replace original state."
+                "MigrationRequired: schema 11 state is preserved; explicit offline migration to schema 12 is required; normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
-                "UnsupportedIdentity: this build supports legacy jobs only; UUID admission and recovery are not enabled. Preserve original state and use a compatible binary."
+                "UnsupportedIdentity: legacy handoff is incomplete. Preserve original state/custody and finish handoff with the predecessor binary before starting this runtime."
             ),
             other => write!(f, "{other:?}"),
         }
@@ -417,13 +419,7 @@ impl Store {
         let submission = submission.clone();
         self.call(move |db| {
             let tx = db.connection.transaction()?;
-            let id: Option<i64> = tx
-                .query_row(
-                    "SELECT job_id FROM jobs WHERE identity_kind=0 AND generator_id=?1 AND submission_id=?2",
-                    params![submission.generator_id(), submission.submission_id()],
-                    |r| r.get(0),
-                )
-                .optional()?;
+            let id = identity_lookup(&tx, &submission)?;
             if let Some(id) = id {
                 load(&tx, id)?
                     .ok_or(StoreError::CorruptState)?
@@ -685,25 +681,28 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
     Ok(())
 }
 
-// Schema 12 reserves the UUID representation, but this increment exposes only
-// legacy reconstruction. Reject unsupported whole-state capabilities BEFORE
-// any writable connection settings or payload effects.
-fn require_legacy_identities(connection: &Connection) -> Result<()> {
-    let unsupported: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM jobs WHERE identity_kind=1)",
-        [],
-        |r| r.get(0),
-    )?;
-    if unsupported {
-        return Err(StoreError::UnsupportedIdentity);
-    }
-    let corrupt: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM jobs WHERE identity_kind IS NULL OR typeof(identity_kind)!='integer' OR identity_kind!=0 OR typeof(submission_id)!='text' OR recording_uuid IS NOT NULL OR request_identity_version IS NOT NULL OR request_identity_sha256 IS NOT NULL)", [], |r| r.get(0),
-    )?;
-    if corrupt {
-        return Err(StoreError::CorruptState);
+// Validate every identity/assertion before writable settings or payload effects.
+fn validate_identities(connection: &Connection) -> Result<()> {
+    let mut s = connection.prepare("SELECT job_id FROM jobs ORDER BY job_id")?;
+    for id in s.query_map([], |r| r.get::<_, i64>(0))? {
+        load(connection, id?)?.ok_or(StoreError::CorruptState)?;
     }
     Ok(())
+}
+fn identity_lookup(c: &Connection, s: &Submission) -> Result<Option<i64>> {
+    if let Some(r) = s.producer() {
+        Ok(c.query_row(
+            "SELECT job_id FROM jobs WHERE identity_kind=1 AND recording_uuid=?1",
+            [r.recording_id().as_bytes().as_slice()],
+            |r| r.get(0),
+        )
+        .optional()?)
+    } else {
+        Ok(c.query_row("SELECT job_id FROM jobs WHERE identity_kind=0 AND generator_id=?1 AND submission_id=?2", params![s.generator_id(),s.submission_id()], |r| r.get(0)).optional()?)
+    }
+}
+fn request_digest(r: &ProducerRequest) -> Vec<u8> {
+    Sha256::digest(mover_core::identity_frame(r)).to_vec()
 }
 
 fn validate_job_sequence(connection: &Connection) -> Result<()> {
@@ -827,7 +826,7 @@ impl Database {
         }
         connection.pragma_update(None, "trusted_schema", "OFF")?;
         if !fresh {
-            require_legacy_identities(&connection)?;
+            validate_identities(&connection)?;
             validate_job_sequence(&connection)?;
         }
         if !read_only {
@@ -943,13 +942,7 @@ impl Database {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let prior: Option<i64> = tx
-            .query_row(
-                "SELECT job_id FROM jobs WHERE identity_kind=0 AND generator_id=?1 AND submission_id=?2",
-                params![submission.generator_id(), submission.submission_id()],
-                |r| r.get(0),
-            )
-            .optional()?;
+        let prior = identity_lookup(&tx, submission)?;
         if let Some(id) = prior {
             let mut saved = load(&tx, id)?.ok_or(StoreError::CorruptState)?;
             saved.recording.replay(submission)?;
@@ -958,6 +951,17 @@ impl Database {
             return Ok(saved);
         }
         context.validate()?;
+        if submission.producer().is_some()
+            && submission.source_directory()
+                != format!(
+                    "{}/{}",
+                    context.source_root_path.trim_end_matches('/'),
+                    context.source_relative_directory
+                )
+                .trim_end_matches('/')
+        {
+            return Err(StoreError::InvalidContext);
+        }
         admission.check()?;
         let enrolled_path: Option<String> = tx
             .query_row(
@@ -999,11 +1003,13 @@ impl Database {
                 return Err(StoreError::SourceReserved);
             }
         }
-        tx.execute("INSERT INTO jobs(generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0)",
-            params![submission.generator_id(), submission.submission_id(), submission.source_directory(), context.source_root_id,
+        let request = submission.producer();
+        tx.execute("INSERT INTO jobs(generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count,identity_kind,recording_uuid,request_identity_version,request_identity_sha256) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)",
+            params![submission.generator_id(), if request.is_none() {Some(submission.submission_id())} else {None}, submission.source_directory(), context.source_root_id,
                 context.source_root_path, context.source_relative_directory, context.policy.destination_id,
                 context.destination_path, context.policy.group_by_generator, context.policy.delete_source_after_commit,
-                context.missing_retry_seconds, i64::try_from(submission.files().len()).map_err(|_| StoreError::InvalidContext)?])?;
+                context.missing_retry_seconds, submission.files().len() as i64, i64::from(request.is_some()),
+                request.map(|r| r.recording_id().as_bytes().to_vec()), request.map(|_| 1), request.map(request_digest)])?;
         let job_id = tx.last_insert_rowid();
         if let Some(binding) = &context.destination_binding {
             tx.execute(
@@ -1132,25 +1138,15 @@ impl Database {
 }
 
 fn load(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
-    let kind: Option<i64> = connection
-        .query_row(
-            "SELECT identity_kind FROM jobs WHERE job_id=?1",
-            [job_id],
-            |r| r.get(0),
-        )
-        .optional()?;
-    match kind {
-        None => return Ok(None),
-        Some(0) => (),
-        Some(1) => return Err(StoreError::UnsupportedIdentity),
-        Some(_) => return Err(StoreError::CorruptState),
-    }
-    load_legacy(connection, job_id)
+    load_state(connection, job_id, true)
 }
 
 fn load_legacy(connection: &Connection, job_id: i64) -> Result<Option<Accepted>> {
+    load_state(connection, job_id, false)
+}
+fn load_state(connection: &Connection, job_id: i64, uuid_schema: bool) -> Result<Option<Accepted>> {
     let header = connection.query_row("SELECT generator_id,submission_id,source_directory,source_root_id,source_root_path,source_relative_directory,destination_id,destination_path,group_by_generator,delete_source_after_commit,missing_retry_seconds,file_count FROM jobs WHERE job_id=?1",
-        [job_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?, AcceptanceContext {
+        [job_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?, r.get::<_, String>(2)?, AcceptanceContext {
             source_root_id: r.get(3)?, source_root_path: r.get(4)?, source_relative_directory: r.get(5)?,
             policy: DeliveryPolicy { destination_id: r.get(6)?, group_by_generator: r.get(8)?, delete_source_after_commit: r.get(9)? },
             destination_path: r.get(7)?, destination_binding: None, missing_retry_seconds: r.get(10)?,
@@ -1174,13 +1170,18 @@ fn load_legacy(connection: &Connection, job_id: i64) -> Result<Option<Accepted>>
         ))
     })?;
     let mut files = Vec::new();
+    let mut canonical_sizes = true;
     for row in rows {
         let (index, path, expected) = row?;
         if usize::try_from(index).ok() != Some(files.len()) {
             return Err(StoreError::CorruptState);
         }
         let size = expected
-            .map(|value| value.parse::<u64>().map_err(|_| StoreError::CorruptState))
+            .map(|value| {
+                let n = value.parse::<u64>().map_err(|_| StoreError::CorruptState)?;
+                canonical_sizes &= value == n.to_string();
+                Ok::<u64, StoreError>(n)
+            })
             .transpose()?;
         files.push(FileSpec::new(path, size)?);
     }
@@ -1188,7 +1189,58 @@ fn load_legacy(connection: &Connection, job_id: i64) -> Result<Option<Accepted>>
         return Err(StoreError::CorruptState);
     }
     context.validate()?;
-    let input = Submission::new(generator, submission, source, files)?;
+    type IdentityColumns = (i64, Option<Vec<u8>>, Option<i64>, Option<Vec<u8>>);
+    let (kind, uuid, version, digest): IdentityColumns = if uuid_schema {
+        connection.query_row("SELECT identity_kind,recording_uuid,request_identity_version,request_identity_sha256 FROM jobs WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?
+    } else {
+        (0, None, None, None)
+    };
+    let input = match (kind, submission, uuid, version, digest) {
+        (0, Some(id), None, None, None) => Submission::new(generator, id, source, files)?,
+        (1, None, Some(uuid), Some(1), Some(digest)) => {
+            if !canonical_sizes
+                || source
+                    != format!(
+                        "{}/{}",
+                        context.source_root_path.trim_end_matches('/'),
+                        context.source_relative_directory
+                    )
+                    .trim_end_matches('/')
+            {
+                return Err(StoreError::CorruptState);
+            }
+            let uuid: [u8; 16] = uuid.try_into().map_err(|_| StoreError::CorruptState)?;
+            let paths = files.iter().map(|f| f.relative_path().to_owned()).collect();
+            let sizes = if files.iter().any(|f| f.expected_size().is_some()) {
+                Some(
+                    files
+                        .iter()
+                        .map(|f| {
+                            Ok((
+                                f.relative_path().to_owned(),
+                                f.expected_size().ok_or(StoreError::CorruptState)?,
+                            ))
+                        })
+                        .collect::<Result<_>>()?,
+                )
+            } else {
+                None
+            };
+            let r = ProducerRequest::new(
+                generator,
+                RecordingId::from_bytes(uuid),
+                source,
+                paths,
+                sizes,
+            )
+            .map_err(|_| StoreError::CorruptState)?;
+            if request_digest(&r) != digest {
+                return Err(StoreError::CorruptState);
+            }
+            Submission::from_producer(r)
+        }
+        _ => return Err(StoreError::CorruptState),
+    };
     let mut recording = Recording::new(input, context.policy.clone())?;
     recording.confirm_acceptance();
     let mut result = Accepted {
@@ -1230,6 +1282,7 @@ fn validate_transfer(job: &Accepted, t: &Transfer) -> Result<()> {
         || job.recording.handoff() != mover_core::Handoff::Ready202
         || job.context.policy.group_by_generator
         || t.destination_root != job.context.destination_path
+        || t.recording_directory != job.recording.submission().destination_component(job.job_id)
         || t.relative_name != job.recording.submission().files()[t.file_index].relative_path()
         || !(1..=100).contains(&t.attempt)
         || t.stage.links != 1
@@ -1250,6 +1303,29 @@ fn validate_transfer(job: &Accepted, t: &Transfer) -> Result<()> {
     }
     Ok(())
 }
+fn destination_component(c: &Connection, id: i64) -> Result<String> {
+    let modern: bool = c.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('jobs') WHERE name='recording_uuid')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !modern {
+        return Ok(id.to_string());
+    }
+    let (kind, uuid): (i64, Option<Vec<u8>>) = c.query_row(
+        "SELECT identity_kind,recording_uuid FROM jobs WHERE job_id=?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    match (kind, uuid) {
+        (0, None) => Ok(id.to_string()),
+        (1, Some(b)) => Ok(RecordingId::from_bytes(
+            b.try_into().map_err(|_| StoreError::CorruptState)?,
+        )
+        .to_string()),
+        _ => Err(StoreError::CorruptState),
+    }
+}
 fn load_transfer(c: &Connection, job: i64, index: usize) -> Result<Option<Transfer>> {
     let row=c.query_row("SELECT attempt,destination_root,relative_name,root_identity,area_identity,parent_identity,staging_directory_identity,stage_identity,sha256,phase FROM transfers WHERE job_id=?1 AND file_index=?2 ORDER BY attempt DESC LIMIT 1",params![job,index as i64],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,String>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,Option<String>>(8)?,r.get::<_,i64>(9)?))).optional()?;
     row.map(
@@ -1268,6 +1344,7 @@ fn load_transfer(c: &Connection, job: i64, index: usize) -> Result<Option<Transf
             let decode = |s: &str| ObjectIdentity::decode(s).ok_or(StoreError::CorruptState);
             Ok(Transfer {
                 job_id: job,
+                recording_directory: destination_component(c, job)?,
                 file_index: index,
                 attempt,
                 destination_root,
@@ -1300,9 +1377,10 @@ fn validate_claim(job: &Accepted, intent: &ClaimIntent) -> Result<()> {
         || intent.source.device != intent.root.device
         || intent.parent.device != intent.root.device
         || intent.area.device != intent.root.device
-        || file
-            .expected_size()
-            .is_some_and(|size| size != intent.source.size)
+        || (job.recording.submission().producer().is_none()
+            && file
+                .expected_size()
+                .is_some_and(|size| size != intent.source.size))
     {
         return Err(StoreError::CorruptState);
     }

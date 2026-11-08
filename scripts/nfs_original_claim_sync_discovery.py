@@ -1,4 +1,5 @@
 """Exact actual-worker original-file claim fsync entry/exit capability controls."""
+from nfs_fixture_contract import RECORDING_ID
 import json
 import time
 from nfs_sync_support import start_trace, finish_trace
@@ -12,7 +13,7 @@ def qualify(Case,run,execute,client,server,output,containers,config,relay,state,
         base='/e/profile-source/'+c.label+'/source'
         original=base+'/current/nested/data.bin'
         lines=run(['exec','--user','1000:1000',report['storage_reader'],'/bin/sh','-eu','-c',
-                   "stat -c '%d:%i:%h:%s' "+original+'; sha256sum '+original+'; test ! -e '+base+'/.file-mover/1-0/data; test ! -e /e/profile-destination/'+c.label+'/destination/1']).stdout.splitlines()
+                   "stat -c '%d:%i:%h:%s' "+original+'; sha256sum '+original+'; test ! -e '+base+'/.file-mover/1-0/data; test ! -e /e/profile-destination/'+c.label+'/destination/'+RECORDING_ID]).stdout.splitlines()
         assert len(lines)==2
         row=dict(identity=lines[0],sha256=lines[1].split()[0]);assert row['identity'].split(':')[2:]==['1','2097169']
         return dict(original=row,private_absent=True,delivery_absent=True)
@@ -124,13 +125,13 @@ def qualify(Case,run,execute,client,server,output,containers,config,relay,state,
                     old=r['custody_before']['original'];parts=old['identity'].split(':')
                     assert r['private_after']==dict(identity=':'.join(parts[:2]+['1',parts[3]]),sha256=old['sha256'])
                     r['producer_after']=execute('cat '+original,'1000:1000').stdout;assert r['producer_after']=='next recording'
-                    manifest_hash=execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]
+                    manifest_hash=execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]
                     assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped'
                     assert c.service.wait(timeout=30)==0;c.worker=None;c.start(False)
                     code,replay=c.request('POST','/api/v2/jobs',c.body);r['replay']=replay
                     assert code==202 and replay['job_id']=='1' and replay['source_paths_released'] and c.request('GET','/api/v2/jobs/1')[1]['state']=='Committed'
                     assert execute('cat '+original,'1000:1000').stdout=='next recording'
-                    assert execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
+                    assert execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
                     assert execute(local,'1000:1000').stdout==r['local_before'];c.verify()
                     assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped'
                     assert c.service.wait(timeout=30)==0;r['original_state_preserved']=True;r['passed']=True

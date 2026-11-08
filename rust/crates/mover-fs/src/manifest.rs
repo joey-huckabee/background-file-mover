@@ -29,6 +29,37 @@ struct Entry {
     sha256: String,
 }
 
+fn encode(job: &Accepted, files: Vec<Entry>, instance: String) -> ManifestResult<String> {
+    if let Some(request) = job.recording.submission().producer() {
+        let measured = files
+            .into_iter()
+            .map(|f| {
+                let digest: Vec<u8> = (0..f.sha256.len())
+                    .step_by(2)
+                    .map(|i| u8::from_str_radix(&f.sha256[i..i + 2], 16))
+                    .collect::<std::result::Result<_, _>>()?;
+                Ok(recording_codec::MeasuredFile {
+                    file_id: f.file_id.parse()?,
+                    path: f.path,
+                    size_bytes: f.size_bytes,
+                    sha256: digest.try_into().map_err(|_| "invalid digest")?,
+                })
+            })
+            .collect::<ManifestResult<Vec<_>>>()?;
+        let m = recording_codec::ManifestV2::build(&instance, job.job_id, request, measured)?;
+        Ok(String::from_utf8(m.bytes().to_vec())?)
+    } else {
+        Ok(serde_json::to_string(&Manifest {
+            version: 1,
+            instance_id: instance,
+            job_id: job.job_id.to_string(),
+            generator_id: job.recording.submission().generator_id().into(),
+            submission_id: job.recording.submission().submission_id().into(),
+            files,
+        })?)
+    }
+}
+
 /// Checks immutable stored v1 bytes against stored identities/evidence only.
 /// It intentionally does not open published files or claim directories.
 pub(crate) fn validate_inspected_manifest(
@@ -41,6 +72,32 @@ pub(crate) fn validate_inspected_manifest(
         return Ok(());
     };
     let bad = || mover_store::StoreError::CorruptState;
+    if let Some(request) = job.recording.submission().producer() {
+        let m = recording_codec::ManifestV2::decode(record.bytes.as_bytes()).map_err(|_| bad())?;
+        m.validate_context(instance, job.job_id, request)
+            .map_err(|_| bad())?;
+        if format!("{:x}", Sha256::digest(m.bytes())) != record.sha256
+            || m.files().len() != transfers.len()
+        {
+            return Err(bad());
+        }
+        for (file, transfer) in m.files().iter().zip(transfers) {
+            let t = transfer.as_ref().ok_or_else(bad)?;
+            if t.phase != TransferPhase::Published
+                || file.path != t.relative_name
+                || file.size_bytes != t.stage.size
+                || Some(
+                    file.sha256
+                        .iter()
+                        .map(|b| format!("{b:02x}"))
+                        .collect::<String>(),
+                ) != t.sha256
+            {
+                return Err(bad());
+            }
+        }
+        return Ok(());
+    }
     let m: Manifest = serde_json::from_str(&record.bytes).map_err(|_| bad())?;
     if format!("{:x}", Sha256::digest(record.bytes.as_bytes())) != record.sha256
         || m.version != 1
@@ -95,15 +152,7 @@ fn expected(store: &Store, id: i64) -> ManifestResult<(String, OwnedFd, OwnedFd)
             sha256: t.sha256.ok_or("missing digest")?,
         });
     }
-    let m = Manifest {
-        version: 1,
-        instance_id: store.instance_id()?,
-        job_id: id.to_string(),
-        generator_id: job.recording.submission().generator_id().into(),
-        submission_id: job.recording.submission().submission_id().into(),
-        files,
-    };
-    let bytes = serde_json::to_string(&m)?;
+    let bytes = encode(&job, files, store.instance_id()?)?;
     if bytes.len() > 131072 {
         return Err("manifest limit exceeded".into());
     }
@@ -123,7 +172,12 @@ fn read_exact_manifest(fd: &mut File, m: &ManifestRecord) -> ManifestResult<()> 
         return Err("manifest content mismatch".into());
     }
     // Strict schema, duplicate-field rejection, exact bytes and required set.
-    let _: Manifest = serde_json::from_slice(&bytes)?;
+    let version: serde_json::Value = serde_json::from_slice(&bytes)?;
+    if version["version"] == 2 {
+        recording_codec::ManifestV2::decode(&bytes)?;
+    } else {
+        let _: Manifest = serde_json::from_slice(&bytes)?;
+    }
     Ok(())
 }
 pub fn commit_manifest(store: &Store, id: i64) -> ManifestResult<ManifestRecord> {
@@ -381,14 +435,7 @@ pub fn expected_manifest(store: &Store, id: i64) -> ManifestResult<ManifestRecor
             sha256: t.sha256.ok_or("missing digest")?,
         });
     }
-    let bytes = serde_json::to_string(&Manifest {
-        version: 1,
-        instance_id: store.instance_id()?,
-        job_id: id.to_string(),
-        generator_id: job.recording.submission().generator_id().into(),
-        submission_id: job.recording.submission().submission_id().into(),
-        files,
-    })?;
+    let bytes = encode(&job, files, store.instance_id()?)?;
     if bytes.len() > 131072 {
         return Err("manifest limit exceeded".into());
     }

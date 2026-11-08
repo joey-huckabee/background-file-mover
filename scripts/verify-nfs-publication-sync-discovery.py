@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit actual publication fsync boundaries, raw RPC attribution and compatibility."""
+from nfs_fixture_contract import evidence_component, manifest_size
 import argparse
 import base64
 import copy
@@ -58,7 +59,7 @@ def analyze(c,inventory):
     trace=c['trace'];assert trace['passed'] and not trace.get('cleanup_error') and trace['pid']==int(c['worker_pid']) and trace['exit_status'] in (0,9)
     assert trace['syncs']==[e for e in trace['events'] if e['syscall'] in (74,75)] and all(e['result']==0 for e in trace['syncs'])
     gate=trace['gate'];assert gate['entry']==c['entry'] and gate['exit']==c['exit']
-    target=c['config']['destination_root']+'/1/'+('nested/data.bin' if c['phase']=='payload' else 'COMMITTED.json')
+    target=c['config']['destination_root']+'/' + evidence_component(c) + '/'+('nested/data.bin' if c['phase']=='payload' else 'COMMITTED.json')
     assert gate['path']==target
     selected=[e for e in trace['syncs'] if e['path']==target and e['fd']==c['entry']['fd'] and e['enter_ns']==c['exit']['enter_ns']]
     assert len(selected)==1;e=selected[0]
@@ -78,7 +79,7 @@ def analyze(c,inventory):
     else:assert c['mode']=='healthy' and c['outcome']=='healthy_completion' and not c['blocked_sync'] and c['exit_before_restore']==c['exit']
     committed=c['committed'];assert committed['state']=='Committed' and committed['details']['files'][0]['attempt']==1 and not committed['details']['source_cleanup_enabled']
     assert [x.split()[0] for x in c['hashes']]==[expected,expected]
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert [(f['path'],manifest_size(f,c['manifest']),f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow'] and c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
     for row in wire['trace']:

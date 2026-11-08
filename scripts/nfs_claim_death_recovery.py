@@ -1,4 +1,5 @@
 """Finite source-claim LINK coordinator death before confirmed HTTP 202."""
+from nfs_fixture_contract import RECORDING_ID
 import base64
 import hashlib
 import json
@@ -24,7 +25,7 @@ def qualify(Case,run,execute,spawn,client,server,output,containers,config,relay,
         base='/e/profile-source/'+c.label+'/source'
         return dict(original=optional(base+'/current/nested/data.bin'),private=optional(base+'/.file-mover/1-0/data'))
     def no_delivery(c):
-        path='/e/profile-destination/'+c.label+'/destination/1'
+        path='/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID
         run(['exec','--user','1000:1000',reader,'test','!','-e',path])
         return dict(recording_directory_absent=True)
     def database(c,tag):
@@ -162,17 +163,17 @@ def qualify(Case,run,execute,spawn,client,server,output,containers,config,relay,
                 execute("printf 'next recording' >"+original,'1000:1000');r['source_reuse_ns']=clock()
                 committed=c.recover(False);r['committed']=committed
                 assert committed['details']['files'][0]['attempt']==1 and not committed['details']['source_cleanup_enabled']
-                c.verify();r['source_after']=source_names(c);r['final_payload']=snapshot('/e/profile-destination/'+c.label+'/destination/1/nested/data.bin')
+                c.verify();r['source_after']=source_names(c);r['final_payload']=snapshot('/e/profile-destination/'+c.label+'/destination/'+RECORDING_ID+'/nested/data.bin')
                 assert r['source_after']['private']['sha256']==expected and r['source_after']['private']['identity']==before['identity']
                 assert r['source_after']['original']['sha256']==hashlib.sha256(b'next recording').hexdigest()
                 r['local_state_after']=execute(local_command,'1000:1000').stdout;r['enrollment_after']=execute(enrollment_command,'1000:1000').stdout
                 assert r['local_state_after']==r['original_local_state'] and r['enrollment_after']==r['original_enrollment']
-                r['wire']=relay.command('stop_observe');manifest_hash=execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]
+                r['wire']=relay.command('stop_observe');manifest_hash=execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]
                 assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0
                 c.start(False);code,replay=c.request('POST','/api/v2/jobs',c.body)
                 assert code==202 and replay['job_id']=='1' and replay['source_paths_released'] and c.request('GET','/api/v2/jobs/1')[1]['state']=='Committed'
                 assert execute('cat '+original,'1000:1000').stdout=='next recording'
-                assert execute('sha256sum '+c.destination+'/1/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
+                assert execute('sha256sum '+c.destination+'/' + RECORDING_ID + '/COMMITTED.json','1000:1000').stdout.split()[0]==manifest_hash
                 assert execute(local_command,'1000:1000').stdout==r['original_local_state']
                 c.verify();r['replay']=replay;r['original_state_preserved']=True
                 assert json.loads(execute(c.binary+' --stop '+c.config_path,'1000:1000').stdout)['phase']=='Stopped' and c.service.wait(timeout=30)==0

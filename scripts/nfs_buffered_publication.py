@@ -2,6 +2,7 @@
 
 Only owned fixture processes/mounts. No lost-reply or physical durability claim.
 """
+from nfs_fixture_contract import RECORDING_ID
 import json
 import subprocess
 import time
@@ -135,7 +136,7 @@ def qualify_buffered_publication(run, execute, client, server, output, mount, un
                         assert len(fields) == 9 and fields[0] == '263' and int(fields[3], 16) == 0, raw
                         fd = int(fields[1], 16)
                         target = execute(f'readlink /proc/{c.worker}/fd/{fd}', '1000:1000').strip()
-                        assert target == c.destination+'/1/.staging', target
+                        assert target == c.destination+'/' + RECORDING_ID + '/.staging', target
                         r['blocked_unlink'] = dict(syscall=raw, fd=fd, parent=target, state='D', nfsd_threads=0)
                         r['interruption_kind'] = 'in_flight_unlinkat_syscall'
                     else:

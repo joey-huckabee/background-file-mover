@@ -3,6 +3,7 @@
 Only fixed filler files in a 32 MiB tmpfs are removed. Never repair staging,
 change SQLite or delete claimed sources. Uses the exact SLES-gated executable.
 """
+from nfs_fixture_contract import RECORDING_ID, manifest_size, producer_request, validate_v2
 import hashlib
 import json
 import time
@@ -130,15 +131,15 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                     assert service.wait(timeout=30) == 0
 
             def no_commit():
-                assert observe(f"test ! -e {destination}/1/COMMITTED.json; test ! -e {destination}/1/nested/data.bin", check=False).returncode == 0
-                assert server_command(f"test ! -e {remote_destination}/1/COMMITTED.json; test ! -e {remote_destination}/1/nested/data.bin", check=False).returncode == 0
+                assert observe(f"test ! -e {destination}/{RECORDING_ID}/COMMITTED.json; test ! -e {destination}/{RECORDING_ID}/nested/data.bin", check=False).returncode == 0
+                assert server_command(f"test ! -e {remote_destination}/{RECORDING_ID}/COMMITTED.json; test ! -e {remote_destination}/{RECORDING_ID}/nested/data.bin", check=False).returncode == 0
 
             def partials():
-                return server_command(f"for n in {attempt_names}; do stat -c '%d:%i:%u:%a:%s' {remote_destination}/1/.staging/$n.part; "
-                                      f"sha256sum {remote_destination}/1/.staging/$n.part; done").stdout
+                return server_command(f"for n in {attempt_names}; do stat -c '%d:%i:%u:%a:%s' {remote_destination}/{RECORDING_ID}/.staging/$n.part; "
+                                      f"sha256sum {remote_destination}/{RECORDING_ID}/.staging/$n.part; done").stdout
 
-            body = {"generator_id": "fixture", "submission_id": label, "source_path": source+"/current",
-                    "files": [{"name": "nested/data.bin"}]}
+            body = producer_request(source+"/current", {"nested/data.bin": size})
+            result["submission"] = body
             private = source+"/.file-mover/1-0/data"
             try:
                 owner_pid = start()
@@ -179,7 +180,7 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 result["submission_replay_while_waiting"] = waiting_replay
                 assert status() == current, "submission replay reset durable retry/review evidence"
                 assert capacity()[1] == 0
-                partial = remote_destination+"/1/.staging/1.part"
+                partial = remote_destination+"/" + RECORDING_ID + "/.staging/1.part"
                 result["partial_server_bytes"] = int(server_command("stat -c %s "+partial).stdout)
                 result["partial_server_sha256"] = server_command("sha256sum "+partial).stdout.split()[0]
                 assert result["partial_server_bytes"] == 1048576 and result["partial_server_sha256"] == prefix_digest
@@ -224,16 +225,16 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                 else:
                     assert completed["details"]["latest_resume"]["command_id"] == resume["command_id"]
                 assert partials() == saved
-                final = destination+"/1/nested/data.bin"
+                final = destination+"/" + RECORDING_ID + "/nested/data.bin"
                 hashes = observe(f"sha256sum {private} {final}").stdout.splitlines()
                 assert [line.split()[0] for line in hashes] == [digest, digest]
-                assert server_command("sha256sum "+remote_destination+"/1/nested/data.bin").stdout.split()[0] == digest
-                manifest_text = observe(f"cat {destination}/1/COMMITTED.json").stdout
+                assert server_command("sha256sum "+remote_destination+"/" + RECORDING_ID + "/nested/data.bin").stdout.split()[0] == digest
+                manifest_text = observe(f"cat {destination}/{RECORDING_ID}/COMMITTED.json").stdout
                 manifest = json.loads(manifest_text)
-                assert manifest["version"] == 1 and manifest["job_id"] == "1"
-                assert manifest["generator_id"] == "fixture" and manifest["submission_id"] == label
-                assert [(f["path"], f["size_bytes"], f["algorithm"], f["sha256"]) for f in manifest["files"]] == [("nested/data.bin", size, "sha256", digest)]
-                assert server_command("cat "+remote_destination+"/1/COMMITTED.json").stdout == manifest_text
+                assert manifest["version"] == 2 and manifest["job_id"] == "1"
+                validate_v2(manifest, body)
+                assert [(f["path"], manifest_size(f, manifest), f["algorithm"], f["sha256"]) for f in manifest["files"]] == [("nested/data.bin", size, "sha256", digest)]
+                assert server_command("cat "+remote_destination+"/" + RECORDING_ID + "/COMMITTED.json").stdout == manifest_text
                 code, submission_replay = request("POST", "/api/v2/jobs", body)
                 assert code == 202 and submission_replay["job_id"] == "1" and submission_replay["source_paths_released"]
                 result["submission_replay"] = submission_replay
@@ -247,7 +248,7 @@ def qualify_delivery_storage(run, execute, spawn, output, client, server, ip, op
                     stop()
                     start()
                     assert status() == completed
-                    assert observe(f"cat {destination}/1/COMMITTED.json").stdout == manifest_text
+                    assert observe(f"cat {destination}/{RECORDING_ID}/COMMITTED.json").stdout == manifest_text
                     result["commit_survived_original_state_restart"] = True
                 result["passed"] = True
             finally:

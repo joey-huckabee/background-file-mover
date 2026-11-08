@@ -1,4 +1,5 @@
 """Buffered actual-claim success controls and optional finite live/death reply loss."""
+from nfs_fixture_contract import RECORDING_ID
 import hashlib
 import json
 import subprocess
@@ -131,7 +132,7 @@ def qualify_claims(run, execute, client, server, output, unmount_all, report, bi
                             assert reply[0] == 503 and reply[1]['retryable'] and not reply[1]['source_paths_released']
                             assert reply[1]['error'] in ('handoff_pending', 'service_busy')
                         assert c.children() == [pid] and c.state(pid) == 'D' and c.service.poll() is None
-                        r['destination_absent'] = adapted(f'test ! -e {c.destination}/1', '1000:1000', False).returncode == 0
+                        r['destination_absent'] = adapted(f'test ! -e {c.destination}/{RECORDING_ID}', '1000:1000', False).returncode == 0
                         assert r['destination_absent'] and objects() == r['server_while_withheld']
                         r['before_release'] = relay.await_held()
                         assert claim_proof(r['before_release'], operation, r['server_before_submission'], objects()) == r['proof']

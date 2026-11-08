@@ -18,6 +18,7 @@ pub enum ClaimError {
     Blocked(&'static str),
     MissingSource,
     ExpectedSizeMismatch,
+    OutcomeUncertain,
 }
 /// A native ENOSPC from payload copy-write only; not an effect receipt.
 /// Caller must also validate its failed copy assignment and retained Intent phase.
@@ -38,6 +39,7 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
             ClaimError::Blocked(reason) => format!("blocked: {reason}"),
             ClaimError::MissingSource => "missing_source".into(),
             ClaimError::ExpectedSizeMismatch => "expected_size_mismatch".into(),
+            ClaimError::OutcomeUncertain => "worker_outcome_uncertain".into(),
             ClaimError::Store(_) => "store_error".into(),
         }
     } else if let Some(error) = error.downcast_ref::<payload_io::Failure>() {
@@ -550,4 +552,11 @@ pub fn claim(store: &Store, job_id: i64, index: usize) -> Result<Accepted> {
 #[cfg(feature = "nfs-qualification")]
 pub fn source_space_unavailable_fault() -> ClaimError {
     ClaimError::Io(Errno::IO)
+}
+
+/// Private custody only: never opens a producer's possibly reused original path.
+pub fn validate_claimed_object(intent: &ClaimIntent) -> Result<()> {
+    transfer::claimed_intent(intent)
+        .map(|_| ())
+        .map_err(|_| ClaimError::Blocked("claimed object changed"))
 }

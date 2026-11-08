@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Audit original-file source-claim fsync boundaries, raw RPC attribution and compatibility."""
+from nfs_fixture_contract import manifest_size, validate_evidence_manifest
 import argparse
 import base64
 import copy
@@ -95,8 +96,8 @@ def analyze(c,inventory):
     else:assert c['mode']=='healthy' and c['outcome']=='healthy_completion' and not c['blocked_sync'] and c['exit_before_restore']==c['exit']
     committed=c['committed'];assert committed['state']=='Committed' and committed['details']['files'][0]['attempt']==1 and not committed['details']['source_cleanup_enabled']
     assert [x.split()[0] for x in c['hashes']]==[expected,expected]
-    assert [(f['path'],f['size_bytes'],f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
-    assert c['manifest']['job_id']=='1' and c['manifest']['generator_id']=='fixture' and c['manifest']['submission_id']==c['config']['source_binding']['root_id']
+    assert [(f['path'],manifest_size(f,c['manifest']),f['algorithm'],f['sha256']) for f in c['manifest']['files']]==[('nested/data.bin',2097169,'sha256',expected)]
+    assert c['manifest']['job_id']=='1' and c['manifest']['generator_id']=='fixture' and validate_evidence_manifest(c)
     wire=c['wire'];assert not wire['errors'] and not wire['trace_overflow'] and c['before_wire']['trace'] and wire['trace'][:len(c['before_wire']['trace'])]==c['before_wire']['trace']
     pending={};pairs=[];total=unknown=0
     for row in wire['trace']:

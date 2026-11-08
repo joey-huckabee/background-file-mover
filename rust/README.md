@@ -23,7 +23,10 @@ Missing-file deadlines now persist, and the local API bounds requests/concurrenc
 Retention budgets and durable background delivery/manifests are implemented.
 NFS behavior, retention/orphan repair and full production mount/worker
 qualification remain subsequent work.
-Replay currently preserves file-list order; API normalization is still open.
+New UUID replay ignores file-list order while retaining the first durable index
+mapping. Legacy stored indices/paths stay unchanged. See
+[increment 118](../docs/RUST-INCREMENT-118.md) for activation/qualification and
+partial-legacy startup refusal; the unused old producer wire is replaced directly.
 
 The [store](crates/mover-store/README.md) persists acceptance/replay and pinned
 policy on one dedicated database thread. The [claim worker](crates/mover-fs/src/lib.rs)

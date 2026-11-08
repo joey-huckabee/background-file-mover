@@ -1134,3 +1134,64 @@ active daemons and surviving workers and never reconnect to/adopt old processes.
 Follow [the offline procedure](OFFLINE-STATE-BACKUP.md) for supported schemas,
 new private local backup paths, incomplete-output handling and compatible restart.
 These commands do not convert state; normal schema-11 startup still refuses.
+
+## UUID producer runtime and supported upgrades
+
+See [increment 118](RUST-INCREMENT-118.md) for actual qualification status. The
+trusted loopback producer endpoint now uses this direct request (the source
+must lie under the configured enrolled source root):
+
+```json
+{"generator_id":"recorder","recording_id":"11111111-2222-3333-4444-555555555555","source_directory":"/srv/recordings/current","files":["data.bin"]}
+```
+
+POST it as application/json to /api/v2/jobs. A supplied Idempotency-Key must
+parse to that UUID; hex case is immaterial. Keep the UUID and immutable body
+when a reply is lost. File-list permutation does not reassign the saved file
+IDs. Do not change maps/names/source directory to retry the same UUID. The old
+submission_id/source_path/object-files producer wire is no longer accepted.
+
+A valid 202 has exactly job_id, recording_id, accepted:true and
+source_paths_released:true. It permits source-path reuse for that submitted set;
+it does not say delivery has completed. Errors have exactly recording_id (or
+null), error, retryable, retry_after_seconds (or null), and
+source_paths_released:false. A later error does not revoke a prior valid 202.
+Confirmed missing files now return 409 source_file_missing during the retained
+retry window; unknown/live-worker outcomes remain 503 handoff_pending. Existing
+missing review/deadline reset and delivery retry procedures still apply.
+
+Config check_expected_sizes defaults false. Off retains a supplied complete
+expected_sizes_bytes map as immutable assertions but ignores size comparisons.
+On requires that complete map with decimal-string u64 values, for example
+{"data.bin":"3"}; numbers, nulls, partial maps and noncanonical strings refuse.
+The current startup value applies after restart to unfinished UUID handoff,
+using private claims for already claimed files. No per-job policy is saved.
+Changing a map conflicts even while checking is off. Whole-set confirmed replay
+keeps its 202 meaning after a setting change. Actual sizes/hashes remain verified
+in both modes, and v2 manifests contain measured sizes, never expected sizes.
+
+UUID destination directories use the canonical UUID; private source claim names
+and job IDs remain numeric. UUID job status exposes details.recording_id; legacy
+status retains details.submission_id. Existing operator sizes remain numeric.
+New jobs publish manifest v2 with string sizes and request-identity binding.
+Still-tracked legacy jobs keep their original numeric destination, receipts,
+file indices, numeric v1 sizes and exact v1 bytes.
+
+Before upgrading, finish every legacy job's source handoff with its compatible
+qualified predecessor. Delivery need not already be complete. A new runtime
+with any partially claimed/unhanded-off legacy job refuses before payload
+bootstrap, leaving original state and source custody intact. For a previously
+converted schema-12 legacy database, use the compatible predecessor schema-12
+binary to finish handoff; do not downgrade schema or restore a stale snapshot.
+Normal startup still refuses schema 11; the explicit verified offline migration
+procedure remains separate. [The compatibility matrix](RUST-INCREMENT-118.md)
+states exact supported boundaries; operational conversion/deployment are not
+authorized by implementation or a main merge.
+
+Once UUID rows exist, codec-only predecessor binaries refuse the whole state.
+Do not mix binaries/worker protocols, delete locks/epochs or replace state to get
+past a refusal. Guarded inspection/backup and committed-job offline clear support
+validated mixed state. Clear removes all per-job linkage and leaves files. A
+reused cleared UUID is fresh work with a greater job ID; retained UUID output
+can cause a normal no-clobber delivery refusal. The mover never adopts, renames
+to a suffix or overwrites that previous output.
