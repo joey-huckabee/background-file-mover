@@ -2443,6 +2443,99 @@ fn protected_operator_state_overlap_refuses_before_endpoints_or_state_creation()
 }
 
 #[test]
+fn protected_ingress_preflight_preserves_sqlite_and_retained_payloads() {
+    let mut f = Fixture::uninitialized(300);
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
+    provision_destination(&f);
+    f.write("data", b"retained payload");
+    f.start();
+    assert_eq!(f.post(&f.input("retained-scope", json!(["data"]))).0, 202);
+    wait_manifest(&f, "1");
+    let manifest = f.destination("1", "COMMITTED.json");
+    let original = std::fs::read(&manifest).unwrap();
+    f.stop();
+    let producer_parent = f.root.join("producer");
+    let operator_parent = f.root.join("operator");
+    std::fs::create_dir(&producer_parent).unwrap();
+    std::fs::create_dir(&operator_parent).unwrap();
+    std::fs::set_permissions(&producer_parent, std::fs::Permissions::from_mode(0o750)).unwrap();
+    std::fs::set_permissions(&operator_parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let producer = producer_parent.join("in.sock");
+    let operator = operator_parent.join("in.sock");
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["protected_ingress"] = json!({"producer_socket":producer,"operator_socket":operator,
+        "proxy_uid":2001,"proxy_gid":mover_fs::ingress::local_user_ids().1});
+    let refuse = |config: &Value| {
+        std::fs::write(&path, serde_json::to_vec(config).unwrap()).unwrap();
+        let mut child = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg(&path)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while child.try_wait().unwrap().is_none() {
+            if Instant::now() >= deadline {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                panic!("unsafe ingress did not refuse");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let output = child.wait_with_output().unwrap();
+        assert!(!output.status.success());
+        output
+    };
+    let sqlite_files = || -> BTreeMap<String, Vec<u8>> {
+        std::fs::read_dir(f.root.join("state"))
+            .unwrap()
+            .map(|e| e.unwrap())
+            .filter(|e| e.file_name().to_str().unwrap().starts_with("jobs.sqlite"))
+            .map(|e| {
+                (
+                    e.file_name().to_str().unwrap().into(),
+                    std::fs::read(e.path()).unwrap(),
+                )
+            })
+            .collect()
+    };
+    std::fs::write(&producer, b"foreign endpoint").unwrap();
+    let before = sqlite_files();
+    let output = refuse(&config);
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ingress endpoint exists"));
+    assert_eq!(sqlite_files(), before);
+    assert_eq!(std::fs::read(&producer).unwrap(), b"foreign endpoint");
+    assert!(!operator.exists());
+    std::fs::remove_file(&producer).unwrap(); // Only our explicit fixture file.
+    let retained_operator = f.root.join("destination/operator.sock");
+    config["destination_root"] = json!(f.root.join("different-destination"));
+    config["protected_ingress"]["operator_socket"] = json!(retained_operator);
+    assert!(
+        serde_json::from_value::<file_mover::Config>(config.clone())
+            .unwrap()
+            .validate()
+            .is_ok()
+    );
+    let output = refuse(&config);
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("ingress endpoint overlaps retained payload scope")
+    );
+    assert!(!producer.exists());
+    assert!(!retained_operator.exists());
+    assert_eq!(std::fs::read(manifest).unwrap(), original);
+    assert_eq!(
+        std::fs::read(f.destination("1", "data")).unwrap(),
+        b"retained payload"
+    );
+}
+
+#[test]
 fn lost_response_retry_finds_one_durable_job() {
     let mut f = Fixture::new(300);
     f.write("data", b"retained");

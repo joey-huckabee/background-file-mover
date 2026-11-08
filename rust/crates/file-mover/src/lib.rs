@@ -1008,6 +1008,11 @@ pub fn check_state_compatibility(
             }
             Ok(())
         })?;
+        if let Some(ingress) = &c.protected_ingress {
+            for root in snapshot.payload_roots()? {
+                ingress.validate_payload_root(&root)?;
+            }
+        }
     }
     instance.validate_database(&c.state_database)?;
     Ok(())
@@ -1062,12 +1067,19 @@ async fn serve_inner(
                 );
                 let control = control::Server::start(instance.clone(), startup_lifecycle.clone())
                     .map_err(|e| e.to_string())?;
+                // Reject known unsafe endpoint names before SQLite can create
+                // read-coordination sidecars. Local I/O retains epoch coverage;
+                // the independent lifecycle controller is already available.
+                let endpoint_plan = if let Some(ingress) = &startup_config.protected_ingress {
+                    instance.prepare_workers().map_err(|e| e.to_string())?;
+                    Some(ingress::Planned::prepare(ingress).map_err(|e| e.to_string())?)
+                } else {
+                    None
+                };
                 check_state_compatibility(&startup_config, &instance, false)
                     .map_err(|e| e.to_string())?;
-                let endpoints = startup_config
-                    .protected_ingress
-                    .as_ref()
-                    .map(ingress::Prepared::bind)
+                let endpoints = endpoint_plan
+                    .map(ingress::Planned::bind)
                     .transpose()
                     .map_err(|e| e.to_string())?;
                 let guard = bootstrap::acquire(

@@ -16,6 +16,18 @@ pub struct ProtectedIngress {
     pub proxy_gid: u32,
 }
 impl ProtectedIngress {
+    pub(crate) fn validate_payload_root(&self, root: &str) -> Result<(), &'static str> {
+        let root = Path::new(root);
+        for socket in [&self.producer_socket, &self.operator_socket] {
+            let parent = Path::new(socket)
+                .parent()
+                .ok_or("ingress parent required")?;
+            if parent.starts_with(root) || root.starts_with(parent) {
+                return Err("ingress endpoint overlaps retained payload scope");
+            }
+        }
+        Ok(())
+    }
     pub(crate) fn validate(&self, c: &Config) -> Result<(), &'static str> {
         let uid = mover_fs::ingress::local_user_ids().0;
         if uid == 0
@@ -148,18 +160,30 @@ pub(crate) struct Prepared {
     endpoints: [mover_fs::ingress::LocalSocket; 2],
     proxy_uid: u32,
 }
-impl Prepared {
-    pub(crate) fn bind(c: &ProtectedIngress) -> Result<Self, Box<dyn std::error::Error>> {
+pub(crate) struct Planned {
+    producer: mover_fs::ingress::SocketPlan,
+    operator: mover_fs::ingress::SocketPlan,
+    proxy_uid: u32,
+}
+impl Planned {
+    pub(crate) fn prepare(c: &ProtectedIngress) -> Result<Self, Box<dyn std::error::Error>> {
         // Validate BOTH names before creating either endpoint.
         let producer = mover_fs::ingress::SocketPlan::producer(&c.producer_socket, c.proxy_gid)?;
         let operator = mover_fs::ingress::SocketPlan::operator(&c.operator_socket)?;
-        let producer = producer.bind()?;
-        let operator = operator.bind()?;
         Ok(Self {
-            endpoints: [producer, operator],
+            producer,
+            operator,
             proxy_uid: c.proxy_uid,
         })
     }
+    pub(crate) fn bind(self) -> Result<Prepared, Box<dyn std::error::Error>> {
+        Ok(Prepared {
+            endpoints: [self.producer.bind()?, self.operator.bind()?],
+            proxy_uid: self.proxy_uid,
+        })
+    }
+}
+impl Prepared {
     pub(crate) fn activate(self) -> Result<Bound, Box<dyn std::error::Error>> {
         Ok(Bound {
             producer: UnixListener::from_std(self.endpoints[0].listener()?)?,
