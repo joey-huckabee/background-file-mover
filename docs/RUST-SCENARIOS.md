@@ -959,3 +959,8 @@ Increment 119 checks existing SC-190/194 compatibility obligations using actual
 retained predecessor/current target executables. See [release checks](RUST-INCREMENT-119.md)
 for the exact results and open gates. No SC/DOC IDs are added or reused, and no
 NFS, shipping lifecycle, cleanup or remote-access qualification is inferred.
+
+Increment 120 reconciles the existing API/admin acceptance obligations into the
+[current closeout](api/API-CONTRACT-CLOSEOUT.md) and specifies protected ingress.
+Four visible defaults still need approval. Existing SC/API/DOC identifiers and
+qualified runtime evidence are unchanged; no new runtime support is claimed.

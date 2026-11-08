@@ -1,5 +1,10 @@
 # Admin replay and retained-data outcomes - candidate
 
+Current engineering authority: [increment-120 closeout](API-CONTRACT-CLOSEOUT.md).
+It supersedes conflicting proposal details below, especially per-job receipt
+identity/storage, bounds and replay scope. Four visible defaults remain pending;
+this is not full P01 freeze or runtime implementation.
+
 Group 49 approves reviewed-state context in a request header on 2026-11-02.
 The compact body remains {"job_ids":[...]}; no new public job or operation ID or
 confirmation dialog is added. Exact wire/storage details below remain proposals.
@@ -49,9 +54,9 @@ The exact transport and receipt layout are engineering design still to complete.
 
 No new schema fixtures or simulated lifecycle tests are needed to count this
 review as progress. These rows require real storage/action tests when implemented;
-none is new passing evidence. Other P01 engineering work remains: complete read
-schemas, state-preserving UUID migration, legacy/v2 manifest handling and protected
-session/ingress design. They are not six separate user product-approval requests.
+none is new passing evidence. Read schemas and the bounded legacy migration/UUID-v2 runtime now exist.
+Full route/access implementation and the closeout dispositions still require
+implementation and their affected acceptance checks. They are not six separate user product-approval requests.
 
 ## Why retry needs immutable context
 
@@ -93,10 +98,11 @@ bound is unchanged. Context is neither a new job identifier nor CSRF protection.
   eligibility; record the audit, scheduling decision and occurrence result in
   the same SQLite transaction. Writing a batch result after the existing
   resume command commits leaves a crash gap and is insufficient.
-- Internally derive bounded command keys from the immutable account/action/
-  ordered selection/context and occurrence position. This reuses the existing
-  command facility internally; it is not a new public identifier. Persist enough
-  exact context to reject changed parameters rather than trust a digest alone.
+- Internally derive bounded command keys from immutable canonical request context
+  and occurrence position. This reuses the existing
+  command facility internally; it is not a new public identifier. Persist and compare the exact own-job command projection rather than trust a
+  digest alone. Do not retain other selected IDs/epochs in that job receipt;
+  the increment-120 closeout explicitly replaces the earlier full-batch storage proposal.
 - Every repeated list occurrence gets its own per-job decision. Reusing one
   command key for both entries of [42,42] would wrongly replay one accepted
   command as two accepted attempts. Group 51 fixes the second occurrence as failed after the first schedules work;

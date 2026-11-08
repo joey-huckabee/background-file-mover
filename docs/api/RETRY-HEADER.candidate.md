@@ -1,5 +1,10 @@
 # Retry context header v1 - wire candidate
 
+Current engineering authority: [increment-120 closeout](API-CONTRACT-CLOSEOUT.md).
+It supersedes conflicting proposal details below, especially per-job receipt
+identity/storage, bounds and replay scope. Four visible defaults remain pending;
+this is not full P01 freeze or runtime implementation.
+
 2026-11-02. Group 49 approves header transport of existing review/audit context,
 with job_ids-only body and preserved exact replay. The precise format here is a
 reviewable technical proposal, not another approval group, API freeze or Rust
@@ -108,9 +113,11 @@ Concatenate:
 
 Hash the full frame using SHA-256; encode 64 lowercase hex digits. This digest
 is a fixed-size selection binding to fit the existing header limit; it is not
-an independently generated operation ID. Persist and compare the exact ordered
-selection and canonical context alongside any internal hashed receipt key.
-Never treat a digest match alone as authority or resolve jobs through UUID reuse.
+an independently generated operation ID. Validate the exact ordered selection and canonical context on each request.
+Persist only the owning job's exact command projection alongside an internal
+hashed receipt key, as defined by the increment-120 closeout. Do not retain
+other selected job identities in that receipt. A digest match alone is not
+authority to schedule work or resolve jobs through UUID reuse.
 
 Bind internal receipts to the server-authenticated account, retry action,
 original instance, exact selection/context and occurrence position. A client
@@ -137,8 +144,8 @@ Proposed mapping: raw/encoded/decoded size refusal uses 431; other malformed
 context/selection uses 400; wrong instance uses 409 review_conflict. Raw duplicate
 HTTP headers retain framing 400 invalid_http rather than a fabricated application
 reply. Missing/expired/revoked session is approved 401. Exact admin error-body
-schema, stale/null/duplicate per-occurrence counts, zero-accepted HTTP behavior,
-partial storage failure remain to settle. Group 50 removes every cleared-job
+schema, stale/duplicate and failure semantics are fixed by the increment-120 closeout;
+completed/null defaults still await approval. Group 51 already fixes zero-accepted 202. Group 50 removes every cleared-job
 receipt and file linkage; preserve exact replay only for uncleared jobs.
 A 503 or lost response never proves that no scheduling transaction committed.
 The candidate OpenAPI documents these remaining boundaries, not fictional success.

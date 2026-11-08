@@ -10,6 +10,11 @@ remaining blockers. All eight gates remain open; production NFS/source deletion
 remain disabled. The dated inventory below is the original review baseline;
 current increments supersede only their explicitly bounded implementation status.
 
+2026-11-08 P01 follow-up: [increment120](RUST-INCREMENT-120.md) supplies the
+current engineering closeout and protected-ingress specification. Four visible
+action defaults still await approval; P01 is not declared frozen. It changes no
+runtime or gate qualification.
+
 Reviewed 2026-10-22 against commit `d9c2f2d` on
 `feature/rust-transfer-coordinator`. This is a documentation review, not a new
 qualification run. All eight release gates remain open. The next increment is

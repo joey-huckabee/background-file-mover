@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 next-step authorization: the user says proceed with the release-check
+recommendations. Increment120 closes routine API engineering decisions and
+specifies protected producer ingress. Four visible defaults remain explicitly
+pending; see docs/api/API-CONTRACT-CLOSEOUT.md. No full P01 freeze, admin/access
+runtime, dependency, deployment or operational change is claimed by this slice.
+
 2026-11-08 release-check authorization: the user requests release checks after
 PR 6. Run bounded disposable predecessor/current compatibility and artifact/
 contract checks; record actual results and remaining FR/RC blockers in increment
