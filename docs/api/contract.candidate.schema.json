@@ -368,7 +368,7 @@
       "x-semantic-rules": [
         "Process each occurrence, in submitted order; do not deduplicate.",
         "Clients must preserve integer precision; JSON binary64 rounding is not allowed.",
-        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header encoding and receipt design pending.",
+        "Group 49 requires immutable existing review-version/audit context in a retry header; exact header and per-job receipt requirements are fixed in API-CONTRACT-CLOSEOUT.md; implementation remains pending.",
         "Raw job IDs are exact integer tokens: no booleans, decimal/exponent notation or binary64 rounding. JSON Schema alone does not check token spelling."
       ]
     },
@@ -519,7 +519,7 @@
         "Exact original path membership and stable file IDs; no duplicates or prefix conflicts.",
         "Measured sizes and full content SHA-256 must match verified publication evidence.",
         "All manifest UUIDs lowercase. Stored immutable bytes, not regenerated formatting, govern recovery.",
-        "Final engineering slice: PRODUCER-MANIFEST-CONTRACT.md fixes framing, exact writer bytes and bounds. Full P01, runtime activation and consumer qualification remain separate.",
+        "Final engineering slice: PRODUCER-MANIFEST-CONTRACT.md fixes framing, exact writer bytes and bounds. Written P01 is frozen under group53; runtime and consumer qualification remain separate.",
         "Files are in ascending numeric durable file_id order, exactly 0 through N-1; preserve the first accepted path/index mapping across unordered replay."
       ]
     },
@@ -2183,7 +2183,7 @@
   "x-history-clear-policy": "Group50: after safe stop/settlement, successful eligible clear forgets all source/destination linkage, ownership/accounting/inventory and action results. Files remain unmanaged; no post-clear cleanup or reconstruction.",
   "x-finalized-slices": {
     "producer-manifest": "PRODUCER-MANIFEST-CONTRACT.md",
-    "scope": "Step 1 engineering baseline only; other candidate definitions/routes, runtime and full P01 freeze remain separate."
+    "scope": "Written v2 specification frozen with group53. Runtime implements qualified producer/manifest slices; other route/security implementation and consumer/release qualification remain separate."
   },
   "x-engineering-authority": "API-CONTRACT-CLOSEOUT.md",
   "x-approved-closeout-defaults": {

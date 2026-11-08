@@ -2381,6 +2381,7 @@ fn slow_client_does_not_block_health_and_concurrent_replays_are_bounded() {
 #[test]
 fn unsafe_startup_configuration_is_rejected() {
     let c = file_mover::Config {
+        protected_ingress: None,
         check_expected_sizes: false,
         bind: "0.0.0.0:8080".parse().unwrap(),
         generator_id: "g".into(),

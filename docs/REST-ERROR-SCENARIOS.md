@@ -11,10 +11,10 @@ NFS/deletion switch changes here.
 
 **Current override, 2026-11-02:** Group 50 supersedes earlier post-clear ownership/accounting rules: successful eligible clear forgets all source/destination file linkage; files stay in place, and cleared files leave mover management. See API-E130-132.
 
-The user approved the following fifty-two groups in successive review replies.
+The user approved the following fifty-three groups in successive review replies.
 The fifty initial outcome mappings and later envelope, retry, size-policy,
 UUID/replay and administrative data-control decisions are approved contract
-direction, not new runtime capabilities. Groups 14-52 add API-E61-143 below.
+direction, not new runtime capabilities. Groups 14-53 add API-E61-147 below.
 Other rows and unresolved response/identity/compatibility details remain under
 review. An approval here does not approve every variant of its broader API-E row.
 

@@ -315,8 +315,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     signal_stop.request_stop();
                 }
             });
-            let listener = tokio::net::TcpListener::bind(config.bind).await?;
-            file_mover::serve_controlled(listener, config, lifecycle).await
+            file_mover::ingress::serve_configured(config, lifecycle).await
         })
 }
 
