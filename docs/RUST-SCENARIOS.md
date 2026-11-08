@@ -964,3 +964,12 @@ Increment 120 reconciles the existing API/admin acceptance obligations into the
 [current closeout](api/API-CONTRACT-CLOSEOUT.md) and specifies protected ingress.
 Four visible defaults still need approval. Existing SC/API/DOC identifiers and
 qualified runtime evidence are unchanged; no new runtime support is claimed.
+
+## Group53 action defaults
+
+| Situation ID | User situation | Approved behavior | Evidence/limit |
+|---|---|---|---|
+| SC-195 | Retry selects a completed job | Skip it; keep duplicate-after-scheduling failure distinct. | Group53/API-E144; admin runtime pending. |
+| SC-196 | Retry has no captured eligible review | Frozen null permanently skips; fresh deliberate intent is needed. | Group53/API-E145; admin runtime pending. |
+| SC-197 | Cancellation response is lost | Current-state redispatch; pending duplicate fails, completed/cancelled/missing skip. | Group53/API-E146; runtime pending. |
+| SC-198 | Valid deletion selects nothing eligible | 202/zero/not pending; no filesystem removal. | Group53/API-E147; runtime/deletion qualification pending. |

@@ -1951,3 +1951,17 @@ Current-code review covers `lib.rs`/`http.rs`,
 [remote contract](REMOTE-API-ACCESS-CONTRACT.md) and
 [scenario catalog](RUST-SCENARIOS.md). No runtime or fixture tests were run for
 this document. Existing scenario evidence remains scoped to its original inputs.
+
+## Final action defaults (group53)
+
+Approved 2026-11-08: user "Approved, Proceed" after the four-default package.
+
+| Case | Situation | Approved outcome |
+|---|---|---|
+| API-E144 | Retry selects completed work | Count skipped; never schedule. Approved duplicate-after-scheduling still fails. |
+| API-E145 | Frozen retry review is null | Permanently nonauthorizing skipped outcome, even after later eligibility/allocation. Fresh deliberate retry captures a new eligible review. |
+| API-E146 | Cancellation transport response is lost | Redispatch against current state: pending duplicate fails; completed, cancelled and missing IDs skip. |
+| API-E147 | Valid deletion has no eligible work | 202 with actual zero counts and completion_pending:false; no removal. Invalid context/auth/storage still errors. |
+
+These close the written v2 engineering contract; they do not implement admin
+actions, sessions or physical deletion. All release gates remain open.

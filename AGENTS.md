@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 group53/P02 authorization: the user says "Approved, Proceed" after
+the four-default package. Completed/null retries skip; cancellation retransmission
+uses current state; valid no-work deletion returns202/zero/not pending. Freeze
+the written v2 contract and implement/qualify the bounded protected Unix producer
+and private operator ingress specified in docs/api/PRODUCER-INGRESS-INCREMENT.md.
+No new dependencies, TLS proxy deployment, admin/session/action activation,
+operational conversion, production NFS or deletion. Both SLES modes and reviewed
+short-lived integration remain required. See increment121 for actual results.
+
 2026-11-08 next-step authorization: the user says proceed with the release-check
 recommendations. Increment120 closes routine API engineering decisions and
 specifies protected producer ingress. Four visible defaults remain explicitly

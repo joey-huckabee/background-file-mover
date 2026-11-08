@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Background File Mover contract candidate - NOT FROZEN",
-  "description": "Structural candidate with engineering closeout in API-CONTRACT-CLOSEOUT.md; four visible defaults pending. No full freeze, general runtime or release qualification. x-* annotations are semantic requirements, not JSON Schema assertions.",
-  "x-status": "candidate-not-frozen",
-  "x-approved-groups-through": 52,
+  "title": "Background File Mover v2 engineering contract",
+  "description": "Written contract frozen with group53. Runtime only implements separately qualified slices. x-* semantic requirements are not JSON Schema assertions.",
+  "x-status": "engineering-contract-frozen",
+  "x-approved-groups-through": 53,
   "$defs": {
     "RecordingId": {
       "type": "string",
@@ -2186,10 +2186,10 @@
     "scope": "Step 1 engineering baseline only; other candidate definitions/routes, runtime and full P01 freeze remain separate."
   },
   "x-engineering-authority": "API-CONTRACT-CLOSEOUT.md",
-  "x-product-decisions-pending": {
-    "completed_retry": "pending: recommend skipped",
-    "null_retry": "pending: deterministic nonauthorizing skipped",
-    "cancel_transport_replay": "pending: dispatch against current stored state",
-    "empty_deletion": "pending: 202 zero counts and completion_pending false"
+  "x-approved-closeout-defaults": {
+    "completed_retry": "approved: skipped",
+    "null_retry": "approved: deterministic nonauthorizing skipped",
+    "cancel_transport_replay": "approved: dispatch against current stored state",
+    "empty_deletion": "approved: 202 zero counts and completion_pending false"
   }
 }
