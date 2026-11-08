@@ -29,8 +29,30 @@ and sequence rules remain unchanged. UUID admission and manifest v2 stay disable
 
 ## Verification
 
-Pending: independent review and fresh production/qualification cargo-libc/SLES
-gates for this source. No build/test result is claimed yet.
+[Recorded CI evidence](STATE-MIGRATION-EVIDENCE.json) validates source
+`ff096225d648d2bde787d20da7acc6ff062c3d7a`: both production and retained
+qualification gates passed debug/release in pinned SLES/glibc 2.22, with
+cargo-libc and independent ELF audits. Production passed 240 tests per profile;
+qualification passed 244. Both push and PR runs passed, with no cleanup errors.
+Independent review found no actionable issues in the implementation or test fix.
+
+The first CI production run caught a test assertion using the WAL-only live
+inspector on a valid non-WAL snapshot. The test now checks its version through a
+read-only SQLite handle; runtime validation was unchanged. The interrupted local
+run and failed/cancelled CI diagnostics remain retained. No assertion was waived.
+
+The actual debug predecessor/target pair also passed: predecessor-created and
+enrolled schema 11 converted, committed replay kept job 1, unfinished job 2
+recovered with a v1 manifest, and original source claim/payload/manifest/enrollment
+bytes and inodes stayed unchanged. The predecessor refused the upgraded state
+before readiness. Its exact hashes/report are in the evidence record.
+
+Supplementary local gate runs and release predecessor/target binary-pair results,
+including their exact hashes and limits, are recorded in
+[PR 3](https://github.com/joey-huckabee/background-file-mover/pull/3) before merge.
+Raw local packs are ignored and remain on the WSL evidence host. The CI artifact
+contains diagnostics, not the application executables. The source/SQL/tests are
+unchanged by the evidence/documentation closeout.
 
 Added coverage includes full dependent-table/audit/manifest-phase preservation,
 exact replay after reopening, empty and cleared sequence history, each precommit
@@ -39,8 +61,9 @@ actual CLI preview/apply/no-op without payload roots, backup fault refusal,
 production inert fault controls, live/orphan exclusion and qualification process
 kills at every rebuild boundary. These tests operate only on disposable fixtures.
 
-Actual predecessor executable refusal, full deployment/NFS qualification and
-hardware power-loss durability remain separate evidence requirements. No
+Actual predecessor evidence must use its retained qualified executable, not a
+header-only fixture. Full deployment/NFS qualification, hardware power-loss and
+SQLite-internal commit/sync failures remain separate evidence requirements. No
 operational database has been converted; no deployment or release is authorized.
 
 ## Team workflow

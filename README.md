@@ -6,8 +6,10 @@ and [source cleanup](docs/RUST-INCREMENT-114.md).
 
 `main` is the reviewed development baseline. Production release/deployment is a
 separate decision: all eight release gates remain open, production NFS and source
-deletion stay disabled, and migration apply/UUID/manifest-v2 activation remain
-unimplemented. A merge does not authorize converting operational state.
+deletion stay disabled, and UUID/manifest-v2 activation remains unimplemented.
+The explicit [offline schema migration](docs/OFFLINE-STATE-MIGRATION.md) is
+implemented; see [increment 115](docs/RUST-INCREMENT-115.md) for actual gate status.
+A merge does not authorize converting operational state.
 
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and
