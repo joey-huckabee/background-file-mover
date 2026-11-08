@@ -54,10 +54,25 @@ Existing whole-state kind-1 refusal tests remain intact.
 Reference checker passed in existing WSL Python/jsonschema: 70 definitions,
 108 structural cases, eleven semantic examples, fifteen route/reference checks,
 seven unchanged frames/hashes, existing manifest golden/bound and copied Rust
-fixture checks. Rust formatting passed after correcting a test variable that used
-the Rust-2024 reserved word gen. No Rust build/test pass is claimed yet.
-Independent review and both production/qualification cargo-libc/SLES debug/release
-gates remain pending. Record actual reports/hashes and limits before merge.
+fixture checks. Rust formatting and strict Clippy passed. Two initial local runs
+stopped before tests on equivalent Clippy rewrites (collapsible_if and
+chunks_exact_to_as_chunks); their failed reports/logs are retained. The successful
+source is 215cf93965f946f07cab99d2c0d25281ae743d78, Rust tree
+264641d0a45c71a96cf981eba9a1a88d7a5afdc5.
+
+Independent cloud review of d3505c2..64f9181 found no actionable issues; the two
+subsequent source commits only apply those equivalent Clippy rewrites. Both push
+and PR CI passed production and qualification cargo-libc/SLES gates: respectively
+250 and 254 tests per debug/release profile. Five existing helper tests are ignored
+per profile; no new codec test is ignored. Source/pin and CI report/artifact hashes
+are recorded in [CODEC-EVIDENCE.json](CODEC-EVIDENCE.json). CI diagnostics do not
+include executable files for independent rehashing.
+
+The coordinator is running both local modes sequentially. Before merge,
+[PR #5](https://github.com/joey-huckabee/background-file-mover/pull/5) must record
+their final reports, raw WSL pack paths, source/archive comparisons and independent
+executable rehashes. This documentation-only closeout preserves all Rust inputs;
+the PR also records the final fresh checks for its exact head.
 
 No current producer handler, Store writer/schema, worker/assignment, manifest-v1
 writer, size configuration or startup capability rule is changed. Only a new
