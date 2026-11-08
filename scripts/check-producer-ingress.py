@@ -60,7 +60,7 @@ my @s; my $count=$ARGV[1] || 6;
 for(1..$count) {
     socket(my $s,PF_UNIX,SOCK_STREAM,0) or die "socket: $!";
     connect($s,sockaddr_un($ARGV[0])) or die "connect: $!";
-    my $r="POST /api/v2/jobs HTTP/1.1\r\nHost: local\r\n";
+    my $r="POST /api/v2/jobs HTTP/1.1\r\nHost: localhost\r\n";
     syswrite($s,$r)==length($r) or die 'partial slow write'; push @s,$s;
 }
 select(undef,undef,undef,0.2); print "READY\n";
@@ -86,7 +86,7 @@ def require(condition, message):
 
 def wire(method='POST', path='/api/v2/jobs', body=None, headers=None):
     payload = b'' if body is None else json.dumps(body, separators=(',', ':')).encode()
-    fields = [('Host', 'local'), ('Connection', 'close'), ('Content-Type', 'application/json'),
+    fields = [('Host', 'localhost'), ('Connection', 'close'), ('Content-Type', 'application/json'),
               ('Content-Length', str(len(payload)))]
     if headers is not None:
         fields += headers
@@ -107,6 +107,37 @@ def parse_reply(raw):
     return dict(code=int(lines[0].split()[1]), headers=fields, body=json.loads(data))
 
 
+def rust_git_blobs(root):
+    """Read committed bytes directly; Windows checkout CRLF is not provenance."""
+    listing = subprocess.run(['git', 'ls-tree', '-rz', 'HEAD', '--', 'rust'], cwd=root,
+                             capture_output=True, check=True).stdout
+    entries = []
+    for row in listing.split(b'\0'):
+        if not row:
+            continue
+        metadata, path = row.split(b'\t', 1)
+        mode, kind, oid = metadata.split()
+        require(kind == b'blob' and mode in (b'100644', b'100755'), 'nonregular committed Rust input')
+        name = path.decode('utf-8')
+        require(name.startswith('rust/'), 'unexpected Git source path')
+        require(not {'target', 'validation'}.intersection(Path(name).parts), 'generated state committed under Rust sources')
+        entries.append((name[5:], oid))
+    require(entries, 'no committed Rust source inputs')
+    objects = subprocess.run(['git', 'cat-file', '--batch'], cwd=root,
+                             input=b''.join(oid+b'\n' for _, oid in entries),
+                             capture_output=True, check=True).stdout
+    stream = io.BytesIO(objects)
+    result = {}
+    for name, oid in entries:
+        saved_oid, kind, size = stream.readline().split()
+        require(saved_oid == oid and kind == b'blob', 'Git object framing mismatch')
+        data = stream.read(int(size))
+        require(len(data) == int(size) and stream.read(1) == b'\n', 'truncated Git blob')
+        result[name] = data
+    require(not stream.read(), 'extra Git object bytes')
+    return result
+
+
 def load_gate(folder, root=ROOT):
     """Bind the passed gate, current Rust source, actual ELF and both app hashes."""
     folder = folder.resolve(strict=True)
@@ -124,14 +155,14 @@ def load_gate(folder, root=ROOT):
         names = [m.name for m in members if m.isfile()]
         require(len(names) == len(set(names)), 'duplicate source members')
         saved = {m.name: tar.extractfile(m).read() for m in members if m.isfile()}
-    current = {str(p.relative_to(root/'rust')): p.read_bytes() for p in (root/'rust').rglob('*')
-               if p.is_file() and not {'target', 'validation'}.intersection(p.relative_to(root/'rust').parts)}
-    require(saved == current, 'gate source differs from current Rust checkout')
+    current = rust_git_blobs(root)
+    require(saved == current, 'gate source differs from committed Rust Git blobs')
     spec = importlib.util.spec_from_file_location('ingress_sles_audit', root/'scripts/check-rust-sles.py')
     audit = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(audit)
     artifacts = {}
     evidence = dict(run_id=gate['run_id'], report_sha256=sha(report_bytes), source_sha256=sha(archive),
+                    source_basis='HEAD Git blobs; checkout line endings are not compared',
                     rust_inputs={n: sha(data) for n, data in sorted(current.items())}, artifacts={})
     for profile in ('debug', 'release'):
         require(gate['profiles'][profile]['tests_passed'] > 0, 'gate lacks passed target tests')
@@ -221,7 +252,9 @@ class Runner:
                       seconds=round(time.monotonic()-started, 4))
         if result.returncode == 0:
             reply = base64.b64decode(result.stdout, validate=True)
-            record.update(raw_base64=base64.b64encode(reply).decode(), **parse_reply(reply))
+            record['raw_base64'] = base64.b64encode(reply).decode()
+            if reply:
+                record.update(parse_reply(reply))
         self.report['requests'].append(record)
         return record
 
@@ -337,7 +370,8 @@ def run_profile(runner, profile, config, artifact_sha):
         require(metadata == '1000:1001:'+mode+':socket', 'wrong socket custody: '+metadata)
     for user in (PROXY_USER, '1002:1001', '0:1001'):
         row = runner.http(operator, wire('GET', '/healthz'), user)
-        require(row['exit_code'] != 0 and 'connect:' in row['stderr'], 'foreign UID reached operator socket')
+        require(row.get('code') is None and (row['exit_code'] != 0 or row.get('raw_base64') == ''),
+                'foreign UID received an operator HTTP reply')
     # Wrong peers must be refused even for incomplete/invalid HTTP, before parsing.
     for user in ('1002:1001', '0:1001'):
         row = runner.http(producer, b'not HTTP', user)
