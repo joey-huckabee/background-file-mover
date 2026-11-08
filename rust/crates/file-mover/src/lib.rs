@@ -465,6 +465,9 @@ fn process(
             Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
             Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
         }
+        if claim_worker::validate_existing(store, guard, stop, job.job_id, false).is_err() {
+            return error(409, "recording_blocked", false, Some(job.job_id));
+        }
         if check_expected_sizes
             && job
                 .recording

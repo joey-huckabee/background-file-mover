@@ -304,7 +304,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(c)
             }),
             Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
-                mover_fs::validate_claim_scope(&c)?;
+                mover_fs::validate_claimed_object(&c)?;
                 Ok(c)
             }),
         };
@@ -344,28 +344,43 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     channel.write_all(&bytes)?;
     Ok(())
 }
+pub(crate) fn validate_existing(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    id: i64,
+    complete: bool,
+) -> Result<(), ClaimError> {
+    let job = store.get(id)?.ok_or(ClaimError::Blocked("missing job"))?;
+    for index in 0..job.recording.submission().files().len() {
+        match store.claim_intent(id, index)? {
+            Some((intent, true)) => {
+                if !guard.matches_path(&intent.root_path) {
+                    return Err(ClaimError::Blocked("source scope changed"));
+                }
+                let reply = request(
+                    &Assignment::Validate {
+                        version: 1,
+                        claim: ClaimWire::new(&intent),
+                    },
+                    guard,
+                    stop,
+                )?;
+                if reply != intent {
+                    return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
+                }
+            }
+            _ if complete => return Err(ClaimError::Blocked("incomplete handoff")),
+            _ => (),
+        }
+    }
+    Ok(())
+}
 pub(crate) fn validate_handoff(
     store: &Store,
     guard: &LocalClaimLock,
     stop: &AtomicBool,
     id: i64,
 ) -> Result<(), ClaimError> {
-    let (intent, done) = store
-        .claim_intent(id, 0)?
-        .ok_or(ClaimError::Blocked("missing handoff claim"))?;
-    if !done || !guard.matches_path(&intent.root_path) {
-        return Err(ClaimError::Blocked("incomplete handoff"));
-    }
-    let reply = request(
-        &Assignment::Validate {
-            version: 1,
-            claim: ClaimWire::new(&intent),
-        },
-        guard,
-        stop,
-    )?;
-    if reply != intent {
-        return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
-    }
-    Ok(())
+    validate_existing(store, guard, stop, id, true)
 }

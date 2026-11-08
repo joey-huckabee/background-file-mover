@@ -22,7 +22,7 @@ pub(super) fn claimed(store: &Store, id: i64, index: usize) -> TransferResult<Ow
     }
     claimed_intent(&intent)
 }
-fn claimed_intent(intent: &ClaimIntent) -> TransferResult<OwnedFd> {
+pub(super) fn claimed_intent(intent: &ClaimIntent) -> TransferResult<OwnedFd> {
     let root = root(&intent.root_path)?;
     same_directory(&owned_directory(&root, false)?, &intent.root)?;
     let namespace = namespace(&root)?;

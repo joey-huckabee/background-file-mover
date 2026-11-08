@@ -1180,7 +1180,7 @@ fn load_state(connection: &Connection, job_id: i64, uuid_schema: bool) -> Result
             .map(|value| {
                 let n = value.parse::<u64>().map_err(|_| StoreError::CorruptState)?;
                 canonical_sizes &= value == n.to_string();
-                Ok(n)
+                Ok::<u64, StoreError>(n)
             })
             .transpose()?;
         files.push(FileSpec::new(path, size)?);

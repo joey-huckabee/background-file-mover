@@ -551,3 +551,10 @@ pub fn claim(store: &Store, job_id: i64, index: usize) -> Result<Accepted> {
 pub fn source_space_unavailable_fault() -> ClaimError {
     ClaimError::Io(Errno::IO)
 }
+
+/// Private custody only: never opens a producer's possibly reused original path.
+pub fn validate_claimed_object(intent: &ClaimIntent) -> Result<()> {
+    transfer::claimed_intent(intent)
+        .map(|_| ())
+        .map_err(|_| ClaimError::Blocked("claimed object changed"))
+}
