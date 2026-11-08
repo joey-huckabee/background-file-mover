@@ -96,11 +96,22 @@ def exercise(profile, gates, folder, runtime, result):
             return {p: dict(sha256=hashlib.sha256(read(p)).hexdigest(), identity=run(
                 prefix + ["stat", "-c", "%d:%i:%s", BASE + "/" + p], text=True).strip()) for p in paths}
 
+        def verified_contents(component, manifest, expected):
+            assert len(manifest["files"]) == len(expected)
+            assert {entry["path"] for entry in manifest["files"]} == set(expected)
+            for entry in manifest["files"]:
+                content = expected[entry["path"]]
+                assert read("destination/" + component + "/" + entry["path"]) == content
+                size = len(content) if manifest["version"] == 1 else str(len(content))
+                assert entry["size_bytes"] == size and entry["algorithm"] == "sha256"
+                assert entry["sha256"] == hashlib.sha256(content).hexdigest()
+
         def http(method, route, body=None):
             data = b"" if body is None else json.dumps(body, separators=(",", ":")).encode()
             request = (method + " " + route + " HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: "
                        + str(len(data)) + "\r\nConnection: close\r\n\r\n").encode() + data
-            response = run(prefix + ["bash", "-c", 'exec 3<>/dev/tcp/127.0.0.1/39091; cat >&3; cat <&3'], input=request)
+            response = run(prefix + ["bash", "-c", 'exec 3<>/dev/tcp/127.0.0.1/39091; printf "%s" "$1" >&3; cat <&3',
+                                     "http", request.decode("utf-8")])
             head, body = response.split(b"\r\n\r\n", 1)
             return int(head.split()[1]), json.loads(body)
 
@@ -170,6 +181,8 @@ def exercise(profile, gates, folder, runtime, result):
         code, first = http("POST", "/api/v2/jobs", complete)
         assert code == 202 and first["job_id"] == "1"
         committed(1)
+        verified_contents("1", json.loads(read("destination/1/COMMITTED.json")),
+                          {"data": b"original committed recording"})
         code, second = http("POST", "/api/v2/jobs", pending)
         assert code == 503 and second["job_id"] == "2"
         stop("schema11")
@@ -210,7 +223,9 @@ def exercise(profile, gates, folder, runtime, result):
         start("target")
         assert committed(1)["details"]["submission_id"] == "complete"
         assert committed(2)["details"]["submission_id"] == "pending"
-        assert json.loads(read("destination/2/COMMITTED.json"))["version"] == 1
+        legacy_manifest = json.loads(read("destination/2/COMMITTED.json"))
+        assert legacy_manifest["version"] == 1
+        verified_contents("2", legacy_manifest, {"later": b"legacy pending recording"})
         assert snapshot(preserved_paths) == before
         refused = capture("live-target-excludes-predecessor", "legacy", BASE + "/config.json", success=False)
         assert b"local instance or surviving worker already owns state" in refused.stderr and http("GET", "/healthz")[0] == 200
@@ -223,7 +238,9 @@ def exercise(profile, gates, folder, runtime, result):
         committed(3)
         manifest_path = "destination/" + request["recording_id"] + "/COMMITTED.json"
         raw = read(manifest_path)
-        validate_writer_bytes(raw, request)
+        manifest = validate_writer_bytes(raw, request)
+        verified_contents(request["recording_id"], manifest,
+                          {"new-a": b"uuid original a", "new-b": b"uuid original b"})
         v2_paths = [manifest_path, "destination/" + request["recording_id"] + "/new-a",
                     "destination/" + request["recording_id"] + "/new-b"]
         original_v2 = snapshot(v2_paths)
