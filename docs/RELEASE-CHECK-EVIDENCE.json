@@ -1,0 +1,342 @@
+{
+  "scope": "Bounded release checks; all eight FR gates remain open",
+  "pair_run": "/home/joey/GIT/background-file-mover-testing/rust/validation/release-119-pair-3",
+  "pair_report_sha256": "5e3552c63e801cdd7c28110d08e21068dfb0b2f21044a3c104ee1a0da2f420ab",
+  "pair_report": {
+    "status": "PASSED",
+    "started_utc": "2026-11-08T19:10:16.088059+00:00",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "checker_sha256": "3e4769e11e85de98b57905ac261938bb472ddba225eb264a6bc6ee739870fb0d",
+    "helper_sha256": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+    "gates": {
+      "schema11": {
+        "commit": "2a31f233982669a8821bee42bf9691b27c1f39e7",
+        "rust_tree": "afd3d29fd91ac66cf108e78a6a096d112c12962c",
+        "source_files": 63,
+        "report_sha256": "c29013513dc15009366218eba5af9f72428bd5ba47f710bac49b532b4f51d365",
+        "source_sha256": "241bb9ede81bb70372527ab5ffe3decbf78ab93b9aa305bdba60e418e945c9e2",
+        "gate": "/home/joey/GIT/background-file-mover-testing/rust/validation/20261105T033804Z-7c6fa900"
+      },
+      "legacy": {
+        "commit": "215cf93965f946f07cab99d2c0d25281ae743d78",
+        "rust_tree": "264641d0a45c71a96cf981eba9a1a88d7a5afdc5",
+        "source_files": 73,
+        "report_sha256": "33ba7b9ddb8a45c8c5ade230d6e31666453ff67a676a3e4cc74a639fc7a060e7",
+        "source_sha256": "35d05e1da954d9541fbda55a7deaa603c1897016a17c8a3f961997abb8648713",
+        "gate": "/home/joey/GIT/background-file-mover-testing/rust/validation/20261108T051411Z-4aa8c7a9"
+      },
+      "target": {
+        "commit": "a44c24991d50ac2a521ad013e0e41881e45e8aba",
+        "rust_tree": "a3afcf2e95ac22a12356c1b66863f32fc7178c57",
+        "source_files": 73,
+        "report_sha256": "e3f9472a00b70a3b9b90d40f4ff8901cc25c56694baa9e2b34d2f45b5c5f14f2",
+        "source_sha256": "f0e828b27e01e02db8e3403e37340c01c5e4e5342428583f7df47b39ed5415a5",
+        "gate": "/home/joey/GIT/background-file-mover-testing/rust/validation/20261108T162438Z-ca1847a4"
+      }
+    },
+    "profiles": {
+      "debug": {
+        "status": "PASSED",
+        "schema11_sha256": "f3fb777e772f467b2fcfabe757466265ae76a53da148c278c8a88dacbf12e86f",
+        "legacy_sha256": "8d74e73fa6275369c5b526cedd80de1a1d91b9995b3c2a4010dc8008cde11784",
+        "target_sha256": "cd3f5856a7bf8500b5b99060c9c8e518c35b0d8d03b4b668d9fc2c7b77144361",
+        "migration_tables_preserved": [
+          "jobs",
+          "sqlite_sequence",
+          "files",
+          "reservations",
+          "claims",
+          "missing",
+          "transfers",
+          "metadata",
+          "manifests",
+          "operator_resumes",
+          "missing_resets",
+          "source_enrollment",
+          "destination_bindings",
+          "source_ownership",
+          "delivery_failures"
+        ],
+        "legacy_files": {
+          "source/.file-mover/1-0/data": {
+            "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f",
+            "identity": "134:1096812:28"
+          },
+          "destination/1/data": {
+            "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f",
+            "identity": "134:1096844:28"
+          },
+          "destination/1/COMMITTED.json": {
+            "sha256": "7a98fcc02aa6f07ba435a956f06113d13f018fee532a5db2e636545a83a9b7b4",
+            "identity": "134:1096831:281"
+          },
+          "source/.file-mover/source-enrollment.json": {
+            "sha256": "fc018b0b98c71f3998ad99a14da790840f9516e07aad1e08630be89ec64f3662",
+            "identity": "134:1096821:470"
+          }
+        },
+        "v2_files": {
+          "destination/11111111-1111-4111-8111-111111111111/COMMITTED.json": {
+            "sha256": "e5a61a07003b640228ae517a79657b8a3a747af423954be02d0d8b2a80df6c48",
+            "identity": "134:1096872:587"
+          },
+          "destination/11111111-1111-4111-8111-111111111111/new-a": {
+            "sha256": "83c6556589a69b992bb2e7cbe5d561c26c3ae27a7433ea8f4536a8faa100509b",
+            "identity": "134:1096870:15"
+          },
+          "destination/11111111-1111-4111-8111-111111111111/new-b": {
+            "sha256": "94be6e0bcc5b1cbbf04ca565911d1e0a7df0a92cafb84809ea3fba073d16262b",
+            "identity": "134:1096884:15"
+          }
+        },
+        "legacy_at_cutover": {
+          "job_id": "2",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Retrying",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1794165122
+            },
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "later",
+                "phase": "Claimed",
+                "size_bytes": 24,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "recorder",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "pending"
+          }
+        },
+        "receipt": {
+          "accepted": true,
+          "job_id": "3",
+          "recording_id": "11111111-1111-4111-8111-111111111111",
+          "source_paths_released": true
+        },
+        "checks": [
+          "schema11_normal_refusal_and_explicit_migration",
+          "live_predecessor_target_mutual_exclusion",
+          "partial_legacy_refusal_then_predecessor_handoff",
+          "legacy_v1_recovery_preservation",
+          "mixed_state_predecessor_refusal",
+          "uuid_restart_permuted_replay_and_reused_paths"
+        ],
+        "cleanup_error": null
+      },
+      "release": {
+        "status": "PASSED",
+        "schema11_sha256": "4a8b78a7ef2f214bbed62ce9a9453242f86ff58d2c32089859b7ad8f9466984e",
+        "legacy_sha256": "5dfde426aec34c565d1960bca44658dd62e61b232f193da12529f1ed9196832d",
+        "target_sha256": "76715a9801333937a943a1828a4a6799dbe437dff8d46d3e6d40f3aad3f96323",
+        "migration_tables_preserved": [
+          "jobs",
+          "sqlite_sequence",
+          "files",
+          "reservations",
+          "claims",
+          "missing",
+          "transfers",
+          "metadata",
+          "manifests",
+          "operator_resumes",
+          "missing_resets",
+          "source_enrollment",
+          "destination_bindings",
+          "source_ownership",
+          "delivery_failures"
+        ],
+        "legacy_files": {
+          "source/.file-mover/1-0/data": {
+            "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f",
+            "identity": "134:1096843:28"
+          },
+          "destination/1/data": {
+            "sha256": "db87b3b0824643c5456716c4fc9c9d771c64db30cb4a265f94ddfa503fa7980f",
+            "identity": "134:1096895:28"
+          },
+          "destination/1/COMMITTED.json": {
+            "sha256": "f7475d7cb105c02f9ee25d4b2649f7ee6f20841e5458056f5bed21fabb137fd5",
+            "identity": "134:1096881:281"
+          },
+          "source/.file-mover/source-enrollment.json": {
+            "sha256": "98acd927ec62c695e71cebf9dad9b9dff303b012ae35fb1499813dc460b65980",
+            "identity": "134:1096868:469"
+          }
+        },
+        "v2_files": {
+          "destination/11111111-1111-4111-8111-111111111111/COMMITTED.json": {
+            "sha256": "24b7257c5d463aa75e9f5e1f910acb8c8c5723221653f0ac76531dd36693171e",
+            "identity": "134:1096904:587"
+          },
+          "destination/11111111-1111-4111-8111-111111111111/new-a": {
+            "sha256": "83c6556589a69b992bb2e7cbe5d561c26c3ae27a7433ea8f4536a8faa100509b",
+            "identity": "134:1096902:15"
+          },
+          "destination/11111111-1111-4111-8111-111111111111/new-b": {
+            "sha256": "94be6e0bcc5b1cbbf04ca565911d1e0a7df0a92cafb84809ea3fba073d16262b",
+            "identity": "134:1096934:15"
+          }
+        },
+        "legacy_at_cutover": {
+          "job_id": "2",
+          "state": "Claimed",
+          "source_paths_released": true,
+          "retryable": false,
+          "details": {
+            "condition": "Retrying",
+            "delivery_retry": {
+              "code": "delivery_requires_review",
+              "failures": 1,
+              "retry_after": 1794165369
+            },
+            "files": [
+              {
+                "attempt": null,
+                "file_id": "0",
+                "name": "later",
+                "phase": "Claimed",
+                "size_bytes": 24,
+                "transfer_phase": null
+              }
+            ],
+            "generator_id": "recorder",
+            "latest_missing_reset": null,
+            "latest_resume": null,
+            "manifest_phase": null,
+            "missing": [],
+            "missing_review_epoch": 0,
+            "review_epoch": 0,
+            "source_cleanup_enabled": false,
+            "submission_id": "pending"
+          }
+        },
+        "receipt": {
+          "accepted": true,
+          "job_id": "3",
+          "recording_id": "11111111-1111-4111-8111-111111111111",
+          "source_paths_released": true
+        },
+        "checks": [
+          "schema11_normal_refusal_and_explicit_migration",
+          "live_predecessor_target_mutual_exclusion",
+          "partial_legacy_refusal_then_predecessor_handoff",
+          "legacy_v1_recovery_preservation",
+          "mixed_state_predecessor_refusal",
+          "uuid_restart_permuted_replay_and_reused_paths"
+        ],
+        "cleanup_error": null
+      }
+    },
+    "limits": "Disposable local roots in pinned SLES userspace; no NFS, shipping service, physical durability or working downgrade claim",
+    "finished_utc": "2026-11-08T19:18:36.272704+00:00"
+  },
+  "retained_driver_failures": [
+    {
+      "run": "release-119-pair-1",
+      "report_sha256": "36a16232e24b41d99f0470ce7649dbeaef0eb95889507904177cbb4c1d51980a",
+      "error": "AssertionError('readiness timeout')",
+      "cleanup_error": null
+    },
+    {
+      "run": "release-119-pair-2",
+      "report_sha256": "b3eea5cc41029738632fa9f571a1c81ca6a15670d541879077727e937af09530",
+      "error": "AssertionError()",
+      "cleanup_error": null
+    }
+  ],
+  "existing_local_gate_verification": {
+    "commit": "c99dda1302a6cf631f4b94a66b38201e6297bce0",
+    "rust_tree": "a3afcf2e95ac22a12356c1b66863f32fc7178c57",
+    "source_files": 73,
+    "runs": [
+      {
+        "run_id": "20261108T162438Z-ca1847a4",
+        "mode": "production",
+        "report_sha256": "e3f9472a00b70a3b9b90d40f4ff8901cc25c56694baa9e2b34d2f45b5c5f14f2",
+        "source_archive_sha256": "f0e828b27e01e02db8e3403e37340c01c5e4e5342428583f7df47b39ed5415a5",
+        "source_hashes_matched": 73,
+        "profiles": {
+          "debug": {
+            "tests_passed": 264,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 566.48,
+            "api_suite_timeout_seconds": 900
+          },
+          "release": {
+            "tests_passed": 264,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 586.34,
+            "api_suite_timeout_seconds": 900
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "run_id": "20261108T171858Z-4d33575e-nfs-qualification",
+        "mode": "nfs-qualification",
+        "report_sha256": "af78a5933870b31921b0d2b6266a29831750696c9430b3c8ad51751cd9c2ee93",
+        "source_archive_sha256": "d46d752c000eaffb4e59b84b296ece2a7c8132c2f1e3b7b6fcec3da5acb990da",
+        "source_hashes_matched": 73,
+        "profiles": {
+          "debug": {
+            "tests_passed": 268,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 940.12,
+            "api_suite_timeout_seconds": 1200
+          },
+          "release": {
+            "tests_passed": 268,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 901.87,
+            "api_suite_timeout_seconds": 1200
+          }
+        },
+        "cleanup_error": null
+      }
+    ]
+  },
+  "offline_bundle_verification": {
+    "archive": "/home/joey/GIT/background-file-mover-testing/rust/validation/runtime-118-bundle/file-mover-0.1.0-prototype-e711b4381c72-linux-x86_64.tar.gz",
+    "archive_sha256": "579cea97ca054aa9a437cb8550b04cbf8dac9b775e18ee5bd6906313a3ae842e",
+    "bytes": 256688451,
+    "packaging_commit": "e711b4381c72d951734347dd3c732dfc8be591e2",
+    "rust_tree": "a3afcf2e95ac22a12356c1b66863f32fc7178c57",
+    "executable_sha256": "76715a9801333937a943a1828a4a6799dbe437dff8d46d3e6d40f3aad3f96323",
+    "locked_crate_records": 42,
+    "smoke_report_sha256": "49dc9cf648fe6cf251095db8d620de34d55d1853114ccd75589a1f6df22fd4c4",
+    "checker_sha256": "a8e22203e46b3f160932fbb182917ddb5182f0b6213dea4bd35db6ea4d79971a",
+    "checker_helper_sha256": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+    "status": "PASSED",
+    "network": "none",
+    "cleanup_error": null
+  },
+  "reference_checks": {
+    "schema_definitions": 70,
+    "structural_cases": 108,
+    "semantic_examples": 11,
+    "route_checks": 15,
+    "identity_vectors": 7,
+    "retry_known_answers": 4,
+    "retry_decoding_cases": 52,
+    "python_tests": 56
+  }
+}

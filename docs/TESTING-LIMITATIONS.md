@@ -9,6 +9,8 @@ The application is implemented in Rust. Use these current sources:
 
 Read each source's implementation and qualification status. A proposed contract,
 passing unit test or installation candidate is not production qualification.
-All eight release gates remain open. Production NFS/source deletion, migration
-apply and UUID/manifest-v2 activation remain disabled. No operational-state
+All eight release gates remain open. Explicit offline migration and UUID/manifest-v2
+runtime are implemented in increments 115 and 118. Production NFS/source deletion
+remain disabled. See [current release checks](RUST-INCREMENT-119.md) for evidence
+and remaining blockers. No operational-state
 conversion, repair, takeover or deployment is authorized by this documentation.

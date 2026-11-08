@@ -41,7 +41,8 @@ The [producer/manifest engineering contract](PRODUCER-MANIFEST-CONTRACT.md)
 finalizes step 1 for the new producer and manifest v2: lexical/size bounds,
 immutable identity, replay ordering, exact writer bytes and the next codec/
 activation increments. The shared file names retain .candidate because the
-other routes and full P01 remain unfrozen. Runtime UUID/v2 is still disabled.
+other routes and full P01 remain unfrozen. Increment 118 subsequently implements
+UUID/v2 runtime; that does not freeze the remaining candidate API.
 This scoped technical closeout does not relabel all other candidate choices
 or claim consumer, ingress or service acceptance.
 
@@ -148,8 +149,8 @@ work. No further encoding-only fixture expansion is planned before implementatio
 | F01 Release surface | Use the consolidated 15-route inventory, retaining specialized trusted-local controls and bounded dashboard reads | Review the completed candidate read/action schemas and route access; no unrelated historical routes added |
 | F02 Retry intent/replay | Group 49 approves immutable existing review epoch/audit context in a header | Group 51 settles zero-accepted 202 and failed duplicate retry; exact errors, same-transaction receipts and bounded storage/retention implementation remain |
 | F03 Clear/delete outcomes | Group 50: clear forgets every source/destination link and result; files leave mover management | Qualify safe-stop/atomic forgetting, restart with unmanaged leftovers and no re-adoption. Group 51 approves one-active/latest-result deletion behavior before clear; candidate wire now supplied; durable storage/transaction design and qualification remain pending. |
-| F04 UUID persistence | Group 52 approves preserved legacy custody, supported upgrades or safe refusal, and an explicit upgrade/rollback support list | Increment 115 closes the bounded schema-11 to legacy-only-12 path with actual pairs; UUID ownership/admission, partial-legacy continuation at new-wire activation and the future mixed-identity matrix remain to implement/qualify. No invented UUID or stale restore |
-| F05 Consumer manifest | Group 52 approves v2 for new recordings with request digest, decimal-string measured sizes and exact UTF-8; preserve legacy v1 bytes/recovery | Step 1 fixes exact schema/serialization in PRODUCER-MANIFEST-CONTRACT.md. Codecs, immutable-byte persistence/publication/recovery and actual consumer evidence remain; this is not an implementation pass |
+| F04 UUID persistence | Group 52 approves preserved legacy custody, supported upgrades or safe refusal, and an explicit upgrade/rollback support list | Increment 115 closes bounded legacy migration. Increment 118 implements UUID admission/mixed runtime and safe partial-legacy refusal; increment 119 records current binary-pair checks. Shipping support/rollback remains open. No invented UUID or stale restore |
+| F05 Consumer manifest | Group 52 approves v2 for new recordings with request digest, decimal-string measured sizes and exact UTF-8; preserve legacy v1 bytes/recovery | Step 1 fixes the contract; increments 117/118 implement codecs and immutable-byte persistence/publication/recovery. Actual consumer acceptance remains open |
 | F06 Authentication/ingress | [Access-boundary candidate](ACCESS-BOUNDARY.candidate.md): cookie AND CSRF for mutations, exact Origin, deliberate-read activity and revocation/admission ordering | Validate candidate against full route/error schemas; credential/session bounds, runtime race proof and selected proxy profile remain open |
 
 These blockers are not new approvals or all release gates. They are the remaining

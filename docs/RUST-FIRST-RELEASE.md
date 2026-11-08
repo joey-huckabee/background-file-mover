@@ -61,19 +61,20 @@ A gate needs passing evidence and user instructions for its declared profile.
 The user requests full detailed job history until explicit admin dashboard clear.
 Explicit clear forgets the UUID; late reuse is new recording work. Only completed
 or safely cancelled jobs may clear; cancel unfinished/errored jobs first.
-Cancellation and history clear preserve files; separate ownership/accounting
-survives clear without UUID replay recognition. Finalize the separate explicit
-retained-data deletion admin wire/access and release placement
+Cancellation and history clear preserve files. Group 50 requires successful clear
+to forget every source/destination linkage, ownership record, accounting entry
+and action result; later cleanup is outside the mover. Finalize deletion of
+still-tracked owned data and its admin wire/access and release placement
 before freezing the contract; no automated compaction or
 blanket UI deferral should silently substitute for that decision.
 
-The [error review](REST-ERROR-SCENARIOS.md) records approved groups 1-44:
+The [error review](REST-ERROR-SCENARIOS.md) records approved groups 1-52:
 fifty initial outcome mappings, error envelope, configurable recorder retry
 timing and current-configuration expected-size policy. Follow API-I01-06 after remaining request/schema/compatibility decisions
-are resolved. API-E01-121 are acceptance situations, not new qualification passes;
-approved missing-file 409/global-ID behavior is not implemented yet. No Rust
-prototype API clients exist, so replace its old producer format directly without
-an adapter; stored-job/custody safeguards and stored-state compatibility obligations remain.
+are resolved. API-E01-143 are acceptance situations, not qualification passes. Increment 118
+implements the new UUID producer, missing-file 409 and manifest v2 directly,
+preserving legacy custody/v1 and refusing incomplete legacy handoffs before
+payload effects. Full API/admin/access and consumer qualification remain open.
 
 Next: P01, freeze versioned OpenAPI, manifest validation and the supported route,
 error/retry, path/metadata and ID-retention inventory. Preserve existing behavior
