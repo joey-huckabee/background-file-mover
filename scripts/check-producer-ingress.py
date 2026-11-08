@@ -548,6 +548,7 @@ def run_profile(runner, profile, config, artifact_sha):
 
     # Preexisting endpoint names are never removed, including actual stale sockets.
     before = stable_files()
+    report['unsafe_baseline'] = before
     for role, parent in (('producer_socket', base+'/p'), ('operator_socket', base+'/operator')):
         for kind in ('file', 'symlink', 'stale', 'live'):
             endpoint = parent+'/existing-'+kind
@@ -581,7 +582,10 @@ def run_profile(runner, profile, config, artifact_sha):
                 require(runner.execute('cat', endpoint).stdout == b'sentinel', 'existing endpoint bytes changed')
             runner.execute('test', '!', '-e', producer)
             runner.execute('test', '!', '-e', operator)
-            require(stable_files() == before, 'unsafe endpoint startup changed original source/destination/SQLite')
+            after = stable_files()
+            if after != before:
+                report['unsafe_difference'] = dict(role=role, kind=kind, before=before, after=after)
+            require(after == before, 'unsafe endpoint startup changed original source/destination/SQLite')
             if kind == 'live':
                 runner.execute('kill', '-TERM', live_pid)  # Exact PID reported by our helper in our container.
                 live.communicate(timeout=3)
