@@ -87,7 +87,7 @@ Replace its producer wire format directly with the reviewed contract; do not
 add an old-request adapter, parallel producer schema or deprecation period just
 for the unused prototype. Keep POST /api/v2/jobs as the working route unless
 separately changed during schema freeze. This decision concerns the Rust
-prototype, not a blanket waiver of legacy C++ cutover or release requirements.
+prototype, not a blanket waiver of stored-state compatibility or release requirements.
 
 It does not authorize discarding SQLite jobs, changing claimed-object ownership,
 reusing old IDs or renaming accepted destinations. Persisted-state migration or
@@ -1869,7 +1869,7 @@ remaining details in four packages. It adds no approval group or passing test.
 | ER-D02 | **Initial mappings approved:** groups 1-11 select stable codes; retain broad recording_blocked for unsafe source reconciliation, without a new source-capacity-specific code. Finalize exact validation precedence/typed evidence in OpenAPI. | E03/09-18/23-24/30-31 |
 | ER-D03 | **Envelope/timing approved (groups 12-13):** five fields and null rules; honor JSON delay, then valid header, then configurable 5/10/20/30-second fallback; configurable five-minute warning while permitted retries continue. Finalize schema bounds/config names, diagnostics and response/fallback validation. | E01-02/33-34/39/44-48 |
 | ER-D04 | **UUID and file-order requirements resolved (groups 16-17):** require UUID recording_id; permutation alone is the same request. Full history stays until admin clear, which forgets the UUID and permits a new submission (groups 18-19); unfinished/errored jobs require completed cancellation before clear. Finalize lexical canonicalization and concurrent admin/replay/cancel behavior; preserve original path-to-file identity and changed-content conflicts. IDs do not become reusable merely after delivery/cleanup. | E02-04/23/37/71-80 |
-| ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate C++ cutover requirements. | E03/09/23-25/28/61-70 |
+| ER-D05 | **Wire/size shape resolved:** no prototype client adapter; expected_sizes_bytes is all-or-nothing, default-disabled comparison, ignored complete assertions when disabled. Current configuration governs unfinished existing work, without a per-job snapshot (group 15). Finalize exact config/schema and replay ordering. Preserve custody and separate stored-state compatibility requirements. | E03/09/23-25/28/61-70 |
 | ER-D06 | Freeze safe remote denials, proxy codes and disclosure rules alongside RA-01-16; no bearer/registration implementation. | E04/26-27/38-45 |
 | ER-D07 | Confirm destination failures must not block source handoff when original source authority/custody are independently proven; if destination affects admission, document that exact existing policy rather than invent a generic destination HTTP failure. | E13-22/55-57 |
 

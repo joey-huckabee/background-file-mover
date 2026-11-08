@@ -25,8 +25,6 @@ It bounds the local stop wait, not kernel I/O. Systemd's `TimeoutStopSec`, kill
 policy and restart policy are separate. Inspect the installed unit; do not assume
 the application budget controls systemd. The disposable Rust fixture uses
 `KillMode=control-group` and `SendSIGKILL=no`. It is not a shipping unit.
-The older `deploy/systemd/file-mover.service` belongs to the C++ reference and is
-not a Rust installation recipe. See [systemd qualification](RUST-INCREMENT-59.md).
 
 ## Before a planned restart
 

@@ -1,212 +1,24 @@
 #!/usr/bin/env bash
-# .githooks/pre-commit — runs before each `git commit`.
-#
-# Activate by running `scripts/install-hooks.sh` once per clone, which sets
-# `core.hooksPath` to `.githooks/`. Bypass with `--no-verify` (CI runs the same
-# checks regardless). Cheap checks first, expensive last; fails fast.
-#
-#   File-level (always on):
-#     1. Whitespace + missing-final-newline   (git diff --cached --check)
-#     2. CRLF line endings in staged text files
-#     3. Merge conflict markers in staged blobs
-#     4. Large staged files (> 1 MB)
-#
-#   Trace-matrix parity (runs if the spec docs, the matrix, the generator, or
-#   any test file are staged):
-#     5. python3 scripts/build-trace-matrix.py --check
-#
-#   C++ (skipped if nothing under cpp/ is staged):
-#     6. make -C cpp verify-vendored
-#     7. make -C cpp locale-free
-#    7b. make -C cpp sql-confined
-#    7c. make -C cpp fd-relative, make -C cpp no-shell,
-#        make -C cpp no-permission-tests
-#     8. make -C cpp check      (compiles with -Werror, then runs the suite)
-#
-#   Files under cpp/third_party/ are exempt from the byte-level rules (2 and
-#   4): they are vendored verbatim under ADR-0004 and pinned by SHA-256, which
-#   is a stronger guarantee than either rule, and enforcing them there would
-#   make a conforming dependency uncommittable.
-
+# Optional staged-file hygiene. Qualification uses scripts/check-rust-sles.py.
 set -euo pipefail
-
-if [ -t 2 ]; then
-    RED=$'\033[31m'; GREEN=$'\033[32m'; YELLOW=$'\033[33m'; RESET=$'\033[0m'
-else
-    RED=''; GREEN=''; YELLOW=''; RESET=''
-fi
-step() { printf '%spre-commit:%s %s\n' "$YELLOW" "$RESET" "$1" >&2; }
-fail() { printf '%spre-commit FAILED:%s %s\n' "$RED" "$RESET" "$1" >&2; exit 1; }
-ok()   { printf '%spre-commit:%s %s\n' "$GREEN" "$RESET" "$1" >&2; }
-
 cd "$(git rev-parse --show-toplevel)"
-
-mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACM)
-if (( ${#STAGED[@]} == 0 )); then
-    ok "nothing staged"
-    exit 0
-fi
-
-# ── 1. Whitespace + missing-final-newline ─────────────────────────────
-step "git diff --cached --check (trailing whitespace, missing final newline)"
-if ! git diff --cached --check; then
-    fail "whitespace issues — fix and re-stage"
-fi
-
-# Vendored dependencies are exempt from the byte-level file rules below.
-#
-# ADR-0004 forbids editing anything under third_party/, and every file there is
-# pinned by SHA-256 and checked by `make verify-vendored` — a stronger guarantee
-# than either rule provides. Enforcing them here would put the hook in direct
-# conflict with the vendoring policy: a dependency that ships CRLF could only
-# be committed by rewriting it, which changes its hash and breaks the gate that
-# actually matters.
-#
-# Found the hard way. This hook was never installed in the clone where SQLite
-# was vendored (core.hooksPath was unset), and the 9.5 MB amalgamation would
-# have been rejected outright by the size rule below.
-is_vendored() {
-    case "$1" in
-        cpp/third_party/*) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
-# ── 2. CRLF line endings ──────────────────────────────────────────────
-step "scanning for CRLF in staged text files"
-crlf_files=()
-for file in "${STAGED[@]}"; do
-    case "$file" in
-        *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.bin|*.db) continue ;;
-    esac
-    if is_vendored "$file"; then continue; fi
-    if git show ":$file" 2>/dev/null | grep -qU $'\r'; then
-        crlf_files+=("$file")
-    fi
-done
-if (( ${#crlf_files[@]} > 0 )); then
-    printf '  %s\n' "${crlf_files[@]}" >&2
-    fail "CRLF line endings detected. Convert to LF."
-fi
-
-# ── 3. Merge conflict markers ─────────────────────────────────────────
-step "scanning for merge conflict markers"
-conflict_files=()
-for file in "${STAGED[@]}"; do
-    if git show ":$file" 2>/dev/null | grep -nE '^(<{7}|={7}|>{7})( |$)' >/dev/null; then
-        conflict_files+=("$file")
-    fi
-done
-if (( ${#conflict_files[@]} > 0 )); then
-    printf '  %s\n' "${conflict_files[@]}" >&2
-    fail "merge conflict markers in staged content"
-fi
-
-# ── 4. Large staged files (> 1 MB) ────────────────────────────────────
-step "checking staged file sizes (limit: 1 MB, vendored files exempt)"
-LIMIT=$((1024 * 1024))
-oversize=()
-for file in "${STAGED[@]}"; do
-    if is_vendored "$file"; then continue; fi
-    size=$(git cat-file -s ":$file" 2>/dev/null || echo 0)
-    if (( size > LIMIT )); then
-        oversize+=("$file ($size bytes)")
-    fi
-done
-if (( ${#oversize[@]} > 0 )); then
-    printf '  %s\n' "${oversize[@]}" >&2
-    fail "files over 1 MB staged. Add to .gitignore or use git-lfs.
-       (Vendored files under cpp/third_party/ are exempt — they are
-        hash-pinned and checked by \`make verify-vendored\`.)"
-fi
-
-# ── 5. Trace matrix parity ────────────────────────────────────────────
-need_trace=0
-for file in "${STAGED[@]}"; do
-    case "$file" in
-        cpp/tests/*.cpp|docs/L1-REQ.md|docs/L2-REQ.md|docs/L3-REQ.md|docs/TRACE-MATRIX.md|scripts/build-trace-matrix.py)
-            need_trace=1; break ;;
-    esac
-done
-if (( need_trace == 1 )); then
-    step "python3 scripts/build-trace-matrix.py --check"
-    if ! python3 scripts/build-trace-matrix.py --check; then
-        fail "trace matrix out of date — run \`python3 scripts/build-trace-matrix.py\` and stage docs/TRACE-MATRIX.md"
-    fi
-fi
-
-# ── Skip the build if nothing under cpp/ is staged ────────────────────
-need_cpp=0
-for file in "${STAGED[@]}"; do
-    case "$file" in
-        cpp/*) need_cpp=1; break ;;
-    esac
-done
-if (( need_cpp == 0 )); then
-    ok "file-level checks passed; no C++ changes — skipping build and tests"
-    exit 0
-fi
-
-# ── 6. Vendored file integrity ────────────────────────────────────────
-# First because it is the cheapest, and it catches a class the compiler
-# cannot: an edit inside a vendored dependency builds perfectly clean.
-step "make -C cpp verify-vendored"
-if ! make -C cpp verify-vendored; then
-    fail "a vendored file does not match its recorded SHA-256 (ADR-0004)"
-fi
-
-# ── 7. Locale-free parsers ────────────────────────────────────────────
-step "make -C cpp locale-free"
-if ! make -C cpp locale-free; then
-    fail "a parser uses locale-sensitive classification (L3-CPP-052)"
-fi
-
-# ── 7b. SQL confinement ───────────────────────────────────────────────
-# Cheap, and it catches the mistake at the moment it is made rather than in
-# CI: L2-JOB-009 keeps SQL and sqlite3.h behind the JobStore interface.
-step "make -C cpp sql-confined"
-if ! make -C cpp sql-confined; then
-    fail "SQL or sqlite3.h escaped the repository interface (L2-JOB-009)"
-fi
-
-# ── 7c. Filesystem discipline ─────────────────────────────────────────
-# Both are greps, so they cost nothing next to the build below, and both
-# catch the mistake at the moment it is made rather than in CI.
-step "make -C cpp fd-relative"
-if ! make -C cpp fd-relative; then
-    fail "a path-based filesystem call escaped the fd-relative layer (L2-SEC-001)"
-fi
-
-step "make -C cpp no-shell"
-if ! make -C cpp no-shell; then
-    fail "a shell invocation appeared (L2-SEC-008, ADR-0011)"
-fi
-
-step "make -C cpp no-permission-tests"
-if ! make -C cpp no-permission-tests; then
-    fail "a test induces failure by denying permission; root ignores that"
-fi
-
-step "make -C cpp no-timed-condwait"
-if ! make -C cpp no-timed-condwait; then
-    fail "a timed condition wait appeared; it breaks ThreadSanitizer"
-fi
-
-step "make -C cpp manager-lock"
-if ! make -C cpp manager-lock; then
-    fail "a raw lock on the manager mutex disables the store assertion"
-fi
-
-step "make -C cpp strong-hash"
-if ! make -C cpp strong-hash; then
-    fail "a weak hash was used for file verification (L2-SEC-015)"
-fi
-
-# ── 8. Build and test ─────────────────────────────────────────────────
-# -Werror is on, so this is the compile gate as well as the test gate.
-step "make -C cpp check"
-if ! make -C cpp check; then
-    fail "C++ build or tests failed"
-fi
-
-ok "all checks passed"
+git diff --cached --check
+python3 - <<'PYHOOK'
+import re, subprocess, sys
+paths = subprocess.check_output(["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"]).split(b"\0")
+errors = []
+for raw in filter(None, paths):
+    name = raw.decode("utf-8")
+    data = subprocess.check_output(["git", "show", ":" + name])
+    if b"\0" in data or name.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".bin", ".db")):
+        continue
+    if b"\r" in data:
+        errors.append(name + ": CR line ending")
+    if re.search(rb"^(?:<{7}|={7}|>{7})(?: |$)", data, re.M):
+        errors.append(name + ": merge conflict marker")
+    if len(data) > 1024 * 1024:
+        errors.append(name + ": staged file exceeds 1 MiB; retain large raw evidence outside Git")
+if errors:
+    print("\n".join(errors), file=sys.stderr)
+    sys.exit(1)
+PYHOOK

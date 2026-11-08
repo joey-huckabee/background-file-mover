@@ -1,11 +1,8 @@
 # Integration qualification design notes
 
 Use these checks and findings when designing Rust deployment qualification.
-The source is integration-lab at
-`3e9226b09e737522e8ea404108ee6cf0e5d64c91`, retained under
-`archive/integration-lab`. The archive includes the C7 dashboard history.
-No provisioning or C++ deployment code is copied into the Rust implementation.
-[BRANCH-REVIEW.md](BRANCH-REVIEW.md) records its commits and path inventory.
+These are design constraints for the Rust deployment and integration work.
+Current qualification and release status are recorded separately.
 
 ## Retain the boundaries and test intent
 
@@ -87,7 +84,7 @@ blocked-worker bounds and recovery evidence for the redesigned transfer protocol
 Qualify any durability claim against the exercised server/storage behavior.
 
 Install the same inspected GNU/glibc-target Rust artifact that passed package
-qualification. Replace C++ compiler/build-on-target assumptions with artifact
+qualification. Replace build-on-target assumptions with artifact
 provenance, target-library checks, local SQLite ownership and Rust lifecycle tests.
 Keep test collection fail-closed, including missing tests and skipped enforcement.
 Only decide mandatory integration CI gates after the harness can reliably detect

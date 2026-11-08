@@ -55,7 +55,7 @@ and production NFS remain outside this design's evidence.
 Documentation checks cover both JSON fragments and their specified bounds,
 arithmetic examples, all 18 distinct SA rows, unchanged prior 74 scenario IDs
 plus seven new IDs, all six DOC entries, Markdown targets/table structure and
-Git whitespace. All documentation checks and `build-trace-matrix.py --check`
+Git whitespace. All documentation checks and the then-current traceability check
 passed. No Rust build/test, service walkthrough, native capacity test or
 NFS fixture was run for this documentation-only change. Existing implementation
 evidence through increment 33 is unchanged; no SA case is labeled passing.

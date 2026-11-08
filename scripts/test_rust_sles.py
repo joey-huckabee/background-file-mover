@@ -14,6 +14,21 @@ gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
 
 
+class DependencyPinTests(unittest.TestCase):
+    def test_dependency_pins_are_locked_and_integrity_checksums_match(self):
+        root = Path(__file__).resolve().parent.parent
+        pins = json.loads((root / "scripts/rust-qualified-dependencies.json").read_text())
+        integrity = json.loads((root / "scripts/rust-integrity-dependencies.json").read_text())
+        lock = gate.tomllib.loads((root / "rust/Cargo.lock").read_text())
+        locked = {(p["name"], p["version"]): p["checksum"] for p in lock["package"] if p.get("source")}
+        qualified = [(p["name"], p["version"]) for p in pins["dependencies"] + integrity["dependencies"]]
+        self.assertEqual(len(qualified), len(set(qualified)))
+        self.assertTrue(set(qualified).issubset(locked))
+        for p in integrity["dependencies"]:
+            self.assertEqual(p["checksum"], locked[(p["name"], p["version"])])
+        self.assertEqual(pins["tokio_selected_features"], sorted(set(pins["tokio_selected_features"])))
+
+
 class ConfigurationStreamTests(unittest.TestCase):
     def test_provider_diagnostics_do_not_enter_cargo_configuration(self):
         configuration = '[target.x86_64-unknown-linux-gnu]\nrustflags = ["-C", "target-cpu=x86-64"]\n'

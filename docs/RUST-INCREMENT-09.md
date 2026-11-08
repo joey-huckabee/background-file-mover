@@ -97,7 +97,7 @@ This provides partial Rust evidence for the explicit audited reset part of
 to `L1-API-002`. Architectural obligations are serialized operator intent and
 preserved claim custody; implementation obligations are exact-file selection,
 epoch comparison, idempotent receipts, atomic audit/deadline change and bounded
-retention. Historical C++ coverage and scopes are unchanged. Formal Rust L2/L3
+retention. Historical coverage and scopes are unchanged. Formal Rust L2/L3
 IDs and automatic discovery remain roadmap work.
 
 Current qualification results are recorded in

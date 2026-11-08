@@ -1,3 +1,0 @@
-GET /api/jobs/job-000001 HTTP/1.1
-Host: h
-

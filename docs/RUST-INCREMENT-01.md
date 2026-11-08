@@ -8,7 +8,7 @@ protocol guards executable while storage/API details continue incrementally.
 
 Ten integration tests passed on 2026-10-13 using Rust/Cargo 1.99.0 in Ubuntu WSL.
 Sources were staged on the native filesystem in a temporary directory; the
-historical WSL checkout on integration-lab was not modified. Formatting and
+earlier WSL checkout was not modified. Formatting and
 Clippy with warnings denied passed. Cargo tests/checks were offline/locked.
 
 | Guard | Test |

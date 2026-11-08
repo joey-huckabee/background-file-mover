@@ -2,14 +2,13 @@
 
 ## Current direction (2026-10-13)
 
-2026-11-07 main integration authorization: the user explicitly requests merging
-the Rust development baseline into main, then using smaller increments. C++ is
-deprecated and retained as reference; its build/fuzz/CodeQL/Sonar workflows become
-manual-only. Use current main as the base for short-lived feature/fix branches
-and reviewed PRs, superseding historical instructions to keep developing on
-feature/rust-transfer-coordinator. Preserve source/history and qualified evidence.
-This is not release, deployment, migration-apply, UUID/v2 or production-state
-authorization. See docs/RUST-INCREMENT-113.md and docs/AGENT-WORKFLOW.md.
+2026-11-07 source cleanup authorization: the user requests a branch, removal of
+the retired implementation and all project references to it, then merge to main.
+Keep Rust runtime requirements, validated evidence and current C-based fixtures.
+Move dependency pins out of retired comparison reports without changing values.
+Use short-lived branches from main and reviewed PRs with applicable checks.
+This does not authorize deployment, migration apply, UUID/v2 activation or
+production-state changes. See docs/RUST-INCREMENT-114.md.
 
 2026-11-05 guarded inspection/backup authorization: the user says Proceed after
 the explanation of guarded inspection. Increment 112 adds existing-state-only
@@ -208,7 +207,7 @@ another NFS experiment. All eight gates remain open. Keep production NFS and
 source deletion disabled; default-off cleanup remains a release deliverable.
 Earlier increment summaries below are evidence, not the current work order.
 
-The user now wants a durable Rust transfer coordinator, not a C++-shaped port.
+The user now wants a durable Rust transfer coordinator, using Rust ownership and explicit effects.
 Work on `feature/rust-transfer-coordinator`; read `docs/RUST-DIRECTION.md`,
 `CONVERSATION.md` and the roadmap handoff first. Experiments are stopped after
 E1–E5; do not automatically start E6. Follow `docs/INTEGRITY-DESIGN.md`: hash the
@@ -376,10 +375,8 @@ Backfill prior scenarios and do not describe pending qualification as supported.
 Preserve `docs/RETENTION-REPAIR-DESIGN.md` for later repair prerequisites.
 Every Rust build/test must use `scripts/check-rust-sles.py` (or its WSL wrapper):
 cargo-libc target GNU/glibc 2.22, ELF audit and exact target tests in pinned
-SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Historical
-C++ toolchain/scope/branch guidance below applies to the reference code, and
-does not override this direction. Keep production glibc 2.22 and container-only
-compatibility qualification. Future branch cleanup requires the branch review.
+SLES 12 SP5 userspace. Host-only cargo tests are insufficient. Current Rust build, scope and branch guidance governs all work. Keep production glibc 2.22 and container-only
+compatibility qualification. Preserve unrelated branches and qualified evidence.
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
@@ -517,66 +514,6 @@ frozen-state evidence distinct from legitimately opened SQLite/WAL. Add SC-096
 without renumbering: 96 SC/six DOC IDs. No Rust/policy/dependency/deadline or VM
 boot/module change; production NFS/deletion remain disabled and release gates open.
 
-## Project Overview
-
-Background File Mover is a **C++11** durable transfer coordinator with a **REST**
-control plane. Simulation orchestration on six Linux hosts records ~100 GB per run to a
-local NFS mount; moving that data synchronously stalls the hosts. This service accepts a
-submitted recording set, returns a durable acknowledgement immediately, and then moves
-the data in the background under a single atomic commit point — disposable before it,
-idempotent after (`L1-SEC-001`/`002`). A source file is never deleted until its
-destination is durably in place.
-
-Production code uses **only** the C++11 standard library, POSIX, and the vendored
-dependencies recorded in `cpp/VENDORED.md`. It targets **SLES 12 SP5** (GCC 4.8.5,
-glibc 2.22) and RHEL 9, runs under systemd, and carries full L1/L2/L3 requirement
-traceability. See `docs/ROADMAP.md` for milestone status and `cpp/README.md` for build
-commands.
-
-**The Python implementation is gone from this branch.** It shipped through v0.4.2 and
-remains on `main` and at the `v0.4.2` tag. Several documents still describe it and are
-kept deliberately as the rewrite source; every one of them opens with a banner saying
-so. **v1.0.0 is narrower than v0.4.2** — see the three easy-to-get-wrong items below.
-
-## Reference docs
-
-**Current — these describe this branch:**
-
-- `cpp/README.md` — build commands, CI tiers, design rules, target REST API shape.
-- `docs/L1-REQ.md` — Level 1 SHALL statements, each with a **v1.0.0 Status** annotation
-  (Active / Deferred / Partial / Rewritten). The status drives the trace matrix's
-  scope-adjusted coverage, so keep the value a bare word on that line.
-- `docs/L2-REQ.md` — Level 2 architectural derivations (each with a single L1 `**Parent**`).
-- `docs/L3-REQ.md` — Level 3 implementation obligations (`INT`/`EVT`/`CLI`) plus the C++
-  constraints `L3-CPP-*`. The `L3-PY-*` section is **retired but retained** — read the
-  banner on it before touching anything there.
-- `docs/TRACE-MATRIX.md` — auto-generated by `scripts/build-trace-matrix.py`. Forward
-  trace from L1 → L2 → L3 to test artifacts, reading **both** `@pytest.mark.requirement`
-  markers in `tests/` and **Catch2 tags** in `cpp/tests/` (`TEST_CASE("...",
-  "[json][L3-CPP-019]")`). Tagging a C++ test is how a requirement becomes traced.
-  Single source of truth for live status; the source docs hold spec content only.
-- `docs/CYBERSECURITY.md` — threat model, the v1.0.0 scope boundary, NFS design review.
-- `docs/HAND-ROLLED-COMPONENTS.md` — the standard every hand-rolled parser is built to.
-- `docs/MIGRATION-PROVENANCE.md` — what the inherited C++ design series contributed and,
-  more usefully, what was rejected and why.
-- `docs/ROADMAP.md` — **start here in a new session.** Opens with a *Where we left off*
-  block (current milestone, live coverage figure, next action), then the **C1–C9 v1.0.0
-  milestone plan**, then the merge cadence and the pinned "do not drop" decisions. The
-  `M1–M8` section further down is Python history, not outstanding work.
-- `docs/MAINTAINER-GUIDE.md` — repo layout, local dev setup, command cheat sheet, CI
-  architecture. Start here when onboarding.
-
-**Retired — these describe the Python implementation and are kept as the rewrite
-source.** Each opens with a banner. Do not treat any of them as describing current
-behavior, and do not "fix" them to match the C++ piecemeal — they get rewritten
-wholesale as the corresponding C++ lands.
-
-- `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/USER-GUIDE.md`,
-  `docs/CLI-REFERENCE.md`, `docs/CONFIG-REFERENCE.md`, `docs/LOGGING.md`,
-  `docs/FEATURE-INTERACTIONS.md`, and the reference config `config/file-mover.ini`.
-- `docs/12-FACTOR.md` is **partly** superseded: factor VII inverted when the `AF_UNIX`
-  socket became a REST port. Its banner says which parts still hold.
-
 Increment 83 retains buffered actual source-claim LINK/REMOVE successful-reply
 hold/release capability and its step-by-step lab in docs/NFS-CLAIM-CAPABILITY-LAB.md.
 Keep this capability separate from increment 84 buffered discarded-reply/death recovery.
@@ -661,103 +598,6 @@ Merge: Release v0.4.2
 
 Bodies explain *why*, and record decisions that were reversed or premises that turned
 out to be wrong — a future maintainer should not have to re-derive them.
-
-## C++ / REST migration (in progress on the current milestone branch)
-
-The service is being reimplemented in **C++11** with a **REST control plane** replacing
-the `AF_UNIX` socket.
-
-- **Branch**: one per milestone, cut from `main` and named `c<N>-<short-name>` —
-  currently `c1-durable-store`. The long-lived `v2-cpp` branch was retired when C0
-  merged; see *Merge cadence* in `docs/ROADMAP.md` before merging or branching. The
-  Python tree was **removed** ahead of v1.0.0 and is preserved by the `v0.4.2` tag, on
-  `origin` as well as locally. `cpp/` is the only implementation on `main` now.
-- **`docs/adr/`** — MADR-format decision records, numbered `0001`+. Read these before
-  changing the toolchain, the vendoring set, the JSON parser, or the HTTP surface.
-- **`docs/MIGRATION-PROVENANCE.md`** — what the inherited C++ design series contributed
-  and, more usefully, what was rejected and why. The eight milestone snapshots are fully
-  triaged and deleted; `transcripts/` no longer exists. **Read this before
-  re-introducing anything from that material, or before assuming a gap in `cpp/` is an
-  oversight — several are deliberate.** If a new design conversation arrives, recreate
-  `transcripts/` as scratch, follow the same triage rubric, and delete it again.
-
-Three things that are easy to get wrong:
-
-1. **v1.0.0 is narrower than v0.4.2.** `L1-SYS-002/003/004/005/006` — claim, integrity
-   verification, conservative deletion, recovery-by-resumption — are **deferred to
-   v1.1**, retained verbatim in `docs/L1-REQ.md` with a status annotation. Do not treat
-   a Deferred requirement as implemented, and do not delete one to make the matrix
-   look clean.
-2. **Requirement IDs are reused, not reminted.** `L1-SYS-009` now means C++11/GCC 4.8.5,
-   not Python-stdlib-only. The retired docs still describe the old meaning; that is
-   expected and their banners say so. Do not reconcile them one line at a time.
-3. **Inherited design material is not authoritative.** It came from a conversation that
-   designed a standalone project without knowledge of this repo, and has already been
-   caught carrying a fabricated premise. Triage it; the repo wins conflicts by default.
-
-Production C++ uses only the C++11 standard library, POSIX, and vendored dependencies
-recorded in `cpp/VENDORED.md`. Vendoring is governed by ADR-0004 and the license policy
-in ADR-0007 (**BSD-2-Clause and BSD-3-Clause are excluded by internal policy**).
-
-## Local development
-
-The canonical checkout lives **inside WSL** at `~/GIT/background-file-mover`, on the
-Linux-native filesystem. Do not clone or build under `/mnt/c`.
-
-```
-cd ~/GIT/background-file-mover/cpp
-make check                # functional suite, -Werror
-make check SANITIZE=1     # ASan + UBSan + LSan
-make check-valgrind       # Valgrind memcheck
-make verify-vendored      # vendored files match their recorded SHA-256
-make locale-free          # parsers never use <cctype> (L3-CPP-052)
-make check-ci             # every gate, in a container, as CI runs them
-make toolchain            # print the resolved BUILD_DIR for this tier
-cppcheck --enable=warning,portability --error-exitcode=1 --std=c++11 -Iinclude src/ tests/
-
-cd ~/GIT/background-file-mover
-python3 scripts/build-trace-matrix.py --check   # traceability gate
-```
-
-`make check-ci` pipes a long log; **read its tail rather than trusting the exit code of a
-pipeline**. A `make ... | tail` reports `tail`'s status, which has silently masked a
-failing gate more than once.
-
-The gcc 4.8.5 fidelity tier runs in a container:
-
-```
-cd ~/GIT/background-file-mover/cpp && make check-gcc48
-```
-
-That target and the CI job pull the **same** image, `ghcr.io/joey-huckabee/gcc-4.8:4.8.5`
-— a byte-identical mirror of `docker.io/library/gcc:4.8`, republished with a v2s2
-manifest. Do not go back to the upstream tag: it carries a 2016 schema-1 manifest that
-modern Docker refuses, which broke the CI job at the pull while podman kept accepting it
-locally. Hand-writing the `docker run` invocation is what let those two drift apart.
-
-From Windows, the repository is reachable at
-`\\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover` — that is where new
-transcripts and milestone zips get dropped. Edit via VS Code Remote-WSL, which runs a
-server inside WSL and avoids the UNC path entirely.
-
-**Why not `/mnt/c`.** Two independent reasons, both measured:
-
-1. **Builds there are intermittently broken.** gcc fails with
-   `Assembler messages: can't open /tmp/ccXXXX.s for reading` on some runs and
-   succeeds on others — observed failing and passing within a single invocation.
-   Root cause is not established; `TMPDIR` on the native filesystem was tried and is
-   **not** a reliable fix. An unpredictable build is worse than a broken one.
-2. **Small-file I/O over 9p is ~500× slower.** 300 files: 0.005s native versus 2.544s
-   on `/mnt/c`. Compilation only pays ~30% because it is compile-bound, but the fuzz
-   corpus (ADR-0008) is thousands of small files read on every run — exactly the
-   pathological case.
-
-**Build directories are keyed on toolchain** (`build/<machine>-<version>-<tier>`), so
-the WSL, container, and sanitizer tiers cannot overwrite one another. Before this,
-running the WSL build then the gcc:4.8 container left a glibc-2.34 binary for the
-container to execute, failing with a wall of `GLIBC_2.xx not found` that reads as a
-code fault and is not one. `make clean` removes only the current tier; `make clean-all`
-removes every tier.
 
 Increment 63 qualifies selected file/manifest unlink-syscall and pre-sync crashes;
 see docs/RUST-INCREMENT-63.md and docs/NFS-PUBLICATION-SYNC-LAB.md. Four observed

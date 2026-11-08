@@ -54,7 +54,7 @@ route validation and an unreceipted test allocation remaining untouched and
 explicitly outside database accounting. This provides partial Rust evidence for
 `L1-SYS-030` (bounded outage admission) and aggregate/individual inspection in
 `L1-API-002`. It does not complete aggregate operational status, physical-space
-qualification, orphan discovery or repair. Historical C++ scopes/trace coverage
+qualification, orphan discovery or repair. Historical scopes/trace coverage
 are unchanged; formal Rust trace discovery remains roadmap work.
 
 No dependency, schema, feature or toolchain change is introduced. Platform

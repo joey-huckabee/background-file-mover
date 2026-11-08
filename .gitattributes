@@ -7,19 +7,8 @@ poetry.lock text eol=lf
 *.ico binary
 *.pdf binary
 
-# Fuzzing corpora are byte-exact test vectors, not text. The HTTP seeds make
-# this load-bearing: CRLF framing is precisely what they exercise, and the
-# `* text=auto eol=lf` rule above would rewrite every "\r\n" to "\n" on commit.
-# The parser answers NeedMore rather than Ok for a bare-LF head, so normalized
-# seeds would still "replay" green while testing something else entirely --
-# a corpus quietly measuring the wrong thing is worse than no corpus.
-cpp/fuzz/corpus-*/** -text
-cpp/fuzz/corpus-regression-*/** -text
-cpp/fuzz/make-seeds*.sh -text
-
 # Schema fixtures are frozen SQLite databases, byte-exact by definition and by
 # purpose: their whole value is being the file an *older* build produced. The
 # rule at the top would rewrite any byte inside one that happened to look like
 # a line ending, giving a database corrupt in a way no diff would show.
 *.db binary
-cpp/tests/fixtures/** -text

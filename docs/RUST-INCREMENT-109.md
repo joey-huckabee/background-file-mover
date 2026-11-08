@@ -23,7 +23,7 @@ enabled, started, migrated or deleted by installation. Upgrades and compatible
 binary rollback require explicit old-worker exit and original-state preservation.
 
 The unit uses control-group termination, SendSIGKILL=no, no global ExecStop,
-and explicit prototype activation (Restart=no). It is not the old C++ unit or
+and explicit prototype activation (Restart=no). It is not
 a qualified shipping lifecycle/account policy. Default TimeoutStopSec=75 is
 documented against the application's default 60-second budget, with adjustment
 required for a different configured budget.

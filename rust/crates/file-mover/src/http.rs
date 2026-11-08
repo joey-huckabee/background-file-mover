@@ -65,8 +65,8 @@ pub fn head(input: &[u8], max_head: usize) -> HeadResult {
     }
     let mut slots = [httparse::EMPTY_HEADER; 64];
     let mut parsed = httparse::Request::new(&mut slots);
-    // C++ accepts arbitrary non-control target bytes, but httparse exposes a
-    // UTF-8 &str. Validate original bytes above; substitute only non-ASCII
+    // httparse exposes a UTF-8 &str target. Validate original bytes
+    // above; substitute only non-ASCII
     // target bytes in a bounded temporary head for upstream syntax parsing.
     // Offsets stay identical and the returned target always uses original bytes.
     let mut sanitized;

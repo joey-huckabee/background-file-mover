@@ -106,7 +106,7 @@ recovery intent) and review visibility (`L1-API-002`). Architectural obligations
 are authoritative serialized command handling and separation of operator intent
 from filesystem evidence. Implementation obligations are epoch comparison,
 idempotent command receipts, atomic audit/reset, preserved transfer evidence and
-bounded retention. Tests provide partial Rust evidence; historical C++ scopes
+bounded retention. Tests provide partial Rust evidence; historical scopes
 and automatic trace coverage are unchanged. Formal Rust L2/L3 IDs remain roadmap
 work. Current platform results are in [RUST-SLES-EVIDENCE.json](RUST-SLES-EVIDENCE.json).
 

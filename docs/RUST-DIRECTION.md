@@ -1,10 +1,9 @@
 # Rust direction and next-session handoff
 
-Current integration workflow (2026-11-07): Rust is active; C++ is deprecated
-and retained as reference. Start small feature/fix branches from reviewed `main`
-and integrate by PR. See [the agent workflow](AGENT-WORKFLOW.md) and
-[integration record](RUST-INCREMENT-113.md). This does not authorize release or
-additional runtime features.
+Current workflow (2026-11-07): start small feature/fix branches from reviewed
+main and integrate through PRs. See [the workflow](AGENT-WORKFLOW.md) and
+[source cleanup](RUST-INCREMENT-114.md). No additional runtime feature or
+production release is authorized by source cleanup.
 
 Recorded 2026-10-13 on `feature/rust-transfer-coordinator`. The user supplied
 [CONVERSATION.md](../CONVERSATION.md) as the new direction. This supersedes the
@@ -16,8 +15,7 @@ are review leads, not verified findings merely because they appear there.
 
 Design a durable transfer coordinator using Rust ownership, explicit effects,
 bounded resources and established libraries. Preserve useful requirements and
-crash/fault evidence without copying C++ internal architecture or temporary scope
-restrictions. Use one executable, configuration file and systemd service.
+crash/fault evidence within the approved Rust architecture and scope. Use one executable, configuration file and systemd service.
 
 The proposed architecture has an asynchronous coordinator, one scheduler state
 owner, a dedicated local SQLite owner thread, bounded command/result channels,
@@ -338,7 +336,7 @@ and [the scenario catalog](RUST-SCENARIOS.md). Maintain its stable user-situatio
 IDs, evidence boundaries and user-guide backlog with every increment. It includes
 retrospective explanations for the already implemented local/API/recovery cases.
 Also read
-experiment results and the branch [review](BRANCH-REVIEW.md). Work through the
+qualified dependency pins and [current workflow](AGENT-WORKFLOW.md). Work through the
 producer-facing Accepted/Claimed contract, reconcile requirements and refine
 the proposed protocol using the agreed streaming-hash/destination-reread plan.
 Revise the roadmap around four increments:

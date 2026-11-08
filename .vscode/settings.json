@@ -1,13 +1,4 @@
 {
   "editor.formatOnSave": true,
-  "files.eol": "\n",
-  "files.associations": {
-    "*.hpp": "cpp"
-  },
-  "C_Cpp.default.cppStandard": "c++11",
-  "C_Cpp.default.includePath": [
-    "${workspaceFolder}/cpp/include",
-    "${workspaceFolder}/cpp/third_party"
-  ],
-  "C_Cpp.default.compileCommands": "${workspaceFolder}/cpp/compile_commands.json"
+  "files.eol": "\n"
 }

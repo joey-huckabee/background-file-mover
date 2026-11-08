@@ -180,11 +180,13 @@ def main() -> int:
         metadata = json.loads(run(execute + ["cargo", "metadata", "--offline", "--locked", "--format-version", "1",
                                              "--filter-platform", "x86_64-unknown-linux-gnu"] + features, results / "metadata.json"))
         dependencies = [package for package in metadata["packages"] if package["source"]]
-        evidence = json.loads((ROOT / "docs/E5-TOKIO-EVIDENCE.json").read_text())
+        dependency_pins = (ROOT / "scripts/rust-qualified-dependencies.json").read_bytes()
+        report["dependency_pins_sha256"] = hashlib.sha256(dependency_pins).hexdigest()
+        evidence = json.loads(dependency_pins)
         integrity = json.loads((ROOT / "scripts/rust-integrity-dependencies.json").read_text())
         expected = evidence["dependencies"] + integrity["dependencies"]
         if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
-            raise ValueError("dependency graph differs from the pinned E5 plus integrity graph")
+            raise ValueError("dependency graph differs from the pinned qualified plus integrity graph")
         locked = {(p["name"], p["version"]): p.get("checksum") for p in tomllib.loads((ROOT / "rust/Cargo.lock").read_text())["package"]}
         for dependency in integrity["dependencies"]:
             if locked[(dependency["name"], dependency["version"])] != dependency["checksum"]:

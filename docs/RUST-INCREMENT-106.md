@@ -124,7 +124,7 @@ with the reviewed recording_id/source_directory/string-file producer form; no
 adapter, dual schema or deprecation obligation for unused prototype clients.
 Add the reviewed minimal JSON to the API draft, clearly above historical/current
 examples. This does not remove optional size assertions, discard stored jobs or
-waive C++ cutover. Global-ID stored-state migration/refusal and precise schema
+waive stored-state compatibility requirements. Global-ID stored-state migration/refusal and precise schema
 rules still require design. Documentation only; no runtime/qualification change.
 
 ## Subsequent contract review: expected-size policy approved (group 14)
