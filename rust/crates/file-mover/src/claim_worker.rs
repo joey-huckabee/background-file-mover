@@ -158,13 +158,17 @@ pub(crate) fn claim(
         return Err(ClaimError::Blocked("source scope changed"));
     }
     let check_sizes = job.recording.submission().producer().is_none() || check_expected_sizes;
-    if check_sizes && let Some((intent, _)) = store.claim_intent(job_id, index)? {
-        if job.recording.submission().files()[index]
+    if check_sizes
+        && let Some((intent, done)) = store.claim_intent(job_id, index)?
+        && job.recording.submission().files()[index]
             .expected_size()
             .is_some_and(|n| n != intent.source.size)
-        {
-            return Err(ClaimError::ExpectedSizeMismatch);
-        }
+    {
+        return Err(if done {
+            ClaimError::ExpectedSizeMismatch
+        } else {
+            ClaimError::Blocked("unfinished claim requires reconciliation")
+        });
     }
     let intent = match store.claim_intent(job_id, index)? {
         Some((_, true)) => return Ok(job), // Never reopen a producer's reused path.

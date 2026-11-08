@@ -23,8 +23,7 @@ fn pending_capacity_retry_survives_restart_and_recovers_without_operator_resume(
     f.write("data", b"original recording");
     f.start_with_payload_fault(Some("payload_copy_write"));
     assert_eq!(
-        f.post(&f.input("capacity-recovery", json!(["data"])))
-            .0,
+        f.post(&f.input("capacity-recovery", json!(["data"]))).0,
         202
     );
     f.write("data", b"producer reused path");
@@ -396,10 +395,7 @@ fn explicit_source_enrollment_is_required_and_matching_restart_keeps_the_pair() 
 fn fresh_database_cannot_adopt_enrolled_source_after_clean_release() {
     let mut f = Fixture::new(300);
     f.write("data", b"private old state payload");
-    assert_eq!(
-        f.post(&f.input("old-state", json!(["data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("old-state", json!(["data"]))).0, 202);
     f.stop();
     let receipt = f.root.join("source/.file-mover/source-enrollment.json");
     let saved = std::fs::read(&receipt).unwrap();
@@ -738,10 +734,7 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
 fn delivery_worker_refuses_replaced_destination_lock_before_payload() {
     let mut f = Fixture::new(300);
     f.write("data", b"retained");
-    assert_eq!(
-        f.post(&f.input("lock-session", json!(["data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("lock-session", json!(["data"]))).0, 202);
     f.stop();
     provision_destination(&f);
     let guard = mover_fs::LocalClaimLock::acquire_bound(
@@ -1204,11 +1197,7 @@ fn startup_contention_never_announces_readiness_or_opens_sqlite() {
 fn delivery_session_large_manifest_returns_metadata_only_receipts() {
     let mut f = Fixture::new(300);
     f.write("data", b"large manifest");
-    assert_eq!(
-        f.post(&f.input("large-manifest", json!(["data"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("large-manifest", json!(["data"]))).0, 202);
     f.stop();
     provision_destination(&f);
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
@@ -1298,11 +1287,7 @@ fn session_authorized_reply(
 fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() {
     let mut f = Fixture::new(300);
     f.write("data", b"source retained");
-    assert_eq!(
-        f.post(&f.input("session-binding", json!(["data"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("session-binding", json!(["data"]))).0, 202);
     f.stop();
     provision_destination(&f);
     let guard = mover_fs::LocalClaimLock::acquire_bound(
@@ -1697,11 +1682,7 @@ fn claim_child_reports_missing_and_refuses_changed_observation_before_allocation
 fn publication_child_reconciles_file_and_manifest_effects_without_database_receipts() {
     let mut f = Fixture::new(300);
     f.write("data", b"publication");
-    assert_eq!(
-        f.post(&f.input("publish-child", json!(["data"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("publish-child", json!(["data"]))).0, 202);
     f.stop();
     provision_destination(&f);
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
@@ -1841,11 +1822,7 @@ fn live_payload_child_retains_both_locks_after_parent_descriptors_close() {
 fn malformed_payload_assignments_preserve_stage_and_source() {
     let mut f = Fixture::new(300);
     f.write("data", b"protected");
-    assert_eq!(
-        f.post(&f.input("invalid-payload", json!(["data"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("invalid-payload", json!(["data"]))).0, 202);
     f.stop();
     provision_destination(&f);
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
@@ -1887,29 +1864,52 @@ fn malformed_payload_assignments_preserve_stage_and_source() {
     }
 }
 fn fixture_uuid(label: &str) -> String {
-    if let Ok(uuid) = mover_core::RecordingId::parse(label) { return uuid.to_string(); }
+    if let Ok(uuid) = mover_core::RecordingId::parse(label) {
+        return uuid.to_string();
+    }
     let mut value = 0x6c62272e07bb014262b821756295c58d_u128;
-    for b in label.bytes() { value = (value ^ u128::from(b)).wrapping_mul(0x1000000000000000000013b); }
+    for b in label.bytes() {
+        value = (value ^ u128::from(b)).wrapping_mul(0x1000000000000000000013b);
+    }
     mover_core::RecordingId::from_bytes(value.to_be_bytes()).to_string()
 }
 fn assert_accepted(reply: &Value, uuid: &str) {
     let id = reply["job_id"].as_str().expect("positive decimal job ID");
-    assert!(id.parse::<i64>().is_ok_and(|n| n > 0 && n.to_string() == id));
-    assert_eq!(reply, &json!({"job_id":id,"recording_id":uuid.to_ascii_lowercase(),
-        "accepted":true,"source_paths_released":true}));
+    assert!(
+        id.parse::<i64>()
+            .is_ok_and(|n| n > 0 && n.to_string() == id)
+    );
+    assert_eq!(
+        reply,
+        &json!({"job_id":id,"recording_id":uuid.to_ascii_lowercase(),
+        "accepted":true,"source_paths_released":true})
+    );
 }
 fn assert_producer_error(reply: &Value) {
     let object = reply.as_object().expect("producer error object");
     assert_eq!(object.len(), 5, "{reply}");
-    for key in ["recording_id","error","retryable","retry_after_seconds","source_paths_released"] {
+    for key in [
+        "recording_id",
+        "error",
+        "retryable",
+        "retry_after_seconds",
+        "source_paths_released",
+    ] {
         assert!(object.contains_key(key), "{reply}");
     }
     assert!(reply["error"].is_string() && reply["retryable"].is_boolean());
     assert_eq!(reply["source_paths_released"], false);
-    assert!(reply["retry_after_seconds"].is_null() || reply["retry_after_seconds"].as_u64().is_some_and(|n| (1..=2147483647).contains(&n)));
+    assert!(
+        reply["retry_after_seconds"].is_null()
+            || reply["retry_after_seconds"]
+                .as_u64()
+                .is_some_and(|n| (1..=2147483647).contains(&n))
+    );
     if let Some(id) = reply["recording_id"].as_str() {
         assert_eq!(mover_core::RecordingId::parse(id).unwrap().to_string(), id);
-    } else { assert!(reply["recording_id"].is_null()); }
+    } else {
+        assert!(reply["recording_id"].is_null());
+    }
 }
 struct Fixture {
     root: PathBuf,
@@ -2080,18 +2080,32 @@ impl Fixture {
         // Labels are harness conveniences only; HTTP always carries the direct
         // UUID/string-list wire. No request adapter exists in the service.
         let entries = files.as_array().expect("fixture file list");
-        let paths: Vec<&str> = entries.iter().map(|f| {
-            f.as_str().or_else(|| f["name"].as_str()).expect("fixture path")
-        }).collect();
+        let paths: Vec<&str> = entries
+            .iter()
+            .map(|f| {
+                f.as_str()
+                    .or_else(|| f["name"].as_str())
+                    .expect("fixture path")
+            })
+            .collect();
         let mut body = json!({"generator_id":"recorder","recording_id":fixture_uuid(label),
             "source_directory":self.root.join("source/current"),"files": &paths});
         if entries.iter().any(|f| f.get("size_bytes").is_some()) {
-            let sizes: serde_json::Map<String, Value> = entries.iter().zip(paths.iter()).map(|(file, path)| {
-                let size = file.get("size_bytes").and_then(Value::as_u64).unwrap_or_else(|| {
-                    std::fs::metadata(self.root.join("source/current").join(path)).expect("complete fixture size map").len()
-                });
-                ((*path).to_owned(), json!(size.to_string()))
-            }).collect();
+            let sizes: serde_json::Map<String, Value> = entries
+                .iter()
+                .zip(paths.iter())
+                .map(|(file, path)| {
+                    let size = file
+                        .get("size_bytes")
+                        .and_then(Value::as_u64)
+                        .unwrap_or_else(|| {
+                            std::fs::metadata(self.root.join("source/current").join(path))
+                                .expect("complete fixture size map")
+                                .len()
+                        });
+                    ((*path).to_owned(), json!(size.to_string()))
+                })
+                .collect();
             body["expected_sizes_bytes"] = Value::Object(sizes);
         }
         body
@@ -2103,26 +2117,41 @@ impl Fixture {
         let directory = if self.child.is_some() {
             let (code, job) = status(self, id);
             if code == 200 {
-                // Current operator format still exposes submission_id. New jobs
-                // contain the canonical UUID; seeded legacy jobs use numeric paths.
-                let identity = job["details"]["submission_id"].as_str().unwrap();
-                mover_core::RecordingId::parse(identity).map_or_else(|_| id.to_owned(), |uuid| uuid.to_string())
-            } else { id.to_owned() }
+                // New UUID and legacy identities are explicit, separate fields.
+                job["details"]["recording_id"]
+                    .as_str()
+                    .map_or_else(|| id.to_owned(), str::to_owned)
+            } else {
+                id.to_owned()
+            }
         } else {
-            mover_store::Store::open_read_only(self.root.join("state/jobs.sqlite")).unwrap()
-                .get(id.parse().unwrap()).unwrap().map_or_else(|| id.to_owned(), |job|
-                    job.recording.submission().destination_component(job.job_id))
+            mover_store::Store::open_read_only(self.root.join("state/jobs.sqlite"))
+                .unwrap()
+                .get(id.parse().unwrap())
+                .unwrap()
+                .map_or_else(
+                    || id.to_owned(),
+                    |job| job.recording.submission().destination_component(job.job_id),
+                )
         };
         if directory != id {
-            self.destinations.borrow_mut().insert(id.to_owned(), directory.clone());
+            self.destinations
+                .borrow_mut()
+                .insert(id.to_owned(), directory.clone());
         }
         directory
     }
     fn destination(&self, id: &str, relative: &str) -> PathBuf {
-        self.root.join("destination").join(self.recording_directory(id)).join(relative)
+        self.root
+            .join("destination")
+            .join(self.recording_directory(id))
+            .join(relative)
     }
     fn set_size_check(&self, enabled: bool) {
-        assert!(self.child.is_none(), "startup policy changes require a stopped service");
+        assert!(
+            self.child.is_none(),
+            "startup policy changes require a stopped service"
+        );
         let path = self.root.join("config.json");
         let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         config["check_expected_sizes"] = json!(enabled);
@@ -2138,8 +2167,10 @@ impl Fixture {
         let reply = self.raw(&post_bytes(body));
         if reply.0 == 202 {
             assert_accepted(&reply.1, body["recording_id"].as_str().unwrap());
-            self.destinations.borrow_mut().insert(reply.1["job_id"].as_str().unwrap().to_owned(),
-                reply.1["recording_id"].as_str().unwrap().to_owned());
+            self.destinations.borrow_mut().insert(
+                reply.1["job_id"].as_str().unwrap().to_owned(),
+                reply.1["recording_id"].as_str().unwrap().to_owned(),
+            );
         } else {
             assert_producer_error(&reply.1);
         }
@@ -2208,12 +2239,12 @@ fn actual_executable_handoff_restart_replay_and_reused_paths() {
     );
     let mut conflict = body.clone();
     conflict["files"] = json!(["sub/data"]);
-    conflict.as_object_mut().unwrap().remove("expected_sizes_bytes");
+    conflict
+        .as_object_mut()
+        .unwrap()
+        .remove("expected_sizes_bytes");
     assert_eq!(f.post(&conflict).0, 409);
-    assert_eq!(
-        f.post(&f.input("next", json!(["sub/data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("next", json!(["sub/data"]))).0, 202);
     f.stop();
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
     assert_eq!(store.job_count().unwrap(), 2);
@@ -2282,7 +2313,7 @@ fn malformed_json_scope_and_http_framing_never_claim() {
 fn partial_claim_missing_retry_and_persisted_expiry() {
     let mut f = Fixture::new(300);
     f.write("first", b"retained");
-    let input = f.input("partial", json!(["first","missing"]));
+    let input = f.input("partial", json!(["first", "missing"]));
     let (status, pending) = f.post(&input);
     assert_eq!(status, 409);
     assert_eq!(pending["error"], "source_file_missing");
@@ -2452,7 +2483,7 @@ fn retention_api_reports_admission_headroom_and_committed_retained_sources() {
     assert_eq!(code, 200);
     assert_eq!(r["details"]["retained_jobs"], 0);
     assert_eq!(r["details"]["global_headroom"]["new_job_slots"], 64);
-    let body = f.input("accounting", json!(["data","late"]));
+    let body = f.input("accounting", json!(["data", "late"]));
     f.write("data", b"abc");
     assert_eq!(f.post(&body).0, 409);
     let (_, r) = retention(&f, Some("1"));
@@ -2506,8 +2537,7 @@ fn retention_api_charges_interrupted_attempts_and_does_not_claim_to_find_orphans
     let mut f = Fixture::new(300);
     f.write("data", b"abc");
     assert_eq!(
-        f.post(&f.input("attempt-accounting", json!(["data"])))
-            .0,
+        f.post(&f.input("attempt-accounting", json!(["data"]))).0,
         202
     );
     f.stop();
@@ -2551,7 +2581,7 @@ fn reset(f: &Fixture, body: &Value) -> (u16, Value) {
 fn missing_reset_lost_response_survives_restart_and_partial_claims_complete() {
     let mut f = Fixture::new(0);
     f.write("data", b"abc");
-    let submission = f.input("missing-reset", json!(["data","late"]));
+    let submission = f.input("missing-reset", json!(["data", "late"]));
     assert_eq!(f.post(&submission).0, 409);
     assert_eq!(status(&f, "1").1["details"]["files"][0]["phase"], "Claimed");
     let body = reset_body(0, "1", 300);
@@ -2761,10 +2791,7 @@ fn operator_resume_keeps_collision_safe_and_reconciles_same_verified_attempt() {
 fn operator_resume_lost_reply_survives_restart_and_invalid_requests_do_not_reset() {
     let mut f = Fixture::new(300);
     f.write("data", b"abc");
-    assert_eq!(
-        f.post(&f.input("resume-lost", json!(["data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("resume-lost", json!(["data"]))).0, 202);
     assert_eq!(resume(&f, "1", &resume_body(0)).0, 409);
     assert_eq!(resume(&f, "999", &resume_body(0)).0, 404);
     let mut wrong_key = String::from_utf8(resume_bytes("1", &resume_body(0).to_string())).unwrap();
@@ -2836,10 +2863,7 @@ fn operator_resume_rejects_unclaimed_and_committed_jobs() {
     );
     provision_destination(&f);
     f.write("data", b"abc");
-    assert_eq!(
-        f.post(&f.input("complete", json!(["data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("complete", json!(["data"]))).0, 202);
     wait_manifest(&f, "2");
     f.stop();
     f.start();
@@ -2855,7 +2879,7 @@ fn operator_resume_rejects_unclaimed_and_committed_jobs() {
 fn operator_status_observes_partial_claims_outage_and_committed_restart() {
     let mut f = Fixture::new(300);
     f.write("data", b"abc");
-    let body = f.input("status", json!(["data","empty"]));
+    let body = f.input("status", json!(["data", "empty"]));
     assert_eq!(f.post(&body).0, 409);
     let (code, pending) = status(&f, "1");
     assert_eq!(code, 200);
@@ -2926,10 +2950,7 @@ fn operator_status_rejects_invalid_routes_and_reports_review_without_reset() {
             .0,
         400
     );
-    assert_eq!(
-        f.post(&f.input("missing", json!(["absent"]))).0,
-        409
-    );
+    assert_eq!(f.post(&f.input("missing", json!(["absent"]))).0, 409);
     assert_eq!(status(&f, "1").1["details"]["condition"], "ReviewRequired");
     f.stop();
     f.start();
@@ -3009,7 +3030,12 @@ fn restart_discovers_claimed_delivery_and_keeps_original_destination() {
     assert_eq!(manifest["recording_id"], recording_id);
     assert!(manifest.get("submission_id").is_none());
     assert_eq!(manifest["files"][0]["size_bytes"], "9");
-    assert!(!f.root.join("replacement").join(f.recording_directory("1")).exists());
+    assert!(
+        !f.root
+            .join("replacement")
+            .join(f.recording_directory("1"))
+            .exists()
+    );
     f.stop();
     let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
         .arg("--transfer-one")
@@ -3240,10 +3266,7 @@ fn destination_declared_nfs_refuses_matching_marker_on_local_filesystem() {
     .unwrap();
     f.start();
     f.write("data", b"nfs expected");
-    assert_eq!(
-        f.post(&f.input("nfs-fallback", json!(["data"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("nfs-fallback", json!(["data"]))).0, 202);
     wait_delivery_failure(&f);
     assert!(!f.destination("1", "").exists());
     f.stop();
@@ -3299,8 +3322,7 @@ fn delivery_session_rechecks_destination_marker_before_payload() {
     let mut f = Fixture::new(300);
     f.write("data", b"retained");
     assert_eq!(
-        f.post(&f.input("destination-session", json!(["data"])))
-            .0,
+        f.post(&f.input("destination-session", json!(["data"]))).0,
         202
     );
     f.stop();
@@ -3370,7 +3392,7 @@ fn space_post_until(f: &Fixture, body: &Value, target: u16) -> Value {
 fn source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart() {
     let mut f = Fixture::new(300);
     f.write("a", b"old");
-    let partial = f.input("partial-space", json!(["a","b"]));
+    let partial = f.input("partial-space", json!(["a", "b"]));
     assert_eq!(f.post(&partial).1["error"], "source_file_missing");
     f.stop();
     configure_space(
@@ -3452,10 +3474,7 @@ fn source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart
     configure_space(&f, json!({"enabled":false,"min_available_bytes":u64::MAX}));
     f.start();
     f.write("off", b"off");
-    assert_eq!(
-        f.post(&f.input("off-space", json!(["off"]))).0,
-        202
-    );
+    assert_eq!(f.post(&f.input("off-space", json!(["off"]))).0, 202);
     assert_eq!(
         retention(&f, None).1["details"]["source_space_admission"]["state"],
         "Disabled"
@@ -3597,22 +3616,14 @@ fn source_space_cold_and_expired_samples_do_not_require_fast_recorder_retries() 
     );
     f.start();
     f.write("one", b"1");
-    assert_eq!(
-        f.post(&f.input("slow-retry-one", json!(["one"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("slow-retry-one", json!(["one"]))).0, 202);
     std::thread::sleep(Duration::from_millis(1100));
     assert_eq!(
         retention(&f, None).1["details"]["source_space_admission"]["state"],
         "Unknown"
     );
     f.write("two", b"2");
-    assert_eq!(
-        f.post(&f.input("slow-retry-two", json!(["two"])))
-            .0,
-        202
-    );
+    assert_eq!(f.post(&f.input("slow-retry-two", json!(["two"]))).0, 202);
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 2);
 }
 
@@ -4273,8 +4284,18 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
     let database = f.root.join("state/jobs.sqlite");
     let paths = [
         "source/.file-mover/1-0/data".to_owned(),
-        f.destination("1", "data").strip_prefix(&f.root).unwrap().to_str().unwrap().to_owned(),
-        f.destination("1", "COMMITTED.json").strip_prefix(&f.root).unwrap().to_str().unwrap().to_owned(),
+        f.destination("1", "data")
+            .strip_prefix(&f.root)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
+        f.destination("1", "COMMITTED.json")
+            .strip_prefix(&f.root)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
         "source/current/data".to_owned(),
     ];
     let root = f.root.clone();
@@ -4406,12 +4427,17 @@ fn offline_history_clear_forgets_committed_work_without_touching_or_readopting_f
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         let current = status(&f, "2").1;
-        if current["details"]["condition"] == "ReviewRequired" { break; }
+        if current["details"]["condition"] == "ReviewRequired" {
+            break;
+        }
         assert!(Instant::now() < deadline, "{current}");
         std::thread::sleep(Duration::from_millis(50));
     }
     assert_eq!(f.destination("2", "data"), f.destination("1", "data"));
-    assert_eq!(std::fs::read(f.root.join("source/.file-mover/2-0/data")).unwrap(), b"newly produced recording");
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/2-0/data")).unwrap(),
+        b"newly produced recording"
+    );
     assert_eq!(status(&f, "2").1["details"]["manifest_phase"], Value::Null);
     f.stop();
     for (p, old) in paths[..3].iter().zip(&before) {
@@ -4811,7 +4837,10 @@ fn direct_uuid_wire_refuses_old_wire_and_publishes_v2() {
     let refused = f.post(&old);
     assert_eq!(refused.0, 400);
     assert_eq!(refused.1["error"], "invalid_submission");
-    assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"new producer recording");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"new producer recording"
+    );
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 0);
     let body = f.input("direct-uuid-wire", json!(["data"]));
     let (code, accepted) = f.post(&body);
@@ -4822,23 +4851,35 @@ fn direct_uuid_wire_refuses_old_wire_and_publishes_v2() {
     assert_eq!(manifest["recording_id"], body["recording_id"]);
     assert_eq!(manifest["files"][0]["size_bytes"], "22");
     assert!(manifest.get("submission_id").is_none());
-    let request = mover_fs::recording_codec::decode_producer(&serde_json::to_vec(&body).unwrap()).unwrap();
+    let request =
+        mover_fs::recording_codec::decode_producer(&serde_json::to_vec(&body).unwrap()).unwrap();
     let bytes = std::fs::read(f.destination("1", "COMMITTED.json")).unwrap();
-    mover_fs::recording_codec::ManifestV2::decode(&bytes).unwrap().validate_request(&request).unwrap();
+    mover_fs::recording_codec::ManifestV2::decode(&bytes)
+        .unwrap()
+        .validate_request(&request)
+        .unwrap();
     assert!(!f.root.join("destination/1").exists());
     f.stop();
 }
 
-fn seed_claimed_legacy(f: &Fixture, legacy_id: &str) -> i64 {
+fn seed_legacy(f: &Fixture, legacy_id: &str, claim: bool) -> i64 {
     assert!(f.child.is_none());
     let database = f.root.join("state/jobs.sqlite");
     let instance = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
     instance.prepare_workers().unwrap();
-    let source = mover_fs::LocalClaimLock::acquire_bound(f.root.join("source").to_str().unwrap(), &binding()).unwrap();
+    let source = mover_fs::LocalClaimLock::acquire_bound(
+        f.root.join("source").to_str().unwrap(),
+        &binding(),
+    )
+    .unwrap();
     let store = mover_store::Store::open(&database).unwrap();
-    let submission = mover_core::Submission::new("recorder", legacy_id,
+    let submission = mover_core::Submission::new(
+        "recorder",
+        legacy_id,
         f.root.join("source/current").to_str().unwrap(),
-        vec![mover_core::FileSpec::new("data", None).unwrap()]).unwrap();
+        vec![mover_core::FileSpec::new("data", None).unwrap()],
+    )
+    .unwrap();
     let context = mover_store::AcceptanceContext {
         source_root_id: "local-source".into(),
         source_root_path: f.root.join("source").to_str().unwrap().into(),
@@ -4846,12 +4887,19 @@ fn seed_claimed_legacy(f: &Fixture, legacy_id: &str) -> i64 {
         destination_path: f.root.join("destination").to_str().unwrap().into(),
         destination_binding: Some(destination_binding().encode()),
         missing_retry_seconds: 300,
-        policy: mover_core::DeliveryPolicy { destination_id: "configured-local".into(),
-            group_by_generator: false, delete_source_after_commit: false },
+        policy: mover_core::DeliveryPolicy {
+            destination_id: "configured-local".into(),
+            group_by_generator: false,
+            delete_source_after_commit: false,
+        },
     };
     let job = store.accept(&submission, &context).unwrap();
-    mover_fs::claim(&store, job.job_id, 0).unwrap();
-    f.destinations.borrow_mut().insert(job.job_id.to_string(), job.job_id.to_string());
+    if claim {
+        mover_fs::claim(&store, job.job_id, 0).unwrap();
+    }
+    f.destinations
+        .borrow_mut()
+        .insert(job.job_id.to_string(), job.job_id.to_string());
     drop(store);
     drop(source);
     drop(instance);
@@ -4864,7 +4912,7 @@ fn seeded_uuid_looking_legacy_job_recovers_numeric_destination_and_v1_after_rest
     f.stop();
     f.write("data", b"original legacy payload");
     let legacy_id = "11111111-2222-3333-4444-555555555555";
-    assert_eq!(seed_claimed_legacy(&f, legacy_id), 1);
+    assert_eq!(seed_legacy(&f, legacy_id, true), 1);
     f.write("data", b"producer reused legacy source");
     provision_destination(&f);
     f.start();
@@ -4873,19 +4921,34 @@ fn seeded_uuid_looking_legacy_job_recovers_numeric_destination_and_v1_after_rest
     assert_eq!(manifest["submission_id"], legacy_id);
     assert_eq!(manifest["files"][0]["size_bytes"], 23);
     assert!(manifest.get("recording_id").is_none());
-    assert_eq!(std::fs::read(f.root.join("destination/1/data")).unwrap(), b"original legacy payload");
-    assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"producer reused legacy source");
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/data")).unwrap(),
+        b"original legacy payload"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reused legacy source"
+    );
     f.stop();
     let original_manifest = std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap();
     f.start();
     assert_eq!(status(&f, "1").1["state"], "Committed");
-    assert_eq!(std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap(), original_manifest);
+    assert_eq!(
+        std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap(),
+        original_manifest
+    );
     // A same-text UUID in the new global namespace is independent of the
     // legacy generator/submission key and allocates fresh numeric job ID 2.
     let body = f.input(legacy_id, json!(["data"]));
     assert_eq!(f.post(&body).0, 202);
     assert_eq!(wait_manifest(&f, "2")["version"], 2);
-    assert!(f.root.join("destination").join(legacy_id).join("data").exists());
+    assert!(
+        f.root
+            .join("destination")
+            .join(legacy_id)
+            .join("data")
+            .exists()
+    );
     f.stop();
 }
 
@@ -4903,7 +4966,9 @@ fn uuid_http_lost_reply_permutation_restart_and_header_case_preserve_first_mappi
     let until = Instant::now() + Duration::from_secs(10);
     loop {
         let (code, job) = status(&f, "1");
-        if code == 200 && job["source_paths_released"] == true { break; }
+        if code == 200 && job["source_paths_released"] == true {
+            break;
+        }
         assert!(Instant::now() < until, "{job}");
         std::thread::sleep(Duration::from_millis(20));
     }
@@ -4917,8 +4982,13 @@ fn uuid_http_lost_reply_permutation_restart_and_header_case_preserve_first_mappi
     replay["recording_id"] = json!(body["recording_id"].as_str().unwrap().to_ascii_uppercase());
     let text = serde_json::to_string(&replay).unwrap();
     let bytes = post_text(&text);
-    let header = format!("Host: localhost\r\nIdempotency-Key: {}\r\n", body["recording_id"].as_str().unwrap());
-    let raw = String::from_utf8(bytes).unwrap().replacen("Host: localhost\r\n", &header, 1);
+    let header = format!(
+        "Host: localhost\r\nIdempotency-Key: {}\r\n",
+        body["recording_id"].as_str().unwrap()
+    );
+    let raw = String::from_utf8(bytes)
+        .unwrap()
+        .replacen("Host: localhost\r\n", &header, 1);
     let (code, receipt) = f.raw(raw.as_bytes());
     assert_eq!(code, 202);
     assert_accepted(&receipt, body["recording_id"].as_str().unwrap());
@@ -4927,10 +4997,19 @@ fn uuid_http_lost_reply_permutation_restart_and_header_case_preserve_first_mappi
     assert_eq!(manifest["files"][0]["file_id"], "0");
     assert_eq!(manifest["files"][0]["path"], "sub/data");
     assert_eq!(manifest["files"][1]["path"], "empty");
-    assert_eq!(std::fs::read(f.destination("1", "sub/data")).unwrap(), b"first durable payload");
+    assert_eq!(
+        std::fs::read(f.destination("1", "sub/data")).unwrap(),
+        b"first durable payload"
+    );
     assert_eq!(std::fs::read(f.destination("1", "empty")).unwrap(), b"");
-    assert_eq!(std::fs::read(f.root.join("source/current/sub/data")).unwrap(), b"producer reused original");
-    assert_eq!(std::fs::read(f.root.join("source/current/empty")).unwrap(), b"reused empty original");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/sub/data")).unwrap(),
+        b"producer reused original"
+    );
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/empty")).unwrap(),
+        b"reused empty original"
+    );
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
     f.stop();
 }
@@ -4940,8 +5019,17 @@ fn current_size_policy_rechecks_private_partial_custody_but_preserves_whole_set_
     for supplied in [false, true] {
         let mut f = Fixture::new(300); // comparison is default-disabled
         f.write("data", b"abc");
-        let mut body = f.input(if supplied {"partial-with-map"} else {"partial-without-map"}, json!(["data", "late"]));
-        if supplied { body["expected_sizes_bytes"] = json!({"data":"999", "late":"0"}); }
+        let mut body = f.input(
+            if supplied {
+                "partial-with-map"
+            } else {
+                "partial-without-map"
+            },
+            json!(["data", "late"]),
+        );
+        if supplied {
+            body["expected_sizes_bytes"] = json!({"data":"999", "late":"0"});
+        }
         let (code, pending) = f.post(&body);
         assert_eq!(code, 409);
         assert_eq!(pending["error"], "source_file_missing");
@@ -4953,12 +5041,25 @@ fn current_size_policy_rechecks_private_partial_custody_but_preserves_whole_set_
         f.set_size_check(true);
         f.start();
         let (code, refusal) = f.post(&body);
-        assert_eq!(code, if supplied {409} else {400});
-        assert_eq!(refusal["error"], if supplied {"source_size_mismatch"} else {"invalid_submission"});
+        assert_eq!(code, if supplied { 409 } else { 400 });
+        assert_eq!(
+            refusal["error"],
+            if supplied {
+                "source_size_mismatch"
+            } else {
+                "invalid_submission"
+            }
+        );
         assert_eq!(refusal["retryable"], false);
         assert_eq!(status(&f, "1").1, before);
-        assert_eq!(std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(), b"abc");
-        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"reused original must stay");
+        assert_eq!(
+            std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+            b"abc"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"reused original must stay"
+        );
         // Adding/correcting a map changes immutable intent, even if it would
         // satisfy the current policy. It must not reset the existing job.
         let mut changed = body.clone();
@@ -4980,8 +5081,14 @@ fn current_size_policy_rechecks_private_partial_custody_but_preserves_whole_set_
         let manifest = wait_manifest(&f, "1");
         assert_eq!(manifest["files"][0]["size_bytes"], "3");
         assert_eq!(manifest["files"][1]["size_bytes"], "0");
-        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"reused original must stay");
-        assert_eq!(std::fs::read(f.root.join("source/current/late")).unwrap(), b"new late file");
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"reused original must stay"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/late")).unwrap(),
+            b"new late file"
+        );
         f.stop();
     }
 }
@@ -5001,7 +5108,10 @@ fn enabled_new_key_requires_complete_map_and_measures_exact_size() {
     assert_eq!(code, 409);
     assert_eq!(error["error"], "source_size_mismatch");
     assert_eq!(error["retryable"], false);
-    assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"abc");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"abc"
+    );
     assert_eq!(status(&f, "1").1["details"]["files"][0]["phase"], "Pending");
     let mut corrected = body.clone();
     corrected["expected_sizes_bytes"]["data"] = json!("3");
@@ -5028,33 +5138,67 @@ fn malformed_new_wire_and_uuid_header_cannot_replay_or_claim() {
         ("expected_sizes_bytes", json!({})),
         ("expected_sizes_bytes", json!({"data":3})),
         ("expected_sizes_bytes", json!({"data":"03"})),
-        ("expected_sizes_bytes", json!({"data":"18446744073709551616"})),
+        (
+            "expected_sizes_bytes",
+            json!({"data":"18446744073709551616"}),
+        ),
         ("expected_sizes_bytes", json!({"extra":"0"})),
     ] {
-        let mut body = valid.clone(); body[field] = value; bad.push(body);
+        let mut body = valid.clone();
+        body[field] = value;
+        bad.push(body);
     }
-    for body in bad { assert_eq!(f.post(&body).0, 400, "{body}"); }
-    let duplicate = format!("{{\"generator_id\":\"recorder\",\"recording_id\":{},\"source_directory\":{},\"files\":[\"data\"],\"expected_sizes_bytes\":{{\"data\":\"3\",\"\\u0064ata\":\"3\"}}}}",
-        valid["recording_id"], valid["source_directory"]);
+    for body in bad {
+        assert_eq!(f.post(&body).0, 400, "{body}");
+    }
+    let duplicate = format!(
+        "{{\"generator_id\":\"recorder\",\"recording_id\":{},\"source_directory\":{},\"files\":[\"data\"],\"expected_sizes_bytes\":{{\"data\":\"3\",\"\\u0064ata\":\"3\"}}}}",
+        valid["recording_id"], valid["source_directory"]
+    );
     let response = f.raw(&post_text(&duplicate));
     assert_eq!(response.0, 400);
     assert_eq!(response.1["error"], "invalid_json");
     let text = String::from_utf8(post_bytes(&valid)).unwrap();
-    for header in ["Idempotency-Key: not-a-uuid\r\n".to_owned(),
-        format!("Idempotency-Key: {}\r\n", fixture_uuid("different-id"))] {
-        let raw = text.replacen("Host: localhost\r\n", &format!("Host: localhost\r\n{header}"), 1);
+    for header in [
+        "Idempotency-Key: not-a-uuid\r\n".to_owned(),
+        format!("Idempotency-Key: {}\r\n", fixture_uuid("different-id")),
+    ] {
+        let raw = text.replacen(
+            "Host: localhost\r\n",
+            &format!("Host: localhost\r\n{header}"),
+            1,
+        );
         let response = f.raw(raw.as_bytes());
         assert_eq!(response.0, 400);
         assert_eq!(response.1["error"], "idempotency_key_conflict");
         assert_producer_error(&response.1);
     }
-    let header = format!("Idempotency-Key: {}\r\nIdempotency-Key: {}\r\n", valid["recording_id"].as_str().unwrap(), valid["recording_id"].as_str().unwrap());
-    assert_eq!(f.raw(text.replacen("Host: localhost\r\n", &format!("Host: localhost\r\n{header}"), 1).as_bytes()).0, 400);
+    let header = format!(
+        "Idempotency-Key: {}\r\nIdempotency-Key: {}\r\n",
+        valid["recording_id"].as_str().unwrap(),
+        valid["recording_id"].as_str().unwrap()
+    );
+    assert_eq!(
+        f.raw(
+            text.replacen(
+                "Host: localhost\r\n",
+                &format!("Host: localhost\r\n{header}"),
+                1
+            )
+            .as_bytes()
+        )
+        .0,
+        400
+    );
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 0);
-    assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"unchanged");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"unchanged"
+    );
     assert_eq!(f.post(&valid).0, 202);
     // Valid-JSON malformed same-ID retries are rejected before receipt replay.
-    let mut malformed = valid.clone(); malformed["unexpected"] = json!(true);
+    let mut malformed = valid.clone();
+    malformed["unexpected"] = json!(true);
     assert_eq!(f.post(&malformed).0, 400);
     let mut changed = valid.clone();
     changed["source_directory"] = json!(f.root.join("source/other"));
@@ -5076,13 +5220,90 @@ fn uuid_identity_conflicts_globally_after_configured_generator_changes() {
     config["generator_id"] = json!("other");
     std::fs::write(path, serde_json::to_vec(&config).unwrap()).unwrap();
     f.start();
-    let mut other = body.clone(); other["generator_id"] = json!("other");
+    let mut other = body.clone();
+    other["generator_id"] = json!("other");
     let (code, conflict) = f.post(&other);
     assert_eq!(code, 409);
     assert_eq!(conflict["error"], "recording_id_conflict");
     assert_eq!(conflict["retryable"], false);
     assert!(conflict.get("job_id").is_none() && conflict.get("details").is_none());
     assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 1);
-    assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"other owner source remains");
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"other owner source remains"
+    );
     f.stop();
+}
+
+#[test]
+fn partial_legacy_refuses_before_payload_bootstrap_and_preserves_original_custody() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    f.write("data", b"legacy producer still owns this");
+    assert_eq!(seed_legacy(&f, "partial-legacy", false), 1);
+    let source = f.root.join("source");
+    let saved = f.root.join("offline-source");
+    std::fs::rename(&source, &saved).unwrap();
+    let before = std::fs::read(f.root.join("state/jobs.sqlite")).unwrap();
+    assert!(refused_start(&f.root.join("config.json")).contains("legacy handoff is incomplete"));
+    assert_eq!(
+        std::fs::read(f.root.join("state/jobs.sqlite")).unwrap(),
+        before
+    );
+    assert!(!source.exists());
+    assert_eq!(
+        std::fs::read(saved.join("current/data")).unwrap(),
+        b"legacy producer still owns this"
+    );
+    let store = mover_store::Store::open_read_only(f.root.join("state/jobs.sqlite")).unwrap();
+    assert!(store.claim_intent(1, 0).unwrap().is_none());
+    assert_eq!(
+        store.get(1).unwrap().unwrap().recording.handoff(),
+        mover_core::Handoff::Pending
+    );
+    drop(store);
+}
+#[test]
+fn replay_and_policy_never_mask_lost_private_custody_or_reopen_producer_paths() {
+    for complete in [false, true] {
+        let mut f = Fixture::new(300);
+        f.write("data", b"original");
+        let mut body = f.input(
+            if complete {
+                "lost-private-complete"
+            } else {
+                "lost-private-partial"
+            },
+            if complete {
+                json!(["data"])
+            } else {
+                json!(["data", "late"])
+            },
+        );
+        if !complete {
+            body["expected_sizes_bytes"] = json!({"data":"999","late":"0"});
+        }
+        assert_eq!(f.post(&body).0, if complete { 202 } else { 409 });
+        f.stop();
+        let private = f.root.join("source/.file-mover/1-0/data");
+        let original = std::fs::read(&private).unwrap();
+        std::fs::rename(&private, f.root.join("retained-original")).unwrap();
+        std::fs::write(&private, b"foreign private object").unwrap();
+        f.write("data", b"producer reused original");
+        f.set_size_check(true);
+        f.start();
+        let r = f.post(&body);
+        assert_eq!(r.0, 409);
+        assert_eq!(r.1["error"], "recording_blocked");
+        assert_eq!(r.1["source_paths_released"], false);
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"producer reused original"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("retained-original")).unwrap(),
+            original
+        );
+        f.stop();
+    }
 }
