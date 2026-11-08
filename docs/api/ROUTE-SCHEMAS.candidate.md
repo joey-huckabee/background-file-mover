@@ -1,5 +1,10 @@
 # Route schemas and error registry candidate
 
+Current engineering authority: [increment-120 closeout](API-CONTRACT-CLOSEOUT.md).
+It supersedes conflicting proposal details below, especially per-job receipt
+identity/storage, bounds and replay scope. Four visible defaults remain pending;
+this is not full P01 freeze or runtime implementation.
+
 2026-11-03. Engineering proposal for P01, **not frozen or implemented**.
 Groups 1–52 remain the approval source. Completing a schema does not approve
 the compatibility choices or qualify the runtime. The fifteen operations in
@@ -13,7 +18,7 @@ Producer-only update: increment 116 fixes POST /api/v2/jobs and manifest v2 in
 canonical response UUIDs, positive usable delays and optional producer UUID
 header equivalence. The other fourteen route candidates and operator byte-exact
 command headers below remain separate. Increment 115 supplies the bounded actual
-migration/pair evidence; mixed UUID runtime/activation remain unimplemented.
+migration/pair evidence; UUID/mixed runtime is implemented/qualified in increments 118/119. Other routes/security remain future work.
 
 ## Read views and preserved operator wire
 

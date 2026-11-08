@@ -5,7 +5,9 @@ Current bounded closeout: [increment 116](RUST-INCREMENT-116.md) fixes the
 proposed lexical/framing/serialization details in packages 2/4 only. The approved
 policies remain groups 1-52; other packages and full P01 remain unfrozen. Explicit
 legacy migration is implemented/qualified in increment 115; earlier design-only
-migration wording below is historical. UUID/v2 runtime is not activated.
+migration wording below is historical. UUID/v2 runtime is implemented in 118/119.
+[Increment 120 closeout](api/API-CONTRACT-CLOSEOUT.md) now governs remaining
+engineering details; its four visible defaults still await approval.
 
 2026-11-01. Review draft for P01; updated 2026-11-03 through approved group 52.
 This is a proposal, not a frozen API, runtime change or qualification result.

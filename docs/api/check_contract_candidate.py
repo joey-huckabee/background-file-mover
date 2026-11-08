@@ -152,6 +152,20 @@ def main():
     schema = read("contract.candidate.schema.json")
     fixtures = read("contract.candidate.fixtures.json")["cases"]
     api = read("openapi.candidate.json")
+    pending = api["x-product-decisions-pending"]
+    require(set(pending) == {"completed_retry", "null_retry", "cancel_transport_replay", "empty_deletion"},
+            "closeout must retain all four explicit pending decisions")
+    require(pending == schema["x-product-decisions-pending"]
+            and all(value.startswith("pending:") for value in pending.values()),
+            "schema/OpenAPI must not silently approve the pending defaults")
+    require(api["x-status"] == schema["x-status"] == "candidate-not-frozen",
+            "full freeze is not approved")
+    require(api["x-retry-receipts"]["cross_job_selection_retained"] is False
+            and api["x-retry-receipts"]["exact_own_projection_required"] is True
+            and api["x-retry-receipts"]["automatic_expiry"] is False,
+            "receipt metadata conflicts with clear/replay boundaries")
+    require("rate_limited" in api["paths"]["/api/v2/admin/login"]["post"]["responses"]["429"]["x-error-codes"],
+            "bounded login error registry missing")
     Draft202012Validator.check_schema(schema)
     seen = set()
     for case in fixtures:

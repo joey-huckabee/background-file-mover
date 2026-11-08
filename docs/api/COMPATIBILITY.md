@@ -106,8 +106,9 @@ dispositions rather than invented support claims:
 Existing enrollment/binding and instance/lifetime checks remain mandatory. The
 unused prototype producer format may be replaced directly without an old-wire
 adapter; this does not permit abandoning persisted jobs. Increment-115 migration and exact predecessor refusal have actual executable
-evidence; mixed legacy/UUID runtime, new-wire continuation and arbitrary rollback
-remain unqualified and are not established by schema tests.
+evidence. Increments 118/119 implement and qualify the bounded mixed-state runtime
+and actual predecessor/current recovery/refusal pairs. Arbitrary/shipping rollback
+remains unqualified and is not established by schema tests.
 
 Group 50 remains authoritative after clear: files and manifests are left in
 place, but all service linkage is forgotten. Legacy recovery support must never

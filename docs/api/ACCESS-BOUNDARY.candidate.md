@@ -1,5 +1,10 @@
 # P01 session and route access boundary — candidate
 
+Current engineering authority: [increment-120 closeout](API-CONTRACT-CLOSEOUT.md).
+It supersedes conflicting proposal details below, especially per-job receipt
+identity/storage, bounds and replay scope. Four visible defaults remain pending;
+this is not full P01 freeze or runtime implementation.
+
 2026-11-03. Engineering completion of proposal package 1/F06. This document is
 a candidate contract, not a freeze, new product approval or working ingress.
 Groups 25-29/46-48 already settle the account/session/logout behavior; those

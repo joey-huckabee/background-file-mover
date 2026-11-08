@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Background File Mover contract candidate - NOT FROZEN",
-  "description": "Structural proposal only. No runtime or release qualification. x-* annotations are NOT assertions. See README.md for semantic validation, unresolved choices and usage limits.",
+  "description": "Structural candidate with engineering closeout in API-CONTRACT-CLOSEOUT.md; four visible defaults pending. No full freeze, general runtime or release qualification. x-* annotations are semantic requirements, not JSON Schema assertions.",
   "x-status": "candidate-not-frozen",
   "x-approved-groups-through": 52,
   "$defs": {
@@ -271,12 +271,14 @@
         "username": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 128
+          "maxLength": 128,
+          "x-max-utf8-bytes": 128
         },
         "password": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 4096
+          "maxLength": 4096,
+          "x-max-utf8-bytes": 4096
         }
       },
       "required": [
@@ -284,7 +286,7 @@
         "password"
       ],
       "x-semantic-rules": [
-        "Do not trim, normalize, echo or log credentials. Limits are candidate bounds, not password policy."
+        "Exact valid Unicode scalars; username1..128 and password1..4096 UTF-8 bytes. No trimming/normalization, echo or credential logging. These transport bounds are not password complexity policy."
       ]
     },
     "LoginSuccess": {
@@ -555,7 +557,7 @@
         "job_id",
         "review_epoch"
       ],
-      "x-status": "candidate read projection; exact integration into bounded job/detail reads pending",
+      "x-status": "fixed engineering projection for future authenticated admin views; runtime integration remains required",
       "x-semantic-rules": [
         "A matching epoch does not prove human inspection or authorize effects.",
         "Copy existing reviewed state at deliberate click; no polling-based refresh of a pending request."
@@ -614,7 +616,8 @@
         "Epoch array length equals ordered job_ids; repeated same IDs must have identical epoch values.",
         "Null is nonauthorizing and never replaced with current state.",
         "Reason is 1..512 UTF-8 bytes, nonblank, control-free; preserve exact text.",
-        "Existing instance identity and exact ordered selection digest must match; authentication and CSRF remain separate."
+        "Existing instance identity and exact ordered selection digest must match; authentication and CSRF remain separate.",
+        "Wire selection binds the complete ordered request transiently. Durable receipts retain only exact own-job command projection and opaque internal key; never other selected job identities. See API-CONTRACT-CLOSEOUT.md."
       ]
     },
     "RetryContextHeader": {
@@ -1273,7 +1276,7 @@
       "maxLength": 6144,
       "pattern": "^[A-Za-z0-9_.-]+$",
       "x-max-utf8-bytes": 6144,
-      "description": "Proposed opaque authenticated service-issued confirmation proof, not an operation/job identifier. Client must return it unchanged. See ROUTE-SCHEMAS.candidate.md; codec is not specified by JSON Schema."
+      "description": "Opaque authenticated confirmation proof, returned unchanged. Engineering limits/expiry/staleness and group50 forgetting are fixed in API-CONTRACT-CLOSEOUT.md; codec/runtime remain unimplemented."
     },
     "DeleteTarget": {
       "type": "object",
@@ -2181,5 +2184,12 @@
   "x-finalized-slices": {
     "producer-manifest": "PRODUCER-MANIFEST-CONTRACT.md",
     "scope": "Step 1 engineering baseline only; other candidate definitions/routes, runtime and full P01 freeze remain separate."
+  },
+  "x-engineering-authority": "API-CONTRACT-CLOSEOUT.md",
+  "x-product-decisions-pending": {
+    "completed_retry": "pending: recommend skipped",
+    "null_retry": "pending: deterministic nonauthorizing skipped",
+    "cancel_transport_replay": "pending: dispatch against current stored state",
+    "empty_deletion": "pending: 202 zero counts and completion_pending false"
   }
 }
