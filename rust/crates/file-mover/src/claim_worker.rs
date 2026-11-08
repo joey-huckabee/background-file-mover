@@ -125,8 +125,10 @@ fn request(
         LIMIT as u64,
     )
     .map_err(|_| ClaimError::OutcomeUncertain)?;
-    let reply: Receipt =
-        serde_json::from_slice(&bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
+    decode_receipt(&bytes)
+}
+fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
+    let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
     if reply.version != 1 {
         return Err(ClaimError::OutcomeUncertain);
     }
@@ -137,10 +139,11 @@ fn request(
         eprintln!("Claim worker: {detail}");
     }
     match (reply.claim, reply.error) {
-        (Some(c), None) => c.decode(),
+        (Some(c), None) => c.decode().map_err(|_| ClaimError::OutcomeUncertain),
         (None, Some(Failure::MissingSource)) => Err(ClaimError::MissingSource),
         (None, Some(Failure::ExpectedSizeMismatch)) => Err(ClaimError::ExpectedSizeMismatch),
-        _ => Err(ClaimError::Blocked("claim operation blocked")),
+        (None, Some(Failure::Blocked)) => Err(ClaimError::Blocked("claim operation blocked")),
+        _ => Err(ClaimError::OutcomeUncertain),
     }
 }
 pub(crate) fn claim(
@@ -387,4 +390,33 @@ pub(crate) fn validate_handoff(
     id: i64,
 ) -> Result<(), ClaimError> {
     validate_existing(store, guard, stop, id, true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unusable_receipts_are_pending_but_explicit_unsafe_receipts_block() {
+        for bytes in [
+            br#"{"version":1,"claim":null,"error":null,"diagnostic":null}"#.as_slice(),
+            br#"{"version":2,"claim":null,"error":"blocked","diagnostic":null}"#,
+            b"not-json",
+            br#"{"version":1,"claim":{},"error":null,"diagnostic":null}"#,
+        ] {
+            assert!(matches!(
+                decode_receipt(bytes),
+                Err(ClaimError::OutcomeUncertain)
+            ));
+        }
+        assert!(matches!(
+            decode_receipt(br#"{"version":1,"claim":null,"error":"blocked","diagnostic":null}"#),
+            Err(ClaimError::Blocked(_))
+        ));
+        assert!(matches!(
+            decode_receipt(
+                br#"{"version":1,"claim":null,"error":"missing_source","diagnostic":null}"#
+            ),
+            Err(ClaimError::MissingSource)
+        ));
+    }
 }
