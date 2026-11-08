@@ -3505,9 +3505,12 @@ fn source_space_low_refuses_without_job_and_preserves_partial_replay_and_restart
 fn enabled_source_space_native_sample_allows_nested_empty_delivery_without_double_charge() {
     let mut f = Fixture::new(300);
     f.stop();
+    // Positive native admission/accounting spans a five-second admission retry
+    // bound and ten-second delivery bound. Cache expiry has separate short-window
+    // tests; do not assume the default five-second cache survives delivery.
     configure_space(
         &f,
-        json!({"enabled":true,"min_available_bytes":1,"min_available_percent":1}),
+        json!({"enabled":true,"min_available_bytes":1,"min_available_percent":1,"max_sample_age_seconds":30}),
     );
     provision_destination(&f);
     f.start();
@@ -3528,6 +3531,20 @@ fn enabled_source_space_native_sample_allows_nested_empty_delivery_without_doubl
     }
     let (_, r) = retention(&f, None);
     assert_eq!(r["details"]["filesystem_inspected"], false);
+    assert_eq!(
+        r["details"]["source_space_admission"]["policy"]["max_sample_age_seconds"],
+        30
+    );
+    assert_eq!(
+        r["details"]["source_space_admission"]["state"],
+        "Sufficient"
+    );
+    assert!(
+        r["details"]["source_space_admission"]["sample_age_ms"]
+            .as_u64()
+            .unwrap()
+            <= 30_000
+    );
     assert!(
         r["details"]["source_space_admission"]["observed_available_bytes"]
             .as_str()
