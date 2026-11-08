@@ -44,6 +44,7 @@ impl ProtectedIngress {
         let overlaps = |a: &Path, b: &Path| a.starts_with(b) || b.starts_with(a);
         if overlaps(p, o)
             || overlaps(p, state)
+            || overlaps(o, state)
             || [&c.source_root, &c.destination_root]
                 .iter()
                 .any(|r| overlaps(p, Path::new(r)) || overlaps(o, Path::new(r)))

@@ -2405,6 +2405,44 @@ fn unsafe_startup_configuration_is_rejected() {
 }
 
 #[test]
+fn protected_operator_state_overlap_refuses_before_endpoints_or_state_creation() {
+    let f = Fixture::uninitialized(300);
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let producer = f.root.join("producer/producer.sock");
+    for name in ["jobs.sqlite-journal", "workers.next", "operator.sock"] {
+        let operator = f.root.join("state").join(name);
+        config["protected_ingress"] = json!({"producer_socket":producer,"operator_socket":operator,
+            "proxy_uid":2001,"proxy_gid":2001});
+        assert!(
+            serde_json::from_value::<file_mover::Config>(config.clone())
+                .unwrap()
+                .validate()
+                .is_err()
+        );
+        std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+        let output = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg(&path)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("ingress parents/custody scopes must be separate")
+        );
+        assert!(!producer.exists());
+        assert!(!operator.exists());
+        assert!(!f.root.join("state/instance.lock").exists());
+        assert!(!f.root.join("state/jobs.sqlite").exists());
+        assert!(
+            !f.root
+                .join("source/.file-mover/source-enrollment.json")
+                .exists()
+        );
+    }
+}
+
+#[test]
 fn lost_response_retry_finds_one_durable_job() {
     let mut f = Fixture::new(300);
     f.write("data", b"retained");
