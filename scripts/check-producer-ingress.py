@@ -33,11 +33,11 @@ PRINCIPAL = 'X-File-Mover-Generator'
 # All target clients are actual Unix sockets and real container UIDs, never a
 # simulated trusted header or a TCP-to-UDS adapter.
 CLIENT = r'''
-use strict; use warnings; use Socket; use MIME::Base64;
+use strict; use warnings; use Socket;
 $SIG{PIPE}='IGNORE'; alarm 12;
 socket(my $s,PF_UNIX,SOCK_STREAM,0) or die "socket: $!";
 connect($s,sockaddr_un($ARGV[0])) or die "connect: $!";
-my $r=decode_base64($ARGV[1]); my $sent=0;
+my $r=pack('H*',$ARGV[1]); my $sent=0;
 while($sent<length($r)) {
     my $n=syswrite($s,$r,length($r)-$sent,$sent);
     last unless defined($n) && $n>0; $sent+=$n;
@@ -48,13 +48,13 @@ while(1) {
     if(!defined($n)) { last if length($out); die "read: $!"; }
     last unless $n; $out.=$b; die 'oversized response' if length($out)>131072;
 }
-print encode_base64($out,'');
+print unpack('H*',$out);
 '''
 
 LOST_CLIENT = CLIENT.split("shutdown($s,1); my $out='';", 1)[0] + 'shutdown($s,1); close($s) or die $!;'
 
 SLOW_CLIENTS = r'''
-use strict; use warnings; use Socket; use MIME::Base64;
+use strict; use warnings; use Socket;
 $|=1; $SIG{PIPE}='IGNORE'; alarm 14;
 my @s; my $count=$ARGV[1] || 6;
 for(1..$count) {
@@ -70,7 +70,7 @@ for my $s (@s) {
         my $n=sysread($s,my $b,8192); die "slow read: $!" unless defined($n);
         last unless $n; $out.=$b; die 'oversized slow response' if length($out)>131072;
     }
-    print encode_base64($out,''),"\n";
+    print unpack('H*',$out),"\n";
 }
 '''
 
@@ -245,13 +245,13 @@ class Runner:
 
     def http(self, endpoint, raw, user=PROXY_USER):
         started = time.monotonic()
-        result = self.execute('/usr/bin/perl', '-e', CLIENT, endpoint, base64.b64encode(raw).decode(),
+        result = self.execute('/usr/bin/perl', '-e', CLIENT, endpoint, raw.hex(),
                               user=user, ok=False, timeout=15)
         record = dict(user=user, request_base64=base64.b64encode(raw).decode(), endpoint=endpoint,
                       exit_code=result.returncode, stderr=result.stderr.decode(errors='replace'),
                       seconds=round(time.monotonic()-started, 4))
         if result.returncode == 0:
-            reply = base64.b64decode(result.stdout, validate=True)
+            reply = bytes.fromhex(result.stdout.decode('ascii'))
             record['raw_base64'] = base64.b64encode(reply).decode()
             if reply:
                 record.update(parse_reply(reply))
@@ -384,7 +384,7 @@ def run_profile(runner, profile, config, artifact_sha):
     # durable custody before the next POST, then recover its original receipt.
     lost_raw = wire(body=request, headers=principal)
     lost = runner.execute('/usr/bin/perl', '-e', LOST_CLIENT, producer,
-                          base64.b64encode(lost_raw).decode(), user=PROXY_USER)
+                          lost_raw.hex(), user=PROXY_USER)
     report['lost_response'] = dict(exit_code=lost.returncode, read_response=False,
                                   request_base64=base64.b64encode(lost_raw).decode())
     def lost_handoff():
@@ -480,11 +480,11 @@ def run_profile(runner, profile, config, artifact_sha):
     require(status['seconds'] < 3 and json.loads(status['stdout'])['phase'] == 'Running', 'independent control blocked by producers')
     stdout, stderr = slow.communicate(timeout=12)
     require(slow.returncode == 0, 'slow client failed: '+stderr.decode(errors='replace'))
-    rows = [parse_reply(base64.b64decode(line, validate=True)) for line in stdout.splitlines()]
+    rows = [parse_reply(bytes.fromhex(line.decode('ascii'))) for line in stdout.splitlines()]
     require(len(rows) == 6 and all(row['code'] == 408 and row['body']['error'] == 'request_timeout' for row in rows), 'six read slots did not expire under the existing deadline')
     op_stdout, op_stderr = slow_operator.communicate(timeout=8)
     require(slow_operator.returncode == 0, 'slow operator client failed: '+op_stderr.decode(errors='replace'))
-    op_rows = [parse_reply(base64.b64decode(line, validate=True)) for line in op_stdout.splitlines()]
+    op_rows = [parse_reply(bytes.fromhex(line.decode('ascii'))) for line in op_stdout.splitlines()]
     require(len(op_rows) == 1 and op_rows[0]['code'] == 408, 'reserved slow operator slot did not time out')
     require(time.monotonic()-began < 9, 'slow connections outlived bounded read window')
     report['saturation'] = dict(excess=excess, health=health, control=status, slow=rows, slow_operator=op_rows, seconds=round(time.monotonic()-began, 4))
@@ -610,7 +610,7 @@ def main():
         require(network == 'none', 'fixture has external networking')
         report['network'] = network
         require(runner.execute('getconf', 'GNU_LIBC_VERSION').stdout.strip() == b'glibc 2.22', 'not pinned glibc 2.22 runtime')
-        runner.execute('/usr/bin/perl', '-MSocket', '-MMIME::Base64', '-e', 'print "ready"')
+        runner.execute('/usr/bin/perl', '-MSocket', '-e', 'print "ready"')
         # Engine-side tar copy preserves numeric ownership with zero target capabilities.
         runner.command(['podman', 'cp', '--archive=true', '-', runner.container+':/tmp'], data=archive)
         report['identities'] = {}

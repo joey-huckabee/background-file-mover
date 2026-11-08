@@ -117,13 +117,13 @@ class Portable(unittest.TestCase):
             worker = threading.Thread(target=serve, daemon=True)
             worker.start()
             raw = CHECK.wire(body={'large': 'x'*65536})
-            result = subprocess.run(['perl', '-e', CHECK.CLIENT, endpoint, base64.b64encode(raw).decode()], capture_output=True, timeout=5)
+            result = subprocess.run(['perl', '-e', CHECK.CLIENT, endpoint, raw.hex()], capture_output=True, timeout=5)
             worker.join(timeout=2)
             server.close()
             self.assertFalse(worker.is_alive())
             self.assertFalse(errors)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(CHECK.parse_reply(base64.b64decode(result.stdout))['code'], 429)
+            self.assertEqual(CHECK.parse_reply(bytes.fromhex(result.stdout.decode('ascii')))['code'], 429)
 
     def test_gate_rejects_wrong_mode_source_and_artifact_hashes(self):
         with tempfile.TemporaryDirectory() as temporary:
