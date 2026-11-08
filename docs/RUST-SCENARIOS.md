@@ -6,6 +6,15 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 117 pure codec implementation
+
+SC-139-142/164/190-194 gain inactive pure validation/identity/v2 codec helpers and
+reused-fixture/boundary tests; see [increment 117](RUST-INCREMENT-117.md) for actual
+review/gate status. These checks do not implement HTTP UUID admission, size-policy
+execution, consumer acceptance or v2 publication/recovery. Existing kind-1 state
+still refuses before effects; legacy producer/v1 behavior remains active. No new
+SC/API IDs or physical/NFS qualification claim.
+
 ## Increment 116 producer/manifest engineering baseline
 
 SC-139-142/164/190-194 keep approved behavior and gain a fixed codec contract in

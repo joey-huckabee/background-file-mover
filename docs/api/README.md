@@ -46,6 +46,12 @@ profiles. Normal startup still refuses 11; use the explicit
 apply-disabled statements above are historical checkpoints, not current status.
 This does not authorize operational conversion or qualify arbitrary rollback.
 
+Step 2 is separately authorized in [increment 117](../RUST-INCREMENT-117.md):
+pure Rust new-producer/v2 codecs with existing dependencies and reused fixtures.
+Check its actual gate status. HTTP/Store/worker activation remains disabled;
+this is not step 3, consumer acceptance or full P01 freeze. Rust test fixture
+copies/subsets are checked against the existing documents by the reference checker.
+
 ## Artifacts
 
 P01 resumed on 2026-11-03. The [access-boundary candidate](ACCESS-BOUNDARY.candidate.md)

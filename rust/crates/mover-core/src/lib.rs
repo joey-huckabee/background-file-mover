@@ -5,6 +5,8 @@
 
 use std::collections::BTreeSet;
 
+mod recording;
+pub use recording::{ProducerRequest, RecordingId, RequestValidationError, parse_decimal_u64};
 mod space;
 pub use space::{SpaceDecision, SpaceStatistics};
 mod retry;
