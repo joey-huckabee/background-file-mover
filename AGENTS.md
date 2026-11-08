@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 runtime integration authorization: the user says "ok, go ahead
+with step 3" after codecs merged in PR 5. Implement/qualify global UUID replay,
+current startup expected-size policy, durable path/index preservation, UUID
+allocation, worker scope and manifest-v2 publication/recovery with legacy-v1
+preservation and safe clear. Partial legacy handoff must continue safely or
+refuse before payload effects; no legacy-wire adapter. No operational database
+conversion, deployment, remote ingress/auth activation, production NFS or deletion.
+Use reviewed short-lived branches and both required SLES gate modes.
+
 2026-11-07 pure codec implementation authorization: the user says "ok, go ahead
 with step 2" after increment 116. Implement and qualify pure UUID/decimal/path
 validation, immutable request identity framing/hash, and v2 encode/decode helpers

@@ -394,6 +394,7 @@ pub(crate) fn deliver(
                 } else {
                     Transfer {
                         job_id: id,
+                        recording_directory: job.recording.submission().destination_component(id),
                         file_index: index,
                         attempt: 1,
                         destination_root: job.context.destination_path.clone(),
@@ -425,6 +426,7 @@ pub(crate) fn deliver(
                     || next.file_index != index
                     || next.attempt != 1
                     || next.destination_root != template.destination_root
+                    || next.recording_directory != template.recording_directory
                     || next.relative_name != template.relative_name
                     || next.phase != TransferPhase::Intent
                     || next.sha256.is_some()

@@ -149,12 +149,22 @@ pub(crate) fn claim(
     stop: &AtomicBool,
     job_id: i64,
     index: usize,
+    check_expected_sizes: bool,
 ) -> Result<Accepted, ClaimError> {
     let job = store
         .get(job_id)?
         .ok_or(ClaimError::Blocked("unknown job"))?;
     if !guard.matches_path(&job.context.source_root_path) {
         return Err(ClaimError::Blocked("source scope changed"));
+    }
+    let check_sizes = job.recording.submission().producer().is_none() || check_expected_sizes;
+    if check_sizes && let Some((intent, _)) = store.claim_intent(job_id, index)? {
+        if job.recording.submission().files()[index]
+            .expected_size()
+            .is_some_and(|n| n != intent.source.size)
+        {
+            return Err(ClaimError::ExpectedSizeMismatch);
+        }
     }
     let intent = match store.claim_intent(job_id, index)? {
         Some((_, true)) => return Ok(job), // Never reopen a producer's reused path.
@@ -182,7 +192,11 @@ pub(crate) fn claim(
                     file_index: index,
                     root_path: job.context.source_root_path.clone(),
                     source_name: name.clone(),
-                    expected_size: file.expected_size(),
+                    expected_size: if check_sizes {
+                        file.expected_size()
+                    } else {
+                        None
+                    },
                 },
                 guard,
                 stop,
@@ -191,9 +205,10 @@ pub(crate) fn claim(
                 || observed.file_index != index
                 || observed.root_path != job.context.source_root_path
                 || observed.source_name != name
-                || file
-                    .expected_size()
-                    .is_some_and(|n| n != observed.source.size)
+                || (check_sizes
+                    && file
+                        .expected_size()
+                        .is_some_and(|n| n != observed.source.size))
             {
                 return Err(ClaimError::Blocked("observation receipt mismatch"));
             }

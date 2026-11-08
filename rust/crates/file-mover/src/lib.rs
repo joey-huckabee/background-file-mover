@@ -8,7 +8,7 @@ pub mod enrollment;
 mod http;
 pub mod payload;
 pub mod source_space;
-use mover_core::{DeliveryPolicy, FileSpec, Handoff, ProtocolError, Submission};
+use mover_core::{DeliveryPolicy, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -34,6 +34,8 @@ use tokio::{
 pub struct Config {
     pub bind: SocketAddr,
     pub generator_id: String,
+    #[serde(default)]
+    pub check_expected_sizes: bool,
     pub source_root: String,
     pub source_binding: mover_fs::SourceBinding,
     pub destination_root: String,
@@ -114,24 +116,6 @@ impl Config {
         Ok(())
     }
 }
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Input {
-    generator_id: String,
-    submission_id: String,
-    source_path: String,
-    files: Vec<InputFile>,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct InputFile {
-    name: String,
-    #[serde(default, deserialize_with = "optional_size")]
-    size_bytes: Option<u64>,
-}
-fn optional_size<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u64>, D::Error> {
-    u64::deserialize(d).map(Some)
-}
 #[derive(Debug, Serialize)]
 pub struct Response {
     #[serde(skip)]
@@ -166,37 +150,30 @@ fn now() -> i64 {
         .min(i64::MAX as u64) as i64
 }
 fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Response> {
-    let input: Input =
-        serde_json::from_slice(body).map_err(|_| error(400, "invalid_json", false, None))?;
-    if input.generator_id != c.generator_id {
+    use mover_fs::recording_codec::{CodecError, decode_producer};
+    let input = decode_producer(body).map_err(|e| {
+        error(
+            if e == CodecError::TooLarge { 413 } else { 400 },
+            match e {
+                CodecError::InvalidJson => "invalid_json",
+                CodecError::InvalidFilePaths => "invalid_file_paths",
+                CodecError::TooLarge => "request_too_large",
+                _ => "invalid_submission",
+            },
+            false,
+            None,
+        )
+    })?;
+    if input.generator_id() != c.generator_id {
         return Err(error(403, "unknown_generator", false, None));
     }
-    if input.submission_id.len() > 128
-        || input.generator_id.len() > 128
-        || input.files.len() > 256
-        || !absolute(&input.source_path)
-    {
-        return Err(error(400, "invalid_submission", false, None));
-    }
-    let relative = Path::new(&input.source_path)
+    let relative = Path::new(input.source_directory())
         .strip_prefix(&c.source_root)
         .map_err(|_| error(403, "source_outside_scope", false, None))?
         .to_str()
         .ok_or_else(|| error(400, "invalid_submission", false, None))?
         .to_owned();
-    let files = input
-        .files
-        .into_iter()
-        .map(|f| FileSpec::new(f.name, f.size_bytes))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| error(400, "invalid_file_paths", false, None))?;
-    let submission = Submission::new(
-        input.generator_id,
-        input.submission_id,
-        input.source_path,
-        files,
-    )
-    .map_err(|_| error(400, "invalid_submission", false, None))?;
+    let submission = Submission::from_producer(input);
     Ok((
         submission,
         AcceptanceContext {
@@ -372,6 +349,7 @@ impl Worker {
             })?;
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
         let claim_stop = stop.clone();
+        let check_expected_sizes = c.check_expected_sizes;
         let thread = match std::thread::Builder::new()
             .name("mover-local-claim".into())
             .spawn(move || {
@@ -387,6 +365,7 @@ impl Worker {
                         &submission,
                         &context,
                         &admission,
+                        check_expected_sizes,
                     );
                     let _ = reply.send(result); // Lost response never rolls back a claim.
                 }
@@ -437,6 +416,7 @@ fn process(
     s: &Submission,
     c: &AcceptanceContext,
     admission: &source_space::Handle,
+    check_expected_sizes: bool,
 ) -> Response {
     if !guard.matches_path(&c.source_root_path) {
         return error(409, "recording_blocked", false, None);
@@ -446,10 +426,15 @@ fn process(
     }
     let gate = match store.replay(s) {
         Ok(true) => mover_store::NewJobAdmission::Unrestricted,
-        Ok(false) => admission.admission(),
+        Ok(false) => {
+            if check_expected_sizes && s.producer().is_some_and(|r| !r.expected_sizes_supplied()) {
+                return error(400, "invalid_submission", false, None);
+            }
+            admission.admission()
+        }
         Err(StoreError::Protocol(
             ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
-        )) => return error(409, "submission_conflict", false, None),
+        )) => return error(409, "recording_id_conflict", false, None),
         Err(StoreError::SourceRootChanged | StoreError::CorruptState) => {
             return error(409, "recording_blocked", false, None);
         }
@@ -459,7 +444,7 @@ fn process(
         Ok(j) => j,
         Err(StoreError::Protocol(
             ProtocolError::ConflictingReplay | ProtocolError::DifferentSubmission,
-        )) => return error(409, "submission_conflict", false, None),
+        )) => return error(409, "recording_id_conflict", false, None),
         Err(StoreError::SourceSpaceLow) => return error(503, "source_space_low", true, None),
         Err(StoreError::SourceSpaceUnavailable) => {
             return error(503, "source_space_unavailable", true, None);
@@ -480,12 +465,21 @@ fn process(
             Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
             Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
         }
-        for i in 0..s.files().len() {
-            match claim_worker::claim(store, guard, stop, job.job_id, i) {
+        if check_expected_sizes
+            && job
+                .recording
+                .submission()
+                .producer()
+                .is_some_and(|r| !r.expected_sizes_supplied())
+        {
+            return error(400, "invalid_submission", false, Some(job.job_id));
+        }
+        for i in 0..job.recording.submission().files().len() {
+            match claim_worker::claim(store, guard, stop, job.job_id, i, check_expected_sizes) {
                 Ok(updated) => job = updated,
                 Err(mover_fs::ClaimError::MissingSource) => {
                     return match store.note_missing(job.job_id, i, now()) {
-                        Ok(false) => error(503, "handoff_pending", true, Some(job.job_id)),
+                        Ok(false) => error(409, "source_file_missing", true, Some(job.job_id)),
                         Ok(true) => error(409, "recording_blocked", false, Some(job.job_id)),
                         Err(_) => error(503, "storage_unavailable", true, Some(job.job_id)),
                     };
@@ -678,7 +672,18 @@ async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
     loop {
         match http::frame(&bytes) {
             http::Frame::Complete(r) => return Ok(r),
-            http::Frame::Reject(s) => return Err(error(s, "invalid_http", false, None)),
+            http::Frame::Reject(s) => {
+                return Err(error(
+                    s,
+                    match s {
+                        413 => "request_too_large",
+                        431 => "request_headers_too_large",
+                        _ => "invalid_http",
+                    },
+                    false,
+                    None,
+                ));
+            }
             http::Frame::NeedMore => (),
         }
         let n = stream
@@ -746,10 +751,13 @@ async fn connection(
     observer: mpsc::SyncSender<OperatorWork>,
     admission: source_space::Handle,
 ) {
+    let mut producer = true;
+    let mut recording_id = None;
     let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
         Err(_) => error(408, "request_timeout", true, None),
         Ok(Err(e)) => e,
         Ok(Ok(r)) => {
+            producer = r.head.target == b"/api/v2/jobs";
             if r.head.headers.get("host").is_none_or(|h| h.is_empty())
                 || r.head.headers.contains_key("expect")
                 || r.head.headers.contains_key("authorization")
@@ -868,8 +876,18 @@ async fn connection(
                 match decode(&r.body, &c) {
                     Err(e) => e,
                     Ok((submission, context)) => {
+                        recording_id = submission.producer().map(|r| r.recording_id().to_string());
                         if r.head.headers.get("idempotency-key").is_some_and(|key| {
-                            key.as_slice() != submission.submission_id().as_bytes()
+                            std::str::from_utf8(key).ok().is_none_or(|key| {
+                                mover_fs::recording_codec::validate_idempotency_key(
+                                    key,
+                                    submission
+                                        .producer()
+                                        .expect("producer request")
+                                        .recording_id(),
+                                )
+                                .is_err()
+                            })
                         }) {
                             error(400, "idempotency_key_conflict", false, None)
                         } else {
@@ -880,7 +898,12 @@ async fn connection(
             }
         }
     };
-    let body = serde_json::to_vec(&response).expect("fixed response serialization");
+    let body = if producer {
+        let value = if response.status == 202 {
+            serde_json::json!({"job_id":response.job_id,"recording_id":recording_id,"accepted":true,"source_paths_released":true})
+        } else {serde_json::json!({"recording_id":recording_id,"error":response.error.unwrap_or("internal_error"),"retryable":response.retryable,"retry_after_seconds":null,"source_paths_released":false})};
+        serde_json::to_vec(&value)
+    } else {serde_json::to_vec(&response)}.expect("fixed response serialization");
     let head = format!(
         "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         response.status,
@@ -903,6 +926,17 @@ pub fn check_state_compatibility(
     instance.validate_database(&c.state_database)?;
     instance.prepare_workers()?;
     Store::check_compatibility(&c.state_database, initialize)?;
+    if !initialize {
+        let snapshot = mover_store::StateInspection::open(&c.state_database)?;
+        snapshot.visit_jobs(|job, _, _| {
+            if job.recording.submission().producer().is_none()
+                && job.recording.handoff() != Handoff::Ready202
+            {
+                return Err(StoreError::UnsupportedIdentity);
+            }
+            Ok(())
+        })?;
+    }
     instance.validate_database(&c.state_database)?;
     Ok(())
 }

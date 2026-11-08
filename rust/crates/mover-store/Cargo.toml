@@ -9,5 +9,7 @@ license.workspace = true
 mover-core = { path = "../mover-core" }
 rusqlite = { version = "=0.40.1", default-features = false, features = ["bundled"] }
 
+sha2 = { version = "=0.10.9", default-features = false, features = ["std", "force-soft"] }
+
 [lints]
 workspace = true

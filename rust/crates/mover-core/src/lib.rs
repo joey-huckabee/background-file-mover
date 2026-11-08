@@ -6,7 +6,9 @@
 use std::collections::BTreeSet;
 
 mod recording;
-pub use recording::{ProducerRequest, RecordingId, RequestValidationError, parse_decimal_u64};
+pub use recording::{
+    ProducerRequest, RecordingId, RequestValidationError, identity_frame, parse_decimal_u64,
+};
 mod space;
 pub use space::{SpaceDecision, SpaceStatistics};
 mod retry;
@@ -79,6 +81,7 @@ pub struct Submission {
     submission_id: String,
     source_directory: String,
     files: Vec<FileSpec>,
+    producer: Option<ProducerRequest>,
 }
 
 impl Submission {
@@ -116,9 +119,28 @@ impl Submission {
             submission_id,
             source_directory,
             files,
+            producer: None,
         })
     }
 
+    /// New namespace; legacy constructor never infers UUID identity from text.
+    pub fn from_producer(request: ProducerRequest) -> Self {
+        Self {
+            generator_id: request.generator_id().into(),
+            submission_id: request.recording_id().to_string(),
+            source_directory: request.source_directory().into(),
+            files: request.files().to_vec(),
+            producer: Some(request),
+        }
+    }
+    pub fn producer(&self) -> Option<&ProducerRequest> {
+        self.producer.as_ref()
+    }
+    pub fn destination_component(&self, job_id: i64) -> String {
+        self.producer
+            .as_ref()
+            .map_or_else(|| job_id.to_string(), |r| r.recording_id().to_string())
+    }
     pub fn files(&self) -> &[FileSpec] {
         &self.files
     }
@@ -211,9 +233,10 @@ impl Recording {
             .files
             .get_mut(index)
             .ok_or(ProtocolError::UnknownFile)?;
-        if spec
-            .expected_size
-            .is_some_and(|expected| expected != actual_size)
+        if self.submission.producer.is_none()
+            && spec
+                .expected_size
+                .is_some_and(|expected| expected != actual_size)
         {
             return Err(ProtocolError::ExpectedSizeMismatch);
         }
@@ -245,7 +268,11 @@ impl Recording {
         {
             return Err(ProtocolError::DifferentSubmission);
         }
-        if &self.submission != candidate {
+        if match (self.submission.producer(), candidate.producer()) {
+            (Some(a), Some(b)) => !a.same_assertions(b),
+            (None, None) => &self.submission != candidate,
+            _ => true,
+        } {
             return Err(ProtocolError::ConflictingReplay);
         }
         Ok(self.handoff())
@@ -342,4 +369,11 @@ impl Recording {
         state.phase = next;
         Ok(())
     }
+}
+
+/// Private worker path component, never an arbitrary relative path.
+pub fn valid_recording_directory(job_id: i64, value: &str) -> bool {
+    job_id > 0
+        && (value == job_id.to_string()
+            || RecordingId::parse(value).is_ok_and(|id| id.to_string() == value))
 }

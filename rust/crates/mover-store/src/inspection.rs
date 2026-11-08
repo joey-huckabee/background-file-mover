@@ -102,7 +102,12 @@ impl StateInspection {
         let mut rows = s.query([])?;
         while let Some(row) = rows.next()? {
             let id = row.get(0)?;
-            let job = load_legacy(&self.connection, id)?.ok_or(StoreError::CorruptState)?;
+            let job = if self.summary.schema_version == 11 {
+                load_legacy(&self.connection, id)?
+            } else {
+                load(&self.connection, id)?
+            }
+            .ok_or(StoreError::CorruptState)?;
             let manifest = load_manifest(&self.connection, id)?;
             let transfers = (0..job.recording.submission().files().len())
                 .map(|i| load_transfer(&self.connection, id, i))

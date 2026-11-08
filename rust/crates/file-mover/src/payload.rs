@@ -28,6 +28,8 @@ struct ManifestInput {
 pub(crate) struct Assignment {
     version: u32,
     job_id: i64,
+    #[serde(default)]
+    recording_directory: String,
     file_index: usize,
     attempt: i64,
     phase: i64,
@@ -48,8 +50,9 @@ impl Assignment {
     }
     pub(crate) fn new(t: &Transfer, c: &ClaimIntent) -> Self {
         Self {
-            version: 1,
+            version: 2,
             job_id: t.job_id,
+            recording_directory: t.recording_directory.clone(),
             file_index: t.file_index,
             attempt: t.attempt,
             phase: t.phase as i64,
@@ -65,8 +68,12 @@ impl Assignment {
             manifest: None,
         }
     }
-    pub(crate) fn decode(self) -> Result<(Transfer, ClaimIntent, Option<ManifestRecord>)> {
-        if self.version != 1
+    pub(crate) fn decode(mut self) -> Result<(Transfer, ClaimIntent, Option<ManifestRecord>)> {
+        if self.version == 1 && self.recording_directory.is_empty() {
+            self.recording_directory = self.job_id.to_string();
+        }
+        if ![1, 2].contains(&self.version)
+            || !mover_core::valid_recording_directory(self.job_id, &self.recording_directory)
             || self.job_id <= 0
             || self.file_index >= 256
             || !(1..=100).contains(&self.attempt)
@@ -117,6 +124,7 @@ impl Assignment {
         Ok((
             Transfer {
                 job_id: self.job_id,
+                recording_directory: self.recording_directory,
                 file_index: self.file_index,
                 attempt: self.attempt,
                 destination_root: self.destination_root,

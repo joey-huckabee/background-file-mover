@@ -297,3 +297,34 @@ mod tests {
         );
     }
 }
+
+pub fn identity_frame(request: &ProducerRequest) -> Vec<u8> {
+    fn string(bytes: &mut Vec<u8>, text: &str) {
+        // Constructor bounds each string to at most 4095 UTF-8 bytes.
+        bytes.extend_from_slice(&(text.len() as u32).to_be_bytes());
+        bytes.extend_from_slice(text.as_bytes());
+    }
+    let mut bytes = b"BFM-REQUEST-IDENTITY\0v1\0".to_vec();
+    string(&mut bytes, request.generator_id());
+    string(&mut bytes, &request.recording_id().to_string());
+    string(&mut bytes, request.source_directory());
+    let mut files: Vec<_> = request.files().iter().collect();
+    files.sort_by(|a, b| {
+        a.relative_path()
+            .as_bytes()
+            .cmp(b.relative_path().as_bytes())
+    });
+    bytes.extend_from_slice(&(files.len() as u32).to_be_bytes());
+    for f in &files {
+        string(&mut bytes, f.relative_path());
+    }
+    bytes.push(u8::from(request.expected_sizes_supplied()));
+    if request.expected_sizes_supplied() {
+        for f in &files {
+            if let Some(n) = f.expected_size() {
+                bytes.extend_from_slice(&n.to_be_bytes());
+            }
+        }
+    }
+    bytes
+}

@@ -44,7 +44,12 @@ pub(super) fn directories(
 ) -> TransferResult<(OwnedFd, OwnedFd, OwnedFd, OwnedFd, String)> {
     let root = root(&t.destination_root)?;
     same_directory(&owned_directory(&root, false)?, &t.root)?;
-    let area = fs::openat(&root, t.job_id.to_string(), DIRECTORY, Mode::empty())?;
+    let area = fs::openat(
+        &root,
+        t.recording_directory.as_str(),
+        DIRECTORY,
+        Mode::empty(),
+    )?;
     same_directory(&owned_directory(&area, true)?, &t.area)?;
     let mut staging = fs::openat(&area, ".staging", DIRECTORY, Mode::empty())?;
     if t.file_index > 0 {
@@ -92,6 +97,7 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
     } else {
         Transfer {
             job_id: id,
+            recording_directory: job.recording.submission().destination_component(id),
             file_index: index,
             attempt: 1,
             destination_root: job.context.destination_path.clone(),
@@ -130,6 +136,9 @@ pub fn prepare_transfer_effect(
     if id != claim.job_id || index != claim.file_index || id <= 0 || index >= 256 {
         return Err("invalid staging assignment".into());
     }
+    if !mover_core::valid_recording_directory(id, &template.recording_directory) {
+        return Err("invalid recording directory".into());
+    }
     mover_core::FileSpec::new(&template.relative_name, None).map_err(|_| "invalid staging name")?;
     claimed_intent(claim)?;
     let root = root(&template.destination_root)?;
@@ -137,10 +146,15 @@ pub fn prepare_transfer_effect(
     let first = (index > 0).then_some(template);
     if first.is_none() {
         payload_io::native("staging_directory_create", || {
-            fs::mkdirat(&root, id.to_string(), Mode::RWXU)
+            fs::mkdirat(&root, template.recording_directory.as_str(), Mode::RWXU)
         })?;
     }
-    let area = fs::openat(&root, id.to_string(), DIRECTORY, Mode::empty())?;
+    let area = fs::openat(
+        &root,
+        template.recording_directory.as_str(),
+        DIRECTORY,
+        Mode::empty(),
+    )?;
     if let Some(first) = &first {
         same_directory(&owned_directory(&root, false)?, &first.root)?;
         same_directory(&owned_directory(&area, true)?, &first.area)?;
@@ -178,6 +192,7 @@ pub fn prepare_transfer_effect(
     payload_io::native("staging_directory_sync", || fs::fsync(&root))?;
     let t = Transfer {
         job_id: id,
+        recording_directory: template.recording_directory.clone(),
         file_index: index,
         attempt: 1,
         destination_root: template.destination_root.clone(),

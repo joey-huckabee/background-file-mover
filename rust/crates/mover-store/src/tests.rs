@@ -203,6 +203,7 @@ fn retention_counts_old_attempts_and_committed_sources_without_releasing_capacit
     s.finish_claim(&intent).unwrap();
     let mut t = Transfer {
         job_id: j.job_id,
+        recording_directory: j.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,
@@ -681,6 +682,7 @@ fn schema_ten_refusal_preserves_every_populated_table_and_saved_deadline() {
         .unwrap();
     let mut transfer = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: context.destination_path.clone(),
@@ -918,6 +920,7 @@ fn transfer_phase_skips_and_failed_commit_cannot_advance_publication() {
     db.finish_claim(&intent).unwrap();
     let mut t = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,
@@ -1857,6 +1860,7 @@ fn history_job(store: &Store, name: &str, phase: i64) -> Accepted {
     store.delivery_deferred(job.job_id, 140).unwrap();
     let mut transfer = Transfer {
         job_id: job.job_id,
+        recording_directory: job.job_id.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: c.destination_path,

@@ -194,6 +194,7 @@ version = "0.1.0"
 dependencies = [
  "mover-core",
  "rusqlite",
+ "sha2",
 ]
 
 [[package]]

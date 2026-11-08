@@ -1363,6 +1363,7 @@ fn transfer_from_wire(t: &Value) -> mover_core::Transfer {
     };
     mover_core::Transfer {
         job_id: t["job_id"].as_i64().unwrap(),
+        recording_directory: t["job_id"].as_i64().unwrap().to_string(),
         file_index: t["file_index"].as_u64().unwrap() as usize,
         attempt: t["attempt"].as_i64().unwrap(),
         destination_root: t["destination_root"].as_str().unwrap().into(),
@@ -1399,6 +1400,7 @@ fn delivery_session_allocates_restarts_and_commits_manifest_between_parent_recei
     );
     let mut template = mover_core::Transfer {
         job_id: 1,
+        recording_directory: 1.to_string(),
         file_index: 0,
         attempt: 1,
         destination_root: f.root.join("destination").to_str().unwrap().into(),
@@ -2243,6 +2245,7 @@ fn slow_client_does_not_block_health_and_concurrent_replays_are_bounded() {
 #[test]
 fn unsafe_startup_configuration_is_rejected() {
     let c = file_mover::Config {
+        check_expected_sizes: false,
         bind: "0.0.0.0:8080".parse().unwrap(),
         generator_id: "g".into(),
         source_root: "/source".into(),
