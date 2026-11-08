@@ -3,9 +3,9 @@ name: Rust SLES compatibility
 on:
   push:
     # Include the builder recipe as a qualification input.
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   pull_request:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +30,9 @@ jobs:
       - name: Check offline package provenance and archive safety
         run: python3 -m unittest discover -s scripts -p test_offline_bundle.py
       - name: Check protected ingress fixture helpers
-        run: python3 -m unittest discover -s scripts -p test_producer_ingress.py
+        run: |
+          python3 -m unittest discover -s scripts -p test_producer_ingress.py
+          python3 -m unittest discover -s scripts -p test_nfs_fixture_contract.py
       - name: Pull pinned Rust base and SLES runtime
         run: |
           command -v podman
