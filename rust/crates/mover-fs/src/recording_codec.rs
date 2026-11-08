@@ -197,7 +197,7 @@ fn unhex<const N: usize>(text: &str) -> Result<[u8; N]> {
         return Err(CodecError::InvalidManifest);
     }
     let mut out = [0; N];
-    for (i, pair) in text.as_bytes().chunks_exact(2).enumerate() {
+    for (i, pair) in text.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         let digit = |b| if b <= b'9' { b - b'0' } else { b - b'a' + 10 };
         out[i] = (digit(pair[0]) << 4) | digit(pair[1]);
     }
