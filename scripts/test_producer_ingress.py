@@ -33,7 +33,7 @@ class Portable(unittest.TestCase):
         self.assertEqual(head.count(b'X-File-Mover-Generator:'), 2)
         self.assertIn(b'Content-Length: '+str(len(data)).encode(), head)
         self.assertIn(b'Host: localhost\r\n', raw)
-        self.assertIn('Host: localhost', CHECK.SLOW_CLIENTS)
+        self.assertIn('Host: localhost', CHECK.CAPACITY_COMMON)
 
     def test_reply_requires_full_single_framed_body(self):
         self.assertEqual(CHECK.parse_reply(reply())['code'], 200)
@@ -92,7 +92,7 @@ class Portable(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('perl'), 'portable Perl unavailable')
     def test_perl_clients_parse(self):
-        for client in (CHECK.CLIENT, CHECK.SLOW_CLIENTS, CHECK.LOST_CLIENT):
+        for client in (CHECK.CLIENT, CHECK.PROXY_CAPACITY, CHECK.OPERATOR_CAPACITY, CHECK.LOST_CLIENT):
             result = subprocess.run(['perl', '-c', '-e', client], capture_output=True, timeout=3)
             self.assertEqual(result.returncode, 0, result.stderr)
 

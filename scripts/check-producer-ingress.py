@@ -53,26 +53,47 @@ print unpack('H*',$out);
 
 LOST_CLIENT = CLIENT.split("shutdown($s,1); my $out='';", 1)[0] + 'shutdown($s,1); close($s) or die $!;'
 
-SLOW_CLIENTS = r'''
+CAPACITY_COMMON = r"""
 use strict; use warnings; use Socket;
-$|=1; $SIG{PIPE}='IGNORE'; alarm 14;
-my @s; my $count=$ARGV[1] || 6;
-for(1..$count) {
-    socket(my $s,PF_UNIX,SOCK_STREAM,0) or die "socket: $!";
-    connect($s,sockaddr_un($ARGV[0])) or die "connect: $!";
-    my $r="POST /api/v2/jobs HTTP/1.1\r\nHost: localhost\r\n";
-    syswrite($s,$r)==length($r) or die 'partial slow write'; push @s,$s;
-}
-select(undef,undef,undef,0.2); print "READY\n";
-for my $s (@s) {
-    my $out='';
-    while(1) {
-        my $n=sysread($s,my $b,8192); die "slow read: $!" unless defined($n);
-        last unless $n; $out.=$b; die 'oversized slow response' if length($out)>131072;
-    }
-    print unpack('H*',$out),"\n";
-}
-'''
+$|=1; $SIG{PIPE}='IGNORE'; alarm 30;
+sub stamp { open(my $h,'<','/proc/uptime') or die $!; my $r=<$h>; close($h); return (split(/ /,$r))[0]+0; }
+sub connect_to { socket(my $s,PF_UNIX,SOCK_STREAM,0) or die $!; connect($s,sockaddr_un($_[0])) or die $!; return $s; }
+sub send_all { my($s,$r)=@_; my $n=0; while($n<length($r)) { my $w=syswrite($s,$r,length($r)-$n,$n); last unless defined($w) && $w>0; $n+=$w; } }
+sub receive_all { my($s)=@_; my $out=''; while(1) { my $n=sysread($s,my $b,8192); if(!defined($n)) { last if length($out); die $!; } last unless $n; $out.=$b; die 'oversized response' if length($out)>131072; } return $out; }
+sub exchange { my($path,$r)=@_; my $s=connect_to($path); send_all($s,$r); shutdown($s,1); my $out=receive_all($s); close($s); return $out; }
+my $partial="POST /api/v2/jobs HTTP/1.1\r\nHost: localhost\r\n";
+"""
+
+PROXY_CAPACITY = CAPACITY_COMMON + r"""
+my($endpoint,$start_fifo,$ready_fifo,$request_hex)=@ARGV;
+print "STARTED\n";
+open(my $start,'<',$start_fifo) or die $!; read($start,my $signal,1)==1 or die 'start signal'; close($start);
+my $began=stamp(); my @slow;
+for(1..6) { my $s=connect_to($endpoint); send_all($s,$partial); push @slow,$s; }
+my $excess=exchange($endpoint,pack('H*',$request_hex));
+open(my $ready,'>',$ready_fifo) or die $!; print $ready $began,"\n"; close($ready);
+print "EXCESS ",unpack('H*',$excess),"\n";
+for my $s (@slow) { my $out=receive_all($s); print "SLOW ",unpack('H*',$out),"\n"; close($s); }
+printf "TOTAL_SECONDS %.3f\n",stamp()-$began;
+"""
+
+OPERATOR_CAPACITY = CAPACITY_COMMON + r"""
+my($endpoint,$start_fifo,$ready_fifo,$binary,$config,$request_hex)=@ARGV;
+open(my $start,'>',$start_fifo) or die $!; print $start 'x'; close($start);
+open(my $ready,'<',$ready_fifo) or die $!; my $began=<$ready>; close($ready); chomp($began);
+my $slow=connect_to($endpoint); send_all($slow,$partial);
+my $health_start=stamp(); my $health=exchange($endpoint,pack('H*',$request_hex));
+printf "HEALTH_SECONDS %.3f\n",stamp()-$health_start;
+print "HEALTH ",unpack('H*',$health),"\n";
+my $control_start=stamp();
+open(my $child,'-|',$binary,'--status',$config) or die $!;
+my $status=do { local $/; <$child> }; close($child) or die 'status command failed';
+printf "STATUS_SECONDS %.3f\n",stamp()-$control_start;
+print "STATUS ",unpack('H*',$status),"\n";
+printf "UNDER_LOAD_SECONDS %.3f\n",stamp()-$began;
+my $out=receive_all($slow); close($slow); print "OP_SLOW ",unpack('H*',$out),"\n";
+printf "TOTAL_SECONDS %.3f\n",stamp()-$began;
+"""
 
 
 def sha(data):
@@ -466,35 +487,54 @@ def run_profile(runner, profile, config, artifact_sha):
     retention = runner.http(operator, wire('GET', '/api/v2/retention'), APP_USER)
     require(retention.get('code') == 200 and retention['body']['details']['retained_jobs'] == 1, 'refusal changed retained job count')
 
-    slow = runner.spawn('/usr/bin/perl', '-e', SLOW_CLIENTS, producer, user=PROXY_USER)
-    began = time.monotonic()
+    # Prestart the real proxy UID and coordinate through fixture-only FIFOs.
+    # Measure service time inside the container, excluding OCI exec launch cost.
+    scenario = base+'/capacity'
+    runner.execute('mkdir', '-m', '0770', scenario)
+    start_fifo, ready_fifo = scenario+'/start', scenario+'/ready'
+    runner.execute('mkfifo', '-m', '0660', start_fifo, ready_fifo)
+    slow = runner.spawn('/usr/bin/perl', '-e', PROXY_CAPACITY, producer,
+                        start_fifo, ready_fifo, wire(body=request, headers=principal).hex(), user=PROXY_USER)
     with selectors.DefaultSelector() as selector:
         selector.register(slow.stdout, selectors.EVENT_READ)
-        require(selector.select(timeout=3), 'six slow producer clients failed to start')
-        require(slow.stdout.readline() == b'READY\n', 'slow client connection failure')
-    # Occupy one local HTTP slot as the mover; health must still use the second.
-    slow_operator = runner.spawn('/usr/bin/perl', '-e', SLOW_CLIENTS, operator, '1', user=APP_USER)
-    with selectors.DefaultSelector() as selector:
-        selector.register(slow_operator.stdout, selectors.EVENT_READ)
-        require(selector.select(timeout=3), 'slow operator client failed to start')
-        require(slow_operator.stdout.readline() == b'READY\n', 'slow operator connection failure')
-    excess = runner.http(producer, wire(body=request, headers=principal))
+        require(selector.select(timeout=15), 'proxy fixture failed to prestart')
+        require(slow.stdout.readline() == b'STARTED\n', 'proxy fixture prestart failure')
+    app = runner.execute('/usr/bin/perl', '-e', OPERATOR_CAPACITY, operator,
+                         start_fifo, ready_fifo, binary, config_path, wire('GET', '/healthz').hex(), timeout=20)
+    stdout, stderr = slow.communicate(timeout=12)
+    require(slow.returncode == 0, 'proxy capacity fixture failed: '+stderr.decode(errors='replace'))
+
+    def fields(raw):
+        result = {}
+        for line in raw.decode('ascii').splitlines():
+            key, value = line.split(' ', 1)
+            result.setdefault(key, []).append(value)
+        return result
+    proxy_fields, operator_fields = fields(stdout), fields(app.stdout)
+    def single(values, key):
+        require(len(values.get(key, [])) == 1, 'missing/duplicate capacity evidence: '+key)
+        return values[key][0]
+    excess = parse_reply(bytes.fromhex(single(proxy_fields, 'EXCESS')))
     error_reply(excess, 429, {'rate_limited'})
     require(excess['headers'].get('retry-after') == ['1'] and excess['body']['retry_after_seconds'] == 1 and excess['body']['retryable'] is True, 'saturation lacks one-second retry guidance')
-    health = runner.http(operator, wire('GET', '/healthz'), APP_USER)
-    require(health.get('code') == 200 and health['seconds'] < 3, 'reserved operator slot was blocked by producers')
-    status = control('--status')
-    require(status['seconds'] < 3 and json.loads(status['stdout'])['phase'] == 'Running', 'independent control blocked by producers')
-    stdout, stderr = slow.communicate(timeout=12)
-    require(slow.returncode == 0, 'slow client failed: '+stderr.decode(errors='replace'))
-    rows = [parse_reply(bytes.fromhex(line.decode('ascii'))) for line in stdout.splitlines()]
-    require(len(rows) == 6 and all(row['code'] == 408 and row['body']['error'] == 'request_timeout' for row in rows), 'six read slots did not expire under the existing deadline')
-    op_stdout, op_stderr = slow_operator.communicate(timeout=8)
-    require(slow_operator.returncode == 0, 'slow operator client failed: '+op_stderr.decode(errors='replace'))
-    op_rows = [parse_reply(bytes.fromhex(line.decode('ascii'))) for line in op_stdout.splitlines()]
-    require(len(op_rows) == 1 and op_rows[0]['code'] == 408, 'reserved slow operator slot did not time out')
-    require(time.monotonic()-began < 9, 'slow connections outlived bounded read window')
-    report['saturation'] = dict(excess=excess, health=health, control=status, slow=rows, slow_operator=op_rows, seconds=round(time.monotonic()-began, 4))
+    health = parse_reply(bytes.fromhex(single(operator_fields, 'HEALTH')))
+    health_seconds = float(single(operator_fields, 'HEALTH_SECONDS'))
+    status = json.loads(bytes.fromhex(single(operator_fields, 'STATUS')))
+    status_seconds = float(single(operator_fields, 'STATUS_SECONDS'))
+    under_load_seconds = float(single(operator_fields, 'UNDER_LOAD_SECONDS'))
+    require(health['code'] == 200 and 0 <= health_seconds < 3, 'reserved operator slot blocked by producers')
+    require(status['phase'] == 'Running' and 0 <= status_seconds < 3, 'independent control blocked by producers')
+    require(0 <= under_load_seconds < 5, 'health/control finished after producer read deadlines')
+    rows = [parse_reply(bytes.fromhex(value)) for value in proxy_fields.get('SLOW', [])]
+    require(len(rows) == 6 and all(row['code'] == 408 and row['body']['error'] == 'request_timeout' for row in rows), 'six producer slots did not retain bounded read timeouts')
+    op_row = parse_reply(bytes.fromhex(single(operator_fields, 'OP_SLOW')))
+    require(op_row['code'] == 408, 'occupied operator slot did not retain read timeout')
+    durations = [float(single(values, 'TOTAL_SECONDS')) for values in (proxy_fields, operator_fields)]
+    require(all(0 <= value < 9 for value in durations), 'connections outlived bounded read window')
+    report['saturation'] = dict(excess=excess, health=health, control=status, slow=rows, slow_operator=op_row,
+        health_seconds=health_seconds, status_seconds=status_seconds, under_load_seconds=under_load_seconds,
+        total_seconds=durations, clock='Linux /proc/uptime boot-monotonic; no fixture suspend; excludes OCI launch',
+        proxy_evidence=stdout.decode(), operator_evidence=app.stdout.decode())
     stop(process)
     require(runner.execute('cat', base+'/source/.file-mover/source-enrollment.json').stdout == enrollment, 'original enrollment changed')
     process = launch()
