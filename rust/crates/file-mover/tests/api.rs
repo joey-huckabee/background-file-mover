@@ -771,7 +771,7 @@ fn delivery_worker_refuses_replaced_destination_lock_before_payload() {
     drop(channel);
     assert!(child.wait().unwrap().success());
     assert_eq!(
-        std::fs::metadata(destination.join("1/.staging/1.part"))
+        std::fs::metadata(f.destination("1", ".staging/1.part"))
             .unwrap()
             .len(),
         0
@@ -1984,7 +1984,7 @@ impl Fixture {
         }
         self.start_command(command);
     }
-    fn start_command(&mut self, mut command: Command) {
+    fn retire_test_epoch(&self) {
         // Direct internal-worker tests temporarily use this long-lived test
         // process as their coordinator. Retire only that synthetic fixture epoch
         // after reacquisition proves every other group member has exited. Real
@@ -2004,6 +2004,9 @@ impl Fixture {
                 .sync_all()
                 .unwrap();
         }
+    }
+    fn start_command(&mut self, mut command: Command) {
+        self.retire_test_epoch();
         self.child = Some(
             command
                 .arg(self.root.join("config.json"))
@@ -4903,6 +4906,7 @@ fn seed_legacy(f: &Fixture, legacy_id: &str, claim: bool) -> i64 {
     drop(store);
     drop(source);
     drop(instance);
+    f.retire_test_epoch();
     job.job_id
 }
 

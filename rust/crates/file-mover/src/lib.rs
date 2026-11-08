@@ -958,7 +958,13 @@ pub fn check_state_compatibility(
     {
         let snapshot = mover_store::StateInspection::open(&c.state_database)?;
         mover_fs::validate_inspected_state(&snapshot)?;
+        if snapshot.summary().retained_jobs > 0 && snapshot.enrollment()?.is_none() {
+            return Err(StoreError::SourceEnrollmentRequired.into());
+        }
         snapshot.visit_jobs(|job, _, _| {
+            if job.context.destination_binding.is_none() {
+                return Err(StoreError::DestinationEnrollmentRequired);
+            }
             if job.recording.submission().producer().is_none()
                 && job.recording.handoff() != Handoff::Ready202
             {
