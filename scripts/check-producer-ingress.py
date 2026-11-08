@@ -197,15 +197,15 @@ def fixture_archive(artifacts):
         for profile in ('debug', 'release'):
             prefix = 'ingress/'+profile
             base = '/tmp/'+prefix
-            for name, mode in (('', 0o711), ('/p', 0o750), ('/s', 0o700), ('/s/operator', 0o700),
+            for name, mode in (('', 0o711), ('/p', 0o750), ('/state', 0o700), ('/operator', 0o700),
                                ('/source', 0o700), ('/source/.file-mover', 0o700), ('/source/current', 0o700),
                                ('/destination', 0o700), ('/destination/.file-mover', 0o700)):
                 add(prefix+name, mode)
             config = copy.deepcopy(config_template)
             config.update(bind='127.0.0.1:19879', generator_id='fixture', source_root=base+'/source',
-                          destination_root=base+'/destination', state_database=base+'/s/jobs.sqlite',
+                          destination_root=base+'/destination', state_database=base+'/state/jobs.sqlite',
                           check_expected_sizes=True,
-                          protected_ingress=dict(producer_socket=base+'/p/in.sock', operator_socket=base+'/s/operator/in.sock',
+                          protected_ingress=dict(producer_socket=base+'/p/in.sock', operator_socket=base+'/operator/in.sock',
                                                  proxy_uid=1001, proxy_gid=1001))
             for endpoint in ('producer_socket', 'operator_socket'):
                 require(len(config['protected_ingress'][endpoint].encode()) <= 107, 'UDS pathname exceeds Linux bound')
@@ -317,12 +317,12 @@ def run_profile(runner, profile, config, artifact_sha):
         return row
 
     def launch(path=config_path):
-        return runner.spawn('/bin/sh', '-eu', '-c', f'echo $$ >{base}/s/app.pid; exec {binary} {q(path)} >{base}/s/service.log 2>&1')
+        return runner.spawn('/bin/sh', '-eu', '-c', f'echo $$ >{base}/state/app.pid; exec {binary} {q(path)} >{base}/state/service.log 2>&1')
 
     def ready(process):
         def check():
             require(process.poll() is None, 'service exited before readiness')
-            return b'Ready on protected' in runner.execute('cat', base+'/s/service.log').stdout
+            return b'Ready on protected' in runner.execute('cat', base+'/state/service.log').stdout
         wait_until(check, 'missing protected readiness')
         require(runner.http(operator, wire('GET', '/healthz'), APP_USER).get('code') == 200, 'private health unavailable')
 
@@ -337,7 +337,7 @@ def run_profile(runner, profile, config, artifact_sha):
     def stable_files():
         # Quiescent fixture only. Do not open SQLite: hash its stopped DB/WAL.
         text = runner.shell(f'find {base}/source {base}/destination -type f -exec sha256sum {{}} +; '
-                            f'find {base}/s -maxdepth 1 -type f -name "jobs.sqlite*" -exec sha256sum {{}} +').stdout
+                            f'find {base}/state -maxdepth 1 -type f -name "jobs.sqlite*" -exec sha256sum {{}} +').stdout
         return sorted(text.decode().splitlines())
 
     def no_tcp():
@@ -354,7 +354,7 @@ def run_profile(runner, profile, config, artifact_sha):
     require('build=production' in runner.execute(binary, '--check-platform').stdout.decode(), 'not a production binary')
     # Explicitly prove preprovisioned owner/mode/group, not merely successful connect.
     expected = [(base, '1000:1001:711'), (base+'/p', '1000:1001:750'),
-                (base+'/s', '1000:1001:700'), (base+'/s/operator', '1000:1001:700')]
+                (base+'/state', '1000:1001:700'), (base+'/operator', '1000:1001:700')]
     report['parents'] = {}
     for path, metadata in expected:
         value = runner.execute('stat', '-c', '%u:%g:%a', path).stdout.decode().strip()
@@ -489,12 +489,12 @@ def run_profile(runner, profile, config, artifact_sha):
 
     # Preexisting endpoint names are never removed, including actual stale sockets.
     before = stable_files()
-    for role, parent in (('producer_socket', base+'/p'), ('operator_socket', base+'/s/operator')):
+    for role, parent in (('producer_socket', base+'/p'), ('operator_socket', base+'/operator')):
         for kind in ('file', 'symlink', 'stale', 'live'):
             endpoint = parent+'/existing-'+kind
             modified = copy.deepcopy(config)
             modified['protected_ingress'][role] = endpoint
-            path = base+'/s/refusal.json'
+            path = base+'/state/refusal.json'
             runner.shell('printf %s '+q(json.dumps(modified))+' >'+path)
             if kind == 'file':
                 runner.shell('set -C; printf sentinel >'+endpoint)
@@ -527,7 +527,7 @@ def run_profile(runner, profile, config, artifact_sha):
                 runner.execute('kill', '-TERM', live_pid)  # Exact PID reported by our helper in our container.
                 live.communicate(timeout=3)
             report['unsafe_cases'].append(dict(role=role, kind=kind, identity=identity.decode(), exit_code=refused.returncode,
-                                               log=runner.execute('cat', base+'/s/service.log').stdout.decode(errors='replace')))
+                                               log=runner.execute('cat', base+'/state/service.log').stdout.decode(errors='replace')))
     for kind in ('missing-parent', 'writable-parent', 'symlink-parent'):
         modified = copy.deepcopy(config)
         if kind == 'missing-parent':
@@ -537,7 +537,7 @@ def run_profile(runner, profile, config, artifact_sha):
         else:
             runner.execute('ln', '-s', base+'/p', base+'/alias')
             modified['protected_ingress']['producer_socket'] = base+'/alias/in.sock'
-        path = base+'/s/refusal.json'
+        path = base+'/state/refusal.json'
         runner.shell('printf %s '+q(json.dumps(modified))+' >'+path)
         refused = launch(path)
         refused.communicate(timeout=8)
@@ -547,7 +547,7 @@ def run_profile(runner, profile, config, artifact_sha):
         if kind == 'writable-parent':
             runner.execute('chmod', '0750', base+'/p')  # Restore only our preprovisioned fixture directory.
         report['unsafe_cases'].append(dict(kind=kind, exit_code=refused.returncode,
-                                           log=runner.execute('cat', base+'/s/service.log').stdout.decode(errors='replace')))
+                                           log=runner.execute('cat', base+'/state/service.log').stdout.decode(errors='replace')))
 
     # Move only our own live endpoint, substitute a file, then stop via control.
     # Cleanup must preserve that replacement rather than blindly unlinking it.
@@ -620,7 +620,7 @@ def main():
             report['failure_logs'] = {}
             for profile in ('debug', 'release'):
                 try:
-                    result = runner.execute('cat', '/tmp/ingress/'+profile+'/s/service.log', ok=False, timeout=3)
+                    result = runner.execute('cat', '/tmp/ingress/'+profile+'/state/service.log', ok=False, timeout=3)
                     report['failure_logs'][profile] = result.stdout.decode(errors='replace')[-8000:]
                 except Exception as error:
                     report['failure_logs'][profile] = str(error)

@@ -71,7 +71,15 @@ class Portable(unittest.TestCase):
             self.assertEqual(names['ingress'].mode, 0o711)
             for profile, config in configs.items():
                 self.assertEqual(names[f'ingress/{profile}/p'].mode, 0o750)
-                self.assertEqual(names[f'ingress/{profile}/s/operator'].mode, 0o700)
+                self.assertEqual(names[f'ingress/{profile}/operator'].mode, 0o700)
+                self.assertEqual(names[f'ingress/{profile}/state'].mode, 0o700)
+                state = Path(config['state_database']).parent
+                for key in ('producer_socket', 'operator_socket'):
+                    parent = Path(config['protected_ingress'][key]).parent
+                    self.assertEqual(parent.parent, state.parent)
+                    self.assertNotEqual(parent, state)
+                    self.assertFalse(parent.is_relative_to(state))
+                    self.assertFalse(state.is_relative_to(parent))
                 for m in names.values():
                     self.assertEqual((m.uid, m.gid), (1000, 1001))
                     self.assertTrue(m.isfile() or m.isdir())
