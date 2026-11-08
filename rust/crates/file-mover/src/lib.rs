@@ -173,6 +173,11 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
         .to_str()
         .ok_or_else(|| error(400, "invalid_submission", false, None))?
         .to_owned();
+    // Scope authorization precedes UUID lookup; service-private components
+    // must not become retryable storage failures or reveal existing IDs.
+    if !relative.is_empty() && mover_core::FileSpec::new(&relative, None).is_err() {
+        return Err(error(403, "source_outside_scope", false, None));
+    }
     let submission = Submission::from_producer(input);
     Ok((
         submission,

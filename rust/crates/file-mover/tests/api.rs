@@ -2268,6 +2268,19 @@ fn malformed_json_scope_and_http_framing_never_claim() {
     b = body.clone();
     b["source_directory"] = json!(format!("{}-outside", f.root.join("source").display()));
     assert_eq!(f.post(&b).0, 403);
+    for private in [
+        ".file-mover/1-0",
+        "nested/.control",
+        ".staging",
+        "COMMITTED.json",
+    ] {
+        let mut private_request = body.clone();
+        private_request["source_directory"] = json!(f.root.join("source").join(private));
+        let refusal = f.post(&private_request);
+        assert_eq!(refusal.0, 403);
+        assert_eq!(refusal.1["error"], "source_outside_scope");
+        assert_eq!(refusal.1["retryable"], false);
+    }
     for file in [
         json!("../data"),
         json!({"name":"data","size_bytes":null}),
