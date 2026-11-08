@@ -411,12 +411,23 @@ def run_profile(runner, profile, config, artifact_sha):
         require(manifest['files'][index]['size_bytes'] == str(len(payload)) and manifest['files'][index]['sha256'] == sha(payload), 'manifest measured content mismatch')
     report['manifest_base64'], report['manifest_sha256'] = base64.b64encode(manifest_bytes).decode(), sha(manifest_bytes)
     runner.shell(f"printf 'producer reuse A' >{base}/source/current/a; printf 'producer reuse B' >{base}/source/current/b")
+    def preserved_reused_and_owned_files():
+        for index, name in enumerate(request['files']):
+            suffix = name.upper().encode()
+            require(runner.execute('cat', base+'/source/current/'+name).stdout == b'producer reuse '+suffix,
+                    'replay modified a producer-reused leaf')
+            original = b'ingress payload '+suffix
+            require(runner.execute('cat', base+'/source/.file-mover/'+job+'-'+str(index)+'/data').stdout == original,
+                    'replay modified original private custody')
+            require(runner.execute('cat', area+'/'+name).stdout == original,
+                    'replay modified original destination output')
     reordered = copy.deepcopy(request)
     reordered['files'].reverse()
     for body in (request, reordered):
         replay = runner.http(producer, wire(body=body, headers=principal))
         require(replay.get('code') == 202 and replay['body'] == accepted['body'], 'release replay changed under producer path reuse/permutation')
     require(runner.execute('cat', area+'/COMMITTED.json').stdout == manifest_bytes, 'replay rewrote immutable manifest bytes')
+    preserved_reused_and_owned_files()
 
     # A changed body is paired with a known UUID to test authorization before replay.
     wrong_generator = dict(request, generator_id='spoofed')
@@ -485,6 +496,7 @@ def run_profile(runner, profile, config, artifact_sha):
     replay = runner.http(producer, wire(body=reordered, headers=principal))
     require(replay.get('code') == 202 and replay['body'] == accepted['body'], 'clean restart lost original UUID receipt')
     require(runner.execute('cat', area+'/COMMITTED.json').stdout == manifest_bytes, 'restart regenerated manifest')
+    preserved_reused_and_owned_files()
     stop(process)
 
     # Preexisting endpoint names are never removed, including actual stale sockets.
