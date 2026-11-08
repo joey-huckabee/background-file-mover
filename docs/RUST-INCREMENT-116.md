@@ -34,8 +34,17 @@ Local existing WSL Python/jsonschema checks passed: 70 definitions, 108 structur
 fixtures, eleven semantic examples, fifteen route/reference/access checks, seven
 unchanged identity frames/hashes, existing manifest golden and bound proof.
 These are contract reference checks, not full OpenAPI conformance, Rust, HTTP,
-SQL scheduling, consumer or physical durability tests. Independent review and
-final diff/catalog/reference verification are pending before integration.
+SQL scheduling, consumer or physical durability tests. Independent read-only
+review of 2520294..4004a67 found no actionable findings and independently checked
+the standard-library semantic/golden/bound helpers and unchanged vectors. The
+reviewer could not run the full schema checker because jsonschema was unavailable;
+local WSL ran it successfully without installs.
+
+Retry-context checks also passed four known answers and 52 decoding cases. Final
+verification preserved all 143 API and 194 SC row IDs and all seven original vector
+inputs/frames/hashes; changed/new Markdown relative file links resolve. Diff
+whitespace checks passed. No Rust/SLES or service acceptance result is claimed
+for these reference checks.
 
 No Rust source, build input, dependency, worker, state or runtime setting changes.
 No Rust build/test is needed for this documentation/reference slice; qualified
@@ -46,6 +55,7 @@ gates remain open; production NFS/source deletion stay disabled.
 ## Team workflow
 
 Coordinator owns contract/checker integration; existing cloud reviewer performs
-a bounded independent read-only review before merge. Record concrete findings,
-check results and scope corrections here. Token/cloud cost is unavailable; no
+a bounded independent read-only review before merge. Review found no actionable
+issues. Migration-status corrections and the legacy partial-custody activation
+obligation are explicit. Token/cloud cost is unavailable; no
 fixed improvement percentage is claimed.
