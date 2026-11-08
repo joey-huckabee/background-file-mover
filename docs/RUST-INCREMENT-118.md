@@ -1,8 +1,8 @@
 # UUID producer and manifest-v2 runtime integration
 
 2026-11-08. User: "ok, go ahead with step 3" after increment 117/PR 5.
-Base main a6f5db7381bfc05e6ba7fcb4a8371015900ca79d. Implementation in progress
-on feature/uuid-runtime. This is development integration, not deployment,
+Base main a6f5db7381bfc05e6ba7fcb4a8371015900ca79d. Merged through PR 6 as
+0b5d0c1716a31aacf530927d76d12a37df73f07d. This is development integration, not deployment,
 operational conversion, remote authentication/ingress or release approval.
 
 ## Scope and compatibility
@@ -95,13 +95,15 @@ unchanged. Production commands and their 900s cap are identical before and after
 change; local qualification and final-head CI execute the updated qualification-only
 budget. This adjusts a harness ceiling, not service behavior or release gates.
 
-Before merge, [PR #6](https://github.com/joey-huckabee/background-file-mover/pull/6)
-must record both final local modes, raw WSL paths/report hashes, all 73 input
-comparisons and all 40 executable rehashes, cleanup and prototype bundle smoke
-status. The final PR also records fresh CI for its exact documentation closeout
-head; those documentation changes preserve every Rust input. The coordinator's
-local production debug API/Store suites passed; full local finalization is
-recorded in the PR before integration, not inferred from CI.
+[PR #6](https://github.com/joey-huckabee/background-file-mover/pull/6)
+records both completed local modes, raw WSL paths/report hashes, all 73 source
+comparisons and all 40 executable rehashes, clean cleanup and passed prototype
+bundle installation/UUID transfer/restart smoke. Production passed 264 tests and
+qualification 268 tests per profile, with five existing ignored helpers each.
+Both final-head CI modes passed. The qualification API suites took 940.12s
+(debug) and 901.87s (release), within their 1200s harness ceiling. Windows and WSL
+main were synchronized at merge. See [release checks](RUST-INCREMENT-119.md) for
+subsequent compatibility checks and remaining release blockers.
 
 All eight release gates remain open. Consumer acceptance, final predecessor/
 target release pairs, real NFS/physical durability, ingress and shipping systemd

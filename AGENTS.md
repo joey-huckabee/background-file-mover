@@ -2,6 +2,12 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 release-check authorization: the user requests release checks after
+PR 6. Run bounded disposable predecessor/current compatibility and artifact/
+contract checks; record actual results and remaining FR/RC blockers in increment
+119. Correct stale active status documentation. No missing-feature implementation,
+production NFS/deletion, deployment, operational conversion or release approval.
+
 2026-11-08 runtime integration authorization: the user says "ok, go ahead
 with step 3" after codecs merged in PR 5. Implement/qualify global UUID replay,
 current startup expected-size policy, durable path/index preservation, UUID

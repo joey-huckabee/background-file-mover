@@ -954,3 +954,8 @@ Increment 112 adds bounded guarded offline inspection/backup for SC-190/194,
 without changing scenario IDs: see [operator procedure](OFFLINE-STATE-BACKUP.md)
 and [implementation/evidence](RUST-INCREMENT-112.md). This does not complete
 migration apply, UUID/v2 activation or the broader compatibility qualification.
+
+Increment 119 checks existing SC-190/194 compatibility obligations using actual
+retained predecessor/current target executables. See [release checks](RUST-INCREMENT-119.md)
+for the exact results and open gates. No SC/DOC IDs are added or reused, and no
+NFS, shipping lifecycle, cleanup or remote-access qualification is inferred.

@@ -7,11 +7,11 @@ an upgrade/recovery qualification result.
 
 | Decision | Approved behavior | Engineering work still required |
 |---|---|---|
-| Existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment, receipts and worker lifetime evidence. Upgrade only supported state formats; refuse unsupported state safely before effects. Never invent recording UUIDs for legacy jobs. | Increment 115 qualifies the bounded 11 to legacy-only 12 path. Mixed UUID/legacy admission and activation support remain to implement/qualify. |
-| Completion manifests | New recordings use v2 with recording UUID, measured sizes, file SHA-256 and request-identity digest. Existing v1 bytes stay unchanged; support recovery of still-tracked legacy jobs. | Finalize exact v2 serialization/bounds and recovery integration. Increment 116 fixes encoding/bounds for the producer/v2 engineering slice; actual codecs, recovery and consumer validation remain pending. |
-| Size representation | New producer expected-size values and manifest-v2 measured sizes are canonical decimal strings representing u64. Preserve existing operator/status numeric fields and v1 numeric sizes. | Implement lossless parsing and publication; validate consumers and actual-size evidence. |
+| Existing stored jobs | Preserve original job/file IDs, paths, custody, enrollment, receipts and worker lifetime evidence. Upgrade only supported state formats; refuse unsupported state safely before effects. Never invent recording UUIDs for legacy jobs. | Increment 115 qualifies the bounded 11 to legacy-only 12 path. Increment 118 implements UUID/mixed runtime; final release combinations and deployment remain separately qualified. |
+| Completion manifests | New recordings use v2 with recording UUID, measured sizes, file SHA-256 and request-identity digest. Existing v1 bytes stay unchanged; support recovery of still-tracked legacy jobs. | Finalize exact v2 serialization/bounds and recovery integration. Increment 116 fixes encoding/bounds for the producer/v2 engineering slice; increment 117 supplies codecs and 118 runtime recovery; consumer acceptance remains pending. |
+| Size representation | New producer expected-size values and manifest-v2 measured sizes are canonical decimal strings representing u64. Preserve existing operator/status numeric fields and v1 numeric sizes. | Lossless parsing/publication are implemented in 117/118; consumer acceptance and exact shipping evidence remain open. |
 | Filenames | Require valid UTF-8 for the new contract; retain exact spelling and case. Reject unsupported names explicitly. Never silently rename, case-fold or normalize Unicode. | Check Unicode scalars and byte limits before filesystem effects; preserve existing custody rather than applying new admission rules destructively to legacy records. |
-| Upgrade/rollback | Publish an explicit list of supported release/state combinations. An incompatible binary refuses before effects. Never restore a stale database over active transfers. | Increment 115/PR 3 supplies exact legacy migration pairs and predecessor refusal. Arbitrary rollback and future mixed-identity support remain unqualified. |
+| Upgrade/rollback | Publish an explicit list of supported release/state combinations. An incompatible binary refuses before effects. Never restore a stale database over active transfers. | Increment 115/PR 3 supplies exact legacy migration pairs and predecessor refusal. Increment 118 supports mixed state and incompatible-binary refusal. Arbitrary/working rollback and shipping qualification remain open. |
 
 ## Current qualified migration and new-contract baseline
 
@@ -26,11 +26,12 @@ rollback, reverse conversion, hardware durability or deployment qualification.
 No operational state was converted. Normal startup still refuses schema 11.
 
 Increment 116 fixes the producer/v2 engineering serialization and bounds in
-[the scoped contract](PRODUCER-MANIFEST-CONTRACT.md). Full P01 and actual
-consumer/runtime activation remain separate. UUID-bearing state still refuses
-in the current binary. Legacy partial-custody continuation/refusal must be
-qualified before replacing prototype producer admission, without an old-wire
-adapter, invented UUID or abandoned custody.
+[the scoped contract](PRODUCER-MANIFEST-CONTRACT.md). Full P01 and consumer acceptance remain separate. [Increment 118](../RUST-INCREMENT-118.md)
+implements UUID/mixed-state runtime, preserves legacy v1 recovery and refuses
+partial legacy custody before payload bootstrap. Finish partial handoff with the
+compatible predecessor before cutover; no old-wire adapter or invented UUID is
+provided. [Current release checks](../RUST-INCREMENT-119.md) record actual retained
+binary pairs and their limits.
 
 The sections below preserve earlier approval/design checkpoints. Where they
 say migration is unimplemented/unqualified, that historical limit is superseded

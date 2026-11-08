@@ -1,11 +1,14 @@
 # First Rust release: closure review
 
-Current bounded progress: increment 115 implements/qualifies explicit schema-11
-to legacy-only schema-12 migration (part of RC-20); this is not all P09 or an
-FR gate closure. Increment 116 fixes the producer/manifest engineering slice
-of RC-01/P01; other routes, runtime, consumers and full freeze remain separate.
-See [the scoped contract](api/PRODUCER-MANIFEST-CONTRACT.md). All eight release
-gates remain open, with production NFS/source deletion disabled.
+Current bounded progress (2026-11-08): increment 115 implements/qualifies explicit
+schema-11 to legacy-only schema-12 migration. Increments 116-118 deliver the
+scoped producer/manifest contract, codecs and UUID/v2 runtime; PR 6 records both
+local modes, CI and disconnected prototype bundle smoke. These are contributions
+to RC-01/20/21/22, not full P01/P09 or gate closure. See
+[the current release-check report](RUST-INCREMENT-119.md) for exact evidence and
+remaining blockers. All eight gates remain open; production NFS/source deletion
+remain disabled. The dated inventory below is the original review baseline;
+current increments supersede only their explicitly bounded implementation status.
 
 Reviewed 2026-10-22 against commit `d9c2f2d` on
 `feature/rust-transfer-coordinator`. This is a documentation review, not a new
