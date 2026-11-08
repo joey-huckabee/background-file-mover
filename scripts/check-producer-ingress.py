@@ -345,6 +345,9 @@ def run_profile(runner, profile, config, artifact_sha):
         return row
 
     def launch(path=config_path):
+        # Finish fixture log setup before asynchronous OCI launch/readiness polling.
+        # Restart must not observe a previous process's readiness line either.
+        runner.shell(': >'+q(base+'/state/service.log'))
         return runner.spawn('/bin/sh', '-eu', '-c', f'echo $$ >{base}/state/app.pid; exec {binary} {q(path)} >{base}/state/service.log 2>&1')
 
     def ready(process):
