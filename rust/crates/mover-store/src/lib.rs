@@ -682,7 +682,7 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
 }
 
 // Validate every identity/assertion before writable settings or payload effects.
-fn require_legacy_identities(connection: &Connection) -> Result<()> {
+fn validate_identities(connection: &Connection) -> Result<()> {
     let mut s = connection.prepare("SELECT job_id FROM jobs ORDER BY job_id")?;
     for id in s.query_map([], |r| r.get::<_, i64>(0))? {
         load(connection, id?)?.ok_or(StoreError::CorruptState)?;
@@ -826,7 +826,7 @@ impl Database {
         }
         connection.pragma_update(None, "trusted_schema", "OFF")?;
         if !fresh {
-            require_legacy_identities(&connection)?;
+            validate_identities(&connection)?;
             validate_job_sequence(&connection)?;
         }
         if !read_only {
@@ -951,6 +951,17 @@ impl Database {
             return Ok(saved);
         }
         context.validate()?;
+        if submission.producer().is_some()
+            && submission.source_directory()
+                != format!(
+                    "{}/{}",
+                    context.source_root_path.trim_end_matches('/'),
+                    context.source_relative_directory
+                )
+                .trim_end_matches('/')
+        {
+            return Err(StoreError::InvalidContext);
+        }
         admission.check()?;
         let enrolled_path: Option<String> = tx
             .query_row(
@@ -1159,13 +1170,18 @@ fn load_state(connection: &Connection, job_id: i64, uuid_schema: bool) -> Result
         ))
     })?;
     let mut files = Vec::new();
+    let mut canonical_sizes = true;
     for row in rows {
         let (index, path, expected) = row?;
         if usize::try_from(index).ok() != Some(files.len()) {
             return Err(StoreError::CorruptState);
         }
         let size = expected
-            .map(|value| value.parse::<u64>().map_err(|_| StoreError::CorruptState))
+            .map(|value| {
+                let n = value.parse::<u64>().map_err(|_| StoreError::CorruptState)?;
+                canonical_sizes &= value == n.to_string();
+                Ok(n)
+            })
             .transpose()?;
         files.push(FileSpec::new(path, size)?);
     }
@@ -1173,15 +1189,26 @@ fn load_state(connection: &Connection, job_id: i64, uuid_schema: bool) -> Result
         return Err(StoreError::CorruptState);
     }
     context.validate()?;
-    let (kind, uuid, version, digest): (i64, Option<Vec<u8>>, Option<i64>, Option<Vec<u8>>) =
-        if uuid_schema {
-            connection.query_row("SELECT identity_kind,recording_uuid,request_identity_version,request_identity_sha256 FROM jobs WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?
-        } else {
-            (0, None, None, None)
-        };
+    type IdentityColumns = (i64, Option<Vec<u8>>, Option<i64>, Option<Vec<u8>>);
+    let (kind, uuid, version, digest): IdentityColumns = if uuid_schema {
+        connection.query_row("SELECT identity_kind,recording_uuid,request_identity_version,request_identity_sha256 FROM jobs WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?
+    } else {
+        (0, None, None, None)
+    };
     let input = match (kind, submission, uuid, version, digest) {
         (0, Some(id), None, None, None) => Submission::new(generator, id, source, files)?,
         (1, None, Some(uuid), Some(1), Some(digest)) => {
+            if !canonical_sizes
+                || source
+                    != format!(
+                        "{}/{}",
+                        context.source_root_path.trim_end_matches('/'),
+                        context.source_relative_directory
+                    )
+                    .trim_end_matches('/')
+            {
+                return Err(StoreError::CorruptState);
+            }
             let uuid: [u8; 16] = uuid.try_into().map_err(|_| StoreError::CorruptState)?;
             let paths = files.iter().map(|f| f.relative_path().to_owned()).collect();
             let sizes = if files.iter().any(|f| f.expected_size().is_some()) {

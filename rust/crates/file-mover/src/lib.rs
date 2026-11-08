@@ -545,7 +545,7 @@ fn status_response(store: &Store, id: i64) -> Response {
     } else {
         "Ready"
     };
-    Response {
+    let mut response = Response {
         status: 200,
         job_id: Some(id.to_string()),
         state: Some(if committed {
@@ -565,7 +565,21 @@ fn status_response(store: &Store, id: i64) -> Response {
             "latest_resume":snapshot.latest_resume.map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
             "files":files,"missing":missing,"delivery_retry":snapshot.delivery.map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))}),
         ),
+    };
+    if let Some(request) = recording.submission().producer() {
+        let details = response
+            .details
+            .as_mut()
+            .expect("status details")
+            .as_object_mut()
+            .expect("status object");
+        details.remove("submission_id");
+        details.insert(
+            "recording_id".into(),
+            serde_json::json!(request.recording_id().to_string()),
+        );
     }
+    response
 }
 fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
     let request = mover_store::ResumeRequest {
@@ -904,10 +918,16 @@ async fn connection(
         } else {serde_json::json!({"recording_id":recording_id,"error":response.error.unwrap_or("internal_error"),"retryable":response.retryable,"retry_after_seconds":null,"source_paths_released":false})};
         serde_json::to_vec(&value)
     } else {serde_json::to_vec(&response)}.expect("fixed response serialization");
+    let allow = if producer && response.status == 405 {
+        "Allow: POST\r\n"
+    } else {
+        ""
+    };
     let head = format!(
-        "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n{}\r\n",
         response.status,
-        body.len()
+        body.len(),
+        allow
     );
     let _ = timeout(Duration::from_secs(2), async {
         stream.write_all(head.as_bytes()).await?;
@@ -926,8 +946,9 @@ pub fn check_state_compatibility(
     instance.validate_database(&c.state_database)?;
     instance.prepare_workers()?;
     Store::check_compatibility(&c.state_database, initialize)?;
-    if !initialize {
+    if Path::new(&c.state_database).try_exists()? {
         let snapshot = mover_store::StateInspection::open(&c.state_database)?;
+        mover_fs::validate_inspected_state(&snapshot)?;
         snapshot.visit_jobs(|job, _, _| {
             if job.recording.submission().producer().is_none()
                 && job.recording.handoff() != Handoff::Ready202
