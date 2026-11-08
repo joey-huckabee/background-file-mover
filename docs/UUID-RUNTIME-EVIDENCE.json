@@ -310,5 +310,12 @@
     "Current runtime partial-legacy handoff refusal requires a compatible predecessor to finish handoff; old binary refuses UUID rows",
     "Final release predecessor/target qualification is separate from earlier migration pairs",
     "Operational conversion, deployment, production NFS/source deletion and remote authentication were not performed; all eight release gates remain open"
-  ]
+  ],
+  "qualification_api_process_budget": {
+    "seconds": 1200,
+    "other_tests_and_production_seconds": 900,
+    "reason": "Local production API586s plus measured CI qualification-only390s exceeds former whole-process900s; no test/assertion or individual runtime deadline changed",
+    "runtime_inputs_unchanged": true,
+    "final_head_ci_and_local_qualification_required": true
+  }
 }

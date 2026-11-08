@@ -86,6 +86,15 @@ Runtime defaults, request/delivery/shutdown bounds and separate short-expiry tes
 are unchanged. Superseded local runs were interrupted by verified owned PID and
 cleaned up, without claiming full passes. Exact run IDs remain in the evidence.
 
+The outer qualification API process budget is now 1200 seconds, while production
+and other test binaries retain 900. Measured local production API time was 586s;
+CI qualification adds about 390s over production, exceeding the former whole-suite
+900s ceiling. Every test/assertion, individual runtime/request/shutdown deadline,
+source input, toolchain/pin, ELF control and complete debug/release mode remains
+unchanged. Production commands and their 900s cap are identical before and after this
+change; local qualification and final-head CI execute the updated qualification-only
+budget. This adjusts a harness ceiling, not service behavior or release gates.
+
 Before merge, [PR #6](https://github.com/joey-huckabee/background-file-mover/pull/6)
 must record both final local modes, raw WSL paths/report hashes, all 73 input
 comparisons and all 40 executable rehashes, cleanup and prototype bundle smoke
