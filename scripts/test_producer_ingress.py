@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('producer_ingress_checker', Path(__file__).with_name('check-producer-ingress.py'))
 CHECK = importlib.util.module_from_spec(SPEC)
@@ -31,6 +32,8 @@ class Portable(unittest.TestCase):
         self.assertEqual(json.loads(data), body)
         self.assertEqual(head.count(b'X-File-Mover-Generator:'), 2)
         self.assertIn(b'Content-Length: '+str(len(data)).encode(), head)
+        self.assertIn(b'Host: localhost\r\n', raw)
+        self.assertIn('Host: localhost', CHECK.SLOW_CLIENTS)
 
     def test_reply_requires_full_single_framed_body(self):
         self.assertEqual(CHECK.parse_reply(reply())['code'], 200)
@@ -38,6 +41,15 @@ class Portable(unittest.TestCase):
                     reply().replace(b'\r\n', b'\n')):
             with self.subTest(raw=bad), self.assertRaises((AssertionError, ValueError)):
                 CHECK.parse_reply(bad)
+
+    def test_operator_transport_close_is_recorded_without_fabricating_json(self):
+        runner = CHECK.Runner({'requests': []})
+        result = subprocess.CompletedProcess([], 0, stdout=b'', stderr=b'')
+        with patch.object(runner, 'execute', return_value=result):
+            row = runner.http('/fixture/operator.sock', CHECK.wire('GET', '/healthz'))
+        self.assertEqual(row['raw_base64'], '')
+        self.assertNotIn('code', row)
+        self.assertNotIn('body', row)
 
     def test_refusal_envelope_and_permanent_retry_semantics(self):
         row = dict(code=403, body=dict(recording_id=None, error='caller_not_authorized',
@@ -113,6 +125,12 @@ class Portable(unittest.TestCase):
             folder = root/'gate'
             folder.mkdir()
             (root/'rust/lib.rs').write_bytes(b'fixture source')
+            subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            def commit_source():
+                subprocess.run(['git', 'add', '--', 'rust'], cwd=root, check=True)
+                subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                                'commit', '-q', '-m', 'Test: Committed fixture source'], cwd=root, check=True)
+            commit_source()
             platform = {'runtime': 'example.invalid/runtime@sha256:'+'a'*64}
             (root/'scripts/rust-platform.json').write_text(json.dumps(platform))
             # A tiny stand-in tests gate binding only, never claims a real ELF audit.
@@ -141,9 +159,14 @@ class Portable(unittest.TestCase):
             save(bad)
             with self.assertRaises(AssertionError): CHECK.load_gate(folder, root)
             save(gate)
+            # Worktree bytes, including Windows CRLF, cannot relabel committed evidence.
+            (root/'rust/lib.rs').write_bytes(b'fixture source\r\n')
+            CHECK.load_gate(folder, root)
             (root/'rust/lib.rs').write_bytes(b'changed')
+            commit_source()
             with self.assertRaises(AssertionError): CHECK.load_gate(folder, root)
             (root/'rust/lib.rs').write_bytes(b'fixture source')
+            commit_source()
             (folder/'debug-0-file-mover').write_bytes(b'tampered')
             with self.assertRaises(AssertionError): CHECK.load_gate(folder, root)
 
