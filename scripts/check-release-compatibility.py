@@ -168,13 +168,16 @@ def exercise(profile, gates, folder, runtime, result):
                       source_binding=source, destination_root=BASE + "/destination", destination_binding=destination,
                       state_database=BASE + "/state/jobs.sqlite", missing_file_retry_window_seconds=300)
         write("config.json", json.dumps(config).encode())
+        # A distinct listener prevents a port collision from masquerading as
+        # proof that the durable instance guard excludes the contender.
+        write("contender.json", json.dumps(dict(config, bind="127.0.0.1:39092")).encode())
         write("source/current/data", b"original committed recording")
         capture("initialize", "schema11", "--initialize-source", BASE + "/config.json")
         refused = capture("schema11-normal-refusal", "target", BASE + "/config.json", success=False)
         assert b"MigrationRequired" in refused.stderr
         start("schema11")
         # A competing binary must not stop or replace the admitted owner.
-        refused = capture("live-predecessor-excludes-target", "target", BASE + "/config.json", success=False)
+        refused = capture("live-predecessor-excludes-target", "target", BASE + "/contender.json", success=False)
         assert b"local instance or surviving worker already owns state" in refused.stderr and http("GET", "/healthz")[0] == 200
         complete = dict(generator_id="recorder", submission_id="complete", source_path=BASE + "/source/current", files=[dict(name="data")])
         pending = dict(complete, submission_id="pending", files=[dict(name="later")])
@@ -227,7 +230,7 @@ def exercise(profile, gates, folder, runtime, result):
         assert legacy_manifest["version"] == 1
         verified_contents("2", legacy_manifest, {"later": b"legacy pending recording"})
         assert snapshot(preserved_paths) == before
-        refused = capture("live-target-excludes-predecessor", "legacy", BASE + "/config.json", success=False)
+        refused = capture("live-target-excludes-predecessor", "legacy", BASE + "/contender.json", success=False)
         assert b"local instance or surviving worker already owns state" in refused.stderr and http("GET", "/healthz")[0] == 200
         write("source/current/new-a", b"uuid original a")
         write("source/current/new-b", b"uuid original b")
