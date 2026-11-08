@@ -949,7 +949,9 @@ pub fn check_state_compatibility(
     instance.validate_database(&c.state_database)?;
     instance.prepare_workers()?;
     Store::check_compatibility(&c.state_database, initialize)?;
-    if Path::new(&c.state_database).try_exists()? {
+    if Path::new(&c.state_database).try_exists()?
+        && (!initialize || std::fs::metadata(&c.state_database)?.len() != 0)
+    {
         let snapshot = mover_store::StateInspection::open(&c.state_database)?;
         mover_fs::validate_inspected_state(&snapshot)?;
         snapshot.visit_jobs(|job, _, _| {

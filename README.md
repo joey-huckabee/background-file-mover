@@ -6,16 +6,17 @@ and [source cleanup](docs/RUST-INCREMENT-114.md).
 
 `main` is the reviewed development baseline. Production release/deployment is a
 separate decision: all eight release gates remain open, production NFS and source
-deletion stay disabled, and UUID/manifest-v2 activation remains unimplemented.
+deletion stay disabled, and deployment remains separate from development integration.
 The explicit [offline schema migration](docs/OFFLINE-STATE-MIGRATION.md) is
 implemented; see [increment 115](docs/RUST-INCREMENT-115.md) for actual gate status.
 A merge does not authorize converting operational state.
 
-The next producer/manifest codec work is bounded by the
+Producer/manifest work follows the
 [final engineering contract](docs/api/PRODUCER-MANIFEST-CONTRACT.md). It fixes
 that slice's validation/identity/serialization; full P01 and runtime activation
-remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) implements inactive
-pure Rust codecs; read its actual validation status before using the new API.
+remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) qualified the pure
+codecs; [increment 118](docs/RUST-INCREMENT-118.md) records runtime integration,
+its exact activation/legacy matrix and actual qualification status.
 
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and

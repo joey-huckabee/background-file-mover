@@ -5307,3 +5307,37 @@ fn replay_and_policy_never_mask_lost_private_custody_or_reopen_producer_paths() 
         f.stop();
     }
 }
+
+#[test]
+fn explicit_initialization_retries_preserved_empty_database_but_refuses_sidecars() {
+    use std::os::unix::fs::MetadataExt;
+    for sidecar in [false, true] {
+        let f = Fixture::uninitialized(300);
+        let db = f.root.join("state/jobs.sqlite");
+        std::fs::write(&db, []).unwrap();
+        std::fs::set_permissions(&db, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let inode = std::fs::metadata(&db).unwrap().ino();
+        if sidecar {
+            std::fs::write(
+                f.root.join("state/jobs.sqlite-wal"),
+                b"preserve interrupted evidence",
+            )
+            .unwrap();
+        }
+        let result = initialize_source(&f.root.join("config.json"));
+        if sidecar {
+            assert!(!result.status.success(), "{result:?}");
+            assert_eq!(std::fs::read(&db).unwrap(), b"");
+            assert_eq!(
+                std::fs::read(f.root.join("state/jobs.sqlite-wal")).unwrap(),
+                b"preserve interrupted evidence"
+            );
+        } else {
+            assert!(result.status.success(), "{result:?}");
+            assert_eq!(std::fs::metadata(&db).unwrap().ino(), inode);
+            let s = mover_store::Store::open_read_only(&db).unwrap();
+            assert_eq!(s.job_count().unwrap(), 0);
+            assert!(s.source_ownership().unwrap().is_some());
+        }
+    }
+}

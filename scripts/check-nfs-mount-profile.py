@@ -73,7 +73,7 @@ def main():
         data = (root / 'scripts' / name).read_bytes()
         report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
     if args.production_gate:
-        for name in ('nfs_mount_authorization.py', 'nfs_binding.py', 'nfs_same_share.py', 'nfs_runtime.py', 'nfs_buffered_reads.py', 'nfs_buffered_publication.py', 'nfs_publication.py', 'nfs_buffered_claims.py', 'nfs_buffered_bootstrap.py', 'nfs_bootstrap_state.py', 'nfs_buffered_sync.py', 'nfs_reply_relay.py', 'nfs_reply_proxy.py', 'nfs_rpc.py', 'test_nfs_rpc.py', 'nfs_sync_support.py', 'nfs_syscall_trace.py', 'nfs_sync_capability.py', 'nfs_sync_probe.c', 'nfs_io_trace.py', 'nfs_io_analysis.py', 'test_nfs_io_analysis.py', 'nfs_buffered_commit.py', 'test_nfs_write_resend.py'):
+        for name in ('nfs_mount_authorization.py', 'nfs_binding.py','nfs_fixture_contract.py', 'nfs_same_share.py', 'nfs_runtime.py', 'nfs_buffered_reads.py', 'nfs_buffered_publication.py', 'nfs_publication.py', 'nfs_buffered_claims.py', 'nfs_buffered_bootstrap.py', 'nfs_bootstrap_state.py', 'nfs_buffered_sync.py', 'nfs_reply_relay.py', 'nfs_reply_proxy.py', 'nfs_rpc.py', 'test_nfs_rpc.py', 'nfs_sync_support.py', 'nfs_syscall_trace.py', 'nfs_sync_capability.py', 'nfs_sync_probe.c', 'nfs_io_trace.py', 'nfs_io_analysis.py', 'test_nfs_io_analysis.py', 'nfs_buffered_commit.py', 'test_nfs_write_resend.py'):
             data = (root / 'scripts' / name).read_bytes()
             report['sources'][name] = dict(sha256=hashlib.sha256(data).hexdigest(), base64=base64.b64encode(data).decode())
 

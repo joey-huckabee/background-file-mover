@@ -26,7 +26,16 @@ explicit verified `--backup-state` for supported schema 11 or legacy-only 12.
 Follow [the offline procedure](../OFFLINE-STATE-BACKUP.md); this does not
 implement conversion/apply, qualify physical custody or freeze the REST contract.
 
-## Current scoped closeout (increment 116)
+## Runtime integration (increment 118)
+
+The user authorizes step 3 after the qualified codecs. See
+[increment 118](../RUST-INCREMENT-118.md) for current implementation/gate status,
+UUID/v2 activation and the legacy continuation/refusal matrix. The producer and
+manifest slice does not implement or freeze the other candidate routes, remote
+access, sessions, cancellation or deletion. Earlier disabled statuses below are
+historical checkpoints, superseded only within the separately authorized slice.
+
+## Scoped contract closeout (increment 116)
 
 The [producer/manifest engineering contract](PRODUCER-MANIFEST-CONTRACT.md)
 finalizes step 1 for the new producer and manifest v2: lexical/size bounds,

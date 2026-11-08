@@ -1,5 +1,13 @@
 # Offline state inspection and backup
 
+Current runtime checkpoint: [increment 118](RUST-INCREMENT-118.md) records UUID/v2
+integration and exact gate status. Validated mixed schema-12 state can be inspected
+and backed up; schema-11 conversion still preserves only original legacy state.
+Finish partial legacy handoff with a compatible predecessor before starting the
+new runtime. Older legacy-only/activation-disabled statements below describe the
+original increment's qualification, not authority to deploy or convert live state.
+
+
 These commands support the separately explicit [migration](OFFLINE-STATE-MIGRATION.md). They do not convert or
 restore a database. Use a production build; qualification builds are lab-only.
 

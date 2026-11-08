@@ -7,6 +7,14 @@ all P01 routes, claim consumer compatibility, authorize runtime UUID/v2 activati
 convert operational state or deploy anything. Other candidate/admin/access
 choices remain identified in [the bundle index](README.md).
 
+## Implementation checkpoint
+
+Step 2 codecs merged in PR 5. The user authorized runtime step 3 on 2026-11-08;
+see [increment 118](../RUST-INCREMENT-118.md) for actual source/gate status and
+the supported activation matrix. Historical authorization limits in this
+2026-11-07 contract remain descriptions of that checkpoint; the approved
+engineering rules below remain unchanged.
+
 ## Authority and artifacts
 
 This document fixes the producer/v2 details previously left as engineering

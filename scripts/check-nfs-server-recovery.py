@@ -79,7 +79,7 @@ def main():
     for name in ('check-nfs-server-recovery.py','nfs_recovery_server.sh','nfs_recovery_probe.c',
                  'nfs_reply_relay.py','nfs_reply_proxy.py','nfs_rpc.py','test_nfs_rpc.py',
                  'nfs_sync_support.py','nfs_syscall_trace.py',
-                 *(('nfs_server_mover.py','nfs_runtime.py','nfs_binding.py','nfs_mount_profile.py','check-rust-sles.py') if args.mover else ())):
+                 *(('nfs_server_mover.py','nfs_runtime.py','nfs_binding.py','nfs_fixture_contract.py','nfs_mount_profile.py','check-rust-sles.py') if args.mover else ())):
         data=(root/'scripts'/name).read_bytes()
         report['sources'][name]=dict(sha256=hashlib.sha256(data).hexdigest(),base64=base64.b64encode(data).decode())
     if args.distinct_filesystems:

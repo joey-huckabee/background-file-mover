@@ -70,7 +70,7 @@ impl fmt::Display for StoreError {
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: schema 11 state is preserved; explicit migration to schema 12 is required and apply is not enabled in this build. Do not reinitialize or replace original state."
+                "MigrationRequired: schema 11 state is preserved; explicit offline migration to schema 12 is required; normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,

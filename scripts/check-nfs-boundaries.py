@@ -319,7 +319,7 @@ def main():
                     destination_relay=destination_observer,source_relay=lambda address:sync_relays['source'])
                 report['sync_relays'] = {role:relay.evidence for role,relay in sync_relays.items()}
                 names=('check-nfs-boundaries.py','nfs_sync_workers.py','nfs_sync_support.py','nfs_syscall_trace.py',
-                    'nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_runtime.py','nfs_endpoints.py','nfs_binding.py','nfs_bootstrap_state.py')
+                    'nfs_rpc.py','nfs_reply_proxy.py','nfs_reply_relay.py','nfs_runtime.py','nfs_endpoints.py','nfs_binding.py','nfs_fixture_contract.py','nfs_bootstrap_state.py')
                 report['synchronization'] = dict(passed=False,cases=[],driver_sha256={name:hashlib.sha256((ROOT/'scripts'/name).read_bytes()).hexdigest() for name in names})
                 hashes=dict(report['artifacts']);hashes.update({'qualification-'+c['profile']:c['binary_sha256'] for c in report['baseline']['cases']})
                 completed=run_runtime(run,execute,spawn,restore,server,output,client,hashes,report['synchronization']['cases'],
@@ -331,7 +331,7 @@ def main():
                 from nfs_storage import qualify_enrollment_storage
                 report["enrollment_storage"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_storage.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_storage.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 qualify_enrollment_storage(run, execute, spawn, output, client, server, ip, options,
                                            extra_mounts, report["enrollment_storage"])
                 assert report["enrollment_storage"]["passed"]
@@ -341,7 +341,7 @@ def main():
                 from nfs_delivery_storage import qualify_delivery_storage
                 report["delivery_storage"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_delivery_storage.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_delivery_storage.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 qualify_delivery_storage(run, execute, spawn, output, client, server, ip, options,
                                          extra_mounts, report["delivery_storage"])
                 assert report["delivery_storage"]["passed"]
@@ -351,7 +351,7 @@ def main():
                 from nfs_source_storage import qualify_source_storage
                 report["source_storage"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_source_storage.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_source_storage.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 qualify_source_storage(run, execute, spawn, output, client, server, ip, options,
                                        extra_mounts, report["source_storage"])
                 assert report["source_storage"]["passed"]
@@ -370,7 +370,7 @@ def main():
                 report["ownership"] = {"probe_status": "FAILED", "production_authorized": False, "cases": []}
                 report["ownership"]["driver_sha256"] = {
                     name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_custody.py", "nfs_enrollment.py")}
+                    for name in ("check-nfs-boundaries.py", "nfs_ownership.py", "nfs_binding.py", "nfs_fixture_contract.py", "nfs_custody.py", "nfs_enrollment.py")}
                 run_ownership(run, execute, spawn, output, client, peer, server,
                               gate, evidence, qualification_gate, qualification, mounted_peers, report["ownership"], restore)
             if args.coordinator_death:
@@ -416,7 +416,7 @@ def main():
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["coordinator_death"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_both.py", "nfs_exports.py", "nfs_endpoints.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_death.py", "nfs_bootstrap_state.py", "nfs_publication.py", "nfs_both.py", "nfs_exports.py", "nfs_endpoints.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 case_runner = None
                 if args.death_scope == "destination-startup":
                     from nfs_destination_startup import qualify
@@ -461,7 +461,7 @@ def main():
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["shutdown"] = {"passed": False, "cases": [],
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_shutdown.py", "nfs_binding.py")}}
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_shutdown.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
                                         artifact_hashes, report["shutdown"]["cases"], shutdown_only=True)
                 report["shutdown"].update(completed)
@@ -487,7 +487,7 @@ def main():
             run(["cp", str(path), client + ":/tmp/nfs-state-config.json"])
             report["local_ownership"] = {"passed": False, "cases": [],
                 "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
-                                  for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py")}}
+                                  for name in ("check-nfs-boundaries.py", "nfs_baseline.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
             builds = [("production", evidence, "/tmp/")]
             if qualification:
                 builds.append(("nfs-qualification", qualification, "/tmp/qualification-"))
