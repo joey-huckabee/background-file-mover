@@ -897,11 +897,11 @@ async fn connection(
                         if r.head.headers.get("idempotency-key").is_some_and(|key| {
                             std::str::from_utf8(key).ok().is_none_or(|key| {
                                 mover_fs::recording_codec::validate_idempotency_key(
-                                    key,
                                     submission
                                         .producer()
                                         .expect("producer request")
                                         .recording_id(),
+                                    key,
                                 )
                                 .is_err()
                             })
