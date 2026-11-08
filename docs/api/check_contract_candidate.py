@@ -197,6 +197,13 @@ def main():
 
     check_producer_manifest(schema, fixtures, vectors)
 
+    rust_fixtures = ROOT.parent.parent / "rust/crates/mover-fs/src/recording_codec"
+    require(json.loads((rust_fixtures / "identity-v1.json").read_text(encoding="utf-8"))
+            == read("request-identity-v1.candidate.vectors.json"), "Rust identity fixture copy differs")
+    copied = json.loads((rust_fixtures / "producer-manifest.json").read_text(encoding="utf-8"))
+    require(copied["cases"] == [c for c in fixtures if c["schema"] in ("ProducerRequest", "ManifestV2")],
+            "Rust producer/manifest fixture subset differs")
+
     expected = {
         ("post", "/api/v2/jobs"), ("get", "/healthz"),
         ("post", "/api/v2/admin/login"), ("post", "/api/v2/admin/logout"),
@@ -260,6 +267,7 @@ def main():
     print(f"PASS: {len(schema['$defs'])} definitions, {len(fixtures)} structural fixtures, "
           f"{len(actual)} route operations and reference/access checks")
     print(f"PASS: {len(vectors)} existing request-identity frames/hashes with decimal-string size inputs")
+    print("PASS: Rust test fixture copies match existing contract vectors/cases")
     print("NOT RUN: other semantic annotations, full OpenAPI conformance, HTTP/SQL/security/runtime/consumer qualification")
 
 

@@ -2,6 +2,15 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-07 pure codec implementation authorization: the user says "ok, go ahead
+with step 2" after increment 116. Implement and qualify pure UUID/decimal/path
+validation, immutable request identity framing/hash, and v2 encode/decode helpers
+using existing crates. Preserve original bytes and durable path/index mapping.
+No producer routing, Store admission/schema, worker assignments, kind-1 whole-state
+refusal, runtime size policy, deployment or operational state changes. UUID/v2
+activation remains step 3 and needs separate authorization. See
+docs/RUST-INCREMENT-117.md and docs/api/PRODUCER-MANIFEST-CONTRACT.md.
+
 2026-11-07 producer/manifest contract closeout: the user authorizes step 1 of
 the next recommendation. Finalize the bounded producer/manifest-v2 engineering
 contract using approved groups 1-52, reconcile migration status, and prepare the

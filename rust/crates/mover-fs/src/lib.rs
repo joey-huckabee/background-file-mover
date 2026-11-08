@@ -87,6 +87,8 @@ pub const fn nfs_qualification_enabled() -> bool {
 
 mod binding;
 mod mount_profile;
+/// Pure, inactive new-producer/v2 codecs; never performs filesystem admission.
+pub mod recording_codec;
 pub use mount_profile::{MountProfile, NfsMountProfile};
 mod backup;
 mod bootstrap;

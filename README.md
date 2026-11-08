@@ -14,7 +14,8 @@ A merge does not authorize converting operational state.
 The next producer/manifest codec work is bounded by the
 [final engineering contract](docs/api/PRODUCER-MANIFEST-CONTRACT.md). It fixes
 that slice's validation/identity/serialization; full P01 and runtime activation
-remain separate. See [increment 116](docs/RUST-INCREMENT-116.md).
+remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) implements inactive
+pure Rust codecs; read its actual validation status before using the new API.
 
 Current Rust release work: [closure review and finite acceptance matrix](docs/RUST-RELEASE-CLOSURE.md),
 [first-release checklist](docs/RUST-FIRST-RELEASE.md) and

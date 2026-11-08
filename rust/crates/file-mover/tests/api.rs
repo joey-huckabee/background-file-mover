@@ -4701,3 +4701,31 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
     assert!(!fresh.root.join("state/jobs.sqlite").exists());
     assert!(!fresh.root.join("backup").exists());
 }
+
+#[test]
+fn new_producer_codec_does_not_activate_http_or_change_legacy_v1_publication() {
+    let mut f = Fixture::new(300);
+    provision_destination(&f);
+    f.write("data", b"legacy remains active");
+    let new_wire = json!({"generator_id":"recorder","recording_id":"00000000-0000-0000-0000-000000000000","source_directory":f.root.join("source/current"),"files":["data"]});
+    assert_eq!(f.post(&new_wire).0, 400);
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"legacy remains active"
+    );
+    assert_eq!(retention(&f, None).1["details"]["retained_jobs"], 0);
+    assert_eq!(
+        f.post(&f.input("legacy-codec-boundary", json!([{"name":"data"}])))
+            .0,
+        202
+    );
+    wait_manifest(&f, "1");
+    let manifest: Value = serde_json::from_slice(
+        &std::fs::read(f.root.join("destination/1/COMMITTED.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(manifest["version"], 1);
+    assert_eq!(manifest["submission_id"], "legacy-codec-boundary");
+    assert!(manifest.get("recording_id").is_none());
+    f.stop();
+}
