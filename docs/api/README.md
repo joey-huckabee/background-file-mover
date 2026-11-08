@@ -1,8 +1,8 @@
 # REST contract candidate artifacts
 
 2026-11-01, P01 review work following the
-[consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Not runtime
-implementation.** Updated 2026-11-03: groups 1-52 are approved; group 50 changes post-clear ownership, and group 49 selects
+[consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Runtime implementation is limited to separately authorized
+slices, including the producer/manifest work in increment 118.** Updated 2026-11-03: groups 1-52 are approved; group 50 changes post-clear ownership, and group 49 selects
 the reviewed-state retry header. These files make the schema proposal executable without claiming the unfinished API is ready to ship.
 
 The user subsequently authorized bounded group-50 code: see

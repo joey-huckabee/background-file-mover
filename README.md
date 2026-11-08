@@ -13,8 +13,8 @@ A merge does not authorize converting operational state.
 
 Producer/manifest work follows the
 [final engineering contract](docs/api/PRODUCER-MANIFEST-CONTRACT.md). It fixes
-that slice's validation/identity/serialization; full P01 and runtime activation
-remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) qualified the pure
+that slice's validation/identity/serialization; full P01, deployment and
+operational conversion remain separate. [Increment 117](docs/RUST-INCREMENT-117.md) qualified the pure
 codecs; [increment 118](docs/RUST-INCREMENT-118.md) records runtime integration,
 its exact activation/legacy matrix and actual qualification status.
 

@@ -14,9 +14,9 @@ current expected-size policy, durable path indices and v2 publication/recovery.
 Legacy UUID-looking submission IDs stay kind 0 and publish exact v1; incomplete
 legacy handoffs refuse before payload bootstrap. Group-50/SC-181-183 clear
 continues full forgetting with untouched files and greater fresh job IDs.
-Actual HTTP/SQL/filesystem fixture outcomes and both SLES gate modes are pending
-in [increment 118](RUST-INCREMENT-118.md); no physical NFS, release or deployment
-qualification is claimed by the source/tooling adaptation.
+Actual HTTP/SQL/filesystem fixtures and both SLES CI modes passed; final local
+closeout and exact limits are in [increment 118](RUST-INCREMENT-118.md)/PR 6. No
+physical NFS, release or deployment qualification is claimed by this integration.
 
 ## Increment 117 pure codec implementation
 
