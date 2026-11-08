@@ -30,8 +30,10 @@ deletion runtime or TLS proxy deployment is implemented here.
 Socket custody checks kernel mount metadata before traversing local paths,
 rejects aliases/unsafe ancestors and requires preprovisioned exact owner/group/
 modes. Both parent directories must be disjoint from state and payload roots.
-Prepare both names before binding either; existing/stale/foreign names refuse,
-never auto-unlink. Bind under instance/lifetime ownership before source bootstrap;
+Validate both names before SQLite inspection; existing/stale/foreign names refuse,
+never auto-unlink. Compatibility inspection then checks both parents against all
+retained payload roots, including historical destinations. Bind under instance/
+lifetime ownership before source bootstrap;
 activate nonblocking Tokio listeners only on the reactor after startup. Listener
 descriptors stay close-on-exec. Clean exit removes only the original socket
 device/inode under the still-validated parent; substituted names remain untouched.
@@ -60,7 +62,12 @@ refusal, exact-inode cleanup/replacement preservation and actual exec descriptor
 closure. A new API CLI regression tests operator paths at jobs.sqlite-journal,
 workers.next and operator.sock under state: exact configuration refusal before
 either endpoint, instance guard, DB or enrollment creation. These are disposable
-fixtures; final target results are reported below when complete.
+fixtures; final target results are reported below when complete. A second API
+regression seeds a foreign producer endpoint and compares every SQLite file
+name/byte before and after refusal. It also changes the configured destination
+and verifies refusal against the old retained destination, preserving its
+payload and manifest bytes. Control availability and durable worker-epoch
+coverage remain active through this preflight.
 
 The new `scripts/check-producer-ingress.py` uses retained passed production gate
 artifacts, checks committed source blobs/archive/ELF/executable hashes, and runs
@@ -96,8 +103,27 @@ remain retained, with no full pass claimed. Superseded CI is likewise retained.
 Driver review caught missing protection assertions for producer-reused leaves;
 both replay stages now verify exact replacement bytes, original numeric claims
 and destination output in addition to unchanged manifests. Follow-up bounded
-reviews found no further actionable source/driver findings. The coordinator also
+reviews found no further actionable source/driver findings. CI review also caught
+a missing shared-helper trigger, now included in both workflow path filters.
+The coordinator also
 aligned the operator's absent producer route with its existing 404/local envelope.
+
+Actual-target checker development retained four failed reports, each with clean
+container cleanup. The first exposed Podman archive-copy ownership rewriting;
+`--archive=false` retains the fixture's numeric IDs without new capabilities.
+The minimal target lacks MIME::Base64, so Perl transport now uses core hex
+packing in bounded argument chunks. The second local report included OCI startup
+in a responsiveness measurement; prestarted real-UID clients now synchronize
+through fixture FIFOs and measure inside the container, preserving all service
+deadlines and timeout assertions.
+
+The third and fourth reports exposed SQLite WAL/shared-memory file creation
+before foreign-endpoint refusal. Original database and payload hashes stayed
+unchanged, but the strict unchanged-file assertion correctly failed. The fix
+validates/holds both endpoint plans before SQLite and binds only after
+compatibility/retained-root checks. No assertion was relaxed and no old report
+was relabeled as passing. These failures and the superseded production pass
+remain historical evidence; only fresh final-source runs qualify this increment.
 
 Operator instructions: [protected local ingress](RUST-OPERATOR-GUIDE.md#opt-in-protected-local-http-ingress).
 All eight FR gates remain open. Remote proxy/certificate operations, shipping
