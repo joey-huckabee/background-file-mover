@@ -1,20 +1,25 @@
 # Native HTTPS implementation plan for SLES 12 SP5
 
 2026-11-08. User decision: "No proxy, do HTTPS in the Rust app".
-Base: main `10b4cb769d5a5ce72ccce67987bcc16f37677f6a` after PR9.
-This records the implementation plan and supersedes the external-proxy portion
-of P03/D02 and the older remote access design. TLS runtime, new dependencies,
-deployment and qualification are not delivered by this document.
+Original architecture-plan base: main
+`10b4cb769d5a5ce72ccce67987bcc16f37677f6a` after PR9.
+This implementation sequence supersedes the external-proxy portion of P03/D02
+and the older remote access design. Increments122/123 record the implemented TLS
+stack and native listener with their actual qualification results. The user has
+authorized live TLS reload; its implementation at `99474cd` on
+`feature/live-tls-reload` is awaiting qualification and independent review, with
+increment124 forthcoming. This checkpoint grants no deployment or release approval.
 
 ## Approved first implementation and non-TLS option
 
 The user subsequently approved the TLS dependency/SLES handshake proof with
 proper user setup instructions and required configurable operation without TLS.
 See [increment122](RUST-INCREMENT-122.md) and [setup guide](NATIVE-HTTPS-SETUP.md).
-The current loopback HTTP mode stays usable without certificates. Explicit
-HTTP/HTTPS selection is part of the later listener increment; remote plaintext
-trust/authentication must be explicit and must not silently claim mTLS or grant
-operator/admin access. TLS configuration errors never select HTTP automatically.
+Loopback HTTP stays usable without certificates. Increment123 implements explicit
+native HTTP/HTTPS selection; HTTP is loopback-only and never claims mTLS or grants
+public operator/admin access. Prototype HTTP and protected Unix transport remain
+separate existing modes. Live TLS reload applies only to native HTTPS; it does
+not switch transports. TLS configuration errors never select HTTP automatically.
 
 ## Result and preserved behavior
 
@@ -42,12 +47,12 @@ new public operation/job identifier is needed for this transport change.
 
 ## Increment A: dependency and SLES feasibility
 
-Proposed stack: rustls plus tokio-rustls, using the existing Tokio runtime and
-HTTP parser/handlers. Evaluate rustls's maintained default AWS-LC provider first.
-Do not silently inherit changing Cargo defaults or select a second provider.
-Exact released versions, transitive crates, licenses, checksums and selected
-features must be reviewed before dependency changes. This plan does not approve
-an arbitrary dependency graph, install tools or claim the provider works on SLES.
+Implemented stack: the pinned rustls/tokio-rustls AWS-LC profile recorded in
+increment122, using the existing Tokio runtime and HTTP parser/handlers. Retain
+its exact reviewed versions, transitive crates, licenses, checksums and features.
+Do not silently inherit changing Cargo defaults or select another provider. The
+requirements below explain the proof boundary; actual results belong to the
+increment and gate reports, not to a dependency name or this plan alone.
 
 Rustls documents TLS1.2/1.3, provider selection and Tokio integration; AWS-LC
 documents GNU/Linux support and native compiler requirements. These establish
@@ -85,9 +90,9 @@ below remain the bounded implementation contract; they are not results by themse
 
 Add an explicit HTTPS producer configuration: listen address/port, configured
 server authority, server certificate chain/key, client trust anchors and bounded
-certificate allowlist. Exact field names are engineering work. Reject ambiguous
-mode combinations with prototype/proxy-style ingress. Native HTTPS must never
-start a plaintext producer fallback if TLS configuration fails.
+certificate allowlist. The exact implemented fields are in the setup guide.
+Reject ambiguous mode combinations with prototype/proxy-style ingress. Native
+HTTPS must never start a plaintext producer fallback if TLS configuration fails.
 
 Read credentials only from validated local files under trusted ownership and
 parents: no symlink/unsafe mount traversal, private key readable only by the
@@ -102,8 +107,8 @@ payload bootstrap; do not perform credential filesystem I/O on the Tokio executo
 Use tokio-rustls to wrap accepted TCP streams and reuse the current HTTP parser,
 response envelopes and submission handler. Explicitly flush TLS responses;
 successful writes into a TLS buffer alone are not delivery evidence. Keep HTTP/1.1
-and one request per connection initially. Propose TLS1.2/1.3 only, no TLS early
-data and no session resumption for the first qualified profile. No HTTP/2, QUIC,
+and one request per connection. Retain TLS1.2/1.3 only, no TLS early data and no
+session resumption for the implemented profile. No HTTP/2, QUIC,
 redirects, response caching or automatic POST retransmission is introduced.
 
 Build an owned producer principal from the verified client certificate, never
@@ -125,12 +130,13 @@ identity isolation and complete denial coverage with original data preserved.
 
 ## Increment C: bounds, shutdown and certificate lifecycle
 
-Count unfinished TLS handshakes and active producer HTTP requests within the
-bounded producer budget. Preserve six producer/eight total HTTP slots and private
-operator/control responsiveness. Proposed handshake deadline: five seconds,
-in addition to the existing five-second HTTP read, ten-second handoff and bounded
-response write. Define and test maximum handshake/certificate buffers and CPU
-work for the selected provider; bound TLS cryptographic work independently of
+The native listener already counts unfinished TLS handshakes and active producer
+HTTP requests within six producer/eight total HTTP slots, with separate private
+operator/control access. Its handshake deadline is five seconds, alongside the
+five-second HTTP read, ten-second handoff and bounded response write. The new
+reload implementation is one bounded part of increment C; it does not complete
+its broader load/shutdown obligations. Define and test maximum handshake/
+certificate buffers and CPU work for the selected provider; bound TLS cryptographic work independently of
 the shared executor so expensive handshakes cannot starve stop/status.
 
 Preserve 8KiB/64-header, 64KiB JSON body and 256-file limits. Oversized, ambiguous,
@@ -141,20 +147,57 @@ response can be sent. A full pre-handshake budget can close a connection;
 it cannot promise an encrypted 429 without completing TLS. No transport failure
 grants path release or proves that previously admitted work rolled back.
 
-Provide controlled host-local TLS policy reload through the private control
-boundary, without restarting the mover or waiting on NFS/SQLite. Exact control
-wire is a design deliverable, not an extra public REST endpoint. Load and fully
-validate a new immutable certificate/key/trust/allowlist snapshot before activation.
-Failed reload leaves the existing policy intact and reports failure.
+The authorized implementation adds host-local `--reload-tls CANDIDATE.json` and
+`--tls-status CONFIG.json`; see the [setup instructions](NATIVE-HTTPS-SETUP.md#live-tls-policy-reload-qualification-pending).
+The candidate is the full configuration (at most 16 KiB), not a partial TLS object.
+Only server certificate chain/key, server/client roots and client allowlist may
+change. HTTPS mode, authority, bind, operator socket and all non-TLS fields stay
+fixed. Replacement files must remain within the set of immediate credential
+parent directories recorded at original startup; versioned filenames in those
+directories are supported, but later reloads cannot expand that set. Private
+bytes stay in protected files, never arguments or logs. The loaded policy is an
+in-memory replacement; no startup configuration file is rewritten.
 
-Define a serialized admission/reload boundary. On successful replacement, stop
-new old-policy admission, invalidate outstanding old handshakes/connections and
-prevent queued/unadmitted requests from using stale authorization. Acknowledge
-completion only after those exclusions hold. Already admitted service work can
-continue; closing an HTTP stream does not cancel a durable handoff or transfer.
-Tests must cover the race, including expiry and a certificate removed from an
-otherwise unchanged trusted CA. With resumption disabled there are no old TLS
-tickets to grandfather. Certificate rotation must not change UUID replay identity.
+A separate mode0600 private `tls-reload.sock` in the existing state directory serves
+only the service UID. The unchanged lifecycle control provides owner discovery
+and independent stop/status. A single reserved loader performs local credential
+validation; status uses a short memory lock without credential/NFS/SQLite I/O.
+Two tracked threads retain instance custody until joined. No public REST reload,
+new dependency or TLS reload in HTTP/prototype/Unix modes is introduced.
+
+Candidate validation completes before atomic policy activation. A validation
+rejection preserves the active policy. Activation and actual `process` admission
+share a short memory boundary. All old-generation unadmitted TLS connections are
+revoked, and queued work cannot later use a stale authorization lease. The reload
+acknowledgement waits for old unadmitted-connection exclusion, not for already
+admitted process calls or transfers to finish. Client chain/usage/expiry and
+current generation/allowlist are checked at actual admission. Deferral, including
+a source-space probe retry, must re-enter admission; it cannot grandfather old
+credentials. Existing source custody, UUID replay, whole-set 202 and admitted
+service work remain unchanged. Disabled resumption leaves no old TLS tickets.
+
+Public status includes the coordinator `PID:start`, process-local generation,
+server/client leaf hashes and full `policy_sha256`. The full hash binds the public
+HTTPS configuration/mappings and certificate/root hashes, excluding private bytes.
+`loading` retains the prior active snapshot during validation; `draining` exposes
+the activated new policy while old unadmitted connections exit; `applied` follows
+that exclusion. `busy` means the loader is reserved/running and is distinct from
+`draining`. `ready`, `rejected` and `stopping` complete the result labels. Queued
+and admitted connection counts are observations, not job receipts.
+
+The client reads generation then sends one reload with that expected generation.
+A valid successful acknowledgement requires the next generation, `applied` and
+no remaining draining. Reload has a thirty-second overall CLI budget; status has
+one second. Lost responses/timeouts are outcome unknown, without automatic
+mutating retry. Compare the complete intended public policy hash and `PID:start`
+using `--tls-status`. Generation or a later result label alone proves no particular
+command: status is current memory, not historical command-replay evidence. A
+restart resets the generation. Do not infer rollback from a failed response.
+
+Qualification and independent review of these reload/admission/stop boundaries
+remain pending for increment124. Existing increment122/123 passes do not establish
+live revocation, sustained cryptographic CPU isolation, independent-client
+interoperability, fresh bundle delivery or shipping lifecycle readiness.
 
 Retain the first monotonic shutdown deadline and lifetime exclusion through all
 Store/worker and TLS/key-loading thread closure. A TLS accept, read or write
@@ -220,11 +263,15 @@ inside the pinned container. Shared-kernel containers do not prove every SLES12
 service pack/kernel, vendor systemd package, NAS or FIPS configuration. State
 these limits; no real SLES installation is added as a prerequisite.
 
-This plan changes the transport architecture only. No proxy deployment, native
-TLS runtime/dependency change, admin/session/action implementation, operational
-state conversion, production NFS/deletion or release is performed here. All eight
-release gates remain open. Exact TLS dependencies and their build graph are the
-first implementation review item; they are not installed by this plan.
+The dependency/native-listener implementations and their results remain scoped
+to increments122/123. Live reload source is present; increment124's qualification
+record is forthcoming, not implied by this plan. Stronger cryptographic CPU
+isolation, independent-client interoperability, new offline-bundle validation and
+shipping qualification remain separate obligations. No proxy deployment,
+admin/session/action activation, operational state conversion, production
+NFS/deletion or release approval is introduced. All eight FR release gates remain
+open; retain the reviewed dependency graph rather than changing it through setup
+instructions.
 
 Primary technical references: [Rustls](https://docs.rs/rustls/latest/rustls/),
 [Tokio Rustls](https://docs.rs/tokio-rustls/latest/tokio_rustls/),
