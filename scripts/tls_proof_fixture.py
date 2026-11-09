@@ -19,7 +19,7 @@ import tempfile
 
 ARCHIVE_ROOT = 'file-mover-tls-proof'
 CERTIFICATES = ('ca', 'other-ca', 'server', 'client', 'untrusted-client',
-                'expired-client', 'wrong-usage-client', 'expired-server')
+                'expired-client', 'wrong-usage-client', 'expired-server', 'unapproved-client')
 LEAVES = CERTIFICATES[2:]
 FILES = tuple(name+'.der' for name in CERTIFICATES) + tuple(name+'.key.der' for name in LEAVES)
 

@@ -4,7 +4,10 @@ Current architecture (2026-11-08): the user requires HTTPS inside the Rust app,
 with no external proxy. [Native HTTPS plan](NATIVE-HTTPS-PLAN.md) supersedes the
 proxy/hop/deployment mechanisms below. Preserve mutual TLS, explicit certificate
 authorization and existing producer/transfer safety requirements. PR9 qualifies
-the local Unix transport only; native TLS remains to implement/qualify. The
+the local Unix transport only. [Increment123](RUST-INCREMENT-123.md) implements
+the native producer listener after increment122's dependency proof; use its
+actual validation status. Live TLS lifecycle, independent-client/shipping and
+full remote-access qualification remain open. The
 original design below is historical, including its obsolete producer examples
 and error spellings; frozen v2 schema/runtime take precedence.
 

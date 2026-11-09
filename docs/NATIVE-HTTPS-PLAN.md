@@ -78,6 +78,11 @@ glibc ceiling, substituting host tests or falling back to plaintext/OpenSSL.
 
 ## Increment B: native producer HTTPS
 
+The user approved this increment after PR11. See
+[increment123](RUST-INCREMENT-123.md) for implementation and actual qualification
+status and [setup](NATIVE-HTTPS-SETUP.md) for exact configuration. The requirements
+below remain the bounded implementation contract; they are not results by themselves.
+
 Add an explicit HTTPS producer configuration: listen address/port, configured
 server authority, server certificate chain/key, client trust anchors and bounded
 certificate allowlist. Exact field names are engineering work. Reject ambiguous

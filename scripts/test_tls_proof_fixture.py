@@ -98,6 +98,7 @@ class Certificates(unittest.TestCase):
             return self.command('verify', '-CAfile', self.base/(ca+'.pem'), '-purpose', purpose,
                                 *options, self.base/(name+'.pem'))
         self.assertEqual(verify('client', 'sslclient').returncode, 0)
+        self.assertEqual(verify('unapproved-client', 'sslclient').returncode, 0)
         self.assertEqual(verify('server', 'sslserver', 'ca', '-verify_hostname', 'localhost').returncode, 0)
         self.assertEqual(verify('server', 'sslserver', 'ca', '-verify_ip', '127.0.0.1').returncode, 0)
         self.assertNotEqual(verify('server', 'sslserver', 'ca', '-verify_hostname', 'other.invalid').returncode, 0)

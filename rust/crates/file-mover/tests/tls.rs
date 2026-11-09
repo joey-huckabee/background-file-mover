@@ -17,6 +17,9 @@ use tokio_rustls::{TlsAcceptor, TlsConnector};
 const MESSAGE: &[u8] = b"SLES12SP5 native TLS dependency proof";
 const DEADLINE: Duration = Duration::from_secs(5);
 
+#[path = "tls_listener/mod.rs"]
+mod native_listener;
+
 fn fixture(name: &str) -> Vec<u8> {
     let directory = std::env::var_os("FILE_MOVER_TLS_FIXTURES")
         .expect("run through check-rust-sles.py: gate-generated TLS fixtures required");

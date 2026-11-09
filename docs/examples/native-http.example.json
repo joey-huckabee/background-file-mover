@@ -1,0 +1,33 @@
+{
+  "bind": "127.0.0.1:8080",
+  "generator_id": "recorder-host-a",
+  "source_root": "/srv/file-mover/source",
+  "source_binding": {
+    "version": 3,
+    "coordinator_id": "mover-a",
+    "root_id": "source-a",
+    "endpoint_id": "local-source-a",
+    "marker_id": "provisioned-source-a",
+    "filesystem": "local",
+    "role": "source"
+  },
+  "destination_root": "/srv/file-mover/destination",
+  "destination_binding": {
+    "version": 3,
+    "coordinator_id": "mover-a",
+    "root_id": "destination-a",
+    "endpoint_id": "local-destination-a",
+    "marker_id": "provisioned-destination-a",
+    "filesystem": "local",
+    "role": "destination"
+  },
+  "state_database": "/var/lib/file-mover/state.sqlite",
+  "missing_file_retry_window_seconds": 300,
+  "max_retained_jobs": 64,
+  "max_retained_bytes": 1099511627776,
+  "check_expected_sizes": false,
+  "native_ingress": {
+    "transport": "http",
+    "operator_socket": "/run/file-mover-api/operator.sock"
+  }
+}
