@@ -44,6 +44,11 @@ authentication. Neither HTTP configuration below allows remote plaintext access.
 
 ## Native producer HTTPS configuration
 
+Complete starting files are [HTTPS](examples/native-https.example.json) and
+[HTTP](examples/native-http.example.json). They use the same fresh/local binding
+examples as the prototype. Replace them with actual provisioned values; never
+replace an enrolled instance's roots, bindings or state with example values.
+
 Start with the full local configuration and preserve its actual source,
 destination, enrollment and state values. Add this top-level object and change
 `bind` deliberately to the desired HTTPS address:
@@ -60,7 +65,7 @@ destination, enrollment and state values. Add this top-level object and change
   "client_ca_certificates": ["/etc/file-mover/tls/client-root.der"],
   "clients": [{
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "generator_id": "recorder"
+    "generator_id": "recorder-host-a"
   }]
 }
 ```
@@ -95,6 +100,10 @@ temporary ancestor is permitted for disposable tests. The operator directory mus
 be separately provisioned as0700 with the same UID/GID. Do not place either
 directory in state or any current/retained payload scope. No directory, account,
 port rule or credential is automatically installed by listener startup.
+The current local mount-policy allowlist is ext2/3/4, tmpfs and overlay, including
+traversed mounts. Other filesystems refuse; this increment does not qualify every
+filesystem supported by SLES. Credential files never use NFS, even in the NFS
+qualification build.
 
 Leave `protected_ingress` absent. Mixing it with `native_ingress` refuses. The
 private operator socket accepts only the service UID; the public producer port
@@ -114,6 +123,9 @@ For explicit native HTTP, replace the entire native object with:
 
 This producer-only mode needs no credential files and retains the private operator
 socket. HTTPS-only fields in HTTP mode refuse. Remote binds in HTTP mode refuse.
+Loopback connectivity is the HTTP producer trust boundary: local processes that
+can connect may submit the configured generator. Operator access requires the
+service UID on its separate socket.
 Leaving both ingress objects absent preserves the earlier trusted loopback
 prototype; the protected Unix mode remains a separate option. No TLS failure
 switches transport or opens a second plaintext listener.
@@ -190,11 +202,27 @@ OpenSSL installation. Do not copy recorder private keys to the mover.
 
 After explicit local provisioning/enrollment, start the audited executable with
 the full configuration path. From a recorder with approved credentials, a request
-using an existing JSON submission file can be sent with a TLS-capable client:
+using a JSON submission file can be sent with a TLS-capable client. For example,
+save `submission.json` with actual immutable recording values:
+
+```json
+{
+  "recording_id": "d1c725e3-1634-47b1-9938-0cd397d38758",
+  "generator_id": "recorder-host-a",
+  "source_directory": "/srv/file-mover/source/current",
+  "files": ["video.dat"]
+}
+```
+
+Use a fresh UUID for each new recording; reuse it only for an exact recording
+retry. Paths name files inside the configured source scope. If expected-size
+checking is enabled, also supply a complete `expected_sizes_bytes` map with
+canonical decimal-string sizes. Preserve the original map on retries even when
+comparison is disabled. See the [producer contract](api/PRODUCER-MANIFEST-CONTRACT.md).
 
 ```sh
 curl --cacert server-ca.pem --cert recorder.cert.pem --key recorder.key.pem \
-  --http1.1 -H 'Content-Type: application/json' \
+  --http1.1 -H 'Host: mover.example.internal:8443' -H 'Content-Type: application/json' \
   --data-binary @submission.json https://mover.example.internal:8443/api/v2/jobs
 ```
 
@@ -203,6 +231,20 @@ an independent-client qualification claim. Keep private key bytes out of command
 arguments and logs (the command names files only); protect those files. A 202
 retains its existing durable custody meaning. After a disconnect, retry the same
 UUID and immutable assertions; do not assume the request rolled back.
+Set the Host header to the exact configured authority even when a client would
+normally omit a default port. The TLS URL name must still match the certificate;
+changing Host does not replace certificate/hostname verification.
+
+Check the mover locally with the existing independent control command:
+
+```sh
+/path/to/file-mover --status /path/to/config.json
+```
+
+Public `/healthz` requests are forbidden in native producer mode. If curl is
+already available locally, the service account can read private HTTP health using
+`curl --unix-socket /run/file-mover-api/operator.sock http://localhost/healthz`.
+This is not a remote monitoring endpoint or an additional installation dependency.
 
 The mover host will need its server key only; a recorder keeps its own client key.
 An offline archive must contain neither. Keep real keys out of Git, logs, command
@@ -254,10 +296,11 @@ removes its containers and signing material, including on failure.
 
 TLS1.2/1.3 handshakes exchange known bytes and check both peer certificates.
 Missing/untrusted/expired/wrong-purpose clients and invalid servers must fail;
-timeouts or panics are failures, not successful rejection evidence. This proves
-the target dependency path, not REST routing, certificate-to-generator admission,
-reload/revocation or production deployment. Native listener results are recorded
-separately in increment123.
+timeouts or panics are failures, not successful rejection evidence. The current
+scoped TLS suite also includes selected native REST routing, certificate mapping,
+replay/restart and refusal cases. It still cannot replace full service regression
+qualification or qualify reload/revocation or deployment. Native listener results
+are recorded in increment123.
 
 ## Operation and troubleshooting
 

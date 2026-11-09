@@ -32,10 +32,36 @@ automatic retransmission or public operator route is added.
 
 ## Validation status
 
-Implementation source review at8aa506c found no actionable issue. Eleven portable
-certificate-fixture tests pass, including the same-CA unapproved client. Target
-compilation and listener tests are in progress; no target pass is claimed yet.
-Both full required SLES modes and final PR checks remain mandatory before merge.
+Implementation source review at8aa506c and follow-up through0715233 found no
+actionable issue. All 76 portable Python tests pass, including 11 certificate
+fixture tests and the same-CA unapproved client.
+
+[Source CI run42563593572](https://github.com/joey-huckabee/background-file-mover/actions/runs/42563593572)
+passes both full SLES modes: 286 production/290 qualification tests per profile,
+including all nine TLS test functions, with clean cleanup. Both native compiler
+logs per mode independently reproduce 397 AWS-LC source compilations through the
+intended glibc2.22 compiler/sysroot. The actual protected-ingress checker passes
+both profiles with 70 captured requests and cleanup exit0. These retain existing
+local Unix coverage; they do not substitute for the new native TLS tests.
+
+Local full production `20261109T044618Z-22770080` returns `PASSED`: 286 tests and
+five existing ignored cases in each profile, clean cleanup, all 80 source hashes
+matched and all 22 executables independently rehashed. API suites pass in
+513.83/448.19 seconds against the unchanged 900-second ceiling.
+
+Local qualification `20261109T053022Z-4193003f-nfs-qualification` also returns
+`PASSED`: 290 tests and five existing ignored cases per profile, with clean
+cleanup. API suites pass 105 tests in 891.01/868.80 seconds within the unchanged
+1,200-second ceiling. All nine TLS test functions pass in each mode/profile.
+
+[Machine-readable evidence](NATIVE-HTTPS-EVIDENCE.json) records all 80 Rust input
+hashes and pins, both full reports and all 44 local executable hashes. The
+coordinator independently rehashes every executable and repeats the native
+compiler-log audit for both modes/profiles. Raw packs remain ignored under
+`rust/validation/`; a cloud checkout's absence of those packs is not a validation
+pass. CI executable bytes were not uploaded for independent local rehash.
+Final-head PR checks remain mandatory before merge. No runtime source changed
+after qualified Rust tree `65a4ca5d2682b543ada306f2e5b720163f33afac`.
 
 Tests cover actual service TLS in both protocol versions, missing/untrusted/
 expired/wrong-usage and same-CA unapproved clients, route/header/Host/generator/
@@ -44,7 +70,15 @@ before/after restart with producer path reuse preserved. Further cases cover nin
 credential startup refusals before bootstrap, nine invalid-config refusals before
 state/endpoint creation, credential-free HTTP submission, and private operator/
 stop responsiveness while six TLS handshakes remain incomplete. The safe reader
-adds eight custody/size/descriptor regressions. Actual results will be recorded.
+adds eight custody/size/descriptor regressions. These cases pass in both full
+local modes and the recorded CI profiles.
+
+Retain the initial strict-lint failures (collapsible-if and unused import) and
+the scoped debug run's seven passes/two failures: the test client omitted JSON
+Content-Type and correctly received415. Correcting the client header preserved
+server validation and all assertions. Initial acceptance now explicitly uses
+TLS1.2, with TLS1.3 replay before/after restart. See the
+[finite endpoint evaluation](evals/2026-11-08-native-https-listener.md).
 
 ## User operation and remaining limits
 
