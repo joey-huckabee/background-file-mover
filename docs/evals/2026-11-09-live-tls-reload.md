@@ -1,8 +1,13 @@
 # Live TLS reload: finite service and race evaluation
 
 Disposable local roots/state and gate-generated certificates only. No real keys,
-operational state or NFS. Source and final full-mode results remain pending;
-see [increment124](../RUST-INCREMENT-124.md) for the eventual evidence record.
+operational state or NFS. Source `99474cd2c290256b3ea385ae28ae7cc05bd7790a`, Rust tree
+`8ee490b0f2c3bd013c1b957d4a616e70d326f274`. Both full local modes and source CI
+pass 301 production/305 qualification tests per debug/release profile, with clean
+cleanup. All 13 TLS functions pass in each profile; both pause race bodies execute
+in qualification. See [increment124](../RUST-INCREMENT-124.md) and its
+[machine-readable evidence](../NATIVE-TLS-RELOAD-EVIDENCE.json) for exact reports,
+source/pin hashes and all 44 independently rehashed local executables.
 The TLS client uses Rustls/AWS-LC too; independent-client interoperability remains
 separate. Keep all assertions and existing timing/ELF/native compiler controls.
 

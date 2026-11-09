@@ -6,9 +6,9 @@ Original architecture-plan base: main
 This implementation sequence supersedes the external-proxy portion of P03/D02
 and the older remote access design. Increments122/123 record the implemented TLS
 stack and native listener with their actual qualification results. The user has
-authorized live TLS reload; its implementation at `99474cd` on
-`feature/live-tls-reload` is awaiting qualification and independent review, with
-increment124 forthcoming. This checkpoint grants no deployment or release approval.
+authorized live TLS reload; [increment124](RUST-INCREMENT-124.md) records its
+bounded implementation and actual full-mode qualification. Stronger CPU isolation
+and shipping remain separate. This grants no deployment or release approval.
 
 ## Approved first implementation and non-TLS option
 
@@ -148,7 +148,7 @@ it cannot promise an encrypted 429 without completing TLS. No transport failure
 grants path release or proves that previously admitted work rolled back.
 
 The authorized implementation adds host-local `--reload-tls CANDIDATE.json` and
-`--tls-status CONFIG.json`; see the [setup instructions](NATIVE-HTTPS-SETUP.md#live-tls-policy-reload-qualification-pending).
+`--tls-status CONFIG.json`; see the [setup instructions](NATIVE-HTTPS-SETUP.md#live-tls-policy-reload).
 The candidate is the full configuration (at most 16 KiB), not a partial TLS object.
 Only server certificate chain/key, server/client roots and client allowlist may
 change. HTTPS mode, authority, bind, operator socket and all non-TLS fields stay
@@ -195,7 +195,7 @@ command: status is current memory, not historical command-replay evidence. A
 restart resets the generation. Do not infer rollback from a failed response.
 
 Qualification and independent review of these reload/admission/stop boundaries
-remain pending for increment124. Existing increment122/123 passes do not establish
+are recorded in increment124. Existing increment122/123 passes alone do not establish
 live revocation, sustained cryptographic CPU isolation, independent-client
 interoperability, fresh bundle delivery or shipping lifecycle readiness.
 
@@ -265,7 +265,7 @@ these limits; no real SLES installation is added as a prerequisite.
 
 The dependency/native-listener implementations and their results remain scoped
 to increments122/123. Live reload source is present; increment124's qualification
-record is forthcoming, not implied by this plan. Stronger cryptographic CPU
+record is in increment124, not implied by this plan alone. Stronger cryptographic CPU
 isolation, independent-client interoperability, new offline-bundle validation and
 shipping qualification remain separate obligations. No proxy deployment,
 admin/session/action activation, operational state conversion, production

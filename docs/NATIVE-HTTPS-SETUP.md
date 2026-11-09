@@ -1,12 +1,10 @@
 # Native HTTPS and HTTP setup
 
-Status: increments122/123 cover the TLS dependency proof and native producer
-listener; their results remain in [increment122](RUST-INCREMENT-122.md) and
-[increment123](RUST-INCREMENT-123.md). Authorized live TLS reload is implemented
-on `feature/live-tls-reload` at `99474cd`; its qualification and independent review
-are pending, with increment124 forthcoming. These instructions describe that
-implementation, not a passing reload qualification, deployment or release
-approval. See [the implementation sequence](NATIVE-HTTPS-PLAN.md).
+Status: increments122/123 record the TLS dependency proof and native producer
+listener. [Increment124](RUST-INCREMENT-124.md) records guarded live TLS reload,
+both full local SLES modes, source CI and independent review. These are bounded
+development qualification results, not deployment or release approval. See
+[the implementation sequence](NATIVE-HTTPS-PLAN.md).
 
 The user requires one executable/service, no proxy, and configurable operation
 without TLS. The existing loopback HTTP mode remains available without any
@@ -90,7 +88,7 @@ files). `server_ca_certificates` supplies explicit roots for startup verificatio
 `client_ca_certificates` supplies roots for authenticating recorders (1–16 each).
 Every entry is parsed. Each certificate is at most 64 KiB. The key must be
 unencrypted PKCS8 DER, at most 16 KiB, and match the server leaf. Client mappings
-are bounded to 256 unique lowercase, 64-character SHA-256 values. No system trust
+require 1?256 unique lowercase, 64-character SHA-256 values. No system trust
 store is consulted. TLS 1.2/1.3 and HTTP/1.1 ALPN are required; early data, tickets
 and session resumption are disabled.
 
@@ -302,12 +300,11 @@ Missing/untrusted/expired/wrong-purpose clients and invalid servers must fail;
 timeouts or panics are failures, not successful rejection evidence. The current
 scoped TLS suite also includes selected native REST routing, certificate mapping,
 replay/restart and refusal cases. It still cannot replace full service regression
-qualification. Source now includes selected reload/admission boundary cases,
-but reload/revocation qualification is pending for increment124. Existing native
-listener results in increment123 do not qualify the new reload path, sustained
-cryptographic CPU load, interoperability, packaging or deployment.
+qualification. Increment124 records full-mode reload/admission tests and independent review.
+These do not qualify sustained cryptographic CPU load, independent-client
+interoperability, packaging or deployment.
 
-## Live TLS policy reload (qualification pending)
+## Live TLS policy reload
 
 Native HTTPS loads its initial policy during guarded startup, before source
 bootstrap. Editing credential files or configuration alone does not change that

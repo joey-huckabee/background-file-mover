@@ -48,19 +48,62 @@ automatic stale-socket repair is introduced.
 
 ## Verification
 
-Independent source review through99474cd found no further actionable issue after
-fixing the missing full-leaf mount exclusion. The regression uses the pinned OCI
-runtime's individually mounted `/etc/hosts`, without creating mounts or using NFS.
+Both full local SLES modes return `PASSED`, with five existing ignored cases per
+profile and clean cleanup. Each mode builds/audits/tests debug and release:
 
-The initial scoped core run `20261109T113255Z-87910c58` passes debug/release app
-unit and TLS tests with `SCOPED_PASSED` and clean cleanup. It predates the final
-mount fix and real-service reload tests and is diagnostic evidence only.
-Fresh scoped and full production/qualification results remain pending.
+| Run | Mode | Passed per profile | API seconds debug/release |
+|---|---|---:|---|
+| `20261109T115316Z-8e943177` | production | 301 | 502.31/478.16 |
+| `20261109T124144Z-0980a622-nfs-qualification` | nfs-qualification | 305 | 884.46/809.38 |
+
+Production retains its 900-second API ceiling; qualification retains 1,200 seconds.
+All thirteen TLS functions and nineteen app unit tests pass in every profile.
+Two qualification-only integration bodies actually execute only in that mode;
+their production function counts do not prove execution of those pause races.
+
+[Machine-readable evidence](NATIVE-TLS-RELOAD-EVIDENCE.json) records all 82 Rust
+input hashes, seven pins, both full reports and all 44 local executable hashes.
+The coordinator compares each archived source byte and independently rehashes
+every executable. Repeating both native compiler-log audits per mode reproduces
+397 AWS-LC source compilations through the intended glibc2.22 compiler/sysroot in
+each audit. The final runtime Rust tree is `8ee490b0f2c3bd013c1b957d4a616e70d326f274`.
+No Rust/build inputs change after source `99474cd` during closeout.
+
+[Source CI run 42612394880](https://github.com/joey-huckabee/background-file-mover/actions/runs/42612394880)
+passes both full modes at 301/305 tests per debug/release profile. Downloaded
+reports/native logs independently match the declared audits. Its protected-ingress
+checker passes 70 captured requests with cleanup exit 0 and all 82 Rust inputs and checker-driver
+hashes matched. That Unix check does not claim TLS-client interoperability. CI
+executable bytes were not uploaded for local rehash. Final-head PR checks remain
+mandatory before merge.
+
+All 35 relevant portable Python tests pass, including 11 certificate-fixture tests.
+The diagnostic core scoped run 20261109T113255Z-87910c58 predates the mount fix and
+integration tests. Updated qualification scope 20261109T114332Z-bc33e058-nfs-qualification
+passes 32 tests per profile with clean cleanup. Scoped results cannot qualify the
+complete service or installation bundle.
+
+Independent review found a missing complete endpoint mount exclusion. Source `99474cd`
+fixes server/client/cleanup pre-stat checks and reserves `tls-reload.sock` in the
+instance/control/database paths. Its regression uses the pinned OCI runtime's
+individually mounted `/etc/hosts`, without creating mounts or using NFS. Follow-up
+source and instruction reviews found no further actionable issue.
 
 See the [finite reload evaluation](evals/2026-11-09-live-tls-reload.md) and
-[setup/reload instructions](NATIVE-HTTPS-SETUP.md). Actual gate IDs, counts,
-source/binary hashes, native compiler audits and final CI will be recorded before
-integration. No scoped result qualifies the complete service or offline bundle.
+[setup/reload instructions](NATIVE-HTTPS-SETUP.md). The qualification checkpoint
+proves local ordering/responsiveness, not physical uninterruptible I/O. Certificate
+expiry coverage uses explicit future verification time in a unit test, without
+changing host time or adding a runtime clock override.
+
+## Agent work split
+
+The coordinator owns policy/admission integration, real-service tests and local
+qualification. One bounded specialist supplied the private IPC module and later
+the two setup/plan documents on separate branches with exclusive file ownership.
+The existing reviewer independently found the missing full-leaf mount exclusion
+and reviewed its correction, integration tests and instructions. This fan-out
+produced a concrete safety fix and parallel documentation; it does not claim a
+fixed quality percentage or replace executable qualification.
 
 ## Boundaries
 
