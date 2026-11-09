@@ -26,6 +26,11 @@ adds opt-in protected local producer/operator ingress; use its actual gate and
 checker results. TLS proxy, admin/security/action runtime and production shipping
 remain separate. Production NFS and source deletion stay disabled.
 
+[Increment122](docs/RUST-INCREMENT-122.md) adds the native TLS dependency and
+SLES handshake proof; use its actual validation status. [HTTP/HTTPS setup](docs/NATIVE-HTTPS-SETUP.md)
+covers current loopback HTTP, certificate preparation and the future listener
+boundary. No proxy is required; the HTTPS REST listener is a later increment.
+
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
 for the finite results and preserved-state/operator implications.

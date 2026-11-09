@@ -86,7 +86,8 @@ request does not guarantee the resulting certificate contains it. Check issued
 material on that administration workstation:
 
 ```sh
-openssl verify -purpose sslserver -CAfile server-ca.pem mover.cert.pem
+openssl verify -purpose sslserver -verify_hostname mover.example.internal \
+  -CAfile server-ca.pem mover.cert.pem
 openssl verify -purpose sslclient -CAfile client-ca.pem recorder.cert.pem
 openssl x509 -in recorder.cert.pem -outform DER | openssl dgst -sha256
 ```

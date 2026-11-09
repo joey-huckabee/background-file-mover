@@ -55,10 +55,21 @@ No new JSON transport fields are presented as implemented by this proof slice.
 
 ## Actual validation status
 
-Pending final scoped and both full SLES gates. Initial portable Python suite:
-75 tests passed, including11 fixture tests. Independent bounded source/dependency/
-gate review found no actionable issue at96f90ed. Later changes and actual target
-results must be recorded before integration. No TLS compatibility pass is inferred
+The scoped run `20261109T015008Z-43cadb3d` returns `SCOPED_PASSED` with clean
+cleanup: four TLS tests in each debug/release profile, no ignores, and maximum
+GLIBC2.18 on its four audited executables. The coordinator rehashes all four
+executables and independently checks the raw native logs: 397 AWS-LC source
+compilations per profile through libc-cc and the glibc2.22 sysroot. This is not
+a full service qualification. Both final full SLES gates remain pending. Final portable Python suite:
+76 tests passed, including 11 fixture tests and native compiler-audit refusal cases. Independent bounded source/dependency/
+gate review found no actionable issue at96f90ed. Review caught a native-audit option-parser gap; split/equal/concatenated sysroot
+overrides and dangling options now have negative cases, and the fix was reviewed
+at44a44d0. No observed compile used the wrong sysroot. Final full target results
+must be recorded before integration. Cached dependency source/notice extraction passes for all 58 metadata-listed
+packages (174 source/notice members), without building an installation bundle.
+A bounded published-advisory review found no applicable advisory among those
+checked for the pinned TLS versions; it was not a complete automated lockfile
+audit and does not establish absence of unpublished issues. No TLS compatibility pass is inferred
 from published platform support or a host compilation.
 
 All eight release gates remain open. No operational credentials/state, admin
