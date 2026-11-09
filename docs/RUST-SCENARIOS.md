@@ -6,6 +6,15 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 123 native producer listener
+
+SC-043/082-086 gain native producer HTTPS and explicit loopback HTTP, with a
+private operator socket and exact approved-certificate binding. See
+[increment123](RUST-INCREMENT-123.md) for actual tests/evidence and remaining RA
+obligations; [setup](NATIVE-HTTPS-SETUP.md) describes configuration and refusal.
+Reload/revocation, stronger CPU bounds, independent-client/shipping qualification
+remain open. No SC/API ID is reused and production NFS/deletion remain disabled.
+
 ## Increment 122 native TLS dependency proof
 
 SC-043/082-086 gain a bounded target TLS dependency/handshake proof, not a remote
