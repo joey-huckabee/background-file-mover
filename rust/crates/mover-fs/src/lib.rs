@@ -88,6 +88,7 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 mod binding;
+pub mod ingress;
 mod mount_profile;
 /// Pure, inactive new-producer/v2 codecs; never performs filesystem admission.
 pub mod recording_codec;

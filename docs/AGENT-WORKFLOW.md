@@ -122,14 +122,17 @@ current schema/identity limitations remain unchanged.
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
 The coordinator owns the draft and integration; the cloud child reviews contract
-consistency. Groups 1-52 remain approved; unsettled API implementation awaits
-remaining decisions. Separately authorized work includes bounded offline history
+consistency. Groups1-53 approve the written v2 engineering contract; remaining admin/session/
+action implementation and remote deployment stay separate. Separately authorized work includes bounded offline history
 clear and the build/packaging increments [107](RUST-INCREMENT-107.md),
 [108](RUST-INCREMENT-108.md) and [109](RUST-INCREMENT-109.md), compatibility/backup
 foundations, and the explicit guarded migration in [115](RUST-INCREMENT-115.md).
 Operational conversion and deployment remain separate. The user separately
 authorized UUID/v2 runtime integration in [118](RUST-INCREMENT-118.md); use its
 actual gate/compatibility status, without treating that as release approval.
+Group53 authorizes bounded protected producer/private-operator ingress in
+[increment121](RUST-INCREMENT-121.md); it does not activate TLS proxy/admin
+features or enable production NFS/deletion.
 This agent workflow
 does not expand their scope or approve the remaining API/deployment contract.
 

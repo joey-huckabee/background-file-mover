@@ -142,3 +142,7 @@ API-E140	4	A new recording completes, or a still-tracked legacy recording recove
 API-E141	4	Producer or consumer exchanges byte sizes above ordinary browser integer precision	New producer expected sizes and manifest-v2 measured sizes use exact canonical decimal u64 strings. Preserve existing operator numeric formats and legacy-v1 numeric sizes.	NOT_EXECUTED_BY_SCHEMA_CHECK
 API-E142	4	A producer submits a filename outside the supported new-contract encoding	Require valid UTF-8; preserve exact spelling and case. Reject unsupported names explicitly without silent renaming, case folding or Unicode normalization.	NOT_EXECUTED_BY_SCHEMA_CHECK
 API-E143	2	An operator upgrades, rolls back or encounters incompatible state	Publish an explicit supported release/state list. Refuse incompatible binaries before effects; never restore a stale database over active custody. Exact support list and qualification remain pending.	NOT_EXECUTED_BY_SCHEMA_CHECK
+API-E144	3	Completed retry	skipped	NOT_EXECUTED_BY_SCHEMA_CHECK
+API-E145	3	Frozen null review	permanently nonauthorizing skipped	NOT_EXECUTED_BY_SCHEMA_CHECK
+API-E146	3	Cancellation transport replay	current-state redispatch	NOT_EXECUTED_BY_SCHEMA_CHECK
+API-E147	3	Valid no-work deletion	202 zero counts not pending	NOT_EXECUTED_BY_SCHEMA_CHECK

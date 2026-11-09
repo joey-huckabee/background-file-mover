@@ -1,17 +1,13 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "Background File Mover - contract candidate",
-    "version": "2.0.0-candidate.2",
-    "description": "Engineering closeout in API-CONTRACT-CLOSEOUT.md. Four operator-visible defaults await explicit approval; full P01 is NOT FROZEN. Runtime only implements separately qualified slices. No production client/gateway import or release qualification."
+    "title": "Background File Mover - v2 engineering contract",
+    "version": "2.0.0",
+    "description": "Written engineering contract frozen after group53 approval. Runtime implements only qualified slices; do not import unimplemented admin/security routes into a production gateway or generate production clients. See API-CONTRACT-CLOSEOUT.md."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
-  "x-status": "candidate-not-frozen",
+  "x-status": "engineering-contract-frozen",
   "x-not-for-client-generation": true,
-  "x-freeze-blockers": [
-    "Approve the four visible defaults in API-CONTRACT-CLOSEOUT.md.",
-    "Complete independent closeout/reference review; runtime proofs, consumer acceptance and shipping qualification remain later release obligations."
-  ],
   "paths": {
     "/api/v2/jobs": {
       "post": {
@@ -1229,7 +1225,7 @@
     "/api/v2/admin/jobs/retry": {
       "post": {
         "operationId": "adminRetryFailedJobs",
-        "description": "Job-IDs-only body and frozen reviewed-state context. Per-job occurrence receipts compare exact own-command fields; clear removes only its own records. Completed/null count defaults await approval. Wrong instance is whole-request 409; stale eligible-state decisions are per-occurrence failed counts. See API-CONTRACT-CLOSEOUT.md.",
+        "description": "Job-IDs-only body and frozen reviewed-state context. Per-job occurrence receipts compare exact own-command fields; clear removes only its own records. Completed/null count defaults are approved as skipped. Wrong instance is whole-request 409; stale eligible-state decisions are per-occurrence failed counts. See API-CONTRACT-CLOSEOUT.md.",
         "security": [
           {
             "adminCookie": [],
@@ -2876,7 +2872,7 @@
     "/api/v2/admin/jobs/cancel": {
       "post": {
         "operationId": "adminCancelJobs",
-        "description": "Actual accepted/failed/skipped attempts; Pending until safe stop. Current-state transport retransmission is the pending recommended default in API-CONTRACT-CLOSEOUT.md.",
+        "description": "Actual accepted/failed/skipped attempts; Pending until safe stop. Current-state transport retransmission is the approved default in API-CONTRACT-CLOSEOUT.md.",
         "security": [
           {
             "adminCookie": [],
@@ -3193,7 +3189,7 @@
     "/api/v2/admin/jobs/clear-history": {
       "post": {
         "operationId": "adminClearHistory",
-        "description": "Candidate wire. Actual cleared count; silent skips; files untouched and all linkage/receipts for cleared jobs forgotten.",
+        "description": "Engineering contract. Actual cleared count; silent skips; files untouched and all linkage/receipts for cleared jobs forgotten.",
         "security": [
           {
             "adminCookie": [],
@@ -3510,7 +3506,7 @@
     "/api/v2/admin/jobs/delete-data": {
       "post": {
         "operationId": "adminDeleteData",
-        "description": "Latest actual deleted/failed counts and pending flag; one active pass per job, no automatic retry. No-work 202 default awaits approval. Exact confirmation/replay/clear rules are in API-CONTRACT-CLOSEOUT.md.",
+        "description": "Latest actual deleted/failed counts and pending flag; one active pass per job, no automatic retry. No-work requests return202 with zero counts and not pending. Exact confirmation/replay/clear rules are in API-CONTRACT-CLOSEOUT.md.",
         "security": [
           {
             "adminCookie": [],
@@ -4636,12 +4632,6 @@
   },
   "x-history-clear-policy": "Group50: cleared jobs have no remaining mover file linkage or results. Leave files unchanged; require all associated effects stopped/settled before clear.",
   "x-approved-group-52": "Preserve legacy custody/IDs/receipts/v1 bytes; v2 new recordings with request digest and decimal-string sizes; strict exact UTF-8; explicit qualified upgrade/rollback list with safe refusal.",
-  "x-product-decisions-pending": {
-    "completed_retry": "pending: recommend skipped",
-    "null_retry": "pending: deterministic nonauthorizing skipped",
-    "cancel_transport_replay": "pending: dispatch against current stored state",
-    "empty_deletion": "pending: 202 zero counts and completion_pending false"
-  },
   "x-engineering-authority": "API-CONTRACT-CLOSEOUT.md",
   "x-retry-receipts": {
     "scope": "per-job-occurrence",
@@ -4652,5 +4642,15 @@
     "automatic_expiry": false,
     "new_receipt_capacity_error": "503 service_busy",
     "invalid_requests_exact_replay_guaranteed": false
-  }
+  },
+  "x-approved-closeout-defaults": {
+    "completed_retry": "approved: skipped",
+    "null_retry": "approved: deterministic nonauthorizing skipped",
+    "cancel_transport_replay": "approved: dispatch against current stored state",
+    "empty_deletion": "approved: 202 zero counts and completion_pending false"
+  },
+  "x-approved-groups-through": 53,
+  "x-release-proof-obligations": [
+    "Implement/qualify remaining access, admin/session/actions, consumer acceptance, shipping profile and release gates."
+  ]
 }

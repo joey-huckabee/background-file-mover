@@ -3,15 +3,16 @@
 2026-11-08, increment 120. The user authorizes proceeding with the release-check
 recommendations: close P01, then define the next protected-producer ingress
 increment. This document is the current engineering authority over conflicting
-candidate wording. **Full P01 freeze is pending the four visible defaults below.**
-It does not approve itself, implement admin/access features, select a proxy,
-publish a release or authorize operational changes. Groups 1-52 remain intact.
+candidate wording. **Engineering contract frozen as v2.0.0 on 2026-11-08 after group53 approval.**
+The user explicitly approved the four defaults and proceeding with protected ingress.
+This freeze does not implement admin/access features, select a proxy,
+publish a release or authorize operational changes. Groups 1-53 are the approval baseline.
 
-## One remaining product-approval package
+## Approved closeout defaults (group 53)
 
-These recommended defaults are pending, not inferred approvals:
+The user accepted all four defaults with "Approved, Proceed":
 
-| Situation | Recommendation | Operator-visible result |
+| Situation | Approved behavior | Operator-visible result |
 |---|---|---|
 | Retry selects a completed job | Skip it. | `skipped_count` increases; nothing is scheduled. The approved second duplicate after an accepted retry still counts as failed. |
 | Retry has a frozen null review epoch | Always skip that occurrence. | It stays skipped even if the job later becomes retryable. A fresh deliberate Retry must capture an eligible review epoch. |
@@ -19,9 +20,10 @@ These recommended defaults are pending, not inferred approvals:
 | A valid deletion request finds no eligible files/jobs | Return 202 with actual zero counts and `completion_pending:false`. | No removal starts. This does not turn validation, stale confirmation, authorization or storage errors into success. |
 
 No extra confirmation dialog, job identifier, post-clear inventory, deletion
-retry workflow or producer monitoring obligation is introduced. Until these
-defaults are approved, the OpenAPI stays `2.0.0-candidate.2`; implementation of
-these new admin behaviors and a claim of complete P01 freeze remain blocked.
+retry workflow or producer monitoring obligation is introduced. The written engineering baseline is now `2.0.0`. Candidate suffixes on existing
+artifact filenames remain stable for provenance/reference compatibility. Admin
+behaviors still require separate implementation/qualification; this authorization
+starts only the bounded protected-producer ingress increment.
 
 ## Engineering dispositions
 
@@ -86,7 +88,7 @@ occurrences remain valid. Retrying unchanged context replays them before capacit
 checks and attempts only uncommitted occurrences. A storage failure similarly
 returns 503 `storage_unavailable`. These errors never prove batch rollback.
 
-The proposed null outcome is deterministic and permanently nonauthorizing; it
+The approved null outcome is deterministic and permanently nonauthorizing; it
 needs no historical row. A missing ID at or below the durable job-ID high-water
 mark also skips permanently because IDs are never reused. A non-null epoch for
 a never-allocated future ID fails whole-request validation with 400
@@ -98,7 +100,7 @@ durable rejection-history feature is promised.
 
 Per-occurrence stale epoch, ineligible tracked work and exhausted accepted-command
 audit capacity count as failed, with persisted outcomes when capacity permits.
-Completed/null classifications remain the pending defaults above. Missing IDs
+Completed/null classifications are the approved skipped defaults above. Missing IDs
 silently skip. Account revocation wins before a new occurrence or receipt
 disclosure; previously admitted service work can finish independently.
 
@@ -186,5 +188,5 @@ proofs, idle polling and route segregation using actual HTTP/SQL tests.
 
 The next bounded implementation is [protected producer ingress](PRODUCER-INGRESS-INCREMENT.md).
 It does not include sessions, admin actions, TLS proxy deployment or missing
-cleanup. No runtime activation is implied while this closeout awaits its visible
-defaults. All eight release gates remain open; production NFS/deletion stay off.
+cleanup. Protected ingress implementation is now authorized; remote TLS exposure and
+admin/action activation remain separate. All eight release gates remain open; production NFS/deletion stay off.

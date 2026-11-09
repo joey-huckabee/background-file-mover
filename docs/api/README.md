@@ -1,20 +1,16 @@
 # REST contract candidate artifacts
 
-## Current closeout (2026-11-08)
+## Current contract and implementation (2026-11-08)
 
-[API contract closeout](API-CONTRACT-CLOSEOUT.md) is the current engineering
-authority, OpenAPI candidate2. Four operator-visible defaults remain pending as
-one approval package; full P01 is not frozen. The closeout fixes per-job receipt
-storage/clear boundaries, failure semantics, access/resource bounds and read/
-confirmation behavior. It does not implement the new routes or claim security,
-consumer, proxy or release qualification. Older blocker/status sections below
-are dated checkpoints and are superseded only by this explicit bounded closeout.
-
-The next bounded implementation is [protected producer ingress](PRODUCER-INGRESS-INCREMENT.md):
-peer-authorized Unix producer transport, a separate private operator transport,
-no TCP fallback in protected mode, strict route separation and conservative
-endpoint custody. Proxy/TLS deployment and admin/session implementation remain
-separate increments. No Rust changes are made by this closeout.
+Group 53 explicitly approves all four closeout defaults. The [written v2 contract](API-CONTRACT-CLOSEOUT.md)
+is frozen as 2.0.0; existing candidate filename suffixes remain for provenance.
+This is a specification freeze, not a declaration that all fifteen routes or
+security boundaries are implemented/qualified. Producer/manifest runtime and
+bounded compatibility evidence remain increments 118/119. The user authorizes
+[protected producer ingress](PRODUCER-INGRESS-INCREMENT.md) as the next bounded
+implementation; TLS/proxy deployment, admin/session/action runtime, operational
+conversion and production NFS/deletion remain separate. Historical pending/
+not-frozen wording below describes earlier checkpoints superseded by group53.
 
 2026-11-01, P01 review work following the
 [consolidated proposal](../REST-CONTRACT-PROPOSAL.md). **Not frozen. Runtime implementation is limited to separately authorized

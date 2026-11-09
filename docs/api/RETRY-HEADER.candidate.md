@@ -2,8 +2,8 @@
 
 Current engineering authority: [increment-120 closeout](API-CONTRACT-CLOSEOUT.md).
 It supersedes conflicting proposal details below, especially per-job receipt
-identity/storage, bounds and replay scope. Four visible defaults remain pending;
-this is not full P01 freeze or runtime implementation.
+identity/storage, bounds and replay scope. Group53 approves the four defaults and freezes the written v2 engineering
+contract; unimplemented routes/security and runtime qualification remain separate.
 
 2026-11-02. Group 49 approves header transport of existing review/audit context,
 with job_ids-only body and preserved exact replay. The precise format here is a

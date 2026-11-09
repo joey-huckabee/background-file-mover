@@ -152,14 +152,14 @@ def main():
     schema = read("contract.candidate.schema.json")
     fixtures = read("contract.candidate.fixtures.json")["cases"]
     api = read("openapi.candidate.json")
-    pending = api["x-product-decisions-pending"]
-    require(set(pending) == {"completed_retry", "null_retry", "cancel_transport_replay", "empty_deletion"},
-            "closeout must retain all four explicit pending decisions")
-    require(pending == schema["x-product-decisions-pending"]
-            and all(value.startswith("pending:") for value in pending.values()),
-            "schema/OpenAPI must not silently approve the pending defaults")
-    require(api["x-status"] == schema["x-status"] == "candidate-not-frozen",
-            "full freeze is not approved")
+    approved = api["x-approved-closeout-defaults"]
+    require(set(approved) == {"completed_retry", "null_retry", "cancel_transport_replay", "empty_deletion"},
+            "closeout must retain all four explicit approved decisions")
+    require(approved == schema["x-approved-closeout-defaults"]
+            and all(value.startswith("approved:") for value in approved.values()),
+            "schema/OpenAPI must preserve group53 approvals")
+    require(api["x-status"] == schema["x-status"] == "engineering-contract-frozen",
+            "engineering freeze status disagrees")
     require(api["x-retry-receipts"]["cross_job_selection_retained"] is False
             and api["x-retry-receipts"]["exact_own_projection_required"] is True
             and api["x-retry-receipts"]["automatic_expiry"] is False,

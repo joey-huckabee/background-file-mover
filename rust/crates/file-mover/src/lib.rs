@@ -6,6 +6,7 @@ pub mod delivery_worker;
 mod diagnostic;
 pub mod enrollment;
 mod http;
+pub mod ingress;
 pub mod payload;
 pub mod source_space;
 use mover_core::{DeliveryPolicy, Handoff, ProtocolError, Submission};
@@ -22,8 +23,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
+    net::TcpListener,
     sync::{Semaphore, oneshot},
     task::JoinSet,
     time::timeout,
@@ -33,6 +33,8 @@ use tokio::{
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub bind: SocketAddr,
+    #[serde(default)]
+    pub protected_ingress: Option<ingress::ProtectedIngress>,
     pub generator_id: String,
     #[serde(default)]
     pub check_expected_sizes: bool,
@@ -112,6 +114,9 @@ impl Config {
         let db = Path::new(&self.state_database);
         if s.starts_with(d) || d.starts_with(s) || db.starts_with(s) || db.starts_with(d) {
             return Err("source/destination roots and local state must be separate");
+        }
+        if let Some(ingress) = &self.protected_ingress {
+            ingress.validate(self)?;
         }
         Ok(())
     }
@@ -692,7 +697,7 @@ fn missing_reset_response(store: &Store, id: i64, input: MissingResetInput) -> R
         Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
-async fn request(stream: &mut TcpStream) -> Result<http::Request, Response> {
+async fn request(stream: &mut ingress::Stream) -> Result<http::Request, Response> {
     let mut bytes = Vec::new();
     let mut buffer = [0; 4096];
     loop {
@@ -771,175 +776,201 @@ async fn submission_reply(
     })
 }
 async fn connection(
-    mut stream: TcpStream,
+    mut stream: ingress::Stream,
     c: Arc<Config>,
     sender: mpsc::SyncSender<Work>,
     observer: mpsc::SyncSender<OperatorWork>,
     admission: source_space::Handle,
+    audience: ingress::Audience,
 ) {
-    let mut producer = true;
+    let mut producer = !matches!(audience, ingress::Audience::Operator(_));
     let mut recording_id = None;
-    let response = match timeout(Duration::from_secs(5), request(&mut stream)).await {
-        Err(_) => error(408, "request_timeout", true, None),
-        Ok(Err(e)) => e,
-        Ok(Ok(r)) => {
-            producer = r.head.target == b"/api/v2/jobs";
-            if r.head.headers.get("host").is_none_or(|h| h.is_empty())
-                || r.head.headers.contains_key("expect")
-                || r.head.headers.contains_key("authorization")
-            {
-                error(400, "unsupported_headers", false, None)
-            } else if r.head.method == "GET" && r.head.target == b"/healthz" && r.body.is_empty() {
-                Response {
-                    status: 200,
-                    job_id: None,
-                    state: Some("Running"),
-                    source_paths_released: false,
-                    error: None,
-                    retryable: false,
-                    details: None,
-                }
-            } else if r.head.target == b"/api/v2/retention" {
-                if r.head.method != "GET" {
+    let response = if !audience.authorized() {
+        error(403, "caller_not_authorized", false, None)
+    } else {
+        match timeout(Duration::from_secs(5), request(&mut stream)).await {
+            Err(_) => error(408, "request_timeout", true, None),
+            Ok(Err(e)) => e,
+            Ok(Ok(r)) => {
+                producer = audience.producer()
+                    || (matches!(audience, ingress::Audience::Prototype)
+                        && r.head.target == b"/api/v2/jobs");
+                if r.head.headers.get("host").is_none_or(|h| h.is_empty())
+                    || r.head.headers.contains_key("expect")
+                    || r.head.headers.contains_key("authorization")
+                {
+                    error(400, "unsupported_headers", false, None)
+                } else if let Some(denial) = audience.denial(&r, &c) {
+                    denial
+                } else if r.head.method == "GET"
+                    && r.head.target == b"/healthz"
+                    && r.body.is_empty()
+                {
+                    Response {
+                        status: 200,
+                        job_id: None,
+                        state: Some("Running"),
+                        source_paths_released: false,
+                        error: None,
+                        retryable: false,
+                        details: None,
+                    }
+                } else if r.head.target == b"/api/v2/retention" {
+                    if r.head.method != "GET" {
+                        error(405, "method_not_allowed", false, None)
+                    } else if !r.body.is_empty() {
+                        error(400, "unexpected_body", false, None)
+                    } else {
+                        operator_reply(&observer, Observation::Retention(None)).await
+                    }
+                } else if r.head.target.starts_with(b"/api/v2/jobs/") {
+                    let target = &r.head.target[13..];
+                    let resume = target.ends_with(b"/resume");
+                    let reset_missing = target.ends_with(b"/reset-missing");
+                    let retention = target.ends_with(b"/retention");
+                    let control = resume || reset_missing;
+                    let id_bytes = if resume {
+                        &target[..target.len() - 7]
+                    } else if reset_missing {
+                        &target[..target.len() - 14]
+                    } else if retention {
+                        &target[..target.len() - 10]
+                    } else {
+                        target
+                    };
+                    if r.head.method != if control { "POST" } else { "GET" } {
+                        error(405, "method_not_allowed", false, None)
+                    } else if !control && !r.body.is_empty() {
+                        error(400, "unexpected_body", false, None)
+                    } else if control
+                        && r.head.headers.get("content-type").map(Vec::as_slice)
+                            != Some(b"application/json")
+                    {
+                        error(415, "unsupported_media_type", false, None)
+                    } else {
+                        let id = std::str::from_utf8(id_bytes).ok().and_then(|s| {
+                            s.parse::<i64>()
+                                .ok()
+                                .filter(|id| *id > 0 && id.to_string() == s)
+                        });
+                        if let Some(id) = id {
+                            let work = if resume {
+                                serde_json::from_slice::<ResumeInput>(&r.body)
+                                    .map(|input| Observation::Resume(id, input))
+                            } else if reset_missing {
+                                serde_json::from_slice::<MissingResetInput>(&r.body)
+                                    .map(|input| Observation::ResetMissing(id, input))
+                            } else if retention {
+                                Ok(Observation::Retention(Some(id)))
+                            } else {
+                                Ok(Observation::Status(id))
+                            };
+                            if let Ok(work) = work {
+                                let command_id = match &work {
+                                    Observation::Resume(_, input) => Some(&input.command_id),
+                                    Observation::ResetMissing(_, input) => Some(&input.command_id),
+                                    Observation::Status(_) | Observation::Retention(_) => None,
+                                };
+                                let key_conflict = command_id.is_some_and(|id| {
+                                    r.head
+                                        .headers
+                                        .get("idempotency-key")
+                                        .is_some_and(|key| key.as_slice() != id.as_bytes())
+                                });
+                                if key_conflict {
+                                    error(400, "idempotency_key_conflict", false, Some(id))
+                                } else {
+                                    let (reply, result) = oneshot::channel();
+                                    if observer.try_send((work, reply)).is_err() {
+                                        error(503, "service_busy", true, None)
+                                    } else {
+                                        match timeout(Duration::from_secs(2), result).await {
+                                            Ok(Ok(r)) => r,
+                                            _ => error(503, "storage_unavailable", true, Some(id)),
+                                        }
+                                    }
+                                }
+                            } else {
+                                error(
+                                    400,
+                                    if reset_missing {
+                                        "invalid_missing_reset"
+                                    } else {
+                                        "invalid_resume"
+                                    },
+                                    false,
+                                    Some(id),
+                                )
+                            }
+                        } else {
+                            error(400, "invalid_job_id", false, None)
+                        }
+                    }
+                } else if r.head.target != b"/api/v2/jobs" {
+                    error(404, "not_found", false, None)
+                } else if r.head.method != "POST" {
                     error(405, "method_not_allowed", false, None)
-                } else if !r.body.is_empty() {
-                    error(400, "unexpected_body", false, None)
-                } else {
-                    operator_reply(&observer, Observation::Retention(None)).await
-                }
-            } else if r.head.target.starts_with(b"/api/v2/jobs/") {
-                let target = &r.head.target[13..];
-                let resume = target.ends_with(b"/resume");
-                let reset_missing = target.ends_with(b"/reset-missing");
-                let retention = target.ends_with(b"/retention");
-                let control = resume || reset_missing;
-                let id_bytes = if resume {
-                    &target[..target.len() - 7]
-                } else if reset_missing {
-                    &target[..target.len() - 14]
-                } else if retention {
-                    &target[..target.len() - 10]
-                } else {
-                    target
-                };
-                if r.head.method != if control { "POST" } else { "GET" } {
-                    error(405, "method_not_allowed", false, None)
-                } else if !control && !r.body.is_empty() {
-                    error(400, "unexpected_body", false, None)
-                } else if control
-                    && r.head.headers.get("content-type").map(Vec::as_slice)
-                        != Some(b"application/json")
+                } else if r.head.headers.get("content-type").map(Vec::as_slice)
+                    != Some(b"application/json")
                 {
                     error(415, "unsupported_media_type", false, None)
                 } else {
-                    let id = std::str::from_utf8(id_bytes).ok().and_then(|s| {
-                        s.parse::<i64>()
-                            .ok()
-                            .filter(|id| *id > 0 && id.to_string() == s)
-                    });
-                    if let Some(id) = id {
-                        let work = if resume {
-                            serde_json::from_slice::<ResumeInput>(&r.body)
-                                .map(|input| Observation::Resume(id, input))
-                        } else if reset_missing {
-                            serde_json::from_slice::<MissingResetInput>(&r.body)
-                                .map(|input| Observation::ResetMissing(id, input))
-                        } else if retention {
-                            Ok(Observation::Retention(Some(id)))
-                        } else {
-                            Ok(Observation::Status(id))
-                        };
-                        if let Ok(work) = work {
-                            let command_id = match &work {
-                                Observation::Resume(_, input) => Some(&input.command_id),
-                                Observation::ResetMissing(_, input) => Some(&input.command_id),
-                                Observation::Status(_) | Observation::Retention(_) => None,
-                            };
-                            let key_conflict = command_id.is_some_and(|id| {
-                                r.head
-                                    .headers
-                                    .get("idempotency-key")
-                                    .is_some_and(|key| key.as_slice() != id.as_bytes())
-                            });
-                            if key_conflict {
-                                error(400, "idempotency_key_conflict", false, Some(id))
+                    match decode(&r.body, &c) {
+                        Err(e) => e,
+                        Ok((submission, context)) => {
+                            recording_id =
+                                submission.producer().map(|r| r.recording_id().to_string());
+                            if r.head.headers.get("idempotency-key").is_some_and(|key| {
+                                std::str::from_utf8(key).ok().is_none_or(|key| {
+                                    mover_fs::recording_codec::validate_idempotency_key(
+                                        submission
+                                            .producer()
+                                            .expect("producer request")
+                                            .recording_id(),
+                                        key,
+                                    )
+                                    .is_err()
+                                })
+                            }) {
+                                error(400, "idempotency_key_conflict", false, None)
                             } else {
-                                let (reply, result) = oneshot::channel();
-                                if observer.try_send((work, reply)).is_err() {
-                                    error(503, "service_busy", true, None)
-                                } else {
-                                    match timeout(Duration::from_secs(2), result).await {
-                                        Ok(Ok(r)) => r,
-                                        _ => error(503, "storage_unavailable", true, Some(id)),
-                                    }
-                                }
+                                submission_reply(&sender, &admission, submission, context).await
                             }
-                        } else {
-                            error(
-                                400,
-                                if reset_missing {
-                                    "invalid_missing_reset"
-                                } else {
-                                    "invalid_resume"
-                                },
-                                false,
-                                Some(id),
-                            )
-                        }
-                    } else {
-                        error(400, "invalid_job_id", false, None)
-                    }
-                }
-            } else if r.head.target != b"/api/v2/jobs" {
-                error(404, "not_found", false, None)
-            } else if r.head.method != "POST" {
-                error(405, "method_not_allowed", false, None)
-            } else if r.head.headers.get("content-type").map(Vec::as_slice)
-                != Some(b"application/json")
-            {
-                error(415, "unsupported_media_type", false, None)
-            } else {
-                match decode(&r.body, &c) {
-                    Err(e) => e,
-                    Ok((submission, context)) => {
-                        recording_id = submission.producer().map(|r| r.recording_id().to_string());
-                        if r.head.headers.get("idempotency-key").is_some_and(|key| {
-                            std::str::from_utf8(key).ok().is_none_or(|key| {
-                                mover_fs::recording_codec::validate_idempotency_key(
-                                    submission
-                                        .producer()
-                                        .expect("producer request")
-                                        .recording_id(),
-                                    key,
-                                )
-                                .is_err()
-                            })
-                        }) {
-                            error(400, "idempotency_key_conflict", false, None)
-                        } else {
-                            submission_reply(&sender, &admission, submission, context).await
                         }
                     }
                 }
             }
         }
     };
+    write_response(&mut stream, &response, recording_id, producer).await;
+}
+async fn write_response(
+    stream: &mut ingress::Stream,
+    response: &Response,
+    recording_id: Option<String>,
+    producer: bool,
+) {
     let body = if producer {
         let value = if response.status == 202 {
             serde_json::json!({"job_id":response.job_id,"recording_id":recording_id,"accepted":true,"source_paths_released":true})
-        } else {serde_json::json!({"recording_id":recording_id,"error":response.error.unwrap_or("internal_error"),"retryable":response.retryable,"retry_after_seconds":null,"source_paths_released":false})};
+        } else {serde_json::json!({"recording_id":recording_id,"error":response.error.unwrap_or("internal_error"),"retryable":response.retryable,"retry_after_seconds":if response.status==429 {Some(1)} else {None},"source_paths_released":false})};
         serde_json::to_vec(&value)
-    } else {serde_json::to_vec(&response)}.expect("fixed response serialization");
+    } else {serde_json::to_vec(response)}.expect("fixed response serialization");
     let allow = if producer && response.status == 405 {
         "Allow: POST\r\n"
     } else {
         ""
     };
     let head = format!(
-        "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n{}\r\n",
+        "HTTP/1.1 {} Result\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n{}{}\r\n",
         response.status,
         body.len(),
-        allow
+        allow,
+        if producer && response.status == 429 {
+            "Retry-After: 1\r\n"
+        } else {
+            ""
+        }
     );
     let _ = timeout(Duration::from_secs(2), async {
         stream.write_all(head.as_bytes()).await?;
@@ -977,6 +1008,11 @@ pub fn check_state_compatibility(
             }
             Ok(())
         })?;
+        if let Some(ingress) = &c.protected_ingress {
+            for root in snapshot.payload_roots()? {
+                ingress.validate_payload_root(&root)?;
+            }
+        }
     }
     instance.validate_database(&c.state_database)?;
     Ok(())
@@ -996,8 +1032,21 @@ pub async fn serve_controlled(
     c: Config,
     lifecycle: Arc<control::Lifecycle>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if c.protected_ingress.is_some() {
+        return Err("TCP listener forbidden in protected ingress mode".into());
+    }
+    serve_inner(Some(listener), c, lifecycle).await
+}
+async fn serve_inner(
+    listener: Option<TcpListener>,
+    c: Config,
+    lifecycle: Arc<control::Lifecycle>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let stop = lifecycle.stop.clone();
-    if !listener.local_addr()?.ip().is_loopback() {
+    if listener
+        .as_ref()
+        .is_some_and(|l| l.local_addr().is_ok_and(|a| !a.ip().is_loopback()))
+    {
         return Err("loopback listener required".into());
     }
     c.validate()?;
@@ -1018,7 +1067,20 @@ pub async fn serve_controlled(
                 );
                 let control = control::Server::start(instance.clone(), startup_lifecycle.clone())
                     .map_err(|e| e.to_string())?;
+                // Reject known unsafe endpoint names before SQLite can create
+                // read-coordination sidecars. Local I/O retains epoch coverage;
+                // the independent lifecycle controller is already available.
+                let endpoint_plan = if let Some(ingress) = &startup_config.protected_ingress {
+                    instance.prepare_workers().map_err(|e| e.to_string())?;
+                    Some(ingress::Planned::prepare(ingress).map_err(|e| e.to_string())?)
+                } else {
+                    None
+                };
                 check_state_compatibility(&startup_config, &instance, false)
+                    .map_err(|e| e.to_string())?;
+                let endpoints = endpoint_plan
+                    .map(ingress::Planned::bind)
+                    .transpose()
                     .map_err(|e| e.to_string())?;
                 let guard = bootstrap::acquire(
                     &startup_config.source_root,
@@ -1026,13 +1088,14 @@ pub async fn serve_controlled(
                     &startup_stop,
                     &instance,
                 )?;
-                Ok((guard, control))
+                Ok((guard, control, endpoints))
             })()
-            .and_then(|(guard, control)| {
+            .and_then(|(guard, control, endpoints)| {
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());
                 }
                 Worker::start(&startup_config, guard, startup_stop.clone(), control)
+                    .map(|worker| (worker, endpoints))
                     .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
@@ -1042,21 +1105,65 @@ pub async fn serve_controlled(
         .join()
         .map_err(|_| "source startup supervisor panicked")?;
     if stop.load(Ordering::Relaxed) {
-        if let Ok(Ok(worker)) = result {
+        if let Ok(Ok((worker, _endpoints))) = result {
+            drop(_endpoints);
             drop(worker);
         }
         return Ok(());
     }
-    let worker = result.map_err(|_| "source startup supervisor disconnected")??;
+    let (worker, prepared) = result.map_err(|_| "source startup supervisor disconnected")??;
+    let endpoints = prepared.map(ingress::Prepared::activate).transpose()?;
     lifecycle.phase("Running");
-    println!("Ready on {}", listener.local_addr()?);
+    if let Some(listener) = &listener {
+        println!("Ready on {}", listener.local_addr()?);
+    } else {
+        println!("Ready on protected local producer and operator sockets");
+    }
     let c = Arc::new(c);
     let permits = Arc::new(Semaphore::new(8));
+    let producer_permits = Arc::new(Semaphore::new(6));
     let mut tasks = JoinSet::new();
     while !stop.load(Ordering::Relaxed) {
         while tasks.try_join_next().is_some() {}
-        if let Ok(accepted) = timeout(Duration::from_millis(100), listener.accept()).await {
-            let (stream, _) = accepted?;
+        if let Some(endpoints) = &endpoints {
+            endpoints.validate()?;
+        }
+        if let Ok(accepted) = timeout(
+            Duration::from_millis(100),
+            ingress::accept(listener.as_ref(), endpoints.as_ref()),
+        )
+        .await
+        {
+            let (mut stream, audience) = accepted?;
+            if !audience.authorized() {
+                if !audience.producer() {
+                    drop(stream);
+                    continue;
+                }
+                let denied = error(403, "caller_not_authorized", false, None);
+                let _ = timeout(
+                    Duration::from_millis(100),
+                    write_response(&mut stream, &denied, None, audience.producer()),
+                )
+                .await;
+                continue;
+            }
+            let producer_permit = if audience.producer() {
+                match producer_permits.clone().try_acquire_owned() {
+                    Ok(p) => Some(p),
+                    Err(_) => {
+                        let busy = error(429, "rate_limited", true, None);
+                        let _ = timeout(
+                            Duration::from_millis(100),
+                            write_response(&mut stream, &busy, None, true),
+                        )
+                        .await;
+                        continue;
+                    }
+                }
+            } else {
+                None
+            };
             let Ok(permit) = permits.clone().try_acquire_owned() else {
                 drop(stream);
                 continue;
@@ -1067,12 +1174,14 @@ pub async fn serve_controlled(
             let admission = worker._source_space.handle.clone();
             tasks.spawn(async move {
                 let _permit = permit;
-                connection(stream, c, sender, observer, admission).await;
+                let _producer_permit = producer_permit;
+                connection(stream, c, sender, observer, admission, audience).await;
             });
         }
     }
     tasks.abort_all();
     while tasks.join_next().await.is_some() {}
+    drop(endpoints);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.
     Ok(())
 }

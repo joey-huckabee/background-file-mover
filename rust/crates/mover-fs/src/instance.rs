@@ -489,6 +489,28 @@ pub(crate) fn backup_local(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+pub(crate) fn ingress_local(path: &Path) -> Result<()> {
+    backup_local(path)?;
+    let inventory = mount_inventory()?;
+    let mut mounts = Vec::new();
+    for line in inventory.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
+        let mount = parse_mounts(line)?.remove(0);
+        let fields: Vec<_> = line.split(|b| *b == b' ').collect();
+        mounts.push((mount, fields[2], fields[3]));
+    }
+    for (mount, device, root) in &mounts {
+        if path.starts_with(mount)
+            && (path == mount
+                || *root != b"/"
+                || mounts
+                    .iter()
+                    .any(|(other, d, r)| other != mount && d == device && r == root))
+        {
+            return Err(ClaimError::Blocked("ingress mount/alias custody"));
+        }
+    }
+    Ok(())
+}
 fn parse_mounts(bytes: &[u8]) -> Result<Vec<std::path::PathBuf>> {
     use std::os::unix::ffi::OsStringExt;
     let mut result = Vec::new();
