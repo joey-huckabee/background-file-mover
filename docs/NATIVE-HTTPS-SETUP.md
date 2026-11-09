@@ -113,6 +113,11 @@ On the prepared build host, use the committed native WSL clone and cached pinned
 builder/runtime described in [the agent workflow](AGENT-WORKFLOW.md).
 The target installer still requires no Rust, compiler or Python.
 
+Existing offline bundles remain their recorded version. This increment checks
+dependency source/notice collection but does not build a new installation bundle.
+Use the [offline installation procedure](OFFLINE-INSTALL.md) with a fresh full
+production-gate report when producing a new bundle; never package a scoped proof.
+
 For a short diagnostic run:
 
 ```sh
