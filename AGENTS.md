@@ -2,6 +2,16 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 native HTTPS decision: the user says "No proxy, do HTTPS in the Rust
+app". One file-mover executable/service must terminate producer HTTPS directly.
+This supersedes external-proxy P03/D02 requirements; preserve producer mutual TLS,
+certificate-to-generator authorization, private operator separation and all
+existing custody/replay/session choices. See docs/NATIVE-HTTPS-PLAN.md for the
+small implementation sequence and SLES12SP5/glibc2.22 proof gates. This checkpoint
+records the architecture/plan only: TLS runtime, exact new dependency graph,
+production deployment, operational state and release qualification are not
+delivered or claimed. No proxy is to be selected/installed for this project.
+
 2026-11-08 group53/P02 authorization: the user says "Approved, Proceed" after
 the four-default package. Completed/null retries skip; cancellation retransmission
 uses current state; valid no-work deletion returns202/zero/not pending. Freeze
