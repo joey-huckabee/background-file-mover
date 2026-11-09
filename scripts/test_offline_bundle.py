@@ -15,7 +15,7 @@ spec.loader.exec_module(bundle)
 
 class BundleTests(unittest.TestCase):
     def test_failed_qualification_and_unclean_gates_are_refused(self):
-        for report in ({"status": "FAILED"}, {"status": "PASSED", "build_mode": "nfs-qualification"},
+        for report in ({"status": "FAILED"}, {"status": "SCOPED_PASSED", "build_mode": "production"}, {"status": "PASSED", "build_mode": "nfs-qualification"},
                        {"status": "PASSED", "build_mode": "production", "cleanup_error": "still alive"}):
             with self.subTest(report=report), tempfile.TemporaryDirectory() as directory:
                 p = Path(directory) / "report.json"

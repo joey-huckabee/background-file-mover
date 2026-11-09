@@ -6,6 +6,15 @@ increments. Read it before designing a new effect or writing user instructions.
 It describes the current Rust prototype; the older user guides
 are reference material, not instructions for this service.
 
+## Increment 122 native TLS dependency proof
+
+SC-043/082-086 gain a bounded target TLS dependency/handshake proof, not a remote
+REST listener or complete RA qualification. See [increment122](RUST-INCREMENT-122.md)
+for actual results and [HTTP/HTTPS setup](NATIVE-HTTPS-SETUP.md) for current versus
+future configuration. Existing loopback HTTP remains available; configurable
+non-TLS operation is a user requirement for the later listener. No SC/API ID is
+reused or invented for this prerequisite, and production NFS/deletion stay off.
+
 ## Increment 121 protected ingress
 
 SC-043/082-086 gain the bounded protected local Unix producer/operator transport

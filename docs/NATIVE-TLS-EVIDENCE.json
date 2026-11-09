@@ -1,0 +1,1403 @@
+{
+  "increment": 122,
+  "scope": "Native Rust TLS dependency and SLES target handshake proof; no HTTPS REST activation",
+  "source": {
+    "commit": "44a44d0ed0b2ed901fb2184e0c43b7172ba3aec7",
+    "rust_tree": "2812aa80aae83f715ca3685547efb93e74dced0a",
+    "source_inputs_sha256": {
+      "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+      "rust/Cargo.lock": "2fe9bef8d1790c8eb11f06e3a88155227535e7af057eca604c1031d6ccd3d920",
+      "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+      "rust/README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+      "rust/config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+      "rust/crates/file-mover/Cargo.toml": "26ff0627ca12b45da0a1350193b7c569a2e3aa98abd8834fefd996d43b75f914",
+      "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+      "rust/crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+      "rust/crates/file-mover/src/control.rs": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf",
+      "rust/crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+      "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+      "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+      "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+      "rust/crates/file-mover/src/ingress.rs": "003ba6295eebede176c330b3a276ff3b1e4ea6cba1e8b94e3b963f8c9076474f",
+      "rust/crates/file-mover/src/lib.rs": "87842e9e89685450c86b0d90033d57e033b4f291f79a8642cc86c4e870616e8a",
+      "rust/crates/file-mover/src/main.rs": "529a4a9ba370ec67e580de552090c7d380b82902fdbf564ae3ddccdc0841905f",
+      "rust/crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+      "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+      "rust/crates/file-mover/src/tls.rs": "78f31f32a329d0fd039a30c8dc0556b0cb4a42cf22dc092cbd9868164a6dd51e",
+      "rust/crates/file-mover/tests/api.rs": "62914462143c6263b29b0964c8d0a41ceb264eefad3a5ed814c066ca3cfef023",
+      "rust/crates/file-mover/tests/tls.rs": "e0fb790b735c64b9e6787eabc5235daf242d1f8eed67f55ddfbe046313fa0a18",
+      "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+      "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+      "rust/crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+      "rust/crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+      "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+      "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+      "rust/crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+      "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+      "rust/crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+      "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+      "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+      "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+      "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+      "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+      "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+      "rust/crates/mover-fs/src/ingress.rs": "0452f0e6496ee67e7db5a64cee6814c1f24e6637f2eee953f5a696bc96d7d9a3",
+      "rust/crates/mover-fs/src/instance.rs": "a4ae1660709ea4bafb8183751417773268c8c1ff6d6a810a692093b44bb130f3",
+      "rust/crates/mover-fs/src/lib.rs": "13e6217cd3eee22ab38c9ce4def63b5ccb2359f7171e74c5fa9b22fb6faf4d3a",
+      "rust/crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+      "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+      "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+      "rust/crates/mover-fs/src/qualification.rs": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb",
+      "rust/crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+      "rust/crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+      "rust/crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+      "rust/crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+      "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+      "rust/crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+      "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+      "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+      "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+      "rust/crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+      "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+      "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+      "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+      "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+      "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+      "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+      "rust/crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+      "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+      "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+      "rust/crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+      "rust/crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+      "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+      "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+      "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+      "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+      "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+      "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+      "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+      "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+      "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+      "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+      "rust/crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+      "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+      "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+    }
+  },
+  "platform": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_libc": "0.2.4",
+    "provider_mode": "source",
+    "cc": "/usr/bin/clang-16",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "input_pins_sha256": {
+    "rust/Cargo.lock": "2fe9bef8d1790c8eb11f06e3a88155227535e7af057eca604c1031d6ccd3d920",
+    "scripts/rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59",
+    "scripts/rust-qualified-dependencies.json": "6d2154c7c635a459fee7912c401298cce43e781ea5f22cc2c107d5d0fa83a61d",
+    "scripts/rust-integrity-dependencies.json": "8aa1ec4d5bab10e6f572040081c5896d5ae2419be222132d48ad98b5bff4a122",
+    "scripts/Containerfile.rust": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+    "scripts/check-rust-sles.py": "0714cde12976de85e8a78b03b4bb849e8a21d9529bf427a91372b7115d218ebe",
+    "scripts/tls_proof_fixture.py": "59f431d3d7f583c0ef49f9e278f166a8555d498e1c70f50c73f433c5f59d39c6"
+  },
+  "qualified_dependencies": {
+    "dependencies": [
+      {
+        "name": "aws-lc-rs",
+        "version": "1.19.0",
+        "license": "ISC AND (Apache-2.0 OR ISC)",
+        "features": [
+          "aws-lc-sys",
+          "prebuilt-nasm"
+        ],
+        "checksum": "048006790404103c488e6c5616b3e7e702a71292aadda08e8f7698a9e0d2eb53"
+      },
+      {
+        "name": "aws-lc-sys",
+        "version": "0.47.0",
+        "license": "ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)",
+        "features": [
+          "prebuilt-nasm"
+        ],
+        "checksum": "8bfbe32ac36b3c428696ce315464181bc4029d689fd58e3f2a4e58c252242f52"
+      },
+      {
+        "name": "bitflags",
+        "version": "2.13.2",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "std"
+        ]
+      },
+      {
+        "name": "bytes",
+        "version": "1.12.1",
+        "license": "MIT",
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      {
+        "name": "cc",
+        "version": "1.8.0",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "parallel"
+        ]
+      },
+      {
+        "name": "cmake",
+        "version": "0.1.58",
+        "license": "MIT OR Apache-2.0",
+        "features": [],
+        "checksum": "c0f78a02292a74a88ac736019ab962ece0bc380e3f977bf72e376c5d78ff0678"
+      },
+      {
+        "name": "dunce",
+        "version": "1.0.5",
+        "license": "CC0-1.0 OR MIT-0 OR Apache-2.0",
+        "features": [],
+        "checksum": "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
+      },
+      {
+        "name": "errno",
+        "version": "0.3.14",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      {
+        "name": "fallible-iterator",
+        "version": "0.3.0",
+        "license": "MIT/Apache-2.0",
+        "features": [
+          "alloc",
+          "default"
+        ]
+      },
+      {
+        "name": "fallible-streaming-iterator",
+        "version": "0.1.9",
+        "license": "MIT/Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "find-msvc-tools",
+        "version": "0.1.14",
+        "license": "MIT OR Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "fs_extra",
+        "version": "1.3.0",
+        "license": "MIT",
+        "features": [],
+        "checksum": "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
+      },
+      {
+        "name": "getrandom",
+        "version": "0.2.17",
+        "license": "MIT OR Apache-2.0",
+        "features": [],
+        "checksum": "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
+      },
+      {
+        "name": "httparse",
+        "version": "1.10.1",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "std"
+        ]
+      },
+      {
+        "name": "itoa",
+        "version": "1.0.18",
+        "license": "MIT OR Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "jobserver",
+        "version": "0.1.35",
+        "license": "MIT OR Apache-2.0",
+        "features": [],
+        "checksum": "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
+      },
+      {
+        "name": "libc",
+        "version": "0.2.190",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      {
+        "name": "libsqlite3-sys",
+        "version": "0.38.2",
+        "license": "MIT",
+        "features": [
+          "bundled",
+          "bundled_bindings",
+          "cc",
+          "default",
+          "min_sqlite_version_3_34_1",
+          "pkg-config",
+          "vcpkg"
+        ]
+      },
+      {
+        "name": "linux-raw-sys",
+        "version": "0.12.1",
+        "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+        "features": [
+          "auxvec",
+          "elf",
+          "errno",
+          "general",
+          "ioctl",
+          "no_std",
+          "prctl"
+        ]
+      },
+      {
+        "name": "memchr",
+        "version": "2.8.3",
+        "license": "Unlicense OR MIT",
+        "features": [
+          "alloc",
+          "std"
+        ]
+      },
+      {
+        "name": "mio",
+        "version": "1.2.4",
+        "license": "MIT",
+        "features": [
+          "net",
+          "os-ext",
+          "os-poll"
+        ]
+      },
+      {
+        "name": "once_cell",
+        "version": "1.21.4",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "alloc",
+          "race",
+          "std"
+        ],
+        "checksum": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+      },
+      {
+        "name": "pin-project-lite",
+        "version": "0.2.17",
+        "license": "Apache-2.0 OR MIT",
+        "features": []
+      },
+      {
+        "name": "pkg-config",
+        "version": "0.3.34",
+        "license": "MIT OR Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "proc-macro2",
+        "version": "1.0.107",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "proc-macro"
+        ]
+      },
+      {
+        "name": "quote",
+        "version": "1.0.47",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "proc-macro"
+        ]
+      },
+      {
+        "name": "ring",
+        "version": "0.17.14",
+        "license": "Apache-2.0 AND ISC",
+        "features": [
+          "alloc"
+        ],
+        "checksum": "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
+      },
+      {
+        "name": "rusqlite",
+        "version": "0.40.1",
+        "license": "MIT",
+        "features": [
+          "bundled",
+          "modern_sqlite"
+        ]
+      },
+      {
+        "name": "rustix",
+        "version": "1.1.5",
+        "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+        "features": [
+          "alloc",
+          "fs",
+          "process",
+          "std"
+        ]
+      },
+      {
+        "name": "rustls",
+        "version": "0.23.46",
+        "license": "Apache-2.0 OR ISC OR MIT",
+        "features": [
+          "aws-lc-rs",
+          "aws_lc_rs",
+          "std",
+          "tls12"
+        ],
+        "checksum": "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
+      },
+      {
+        "name": "rustls-pki-types",
+        "version": "1.15.1",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "alloc",
+          "default",
+          "std"
+        ],
+        "checksum": "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96"
+      },
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16",
+        "license": "ISC",
+        "features": [
+          "alloc",
+          "aws-lc-rs",
+          "std"
+        ],
+        "checksum": "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
+      },
+      {
+        "name": "serde",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "derive",
+          "serde_derive",
+          "std"
+        ]
+      },
+      {
+        "name": "serde_core",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "result",
+          "std"
+        ]
+      },
+      {
+        "name": "serde_derive",
+        "version": "1.0.229",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "default"
+        ]
+      },
+      {
+        "name": "serde_json",
+        "version": "1.0.154",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "std"
+        ]
+      },
+      {
+        "name": "shlex",
+        "version": "2.0.1",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      {
+        "name": "signal-hook-registry",
+        "version": "1.4.8",
+        "license": "MIT OR Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "smallvec",
+        "version": "1.16.3",
+        "license": "MIT OR Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "socket2",
+        "version": "0.6.5",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "all"
+        ]
+      },
+      {
+        "name": "subtle",
+        "version": "2.6.1",
+        "license": "BSD-3-Clause",
+        "features": [],
+        "checksum": "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+      },
+      {
+        "name": "syn",
+        "version": "3.0.9",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "clone-impls",
+          "derive",
+          "parsing",
+          "printing",
+          "proc-macro"
+        ]
+      },
+      {
+        "name": "tokio",
+        "version": "1.53.2",
+        "license": "MIT",
+        "features": [
+          "bytes",
+          "default",
+          "io-util",
+          "libc",
+          "mio",
+          "net",
+          "rt",
+          "signal",
+          "signal-hook-registry",
+          "socket2",
+          "sync",
+          "time",
+          "windows-sys"
+        ]
+      },
+      {
+        "name": "tokio-rustls",
+        "version": "0.26.6",
+        "license": "MIT OR Apache-2.0",
+        "features": [
+          "aws_lc_rs",
+          "tls12"
+        ],
+        "checksum": "c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db"
+      },
+      {
+        "name": "unicode-ident",
+        "version": "1.0.27",
+        "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+        "features": []
+      },
+      {
+        "name": "untrusted",
+        "version": "0.9.0",
+        "license": "ISC",
+        "features": [],
+        "checksum": "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
+      },
+      {
+        "name": "vcpkg",
+        "version": "0.2.15",
+        "license": "MIT/Apache-2.0",
+        "features": []
+      },
+      {
+        "name": "zeroize",
+        "version": "1.9.1",
+        "license": "Apache-2.0 OR MIT",
+        "features": [
+          "alloc",
+          "default"
+        ],
+        "checksum": "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
+      },
+      {
+        "name": "zmij",
+        "version": "1.0.23",
+        "license": "MIT",
+        "features": []
+      }
+    ],
+    "tokio_selected_features": [
+      "bytes",
+      "default",
+      "io-util",
+      "libc",
+      "mio",
+      "net",
+      "rt",
+      "signal",
+      "signal-hook-registry",
+      "socket2",
+      "sync",
+      "time",
+      "windows-sys"
+    ],
+    "tls_selected_features": {
+      "aws-lc-rs": [
+        "aws-lc-sys",
+        "prebuilt-nasm"
+      ],
+      "aws-lc-sys": [
+        "prebuilt-nasm"
+      ],
+      "cc": [
+        "parallel"
+      ],
+      "cmake": [],
+      "dunce": [],
+      "fs_extra": [],
+      "getrandom": [],
+      "jobserver": [],
+      "once_cell": [
+        "alloc",
+        "race",
+        "std"
+      ],
+      "ring": [
+        "alloc"
+      ],
+      "rustls": [
+        "aws-lc-rs",
+        "aws_lc_rs",
+        "std",
+        "tls12"
+      ],
+      "rustls-pki-types": [
+        "alloc",
+        "default",
+        "std"
+      ],
+      "rustls-webpki": [
+        "alloc",
+        "aws-lc-rs",
+        "std"
+      ],
+      "subtle": [],
+      "tokio-rustls": [
+        "aws_lc_rs",
+        "tls12"
+      ],
+      "untrusted": [],
+      "zeroize": [
+        "alloc",
+        "default"
+      ]
+    }
+  },
+  "local_verification": {
+    "commit": "44a44d0ed0b2ed901fb2184e0c43b7172ba3aec7",
+    "rust_tree": "2812aa80aae83f715ca3685547efb93e74dced0a",
+    "source_files": 77,
+    "runs": [
+      {
+        "run_id": "20261109T020157Z-f0143d15",
+        "mode": "production",
+        "report_sha256": "6054c44e2fddcd80dcae7274925db6b42d7f3c7a1c4fd3ff926e1452415e4671",
+        "source_archive_sha256": "1de03fbc63c106d21cc68ccfc4f542b4a707010273fcff8c5b34d3a50992bcea",
+        "source_hashes_matched": 77,
+        "profiles": {
+          "debug": {
+            "tests_passed": 273,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 520.05,
+            "api_suite_timeout_seconds": 900
+          },
+          "release": {
+            "tests_passed": 273,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 476.87,
+            "api_suite_timeout_seconds": 900
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "run_id": "20261109T024718Z-52525649-nfs-qualification",
+        "mode": "nfs-qualification",
+        "report_sha256": "5736be05ca5a7b692965d891f9e07230825cc61cdcd8424ebd8b1faaef3ae8a6",
+        "source_archive_sha256": "08227025f0cf86821f38417919d2d1b1188f9e7aa75497cd605e8da72eed0214",
+        "source_hashes_matched": 77,
+        "profiles": {
+          "debug": {
+            "tests_passed": 277,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 902.63,
+            "api_suite_timeout_seconds": 1200
+          },
+          "release": {
+            "tests_passed": 277,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 844.64,
+            "api_suite_timeout_seconds": 1200
+          }
+        },
+        "cleanup_error": null
+      }
+    ]
+  },
+  "local_gates": [
+    {
+      "run_id": "20261109T020157Z-f0143d15",
+      "mode": "production",
+      "native_compiler_audits": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "native_log_sha256": {
+        "clippy.log": "5da5a0df5d64b133d11e36cd876f81f45475c42e2eea99eba7d9893994e19e3c",
+        "release-build.log": "414446c18f45c13519a29bdc2b2cef4f67e597c739a1df6e2dd6000b580bcd19",
+        "tls-selected-dependencies.txt": "36f4daaf612cee4da39e5c1593dc4052fd02e52a01ebec3fdbebddc2b19469aa"
+      },
+      "tls_fixture": {
+        "archive_root": "file-mover-tls-proof",
+        "certificates": {
+          "ca.der": {
+            "not_after": "2026-11-11T02:03:50+00:00",
+            "not_before": "2026-11-09T02:03:50+00:00",
+            "sha256": "c05a685667bd7fd8428948c0e205c5e1ee7d50c93706f495df458d2208bd8246",
+            "size_bytes": 429
+          },
+          "client.der": {
+            "not_after": "2026-11-11T02:03:50+00:00",
+            "not_before": "2026-11-09T02:03:50+00:00",
+            "sha256": "502c35b14eda9fbb4b833020d08e5cb989440a27780c86ab39afd90cff37167b",
+            "size_bytes": 433
+          },
+          "expired-client.der": {
+            "not_after": "2026-11-08T02:03:51+00:00",
+            "not_before": "2026-11-09T02:03:51+00:00",
+            "sha256": "e1c42eefcd4d2be5710e39f601625ba6302df92eaf47e1034feea003d5c451f0",
+            "size_bytes": 440
+          },
+          "expired-server.der": {
+            "not_after": "2026-11-08T02:03:51+00:00",
+            "not_before": "2026-11-09T02:03:51+00:00",
+            "sha256": "b81f30a85baf461279438c086a408c8077e448ecae9663ee28193922d4d10c23",
+            "size_bytes": 443
+          },
+          "other-ca.der": {
+            "not_after": "2026-11-11T02:03:50+00:00",
+            "not_before": "2026-11-09T02:03:50+00:00",
+            "sha256": "a08f74504e842fd6e63e3ef1fcb61a4beb7590e961370b8cacb273a129c92521",
+            "size_bytes": 441
+          },
+          "server.der": {
+            "not_after": "2026-11-11T02:03:50+00:00",
+            "not_before": "2026-11-09T02:03:50+00:00",
+            "sha256": "33595608afaafdcf5b4e9938238e6f88ddcf94255ab2d62439db94321849cbe8",
+            "size_bytes": 444
+          },
+          "untrusted-client.der": {
+            "not_after": "2026-11-11T02:03:50+00:00",
+            "not_before": "2026-11-09T02:03:50+00:00",
+            "sha256": "488176eaf38a499b26df8447057ed015fb98ac3fa0c7a65fc67484b0be1905bc",
+            "size_bytes": 448
+          },
+          "wrong-usage-client.der": {
+            "not_after": "2026-11-11T02:03:51+00:00",
+            "not_before": "2026-11-09T02:03:51+00:00",
+            "sha256": "f9c85af36c8c2c3e041fa4c3c69a406d00b513e82612906916eff97e6a6c2a3d",
+            "size_bytes": 445
+          }
+        },
+        "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+        "private_archive_retained": false,
+        "key_custody": "1000:1000:600"
+      },
+      "fixture_helper_sha256": "59f431d3d7f583c0ef49f9e278f166a8555d498e1c70f50c73f433c5f59d39c6",
+      "profiles": {
+        "debug": {
+          "tests_passed": 273,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "1fa2f22b29fb6f30d278abe31d694e51ba0d516c1d76371b6882c2ed1c217e76",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-af45a5e014ef464a",
+              "sha256": "34332358729f1f925a0163545f26e84557bb5f71f15c007b06104ab14249451c",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-acd088fd3c215e37",
+              "sha256": "549dd08a00292882493c23d0e8965e7b0ebd4b0aadcf5ed6dde1bc76d23c1774",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-495f18bfb53f76cb",
+              "sha256": "9f672506298c58a696f24ac004be11e4bf9ee2c92b02bf54218ba5cea4e1d8e6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-ca8d7f2375d509c3",
+              "sha256": "6958f3006dc1d616802d8b1defcb699d0533654bbb74eb351c5fd7bfdf63c3ad",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-9fa52540c9b971c1",
+              "sha256": "72fdb252e1ee1363a85bad2555326956c1d49dcedbb63420cec07f73da689cc4",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-afa6fe358c52c74e",
+              "sha256": "71354232f0549fe10178a1145fd765d9e26880f3e011b19ec9ac481b3af5d456",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-tls-bb5726eb3b6f6216",
+              "sha256": "fc6e34a9947c2a83870216e8889bee29b48fa517eafbad9d3dadfab0286324e5",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-10-transfer-4219d24a72cbd11d",
+              "sha256": "7d121fdd9d79e0fca0af42de9976af76747e5fe5cf28c523c23a2bcd0a8ebf16",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 273,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover",
+              "sha256": "25b2fc6f2c17d738a97771f7629ea4b8e83ec2237496000c00e5be10535421ce",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-1b483c7b45deecb2",
+              "sha256": "bec3352b606253aef247faa0c1e5f5eef4d93a45abba0d816ad78a26a89d8ea7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-57ddd991f0c2f95e",
+              "sha256": "fecfdd0b5c893686b07b84b658e5a96519861d9b400a92998feb96aea2da47b6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-8cd2266873d3ffad",
+              "sha256": "f92b036c4ca7037a77c2ddef786eb123496bd72e4bdf5406e22204d646ab42ce",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-f2796d3b9387c935",
+              "sha256": "03bfd4c49fe2a60c97189dd8b4f9b1cf9b05bde58e36b57a2f5e0066756eaba4",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-6c90b792fb216d81",
+              "sha256": "c341438bef1602ee26417a60aaa6e9628807f0bf0ce83941c66f659b2a5fa2b2",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-e26f6ddc6db36010",
+              "sha256": "f3640b56c0a254613b0873002c904f416f36fdbb36fcb83498b5d8a367411d53",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-tls-12b7956878739288",
+              "sha256": "6e12064e498dc8aa3d8bfb16eca768276e19ac88eb44d4e9fa4f9255dd117418",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-10-transfer-f99e9b10ef20811b",
+              "sha256": "82cd905311c981ff78ff7e36c952197c96988667948286287db71ccca23a16c6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      },
+      "tls_test_results": {
+        "debug": "\nrunning 4 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s\n\n",
+        "release": "\nrunning 4 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s\n\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261109T024718Z-52525649-nfs-qualification",
+      "mode": "nfs-qualification",
+      "native_compiler_audits": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "native_log_sha256": {
+        "clippy.log": "8ca3aff2ef37bec63acc0edd253f363ca3a32f843b6f9ef4fdd4d9a6c3639c52",
+        "release-build.log": "116cc708d10d1c56d4c24285701f2d74cb3aec06b7d298a27af83759bcf10148",
+        "tls-selected-dependencies.txt": "36f4daaf612cee4da39e5c1593dc4052fd02e52a01ebec3fdbebddc2b19469aa"
+      },
+      "tls_fixture": {
+        "archive_root": "file-mover-tls-proof",
+        "certificates": {
+          "ca.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "5247407b79c73c2ccf8430224e759476a066612ad7e1b64af9bb259e584457ee",
+            "size_bytes": 430
+          },
+          "client.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "3c13e5008adf7ab0ae4d1a197dbce87700f3d4ab2d8000e670041c608365c554",
+            "size_bytes": 432
+          },
+          "expired-client.der": {
+            "not_after": "2026-11-08T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "6517ef00762be07fe116fa8dc557d29492769de0efe2847a04ec696b47322cb1",
+            "size_bytes": 439
+          },
+          "expired-server.der": {
+            "not_after": "2026-11-08T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "4710b86d42807f81254c1f6fd58964b840d4b2735dfbbcfc8f6818dbf6c0062c",
+            "size_bytes": 444
+          },
+          "other-ca.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "cbbd3af742c5d742e55f12e3d3f6f3ac245af18e6c6a9b4b30936aaf0e1968cc",
+            "size_bytes": 441
+          },
+          "server.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "ef323c4281c640a33e6d2ac198b36e50f9d5010752800b5d8bc2a3fc8ce90e2e",
+            "size_bytes": 443
+          },
+          "untrusted-client.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "2c053cb9b3b7ec9c22236e9640eb36e5739e79b1c80ec528f991491974ded70b",
+            "size_bytes": 447
+          },
+          "wrong-usage-client.der": {
+            "not_after": "2026-11-11T02:49:05+00:00",
+            "not_before": "2026-11-09T02:49:05+00:00",
+            "sha256": "dcd1777475937804cd253211fb7ea3e853d5e82c8320eeb8dbc837ccf0519ff1",
+            "size_bytes": 445
+          }
+        },
+        "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+        "private_archive_retained": false,
+        "key_custody": "1000:1000:600"
+      },
+      "fixture_helper_sha256": "59f431d3d7f583c0ef49f9e278f166a8555d498e1c70f50c73f433c5f59d39c6",
+      "profiles": {
+        "debug": {
+          "tests_passed": 277,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover-nfs-qualification",
+              "sha256": "0c35d453eb2c56662b9419445911c4475b2452be1b3b49f59e9d66d324851461",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-f1201d4aa0d1cea1-nfs-qualification",
+              "sha256": "9cc49eb89d04fae420ebfc26e7d5a70a8bd79b445215deee80db98f68535c101",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-0a5cb6dabbb9be66-nfs-qualification",
+              "sha256": "cf3551ade926e60b31d5fe8a0ea05136cc5e2b0009c491b952dae2e4bfa4618d",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-88d5b8061f9d232d-nfs-qualification",
+              "sha256": "053a67ba5cbb8d51f1dbfcce31f374808fbfce77c1ac29e5a34a10e49beb3128",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-a169e3c355f6bd5c-nfs-qualification",
+              "sha256": "573c3193ae36ed1873c68bc7597c6437fe2298a2b36f144a4f693ce768439873",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-b1e29475df059149-nfs-qualification",
+              "sha256": "cbd99fc924012585b88d13b7c87f6ac39c626f5660d25894aaff4f14c8f5d764",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-afa6fe358c52c74e-nfs-qualification",
+              "sha256": "71354232f0549fe10178a1145fd765d9e26880f3e011b19ec9ac481b3af5d456",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-tls-fe11ee09409d4974-nfs-qualification",
+              "sha256": "a812f75843849481c7acb39d5cc61abcf190aa0f01714b4fbf3776f1b117a644",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-10-transfer-8818e0789704aa5a-nfs-qualification",
+              "sha256": "57824f00dce1647b1d7897088eb887d3267f49f6aabab45d1aa0a33c5c1d2c79",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 277,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover-nfs-qualification",
+              "sha256": "47302c13daec109201105381428098081ca47978d571af6430a48c8f3bce2899",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-399b34d19920f63c-nfs-qualification",
+              "sha256": "66b3394c54449e1d9b4516d54cb9b55b15f7b19ef64229c9594bf93230925fca",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-2eb5dfce2a3d6649-nfs-qualification",
+              "sha256": "393f61493f0c68da553b3353855ef124563560fafd8a66fb3978d7ec73139161",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-3e5daa81062321c0-nfs-qualification",
+              "sha256": "b29543c88a29edade722600f5431208f8f7b7099c04c3bf25c7b7a63d6c78d60",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-521bf67c752ae188-nfs-qualification",
+              "sha256": "f97cb0e3d24b6cc605b2e91342991a255b5e6ddf9b0597e430330344dba9e94e",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-096473c66530a532-nfs-qualification",
+              "sha256": "00e5a067f69dbea6ee4daff9c279995e2e49b30b4a86da076d8dfb6d3cef7df1",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-e26f6ddc6db36010-nfs-qualification",
+              "sha256": "f3640b56c0a254613b0873002c904f416f36fdbb36fcb83498b5d8a367411d53",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-tls-88b91ba810de5fbe-nfs-qualification",
+              "sha256": "4ec9e1e2711cb5eda44b78bd562dcc03d6d4df221dd738da7e224cef135d705e",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-10-transfer-6b2fbed26669d342-nfs-qualification",
+              "sha256": "41140276fc065ec32e3097d10cc6d3be7c42829c9b3eeadcab56edcc77d3f5bc",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      },
+      "tls_test_results": {
+        "debug": "\nrunning 4 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s\n\n",
+        "release": "\nrunning 4 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s\n\n"
+      },
+      "cleanup_error": null
+    }
+  ],
+  "scoped_diagnostic": {
+    "run_id": "20261109T015008Z-43cadb3d",
+    "status": "SCOPED_PASSED",
+    "verification": {
+      "scope": "scoped TLS proof only; not full qualification",
+      "report_sha256": "d55b088b1abfa60f0e7faef5534d0e26b28054634ea2ddd2c56f1752a05f5bd9",
+      "status": "SCOPED_PASSED",
+      "cleanup_error": null,
+      "native_log_audits_coordinator": {
+        "debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "executables_rehashed": 4
+    },
+    "profiles": {
+      "debug": {
+        "tests_passed": 4,
+        "artifacts": [
+          {
+            "name": "debug-0-file-mover",
+            "sha256": "1fa2f22b29fb6f30d278abe31d694e51ba0d516c1d76371b6882c2ed1c217e76",
+            "test": false,
+            "maximum_glibc": "GLIBC_2.18"
+          },
+          {
+            "name": "debug-1-tls-bb5726eb3b6f6216",
+            "sha256": "fc6e34a9947c2a83870216e8889bee29b48fa517eafbad9d3dadfab0286324e5",
+            "test": true,
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        ]
+      },
+      "release": {
+        "tests_passed": 4,
+        "artifacts": [
+          {
+            "name": "release-0-file-mover",
+            "sha256": "25b2fc6f2c17d738a97771f7629ea4b8e83ec2237496000c00e5be10535421ce",
+            "test": false,
+            "maximum_glibc": "GLIBC_2.18"
+          },
+          {
+            "name": "release-1-tls-12b7956878739288",
+            "sha256": "6e12064e498dc8aa3d8bfb16eca768276e19ac88eb44d4e9fa4f9255dd117418",
+            "test": true,
+            "maximum_glibc": "GLIBC_2.18"
+          }
+        ]
+      }
+    },
+    "not_full_qualification": true
+  },
+  "cached_dependency_material_check": {
+    "report_sha256": "ae64372e91d9f1672282bc3693e01dd06a02cea3aad9ed24cae13ce8bb8eac10",
+    "dependencies": 58,
+    "source_and_notice_members": 174,
+    "scope": "source/notice extraction only, no installation bundle built"
+  },
+  "portable_checks": {
+    "tests_passed": 76,
+    "fixture_tests": 11,
+    "sysroot_negative_and_positive_forms": true,
+    "scoped_reports_rejected_by_package_and_ingress_consumers": true
+  },
+  "case_matrix": {
+    "positive_handshakes_per_profile": 2,
+    "negative_client_handshakes_per_profile": 8,
+    "negative_server_handshakes_per_profile": 6,
+    "policy_construction_refusals_per_profile": 4,
+    "tls_versions": [
+      "1.2",
+      "1.3"
+    ],
+    "client_and_server_implementation": "rustls/AWS-LC in SLES target test executable",
+    "independent_protocol_implementation_interop": "NOT_RUN; later integration obligation",
+    "plaintext_rest": "existing API suites continue without TLS credentials; no new public HTTP/HTTPS config fields"
+  },
+  "ci": {
+    "run_id": 42551738694,
+    "url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/42551738694",
+    "head": "d109dc9fea40897b05b7626b68fd27680dd2740b",
+    "gates": [
+      {
+        "mode": "production",
+        "run_id": "20261109T023531Z-a254e855",
+        "report_sha256": "c6cb994f8df7790c47c03c0e81243659b90f16a4916d893f181eee22e37ed133",
+        "profiles": {
+          "debug": 273,
+          "release": 273
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "mode": "nfs-qualification",
+        "run_id": "20261109T023534Z-67d6e764-nfs-qualification",
+        "report_sha256": "a6c07649f663058475d3bbbcb920538a7e54a182c3d315c7eddead559265de04",
+        "profiles": {
+          "debug": 277,
+          "release": 277
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      }
+    ],
+    "actual_ingress_checker": {
+      "report_sha256": "beebbc6bdb7691d3ff2a88469842141ea7a485dc4258b4a0bb2cfdc59c3204ca",
+      "status": "PASSED",
+      "requests": 70,
+      "profiles": [
+        {
+          "profile": "debug",
+          "passed": true,
+          "unsafe_cases": 11
+        },
+        {
+          "profile": "release",
+          "passed": true,
+          "unsafe_cases": 11
+        }
+      ],
+      "driver_sha256": {
+        "check-producer-ingress.py": "7886adf76fdc94e4ba959a6879423e211506079e5730ef55c1b4296a228c27c3",
+        "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+        "check-rust-sles.py": "0714cde12976de85e8a78b03b4bb849e8a21d9529bf427a91372b7115d218ebe",
+        "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+      },
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "5d86a7996288d25045e46de581063a81de6908364576d4f29e7be6b00010c631\n",
+        "stderr": "time=\"2026-11-09T02:45:24Z\" level=warning msg=\"StopSignal SIGTERM failed to stop container zen_driscoll in 10 seconds, resorting to SIGKILL\"\n"
+      }
+    },
+    "limit": "CI reports/native logs downloaded and audited; CI executable bytes were not uploaded or independently rehashed locally"
+  },
+  "retained_failed_ci_fixture_copy": {
+    "run_id": 42548860130,
+    "report_sha256": "a752c0965d5489c8a9bfb50d969b314f7c49e6e539cca023862718720c508d82",
+    "status": "FAILED",
+    "profiles_started": 0,
+    "error": "Traceback (most recent call last):\n  File \"/home/runner/work/background-file-mover/background-file-mover/scripts/check-producer-ingress.py\", line 671, in main\n    runner.command(['podman', 'cp', '--archive=false', '-', runner.container+':/tmp'], data=archive)\n  File \"/home/runner/work/background-file-mover/background-file-mover/scripts/check-producer-ingress.py\", line 259, in command\n    raise RuntimeError(f'{args[:4]}: {result.returncode}: {result.stderr.decode(errors=\"replace\")[-2000:]}')\nRuntimeError: ['podman', 'cp', '--archive=false', '-']: 125: Error: 1 error occurred:\n\t* io: read/write on closed pipe\n\n",
+    "cleanup": {
+      "exit_code": 0,
+      "stdout": "4326f7ffe1e10d8a320cb5a7517c840916813a61c6e9ce994830181083ac53c5\n",
+      "stderr": "time=\"2026-11-09T02:14:12Z\" level=warning msg=\"StopSignal SIGTERM failed to stop container intelligent_gates in 10 seconds, resorting to SIGKILL\"\n"
+    },
+    "note": "Both same-head CI Rust gate modes passed; the follow-on fixture copy failed before application profiles. Do not call this overall CI pass."
+  },
+  "copy_diagnostics": {
+    "tls-ingress-copy-diagnostic-122.json": {
+      "report_sha256": "14afce96022cc89d4b3e1695edfbea7aceba5a1c16b0cfa59fbb402d9f6785ea",
+      "report": {
+        "scope": "fixture transfer only, no application/qualification",
+        "archive_bytes": 80087040,
+        "archive_sha256": "154f98ce1bc9d865a64bf36ac2d47141f17e5c26f2cd1c63ec4098ea7ec0f3ea",
+        "podman_version": "Client:       Podman Engine\nVersion:      5.8.2\nAPI Version:  5.8.2\nGo Version:   go1.26.8\nGit Commit:   5b263b5f5b48004a87caac44e67349a8266d9ef4\nBuilt:        Wed Sep  9 23:50:05 2026\nOS/Arch:      linux/amd64\n",
+        "runs": [
+          {
+            "method": "pipe",
+            "container": "5aeb7a6c7beaa8be87b09b9e48e9095b8bdd290a440968e70ec297017217df02",
+            "returncode": 125,
+            "stderr": "Error: 1 error occurred:\n\t* io: read/write on closed pipe\n",
+            "stat": {
+              "returncode": 0,
+              "stdout": "1000:1001:500:70824720\n1000:1001:500:9229080\n",
+              "stderr": ""
+            },
+            "hashes": "1fa2f22b29fb6f30d278abe31d694e51ba0d516c1d76371b6882c2ed1c217e76  /tmp/ingress/debug/file-mover\n25b2fc6f2c17d738a97771f7629ea4b8e83ec2237496000c00e5be10535421ce  /tmp/ingress/release/file-mover\n",
+            "cleanup": 0
+          },
+          {
+            "method": "file",
+            "container": "baca4cc5eda0d2c4ca908218b968d414a67a59b60e721af8bfed285747625205",
+            "returncode": 125,
+            "stderr": "Error: 1 error occurred:\n\t* io: read/write on closed pipe\n",
+            "stat": {
+              "returncode": 0,
+              "stdout": "1000:1001:500:70824720\n1000:1001:500:9229080\n",
+              "stderr": ""
+            },
+            "hashes": "1fa2f22b29fb6f30d278abe31d694e51ba0d516c1d76371b6882c2ed1c217e76  /tmp/ingress/debug/file-mover\n25b2fc6f2c17d738a97771f7629ea4b8e83ec2237496000c00e5be10535421ce  /tmp/ingress/release/file-mover\n",
+            "cleanup": 0
+          }
+        ]
+      }
+    },
+    "tls-ingress-copy-padding-diagnostic-122.json": {
+      "report_sha256": "c075268f1a359ddbe107995615a7a6b9f86d1037d6d9d5dcc1cc765369822b6f",
+      "report": {
+        "scope": "fixture transfer only, no application/qualification",
+        "archive_bytes": 80087040,
+        "archive_sha256": "154f98ce1bc9d865a64bf36ac2d47141f17e5c26f2cd1c63ec4098ea7ec0f3ea",
+        "podman_version": "Client:       Podman Engine\nVersion:      5.8.2\nAPI Version:  5.8.2\nGo Version:   go1.26.8\nGit Commit:   5b263b5f5b48004a87caac44e67349a8266d9ef4\nBuilt:        Wed Sep  9 23:50:05 2026\nOS/Arch:      linux/amd64\n",
+        "runs": [
+          {
+            "method": "trimmed",
+            "container": "cc1a18622991e73e67eef28c4b27c52f9558be501077f02d9f47498507aed8d1",
+            "returncode": 0,
+            "stderr": "",
+            "stat": {
+              "returncode": 0,
+              "stdout": "1000:1001:500:70824720\n1000:1001:500:9229080\n",
+              "stderr": ""
+            },
+            "hashes": "1fa2f22b29fb6f30d278abe31d694e51ba0d516c1d76371b6882c2ed1c217e76  /tmp/ingress/debug/file-mover\n25b2fc6f2c17d738a97771f7629ea4b8e83ec2237496000c00e5be10535421ce  /tmp/ingress/release/file-mover\n",
+            "cleanup": 0
+          }
+        ],
+        "original_archive_bytes": 80087040,
+        "trimmed_archive_bytes": 80079360
+      },
+      "archive_hash_note": "The raw archive_sha256 names the original padded input; the copied trimmed variant is identified by trimmed_archive_bytes and preserves all member bytes/headers. Binary hashes, owners and modes are unchanged."
+    }
+  },
+  "review": {
+    "native_audit_sysroot_gap": "fixed and regression-tested at44a44d0 before full gates",
+    "fixture_copy": "7b0e90d uses writer end offset plus exactly two zero end blocks; no payload truncation or ignored copy failure",
+    "bounded_advisory_check": "No applicable published advisory found among those checked; aws-lc-rs package page unavailable; no complete automated Cargo.lock audit or guarantee against unpublished issues"
+  },
+  "limits": [
+    "No production HTTPS REST listener, certificate-to-generator admission or user transport selection is implemented by this proof.",
+    "Existing loopback HTTP stays usable without certificate files; explicit HTTP/HTTPS choice is required in later listener increment, never automatic TLS-error fallback.",
+    "Credential loader, reload/revocation/races, remote plaintext trust, independent TLS-client interoperability and supported deployment remain future work.",
+    "No operational credentials/state, account provisioning, proxy, production NFS/deletion or deployment.",
+    "All eight full-release gates remain open; SLES12SP5 userspace/glibc2.22 evidence does not qualify all kernels/systemd/FIPS profiles.",
+    "Existing offline bundle is its prior recorded version; only dependency source/notice collection was checked here."
+  ]
+}

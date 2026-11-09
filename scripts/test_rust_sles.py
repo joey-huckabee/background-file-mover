@@ -49,6 +49,29 @@ class ConfigurationStreamTests(unittest.TestCase):
                 gate.run(["cargo", "libc", "env"], stdout_only=True)
 
 
+
+class TlsNativeCompilerTests(unittest.TestCase):
+    def test_target_wrapper_is_required_for_actual_native_sources(self):
+        config = ('[env]\n"CC_x86_64-unknown-linux-gnu"="/tools/libc-cc"\n'
+                  'CARGO_LIBC_SYSROOT="/old/sysroot"\nCARGO_LIBC_RUN_GLIBC="2.22"\n'
+                  'CARGO_LIBC_CC="/tools/clang-16"\n')
+        command = '[aws-lc-sys 0.47.0] running: "/tools/libc-cc" "-O2" "-c" "/registry/aws-lc-sys/aws-lc/crypto/a.c"'
+        proof = gate.audit_tls_native_build(command, config)
+        self.assertEqual(proof['source_compilations'], 1)
+        self.assertEqual(proof['sysroot'], '/old/sysroot')
+        for bad in ('', command.replace('/tools/libc-cc', '/usr/bin/cc'),
+                    command+' "-march=native"', command+' "--sysroot=/new/sysroot"',
+                    command+' "--sysroot" "/new/sysroot"', command+' "-isysroot" "/new/sysroot"',
+                    command+' "-isysroot/new/sysroot"', command+' "-isysroot=/new/sysroot"',
+                    command+' "--sysroot"', command+' "-isysroot"'):
+            with self.subTest(command=bad), self.assertRaises(ValueError):
+                gate.audit_tls_native_build(bad, config)
+        for suffix in (' \"--sysroot=/old/sysroot\"', ' \"--sysroot\" \"/old/sysroot\"', ' \"-isysroot\" \"/old/sysroot\"'):
+            self.assertEqual(gate.audit_tls_native_build(command + suffix, config)['source_compilations'], 1)
+        with self.assertRaises(ValueError):
+            gate.audit_tls_native_build(command, config.replace('2.22', '2.36'))
+
+
 class OfflineGateTests(unittest.TestCase):
     def test_missing_cached_inputs_never_fall_back_to_online_provisioning(self):
         for missing in ("builder", "runtime", "registry", "crates", "network"):

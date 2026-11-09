@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return file_mover::delivery_worker::worker();
     }
     if path == "--check-platform" && args.next().is_none() {
+        file_mover::tls::check_platform()?;
         let mode = if mover_fs::nfs_qualification_enabled() {
             "nfs-qualification"
         } else {

@@ -245,7 +245,13 @@ def fixture_archive(artifacts):
                 add(prefix+f'/{role}/.file-mover/coordinator.lock', 0o600, b'')
             add(prefix+'/source/current/a', 0o600, b'ingress payload A')
             add(prefix+'/source/current/b', 0o600, b'ingress payload B')
-    return buffer.getvalue(), configs
+        end_of_members = tar.offset
+    # Go's tar extractor stops at the two end blocks. Surplus Python record
+    # padding can leave Podman's internal writer on a closed pipe after extraction.
+    # Preserve every member byte/header and exactly the two required end blocks.
+    archive = buffer.getvalue()
+    require(archive[end_of_members:] == bytes(len(archive)-end_of_members), 'nonzero tar trailer')
+    return archive[:end_of_members + 2*tarfile.BLOCKSIZE], configs
 
 
 class Runner:

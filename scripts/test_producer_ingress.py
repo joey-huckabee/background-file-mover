@@ -64,10 +64,13 @@ class Portable(unittest.TestCase):
     def test_fixture_tar_numeric_owners_custody_and_short_paths(self):
         with tempfile.TemporaryDirectory() as temporary:
             binary = Path(temporary)/'binary'
-            binary.write_bytes(b'fixture-not-an-executable')
+            binary.write_bytes(b'fixture-not-an-executable'+bytes(2048))
             archive, configs = CHECK.fixture_archive(dict(debug=binary, release=binary))
         with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
             names = {m.name: m for m in tar}
+            last = list(names.values())[-1]
+            end = last.offset_data + ((last.size+511)//512)*512
+            self.assertEqual(archive[end:], bytes(1024))
             self.assertEqual(names['ingress'].mode, 0o711)
             for profile, config in configs.items():
                 self.assertEqual(names[f'ingress/{profile}/p'].mode, 0o750)
@@ -87,6 +90,7 @@ class Portable(unittest.TestCase):
                     self.assertLessEqual(len(config['protected_ingress'][key].encode()), 107)
                 self.assertEqual(config['protected_ingress']['proxy_uid'], 1001)
                 self.assertTrue(config['check_expected_sizes'])
+                self.assertEqual(tar.extractfile(f'ingress/{profile}/file-mover').read(), b'fixture-not-an-executable'+bytes(2048))
                 saved = json.load(tar.extractfile(f'ingress/{profile}/config.json'))
                 self.assertEqual(saved, config)
 
@@ -162,6 +166,10 @@ class Portable(unittest.TestCase):
             save(gate)
             _, artifacts, _ = CHECK.load_gate(folder, root)
             self.assertEqual(set(artifacts), {'debug', 'release'})
+            scoped = copy.deepcopy(gate)
+            scoped['status'] = 'SCOPED_PASSED'
+            save(scoped)
+            with self.assertRaises(AssertionError): CHECK.load_gate(folder, root)
             bad = copy.deepcopy(gate)
             bad['build_mode'] = 'nfs-qualification'
             save(bad)

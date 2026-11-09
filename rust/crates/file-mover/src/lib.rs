@@ -9,6 +9,7 @@ mod http;
 pub mod ingress;
 pub mod payload;
 pub mod source_space;
+pub mod tls;
 use mover_core::{DeliveryPolicy, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
 use serde::{Deserialize, Serialize};

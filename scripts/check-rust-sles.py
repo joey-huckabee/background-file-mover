@@ -8,8 +8,10 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
+import tempfile
 import tarfile
 import tomllib
 import uuid
@@ -96,10 +98,52 @@ def negative_controls(text: str) -> list[str]:
     return list(cases)
 
 
+
+def audit_tls_native_build(text: str, configuration: str) -> dict:
+    """Prove AWS-LC C/assembly went through the selected glibc-2.22 wrapper."""
+    environment = tomllib.loads(configuration)["env"]
+    wrapper = environment["CC_x86_64-unknown-linux-gnu"]
+    sysroot = environment["CARGO_LIBC_SYSROOT"]
+    if Path(wrapper).name != "libc-cc" or environment["CARGO_LIBC_RUN_GLIBC"] != "2.22":
+        raise ValueError("TLS native compiler/provider is not the glibc2.22 wrapper")
+    commands = []
+    for line in text.splitlines():
+        match = re.match(r"^\[aws-lc-sys [^\]]+\] running: (.+)$", line)
+        if not match:
+            continue
+        arguments = shlex.split(match[1])
+        if "-c" not in arguments or not any("/aws-lc/" in a and a.endswith((".c", ".S", ".s", ".cc", ".cpp", ".cxx")) for a in arguments):
+            continue
+        cpp = any("/aws-lc/" in a and a.endswith((".cc", ".cpp", ".cxx")) for a in arguments)
+        selected_wrapper = environment["CXX_x86_64-unknown-linux-gnu"] if cpp else wrapper
+        if Path(selected_wrapper).name != ("libc-cxx" if cpp else "libc-cc") or arguments[0] != selected_wrapper:
+            raise ValueError("TLS native source bypassed cargo-libc compiler wrapper")
+        if any(a in ("-march=native", "-mcpu=native", "-mtune=native") for a in arguments):
+            raise ValueError("TLS native source selected the build host CPU")
+        for index, argument in enumerate(arguments):
+            override = None
+            if argument in ("--sysroot", "-isysroot"):
+                if index + 1 >= len(arguments):
+                    raise ValueError("TLS native source has an incomplete sysroot option")
+                override = arguments[index + 1]
+            elif argument.startswith("--sysroot="):
+                override = argument[len("--sysroot="):]
+            elif argument.startswith("-isysroot"):
+                override = argument[len("-isysroot"):].removeprefix("=")
+            if override is not None and override != sysroot:
+                raise ValueError("TLS native source overrides the selected sysroot")
+        commands.append(arguments)
+    if not commands:
+        raise ValueError("no auditable AWS-LC target compiler commands")
+    return {"source_compilations": len(commands), "wrapper": wrapper,
+            "compiler": environment["CARGO_LIBC_CC"], "sysroot": sysroot, "glibc": "2.22"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--qualification", action="store_true", help="Audit/test the retained NFS qualification build")
     parser.add_argument("--offline", action="store_true", help="Use cached images and locked sources only; never build/pull images or provision online")
+    parser.add_argument("--tls-proof-only", action="store_true", help="Scoped TLS/app smoke only; report is SCOPED_PASSED, never a full qualification")
     options = parser.parse_args()
     mode = "nfs-qualification" if options.qualification else "production"
     features = ["--features", "file-mover/nfs-qualification"] if options.qualification else []
@@ -110,6 +154,7 @@ def main() -> int:
     results.mkdir(parents=True)
     report = {"status": "FAILED", "config": CONFIG, "profiles": {}, "run_id": stamp, "build_mode": mode,
               "offline": options.offline}
+    report["test_scope"] = "tls-proof-only" if options.tls_proof_only else "full"
     containers = []
     print(f"SLES validation: {results}", flush=True)
     try:
@@ -133,6 +178,8 @@ def main() -> int:
                 run(["podman", "volume", "create", volume])
         builder = run(["podman", "create", "--pull=never", "--network", "none",
                        "--volume", f"{registry}:/usr/local/cargo/registry",
+                       "--env", "AWS_LC_SYS_STATIC=1", "--env", "AWS_LC_SYS_CMAKE_BUILDER=0",
+                       "--env", "CC_ENABLE_DEBUG_OUTPUT=1",
                        "--env", "LIBSQLITE3_FLAGS=-USQLITE_THREADSAFE -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_DQS=0 -USQLITE_DEFAULT_MEMSTATUS -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_ENABLE_API_ARMOR",
                        "--entrypoint", "/bin/sh", builder_image, "-c", "exec sleep infinity"]).strip()
         containers.append(builder)
@@ -188,7 +235,7 @@ def main() -> int:
         if sorted((p["name"], p["version"]) for p in dependencies) != sorted((p["name"], p["version"]) for p in expected):
             raise ValueError("dependency graph differs from the pinned qualified plus integrity graph")
         locked = {(p["name"], p["version"]): p.get("checksum") for p in tomllib.loads((ROOT / "rust/Cargo.lock").read_text())["package"]}
-        for dependency in integrity["dependencies"]:
+        for dependency in integrity["dependencies"] + [p for p in evidence["dependencies"] if "checksum" in p]:
             if locked[(dependency["name"], dependency["version"])] != dependency["checksum"]:
                 raise ValueError("integrity dependency checksum changed")
         qualified_features = {
@@ -201,6 +248,7 @@ def main() -> int:
             "httparse": ["std"],
             "sha2": integrity["sha2_features"],
         }
+        qualified_features.update(evidence["tls_selected_features"])
         nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
         report["workspace_features"] = {}
         for package in metadata["packages"]:
@@ -215,9 +263,16 @@ def main() -> int:
                 if sorted(nodes[package["id"]]["features"]) != qualified_features[package["name"]]:
                     raise ValueError(f"unqualified features for {package['name']}")
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
+        selected_tree = run(execute + ["cargo", "tree", "--offline", "--locked", "--target",
+            "x86_64-unknown-linux-gnu", "--edges", "normal,build", "--prefix", "none"] + features,
+            results / "tls-selected-dependencies.txt")
+        if re.search(r"(?m)^ring v", selected_tree):
+            raise ValueError("unreviewed second TLS crypto implementation entered the selected target graph")
+        report["tls_selected_dependency_tree_sha256"] = hashlib.sha256(selected_tree.encode()).hexdigest()
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
-        run(execute + ["cargo", "clippy", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
+        clippy_output = run(execute + ["cargo", "clippy", "-vv", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
+        report["tls_native_compiler_audits"] = {"clippy_debug": audit_tls_native_build(clippy_output, configuration)}
         runtime = run(["podman", "create", "--pull=never", "--network", "none", "--cap-drop", "all",
                        "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh",
                        CONFIG["runtime"], "-c", "exec sleep infinity"]).strip()
@@ -239,13 +294,42 @@ def main() -> int:
         if len(session) != 3 or len(set(session)) != 1 or int(session[0]) <= 0:
             raise ValueError(f"target session/process group is not private and visible: {session}")
         report["runtime_session"] = dict(zip(("pid", "pgid", "sid"), map(int, session)))
+        # Fresh disposable credentials never enter the source archive/binary/bundle.
+        fixture_helper = ROOT / "scripts/tls_proof_fixture.py"
+        report["tls_fixture_helper_sha256"] = hashlib.sha256(fixture_helper.read_bytes()).hexdigest()
+        run(["podman", "cp", str(fixture_helper), f"{builder}:/tmp/tls_proof_fixture.py"])
+        fixture_inventory = json.loads(run(execute + ["python3", "/tmp/tls_proof_fixture.py",
+            "--output", "/tmp/tls-proof-der", "--archive", "/tmp/tls-proof.tar"], results / "tls-fixture.log"))
+        with tempfile.TemporaryDirectory(prefix="file-mover-tls-gate-") as temporary:
+            fixture_archive = Path(temporary) / "proof.tar"
+            run(["podman", "cp", f"{builder}:/tmp/tls-proof.tar", str(fixture_archive)])
+            copied = subprocess.run(["podman", "cp", "--archive=false", "-", f"{runtime}:/tmp"],
+                input=fixture_archive.read_bytes(), capture_output=True, timeout=60)
+            if copied.returncode:
+                raise RuntimeError("TLS fixture archive transfer failed")
+        fixture_root = "/tmp/file-mover-tls-proof"
+        custody = run(["podman", "exec", "--user", "1000:1000", runtime, "stat", "-c", "%u:%g:%a",
+                       fixture_root + "/server.key.der"]).strip()
+        if custody != "1000:1000:600":
+            raise ValueError("TLS fixture private-key custody differs from intended numeric owner/mode")
+        public_names = sorted(fixture_inventory["certificates"])
+        received = run(["podman", "exec", "--user", "1000:1000", runtime, "sha256sum"] +
+                       [fixture_root + "/" + name for name in public_names])
+        actual_certificates = {Path(line.split()[1]).name: line.split()[0] for line in received.splitlines()}
+        if actual_certificates != {name: row["sha256"] for name, row in fixture_inventory["certificates"].items()}:
+            raise ValueError("TLS fixture certificate transfer hash mismatch")
+        report["tls_fixture"] = fixture_inventory | {"private_archive_retained": False, "key_custody": custody}
+        report["native_tls_build"] = {"AWS_LC_SYS_STATIC": "1", "AWS_LC_SYS_CMAKE_BUILDER": "0",
+                                      "CC_ENABLE_DEBUG_OUTPUT": "1", "target_cc": CONFIG["cc"]}
         for profile in ("debug", "release"):
             print(f"Building with cargo-libc and testing {profile} against SLES/glibc 2.22...", flush=True)
-            args = execute + ["cargo", "build", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace",
+            args = execute + ["cargo", "build", "-vv", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace",
                               "--all-targets", "--target", "x86_64-unknown-linux-gnu", "--message-format", "json"] + features
             if profile == "release":
                 args.append("--release")
             output = run(args, results / f"{profile}-build.log")
+            if profile == "release":
+                report["tls_native_compiler_audits"]["release"] = audit_tls_native_build(output, configuration)
             artifacts = {}
             for line in output.splitlines():
                 if not line.startswith("{"):
@@ -253,6 +337,8 @@ def main() -> int:
                 message = json.loads(line)
                 if message.get("reason") == "compiler-artifact" and message.get("executable"):
                     artifacts[message["executable"]] = message["profile"]["test"]
+            if options.tls_proof_only:
+                artifacts = {p: test for p, test in artifacts.items() if not test or Path(p).name.startswith("tls-")}
             if not artifacts or not any(artifacts.values()):
                 raise ValueError("no target test executables discovered")
             profile_report = {"artifacts": [], "tests_passed": 0}
@@ -279,6 +365,9 @@ def main() -> int:
                 if received != digest:
                     raise ValueError("runtime artifact hash mismatch")
                 runtime_exec = ["podman", "exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", runtime]
+                if is_test and Path(path).name.startswith("tls-"):
+                    runtime_exec.insert(-1, "--env")
+                    runtime_exec.insert(-1, f"FILE_MOVER_TLS_FIXTURES={fixture_root}")
                 if is_test and runtime_service:
                     runtime_exec.insert(-1, "--env")
                     runtime_exec.insert(-1, f"FILE_MOVER_TEST_EXECUTABLE={runtime_service}")
@@ -309,8 +398,8 @@ def main() -> int:
                     runtime_service = remote
             if profile_report["tests_passed"] == 0:
                 raise ValueError("no actual tests ran")
-        report["status"] = "PASSED"
-        print("PASS: debug/release target tests, ELF audit and pinned SLES execution", flush=True)
+        report["status"] = "SCOPED_PASSED" if options.tls_proof_only else "PASSED"
+        print(report["status"] + ": debug/release target tests, ELF audit and pinned SLES execution", flush=True)
         return 0
     except Exception as error:
         report["error"] = str(error)
