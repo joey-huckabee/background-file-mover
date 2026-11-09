@@ -5,7 +5,7 @@ use std::{
     io::{Read, Write},
     os::unix::{fs::PermissionsExt, net::UnixStream},
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::{Child, Command},
     sync::atomic::{AtomicU64, Ordering},
     time::Instant,
 };
