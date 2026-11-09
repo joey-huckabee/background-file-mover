@@ -86,7 +86,7 @@ class Certificates(unittest.TestCase):
                     self.assertIn('Digital Signature', text)
                     self.assertNotIn('Certificate Sign', text)
                     usage = self.text(name, '-ext', 'extendedKeyUsage')
-                    if name in ('server', 'expired-server', 'wrong-usage-client'):
+                    if name in ('server', 'expired-server', 'replacement-server', 'wrong-usage-client'):
                         self.assertIn('TLS Web Server Authentication', usage)
                         self.assertNotIn('TLS Web Client Authentication', usage)
                     else:

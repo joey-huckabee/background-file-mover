@@ -50,6 +50,15 @@ impl Lifecycle {
             state.phase = phase;
         }
     }
+    /// Serialize policy activation with the first stop request; never perform I/O here.
+    pub(crate) fn while_running<T>(&self, f: impl FnOnce() -> T) -> Option<T> {
+        let state = self.state.lock().expect("lifecycle state");
+        if state.first_stop.is_some() || self.stop.load(Ordering::Relaxed) {
+            None
+        } else {
+            Some(f())
+        }
+    }
     fn snapshot(&self, identity: &str) -> Snapshot {
         if self.stop.load(Ordering::Relaxed) {
             self.request_stop();

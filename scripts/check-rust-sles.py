@@ -338,7 +338,7 @@ def main() -> int:
                 if message.get("reason") == "compiler-artifact" and message.get("executable"):
                     artifacts[message["executable"]] = message["profile"]["test"]
             if options.tls_proof_only:
-                artifacts = {p: test for p, test in artifacts.items() if not test or Path(p).name.startswith("tls-")}
+                artifacts = {p: test for p, test in artifacts.items() if not test or Path(p).name.startswith(("tls-", "file_mover-"))}
             if not artifacts or not any(artifacts.values()):
                 raise ValueError("no target test executables discovered")
             profile_report = {"artifacts": [], "tests_passed": 0}
@@ -365,7 +365,7 @@ def main() -> int:
                 if received != digest:
                     raise ValueError("runtime artifact hash mismatch")
                 runtime_exec = ["podman", "exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", runtime]
-                if is_test and Path(path).name.startswith("tls-"):
+                if is_test and Path(path).name.startswith(("tls-", "file_mover-")):
                     runtime_exec.insert(-1, "--env")
                     runtime_exec.insert(-1, f"FILE_MOVER_TLS_FIXTURES={fixture_root}")
                 if is_test and runtime_service:

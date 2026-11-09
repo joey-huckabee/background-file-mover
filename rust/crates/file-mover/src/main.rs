@@ -53,6 +53,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if mover_fs::nfs_qualification_enabled() {
         eprintln!("NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment");
     }
+    if path == "--reload-tls" || path == "--tls-status" {
+        let config_path = args.next().ok_or("configuration path required")?;
+        if args.next().is_some() {
+            return Err("usage: file-mover --reload-tls|--tls-status CONFIG.json".into());
+        }
+        let config = read_config(&config_path)?;
+        let (reply, ok) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?
+            .block_on(file_mover::tls_reload_ipc::command(
+                config,
+                path == "--reload-tls",
+            ))?;
+        println!("{}", serde_json::to_string(&reply)?);
+        if !ok {
+            std::process::exit(2);
+        }
+        return Ok(());
+    }
     if path == "--stop" || path == "--status" {
         let config_path = args.next().ok_or("configuration path required")?;
         if args.next().is_some() {

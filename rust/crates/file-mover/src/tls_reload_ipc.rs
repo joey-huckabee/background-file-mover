@@ -224,13 +224,17 @@ impl Server {
         stop: Arc<AtomicBool>,
         backend: Arc<dyn Backend>,
     ) -> Result<Self> {
-        guard.validate().map_err(|_| "TLS IPC instance unavailable")?;
+        guard
+            .validate()
+            .map_err(|_| "TLS IPC instance unavailable")?;
         if stop.load(Ordering::Acquire) {
             return Err("TLS IPC stopping".into());
         }
         let identity = process_identity()?;
         let socket = Arc::new(plan.bind().map_err(|_| "TLS IPC bind refused")?);
-        let listener = socket.listener().map_err(|_| "TLS IPC endpoint unavailable")?;
+        let listener = socket
+            .listener()
+            .map_err(|_| "TLS IPC endpoint unavailable")?;
         let expected_path = Path::new(guard.state_directory()).join(SOCKET);
         if listener.local_addr()?.as_pathname() != Some(expected_path.as_path()) {
             return Err("TLS IPC endpoint must use the instance reload socket".into());
@@ -250,7 +254,15 @@ impl Server {
             std::thread::Builder::new()
                 .name("mover-tls-loader".into())
                 .spawn(move || {
-                    load_requests(receiver, (guard, socket), quit, stop, busy, backend, identity);
+                    load_requests(
+                        receiver,
+                        (guard, socket),
+                        quit,
+                        stop,
+                        busy,
+                        backend,
+                        identity,
+                    );
                 })?
         };
         let (ready_sender, ready) = mpsc::sync_channel(1);
@@ -282,33 +294,59 @@ impl Server {
                                     let mut stream = checked_peer(stream, &runtime)?;
                                     let request = read_request(&mut stream)?;
                                     if !valid_request(&request, &identity) {
-                                        return Err("TLS IPC invalid request or instance changed".into());
+                                        return Err(
+                                            "TLS IPC invalid request or instance changed".into()
+                                        );
                                     }
                                     guard.validate().map_err(|_| "TLS IPC instance changed")?;
                                     if stopped(&quit, &stop) {
                                         return Err("TLS IPC stopping".into());
                                     }
                                     if request.command == "status" {
-                                        return write_reply(&mut stream, &reply(
-                                            &identity, backend.snapshot(), busy.load(Ordering::Acquire), None,
-                                        ));
+                                        return write_reply(
+                                            &mut stream,
+                                            &reply(
+                                                &identity,
+                                                backend.snapshot(),
+                                                busy.load(Ordering::Acquire),
+                                                None,
+                                            ),
+                                        );
                                     }
                                     let Some(reservation) = Reservation::take(&busy) else {
-                                        return write_reply(&mut stream, &reply(
-                                            &identity, backend.snapshot(), true, Some("reload_busy"),
-                                        ));
+                                        return write_reply(
+                                            &mut stream,
+                                            &reply(
+                                                &identity,
+                                                backend.snapshot(),
+                                                true,
+                                                Some("reload_busy"),
+                                            ),
+                                        );
                                     };
-                                    let (Some(proposed), Some(expected)) = (request.proposed, request.expected_generation) else {
+                                    let (Some(proposed), Some(expected)) =
+                                        (request.proposed, request.expected_generation)
+                                    else {
                                         return Err("TLS IPC invalid reload".into());
                                     };
-                                    let job = Job { stream, proposed, expected, reservation };
+                                    let job = Job {
+                                        stream,
+                                        proposed,
+                                        expected,
+                                        reservation,
+                                    };
                                     match sender.try_send(job) {
                                         Ok(()) => Ok(()),
-                                        Err(TrySendError::Full(mut job)) | Err(TrySendError::Disconnected(mut job)) => {
-                                            write_reply(&mut job.stream, &reply(
-                                                &identity, backend.snapshot(), true, Some("reload_unavailable"),
-                                            ))
-                                        }
+                                        Err(TrySendError::Full(mut job))
+                                        | Err(TrySendError::Disconnected(mut job)) => write_reply(
+                                            &mut job.stream,
+                                            &reply(
+                                                &identity,
+                                                backend.snapshot(),
+                                                true,
+                                                Some("reload_unavailable"),
+                                            ),
+                                        ),
                                     }
                                 })();
                                 // Invalid/failed requests close only their own stream.
@@ -383,7 +421,9 @@ fn load_requests(
             Err("instance_unavailable")
         } else {
             // The backend's private diagnostics must never enter this wire reply.
-            backend.reload(job.proposed, job.expected).map_err(|_| "reload_refused")
+            backend
+                .reload(job.proposed, job.expected)
+                .map_err(|_| "reload_refused")
         };
         let (status, error) = match result {
             Ok(status) => (status, None),
@@ -402,9 +442,16 @@ fn socket_path(database: &str) -> Result<PathBuf> {
         .ok_or("TLS IPC state parent unavailable")?;
     let path = parent.join(SOCKET);
     let text = path.to_str().ok_or("TLS IPC endpoint unavailable")?;
-    if !text.starts_with('/') || text.len() > 107 || text[1..].split('/').any(|part| {
-        part.is_empty() || part == "." || part == ".." || part.contains('\\') || part.chars().any(char::is_control)
-    }) {
+    if !text.starts_with('/')
+        || text.len() > 107
+        || text[1..].split('/').any(|part| {
+            part.is_empty()
+                || part == "."
+                || part == ".."
+                || part.contains('\\')
+                || part.chars().any(char::is_control)
+        })
+    {
         return Err("TLS IPC endpoint unavailable".into());
     }
     Ok(path)
@@ -412,12 +459,19 @@ fn socket_path(database: &str) -> Result<PathBuf> {
 
 fn socket_identity(path: &Path) -> Result<(u64, u64)> {
     let (uid, gid) = mover_fs::ingress::local_user_ids();
-    let parent = std::fs::symlink_metadata(path.parent().ok_or("TLS IPC state parent unavailable")?)
-        .map_err(|_| "TLS IPC state parent unavailable")?;
+    let parent =
+        std::fs::symlink_metadata(path.parent().ok_or("TLS IPC state parent unavailable")?)
+            .map_err(|_| "TLS IPC state parent unavailable")?;
     let metadata = std::fs::symlink_metadata(path).map_err(|_| "TLS IPC endpoint unavailable")?;
-    if !parent.is_dir() || parent.uid() != uid || parent.gid() != gid || parent.mode() & 0o7777 != 0o700
-        || !metadata.file_type().is_socket() || metadata.uid() != uid || metadata.gid() != gid
-        || metadata.mode() & 0o7777 != 0o600 || metadata.nlink() != 1
+    if !parent.is_dir()
+        || parent.uid() != uid
+        || parent.gid() != gid
+        || parent.mode() & 0o7777 != 0o700
+        || !metadata.file_type().is_socket()
+        || metadata.uid() != uid
+        || metadata.gid() != gid
+        || metadata.mode() & 0o7777 != 0o600
+        || metadata.nlink() != 1
     {
         return Err("TLS IPC endpoint custody refused".into());
     }
@@ -430,11 +484,15 @@ fn guard_identity(database: &str) -> Result<(u64, u64)> {
     {
         return Err("TLS IPC no active owner".into());
     }
-    let parent = Path::new(database).parent().ok_or("TLS IPC state parent unavailable")?;
+    let parent = Path::new(database)
+        .parent()
+        .ok_or("TLS IPC state parent unavailable")?;
     let metadata = std::fs::symlink_metadata(parent.join(mover_fs::INSTANCE_LOCK))
         .map_err(|_| "TLS IPC owner unavailable")?;
-    if !metadata.is_file() || metadata.uid() != mover_fs::ingress::local_user_ids().0
-        || metadata.mode() & 0o7777 != 0o600 || metadata.nlink() != 1
+    if !metadata.is_file()
+        || metadata.uid() != mover_fs::ingress::local_user_ids().0
+        || metadata.mode() & 0o7777 != 0o600
+        || metadata.nlink() != 1
     {
         return Err("TLS IPC owner custody refused".into());
     }
@@ -442,15 +500,19 @@ fn guard_identity(database: &str) -> Result<(u64, u64)> {
 }
 
 fn valid_status(status: &Status) -> bool {
-    ["ready", "loading", "draining", "applied", "rejected", "stopping"]
-        .contains(&status.last_result.as_str())
+    [
+        "ready", "loading", "draining", "applied", "rejected", "stopping",
+    ]
+    .contains(&status.last_result.as_str())
         && status.client_sha256.len() <= 256
         && std::iter::once(&status.policy_sha256)
             .chain(std::iter::once(&status.server_sha256))
             .chain(status.client_sha256.iter())
             .all(|hash| {
                 hash.len() == 64
-                    && hash.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                    && hash
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
             })
 }
 
@@ -478,19 +540,32 @@ async fn exchange(
     {
         return Err("TLS IPC owner or endpoint changed".into());
     }
-    stream.write_all(&bytes).await.map_err(|_| "TLS IPC request unavailable")?;
-    stream.shutdown().await.map_err(|_| "TLS IPC request unavailable")?;
+    stream
+        .write_all(&bytes)
+        .await
+        .map_err(|_| "TLS IPC request unavailable")?;
+    stream
+        .shutdown()
+        .await
+        .map_err(|_| "TLS IPC request unavailable")?;
     let mut bytes = Vec::new();
-    stream.take((RESPONSE_MAX + 1) as u64).read_to_end(&mut bytes).await
+    stream
+        .take((RESPONSE_MAX + 1) as u64)
+        .read_to_end(&mut bytes)
+        .await
         .map_err(|_| "TLS IPC response unavailable")?;
     if bytes.len() > RESPONSE_MAX {
         return Err("TLS IPC response too large".into());
     }
     let response: Reply = serde_json::from_slice(&bytes).map_err(|_| "TLS IPC invalid response")?;
-    if response.version != 1 || response.instance_id != request.instance_id
+    if response.version != 1
+        || response.instance_id != request.instance_id
         || !valid_status(&response.status)
         || response.ok != response.error.is_none()
-        || response.error.as_ref().is_some_and(|e| e.len() > 128 || e.chars().any(char::is_control))
+        || response
+            .error
+            .as_ref()
+            .is_some_and(|e| e.len() > 128 || e.chars().any(char::is_control))
         || socket_identity(path)? != expected_socket
     {
         return Err("TLS IPC invalid response or instance changed".into());
@@ -505,17 +580,28 @@ async fn command_inner(c: crate::Config, reload: bool) -> Result<(Reply, bool)> 
     if !available || owner.phase != "Running" {
         return Err("TLS IPC no running active owner".into());
     }
-    let identity = owner.instance_id.ok_or("TLS IPC owner identity unavailable")?;
-    let pid = owner.coordinator_pid.ok_or("TLS IPC owner identity unavailable")?;
+    let identity = owner
+        .instance_id
+        .ok_or("TLS IPC owner identity unavailable")?;
+    let pid = owner
+        .coordinator_pid
+        .ok_or("TLS IPC owner identity unavailable")?;
     let guard = guard_identity(&c.state_database)?;
     let path = socket_path(&c.state_database)?;
     let socket = socket_identity(&path)?;
     let request = Request {
-        version: 1, command: "status".into(), instance_id: identity.clone(),
-        expected_generation: None, proposed: None,
+        version: 1,
+        command: "status".into(),
+        instance_id: identity.clone(),
+        expected_generation: None,
+        proposed: None,
     };
-    let initial = tokio::time::timeout(Duration::from_secs(1), exchange(&path, socket, pid, &request))
-        .await.map_err(|_| "TLS status unavailable or timed out")??;
+    let initial = tokio::time::timeout(
+        Duration::from_secs(1),
+        exchange(&path, socket, pid, &request),
+    )
+    .await
+    .map_err(|_| "TLS status unavailable or timed out")??;
     if guard_identity(&c.state_database)? != guard {
         return Err("TLS IPC instance guard changed".into());
     }
@@ -524,11 +610,23 @@ async fn command_inner(c: crate::Config, reload: bool) -> Result<(Reply, bool)> 
         return Ok((initial, ok));
     }
     let request = Request {
-        version: 1, command: "reload".into(), instance_id: identity,
-        expected_generation: Some(initial.status.generation), proposed: Some(c),
+        version: 1,
+        command: "reload".into(),
+        instance_id: identity,
+        expected_generation: Some(initial.status.generation),
+        proposed: Some(c),
     };
     // Exactly one mutation request. Any lost response is explicitly uncertain.
-    let response = exchange(&path, socket, pid, &request).await.map_err(|_| UNKNOWN)?;
+    let response = exchange(&path, socket, pid, &request)
+        .await
+        .map_err(|_| UNKNOWN)?;
+    if response.ok
+        && (response.status.draining
+            || response.status.last_result != "applied"
+            || Some(response.status.generation) != initial.status.generation.checked_add(1))
+    {
+        return Err(UNKNOWN.into());
+    }
     let ok = response.ok;
     Ok((response, ok))
 }
@@ -542,7 +640,13 @@ pub async fn command(c: crate::Config, reload: bool) -> Result<(Reply, bool)> {
     let budget = Duration::from_secs(if reload { 30 } else { 1 });
     tokio::time::timeout(budget, command_inner(c, reload))
         .await
-        .map_err(|_| if reload { UNKNOWN } else { "TLS status unavailable or timed out" })?
+        .map_err(|_| {
+            if reload {
+                UNKNOWN
+            } else {
+                "TLS status unavailable or timed out"
+            }
+        })?
 }
 
 #[cfg(test)]
@@ -582,7 +686,9 @@ mod tests {
     #[test]
     fn unix_request_and_reply_bounds_close_only_the_request() {
         let (mut client, mut server) = UnixStream::pair().unwrap();
-        client.write_all(br#"{"version":1,"command":"status","instance_id":"7:11"}"#).unwrap();
+        client
+            .write_all(br#"{"version":1,"command":"status","instance_id":"7:11"}"#)
+            .unwrap();
         client.shutdown(Shutdown::Write).unwrap();
         assert!(valid_request(&read_request(&mut server).unwrap(), "7:11"));
         let (mut client, mut server) = UnixStream::pair().unwrap();

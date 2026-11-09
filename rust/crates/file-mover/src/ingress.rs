@@ -1,13 +1,13 @@
 //! Protected HTTP transports; TLS/proxy configuration is a separate boundary.
 use crate::{Config, http};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{io, path::Path, sync::Arc, task::Poll};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, UnixListener, UnixStream},
 };
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtectedIngress {
     pub producer_socket: String,
