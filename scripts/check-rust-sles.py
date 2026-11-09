@@ -253,6 +253,12 @@ def main() -> int:
                 if sorted(nodes[package["id"]]["features"]) != qualified_features[package["name"]]:
                     raise ValueError(f"unqualified features for {package['name']}")
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
+        selected_tree = run(execute + ["cargo", "tree", "--offline", "--locked", "--target",
+            "x86_64-unknown-linux-gnu", "--edges", "normal,build", "--prefix", "none"] + features,
+            results / "tls-selected-dependencies.txt")
+        if re.search(r"(?m)^ring v", selected_tree):
+            raise ValueError("unreviewed second TLS crypto implementation entered the selected target graph")
+        report["tls_selected_dependency_tree_sha256"] = hashlib.sha256(selected_tree.encode()).hexdigest()
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
         clippy_output = run(execute + ["cargo", "clippy", "-vv", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
