@@ -27,9 +27,12 @@ const RESPONSE_MAX: usize = 65536;
 const READ_WAIT: Duration = Duration::from_millis(100);
 const WRITE_WAIT: Duration = Duration::from_millis(500);
 const POLL_WAIT: Duration = Duration::from_millis(10);
-const UNKNOWN: &str = "TLS reload outcome unknown; use --tls-status; do not automatically retry";
+const UNKNOWN: &str = "TLS reload outcome unknown; use --tls-status to compare full policy_sha256 and PID:start; generation alone is not proof; do not automatically retry";
 
-/// Return only public fingerprints and a non-secret result label in snapshots.
+/// Snapshots use only a brief memory lock, never filesystem/credential I/O.
+/// The policy hash binds the full public TLS configuration and certificate/root
+/// hashes, excluding private bytes; generation alone cannot identify a policy.
+/// Backend reload owns generation admission, connection draining and stop checks.
 /// Reload must finish its own bounded validation/publication; IPC teardown joins
 /// the actual loader, never detaches it or releases its instance guard early.
 pub(crate) trait Backend: Send + Sync {
@@ -45,9 +48,12 @@ pub(crate) trait Backend: Send + Sync {
 #[serde(deny_unknown_fields)]
 pub struct Status {
     pub generation: u64,
+    pub policy_sha256: String,
     pub server_sha256: String,
     pub client_sha256: Vec<String>,
     pub last_result: String,
+    /// Activated policy still has old unadmitted connections exiting.
+    pub draining: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -56,6 +62,7 @@ pub struct Reply {
     pub version: u32,
     pub instance_id: String,
     pub status: Status,
+    /// A loader is reserved/running; independent of status.draining.
     pub busy: bool,
     pub ok: bool,
     pub error: Option<String>,
@@ -434,6 +441,19 @@ fn guard_identity(database: &str) -> Result<(u64, u64)> {
     Ok((metadata.dev(), metadata.ino()))
 }
 
+fn valid_status(status: &Status) -> bool {
+    ["ready", "loading", "draining", "applied", "rejected", "stopping"]
+        .contains(&status.last_result.as_str())
+        && status.client_sha256.len() <= 256
+        && std::iter::once(&status.policy_sha256)
+            .chain(std::iter::once(&status.server_sha256))
+            .chain(status.client_sha256.iter())
+            .all(|hash| {
+                hash.len() == 64
+                    && hash.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            })
+}
+
 async fn exchange(
     path: &Path,
     expected_socket: (u64, u64),
@@ -468,12 +488,7 @@ async fn exchange(
     }
     let response: Reply = serde_json::from_slice(&bytes).map_err(|_| "TLS IPC invalid response")?;
     if response.version != 1 || response.instance_id != request.instance_id
-        || response.status.last_result.len() > 256
-        || response.status.last_result.chars().any(char::is_control)
-        || response.status.client_sha256.len() > 256
-        || !std::iter::once(&response.status.server_sha256)
-            .chain(response.status.client_sha256.iter())
-            .all(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        || !valid_status(&response.status)
         || response.ok != response.error.is_none()
         || response.error.as_ref().is_some_and(|e| e.len() > 128 || e.chars().any(char::is_control))
         || socket_identity(path)? != expected_socket
@@ -520,6 +535,9 @@ async fn command_inner(c: crate::Config, reload: bool) -> Result<(Reply, bool)> 
 
 /// Status has a one-second overall budget. Reload has a thirty-second overall
 /// budget (including discovery/status), with no automatic mutating retry.
+/// A true command result does not assert that draining has completed. After a
+/// lost reply, compare the full public policy hash and instance PID:start using
+/// --tls-status; a generation change alone is never command-completion proof.
 pub async fn command(c: crate::Config, reload: bool) -> Result<(Reply, bool)> {
     let budget = Duration::from_secs(if reload { 30 } else { 1 });
     tokio::time::timeout(budget, command_inner(c, reload))
@@ -573,11 +591,43 @@ mod tests {
         assert!(read_request(&mut server).is_err());
         let status = Status {
             generation: 1,
+            policy_sha256: "c".repeat(64),
             server_sha256: "a".repeat(64),
             client_sha256: vec!["b".repeat(64)],
             last_result: "x".repeat(RESPONSE_MAX),
+            draining: false,
         };
         assert!(write_reply(&mut server, &reply("7:11", status, false, None)).is_err());
+    }
+
+    #[test]
+    fn full_policy_and_draining_are_required_independent_status_fields() {
+        let status = Status {
+            generation: 1,
+            policy_sha256: "c".repeat(64),
+            server_sha256: "a".repeat(64),
+            client_sha256: vec!["b".repeat(64)],
+            last_result: "draining".into(),
+            draining: true,
+        };
+        assert!(valid_status(&status));
+        let response = reply("7:11", status.clone(), false, None);
+        assert!(response.ok && !response.busy && response.status.draining);
+        let mut other_policy = status.clone();
+        other_policy.policy_sha256 = "d".repeat(64);
+        assert!(valid_status(&other_policy));
+        assert_eq!(status.generation, other_policy.generation);
+        assert_ne!(status.policy_sha256, other_policy.policy_sha256);
+        for field in ["policy_sha256", "draining"] {
+            let mut value = serde_json::to_value(&status).unwrap();
+            value.as_object_mut().unwrap().remove(field);
+            assert!(serde_json::from_value::<Status>(value).is_err());
+        }
+        other_policy.policy_sha256 = "not-a-public-hash".into();
+        assert!(!valid_status(&other_policy));
+        other_policy.policy_sha256 = status.policy_sha256;
+        other_policy.last_result = "unknown".into();
+        assert!(!valid_status(&other_policy));
     }
 
     #[test]
