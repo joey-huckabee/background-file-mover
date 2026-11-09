@@ -2,6 +2,17 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 TLS-proof authorization: the user approves the native TLS dependency
+and SLES handshake proof (increment A of docs/NATIVE-HTTPS-PLAN.md), with proper
+user setup instructions. Implement/qualify the pinned Rust TLS stack and target
+handshakes through both existing cargo-libc/SLES gate modes, with independent
+review. No production REST HTTPS listener, operational credentials/state,
+deployment or release is introduced by this slice. The user also requires a
+configurable non-TLS mode; preserve existing loopback HTTP and record an explicit
+HTTP/HTTPS selection for the later listener increment, never automatic TLS-error
+fallback. Remote plaintext authentication/trust must be explicit; TLS-off must
+not silently claim client-certificate authentication or grant operator access.
+
 2026-11-08 native HTTPS decision: the user says "No proxy, do HTTPS in the Rust
 app". One file-mover executable/service must terminate producer HTTPS directly.
 This supersedes external-proxy P03/D02 requirements; preserve producer mutual TLS,
