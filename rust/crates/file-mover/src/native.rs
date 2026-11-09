@@ -244,10 +244,10 @@ fn authority_name(authority: &str) -> Result<(String, u16), &'static str> {
         {
             return Err("canonical authority host required");
         }
-        if let Ok(ip) = host.parse::<IpAddr>() {
-            if ip.to_string() != host {
-                return Err("canonical authority IP required");
-            }
+        if let Ok(ip) = host.parse::<IpAddr>()
+            && ip.to_string() != host
+        {
+            return Err("canonical authority IP required");
         }
         ServerName::try_from(host.to_owned()).map_err(|_| "invalid authority host")?;
         host.to_owned()
