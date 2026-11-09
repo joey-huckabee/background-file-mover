@@ -1,5 +1,11 @@
 # First Rust release: closure review
 
+2026-11-08 transport revision: the user requires native Rust HTTPS with no proxy.
+[The native HTTPS plan](NATIVE-HTTPS-PLAN.md) supersedes proxy-specific D02/P03
+mechanisms while preserving producer mutual TLS, route isolation, existing
+acceptance obligations and all eight open release gates. PR9 qualifies the
+protected local Unix transport; direct TLS remains planned and unqualified.
+
 Current bounded progress (2026-11-08): increment 115 implements/qualifies explicit
 schema-11 to legacy-only schema-12 migration. Increments 116-118 deliver the
 scoped producer/manifest contract, codecs and UUID/v2 runtime; PR 6 records both
@@ -100,7 +106,7 @@ remain open. This credits RC-21 packaging work without closing FR-06.
 | Decision | Required input/disposition | Blocks |
 |---|---|---|
 | D01: mount profile | Obtain read-only source/destination version/options/export/account observations when available. Compare with NMP-41B: buffered hard NFSv4.1/TCP/sec=sys, normal attribute cache and declared locking/coherence settings. Unknown NetApp/Isilon mounts cannot be assumed to match. No NAS administrator API or unapproved mount change is required by this review. | Final profile and NFS authorization. |
-| D02: remote deployment | Select proxy/TLS package and supported version, certificate provisioning/allowlist, dedicated proxy account and protected backend socket permissions. Review native dependencies/licenses and qualify them on the target profile. Preserve RA-01-16; registration stays deferred. | P03 and shipping package. |
+| D02: remote deployment | Select and qualify the native Rust TLS dependency/provider versions, certificate provisioning/allowlist, service permissions and reload boundary under the no-proxy decision. Review dependencies/licenses and glibc2.22 target evidence. Reconcile RA-01-16 with direct TLS; registration stays deferred. | P03 and shipping package. |
 | D03: supported lifecycle | Declare shipping unit/restart policy, account, persistent local paths, kernel/cgroup/container assumptions and supported manager package. Equivalent 228 evidence is not exact SLES maintenance-RPM/kernel qualification. Container-only testing remains the agreed approach; do not add a real SLES installation prerequisite. | P07/P09 and truthful support claims. |
 | D04: unproven storage faults | Decide how to satisfy required durability/server-recovery obligations where the fixture lacks the fault. NFSD-quiesced container restart is not abrupt live NAS/power failure. Clean local fsync with no RPC is not a withheld service-sync reply. Require an adequate reproducible mechanism or explicitly reviewed alternative evidence/scope decision. Until then the affected matrix cells and gates remain blocked. | Storage/durability closure; no implicit waiver. |
 | D05: cutover/rollback | Identify supported predecessor and state format. Schema 11 refusal by an older binary is safe refusal, not working rollback. Define compatible-binary rollback and interrupted-upgrade recovery; never restore a stale database over active custody. Demonstrate legacy/new service exclusion using the supported installation workflow. | P09/P12 and functional upgrade/rollback claim. |
@@ -179,7 +185,7 @@ gate or claiming new runtime/qualification evidence.
 |---|---|---|
 | P01 | Freeze versioned OpenAPI, manifest and supported release behavior/error/retention inventory. Identify unresolved active requirements explicitly. This is the next increment. | Review baseline |
 | P02 | Implement protected producer Unix ingress and configured caller binding, preserving local operator separation and existing acceptance behavior. | P01 |
-| P03 | Integrate selected authenticated remote proxy, certificate workflow and complete RA suite. Registration stays deferred. | P02, D02 |
+| P03 | Implement native Rust HTTPS/client-certificate authorization, credential lifecycle and the reconciled RA suite. No external proxy; registration stays deferred. | P02, D02 |
 | P04 | Persist allocation intent/receipt ordering and qualify its four object classes; conservative ambiguous legacy refusal, no offline repair tool. | P01 |
 | P05 | Close the bounded NFS matrix RC-04/05/07-12 using existing evidence first; publish blocked capability/profile cells rather than expanding tests automatically. | P04, D01/D04 for final closure |
 | P06 | Complete capacity suite RC-13/14 without redesigning existing retry/review policy. | P01; storage findings from P05 |

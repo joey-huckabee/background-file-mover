@@ -1,5 +1,10 @@
 # Next bounded implementation: protected local producer ingress
 
+Current direction (2026-11-08): PR9 implements/qualifies this local Unix slice.
+The user subsequently requires native HTTPS in Rust with no proxy.
+[Native HTTPS plan](../NATIVE-HTTPS-PLAN.md) supersedes the future proxy/TLS
+deployment portion below; the qualified local transport remains a separate mode.
+
 Defined 2026-11-08, increment 120. Implements the P02 portion of RA-01/03/04/05/08
 after [contract closeout](API-CONTRACT-CLOSEOUT.md). This is the next implementation
 specification, not a claim that ingress is implemented or remotely deployable.
