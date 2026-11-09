@@ -88,7 +88,7 @@ files). `server_ca_certificates` supplies explicit roots for startup verificatio
 `client_ca_certificates` supplies roots for authenticating recorders (1–16 each).
 Every entry is parsed. Each certificate is at most 64 KiB. The key must be
 unencrypted PKCS8 DER, at most 16 KiB, and match the server leaf. Client mappings
-require 1?256 unique lowercase, 64-character SHA-256 values. No system trust
+require 1-256 unique lowercase, 64-character SHA-256 values. No system trust
 store is consulted. TLS 1.2/1.3 and HTTP/1.1 ALPN are required; early data, tickets
 and session resumption are disabled.
 
