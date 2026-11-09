@@ -2,6 +2,18 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-09 live TLS reload authorization: the user says "yes, proceed with the
+live cert reload" after increment123/PR12. Implement guarded host-local reload
+of server certificate/key, trust roots and approved client mappings. Validate a
+complete replacement before activation; failures preserve the old policy.
+Serialize activation with actual worker admission, reject queued stale work,
+close old unadmitted handshakes/requests and preserve already admitted transfers.
+Keep status/stop independent, retain ownership through loader-thread exit, and
+update setup/reload instructions with actual SLES evidence and independent review.
+No real credentials/state, deployment, production NFS/deletion or release.
+Stronger crypto CPU isolation, independent-client/shipping qualification remain
+separate; this authorization does not silently implement them.
+
 2026-11-08 native-listener authorization: the user says "yes, proceed with the
 HTTPS listener" after increment122. Implement increment B of the native HTTPS
 plan: direct producer mTLS, approved leaf fingerprint/generator binding, safe
