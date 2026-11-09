@@ -5,6 +5,14 @@ real kernel peer credentials. This evaluates the authorized P02 boundary;
 it does not deploy a proxy or qualify production traffic. Final measured
 results and report hashes are recorded in increment121 and its evidence file.
 
+Local report `ingress-121-local-6.json` passes both profiles: 68 captured HTTP
+requests, eleven unsafe-path cases per profile, clean cleanup. Captured request
+count includes readiness/commit polling and is not a fixed test count. Debug
+health/control take 0.01s each (combined load elapsed 0.02s); release takes
+0.00s/0.01s (elapsed 0.01s). All slow reads time out, with complete fixtures
+in 5.00-5.01s. Report SHA-256:
+`c415caa71c08512c1490879f22dd6d01b80fca23c1f13a58f53c489872692e60`.
+
 | Case at the actual endpoint | Required observation |
 |---|---|
 | Protected daemon listeners | No TCP listener; producer0660/operator0600 with exact owners |

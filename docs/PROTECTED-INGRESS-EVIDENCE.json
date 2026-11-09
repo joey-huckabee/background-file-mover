@@ -1,0 +1,1469 @@
+{
+  "increment": 121,
+  "date": "2026-11-08",
+  "scope": "Protected local producer/private operator ingress; disposable qualification, no deployment or full release approval",
+  "source": {
+    "commit": "4b5ddc973a29515ab40082bc832a251546f8e45b",
+    "rust_tree": "cfb1b43ae6c412c44aa3251cfd4fc9773408481a",
+    "source_inputs_sha256": {
+      "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+      "rust/Cargo.lock": "d21ca3466dbfb7c5266c68a99e1e6d56f73543f01faa554df87b864b7e545362",
+      "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+      "rust/README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+      "rust/config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+      "rust/crates/file-mover/Cargo.toml": "a162ee8749eb4f0694736b9c7805fa05e4327581b39e217b7b863c1fa3ff5d27",
+      "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+      "rust/crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+      "rust/crates/file-mover/src/control.rs": "de89c759e92b9b15edd452e1848d769ab22671cc55a167f529b496dffd36f4bf",
+      "rust/crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+      "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+      "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+      "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+      "rust/crates/file-mover/src/ingress.rs": "003ba6295eebede176c330b3a276ff3b1e4ea6cba1e8b94e3b963f8c9076474f",
+      "rust/crates/file-mover/src/lib.rs": "1cda13ebabe529a529f46f6ecf6c1e22bf7c85dc90a8cf31f4c08686e09e41ef",
+      "rust/crates/file-mover/src/main.rs": "3e6e1e4cd3efefeb4ceb42746ac3ff5df64dc94fed14e2e405768e452e8e1292",
+      "rust/crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+      "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+      "rust/crates/file-mover/tests/api.rs": "62914462143c6263b29b0964c8d0a41ceb264eefad3a5ed814c066ca3cfef023",
+      "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+      "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+      "rust/crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+      "rust/crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+      "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+      "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+      "rust/crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+      "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+      "rust/crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+      "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+      "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+      "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+      "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+      "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+      "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+      "rust/crates/mover-fs/src/ingress.rs": "0452f0e6496ee67e7db5a64cee6814c1f24e6637f2eee953f5a696bc96d7d9a3",
+      "rust/crates/mover-fs/src/instance.rs": "a4ae1660709ea4bafb8183751417773268c8c1ff6d6a810a692093b44bb130f3",
+      "rust/crates/mover-fs/src/lib.rs": "13e6217cd3eee22ab38c9ce4def63b5ccb2359f7171e74c5fa9b22fb6faf4d3a",
+      "rust/crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+      "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+      "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+      "rust/crates/mover-fs/src/qualification.rs": "fa4a606dfffb765a599424e58da0ab6d5c9b1f3377be77b3fbfe1fa730cfa6cb",
+      "rust/crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+      "rust/crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+      "rust/crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+      "rust/crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+      "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+      "rust/crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+      "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+      "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+      "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+      "rust/crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+      "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+      "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+      "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+      "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+      "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+      "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+      "rust/crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+      "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+      "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+      "rust/crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+      "rust/crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+      "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+      "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+      "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+      "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+      "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+      "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+      "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+      "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+      "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+      "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+      "rust/crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+      "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+      "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+    }
+  },
+  "platform": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_libc": "0.2.4",
+    "provider_mode": "source",
+    "cc": "/usr/bin/clang-16",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "pins_sha256": {
+    "scripts/Containerfile.rust": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+    "scripts/rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59",
+    "scripts/rust-qualified-dependencies.json": "c7fcb5ebe525a6c465470944a9700d39f80ec99418aced4ad81a26319a868bfd",
+    "rust/Cargo.lock": "d21ca3466dbfb7c5266c68a99e1e6d56f73543f01faa554df87b864b7e545362"
+  },
+  "local_gate_verification": {
+    "commit": "4b5ddc973a29515ab40082bc832a251546f8e45b",
+    "rust_tree": "cfb1b43ae6c412c44aa3251cfd4fc9773408481a",
+    "source_files": 75,
+    "runs": [
+      {
+        "run_id": "20261108T225141Z-c76910a5",
+        "mode": "production",
+        "report_sha256": "df35ae802a87197584729738be78724657384aafcfe341441c97a32f3918f202",
+        "source_archive_sha256": "6aa6a38df5830a262502c906607b53e0cafb819d93c08d338c48f776e8bfb1a9",
+        "source_hashes_matched": 75,
+        "profiles": {
+          "debug": {
+            "tests_passed": 269,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 515.54,
+            "api_suite_timeout_seconds": 900
+          },
+          "release": {
+            "tests_passed": 269,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 471.59,
+            "api_suite_timeout_seconds": 900
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "run_id": "20261108T234735Z-e7828c64-nfs-qualification",
+        "mode": "nfs-qualification",
+        "report_sha256": "61266d80e674a26182557915b06a96e88b7f6f5eeb6682f64ac54fe975af2c41",
+        "source_archive_sha256": "9df2f6b42cc7ba4ee6a95a372df3ec409e6800fe3473b9a762b48377d2989dd9",
+        "source_hashes_matched": 75,
+        "profiles": {
+          "debug": {
+            "tests_passed": 273,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 901.55,
+            "api_suite_timeout_seconds": 1200
+          },
+          "release": {
+            "tests_passed": 273,
+            "tests_ignored": 5,
+            "executables_rehashed": 10,
+            "api_suite_seconds": 867.27,
+            "api_suite_timeout_seconds": 1200
+          }
+        },
+        "cleanup_error": null
+      }
+    ]
+  },
+  "local_gates": [
+    {
+      "run_id": "20261108T225141Z-c76910a5",
+      "build_mode": "production",
+      "source_archive_sha256": "6aa6a38df5830a262502c906607b53e0cafb819d93c08d338c48f776e8bfb1a9",
+      "profiles": {
+        "debug": {
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "9a3a8373f74b79548dd119de09ba2b8a6dffcb0a8b8b05ac0494e80c59b4c1e4",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-a60485685f3f81b7",
+              "sha256": "b353f222dcc639a95530eb5257b1f2f12e71f2ef7f3acc3a06b569e1d9167629",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-08ba56b50f18789f",
+              "sha256": "354d5bb2d60354d97f8927195d2100c28188ac36332c258fe94674ab17b3902a",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-2c650a89df6a9b9b",
+              "sha256": "d86092f28eb07ca37a14528b04ee731a12f774c5e06c53d31a289cd109f088ae",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-981b928be83efcae",
+              "sha256": "a3e4f3030867dbf4121f1cd7d59b9cc83dfba50b732a01a7b4b400f4bc494174",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-274a4483560f8fc4",
+              "sha256": "2f7a03ec55471012d937ccbecfaebdb6fade09155a14b275e4e8f434f6534f11",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-d46b0bc92037ebbf",
+              "sha256": "6608a1fffeb3bcbcb4f793ad13d5d9d67d8cb63a0741c11c57235bb19685523d",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-transfer-735f7e3a6fae1f98",
+              "sha256": "9d95f8e608096e7601bb339faf317bbb4dd99a350ae787d64e6c2a38aa772877",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "artifacts": [
+            {
+              "name": "release-0-file-mover",
+              "sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-3dcfe4086119df9f",
+              "sha256": "720b5dc428ec7379cc95421ceffd648d7ed7fb110283dfcda8357f65856538ce",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-0beed6012f3df8a3",
+              "sha256": "716fac8e504c6d19f220b3d32c1dcef175853b6fb17d81c0b6ab0eeda29e896e",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-9c6b2b63e2c069d9",
+              "sha256": "1e757d16b1c79a56110f695ac8c197b9365b7e349546da037d34b2b6ecbb6fda",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-db7bc6a03b1dfdad",
+              "sha256": "64e2fbefc2662ea8e50cda3877f9123a5d9363d9e7bb26e55f026551d4411ba6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-a54f6c67bfaf73db",
+              "sha256": "7bae432c514b1dc71ec406e2f684c2f6c9eb16cec5e86fa6d56805e405a1610a",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-5cf1b388d367e580",
+              "sha256": "2fa3248eb240e732b1b6a27ad1a569beb6ee70c681889e86ff8392897550fa07",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-transfer-cdda21360fa95c8e",
+              "sha256": "01ad2748932075e264b3157e9b69d5cfc1df5a9e024857290aa9b17817e46132",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "run_id": "20261108T234735Z-e7828c64-nfs-qualification",
+      "build_mode": "nfs-qualification",
+      "source_archive_sha256": "9df2f6b42cc7ba4ee6a95a372df3ec409e6800fe3473b9a762b48377d2989dd9",
+      "profiles": {
+        "debug": {
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover-nfs-qualification",
+              "sha256": "7baa17aafb363e655e6c9256813f6b38c92670ac1566cd8defbdbe31c7b3c651",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-5a047bc2cae561ec-nfs-qualification",
+              "sha256": "fa632ed662c1f742b16a85f333d14f238dea267c357ef4b7838670c2ba24d958",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-b574f0cf025e72ac-nfs-qualification",
+              "sha256": "45e1b9a114cf476c2da524676fb6e6d91069f8e461e671108aec3d1f31e7c2c8",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-32b5db88013a26fd-nfs-qualification",
+              "sha256": "2f4b192b5680f4b4160b2a81a49ff0f656758196be3e142565bef791d587ac8a",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-e661f21140952571-nfs-qualification",
+              "sha256": "14e65a27e2d18138cf416b08139692df1834ede7ceca5d881fa12d916bf885b0",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-54527c11fa58be98-nfs-qualification",
+              "sha256": "4079f1465ca836a523fa57f10489dcf6125599c72e35e0a426cd26f8615b2500",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-d46b0bc92037ebbf-nfs-qualification",
+              "sha256": "6608a1fffeb3bcbcb4f793ad13d5d9d67d8cb63a0741c11c57235bb19685523d",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-transfer-9481d313e001b6d5-nfs-qualification",
+              "sha256": "8d58e0ca8d53214b7578782354992199ba71852bd5924faff3155cb0d498fee6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "artifacts": [
+            {
+              "name": "release-0-file-mover-nfs-qualification",
+              "sha256": "f9e4de17fd47a994da2de29a6a480bc8f9d6a86c9105528370e662fd173546d5",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-19358f18ddf698e5-nfs-qualification",
+              "sha256": "f60c655425e28cc8c1be465bb0f75808d3a6311e8cea64b37b70156966bfb1d6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-4a20cfa8e3db181a-nfs-qualification",
+              "sha256": "b102c154deac485a04faf7b53fdd24c90f9794c55a06095a7d48f0b12300076e",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-3b4a1f6fd0baa634-nfs-qualification",
+              "sha256": "009ade00b595b78453eadc0a17b4b9a55a429c1acba9ea8c6d837749718e602b",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-8da0d292f1f14a3e-nfs-qualification",
+              "sha256": "0225917f13344cb96b29194e0b30ce4fe93164aae9b4d415737f7f411bef84ab",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-5db7d08e8be483b2-nfs-qualification",
+              "sha256": "f3018c58ca8639cd77afca0c37c60dbadecebdcf323cc13cd157422b5dfd4e3e",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-5cf1b388d367e580-nfs-qualification",
+              "sha256": "2fa3248eb240e732b1b6a27ad1a569beb6ee70c681889e86ff8392897550fa07",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-transfer-040eff9911b0689e-nfs-qualification",
+              "sha256": "fcbc464890f0ee27d6ecfa162acfd0c5b5a210bfcd672daa98417dbb9fed8144",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "actual_peer_local": {
+    "report_path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-6.json",
+    "report_sha256": "c415caa71c08512c1490879f22dd6d01b80fca23c1f13a58f53c489872692e60",
+    "status": "PASSED",
+    "requests": 68,
+    "git_commit": "8e65946463205b6f54c1f3839fed7275a332f12d",
+    "driver_sha256": {
+      "check-producer-ingress.py": "de7320e697b34225a41222200245638f03650f7adab0103a5d95631cf6b3683c",
+      "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+      "check-rust-sles.py": "9f7dacdf6773e14b55ec7a7ea1a7ceddf657ad6cef87bfd3bf0ab182fe3f8720",
+      "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+    },
+    "network": "none",
+    "fixture_archive_sha256": "e854d54f3c2d737b31bd533cb3dceda2bb2ab126e4fc158f14678026cad46ecf",
+    "gate": {
+      "run_id": "20261108T225141Z-c76910a5",
+      "report_sha256": "df35ae802a87197584729738be78724657384aafcfe341441c97a32f3918f202",
+      "source_sha256": "6aa6a38df5830a262502c906607b53e0cafb819d93c08d338c48f776e8bfb1a9",
+      "source_basis": "HEAD Git blobs; checkout line endings are not compared",
+      "artifacts": {
+        "debug": {
+          "name": "debug-0-file-mover",
+          "sha256": "9a3a8373f74b79548dd119de09ba2b8a6dffcb0a8b8b05ac0494e80c59b4c1e4",
+          "test": false,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "libc.so.6",
+              "libdl.so.2",
+              "libgcc_s.so.1",
+              "libm.so.6",
+              "libpthread.so.0",
+              "librt.so.1"
+            ],
+            "versions": [
+              "GCC_3.0",
+              "GCC_3.3",
+              "GCC_4.2.0",
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          },
+          "elf_sha256": "bb644e71b2b2d3169a5082d5032fd4f2043fc09b23d7e79772d3226c17510452"
+        },
+        "release": {
+          "name": "release-0-file-mover",
+          "sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+          "test": false,
+          "elf": {
+            "interpreter": "/lib64/ld-linux-x86-64.so.2",
+            "libraries": [
+              "libc.so.6",
+              "libdl.so.2",
+              "libgcc_s.so.1",
+              "libm.so.6",
+              "libpthread.so.0",
+              "librt.so.1"
+            ],
+            "versions": [
+              "GCC_3.0",
+              "GCC_3.3",
+              "GCC_4.2.0",
+              "GLIBC_2.10",
+              "GLIBC_2.12",
+              "GLIBC_2.14",
+              "GLIBC_2.15",
+              "GLIBC_2.16",
+              "GLIBC_2.18",
+              "GLIBC_2.2.5",
+              "GLIBC_2.3",
+              "GLIBC_2.3.2",
+              "GLIBC_2.3.4",
+              "GLIBC_2.7",
+              "GLIBC_2.9"
+            ],
+            "maximum_glibc": "GLIBC_2.18"
+          },
+          "elf_sha256": "bc0f096e108d19c32551ac6dc0a8c9e14a6dfdf99558c7d9009dcc71a5262462"
+        }
+      }
+    },
+    "profiles": [
+      {
+        "profile": "debug",
+        "binary_sha256": "9a3a8373f74b79548dd119de09ba2b8a6dffcb0a8b8b05ac0494e80c59b4c1e4",
+        "passed": true,
+        "unsafe_cases": [
+          {
+            "role": "producer_socket",
+            "kind": "file",
+            "identity": "134:1107012:regular file:1000:1001:644\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "symlink",
+            "identity": "134:1107008:symbolic link:1000:1001:777\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "stale",
+            "identity": "134:1107015:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "live",
+            "identity": "134:1107013:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "file",
+            "identity": "134:1107016:regular file:1000:1001:644\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "symlink",
+            "identity": "134:1107017:symbolic link:1000:1001:777\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "stale",
+            "identity": "134:1107022:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "live",
+            "identity": "134:1107024:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "kind": "missing-parent",
+            "exit_code": 1,
+            "log": "Error: \"Io(Os { code: 2, kind: NotFound, message: \\\"No such file or directory\\\" })\"\n"
+          },
+          {
+            "kind": "writable-parent",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"unsafe ingress parent owner/group/mode/filesystem\\\")\"\n"
+          },
+          {
+            "kind": "symlink-parent",
+            "exit_code": 1,
+            "log": "Error: \"Io(Os { code: 20, kind: NotADirectory, message: \\\"Not a directory\\\" })\"\n"
+          }
+        ],
+        "manifest_sha256": "1c6a81b4c538fdea51969feb2f92b1dc51483a57ba7e91fb5f9636b2fd5b9e59",
+        "substitution": {
+          "original": "134:1107051",
+          "replacement": "134:1107027",
+          "app_exit_code": 1,
+          "replacement_preserved": true,
+          "renamed_socket_preserved": true
+        },
+        "saturation": {
+          "health_seconds": 0.01,
+          "status_seconds": 0.01,
+          "under_load_seconds": 0.02,
+          "total_seconds": [
+            5.01,
+            5.01
+          ],
+          "clock": "Linux /proc/uptime boot-monotonic; no fixture suspend; excludes OCI launch"
+        }
+      },
+      {
+        "profile": "release",
+        "binary_sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+        "passed": true,
+        "unsafe_cases": [
+          {
+            "role": "producer_socket",
+            "kind": "file",
+            "identity": "134:1107049:regular file:1000:1001:644\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "symlink",
+            "identity": "134:1107050:symbolic link:1000:1001:777\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "stale",
+            "identity": "134:1107052:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "producer_socket",
+            "kind": "live",
+            "identity": "134:1107053:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "file",
+            "identity": "134:1107056:regular file:1000:1001:644\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "symlink",
+            "identity": "134:1107058:symbolic link:1000:1001:777\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "stale",
+            "identity": "134:1107057:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "role": "operator_socket",
+            "kind": "live",
+            "identity": "134:1107055:socket:1000:1001:755\n",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+          },
+          {
+            "kind": "missing-parent",
+            "exit_code": 1,
+            "log": "Error: \"Io(Os { code: 2, kind: NotFound, message: \\\"No such file or directory\\\" })\"\n"
+          },
+          {
+            "kind": "writable-parent",
+            "exit_code": 1,
+            "log": "Error: \"Blocked(\\\"unsafe ingress parent owner/group/mode/filesystem\\\")\"\n"
+          },
+          {
+            "kind": "symlink-parent",
+            "exit_code": 1,
+            "log": "Error: \"Io(Os { code: 20, kind: NotADirectory, message: \\\"Not a directory\\\" })\"\n"
+          }
+        ],
+        "manifest_sha256": "522e6a9be78e6a29ff5d23b62041a08239ccebda1d1915f61f0ee664f10e55ff",
+        "substitution": {
+          "original": "134:1107066",
+          "replacement": "134:1107060",
+          "app_exit_code": 1,
+          "replacement_preserved": true,
+          "renamed_socket_preserved": true
+        },
+        "saturation": {
+          "health_seconds": 0.0,
+          "status_seconds": 0.01,
+          "under_load_seconds": 0.01,
+          "total_seconds": [
+            5.0,
+            5.0
+          ],
+          "clock": "Linux /proc/uptime boot-monotonic; no fixture suspend; excludes OCI launch"
+        }
+      }
+    ],
+    "identities": {
+      "1000:1001": {
+        "Uid": "1000\t1000\t1000\t1000",
+        "Gid": "1001\t1001\t1001\t1001",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "1001:1001": {
+        "Uid": "1001\t1001\t1001\t1001",
+        "Gid": "1001\t1001\t1001\t1001",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "1002:1001": {
+        "Uid": "1002\t1002\t1002\t1002",
+        "Gid": "1001\t1001\t1001\t1001",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "NoNewPrivs": "1"
+      },
+      "0:1001": {
+        "Uid": "0\t0\t0\t0",
+        "Gid": "1001\t1001\t1001\t1001",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "NoNewPrivs": "1"
+      }
+    },
+    "cleanup": {
+      "exit_code": 0,
+      "stdout": "e07a5446d8530f1b46083e98bc1838df8c21b65d51627163aa6b8b467d849e24\n",
+      "stderr": "time=\"2026-11-08T17:47:17-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container competent_wu in 10 seconds, resorting to SIGKILL\"\n"
+    },
+    "cleanup_error": null,
+    "limits": [
+      "Finite disposable local SLES/UDS qualification only; no TLS, real proxy, auth deployment, NFS or systemd.",
+      "No legacy lifecycle fixture, actual crash recovery, or listener-FD worker audit in this bounded pass.",
+      "Stale socket creation tests refusal, never automatic stale cleanup or repair."
+    ]
+  },
+  "ci": {
+    "run_id": 42535735017,
+    "url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/42535735017",
+    "head": "8e65946463205b6f54c1f3839fed7275a332f12d",
+    "gates": [
+      {
+        "mode": "production",
+        "run_id": "20261108T233407Z-f4900bea",
+        "report_sha256": "29133dae133198d9cd977b335ddaa60eca2745e6832b59b329d1782b6162b5ca",
+        "source_archive_sha256": "dcd666352fa913c85471558f50ff8d5891acaf3d66b0d1d73af863aba5655405",
+        "profiles": {
+          "debug": {
+            "tests_passed": 269,
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover",
+                "sha256": "8dbe35967695fb324d9aabeefcea7400171721a77b19c975e51494abd3babc08",
+                "test": false,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-1-api-a60485685f3f81b7",
+                "sha256": "631426c70400ac72521d07cadd34b5786e82cb9a37ee8ab70e42a3ddf81dbcdd",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-2-claim-08ba56b50f18789f",
+                "sha256": "348911700c4b2ffe38f912f4f336c9655d6b1413ec48e599e32a65a38b4add4e",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-3-file_mover-2c650a89df6a9b9b",
+                "sha256": "f70f823f83f4d8077287d25fb6c79d43f6566270f11d8f0854f702a53751b427",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-4-file_mover-981b928be83efcae",
+                "sha256": "7456582317ffe52deb2db209e1e458f73dfdabffbd066be02554d2daadbeec67",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf",
+                "sha256": "3f3206b4b9a84d61c6df11b107c8658cc5fbd5e5c65afb932549935dd7243c65",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-6-mover_fs-274a4483560f8fc4",
+                "sha256": "b8928685d64a42f6ac703a0b22cae4a9adce2107b2d42ef6a9d31f021159af06",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-7-mover_store-d46b0bc92037ebbf",
+                "sha256": "f80f40ef55180e32d30e032c218ef86d64a9d373ff4b0c2e67f3a58bcd75c787",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355",
+                "sha256": "ebecb93e59b557c1d9ba293ba70cb44e6b5beb1ccc563d9be067310f6056fd61",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-9-transfer-735f7e3a6fae1f98",
+                "sha256": "125aba4daee8a66051425f90e406c8cc6a0cc4811d2aa60f6d04a1c73faf4e7d",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            ]
+          },
+          "release": {
+            "tests_passed": 269,
+            "artifacts": [
+              {
+                "name": "release-0-file-mover",
+                "sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+                "test": false,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-1-api-3dcfe4086119df9f",
+                "sha256": "720b5dc428ec7379cc95421ceffd648d7ed7fb110283dfcda8357f65856538ce",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-2-claim-0beed6012f3df8a3",
+                "sha256": "716fac8e504c6d19f220b3d32c1dcef175853b6fb17d81c0b6ab0eeda29e896e",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-3-file_mover-9c6b2b63e2c069d9",
+                "sha256": "1e757d16b1c79a56110f695ac8c197b9365b7e349546da037d34b2b6ecbb6fda",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-4-file_mover-db7bc6a03b1dfdad",
+                "sha256": "64e2fbefc2662ea8e50cda3877f9123a5d9363d9e7bb26e55f026551d4411ba6",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf",
+                "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-6-mover_fs-a54f6c67bfaf73db",
+                "sha256": "7bae432c514b1dc71ec406e2f684c2f6c9eb16cec5e86fa6d56805e405a1610a",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-7-mover_store-5cf1b388d367e580",
+                "sha256": "2fa3248eb240e732b1b6a27ad1a569beb6ee70c681889e86ff8392897550fa07",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e",
+                "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-9-transfer-cdda21360fa95c8e",
+                "sha256": "01ad2748932075e264b3157e9b69d5cfc1df5a9e024857290aa9b17817e46132",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            ]
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "mode": "nfs-qualification",
+        "run_id": "20261108T233347Z-48168d35-nfs-qualification",
+        "report_sha256": "2593db3724dc198340d2878e3742c6478a0025ee5756efc0af221ee03c082b4a",
+        "source_archive_sha256": "a3540c9d5772676744efdbb4b2fb981ce0ec09c4bb269a25a3edbea341eb1ebf",
+        "profiles": {
+          "debug": {
+            "tests_passed": 273,
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover-nfs-qualification",
+                "sha256": "c9cc0da3346ce6285ecd4608cc3885e1e8ab1b8acb0c44b352a59b755a2a2ecf",
+                "test": false,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-1-api-5a047bc2cae561ec-nfs-qualification",
+                "sha256": "c8c3542bb305057e04f800b739d50f264b41a769a85c32321009dd7d9abc79b1",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-2-claim-b574f0cf025e72ac-nfs-qualification",
+                "sha256": "b755222c9a24e909fa229682bfbc9c13b2835ee3675be993d139e9f1afb5f81a",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-3-file_mover-32b5db88013a26fd-nfs-qualification",
+                "sha256": "1e260e9a645d1a3fd2aaa10c17db73dc2ce12b4605cbb441adc4484d1e321fec",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-4-file_mover-e661f21140952571-nfs-qualification",
+                "sha256": "5c07847945f698cd8d42513b85d218d650b1ccc8e5be2eafe3d705940b1cee9e",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+                "sha256": "3f3206b4b9a84d61c6df11b107c8658cc5fbd5e5c65afb932549935dd7243c65",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-6-mover_fs-54527c11fa58be98-nfs-qualification",
+                "sha256": "d76e64563072d891d1c264eaae4309c34482b4e0f0aded09a65577cafb366d67",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-7-mover_store-d46b0bc92037ebbf-nfs-qualification",
+                "sha256": "f80f40ef55180e32d30e032c218ef86d64a9d373ff4b0c2e67f3a58bcd75c787",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+                "sha256": "ebecb93e59b557c1d9ba293ba70cb44e6b5beb1ccc563d9be067310f6056fd61",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "debug-9-transfer-9481d313e001b6d5-nfs-qualification",
+                "sha256": "a9e9165d84e92c072933e7ac1a3648b0c76f287df30b00aa0c1ab0781d24255b",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            ]
+          },
+          "release": {
+            "tests_passed": 273,
+            "artifacts": [
+              {
+                "name": "release-0-file-mover-nfs-qualification",
+                "sha256": "f9e4de17fd47a994da2de29a6a480bc8f9d6a86c9105528370e662fd173546d5",
+                "test": false,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-1-api-19358f18ddf698e5-nfs-qualification",
+                "sha256": "f60c655425e28cc8c1be465bb0f75808d3a6311e8cea64b37b70156966bfb1d6",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-2-claim-4a20cfa8e3db181a-nfs-qualification",
+                "sha256": "b102c154deac485a04faf7b53fdd24c90f9794c55a06095a7d48f0b12300076e",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-3-file_mover-3b4a1f6fd0baa634-nfs-qualification",
+                "sha256": "009ade00b595b78453eadc0a17b4b9a55a429c1acba9ea8c6d837749718e602b",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-4-file_mover-8da0d292f1f14a3e-nfs-qualification",
+                "sha256": "0225917f13344cb96b29194e0b30ce4fe93164aae9b4d415737f7f411bef84ab",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+                "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-6-mover_fs-5db7d08e8be483b2-nfs-qualification",
+                "sha256": "f3018c58ca8639cd77afca0c37c60dbadecebdcf323cc13cd157422b5dfd4e3e",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-7-mover_store-5cf1b388d367e580-nfs-qualification",
+                "sha256": "2fa3248eb240e732b1b6a27ad1a569beb6ee70c681889e86ff8392897550fa07",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+                "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              {
+                "name": "release-9-transfer-040eff9911b0689e-nfs-qualification",
+                "sha256": "fcbc464890f0ee27d6ecfa162acfd0c5b5a210bfcd672daa98417dbb9fed8144",
+                "test": true,
+                "maximum_glibc": "GLIBC_2.18"
+              }
+            ]
+          }
+        },
+        "cleanup_error": null
+      }
+    ],
+    "checker_report_sha256": "ae0ae243cfa3144bd7ce79cc5b00213671a5f86f65905caa914caa418bc34683",
+    "checker": {
+      "status": "PASSED",
+      "requests": 70,
+      "git_commit": "c60f04132f9c71c8717345182bf500addc12e298",
+      "driver_sha256": {
+        "check-producer-ingress.py": "de7320e697b34225a41222200245638f03650f7adab0103a5d95631cf6b3683c",
+        "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+        "check-rust-sles.py": "9f7dacdf6773e14b55ec7a7ea1a7ceddf657ad6cef87bfd3bf0ab182fe3f8720",
+        "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+      },
+      "network": "none",
+      "fixture_archive_sha256": "dcc515db61457a88ff9b7c1fb0b31ce2578bcda52a944feb659cbfdc8297fb31",
+      "gate": {
+        "run_id": "20261108T233407Z-f4900bea",
+        "report_sha256": "29133dae133198d9cd977b335ddaa60eca2745e6832b59b329d1782b6162b5ca",
+        "source_sha256": "dcd666352fa913c85471558f50ff8d5891acaf3d66b0d1d73af863aba5655405",
+        "source_basis": "HEAD Git blobs; checkout line endings are not compared",
+        "artifacts": {
+          "debug": {
+            "name": "debug-0-file-mover",
+            "sha256": "8dbe35967695fb324d9aabeefcea7400171721a77b19c975e51494abd3babc08",
+            "test": false,
+            "elf": {
+              "interpreter": "/lib64/ld-linux-x86-64.so.2",
+              "libraries": [
+                "libc.so.6",
+                "libdl.so.2",
+                "libgcc_s.so.1",
+                "libm.so.6",
+                "libpthread.so.0",
+                "librt.so.1"
+              ],
+              "versions": [
+                "GCC_3.0",
+                "GCC_3.3",
+                "GCC_4.2.0",
+                "GLIBC_2.10",
+                "GLIBC_2.12",
+                "GLIBC_2.14",
+                "GLIBC_2.15",
+                "GLIBC_2.16",
+                "GLIBC_2.18",
+                "GLIBC_2.2.5",
+                "GLIBC_2.3",
+                "GLIBC_2.3.2",
+                "GLIBC_2.3.4",
+                "GLIBC_2.7",
+                "GLIBC_2.9"
+              ],
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            "elf_sha256": "bb644e71b2b2d3169a5082d5032fd4f2043fc09b23d7e79772d3226c17510452"
+          },
+          "release": {
+            "name": "release-0-file-mover",
+            "sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+            "test": false,
+            "elf": {
+              "interpreter": "/lib64/ld-linux-x86-64.so.2",
+              "libraries": [
+                "libc.so.6",
+                "libdl.so.2",
+                "libgcc_s.so.1",
+                "libm.so.6",
+                "libpthread.so.0",
+                "librt.so.1"
+              ],
+              "versions": [
+                "GCC_3.0",
+                "GCC_3.3",
+                "GCC_4.2.0",
+                "GLIBC_2.10",
+                "GLIBC_2.12",
+                "GLIBC_2.14",
+                "GLIBC_2.15",
+                "GLIBC_2.16",
+                "GLIBC_2.18",
+                "GLIBC_2.2.5",
+                "GLIBC_2.3",
+                "GLIBC_2.3.2",
+                "GLIBC_2.3.4",
+                "GLIBC_2.7",
+                "GLIBC_2.9"
+              ],
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            "elf_sha256": "bc0f096e108d19c32551ac6dc0a8c9e14a6dfdf99558c7d9009dcc71a5262462"
+          }
+        }
+      },
+      "profiles": [
+        {
+          "profile": "debug",
+          "binary_sha256": "8dbe35967695fb324d9aabeefcea7400171721a77b19c975e51494abd3babc08",
+          "passed": true,
+          "unsafe_cases": [
+            {
+              "role": "producer_socket",
+              "kind": "file",
+              "identity": "51:9441413:regular file:1000:1001:644\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "symlink",
+              "identity": "51:9441414:symbolic link:1000:1001:777\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "stale",
+              "identity": "51:9441417:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "live",
+              "identity": "51:9441418:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "file",
+              "identity": "51:9441423:regular file:1000:1001:644\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "symlink",
+              "identity": "51:9441424:symbolic link:1000:1001:777\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "stale",
+              "identity": "51:9441425:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "live",
+              "identity": "51:9441428:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "kind": "missing-parent",
+              "exit_code": 1,
+              "log": "Error: \"Io(Os { code: 2, kind: NotFound, message: \\\"No such file or directory\\\" })\"\n"
+            },
+            {
+              "kind": "writable-parent",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"unsafe ingress parent owner/group/mode/filesystem\\\")\"\n"
+            },
+            {
+              "kind": "symlink-parent",
+              "exit_code": 1,
+              "log": "Error: \"Io(Os { code: 20, kind: NotADirectory, message: \\\"Not a directory\\\" })\"\n"
+            }
+          ],
+          "manifest_sha256": "e4f506f25b149c78401f1850d1b95267bf634eb29a5a8c018d7dbd00ffd3b544",
+          "substitution": {
+            "original": "51:9441432",
+            "replacement": "51:9441448",
+            "app_exit_code": 1,
+            "replacement_preserved": true,
+            "renamed_socket_preserved": true
+          },
+          "saturation": {
+            "health_seconds": 0.01,
+            "status_seconds": 0.0,
+            "under_load_seconds": 0.01,
+            "total_seconds": [
+              5.01,
+              5.01
+            ],
+            "clock": "Linux /proc/uptime boot-monotonic; no fixture suspend; excludes OCI launch"
+          }
+        },
+        {
+          "profile": "release",
+          "binary_sha256": "54abf77bd02c16bb24a2ae9efeb275e3f706312480137684e007c39be75421c5",
+          "passed": true,
+          "unsafe_cases": [
+            {
+              "role": "producer_socket",
+              "kind": "file",
+              "identity": "51:9441449:regular file:1000:1001:644\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "symlink",
+              "identity": "51:9441450:symbolic link:1000:1001:777\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "stale",
+              "identity": "51:9441452:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "producer_socket",
+              "kind": "live",
+              "identity": "51:9441453:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "file",
+              "identity": "51:9441462:regular file:1000:1001:644\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "symlink",
+              "identity": "51:9441463:symbolic link:1000:1001:777\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "stale",
+              "identity": "51:9441464:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "role": "operator_socket",
+              "kind": "live",
+              "identity": "51:9441465:socket:1000:1001:755\n",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"ingress endpoint exists; preserve and review stale/foreign endpoint\\\")\"\n"
+            },
+            {
+              "kind": "missing-parent",
+              "exit_code": 1,
+              "log": "Error: \"Io(Os { code: 2, kind: NotFound, message: \\\"No such file or directory\\\" })\"\n"
+            },
+            {
+              "kind": "writable-parent",
+              "exit_code": 1,
+              "log": "Error: \"Blocked(\\\"unsafe ingress parent owner/group/mode/filesystem\\\")\"\n"
+            },
+            {
+              "kind": "symlink-parent",
+              "exit_code": 1,
+              "log": "Error: \"Io(Os { code: 20, kind: NotADirectory, message: \\\"Not a directory\\\" })\"\n"
+            }
+          ],
+          "manifest_sha256": "1435c72ede42ca4e13f60e0489fc7f4de465540dd177e13a18f35bf009b995ae",
+          "substitution": {
+            "original": "51:9441487",
+            "replacement": "51:9441488",
+            "app_exit_code": 1,
+            "replacement_preserved": true,
+            "renamed_socket_preserved": true
+          },
+          "saturation": {
+            "health_seconds": 0.0,
+            "status_seconds": 0.01,
+            "under_load_seconds": 0.02,
+            "total_seconds": [
+              5.01,
+              5.01
+            ],
+            "clock": "Linux /proc/uptime boot-monotonic; no fixture suspend; excludes OCI launch"
+          }
+        }
+      ],
+      "identities": {
+        "1000:1001": {
+          "Uid": "1000\t1000\t1000\t1000",
+          "Gid": "1001\t1001\t1001\t1001",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "CapBnd": "0000000000000000",
+          "NoNewPrivs": "1"
+        },
+        "1001:1001": {
+          "Uid": "1001\t1001\t1001\t1001",
+          "Gid": "1001\t1001\t1001\t1001",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "CapBnd": "0000000000000000",
+          "NoNewPrivs": "1"
+        },
+        "1002:1001": {
+          "Uid": "1002\t1002\t1002\t1002",
+          "Gid": "1001\t1001\t1001\t1001",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "CapBnd": "0000000000000000",
+          "NoNewPrivs": "1"
+        },
+        "0:1001": {
+          "Uid": "0\t0\t0\t0",
+          "Gid": "1001\t1001\t1001\t1001",
+          "CapInh": "0000000000000000",
+          "CapPrm": "0000000000000000",
+          "CapEff": "0000000000000000",
+          "CapBnd": "0000000000000000",
+          "NoNewPrivs": "1"
+        }
+      },
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "9c9655f64b07ec3c2f2d75c53e0979d3f0662b282d9906c460363bb2cb21a685\n",
+        "stderr": "time=\"2026-11-08T23:43:04Z\" level=warning msg=\"StopSignal SIGTERM failed to stop container adoring_varahamihira in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null,
+      "limits": [
+        "Finite disposable local SLES/UDS qualification only; no TLS, real proxy, auth deployment, NFS or systemd.",
+        "No legacy lifecycle fixture, actual crash recovery, or listener-FD worker audit in this bounded pass.",
+        "Stale socket creation tests refusal, never automatic stale cleanup or repair."
+      ]
+    },
+    "artifact_limit": "CI reports/logs downloaded; CI executable bytes not uploaded or independently rehashed locally"
+  },
+  "portable_checks": {
+    "python_tests_passed": 64,
+    "contract_definitions": 70,
+    "structural_cases": 108,
+    "operations": 15,
+    "semantic_examples": 11,
+    "identity_vectors": 7,
+    "retry_known_answers": 4,
+    "retry_decoding_cases": 52
+  },
+  "limits": [
+    "All eight full-release gates remain open.",
+    "No TLS/proxy deployment, admin/session/action activation, operational conversion, production NFS or deletion.",
+    "Crash stale-socket repair, shipping account/systemd confinement, NFS settlement and durability remain unqualified.",
+    "Earlier offline bundle remains its prior recorded version."
+  ],
+  "retained_local_failures": [
+    {
+      "path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-1.json",
+      "report_sha256": "31c82a35a2398842896f30c90122dc14038385edd234fd8b65ec14b03b609101",
+      "error": "Traceback (most recent call last):\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 634, in main\n    run_profile(runner, profile, configs[profile], evidence['artifacts'][profile]['sha256'])\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 358, in run_profile\n    require(runner.execute('sha256sum', binary).stdout.decode().split()[0] == artifact_sha, 'container executable differs from gate')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 242, in execute\n    return self.command(['podman', 'exec', '--user', user, self.container, '/usr/bin/setsid', '--wait', *args], ok, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 238, in command\n    raise RuntimeError(f'{args[:4]}: {result.returncode}: {result.stderr.decode(errors=\"replace\")[-2000:]}')\nRuntimeError: ['podman', 'exec', '--user', '1000:1001']: 1: sha256sum: /tmp/ingress/debug/file-mover: Permission denied\n\n",
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "7d93d5bdbc24811eda1c6cc92a56f70f48b2ddd1a54bfa0b25885285ed536c85\n",
+        "stderr": "time=\"2026-11-08T16:23:57-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container hopeful_chaplygin in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-2.json",
+      "report_sha256": "2311bdee09ecb1dea8b0fa8a26b09231de768d2ef59ccb9148c2ceee55e630d4",
+      "error": "Traceback (most recent call last):\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 636, in main\n    run_profile(runner, profile, configs[profile], evidence['artifacts'][profile]['sha256'])\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 487, in run_profile\n    require(status['seconds'] < 3 and json.loads(status['stdout'])['phase'] == 'Running', 'independent control blocked by producers')\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 91, in require\n    raise AssertionError(message)\nAssertionError: independent control blocked by producers\n",
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "84274a3ddeb8cbcdc0ff6ecf516b24733f260aede8015ed07b145acab35712bb\n",
+        "stderr": "time=\"2026-11-08T16:28:55-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container cranky_ritchie in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-3.json",
+      "report_sha256": "16820626f8db496eb4650f798c353131170ee945da86fab46fd6ea9af4c8e6dc",
+      "error": "Traceback (most recent call last):\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 676, in main\n    run_profile(runner, profile, configs[profile], evidence['artifacts'][profile]['sha256'])\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 584, in run_profile\n    require(stable_files() == before, 'unsafe endpoint startup changed original source/destination/SQLite')\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 112, in require\n    raise AssertionError(message)\nAssertionError: unsafe endpoint startup changed original source/destination/SQLite\n",
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "ffbdc00efe20dec59715974ab2abd8c6a0e89e65f938b98ede5081338f05e138\n",
+        "stderr": "time=\"2026-11-08T16:40:06-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container xenodochial_nobel in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-4.json",
+      "report_sha256": "ae94db4d8e488757fcc6948929f89888c86b670ab78e862fc967368a5ff6037d",
+      "error": "Traceback (most recent call last):\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 680, in main\n    run_profile(runner, profile, configs[profile], evidence['artifacts'][profile]['sha256'])\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 588, in run_profile\n    require(after == before, 'unsafe endpoint startup changed original source/destination/SQLite')\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 112, in require\n    raise AssertionError(message)\nAssertionError: unsafe endpoint startup changed original source/destination/SQLite\n",
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "5e403befc46c9e61a0a142b5e4b7e98de6190263569334914285ff290f0d8fa5\n",
+        "stderr": "time=\"2026-11-08T16:47:27-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container quirky_mirzakhani in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "path": "/home/joey/GIT/background-file-mover-testing/rust/validation/ingress-121-local-5.json",
+      "report_sha256": "84b6efeeaaa7be51a4587bc8b2d73b5e816a66b877c3c58195091af286010941",
+      "error": "Traceback (most recent call last):\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 680, in main\n    run_profile(runner, profile, configs[profile], evidence['artifacts'][profile]['sha256'])\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 394, in run_profile\n    ready(process)\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 354, in ready\n    wait_until(check, 'missing protected readiness')\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 310, in wait_until\n    if check():\n       ^^^^^^^\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 353, in check\n    return b'Ready on protected' in runner.execute('cat', base+'/state/service.log').stdout\n                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 263, in execute\n    return self.command(['podman', 'exec', '--user', user, self.container, '/usr/bin/setsid', '--wait', *args], ok, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/joey/GIT/background-file-mover-testing/scripts/check-producer-ingress.py\", line 259, in command\n    raise RuntimeError(f'{args[:4]}: {result.returncode}: {result.stderr.decode(errors=\"replace\")[-2000:]}')\nRuntimeError: ['podman', 'exec', '--user', '1000:1001']: 1: cat: /tmp/ingress/debug/state/service.log: No such file or directory\n\n",
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "6ef9a090753ab72b3ac5dc0860e8aa45cc514d0f6d63d967d555f2063ce07306\n",
+        "stderr": "time=\"2026-11-08T17:32:39-06:00\" level=warning msg=\"StopSignal SIGTERM failed to stop container dreamy_chatelet in 10 seconds, resorting to SIGKILL\"\n"
+      },
+      "cleanup_error": null
+    }
+  ]
+}

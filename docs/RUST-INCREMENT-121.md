@@ -13,7 +13,7 @@ reusing identifiers. The written fifteen-route v2 engineering contract is frozen
 as 2.0.0. Existing candidate filenames stay stable for provenance; runtime/admin/
 consumer/release qualification is separate from specification freeze.
 
-Implement the bounded [P02 transport](api/PRODUCER-INGRESS-INCREMENT.md), using
+Implements the bounded [P02 transport](api/PRODUCER-INGRESS-INCREMENT.md), using
 existing Tokio/rustix features and dependency versions. Optional
 `protected_ingress` selects producer and private operator Unix HTTP sockets;
 absence preserves the existing explicit loopback prototype. Protected mode
@@ -33,8 +33,7 @@ modes. Both parent directories must be disjoint from state and payload roots.
 Validate both names before SQLite inspection; existing/stale/foreign names refuse,
 never auto-unlink. Compatibility inspection then checks both parents against all
 retained payload roots, including historical destinations. Bind under instance/
-lifetime ownership before source bootstrap;
-activate nonblocking Tokio listeners only on the reactor after startup. Listener
+lifetime ownership before source bootstrap; activate nonblocking Tokio listeners only on the reactor after startup. Listener
 descriptors stay close-on-exec. Clean exit removes only the original socket
 device/inode under the still-validated parent; substituted names remain untouched.
 Unproven stale sockets after crashes remain a documented shipping-lifecycle gap.
@@ -50,19 +49,56 @@ source state/custody stays authoritative and no replacement is adopted.
 
 CI now runs the actual-peer checker after its production gate and retains that
 report; both matrix modes run the eight portable checker tests. Changed checker
-paths trigger the workflow. This automation is not a pass claim.
+paths trigger the workflow. Actual completed results follow.
 
-Final production/qualification SLES and actual-peer checker results will be
-recorded before integration. Required gates remain mandatory. Current source
-formatting and strict Clippy pass; the fresh local production gate is running.
-No complete gate or actual-peer pass is inferred from that intermediate progress.
+The fresh local production gate `20261108T225141Z-c76910a5` passes 269 tests
+per debug/release profile, five ignored each. Formatting, strict Clippy,
+cargo-libc GNU/glibc2.22 builds, independent ELF audits, exact SLES target tests
+and cleanup pass. The coordinator independently matches all 75 source archive
+hashes to Rust tree `cfb1b43ae6c412c44aa3251cfd4fc9773408481a` at source commit
+`4b5ddc973a29515ab40082bc832a251546f8e45b` and rehashes all 20 executables.
+The API suites pass 104 tests in 515.54s debug / 471.59s release, inside 900s.
+Production report SHA-256:
+`df35ae802a87197584729738be78724657384aafcfe341441c97a32f3918f202`.
+
+Local actual-peer report `ingress-121-local-6.json` passes both profiles, with
+68 captured requests (readiness polling changes that count), eleven unsafe-path
+cases per profile and clean container removal. Debug health/control take 0.01s
+each, both finish in 0.02s under load; release takes 0.00s/0.01s and finishes
+in 0.01s. Six slow producers plus the occupied operator return 408; total
+fixture duration is 5.00-5.01s, inside the unchanged 9s limit. Known bytes,
+private claims, v2 size/hash binding, path reuse, restart and substitution
+preservation pass. Report SHA-256:
+`c415caa71c08512c1490879f22dd6d01b80fca23c1f13a58f53c489872692e60`.
+The fresh local qualification gate
+`20261108T234735Z-e7828c64-nfs-qualification` passes 273 tests per profile,
+five ignored each, with clean cleanup. API suites pass 105 tests each in
+901.55s debug / 867.27s release, within their 1200s qualification ceiling.
+All 75 archived source hashes match the same Rust tree; all 20 qualification
+executables are independently rehashed, for 40 across the two local modes.
+Qualification report SHA-256:
+`61266d80e674a26182557915b06a96e88b7f6f5eeb6682f64ac54fe975af2c41`.
+
+CI [run 42535735017](https://github.com/joey-huckabee/background-file-mover/actions/runs/42535735017)
+at `8e65946463205b6f54c1f3839fed7275a332f12d` passes both modes, 269 production /
+273 qualification tests per profile, and the final actual-UID checker.
+Downloaded reports and their hashes are recorded; CI executable bytes were not
+uploaded or independently rehashed locally. This head includes the checker-only
+readiness correction and retains the exact qualified Rust tree.
+
+[Machine-readable evidence](PROTECTED-INGRESS-EVIDENCE.json) records all source
+hashes, pins, local report/artifact verification, both actual-UID profiles, CI
+reports and the five retained local checker failures. Raw packs stay ignored
+under the native test clone's `rust/validation/`; they are not transferred by
+Git. [Endpoint evaluation](evals/2026-11-08-protected-ingress.md) lists the finite
+real-endpoint cases and measured results. No fixture containers remain.
 
 Three new filesystem tests cover preserved existing/symlink names, private-parent
 refusal, exact-inode cleanup/replacement preservation and actual exec descriptor
 closure. A new API CLI regression tests operator paths at jobs.sqlite-journal,
 workers.next and operator.sock under state: exact configuration refusal before
 either endpoint, instance guard, DB or enrollment creation. These are disposable
-fixtures; final target results are reported below when complete. A second API
+fixtures, covered by both required target modes. A second API
 regression seeds a foreign producer endpoint and compares every SQLite file
 name/byte before and after refusal. It also changes the configured destination
 and verifies refusal against the old retained destination, preserving its
@@ -77,9 +113,9 @@ and no-new-privileges. Its finite cases exercise route/header isolation, exact
 UUID/v2 content, unread-response handoff/replay/path reuse, six-producer/two-local
 capacity, private control responsiveness, clean restart, unsafe/stale/live socket
 refusal and substituted-name preservation. It is not real TLS/NFS/systemd,
-legacy lifecycle or crash-repair qualification. All64 existing/new Python tooling tests pass, including eight portable helper
-tests;
-actual target execution is pending the finalized production gate.
+legacy lifecycle or crash-repair qualification. All 64 final Python tooling
+tests pass, including eight portable helper tests. Both local gate modes and
+actual-peer profiles are complete.
 
 Existing contract/reference checks pass: 70 definitions, 108 structural cases,
 11 semantic examples, 15 operations, seven unchanged identity vectors, original
@@ -105,10 +141,9 @@ both replay stages now verify exact replacement bytes, original numeric claims
 and destination output in addition to unchanged manifests. Follow-up bounded
 reviews found no further actionable source/driver findings. CI review also caught
 a missing shared-helper trigger, now included in both workflow path filters.
-The coordinator also
-aligned the operator's absent producer route with its existing 404/local envelope.
+The coordinator also aligned the operator's absent producer route with its existing 404/local envelope.
 
-Actual-target checker development retained four failed reports, each with clean
+Actual-target checker development retained five failed reports, each with clean
 container cleanup. The first exposed Podman archive-copy ownership rewriting;
 `--archive=false` retains the fixture's numeric IDs without new capabilities.
 The minimal target lacks MIME::Base64, so Perl transport now uses core hex
@@ -124,6 +159,11 @@ validates/holds both endpoint plans before SQLite and binds only after
 compatibility/retained-root checks. No assertion was relaxed and no old report
 was relabeled as passing. These failures and the superseded production pass
 remain historical evidence; only fresh final-source runs qualify this increment.
+The fifth local checker report caught a fixture race: readiness polling could
+read before the asynchronous OCI shell created its log. Synchronous fixture-log
+setup before launch fixes missing and stale readiness text without changing
+runtime or weakening endpoint assertions; bounded independent review found no
+actionable issue.
 
 Operator instructions: [protected local ingress](RUST-OPERATOR-GUIDE.md#opt-in-protected-local-http-ingress).
 All eight FR gates remain open. Remote proxy/certificate operations, shipping
