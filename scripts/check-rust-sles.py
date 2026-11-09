@@ -120,8 +120,18 @@ def audit_tls_native_build(text: str, configuration: str) -> dict:
             raise ValueError("TLS native source bypassed cargo-libc compiler wrapper")
         if any(a in ("-march=native", "-mcpu=native", "-mtune=native") for a in arguments):
             raise ValueError("TLS native source selected the build host CPU")
-        if any(a.startswith("--sysroot=") and a != "--sysroot=" + sysroot for a in arguments):
-            raise ValueError("TLS native source overrides the selected sysroot")
+        for index, argument in enumerate(arguments):
+            override = None
+            if argument in ("--sysroot", "-isysroot"):
+                if index + 1 >= len(arguments):
+                    raise ValueError("TLS native source has an incomplete sysroot option")
+                override = arguments[index + 1]
+            elif argument.startswith("--sysroot="):
+                override = argument[len("--sysroot="):]
+            elif argument.startswith("-isysroot"):
+                override = argument[len("-isysroot"):].removeprefix("=")
+            if override is not None and override != sysroot:
+                raise ValueError("TLS native source overrides the selected sysroot")
         commands.append(arguments)
     if not commands:
         raise ValueError("no auditable AWS-LC target compiler commands")

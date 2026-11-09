@@ -60,9 +60,14 @@ class TlsNativeCompilerTests(unittest.TestCase):
         self.assertEqual(proof['source_compilations'], 1)
         self.assertEqual(proof['sysroot'], '/old/sysroot')
         for bad in ('', command.replace('/tools/libc-cc', '/usr/bin/cc'),
-                    command+' "-march=native"', command+' "--sysroot=/new/sysroot"'):
+                    command+' "-march=native"', command+' "--sysroot=/new/sysroot"',
+                    command+' "--sysroot" "/new/sysroot"', command+' "-isysroot" "/new/sysroot"',
+                    command+' "-isysroot/new/sysroot"', command+' "-isysroot=/new/sysroot"',
+                    command+' "--sysroot"', command+' "-isysroot"'):
             with self.subTest(command=bad), self.assertRaises(ValueError):
                 gate.audit_tls_native_build(bad, config)
+        for suffix in (' \"--sysroot=/old/sysroot\"', ' \"--sysroot\" \"/old/sysroot\"', ' \"-isysroot\" \"/old/sysroot\"'):
+            self.assertEqual(gate.audit_tls_native_build(command + suffix, config)['source_compilations'], 1)
         with self.assertRaises(ValueError):
             gate.audit_tls_native_build(command, config.replace('2.22', '2.36'))
 
