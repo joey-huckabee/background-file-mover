@@ -8,6 +8,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -95,6 +96,37 @@ def negative_controls(text: str) -> list[str]:
             continue
         raise ValueError(f"ELF audit accepted negative control: {name}")
     return list(cases)
+
+
+
+def audit_tls_native_build(text: str, configuration: str) -> dict:
+    """Prove AWS-LC C/assembly went through the selected glibc-2.22 wrapper."""
+    environment = tomllib.loads(configuration)["env"]
+    wrapper = environment["CC_x86_64-unknown-linux-gnu"]
+    sysroot = environment["CARGO_LIBC_SYSROOT"]
+    if Path(wrapper).name != "libc-cc" or environment["CARGO_LIBC_RUN_GLIBC"] != "2.22":
+        raise ValueError("TLS native compiler/provider is not the glibc2.22 wrapper")
+    commands = []
+    for line in text.splitlines():
+        match = re.match(r"^\[aws-lc-sys [^\]]+\] running: (.+)$", line)
+        if not match:
+            continue
+        arguments = shlex.split(match[1])
+        if "-c" not in arguments or not any("/aws-lc/" in a and a.endswith((".c", ".S", ".s", ".cc", ".cpp", ".cxx")) for a in arguments):
+            continue
+        cpp = any("/aws-lc/" in a and a.endswith((".cc", ".cpp", ".cxx")) for a in arguments)
+        selected_wrapper = environment["CXX_x86_64-unknown-linux-gnu"] if cpp else wrapper
+        if Path(selected_wrapper).name != ("libc-cxx" if cpp else "libc-cc") or arguments[0] != selected_wrapper:
+            raise ValueError("TLS native source bypassed cargo-libc compiler wrapper")
+        if any(a in ("-march=native", "-mcpu=native", "-mtune=native") for a in arguments):
+            raise ValueError("TLS native source selected the build host CPU")
+        if any(a.startswith("--sysroot=") and a != "--sysroot=" + sysroot for a in arguments):
+            raise ValueError("TLS native source overrides the selected sysroot")
+        commands.append(arguments)
+    if not commands:
+        raise ValueError("no auditable AWS-LC target compiler commands")
+    return {"source_compilations": len(commands), "wrapper": wrapper,
+            "compiler": environment["CARGO_LIBC_CC"], "sysroot": sysroot, "glibc": "2.22"}
 
 
 def main() -> int:
@@ -222,8 +254,9 @@ def main() -> int:
                     raise ValueError(f"unqualified features for {package['name']}")
         report["dependencies"] = [{"name": p["name"], "version": p["version"], "license": p["license"]} for p in dependencies]
         run(execute + ["cargo", "fmt", "--all", "--", "--check"], results / "fmt.log")
-        run(execute + ["cargo", "clippy", "-vv", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
+        clippy_output = run(execute + ["cargo", "clippy", "-vv", "--config", "/work/cargo-libc.toml", "--offline", "--locked", "--workspace", "--all-targets",
                        "--target", "x86_64-unknown-linux-gnu"] + features + ["--", "-D", "warnings"], results / "clippy.log")
+        report["tls_native_compiler_audits"] = {"clippy_debug": audit_tls_native_build(clippy_output, configuration)}
         runtime = run(["podman", "create", "--pull=never", "--network", "none", "--cap-drop", "all",
                        "--security-opt", "no-new-privileges", "--entrypoint", "/bin/sh",
                        CONFIG["runtime"], "-c", "exec sleep infinity"]).strip()
@@ -279,6 +312,8 @@ def main() -> int:
             if profile == "release":
                 args.append("--release")
             output = run(args, results / f"{profile}-build.log")
+            if profile == "release":
+                report["tls_native_compiler_audits"]["release"] = audit_tls_native_build(output, configuration)
             artifacts = {}
             for line in output.splitlines():
                 if not line.startswith("{"):

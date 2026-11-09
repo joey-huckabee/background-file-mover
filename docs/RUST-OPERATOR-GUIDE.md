@@ -1,5 +1,10 @@
 # Rust operator status and recovery guide
 
+For current HTTP operation, native TLS proof and credential preparation, see
+[HTTP/HTTPS setup](NATIVE-HTTPS-SETUP.md). Increment122 is a dependency/target
+handshake proof; the HTTPS REST listener and its exact configuration remain
+unimplemented. Existing loopback HTTP requires no TLS certificates.
+
 For producing, verifying and installing the current prototype without target
 internet access, use the [offline installation guide](OFFLINE-INSTALL.md).
 

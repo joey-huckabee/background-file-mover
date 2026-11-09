@@ -162,6 +162,10 @@ class Portable(unittest.TestCase):
             save(gate)
             _, artifacts, _ = CHECK.load_gate(folder, root)
             self.assertEqual(set(artifacts), {'debug', 'release'})
+            scoped = copy.deepcopy(gate)
+            scoped['status'] = 'SCOPED_PASSED'
+            save(scoped)
+            with self.assertRaises(AssertionError): CHECK.load_gate(folder, root)
             bad = copy.deepcopy(gate)
             bad['build_mode'] = 'nfs-qualification'
             save(bad)

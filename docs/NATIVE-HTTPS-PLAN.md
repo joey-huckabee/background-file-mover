@@ -6,6 +6,16 @@ This records the implementation plan and supersedes the external-proxy portion
 of P03/D02 and the older remote access design. TLS runtime, new dependencies,
 deployment and qualification are not delivered by this document.
 
+## Approved first implementation and non-TLS option
+
+The user subsequently approved the TLS dependency/SLES handshake proof with
+proper user setup instructions and required configurable operation without TLS.
+See [increment122](RUST-INCREMENT-122.md) and [setup guide](NATIVE-HTTPS-SETUP.md).
+The current loopback HTTP mode stays usable without certificates. Explicit
+HTTP/HTTPS selection is part of the later listener increment; remote plaintext
+trust/authentication must be explicit and must not silently claim mTLS or grant
+operator/admin access. TLS configuration errors never select HTTP automatically.
+
 ## Result and preserved behavior
 
 One file-mover executable and one service terminate producer HTTPS directly.
