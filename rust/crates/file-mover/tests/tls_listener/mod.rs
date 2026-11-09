@@ -28,7 +28,7 @@ fn response(bytes: &[u8]) -> (u16, Value) {
 }
 fn request(method: &str, path: &str, host: &str, headers: &str, body: &[u8]) -> Vec<u8> {
     let mut bytes = format!(
-        "{method} {path} HTTP/1.1\r\nHost: {host}\r\nContent-Length: {}\r\n{headers}\r\n",
+        "{method} {path} HTTP/1.1\r\nHost: {host}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n{headers}\r\n",
         body.len()
     )
     .into_bytes();
@@ -395,7 +395,19 @@ fn native_https_submission_denials_replay_and_restart_preserve_original_bytes() 
     mode(&f.root.join("source/current/sub"), 0o700);
     fs::write(f.root.join("source/current/a"), b"alpha").unwrap();
     fs::write(f.root.join("source/current/sub/b"), b"bravo!!").unwrap();
-    let first = f.https("POST", "/api/v2/jobs", "", &body);
+    let first = f
+        .tls(
+            Some("client"),
+            &rustls::version::TLS12,
+            &request(
+                "POST",
+                "/api/v2/jobs",
+                &host,
+                "",
+                &serde_json::to_vec(&body).unwrap(),
+            ),
+        )
+        .expect("TLS1.2 producer acceptance");
     assert_eq!(first.0, 202);
     assert_eq!(first.1["job_id"], "1");
     let manifest = f.root.join(format!("destination/{UUID}/COMMITTED.json"));
