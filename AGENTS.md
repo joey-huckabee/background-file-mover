@@ -2,6 +2,16 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-08 native-listener authorization: the user says "yes, proceed with the
+HTTPS listener" after increment122. Implement increment B of the native HTTPS
+plan: direct producer mTLS, approved leaf fingerprint/generator binding, safe
+local credential loading and private operator separation. Add explicit HTTP/HTTPS
+configuration; plaintext remains loopback-only with no TLS-error fallback.
+Preserve existing prototype/local Unix modes and custody/replay behavior. Qualify
+through both SLES modes and independent review on a short-lived branch. No real
+credentials/state, deployment, production NFS/deletion or full release approval.
+Reload/revocation lifecycle and shipping remain subsequent increments.
+
 2026-11-08 TLS-proof authorization: the user approves the native TLS dependency
 and SLES handshake proof (increment A of docs/NATIVE-HTTPS-PLAN.md), with proper
 user setup instructions. Implement/qualify the pinned Rust TLS stack and target
