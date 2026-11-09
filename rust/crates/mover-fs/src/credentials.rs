@@ -175,11 +175,16 @@ fn read_opened(credential: Credential, maximum: usize, private: bool) -> Result<
     let parent = parent_directory(&credential.parent, credential.uid, credential.gid)?;
     if !unchanged(&credential.original, &after)
         || !unchanged(&after, &named)
-        || !unchanged(&credential.parent_original, &fs::fstat(&credential.directory)?)
+        || !unchanged(
+            &credential.parent_original,
+            &fs::fstat(&credential.directory)?,
+        )
         || !unchanged(&credential.parent_original, &fs::fstat(&parent)?)
         || super::ingress::local_user_ids() != (credential.uid, credential.gid)
     {
-        return Err(ClaimError::Blocked("credential custody changed during read"));
+        return Err(ClaimError::Blocked(
+            "credential custody changed during read",
+        ));
     }
     Ok(bytes)
 }
@@ -196,8 +201,14 @@ mod tests {
         fn new() -> Self {
             let (uid, gid) = super::super::ingress::local_user_ids();
             // The retained SLES gate executes tests as non-root UID/GID 1000.
-            assert_ne!(uid, 0, "credential custody tests require the non-root gate account");
-            assert_ne!(gid, 0, "credential custody tests require a non-root primary group");
+            assert_ne!(
+                uid, 0,
+                "credential custody tests require the non-root gate account"
+            );
+            assert_ne!(
+                gid, 0,
+                "credential custody tests require a non-root primary group"
+            );
             let path = std::env::temp_dir().join(format!(
                 "credential-reader-{}-{}",
                 std::process::id(),
@@ -229,7 +240,10 @@ mod tests {
         for mode in [0o444, 0o400, 0o600, 0o644] {
             let path = fixture.write(mode, b"\x00credential\xff\n");
             assert_eq!(read(&path, 13, false).unwrap(), b"\x00credential\xff\n");
-            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777, mode);
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777,
+                mode
+            );
             // Read-only modes must be restored only by the test before rewriting.
             std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
         }
@@ -241,7 +255,8 @@ mod tests {
     #[test]
     fn refuses_invalid_paths_and_bounds_before_filesystem_access() {
         for path in [
-            "", "relative", "/", "/file", "/a//b", "/a/./b", "/a/../b", "/a/b/", "/a/b\\c", "/a/b\0c",
+            "", "relative", "/", "/file", "/a//b", "/a/./b", "/a/../b", "/a/b/", "/a/b\\c",
+            "/a/b\0c",
         ] {
             assert!(read(path, 1, true).is_err());
         }
@@ -335,14 +350,20 @@ mod tests {
         let fixture = Fixture::new();
         let path = fixture.write(0o600, b"private credential contents");
         let credential = open(&path, 64, true).unwrap();
-        for fd in [credential.directory.as_raw_fd(), credential.file.as_raw_fd()] {
+        for fd in [
+            credential.directory.as_raw_fd(),
+            credential.file.as_raw_fd(),
+        ] {
             let proc_path = format!("/proc/self/fd/{fd}");
             let original = std::fs::read_link(&proc_path).unwrap();
             let child = std::process::Command::new("/usr/bin/readlink")
                 .arg(proc_path)
                 .output()
                 .unwrap();
-            assert_ne!(String::from_utf8_lossy(&child.stdout).trim(), original.to_str().unwrap());
+            assert_ne!(
+                String::from_utf8_lossy(&child.stdout).trim(),
+                original.to_str().unwrap()
+            );
         }
         let diagnostic = read(&path, 1, true).unwrap_err().to_string();
         assert!(!diagnostic.contains(&path));

@@ -88,7 +88,13 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 mod binding;
+pub mod credentials;
 pub mod ingress;
+/// SHA-256 in the existing qualified software provider, formatted as canonical hex.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    format!("{:x}", Sha256::digest(bytes))
+}
 mod mount_profile;
 /// Pure, inactive new-producer/v2 codecs; never performs filesystem admission.
 pub mod recording_codec;

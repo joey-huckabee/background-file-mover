@@ -7,6 +7,7 @@ mod diagnostic;
 pub mod enrollment;
 mod http;
 pub mod ingress;
+pub mod native;
 pub mod payload;
 pub mod source_space;
 pub mod tls;
@@ -36,6 +37,8 @@ pub struct Config {
     pub bind: SocketAddr,
     #[serde(default)]
     pub protected_ingress: Option<ingress::ProtectedIngress>,
+    #[serde(default)]
+    pub native_ingress: Option<native::NativeIngress>,
     pub generator_id: String,
     #[serde(default)]
     pub check_expected_sizes: bool,
@@ -93,7 +96,11 @@ impl Config {
         self.source_binding
             .validate()
             .map_err(|_| "invalid source binding")?;
-        if !self.bind.ip().is_loopback()
+        if (!self.bind.ip().is_loopback()
+            && !self
+                .native_ingress
+                .as_ref()
+                .is_some_and(native::NativeIngress::https))
             || self.max_retained_jobs == 0
             || self.max_retained_bytes == 0
             || self.generator_id.trim().is_empty()
@@ -117,6 +124,9 @@ impl Config {
             return Err("source/destination roots and local state must be separate");
         }
         if let Some(ingress) = &self.protected_ingress {
+            ingress.validate(self)?;
+        }
+        if let Some(ingress) = &self.native_ingress {
             ingress.validate(self)?;
         }
         Ok(())
@@ -976,6 +986,7 @@ async fn write_response(
     let _ = timeout(Duration::from_secs(2), async {
         stream.write_all(head.as_bytes()).await?;
         stream.write_all(&body).await?;
+        stream.flush().await?;
         stream.shutdown().await
     })
     .await;
@@ -1014,6 +1025,11 @@ pub fn check_state_compatibility(
                 ingress.validate_payload_root(&root)?;
             }
         }
+        if let Some(ingress) = &c.native_ingress {
+            for root in snapshot.payload_roots()? {
+                ingress.validate_payload_root(&root)?;
+            }
+        }
     }
     instance.validate_database(&c.state_database)?;
     Ok(())
@@ -1033,7 +1049,7 @@ pub async fn serve_controlled(
     c: Config,
     lifecycle: Arc<control::Lifecycle>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if c.protected_ingress.is_some() {
+    if c.protected_ingress.is_some() || c.native_ingress.is_some() {
         return Err("TCP listener forbidden in protected ingress mode".into());
     }
     serve_inner(Some(listener), c, lifecycle).await
@@ -1077,7 +1093,27 @@ async fn serve_inner(
                 } else {
                     None
                 };
+                let native_plan = if let Some(ingress) = &startup_config.native_ingress {
+                    instance.prepare_workers().map_err(|e| e.to_string())?;
+                    Some(
+                        mover_fs::ingress::SocketPlan::operator(ingress.operator_socket())
+                            .map_err(|e| e.to_string())?,
+                    )
+                } else {
+                    None
+                };
                 check_state_compatibility(&startup_config, &instance, false)
+                    .map_err(|e| e.to_string())?;
+                let native_policy = startup_config
+                    .native_ingress
+                    .as_ref()
+                    .map(native::NativeIngress::load)
+                    .transpose()
+                    .map_err(|e| e.to_string())?
+                    .flatten();
+                let native = native_plan
+                    .map(|plan| native::Prepared::bind(&startup_config, plan, native_policy))
+                    .transpose()
                     .map_err(|e| e.to_string())?;
                 let endpoints = endpoint_plan
                     .map(ingress::Planned::bind)
@@ -1089,14 +1125,14 @@ async fn serve_inner(
                     &startup_stop,
                     &instance,
                 )?;
-                Ok((guard, control, endpoints))
+                Ok((guard, control, endpoints, native))
             })()
-            .and_then(|(guard, control, endpoints)| {
+            .and_then(|(guard, control, endpoints, native)| {
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());
                 }
                 Worker::start(&startup_config, guard, startup_stop.clone(), control)
-                    .map(|worker| (worker, endpoints))
+                    .map(|worker| (worker, endpoints, native))
                     .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
@@ -1106,16 +1142,24 @@ async fn serve_inner(
         .join()
         .map_err(|_| "source startup supervisor panicked")?;
     if stop.load(Ordering::Relaxed) {
-        if let Ok(Ok((worker, _endpoints))) = result {
+        if let Ok(Ok((worker, _endpoints, native))) = result {
             drop(_endpoints);
+            drop(native);
             drop(worker);
         }
         return Ok(());
     }
-    let (worker, prepared) = result.map_err(|_| "source startup supervisor disconnected")??;
+    let (worker, prepared, native) =
+        result.map_err(|_| "source startup supervisor disconnected")??;
     let endpoints = prepared.map(ingress::Prepared::activate).transpose()?;
+    let native = native.map(native::Prepared::activate).transpose()?;
     lifecycle.phase("Running");
-    if let Some(listener) = &listener {
+    if let Some(native) = &native {
+        println!(
+            "Ready on native producer {} and private operator socket",
+            native.address()?
+        );
+    } else if let Some(listener) = &listener {
         println!("Ready on {}", listener.local_addr()?);
     } else {
         println!("Ready on protected local producer and operator sockets");
@@ -1129,13 +1173,21 @@ async fn serve_inner(
         if let Some(endpoints) = &endpoints {
             endpoints.validate()?;
         }
+        if let Some(native) = &native {
+            native.validate()?;
+        }
         if let Ok(accepted) = timeout(
             Duration::from_millis(100),
-            ingress::accept(listener.as_ref(), endpoints.as_ref()),
+            ingress::accept(listener.as_ref(), endpoints.as_ref(), native.as_ref()),
         )
         .await
         {
             let (mut stream, audience) = accepted?;
+            let tls_policy = if matches!(audience, ingress::Audience::Native(_)) {
+                native.as_ref().and_then(|n| n.policy.clone())
+            } else {
+                None
+            };
             if !audience.authorized() {
                 if !audience.producer() {
                     drop(stream);
@@ -1153,6 +1205,11 @@ async fn serve_inner(
                 match producer_permits.clone().try_acquire_owned() {
                     Ok(p) => Some(p),
                     Err(_) => {
+                        // No plaintext HTTP response before a TLS handshake.
+                        if tls_policy.is_some() {
+                            drop(stream);
+                            continue;
+                        }
                         let busy = error(429, "rate_limited", true, None);
                         let _ = timeout(
                             Duration::from_millis(100),
@@ -1176,6 +1233,14 @@ async fn serve_inner(
             tasks.spawn(async move {
                 let _permit = permit;
                 let _producer_permit = producer_permit;
+                let (stream, audience) = if let Some(policy) = tls_policy {
+                    let Some(accepted) = policy.accept(stream).await else {
+                        return;
+                    };
+                    accepted
+                } else {
+                    (stream, audience)
+                };
                 connection(stream, c, sender, observer, admission, audience).await;
             });
         }
@@ -1183,6 +1248,7 @@ async fn serve_inner(
     tasks.abort_all();
     while tasks.join_next().await.is_some() {}
     drop(endpoints);
+    drop(native);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.
     Ok(())
 }

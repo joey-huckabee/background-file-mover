@@ -82,21 +82,44 @@ impl ProtectedIngress {
 pub(crate) enum Audience {
     Prototype,
     Producer(bool),
+    Native(bool),
     Operator(bool),
 }
 impl Audience {
     pub(crate) fn authorized(self) -> bool {
         match self {
             Self::Prototype => true,
-            Self::Producer(ok) | Self::Operator(ok) => ok,
+            Self::Producer(ok) | Self::Native(ok) | Self::Operator(ok) => ok,
         }
     }
     pub(crate) fn producer(self) -> bool {
-        matches!(self, Self::Producer(_))
+        matches!(self, Self::Producer(_) | Self::Native(_))
     }
     pub(crate) fn denial(self, r: &http::Request, c: &Config) -> Option<crate::Response> {
         let deny = |status, code| Some(crate::error(status, code, false, None));
         match self {
+            Self::Native(_) => {
+                if r.head.headers.contains_key("x-file-mover-generator")
+                    || r.head.headers.contains_key("cookie")
+                    || r.head.headers.keys().any(|h| {
+                        h.starts_with("x-forwarded-")
+                            || h == "forwarded"
+                            || h.starts_with("x-ssl-")
+                            || h.starts_with("x-client-")
+                    })
+                {
+                    return deny(400, "unsupported_headers");
+                }
+                if let Some(crate::native::NativeIngress::Https { authority, .. }) =
+                    &c.native_ingress
+                    && r.head.headers.get("host").map(Vec::as_slice) != Some(authority.as_bytes())
+                {
+                    return deny(400, "unsupported_headers");
+                }
+                if r.head.target != b"/api/v2/jobs" {
+                    return deny(403, "producer_route_forbidden");
+                }
+            }
             Self::Producer(_) => {
                 if r.head
                     .headers
@@ -128,24 +151,35 @@ impl Audience {
 pub(crate) enum Stream {
     Tcp(TcpStream),
     Unix(UnixStream),
+    Tls(Box<tokio_rustls::server::TlsStream<TcpStream>>),
 }
 impl Stream {
     pub(crate) async fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
         match self {
             Self::Tcp(s) => s.read(bytes).await,
             Self::Unix(s) => s.read(bytes).await,
+            Self::Tls(s) => s.read(bytes).await,
         }
     }
     pub(crate) async fn write_all(&mut self, bytes: &[u8]) -> io::Result<()> {
         match self {
             Self::Tcp(s) => s.write_all(bytes).await,
             Self::Unix(s) => s.write_all(bytes).await,
+            Self::Tls(s) => s.write_all(bytes).await,
+        }
+    }
+    pub(crate) async fn flush(&mut self) -> io::Result<()> {
+        match self {
+            Self::Tcp(s) => s.flush().await,
+            Self::Unix(s) => s.flush().await,
+            Self::Tls(s) => s.flush().await,
         }
     }
     pub(crate) async fn shutdown(&mut self) -> io::Result<()> {
         match self {
             Self::Tcp(s) => s.shutdown().await,
             Self::Unix(s) => s.shutdown().await,
+            Self::Tls(s) => s.shutdown().await,
         }
     }
 }
@@ -227,8 +261,11 @@ impl Bound {
 pub(crate) async fn accept(
     tcp: Option<&TcpListener>,
     unix: Option<&Bound>,
+    native: Option<&crate::native::Bound>,
 ) -> io::Result<(Stream, Audience)> {
-    if let Some(tcp) = tcp {
+    if let Some(native) = native {
+        native.accept().await
+    } else if let Some(tcp) = tcp {
         let (s, _) = tcp.accept().await?;
         Ok((Stream::Tcp(s), Audience::Prototype))
     } else {
@@ -241,7 +278,7 @@ pub async fn serve_configured(
     lifecycle: Arc<crate::control::Lifecycle>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     c.validate()?;
-    let tcp = if c.protected_ingress.is_none() {
+    let tcp = if c.protected_ingress.is_none() && c.native_ingress.is_none() {
         Some(TcpListener::bind(c.bind).await?)
     } else {
         None
