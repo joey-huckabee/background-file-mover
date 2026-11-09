@@ -19,7 +19,7 @@ import tempfile
 
 ARCHIVE_ROOT = 'file-mover-tls-proof'
 CERTIFICATES = ('ca', 'other-ca', 'server', 'client', 'untrusted-client',
-                'expired-client', 'wrong-usage-client', 'expired-server', 'unapproved-client')
+                'expired-client', 'wrong-usage-client', 'expired-server', 'unapproved-client', 'replacement-server')
 LEAVES = CERTIFICATES[2:]
 FILES = tuple(name+'.der' for name in CERTIFICATES) + tuple(name+'.key.der' for name in LEAVES)
 
@@ -144,7 +144,7 @@ def generate(output, archive):
                         '-addext', 'keyUsage=critical,keyCertSign,cRLSign')
             for serial, name in enumerate(LEAVES, 10):
                 ca = 'other-ca' if name == 'untrusted-client' else 'ca'
-                server = name in ('server', 'expired-server')
+                server = name in ('server', 'expired-server', 'replacement-server')
                 usage = 'serverAuth' if server or name == 'wrong-usage-client' else 'clientAuth'
                 subject = '/CN=localhost' if server else '/CN=file-mover-tls-proof-'+name
                 private = key(name)

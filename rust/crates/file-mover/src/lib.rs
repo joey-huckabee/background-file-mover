@@ -9,8 +9,10 @@ mod http;
 pub mod ingress;
 pub mod native;
 pub mod payload;
+mod reload;
 pub mod source_space;
 pub mod tls;
+pub mod tls_reload_ipc;
 use mover_core::{DeliveryPolicy, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
 use serde::{Deserialize, Serialize};
@@ -31,7 +33,7 @@ use tokio::{
     time::timeout,
 };
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub bind: SocketAddr,
@@ -212,7 +214,12 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
         },
     ))
 }
-type Work = (Submission, AcceptanceContext, oneshot::Sender<Response>);
+type Work = (
+    Submission,
+    AcceptanceContext,
+    oneshot::Sender<Response>,
+    Option<reload::Lease>,
+);
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ResumeInput {
@@ -374,11 +381,20 @@ impl Worker {
         let thread = match std::thread::Builder::new()
             .name("mover-local-claim".into())
             .spawn(move || {
-                while let Ok((submission, context, reply)) = receiver.recv() {
+                while let Ok((submission, context, reply, lease)) = receiver.recv() {
                     if claim_stop.load(Ordering::Relaxed) {
                         let _ = reply.send(error(503, "service_stopping", true, None));
                         continue;
                     }
+                    // Actual admission is serialized with policy activation, not
+                    // with enqueue: a request can have waited behind blocked I/O.
+                    let permit = match lease.as_ref().map(reload::Lease::admit).transpose() {
+                        Ok(permit) => permit,
+                        Err(()) => {
+                            let _ = reply.send(error(403, "caller_not_authorized", false, None));
+                            continue;
+                        }
+                    };
                     let result = process(
                         &store,
                         &guard,
@@ -388,6 +404,9 @@ impl Worker {
                         &admission,
                         check_expected_sizes,
                     );
+                    if let Some(permit) = permit {
+                        permit.finish(result.error != Some("source_space_unavailable"));
+                    }
                     let _ = reply.send(result); // Lost response never rolls back a claim.
                 }
             }) {
@@ -743,14 +762,24 @@ async fn submission_reply(
     admission: &source_space::Handle,
     submission: Submission,
     context: AcceptanceContext,
+    lease: Option<reload::Lease>,
 ) -> Response {
     async fn once(
         sender: &mpsc::SyncSender<Work>,
         submission: Submission,
         context: AcceptanceContext,
+        lease: Option<reload::Lease>,
     ) -> Response {
         let (reply, result) = oneshot::channel();
-        if sender.try_send((submission, context, reply)).is_err() {
+        if let Some(lease) = &lease
+            && !lease.queue()
+        {
+            return error(403, "caller_not_authorized", false, None);
+        }
+        if sender
+            .try_send((submission, context, reply, lease))
+            .is_err()
+        {
             return error(503, "service_busy", true, None);
         }
         result
@@ -759,7 +788,7 @@ async fn submission_reply(
     }
     let mut capacity_wait = false;
     let outcome = timeout(Duration::from_secs(10), async {
-        let first = once(sender, submission.clone(), context.clone()).await;
+        let first = once(sender, submission.clone(), context.clone(), lease.clone()).await;
         if first.error != Some("source_space_unavailable") {
             return first;
         }
@@ -767,7 +796,7 @@ async fn submission_reply(
         let ready = admission.wait_for_probe().await;
         capacity_wait = false;
         if ready {
-            once(sender, submission, context).await
+            once(sender, submission, context, lease).await
         } else {
             first
         }
@@ -793,6 +822,7 @@ async fn connection(
     observer: mpsc::SyncSender<OperatorWork>,
     admission: source_space::Handle,
     audience: ingress::Audience,
+    lease: Option<reload::Lease>,
 ) {
     let mut producer = !matches!(audience, ingress::Audience::Operator(_));
     let mut recording_id = None;
@@ -945,7 +975,8 @@ async fn connection(
                             }) {
                                 error(400, "idempotency_key_conflict", false, None)
                             } else {
-                                submission_reply(&sender, &admission, submission, context).await
+                                submission_reply(&sender, &admission, submission, context, lease)
+                                    .await
                             }
                         }
                     }
@@ -1102,6 +1133,7 @@ async fn serve_inner(
                 } else {
                     None
                 };
+                let reload_plan = reload::plan(&startup_config).map_err(|e| e.to_string())?;
                 check_state_compatibility(&startup_config, &instance, false)
                     .map_err(|e| e.to_string())?;
                 let native_policy = startup_config
@@ -1112,7 +1144,9 @@ async fn serve_inner(
                     .map_err(|e| e.to_string())?
                     .flatten();
                 let native = native_plan
-                    .map(|plan| native::Prepared::bind(&startup_config, plan, native_policy))
+                    .map(|plan| {
+                        native::Prepared::bind(&startup_config, plan, native_policy, reload_plan)
+                    })
                     .transpose()
                     .map_err(|e| e.to_string())?;
                 let endpoints = endpoint_plan
@@ -1152,7 +1186,9 @@ async fn serve_inner(
     let (worker, prepared, native) =
         result.map_err(|_| "source startup supervisor disconnected")??;
     let endpoints = prepared.map(ingress::Prepared::activate).transpose()?;
-    let native = native.map(native::Prepared::activate).transpose()?;
+    let native = native
+        .map(|p| p.activate(&c, lifecycle.clone(), worker._instance.clone()))
+        .transpose()?;
     lifecycle.phase("Running");
     if let Some(native) = &native {
         println!(
@@ -1183,8 +1219,8 @@ async fn serve_inner(
         .await
         {
             let (mut stream, audience) = accepted?;
-            let tls_policy = if matches!(audience, ingress::Audience::Native(_)) {
-                native.as_ref().and_then(|n| n.policy.clone())
+            let tls_manager = if matches!(audience, ingress::Audience::Native(_)) {
+                native.as_ref().and_then(|n| n.manager.clone())
             } else {
                 None
             };
@@ -1206,7 +1242,7 @@ async fn serve_inner(
                     Ok(p) => Some(p),
                     Err(_) => {
                         // No plaintext HTTP response before a TLS handshake.
-                        if tls_policy.is_some() {
+                        if tls_manager.is_some() {
                             drop(stream);
                             continue;
                         }
@@ -1233,15 +1269,33 @@ async fn serve_inner(
             tasks.spawn(async move {
                 let _permit = permit;
                 let _producer_permit = producer_permit;
-                let (stream, audience) = if let Some(policy) = tls_policy {
-                    let Some(accepted) = policy.accept(stream).await else {
+                if let Some(manager) = tls_manager {
+                    let Some((policy, session)) = manager.session() else {
                         return;
                     };
-                    accepted
+                    let lease = session.lease();
+                    session
+                        .run(async move {
+                            let Some((stream, audience, peer)) = policy.accept(stream).await else {
+                                return;
+                            };
+                            lease.set_peer(peer);
+                            drop(policy);
+                            connection(
+                                stream,
+                                c,
+                                sender,
+                                observer,
+                                admission,
+                                audience,
+                                Some(lease),
+                            )
+                            .await;
+                        })
+                        .await;
                 } else {
-                    (stream, audience)
-                };
-                connection(stream, c, sender, observer, admission, audience).await;
+                    connection(stream, c, sender, observer, admission, audience, None).await;
+                }
             });
         }
     }

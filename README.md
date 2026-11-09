@@ -30,7 +30,9 @@ remain separate. Production NFS and source deletion stay disabled.
 SLES handshake proof. [Increment123](docs/RUST-INCREMENT-123.md) implements the
 native producer listener; use its actual validation status. [HTTP/HTTPS setup](docs/NATIVE-HTTPS-SETUP.md)
 covers explicit HTTPS and loopback HTTP, credential preparation and operating
-limits. No proxy is required. Reload/revocation and shipping remain later work.
+limits. [Increment124](docs/RUST-INCREMENT-124.md) adds guarded live TLS reload
+and revocation; use its actual validation status and setup instructions. No proxy
+is required. Stronger CPU isolation and shipping qualification remain separate.
 
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)

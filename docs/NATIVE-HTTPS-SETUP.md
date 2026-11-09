@@ -1,10 +1,10 @@
 # Native HTTPS and HTTP setup
 
-Status: increment123 implements the native producer listener after increment122's
-TLS dependency proof. Qualification status is recorded in
-[increment123](RUST-INCREMENT-123.md); this is not deployment or release approval. See
-[the implementation sequence](NATIVE-HTTPS-PLAN.md) and
-[dependency proof results](RUST-INCREMENT-122.md).
+Status: increments122/123 record the TLS dependency proof and native producer
+listener. [Increment124](RUST-INCREMENT-124.md) records guarded live TLS reload,
+both full local SLES modes, source CI and independent review. These are bounded
+development qualification results, not deployment or release approval. See
+[the implementation sequence](NATIVE-HTTPS-PLAN.md).
 
 The user requires one executable/service, no proxy, and configurable operation
 without TLS. The existing loopback HTTP mode remains available without any
@@ -23,7 +23,8 @@ with the intended bindings, state and roots provisioned under the
 ```
 
 This is one field in the full configuration, not a standalone configuration file.
-Leave `protected_ingress` absent to select the existing loopback prototype.
+Leave both `protected_ingress` and `native_ingress` absent to select the existing
+loopback prototype.
 The optional Unix transport is documented separately in the operator guide.
 Neither mode requires TLS keys, a CA file, OpenSSL installation or a proxy.
 
@@ -87,7 +88,7 @@ files). `server_ca_certificates` supplies explicit roots for startup verificatio
 `client_ca_certificates` supplies roots for authenticating recorders (1–16 each).
 Every entry is parsed. Each certificate is at most 64 KiB. The key must be
 unencrypted PKCS8 DER, at most 16 KiB, and match the server leaf. Client mappings
-are bounded to 256 unique lowercase, 64-character SHA-256 values. No system trust
+require 1-256 unique lowercase, 64-character SHA-256 values. No system trust
 store is consulted. TLS 1.2/1.3 and HTTP/1.1 ALPN are required; early data, tickets
 and session resumption are disabled.
 
@@ -299,33 +300,133 @@ Missing/untrusted/expired/wrong-purpose clients and invalid servers must fail;
 timeouts or panics are failures, not successful rejection evidence. The current
 scoped TLS suite also includes selected native REST routing, certificate mapping,
 replay/restart and refusal cases. It still cannot replace full service regression
-qualification or qualify reload/revocation or deployment. Native listener results
-are recorded in increment123.
+qualification. Increment124 records full-mode reload/admission tests and independent review.
+These do not qualify sustained cryptographic CPU load, independent-client
+interoperability, packaging or deployment.
+
+## Live TLS policy reload
+
+Native HTTPS loads its initial policy during guarded startup, before source
+bootstrap. Editing credential files or configuration alone does not change that
+running policy. The authorized reload implementation adds two service-account,
+host-local commands:
+
+```sh
+/path/to/file-mover --tls-status /path/to/config.json
+/path/to/file-mover --reload-tls /path/to/candidate.json
+```
+
+`candidate.json` must be a complete configuration, at most 16 KiB, not a TLS-only
+object or JSON patch. Start from the actual startup configuration and preserve
+all fields except the permitted live TLS settings. The commands take only a
+configuration filename; never put key bytes, PEM text or passwords in arguments,
+environment variables, logs or support attachments. Keys remain in validated
+local credential files. Run as the same non-root service UID/GID.
+
+Only these `native_ingress` HTTPS fields may change live:
+`server_certificates`, `server_key`, `server_ca_certificates`,
+`client_ca_certificates` and `clients`. The transport must remain HTTPS. Authority,
+listen address/port (`bind`), private operator socket and every non-TLS setting
+must equal their startup values. This includes generator, source/destination
+roots and bindings, state database, expected-size, retention and shutdown policy.
+Changing those values requires a separately planned original-state restart; this
+command does not rebind listeners or convert state. Native HTTP, the prototype
+HTTP mode and protected Unix mode have no TLS reload/status endpoint. No error
+switches to plaintext.
+
+Every replacement credential path must have an immediate parent directory that
+was already used by a credential at the original startup. The allowed directory
+set does not grow after reloads. A new versioned file such as `server-v2.der` or
+`server-v2.key.der` in an original credential directory is permitted; a newly
+introduced directory is refused even if its ownership/mode would otherwise be
+safe. Prepare all replacement files and the full candidate before invoking the
+command. Use new versioned names rather than rewriting an active credential
+in place, retain the validated mode0700 parent and certificate/key modes above, and
+keep credentials separate from state and payload scopes. The loader validates
+the complete replacement, including chain/name/date/usage, matching key, roots
+and allowlist, before activation. A validation rejection leaves the active policy
+intact. Reload changes running memory, not the startup configuration file; keep
+the intended full configuration and files available for the next deliberate
+startup through the normal configuration-management procedure.
+
+The CLI discovers the existing instance through lifecycle control, then uses a
+separate mode0600 private `tls-reload.sock` in its existing state directory. Do not
+provision or manually remove that socket. It is not the operator HTTP socket and
+is never exposed as a public REST operation. No active running owner is an error;
+these commands do not start a service or create replacement state. TLS status
+uses a brief memory snapshot without credential, NFS or SQLite I/O; reload's
+credential work runs only on its dedicated loader thread. Existing `--status`
+and `--stop` remain independent lifecycle commands. Shutdown stops reload
+admission and retains instance custody until the actual loader thread exits.
+
+Both commands return JSON with `version`, `instance_id`, `status`, `busy`, `ok`
+and `error` when a valid reply is obtained. Status describes current memory:
+
+| Field/state | Meaning |
+|---|---|
+| `instance_id` | Coordinator `PID:start` identity; compare it across observations. |
+| `status.generation` | Starts at 1 for this process and advances on activation; not a command ID or proof of a particular reload. |
+| `status.policy_sha256` | Full public TLS-policy hash: configured HTTPS values/paths and approved mappings plus server-chain and server/client-root certificate hashes. Private key bytes are excluded. A server-leaf hash alone does not identify the policy. |
+| `status.server_sha256`, `status.client_sha256` | Server leaf and approved client leaf fingerprints; they do not summarize all trust/configuration changes. |
+| `busy` | The single loader is reserved/running; another reload is refused. Status remains available. |
+| `status.last_result = loading` | Candidate validation is in progress; the old policy remains active until activation. |
+| `status.draining = true`, `last_result = draining` | The new policy/generation is active, but old unadmitted connections are still exiting. This is not a completed reload acknowledgement. |
+| `last_result = applied`, `draining = false` | Activation and the old unadmitted-connection exclusion completed. |
+| `last_result = ready/rejected/stopping` | Initial policy, rejected candidate, or shutdown boundary respectively; inspect the active full policy hash rather than treating the label as a historical receipt. |
+| `queued_connections`, `admitted_connections` | Transient connection states, not job, completion or released-path counts. |
+
+Reload serializes activation with actual worker admission. It revokes all old
+policy-generation handshakes/connections that have not entered `process`, not
+only connections from a removed leaf. Queued but unadmitted work loses its old
+authorization before acknowledgement: a stale queue item may remain waiting for
+the worker, but cannot later enter `process` under that lease. Client certificate
+chain/usage/expiry and current generation/allowlist are rechecked at actual
+admission. Already admitted `process` work and its terminal reply may finish;
+reload does not cancel claims, transfers or an established 202 receipt. A deferred
+attempt, including a source-space probe retry, must pass admission again and
+cannot reuse stale authorization. Recorders may need a fresh approved TLS
+connection and must preserve the original UUID/body on a producer retry.
+
+The CLI first reads status, then sends exactly one reload using the observed
+expected generation. A valid successful reload reply must report the next
+generation, `last_result=applied` and `draining=false`. A concurrent reload or
+changed generation can refuse; do not run an automatic retry loop. A refused
+reply exits with status2; connection/protocol/timeout errors are also unsuccessful. A
+successful `--tls-status` invocation means the observation worked, not that a
+previous reload succeeded.
+
+TLS status has a one-second overall CLI timeout; reload has thirty seconds,
+including discovery/status. A lost reply or timeout after sending can leave the
+reload running or already applied. Treat it as **outcome unknown** and do not
+automatically resend. Use `--tls-status` to compare `instance_id` (`PID:start`)
+and the complete `policy_sha256` against the intended reviewed public policy.
+Generation changes, leaf fingerprints, `busy=false` or a later `applied` label
+alone cannot prove which command ran. Status is a current snapshot, not a
+historical receipt: another reload may already have changed it, and a restart
+resets the generation. If the active policy cannot be established, investigate
+through the normal operator procedure without assuming rollback or success.
 
 ## Operation and troubleshooting
-
-Credentials and approved mappings are loaded once during guarded startup, before
-source bootstrap. Changing files does not update a running policy. There is no
-live TLS reload/revocation command in this increment. Until lifecycle integration
-is qualified, a deliberate original-state service stop/start is required to load
-a replacement policy. Follow the operator restart guide; surviving workers can
-block restart. Do not claim immediate revocation from editing a file. This
-limitation blocks shipping qualification, not credential verification at startup.
 
 Six producer slots include unfinished TLS handshakes; two other HTTP slots remain
 available for private operators. Handshake timeout is five seconds, request read
 five seconds and response flush/shutdown two seconds. HTTP framing and handoff
 limits are unchanged. A connection rejected before handshake may close without
 an HTTP response. Slow-handshake/stop checks do not qualify sustained cryptographic
-CPU floods; stronger CPU isolation and lifecycle races remain subsequent work.
+CPU floods. Stronger CPU isolation, independent-client interoperability, fresh
+offline-bundle validation and shipping lifecycle qualification remain separate;
+the reload source change does not close them.
 
-For now:
+For this bounded implementation:
 
 - A configuration error may indicate a predecessor executable or mixed/invalid
   transport fields. Check the exact installed version; do not bypass validation.
 - A credential startup refusal leaves the listener unready; check local custody,
   DER/PKCS8 format, chain/name/date/usage and key matching. Never switch to HTTP
   automatically or send private keys in support attachments.
+- A rejected reload does not authorize relaxing custody or certificate checks.
+  Inspect public status and the full candidate; a lost reply is outcome unknown,
+  not proof that the old policy remains active.
 - A same-CA unapproved recorder receives403; compare the complete leaf DER
   fingerprint and configured generator. Headers do not replace certificate identity.
 - A proof certificate error is investigated using the gate's public inventory,
@@ -336,5 +437,5 @@ For now:
 
 The support claim remains bounded x86_64 SLES12SP5 userspace/glibc2.22 under pinned
 container execution. It does not establish every SLES12 service pack/kernel,
-vendor systemd build or FIPS compliance. All eight release gates remain open;
+vendor systemd build or FIPS compliance. All eight FR release gates remain open;
 production NFS, deletion and deployment remain off.

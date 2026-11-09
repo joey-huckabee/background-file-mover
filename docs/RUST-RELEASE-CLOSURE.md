@@ -4,7 +4,10 @@
 [The native HTTPS plan](NATIVE-HTTPS-PLAN.md) supersedes proxy-specific D02/P03
 mechanisms while preserving producer mutual TLS, route isolation, existing
 acceptance obligations and all eight open release gates. PR9 qualifies the
-protected local Unix transport; direct TLS remains planned and unqualified.
+protected local Unix transport; increments122/123 qualify the bounded native
+TLS stack/listener. [Increment124](RUST-INCREMENT-124.md) records bounded live
+reload and full-mode checks. Stronger CPU isolation and independent-client/shipping qualification
+remain open. See each increment for actual evidence and limits.
 
 Current bounded progress (2026-11-08): increment 115 implements/qualifies explicit
 schema-11 to legacy-only schema-12 migration. Increments 116-118 deliver the

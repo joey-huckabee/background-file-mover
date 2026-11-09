@@ -3,8 +3,10 @@
 For explicit producer HTTP/HTTPS operation and credential preparation, see
 [HTTP/HTTPS setup](NATIVE-HTTPS-SETUP.md) and increment123's actual qualification
 status. Loopback HTTP requires no TLS certificates. Native producer ports expose
-no operator routes; use the separate private operator socket. Live credential
-reload/revocation and shipping qualification remain later work.
+no operator routes; use the separate private operator socket.
+[Increment124](RUST-INCREMENT-124.md) records live credential reload/revocation
+and its actual checks; the setup guide documents the local commands. Stronger
+CPU isolation and shipping qualification remain separate.
 
 For producing, verifying and installing the current prototype without target
 internet access, use the [offline installation guide](OFFLINE-INSTALL.md).
@@ -109,9 +111,11 @@ instance.lock or workers.json, reset state, or start a competing mover. Automati
 stale-socket repair and shipping crash-restart behavior are not qualified by
 this bounded increment; seek review rather than bypassing the refusal.
 
-TLS/certificate proxy selection, permission/confinement deployment and remote
-recorder access remain separate P03 work. This backend alone is not authorized
-for production remote exposure. Source deletion and production NFS stay off.
+Native Rust HTTPS supersedes the earlier proxy selection; see the HTTP/HTTPS
+setup guide for implemented ingress and actual qualification. Permission/
+confinement deployment and production remote exposure remain separate. This local
+Unix backend alone does not qualify remote access. Source deletion and production
+NFS stay off.
 
 ## State compatibility before startup
 

@@ -6,18 +6,18 @@ use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, ServerName, UnixTime},
     server::ParsedCertificate,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, net::IpAddr, path::Path, sync::Arc, task::Poll, time::Duration};
 use tokio::net::{TcpListener, UnixListener};
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClientIdentity {
     pub sha256: String,
     pub generator_id: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(tag = "transport", rename_all = "lowercase", deny_unknown_fields)]
 pub enum NativeIngress {
     Http {
@@ -50,7 +50,7 @@ impl NativeIngress {
             } => operator_socket,
         }
     }
-    fn credential_paths(&self) -> Vec<&str> {
+    pub(crate) fn credential_paths(&self) -> Vec<&str> {
         match self {
             Self::Http { .. } => Vec::new(),
             Self::Https {
@@ -188,8 +188,25 @@ impl NativeIngress {
             Ok(result)
         }
         let chain = certificates(server_certificates)?;
-        let server_roots = roots(certificates(server_ca_certificates)?)?;
-        let client_roots = roots(certificates(client_ca_certificates)?)?;
+        let server_ca = certificates(server_ca_certificates)?;
+        let client_ca = certificates(client_ca_certificates)?;
+        let hashes = |certs: &[CertificateDer<'_>]| {
+            certs
+                .iter()
+                .map(|c| mover_fs::sha256_hex(c.as_ref()))
+                .collect::<Vec<_>>()
+        };
+        let policy_sha256 = mover_fs::sha256_hex(&serde_json::to_vec(
+            &serde_json::json!({"configuration":self,"server_chain":hashes(&chain),"server_roots":hashes(&server_ca),"client_roots":hashes(&client_ca)}),
+        )?);
+        let server_sha256 = mover_fs::sha256_hex(chain[0].as_ref());
+        let server_roots = roots(server_ca)?;
+        let client_roots = roots(client_ca)?;
+        let client_verifier = rustls::server::WebPkiClientVerifier::builder_with_provider(
+            Arc::new(client_roots.clone()),
+            tls::provider(),
+        )
+        .build()?;
         let bytes = mover_fs::credentials::read(server_key, 16384, true)?;
         // The parser distinguishes PKCS1/SEC1/PKCS8; never relabel other DER as PKCS8.
         let key = PrivateKeyDer::try_from(bytes).map_err(|_| "invalid DER private key")?;
@@ -211,6 +228,9 @@ impl NativeIngress {
         Ok(Some(Arc::new(Policy {
             acceptor: tokio_rustls::TlsAcceptor::from(Arc::new(server)),
             fingerprints: clients.iter().map(|c| c.sha256.clone()).collect(),
+            client_verifier,
+            server_sha256,
+            policy_sha256,
         })))
     }
 }
@@ -257,13 +277,20 @@ fn authority_name(authority: &str) -> Result<(String, u16), &'static str> {
 
 pub(crate) struct Policy {
     acceptor: tokio_rustls::TlsAcceptor,
-    fingerprints: BTreeSet<String>,
+    pub(crate) fingerprints: BTreeSet<String>,
+    pub(crate) client_verifier: Arc<dyn rustls::server::danger::ClientCertVerifier>,
+    pub(crate) server_sha256: String,
+    pub(crate) policy_sha256: String,
 }
 impl Policy {
     pub(crate) async fn accept(
         &self,
         stream: ingress::Stream,
-    ) -> Option<(ingress::Stream, ingress::Audience)> {
+    ) -> Option<(
+        ingress::Stream,
+        ingress::Audience,
+        Vec<CertificateDer<'static>>,
+    )> {
         let ingress::Stream::Tcp(stream) = stream else {
             return None;
         };
@@ -278,9 +305,17 @@ impl Policy {
         let approved = self
             .fingerprints
             .contains(&mover_fs::sha256_hex(leaf.as_ref()));
+        let peer = stream
+            .get_ref()
+            .1
+            .peer_certificates()?
+            .iter()
+            .map(|c| c.clone().into_owned())
+            .collect();
         Some((
             ingress::Stream::Tls(Box::new(stream)),
             ingress::Audience::Native(approved),
+            peer,
         ))
     }
 }
@@ -289,18 +324,21 @@ pub(crate) struct Prepared {
     operator: mover_fs::ingress::LocalSocket,
     listener: std::net::TcpListener,
     pub(crate) policy: Option<Arc<Policy>>,
+    reload_plan: Option<mover_fs::ingress::SocketPlan>,
 }
 pub(crate) struct Bound {
     operator_socket: mover_fs::ingress::LocalSocket,
     operator: UnixListener,
     listener: TcpListener,
-    pub(crate) policy: Option<Arc<Policy>>,
+    pub(crate) manager: Option<Arc<crate::reload::Manager>>,
+    _reload: Option<crate::tls_reload_ipc::Server>,
 }
 impl Prepared {
     pub(crate) fn bind(
         c: &Config,
         operator: mover_fs::ingress::SocketPlan,
         policy: Option<Arc<Policy>>,
+        reload_plan: Option<mover_fs::ingress::SocketPlan>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let listener = std::net::TcpListener::bind(c.bind)?;
         listener.set_nonblocking(true)?;
@@ -308,14 +346,34 @@ impl Prepared {
             operator: operator.bind()?,
             listener,
             policy,
+            reload_plan,
         })
     }
-    pub(crate) fn activate(self) -> Result<Bound, Box<dyn std::error::Error>> {
+    pub(crate) fn activate(
+        self,
+        c: &Config,
+        lifecycle: Arc<crate::control::Lifecycle>,
+        guard: Arc<mover_fs::InstanceGuard>,
+    ) -> Result<Bound, Box<dyn std::error::Error>> {
+        let manager = self
+            .policy
+            .map(|p| crate::reload::Manager::new(c.clone(), p, lifecycle.clone(), guard.clone()));
+        let reload = match (self.reload_plan, manager.as_ref()) {
+            (Some(plan), Some(manager)) => Some(crate::tls_reload_ipc::Server::start(
+                plan,
+                guard,
+                lifecycle.stop.clone(),
+                manager.clone(),
+            )?),
+            (None, None) => None,
+            _ => return Err("TLS reload startup mismatch".into()),
+        };
         Ok(Bound {
             operator: UnixListener::from_std(self.operator.listener()?)?,
             operator_socket: self.operator,
             listener: TcpListener::from_std(self.listener)?,
-            policy: self.policy,
+            manager,
+            _reload: reload,
         })
     }
 }
