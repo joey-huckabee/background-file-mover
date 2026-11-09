@@ -47,6 +47,8 @@ pub(crate) trait Backend: Send + Sync {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Status {
+    pub queued_connections: usize,
+    pub admitted_connections: usize,
     pub generation: u64,
     pub policy_sha256: String,
     pub server_sha256: String,
@@ -458,6 +460,10 @@ fn socket_path(database: &str) -> Result<PathBuf> {
 }
 
 fn socket_identity(path: &Path) -> Result<(u64, u64)> {
+    mover_fs::ingress::validate_endpoint_path(
+        path.to_str().ok_or("TLS IPC UTF-8 endpoint required")?,
+    )
+    .map_err(|_| "TLS IPC endpoint mount refused")?;
     let (uid, gid) = mover_fs::ingress::local_user_ids();
     let parent =
         std::fs::symlink_metadata(path.parent().ok_or("TLS IPC state parent unavailable")?)
@@ -500,10 +506,14 @@ fn guard_identity(database: &str) -> Result<(u64, u64)> {
 }
 
 fn valid_status(status: &Status) -> bool {
-    [
-        "ready", "loading", "draining", "applied", "rejected", "stopping",
-    ]
-    .contains(&status.last_result.as_str())
+    status.generation > 0
+        && status.queued_connections <= 6
+        && status.admitted_connections <= 6
+        && status.queued_connections + status.admitted_connections <= 6
+        && [
+            "ready", "loading", "draining", "applied", "rejected", "stopping",
+        ]
+        .contains(&status.last_result.as_str())
         && status.client_sha256.len() <= 256
         && std::iter::once(&status.policy_sha256)
             .chain(std::iter::once(&status.server_sha256))
@@ -696,6 +706,8 @@ mod tests {
         client.shutdown(Shutdown::Write).unwrap();
         assert!(read_request(&mut server).is_err());
         let status = Status {
+            queued_connections: 0,
+            admitted_connections: 0,
             generation: 1,
             policy_sha256: "c".repeat(64),
             server_sha256: "a".repeat(64),
@@ -709,6 +721,8 @@ mod tests {
     #[test]
     fn full_policy_and_draining_are_required_independent_status_fields() {
         let status = Status {
+            queued_connections: 0,
+            admitted_connections: 0,
             generation: 1,
             policy_sha256: "c".repeat(64),
             server_sha256: "a".repeat(64),

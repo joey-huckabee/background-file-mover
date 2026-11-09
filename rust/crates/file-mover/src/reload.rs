@@ -167,6 +167,16 @@ impl Manager {
     }
     fn status(active: &Active) -> Status {
         Status {
+            queued_connections: active
+                .connections
+                .values()
+                .filter(|(_, s)| s.phase.load(Ordering::Acquire) == QUEUED)
+                .count(),
+            admitted_connections: active
+                .connections
+                .values()
+                .filter(|(_, s)| s.phase.load(Ordering::Acquire) == RUNNING)
+                .count(),
             generation: active.generation,
             server_sha256: active.policy.server_sha256.clone(),
             client_sha256: active.policy.fingerprints.iter().cloned().collect(),
@@ -245,7 +255,11 @@ impl Backend for Manager {
             a.last_result = "loading";
         }
         // No activation lock, SQLite, payload traversal or Tokio executor I/O.
-        let candidate = self.candidate(&c);
+        let candidate = self.candidate(&c).and_then(|policy| {
+            mover_fs::qualification_pause("tls_reload_validated")
+                .map_err(|_| "TLS reload validation checkpoint refused")?;
+            Ok(policy)
+        });
         let mut a = self.active.lock().expect("TLS active policy");
         let policy = match candidate {
             Ok(policy) => policy,

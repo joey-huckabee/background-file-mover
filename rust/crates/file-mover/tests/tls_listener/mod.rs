@@ -127,9 +127,21 @@ impl Fixture {
         assert!(result.status.success(), "{result:?}");
     }
     fn start(&mut self) {
+        self.start_paused(None);
+    }
+    fn start_paused(&mut self, pause: Option<(&str, &Path)>) {
         let log = fs::File::create(self.root.join("service.log")).unwrap();
+        let mut command = self.command();
+        if let Some((operation, path)) = pause {
+            command
+                .env("FILE_MOVER_QUALIFICATION_PAUSE", operation)
+                .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", path);
+            if operation == "claim_apply" {
+                command.env("FILE_MOVER_QUALIFICATION_CLAIM_INDEX", "0");
+            }
+        }
         self.child = Some(
-            self.command()
+            command
                 .arg(self.root.join("config.json"))
                 .stdout(log.try_clone().unwrap())
                 .stderr(log)
@@ -169,6 +181,14 @@ impl Fixture {
         version: &'static SupportedProtocolVersion,
         bytes: &[u8],
     ) -> Result<(u16, Value), String> {
+        Self::tls_at(self.address, client, version, bytes)
+    }
+    fn tls_at(
+        address: std::net::SocketAddr,
+        client: Option<&str>,
+        version: &'static SupportedProtocolVersion,
+        bytes: &[u8],
+    ) -> Result<(u16, Value), String> {
         let config = ClientConfig::builder_with_provider(tls::provider())
             .with_protocol_versions(&[version])
             .unwrap()
@@ -186,7 +206,7 @@ impl Fixture {
         config.alpn_protocols = vec![b"http/1.1".to_vec()];
         config.resumption = Resumption::disabled();
         let socket =
-            std::net::TcpStream::connect_timeout(&self.address, Duration::from_secs(5)).unwrap();
+            std::net::TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
         socket
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();
@@ -207,7 +227,8 @@ impl Fixture {
             Ok::<_, std::io::Error>(out)
         })();
         match result {
-            Ok(out) => Ok(response(&out)),
+            Ok(out) if out.starts_with(b"HTTP/1.1 ") => Ok(response(&out)),
+            Ok(_) => Err("connection closed before HTTP response".into()),
             Err(e) => {
                 assert!(
                     !matches!(
@@ -631,4 +652,379 @@ fn invalid_native_transport_configurations_refuse_before_state_or_endpoint_creat
                 .exists()
         );
     }
+}
+
+fn copy_credential(f: &Fixture, name: &str) -> PathBuf {
+    let path = f.root.join("credentials").join(name);
+    fs::write(&path, fixture(name)).unwrap();
+    mode(
+        &path,
+        if name.ends_with("key.der") {
+            0o600
+        } else {
+            0o400
+        },
+    );
+    path
+}
+fn tls_control(f: &Fixture, reload: bool, success: bool) -> Value {
+    let out = f
+        .command()
+        .arg(if reload {
+            "--reload-tls"
+        } else {
+            "--tls-status"
+        })
+        .arg(f.root.join("config.json"))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.success(), success, "{out:?}");
+    serde_json::from_slice(&out.stdout).expect("private TLS control JSON")
+}
+fn warm_tls(f: &Fixture) -> rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream> {
+    let mut c = ClientConfig::builder_with_provider(tls::provider())
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .unwrap()
+        .with_root_certificates(roots("ca.der"))
+        .with_client_auth_cert(vec![certificate("client.der")], key("client.key.der"))
+        .unwrap();
+    c.alpn_protocols = vec![b"http/1.1".to_vec()];
+    c.resumption = Resumption::disabled();
+    let socket = std::net::TcpStream::connect(f.address).unwrap();
+    socket
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    socket
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut s = rustls::StreamOwned::new(
+        rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())
+            .unwrap(),
+        socket,
+    );
+    while s.conn.is_handshaking() {
+        s.conn.complete_io(&mut s.sock).unwrap();
+    }
+    s
+}
+fn expect_closed(s: &mut std::net::TcpStream) {
+    s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    // TLS 1.3 tickets may already be buffered before cancellation. Require the
+    // transport to reach EOF/reset, rather than mistaking buffered bytes for life.
+    let until = Instant::now() + Duration::from_secs(2);
+    let mut received = 0;
+    loop {
+        match s.read(&mut [0; 1024]) {
+            Ok(0) => break,
+            Ok(n) => {
+                received += n;
+                assert!(received <= 65536 && Instant::now() < until);
+            }
+            Err(e) => {
+                assert!(
+                    matches!(
+                        e.kind(),
+                        std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+                    ),
+                    "stale connection did not close: {e}"
+                );
+                break;
+            }
+        }
+    }
+}
+fn prepare_payload(f: &Fixture) {
+    fs::create_dir(f.root.join("source/current/sub")).unwrap();
+    mode(&f.root.join("source/current/sub"), 0o700);
+    fs::write(f.root.join("source/current/a"), b"alpha").unwrap();
+    fs::write(f.root.join("source/current/sub/b"), b"bravo!!").unwrap();
+}
+fn wait_commit(f: &Fixture) {
+    let until = Instant::now() + Duration::from_secs(15);
+    while f.operator("/api/v2/jobs/1").1["state"] != "Committed" {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+
+#[test]
+fn live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay() {
+    let mut f = Fixture::new(true);
+    f.initialize();
+    f.start();
+    prepare_payload(&f);
+    let input = f.input();
+    let first = f.https("POST", "/api/v2/jobs", "", &input);
+    assert_eq!(first.0, 202);
+    wait_commit(&f);
+    let manifest = f.root.join(format!("destination/{UUID}/COMMITTED.json"));
+    let bytes = fs::read(&manifest).unwrap();
+    let initial = tls_control(&f, false, true);
+    assert_eq!(initial["status"]["generation"], 1);
+    let mut raw = std::net::TcpStream::connect(f.address).unwrap();
+    let mut established = warm_tls(&f);
+    f.config["native_ingress"]["server_certificates"] =
+        json!([copy_credential(&f, "replacement-server.der")]);
+    f.config["native_ingress"]["server_key"] =
+        json!(copy_credential(&f, "replacement-server.key.der"));
+    f.config["native_ingress"]["clients"] = json!([{"sha256":mover_fs::sha256_hex(&fixture("unapproved-client.der")),"generator_id":"recorder"}]);
+    f.save();
+    let rotated = tls_control(&f, true, true);
+    assert_eq!(rotated["status"]["generation"], 2);
+    assert_eq!(rotated["instance_id"], initial["instance_id"]);
+    assert_eq!(rotated["status"]["draining"], false);
+    assert_ne!(
+        rotated["status"]["policy_sha256"],
+        initial["status"]["policy_sha256"]
+    );
+    assert_eq!(
+        rotated["status"]["server_sha256"],
+        mover_fs::sha256_hex(&fixture("replacement-server.der"))
+    );
+    expect_closed(&mut raw);
+    expect_closed(&mut established.sock);
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &input).0, 403);
+    let req = request(
+        "POST",
+        "/api/v2/jobs",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &serde_json::to_vec(&input).unwrap(),
+    );
+    assert_eq!(
+        f.tls(Some("unapproved-client"), &rustls::version::TLS13, &req)
+            .unwrap(),
+        first
+    );
+    f.config["native_ingress"]["client_ca_certificates"] =
+        json!([copy_credential(&f, "other-ca.der")]);
+    f.config["native_ingress"]["clients"] = json!([{"sha256":mover_fs::sha256_hex(&fixture("untrusted-client.der")),"generator_id":"recorder"}]);
+    f.save();
+    let trust = tls_control(&f, true, true);
+    assert_eq!(trust["status"]["generation"], 3);
+    assert_ne!(
+        trust["status"]["policy_sha256"],
+        rotated["status"]["policy_sha256"]
+    );
+    assert!(
+        f.tls(Some("unapproved-client"), &rustls::version::TLS12, &req)
+            .is_err()
+    );
+    assert_eq!(
+        f.tls(Some("untrusted-client"), &rustls::version::TLS12, &req)
+            .unwrap(),
+        first
+    );
+    assert_eq!(fs::read(&manifest).unwrap(), bytes);
+    for (name, data, index) in [
+        ("a", b"alpha".as_slice(), 0),
+        ("sub/b", b"bravo!!".as_slice(), 1),
+    ] {
+        assert_eq!(
+            fs::read(f.root.join(format!("destination/{UUID}/{name}"))).unwrap(),
+            data
+        );
+        assert_eq!(
+            fs::read(f.root.join(format!("source/.file-mover/1-{index}/data"))).unwrap(),
+            data
+        );
+    }
+    assert_eq!(
+        f.operator("/api/v2/retention").1["details"]["retained_jobs"],
+        1
+    );
+    f.stop();
+}
+
+#[test]
+fn invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection() {
+    let mut f = Fixture::new(true);
+    f.initialize();
+    f.start();
+    let initial = tls_control(&f, false, true);
+    let original = f.config.clone();
+    let mut warm = warm_tls(&f);
+    for case in 0..5 {
+        f.config = original.clone();
+        match case {
+            0 => {
+                f.config["native_ingress"]["server_key"] =
+                    json!(f.root.join("credentials/missing.der"))
+            }
+            1 => f.config["check_expected_sizes"] = json!(true),
+            2 => {
+                f.config["native_ingress"]["authority"] =
+                    json!(format!("other.invalid:{}", f.address.port()))
+            }
+            3 => {
+                f.config["native_ingress"]["server_key"] =
+                    json!(copy_credential(&f, "client.key.der"))
+            }
+            _ => {
+                f.config["native_ingress"]["server_key"] =
+                    json!(f.root.join("other-credentials/server.key.der"))
+            }
+        }
+        f.save();
+        let reply = tls_control(&f, true, false);
+        assert_eq!(reply["status"]["generation"], 1);
+        assert_eq!(
+            reply["status"]["policy_sha256"],
+            initial["status"]["policy_sha256"]
+        );
+    }
+    warm.write_all(&request(
+        "GET",
+        "/healthz",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &[],
+    ))
+    .unwrap();
+    warm.flush().unwrap();
+    let mut out = Vec::new();
+    warm.read_to_end(&mut out).unwrap();
+    assert_eq!(response(&out).0, 403);
+    f.config = original;
+    f.save();
+    assert_eq!(tls_control(&f, false, true)["status"]["generation"], 1);
+    f.stop();
+}
+
+#[test]
+fn reload_excludes_queued_work_without_waiting_for_an_admitted_claim() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(true);
+    f.initialize();
+    prepare_payload(&f);
+    fs::write(f.root.join("source/current/later"), b"later").unwrap();
+    let checkpoint = f.root.join("claim-pause");
+    fs::create_dir(&checkpoint).unwrap();
+    mode(&checkpoint, 0o700);
+    f.start_paused(Some(("claim_apply", &checkpoint)));
+    let req = |body: &Value| {
+        request(
+            "POST",
+            "/api/v2/jobs",
+            &format!("localhost:{}", f.address.port()),
+            "",
+            &serde_json::to_vec(body).unwrap(),
+        )
+    };
+    let address = f.address;
+    let first = req(&f.input());
+    let first = std::thread::spawn(move || {
+        Fixture::tls_at(address, Some("client"), &rustls::version::TLS13, &first)
+    });
+    let until = Instant::now() + Duration::from_secs(5);
+    while !checkpoint.join("ready").exists() {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let mut next = f.input();
+    next["recording_id"] = json!("f64a49e8-027c-4ec7-88e1-72b960511b55");
+    next["files"] = json!(["later"]);
+    next["expected_sizes_bytes"] = json!({"later":"5"});
+    let second = req(&next);
+    let second = std::thread::spawn(move || {
+        Fixture::tls_at(address, Some("client"), &rustls::version::TLS13, &second)
+    });
+    let until = Instant::now() + Duration::from_secs(3);
+    loop {
+        let s = tls_control(&f, false, true);
+        if s["status"]["queued_connections"] == 1 && s["status"]["admitted_connections"] == 1 {
+            break;
+        }
+        assert!(Instant::now() < until, "{s}");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    f.config["native_ingress"]["clients"] = json!([{"sha256":mover_fs::sha256_hex(&fixture("unapproved-client.der")),"generator_id":"recorder"}]);
+    f.save();
+    assert_eq!(tls_control(&f, true, true)["status"]["generation"], 2);
+    assert!(!first.is_finished());
+    assert!(!checkpoint.join("go").exists());
+    assert!(second.join().unwrap().is_err());
+    fs::write(checkpoint.join("go"), b"continue").unwrap();
+    assert_eq!(first.join().unwrap().unwrap().0, 202);
+    wait_commit(&f);
+    assert_eq!(
+        f.operator("/api/v2/retention").1["details"]["retained_jobs"],
+        1
+    );
+    assert_eq!(
+        fs::read(f.root.join("source/current/later")).unwrap(),
+        b"later"
+    );
+    f.stop();
+}
+
+#[test]
+fn loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(true);
+    f.initialize();
+    let checkpoint = f.root.join("reload-pause");
+    fs::create_dir(&checkpoint).unwrap();
+    mode(&checkpoint, 0o700);
+    f.start_paused(Some(("tls_reload_validated", &checkpoint)));
+    let pending = f
+        .command()
+        .arg("--reload-tls")
+        .arg(f.root.join("config.json"))
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(5);
+    while !checkpoint.join("ready").exists() {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let started = Instant::now();
+    let status = tls_control(&f, false, true);
+    assert_eq!(status["busy"], true);
+    assert_eq!(status["status"]["generation"], 1);
+    assert_eq!(status["status"]["last_result"], "loading");
+    assert!(started.elapsed() < Duration::from_secs(2));
+    let busy = tls_control(&f, true, false);
+    assert_eq!(busy["error"], "reload_busy");
+    assert_eq!(f.operator("/healthz").0, 200);
+    let mut stop = f
+        .command()
+        .arg("--stop")
+        .arg(f.root.join("config.json"))
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    loop {
+        let status = f
+            .command()
+            .arg("--status")
+            .arg(f.root.join("config.json"))
+            .output()
+            .unwrap();
+        let v: Value = serde_json::from_slice(&status.stdout).unwrap();
+        if v["phase"] == "Draining" {
+            break;
+        }
+        assert!(Instant::now() < until);
+    }
+    fs::write(checkpoint.join("go"), b"continue").unwrap();
+    let result = pending.wait_with_output().unwrap();
+    assert!(!result.status.success());
+    let result: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(result["status"]["generation"], 1);
+    assert_eq!(result["status"]["last_result"], "stopping");
+    assert!(stop.wait().unwrap().success());
+    let mut child = f.child.take().unwrap();
+    assert!(child.wait().unwrap().success());
+    let _guard =
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .unwrap();
 }

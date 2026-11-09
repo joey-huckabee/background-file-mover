@@ -33,6 +33,7 @@ pub fn instance_ownership(database: &str) -> Result<InstanceOwnership> {
         directory,
         &[
             INSTANCE_LOCK,
+            "tls-reload.sock",
             crate::worker_epoch::WORKER_EPOCH,
             crate::worker_epoch::WORKER_NEXT,
         ],
@@ -127,6 +128,7 @@ impl InstanceGuard {
             &[
                 INSTANCE_LOCK,
                 "control.sock",
+                "tls-reload.sock",
                 crate::worker_epoch::WORKER_EPOCH,
                 crate::worker_epoch::WORKER_NEXT,
             ],
@@ -209,6 +211,7 @@ impl InstanceGuard {
                 ![
                     INSTANCE_LOCK,
                     "control.sock",
+                    "tls-reload.sock",
                     crate::worker_epoch::WORKER_EPOCH,
                     crate::worker_epoch::WORKER_NEXT,
                 ]
@@ -298,6 +301,7 @@ impl InstanceGuard {
             &self.directory,
             &[
                 INSTANCE_LOCK,
+                "tls-reload.sock",
                 crate::worker_epoch::WORKER_EPOCH,
                 crate::worker_epoch::WORKER_NEXT,
             ],
@@ -668,6 +672,7 @@ mod tests {
         for name in [
             INSTANCE_LOCK,
             "control.sock",
+            "tls-reload.sock",
             "jobs-wal",
             "jobs-shm",
             "jobs-journal",

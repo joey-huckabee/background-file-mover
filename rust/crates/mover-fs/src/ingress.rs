@@ -11,6 +11,11 @@ pub fn local_user_ids() -> (u32, u32) {
         rustix::process::getegid().as_raw(),
     )
 }
+/// Exclude unsafe parent/leaf mounts from proc metadata before named endpoint I/O.
+pub fn validate_endpoint_path(path: &str) -> Result<()> {
+    let _ = parts(path)?;
+    super::instance::ingress_local(Path::new(path))
+}
 
 fn parts(path: &str) -> Result<(PathBuf, String)> {
     if !path.starts_with('/')
@@ -89,6 +94,7 @@ impl SocketPlan {
         Self::prepare(path, 0o700, local_user_ids().1, 0o600)
     }
     fn prepare(path: &str, parent_mode: u32, gid: u32, mode: u32) -> Result<Self> {
+        validate_endpoint_path(path)?;
         let (parent_path, name) = parts(path)?;
         let parent = directory(&parent_path, parent_mode, gid)?;
         match fs::statat(&parent, name.as_str(), AtFlags::SYMLINK_NOFOLLOW) {
@@ -168,6 +174,13 @@ impl LocalSocket {
             .map_err(|_| ClaimError::Blocked("ingress listener clone refused"))
     }
     pub fn validate(&self) -> Result<()> {
+        validate_endpoint_path(
+            self.plan
+                .parent_path
+                .join(&self.plan.name)
+                .to_str()
+                .ok_or(ClaimError::Blocked("UTF-8 socket path required"))?,
+        )?;
         self.plan.validate_parent()?;
         let s = fs::statat(
             &self.plan.parent,
@@ -188,7 +201,15 @@ impl LocalSocket {
 }
 impl Drop for LocalSocket {
     fn drop(&mut self) {
-        if self.plan.validate_parent().is_ok()
+        if validate_endpoint_path(
+            self.plan
+                .parent_path
+                .join(&self.plan.name)
+                .to_str()
+                .unwrap_or(""),
+        )
+        .is_ok()
+            && self.plan.validate_parent().is_ok()
             && fs::statat(
                 &self.plan.parent,
                 self.plan.name.as_str(),
@@ -231,6 +252,19 @@ mod tests {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.0).unwrap();
         }
+    }
+    #[test]
+    fn individually_mounted_endpoint_refuses_before_named_io() {
+        // The pinned OCI target mounts hosts as a file, independently of /etc.
+        // No extra mount capability or remote filesystem is needed for this case.
+        let mounts = std::fs::read_to_string("/proc/self/mountinfo").unwrap();
+        assert!(
+            mounts
+                .lines()
+                .any(|line| line.split_whitespace().nth(4) == Some("/etc/hosts"))
+        );
+        assert!(validate_endpoint_path("/etc/file-mover-absent.sock").is_ok());
+        assert!(validate_endpoint_path("/etc/hosts").is_err());
     }
     #[test]
     fn existing_and_symlink_names_are_preserved() {
