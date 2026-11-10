@@ -79,6 +79,15 @@ class Arguments(unittest.TestCase):
         self.assertNotIn('-cert', args)
         self.assertNotIn('-key', args)
 
+    def test_openssl_offers_only_native_http11_alpn(self):
+        for version in (1.2, 1.3):
+            for certificate in ('client', None):
+                with self.subTest(tls=version, certificate=certificate):
+                    args = tools.openssl_args('127.0.0.1', 443, '/c',
+                                              tls=version, certificate=certificate)
+                    self.assertEqual(args.count('-alpn'), 1)
+                    self.assertEqual(args[args.index('-alpn')+1], 'http/1.1')
+
     def test_reject_unsafe_arguments_without_echo(self):
         for overrides in ({'tls':'1.1'}, {'port':True}, {'port':0}, {'ip':'--bad'}, {'host':'x/evil'},
                           {'certificate':'../key'}, {'ca':'../ca'}, {'credentials':'/tmp/\nsecret'},

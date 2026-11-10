@@ -98,7 +98,7 @@ def openssl_args(ip, port, credentials, certificate='client', tls=1.3,
     ip_literal = '[' + ip + ']' if ':' in ip else ip
     args = ['/usr/bin/openssl', 's_client', '-connect', f'{ip_literal}:{port}',
             '-servername', host, '-verify_hostname', host, '-verify_return_error',
-            '-CAfile', _credential(credentials, ca)]
+            '-alpn', 'http/1.1', '-CAfile', _credential(credentials, ca)]
     if certificate is not None:
         args += ['-cert', _credential(credentials, certificate),
                  '-key', _credential(credentials, certificate, True)]
