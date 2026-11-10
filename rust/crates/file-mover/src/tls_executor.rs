@@ -1,6 +1,7 @@
 //! Bounded native TLS execution on two owned current-thread reactors.
 //! No job is polled on the caller's executor. Async cancellation cannot preempt
 //! non-yielding work: shutdown retains ownership and joins its actual OS thread.
+use crate::control::Lifecycle;
 use std::{
     error::Error,
     future::{Future, poll_fn},
@@ -46,19 +47,15 @@ pub(crate) struct Pool {
     slots: Arc<Semaphore>,
     next: AtomicUsize,
     quit: Arc<AtomicBool>,
-    stop: Arc<AtomicBool>,
+    lifecycle: Arc<Lifecycle>,
     // Retain a caller-side guard until both actual thread handles are joined.
     _guard: Arc<mover_fs::InstanceGuard>,
 }
 impl Pool {
     pub(crate) fn start(
         guard: Arc<mover_fs::InstanceGuard>,
-        stop: Arc<AtomicBool>,
+        lifecycle: Arc<Lifecycle>,
     ) -> Result<Self> {
-        guard.validate().map_err(|_| "TLS executor instance unavailable")?;
-        if stop.load(Ordering::Acquire) {
-            return Err("TLS executor service stopping".into());
-        }
         // Construct the owner first: every later error runs the same close/join
         // path, including partial thread startup and runtime readiness failure.
         let mut pool = Self {
@@ -67,16 +64,20 @@ impl Pool {
             slots: Arc::new(Semaphore::new(JOBS)),
             next: AtomicUsize::new(0),
             quit: Arc::new(AtomicBool::new(false)),
-            stop,
+            lifecycle,
             _guard: guard,
         };
+        pool._guard.validate().map_err(|_| "TLS executor instance unavailable")?;
+        if pool.lifecycle.stop.load(Ordering::Acquire) {
+            return Err("TLS executor service stopping".into());
+        }
         let (ready_sender, ready) = mpsc::sync_channel(THREADS);
         for index in 0..THREADS {
             let (sender, receiver) = queue::channel(QUEUE);
             pool.senders.push(sender);
             let guard = pool._guard.clone();
             let quit = pool.quit.clone();
-            let stop = pool.stop.clone();
+            let lifecycle = pool.lifecycle.clone();
             let ready_sender = ready_sender.clone();
             let thread = std::thread::Builder::new()
                 .name(format!("mover-tls-executor-{index}"))
@@ -90,22 +91,22 @@ impl Pool {
                         {
                             Ok(runtime) => runtime,
                             Err(_) => {
-                                fail_closed(&quit, &stop);
+                                fail_closed(&quit, &lifecycle);
                                 let _ = ready_sender.try_send(Err("TLS executor runtime unavailable"));
                                 return;
                             }
                         };
                         if ready_sender.try_send(Ok(index)).is_err() {
-                            fail_closed(&quit, &stop);
+                            fail_closed(&quit, &lifecycle);
                             return;
                         }
-                        runtime.block_on(drive(receiver, &quit, &stop));
-                        if !stopping(&quit, &stop) {
-                            fail_closed(&quit, &stop);
+                        runtime.block_on(drive(receiver, &quit, &lifecycle));
+                        if !stopping(&quit, &lifecycle) {
+                            fail_closed(&quit, &lifecycle);
                         }
                     }));
                     if outcome.is_err() {
-                        fail_closed(&quit, &stop);
+                        fail_closed(&quit, &lifecycle);
                         // Never block on a startup channel after start returned.
                         let _ = ready_sender.try_send(Err("TLS executor thread failed"));
                     }
@@ -126,7 +127,7 @@ impl Pool {
             }
             received[index] = true;
         }
-        if stopping(&pool.quit, &pool.stop) {
+        if stopping(&pool.quit, &pool.lifecycle) {
             return Err("TLS executor stopped during startup".into());
         }
         Ok(pool)
@@ -136,14 +137,14 @@ impl Pool {
     /// On false, ownership of the supplied future is dropped here. Each job must
     /// own/join any nested work: detached child tasks cannot share this budget.
     pub(crate) fn try_spawn(&self, job: Job) -> bool {
-        if stopping(&self.quit, &self.stop) {
+        if stopping(&self.quit, &self.lifecycle) {
             return false;
         }
         let Ok(permit) = self.slots.clone().try_acquire_owned() else {
             return false;
         };
         let mut admitted = Admitted { job, _permit: permit };
-        if stopping(&self.quit, &self.stop) {
+        if stopping(&self.quit, &self.lifecycle) {
             return false;
         }
         let first = self.next.fetch_add(1, Ordering::Relaxed) % THREADS;
@@ -154,7 +155,7 @@ impl Pool {
                 Err(queue::error::TrySendError::Closed(_)) => {
                     // A missing worker is not permission to silently run at
                     // reduced protection, even when the other queue has room.
-                    fail_closed(&self.quit, &self.stop);
+                    fail_closed(&self.quit, &self.lifecycle);
                     return false;
                 }
             }
@@ -164,27 +165,30 @@ impl Pool {
 }
 impl Drop for Pool {
     fn drop(&mut self) {
+        // Share the manager's activation/admission boundary before any queue or
+        // future is discarded. request_stop preserves the original deadline.
+        self.lifecycle.request_stop();
         self.quit.store(true, Ordering::Release);
         self.slots.close();
         self.senders.clear();
         for thread in self.threads.drain(..) {
             if thread.join().is_err() {
-                fail_closed(&self.quit, &self.stop);
+                fail_closed(&self.quit, &self.lifecycle);
             }
         }
     }
 }
 
-fn stopping(quit: &AtomicBool, stop: &AtomicBool) -> bool {
-    quit.load(Ordering::Acquire) || stop.load(Ordering::Acquire)
+fn stopping(quit: &AtomicBool, lifecycle: &Lifecycle) -> bool {
+    quit.load(Ordering::Acquire) || lifecycle.stop.load(Ordering::Acquire)
 }
-fn fail_closed(quit: &AtomicBool, stop: &AtomicBool) {
-    stop.store(true, Ordering::Release);
+fn fail_closed(quit: &AtomicBool, lifecycle: &Lifecycle) {
+    lifecycle.request_stop();
     quit.store(true, Ordering::Release);
 }
-fn completion(result: std::result::Result<(), JoinError>, quit: &AtomicBool, stop: &AtomicBool) {
+fn completion(result: std::result::Result<(), JoinError>, quit: &AtomicBool, lifecycle: &Lifecycle) {
     if result.is_err_and(|error| error.is_panic()) {
-        fail_closed(quit, stop);
+        fail_closed(quit, lifecycle);
     }
 }
 
@@ -194,17 +198,17 @@ enum Event {
     Completion(std::result::Result<(), JoinError>),
     Job(Admitted),
 }
-async fn drive(mut receiver: queue::Receiver<Admitted>, quit: &AtomicBool, stop: &AtomicBool) {
+async fn drive(mut receiver: queue::Receiver<Admitted>, quit: &AtomicBool, lifecycle: &Lifecycle) {
     let mut tasks = JoinSet::new();
     let mut tick = tokio::time::interval(STOP_POLL);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         // Harvest before every dispatch, including immediately completed jobs.
         while let Some(result) = tasks.try_join_next() {
-            completion(result, quit, stop);
+            completion(result, quit, lifecycle);
         }
         let event = poll_fn(|cx| {
-            if stopping(quit, stop) {
+            if stopping(quit, lifecycle) {
                 return Poll::Ready(Event::Stop);
             }
             // Prefer completions over incoming work. A separate JoinSet length
@@ -228,9 +232,9 @@ async fn drive(mut receiver: queue::Receiver<Admitted>, quit: &AtomicBool, stop:
         match event {
             Event::Stop => break,
             Event::Tick => (),
-            Event::Completion(result) => completion(result, quit, stop),
+            Event::Completion(result) => completion(result, quit, lifecycle),
             Event::Job(job) => {
-                if stopping(quit, stop) {
+                if stopping(quit, lifecycle) {
                     drop(job);
                     break;
                 }
@@ -238,13 +242,14 @@ async fn drive(mut receiver: queue::Receiver<Admitted>, quit: &AtomicBool, stop:
             }
         }
     }
+    lifecycle.request_stop();
     receiver.close();
     while let Ok(job) = receiver.try_recv() {
         drop(job);
     }
     tasks.abort_all();
     while let Some(result) = tasks.join_next().await {
-        completion(result, quit, stop);
+        completion(result, quit, lifecycle);
     }
 }
 
@@ -271,9 +276,9 @@ mod tests {
                 self.0.join("jobs.sqlite").to_str().unwrap(),
             ).unwrap())
         }
-        fn pool(&self) -> (Pool, Arc<AtomicBool>) {
-            let stop = Arc::new(AtomicBool::new(false));
-            (Pool::start(self.guard(), stop.clone()).unwrap(), stop)
+        fn pool(&self) -> (Pool, Arc<Lifecycle>) {
+            let lifecycle = Lifecycle::new(Arc::new(AtomicBool::new(false)), 5);
+            (Pool::start(self.guard(), lifecycle.clone()).unwrap(), lifecycle)
         }
     }
     impl Drop for Fixture {
@@ -313,7 +318,7 @@ mod tests {
         until(|| started.load(Ordering::Acquire) == JOBS);
         assert_eq!(pool.slots.available_permits(), 0);
         assert!(!pool.try_spawn(Box::pin(std::future::pending())));
-        stop.store(true, Ordering::Release);
+        stop.request_stop();
         drop(pool);
         assert_eq!(dropped.load(Ordering::Acquire), JOBS);
     }
@@ -366,7 +371,7 @@ mod tests {
         let fixture = Fixture::new();
         let guard = fixture.guard();
         let weak = Arc::downgrade(&guard);
-        let stop = Arc::new(AtomicBool::new(false));
+        let stop = Lifecycle::new(Arc::new(AtomicBool::new(false)), 5);
         let pool = Pool::start(guard, stop.clone()).unwrap();
         let entered = Arc::new(AtomicBool::new(false));
         let release = Arc::new(AtomicBool::new(false));
@@ -383,7 +388,7 @@ mod tests {
             }
         })));
         until(|| entered.load(Ordering::Acquire));
-        stop.store(true, Ordering::Release);
+        stop.request_stop();
         let (finished, done) = mpsc::sync_channel(1);
         let dropper = std::thread::spawn(move || {
             drop(pool);
@@ -425,7 +430,7 @@ mod tests {
         let entered = Arc::new(AtomicBool::new(false));
         let release = Arc::new(AtomicBool::new(false));
         assert!(pool.try_spawn(Box::pin(SlowDrop { entered: entered.clone(), release: release.clone() })));
-        stop.store(true, Ordering::Release);
+        stop.request_stop();
         until(|| entered.load(Ordering::Acquire));
         assert_eq!(slots.available_permits(), JOBS - 1);
         release.store(true, Ordering::Release);
@@ -433,12 +438,46 @@ mod tests {
         drop(pool);
     }
 
+    struct ObserveStoppedDrop {
+        lifecycle: Arc<Lifecycle>,
+        observed: Arc<AtomicBool>,
+    }
+    impl Future for ObserveStoppedDrop {
+        type Output = ();
+        fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<()> {
+            Poll::Pending
+        }
+    }
+    impl Drop for ObserveStoppedDrop {
+        fn drop(&mut self) {
+            self.observed.store(
+                self.lifecycle.while_running(|| ()).is_none(),
+                Ordering::Release,
+            );
+        }
+    }
+    #[test]
+    fn pool_drop_stops_activation_before_discarding_jobs() {
+        let fixture = Fixture::new();
+        let (pool, lifecycle) = fixture.pool();
+        let observed = Arc::new(AtomicBool::new(false));
+        assert!(lifecycle.while_running(|| ()).is_some());
+        assert!(pool.try_spawn(Box::pin(ObserveStoppedDrop {
+            lifecycle: lifecycle.clone(),
+            observed: observed.clone(),
+        })));
+        drop(pool);
+        assert!(observed.load(Ordering::Acquire));
+        assert!(lifecycle.while_running(|| ()).is_none());
+    }
+
     #[test]
     fn job_panic_requests_global_stop_and_refuses_further_dispatch() {
         let fixture = Fixture::new();
         let (pool, stop) = fixture.pool();
         assert!(pool.try_spawn(Box::pin(async { panic!("TLS executor finite test panic") })));
-        until(|| stop.load(Ordering::Acquire));
+        until(|| stop.stop.load(Ordering::Acquire));
+        assert!(stop.while_running(|| ()).is_none());
         assert!(!pool.try_spawn(Box::pin(async {})));
         drop(pool);
     }
@@ -447,7 +486,8 @@ mod tests {
     fn already_stopping_start_preserves_the_callers_guard_without_threads() {
         let fixture = Fixture::new();
         let guard = fixture.guard();
-        let stop = Arc::new(AtomicBool::new(true));
+        let stop = Lifecycle::new(Arc::new(AtomicBool::new(false)), 5);
+        stop.request_stop();
         assert!(Pool::start(guard.clone(), stop).is_err());
         assert_eq!(Arc::strong_count(&guard), 1);
         assert!(guard.validate().is_ok());
