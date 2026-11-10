@@ -132,6 +132,22 @@ class Safety(unittest.TestCase):
 
 @unittest.skipUnless(os.name == 'posix', 'driver requires Linux pipe/container execution')
 class BoundedProcesses(unittest.TestCase):
+    def test_closed_private_diagnostics_preserve_original_status_and_bytes(self):
+        lab = driver.Lab({})
+
+        def local(*args, data=None, discard=False, ok=True, timeout=15):
+            result = driver.bounded_client(list(args), data=data, discard=discard, timeout=timeout)
+            if ok:
+                self.assertEqual(result.returncode, 0)
+            return result
+
+        with tempfile.TemporaryDirectory() as folder, patch.object(lab, 'client_exec', side_effect=local):
+            path = str(Path(folder)/'private.stderr')
+            code = 'import sys;sys.stdout.write("response");sys.stderr.write("verify return:1\\n");sys.exit(7)'
+            result = lab.client_tool([sys.executable, '-c', code], path)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (7, b'response', b'verify return:1\n'))
+            self.assertEqual(Path(path).stat().st_mode & 0o777, 0o600)
+
     def test_stream_both_pipes_while_writing_and_discard_receipt_without_capture(self):
         code = 'import sys; data=sys.stdin.buffer.read(); sys.stdout.buffer.write(data); sys.stderr.write("verified")'
         result = driver.bounded_client([sys.executable, '-c', code], data=bytes(65536))

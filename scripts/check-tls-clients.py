@@ -201,6 +201,18 @@ class Lab(ingress.Runner):
         require(not ok or result.returncode == 0, 'client command failed')
         return result
 
+    def client_tool(self, args, error_path, data=None, discard=False):
+        # OCI attach can omit a short-lived program's stderr. Capture it in a
+        # private file inside our client, then read the closed file over stdout.
+        # Keep the original tool exit code; no TLS failure becomes shell success.
+        script = ('umask 077; ulimit -f 256; exec '+shlex.join(args)+
+                  ' 2>'+shlex.quote(error_path))
+        value = self.client_exec('/bin/sh', '-eu', '-c', script, data=data,
+                                 discard=discard, ok=False)
+        saved = self.client_exec('cat', error_path)
+        diagnostics(saved.stdout)
+        return subprocess.CompletedProcess(args, value.returncode, value.stdout, saved.stdout)
+
     def write(self, path, data, client=False):
         script = 'umask 077; cat >'+shlex.quote(path)
         if client:
@@ -358,7 +370,7 @@ def run_profile(lab, profile, config, der, artifact):
             # diagnostics identify peer direction; key/session logs stay off.
             args += ['--verbose']
         before = time.monotonic()
-        value = lab.client_exec(*args, ok=False)
+        value = lab.client_tool(args, base+'/client.stderr')
         require(len(value.stdout) <= 131072 and len(value.stderr) <= 16384, 'oversized client capture')
         row = dict(label=label, client='curl', tls=tls, certificate=certificate, method=method, path=path,
                    host=host, ca=ca, request=body, exit_code=value.returncode,
@@ -378,20 +390,20 @@ def run_profile(lab, profile, config, der, artifact):
         # OpenSSL authenticates/reads TLS internally. For receipt loss its HTTP
         # stdout goes to DEVNULL, never to the submitting application. This is
         # not a deterministic network fault or pre-admission disconnect.
-        value = lab.client_exec(*args, data=raw, ok=False, discard=discard)
+        value = lab.client_tool(args, base+'/client.stderr', data=raw, discard=discard)
         stdout, stderr = value.stdout, value.stderr
         require(len(stdout) <= 131072 and len(stderr) <= 16384, 'oversized OpenSSL capture')
         text = diagnostics(stderr)
         row = dict(label=label, client='openssl', tls=tls, certificate=certificate, host=host, ca=ca, code=0,
                    request=body, exit_code=value.returncode, stderr=text, discarded_http_receipt=discard,
                    seconds=round(time.monotonic()-before, 4))
+        result['clients'].append(row)
         if value.returncode == 0:
             require('verify return:1' in text and 'verify error' not in text.lower(), 'OpenSSL did not establish verification')
             if not discard:
                 row.update(parse_http(stdout))
         else:
             require(not stdout.startswith(b'HTTP/'), 'TLS refusal exposed HTTP')
-        result['clients'].append(row)
         return row
 
     lab.execute(binary, '--initialize-source', config_path)

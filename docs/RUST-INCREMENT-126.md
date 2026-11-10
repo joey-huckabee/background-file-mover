@@ -76,3 +76,11 @@ Native `Policy::accept` requires negotiated `http/1.1`; add `-alpn http/1.1`
 instead of weakening the server. Curl already negotiates it. The focused matrix
 is diagnostic, not passing full qualification. All ordinary run cleanup exits
 remain recorded in the raw reports.
+
+Fifth run stops because an informational OpenSSL verification diagnostic is
+missing from OCI stderr despite a successful process exit. The focused probe
+confirms valid requests return202 with verified chains, and wrong-name/wrong-CA
+requests fail; some OCI stderr captures are empty. Capture diagnostics in a
+private mode0600 client file, read it after the tool exits, preserve its original
+exit code, and retain the same verification assertions. A real-process unit case
+checks exact status/bytes and file mode. This changes test transport only.
