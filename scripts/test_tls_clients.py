@@ -8,7 +8,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location('tls_clients_driver', Path(__file__).with_name('check-tls-clients.py'))
 driver = importlib.util.module_from_spec(spec)
@@ -59,6 +59,31 @@ class Safety(unittest.TestCase):
         self.assertIsNone(lab.network)
         self.assertIsNone(lab.container)
         self.assertIsNone(lab.client)
+
+    def test_client_removal_timeout_still_cleans_server_process_and_network(self):
+        report = {}
+        lab = driver.Lab(report)
+        lab.client, lab.container, lab.network = 'owned-client', 'owned-server', 'owned-network'
+        process = Mock()
+        process.poll.return_value = None
+        lab.processes = [process]
+        commands = []
+
+        def command(args, **kwargs):
+            commands.append(args)
+            if args == ['podman', 'rm', '-f', 'owned-client']:
+                raise subprocess.TimeoutExpired(args, 20)
+            return subprocess.CompletedProcess(args, 0, b'removed', b'')
+
+        with patch.object(lab, 'command', side_effect=command):
+            with self.assertRaisesRegex(AssertionError, 'client cleanup: TimeoutExpired'):
+                lab.close()
+        self.assertIn(['podman', 'rm', '-f', 'owned-server'], commands)
+        self.assertIn(['podman', 'network', 'rm', 'owned-network'], commands)
+        process.terminate.assert_called_once()
+        process.communicate.assert_called_once_with(timeout=5)
+        self.assertEqual(report['cleanup']['exit_code'], 0)
+        self.assertEqual(report['network_cleanup_exit_code'], 0)
 
     def test_archive_separates_server_private_keys_from_clients(self):
         with tempfile.TemporaryDirectory() as folder:

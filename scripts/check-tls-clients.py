@@ -237,19 +237,41 @@ class Lab(ingress.Runner):
     def close(self):
         errors = []
         if self.client:
-            result = self.command(['podman', 'rm', '-f', self.client], ok=False)
-            self.report['client_cleanup_exit_code'] = result.returncode
-            if result.returncode:
-                errors.append('client cleanup failed')
+            try:
+                result = self.command(['podman', 'rm', '-f', self.client], ok=False)
+                self.report['client_cleanup_exit_code'] = result.returncode
+                if result.returncode:
+                    errors.append('client cleanup failed')
+            except Exception as error:
+                errors.append('client cleanup: '+type(error).__name__)
         try:
-            super().close()
+            if self.container:
+                result = self.command(['podman', 'rm', '-f', self.container], ok=False)
+                self.report['cleanup'] = dict(exit_code=result.returncode,
+                    stdout=result.stdout.decode(errors='replace'), stderr=result.stderr.decode(errors='replace'))
+                if result.returncode:
+                    errors.append('server cleanup failed')
         except Exception as error:
-            errors.append(str(error))
+            errors.append('server cleanup: '+type(error).__name__)
+        for process in self.processes:
+            try:
+                if process.poll() is None:
+                    process.terminate()  # Only the CLI child we created, by PID.
+                try:
+                    process.communicate(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate(timeout=5)
+            except Exception as error:
+                errors.append('process cleanup: '+type(error).__name__)
         if self.network:
-            result = self.command(['podman', 'network', 'rm', self.network], ok=False)
-            self.report['network_cleanup_exit_code'] = result.returncode
-            if result.returncode:
-                errors.append('network cleanup failed')
+            try:
+                result = self.command(['podman', 'network', 'rm', self.network], ok=False)
+                self.report['network_cleanup_exit_code'] = result.returncode
+                if result.returncode:
+                    errors.append('network cleanup failed')
+            except Exception as error:
+                errors.append('network cleanup: '+type(error).__name__)
         require(not errors, '; '.join(errors))
 
 
@@ -328,8 +350,9 @@ def run_profile(lab, profile, config, der, artifact):
         row = dict(label=label, client='curl', tls=tls, certificate=certificate, method=method, path=path,
                    host=host, ca=ca, request=body, exit_code=value.returncode,
                    stderr=diagnostics(value.stderr), seconds=round(time.monotonic()-before, 4))
-        row.update(parse_curl(value.stdout))
+        row['stdout_bytes'] = len(value.stdout)
         result['clients'].append(row)
+        row.update(parse_curl(value.stdout))
         if row['code']:
             require(row['exit_code'] == 0 and row['verify_result'] == 0 and row['remote_ip'] == lab.ip, 'curl HTTPS evidence incomplete')
             require(row['server_sha256'] == server_sha, 'curl observed wrong server leaf')
@@ -540,6 +563,9 @@ def main():
             report['client_tools'] = dict(curl=lab.client_exec(pins['curl'], '--version').stdout.decode(),
                 openssl=lab.client_exec(pins['openssl'], 'version').stdout.decode(),
                 executable_hashes=lab.client_exec('sha256sum', pins['curl'], pins['openssl']).stdout.decode())
+            executable_hashes = {line.split()[1]: line.split()[0]
+                                 for line in report['client_tools']['executable_hashes'].splitlines()}
+            require(executable_hashes == pins['executables_sha256'], 'client executable hashes differ from pins')
             require(report['client_tools']['curl'].startswith('curl '+pins['curl_version']+' ') and
                     'OpenSSL/'+pins['openssl_version'] in report['client_tools']['curl'] and
                     report['client_tools']['openssl'].startswith('OpenSSL '+pins['openssl_version']+' '), 'client version/backend differs from pins')
