@@ -171,7 +171,9 @@ def tls_rejection(row):
     # direction trace; OpenSSL's accompanying peer-alert decode names it.
     required = (re.search(r'\(IN\), TLS alert, unknown \(628\)', row['stderr'], re.I) and
                 re.search(r'SSL routines::[^\r\n]*alert certificate required', row['stderr'], re.I))
-    return row['exit_code'] in (35, 56, 60, 98) and row['code'] == 0 and bool(named or required)
+    outgoing_failure = re.search(r'\(OUT\), TLS alert, (?!close notify\b)', row['stderr'], re.I)
+    return (row['exit_code'] in (35, 56, 60, 98) and row['code'] == 0 and
+            not outgoing_failure and bool(named or required))
 
 
 def openssl_rejection(row):

@@ -25,6 +25,10 @@ class Safety(unittest.TestCase):
         self.assertFalse(driver.tls_rejection(dict(row, exit_code=60,
             stderr='* TLSv1.2 (OUT), TLS alert, unknown CA (560):\ncurl: (60) SSL certificate verification failed')))
         self.assertFalse(driver.tls_rejection(dict(row, exit_code=60, stderr='SSL certificate verification failed')))
+        self.assertFalse(driver.tls_rejection(dict(row,
+            stderr=row['stderr']+'\n* TLSv1.2 (OUT), TLS alert, unknown CA (560):')))
+        self.assertTrue(driver.tls_rejection(dict(row,
+            stderr=row['stderr']+'\n* TLSv1.2 (OUT), TLS alert, close notify (256):')))
         missing = '* TLSv1.2 (IN), TLS alert, unknown (628):\nOpenSSL: error:0A00045C:SSL routines::tlsv13 alert certificate required'
         self.assertTrue(driver.tls_rejection(dict(row, exit_code=98, stderr=missing)))
         self.assertFalse(driver.tls_rejection(dict(row, exit_code=98, stderr=missing.replace('(IN)', '(OUT)'))))
@@ -69,6 +73,17 @@ class Safety(unittest.TestCase):
         self.assertIsNone(lab.network)
         self.assertIsNone(lab.container)
         self.assertIsNone(lab.client)
+
+    def test_existing_report_refuses_before_any_container_side_effect(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report = Path(folder)/'existing.json'
+            report.write_bytes(b'original evidence')
+            args = ['check-tls-clients.py', '--production-gate', folder, '--report', str(report)]
+            with patch.object(sys, 'argv', args), patch.object(driver.Lab, 'create') as create:
+                with self.assertRaises(FileExistsError):
+                    driver.main()
+                create.assert_not_called()
+            self.assertEqual(report.read_bytes(), b'original evidence')
 
     def test_client_removal_timeout_still_cleans_server_process_and_network(self):
         report = {}
