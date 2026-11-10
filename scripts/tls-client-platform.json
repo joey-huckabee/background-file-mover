@@ -1,0 +1,9 @@
+{
+  "client_image": "docker.io/library/rust@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+  "curl": "/usr/bin/curl",
+  "openssl": "/usr/bin/openssl",
+  "curl_version": "7.88.1",
+  "openssl_version": "3.0.22",
+  "tls_backend": "OpenSSL",
+  "scope": "Test client only; no compiler or OpenSSL installation on the SLES server"
+}

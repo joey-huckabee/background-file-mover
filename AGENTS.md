@@ -3,6 +3,16 @@
 ## Current direction (2026-10-13)
 
 
+2026-11-10 independent-client authorization: the user says "yes, proceed with
+the client testing" after increment125/PR14-15. Test the current production
+SLES executable using independent curl/OpenSSL clients: TLS1.2/1.3, server
+identity, client-certificate rejection/authorization, submissions/replay/restart
+and live certificate rotation. Use disposable credentials/state and a private
+container network; update user instructions with actual results and independent
+review. Reuse verified artifacts when Rust/build inputs are unchanged. No new
+runtime dependencies, real credentials/state, proxy, deployment, production NFS/
+deletion or full release. Offline-bundle/shipping qualification remains separate.
+
 2026-11-09 TLS resource-protection authorization: the user says "yes, proceed
 with the next iteration" after the bounded resource-protection recommendation.
 Implement fixed-budget TLS executor isolation without changing the existing six
