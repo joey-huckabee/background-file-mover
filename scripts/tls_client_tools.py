@@ -73,7 +73,7 @@ def curl_args(ip, port, credentials, certificate='client', tls=1.3,
     # --disable must be first: do not inherit ~/.curlrc retries, logging or trust.
     args = ['/usr/bin/curl', '--disable', '--silent', '--show-error', '--http1.1',
             '--connect-timeout', '3', '--max-time', '10', '--retry', '0',
-            '--noproxy', '*', '--proto=https', '--globoff', '--path-as-is',
+            '--noproxy', '*', '--proto', '=https', '--globoff', '--path-as-is',
             '--tlsv' + version, '--tls-max', version,
             '--resolve', f'{host_literal}:{port}:{ip_literal}',
             '--cacert', _credential(credentials, ca)]

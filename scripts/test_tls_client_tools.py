@@ -39,10 +39,10 @@ class Arguments(unittest.TestCase):
             with self.subTest(version=version):
                 args = tools.curl_args('127.0.0.1', 8443, '/tmp/credentials', tls=version, body_path='/tmp/body.json')
                 self.assertEqual(args[:2], ['/usr/bin/curl', '--disable'])
-                for flag in ('--silent', '--show-error', '--http1.1', '--proto=https', '--tlsv'+version):
+                for flag in ('--silent', '--show-error', '--http1.1', '--tlsv'+version):
                     self.assertIn(flag, args)
                 for flag, value in {'--connect-timeout':'3', '--max-time':'10', '--retry':'0',
-                                    '--noproxy':'*', '--tls-max':version, '--resolve':'localhost:8443:127.0.0.1',
+                                    '--noproxy':'*', '--proto':'=https', '--tls-max':version, '--resolve':'localhost:8443:127.0.0.1',
                                     '--cacert':'/tmp/credentials/ca.pem', '--cert':'/tmp/credentials/client.pem',
                                     '--key':'/tmp/credentials/client.key.pem', '--request':'POST',
                                     '--data-binary':'@/tmp/body.json', '--url':'https://localhost:8443/api/v2/jobs',
@@ -51,6 +51,9 @@ class Arguments(unittest.TestCase):
                 self.assertIn('Content-Type: application/json', args)
                 self.assertNotIn('--insecure', args)
                 self.assertNotIn('--location', args)
+                self.assertEqual(args.count('--proto'), 1)
+                self.assertNotIn('--proto=https', args)
+                self.assertNotIn('https', args)
 
     def test_override_without_certificate_and_literal_headers(self):
         args = tools.curl_args('::1', 443, '/c', certificate=None, host='wrong.example', ca='other-ca',
