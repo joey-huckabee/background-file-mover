@@ -2,7 +2,7 @@
 
 2026-11-10. Authorized after increment125/PR14-15. Base main
 `ac8445f2d7f9ef6d541f23ba9908c0b6e12028fd`; branch
-`feature/independent-tls-clients`. Implementation/results remain pending.
+`feature/independent-tls-clients`. Bounded local qualification is recorded below; required PR checks and independent review gate integration.
 
 Use the retained PASSED production gate artifacts in both debug/release profiles,
 checking their source archive against current Git Rust blobs and rehashing their
@@ -84,3 +84,74 @@ requests fail; some OCI stderr captures are empty. Capture diagnostics in a
 private mode0600 client file, read it after the tool exits, preserve its original
 exit code, and retain the same verification assertions. A real-process unit case
 checks exact status/bytes and file mode. This changes test transport only.
+
+
+## Verification
+
+The unchanged Rust workspace tree is
+`51721ff716101ce89297a60561949e2023a6aa30`. The checker source is
+`b97c4cac56e2802b44c3848f279f9c1bcd401918`; documentation closeout preserves every
+Rust, build and checker input. The retained production gate
+`20261110T033036Z-4fafb36f` passed 315 tests/profile with ELF audits and clean cleanup
+as recorded in increment125. This increment does not pretend to rebuild Rust
+locally: it rechecks all 83 archived workspace inputs against Git, both executable
+hashes and ELF records, current build inputs, and executable identity after copy.
+
+Local report `tls-clients-126-sixth.json` returns `PASSED` for both production
+profiles with all owned container/network cleanup exits 0. Independent collection
+rehashes the two actual executables and verifies both pinned client binaries.
+[Machine-readable evidence](NATIVE-TLS-CLIENT-EVIDENCE.json) embeds the public
+report, raw-report hash, source/driver/pin identities, counts and retained failed
+run summaries. No private keys or TLS session data appear in the evidence.
+
+| Per production profile | Actual result |
+|---|---:|
+| Independent client operations | 70 (curl 39, s_client 31) |
+| Exact TLS versions | TLS1.2: 32; TLS1.3: 38 |
+| HTTP202 receipts | 25 |
+| HTTP denials | 15 |
+| TLS certificate/verification refusals | 29 |
+| Application-discarded receipt | 1 |
+| Full source/claim/output/manifest preservation stages | 7 |
+
+The total is 140 operations across debug/release. Both frontends exercise both TLS
+versions; the raw matrix identifies the selected frontend/version for each case.
+Boundary-only checks use curl/TLS1.3 rather than implying every row runs under
+every combination. 22 portable parser/process/safety tests pass on WSL with no
+skips. Ordinary failed development runs remain `FAILED`, not qualification.
+
+The workflow runs those portable tests, both existing full Rust SLES modes and
+the actual independent checker after the production gate. Required results are
+recorded on [PR16](https://github.com/joey-huckabee/background-file-mover/pull/16)
+before integration; no required check is bypassed for this increment.
+
+See the [finite evaluation](evals/2026-11-10-independent-tls-clients.md) and
+[client instructions](NATIVE-HTTPS-CLIENTS.md). Curl and s_client use the same
+OpenSSL backend, independent of the Rustls server. This is not proof of every
+backend/legacy client. Fresh EC P-256 handshakes are tested; persisted client
+session resumption, 0-RTT, future-valid client leaves and server-CA rollover remain
+unqualified. Root/client-leaf rotation tests do not authorize real CA operations.
+Offline bundle, service/account/confinement, physical SLES/kernel/NFS/FIPS,
+operational conversion, deployment and full release remain separate.
+All eight FR gates remain open.
+
+## Agent work split
+
+The coordinator owns the driver, private network/artifact integration, diagnosis,
+local target runs, CI integration, evidence and final delivery. The bounded cloud
+specialist supplied the pure client argument/parser module and its tests,
+including the compatibility and ALPN fixes. The existing reviewer checks source,
+cleanup, interpretation of alerts, verified-name/authority and evidence limits.
+Cloud review does not replace target execution or coordinator artifact rehashing.
+
+CI production also passes 315 tests per profile plus the full 140-operation
+independent-client checker. Downloaded reports match the pinned client binaries,
+all 83 Rust inputs, all 8 driver-input hashes and the local case families. The
+synthetic PR checkout tree equals the qualified source tree; its commit is
+recorded separately from the branch head. Both native compiler-log audits
+reproduce 397 compilations through the intended glibc2.22 compiler/sysroot.
+The evidence includes this CI summary and its raw-report hashes; CI executable
+bytes were not uploaded for independent rehash. The same CI run also passes the
+full qualification mode at 319 tests per profile; both native compiler-log audits
+were reproduced from its downloaded logs. Final evidence review remains an
+integration requirement, recorded on PR16.

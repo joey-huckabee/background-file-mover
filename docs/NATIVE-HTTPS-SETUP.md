@@ -307,8 +307,9 @@ scoped TLS suite also includes selected native REST routing, certificate mapping
 replay/restart and refusal cases. It still cannot replace full service regression
 qualification. Increment124 records full-mode reload/admission tests and independent review.
 These earlier passes do not qualify increment125's changed executor/watchdog
-source. Increment125 records fresh full SLES gates and load/race checks; independent-client
-interoperability, packaging and deployment remain separate.
+source. Increment125 records fresh full SLES gates and load/race checks;
+increment126 records selected curl/OpenSSL checks. Wider interoperability,
+packaging and deployment remain separate.
 
 ## Live TLS policy reload
 
@@ -447,8 +448,8 @@ plaintext backpressure and an explicit 64 KiB send buffer. None is a whole-proce
 or per-connection memory cap. Two fixed threads bound executor concurrency, not
 OS CPU usage or realtime response. Async cancellation cannot preempt synchronous
 CPU work. Increment125 records fresh full gates and load/race qualification;
-independent-client interoperability, fresh offline-bundle validation and shipping
-qualification remain separate. This does not complete increment C or any FR gate.
+Increment126 records selected OpenSSL clients; wider interoperability, fresh
+offline-bundle validation and shipping remain separate. This does not complete increment C or any FR gate.
 
 After a stop request, use `--status CONFIG.json` for lifecycle observations.
 `--tls-status` requires a `Running` owner and is not shutdown monitoring. The two

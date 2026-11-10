@@ -7,8 +7,10 @@ no operator routes; use the separate private operator socket.
 [Increment124](RUST-INCREMENT-124.md) records live credential reload/revocation
 and its actual checks; the setup guide documents the local commands. Fixed-budget
 CPU isolation is now implemented in [increment125](RUST-INCREMENT-125.md), with
-full-mode qualification recorded. Independent-client and shipping qualification remain
-separate.
+full-mode qualification recorded. [Increment126](RUST-INCREMENT-126.md) records
+selected independent OpenSSL clients; [client commands](NATIVE-HTTPS-CLIENTS.md)
+include verification and troubleshooting. Wider client/shipping qualification
+remains separate.
 
 For producing, verifying and installing the current prototype without target
 internet access, use the [offline installation guide](OFFLINE-INSTALL.md).
