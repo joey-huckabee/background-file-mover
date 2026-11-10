@@ -7,7 +7,7 @@ no operator routes; use the separate private operator socket.
 [Increment124](RUST-INCREMENT-124.md) records live credential reload/revocation
 and its actual checks; the setup guide documents the local commands. Fixed-budget
 CPU isolation is now implemented in [increment125](RUST-INCREMENT-125.md), with
-fresh qualification pending. Independent-client and shipping qualification remain
+full-mode qualification recorded. Independent-client and shipping qualification remain
 separate.
 
 For producing, verifying and installing the current prototype without target
@@ -360,8 +360,8 @@ first shutdown deadline remains unchanged. Closed TCP wires do not prove thread
 exit, job rollback or cancellation; already admitted transfers remain independent.
 After stop, use `--status`, preserve original state/configuration/certificates and
 wait for actual exit. `--tls-status` requires `Running` and cannot monitor this
-drain. Increment125's fresh load/race checks and both full gates are pending;
-earlier TLS/reload passes do not qualify this changed source.
+drain. Increment125 records fresh load/race checks and both full gates;
+earlier TLS/reload passes alone do not qualify this changed source.
 
 The separate stop command returns control at expiry while the foreground daemon
 can still be waiting. Existing signal handling requests shutdown but cannot give

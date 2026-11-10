@@ -33,7 +33,7 @@ covers explicit HTTPS and loopback HTTP, credential preparation and operating
 limits. [Increment124](docs/RUST-INCREMENT-124.md) adds guarded live TLS reload
 and revocation; use its actual validation status and setup instructions. No proxy
 is required. [Increment125](docs/RUST-INCREMENT-125.md) implements bounded TLS
-executor isolation; its fresh qualification is pending. Independent-client and
+executor isolation; its full local modes and source CI pass. Independent-client and
 shipping qualification remain separate.
 
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a

@@ -2,7 +2,7 @@
 
 2026-11-09. Authorized after increment124/PR13. Base main
 `c18148f5d22caf3ea16f60aecfe13cc100ad5fc6`; branch
-`feature/tls-resource-isolation`. Implementation and qualification are pending.
+`feature/tls-resource-isolation`. Implementation and bounded qualification are recorded below; deployment and release remain unapproved.
 
 ## Bounded design
 
@@ -88,4 +88,60 @@ increase is used. Local TLS status exposes the original producer budget count;
 private TLS-control wire version 2 safely refuses mixed-version control commands.
 Existing strict decoding tests cover the required field, upper bound and v1 refusal.
 The obsolete local full run `20261110T025712Z-38dba86c` was interrupted and its
-containers cleaned; it supplies no full-pass evidence. Fresh checks are pending.
+containers cleaned; it supplies no full-pass evidence. Fresh full results are recorded below.
+
+## Verification
+
+Both full local SLES12SP5/glibc2.22 modes pass debug and release, with five
+existing ignored tests per profile and clean cleanup:
+
+| Run | Mode | Passed per profile | API seconds debug/release |
+|---|---|---:|---|
+| `20261110T033036Z-4fafb36f` | production | 315 | 612.86/455.02 |
+| `20261110T041844Z-79039f6b-nfs-qualification` | nfs-qualification | 319 | 917.42/838.03 |
+
+Production retains its 900-second API ceiling; qualification retains 1,200 seconds.
+All 18 TLS functions and 28 application unit tests pass per profile. Three CPU
+checkpoint integration bodies execute only in qualification; production function
+counts do not prove those deterministic stalls. The nine executor unit tests
+cover queue bounds, actual destructor/guard lifetime, panic, stopping and partial
+thread-start failure. No new dependencies or Cargo features are introduced.
+
+[Machine-readable evidence](NATIVE-TLS-RESOURCE-EVIDENCE.json) records all 83 Rust
+input hashes, seven pins, both full local reports and 44 executable hashes. The
+coordinator compares archived source bytes and independently rehashes every local
+executable. Recomputed native compiler audits match the recorded intended
+compiler/glibc2.22 sysroot in both phases of both modes. Runtime Rust tree:
+`51721ff716101ce89297a60561949e2023a6aa30`. Rust/build inputs remain unchanged after
+`d57b6a9` through closeout.
+
+[Source CI](https://github.com/joey-huckabee/background-file-mover/actions/runs/42748640512) passes 315 production and 319 qualification tests per
+debug/release profile. Downloaded reports/native logs match the declared audits;
+protected Unix ingress passes 70 requests and 11 unsafe cases per profile, with
+cleanup exit 0 and all 83 source hashes matched. CI executable bytes were not
+uploaded for independent local rehash. The 35 workflow Python checks pass.
+The exact runtime head also passes
+[PR CI 42748864165](https://github.com/joey-huckabee/background-file-mover/actions/runs/42748864165).
+The documentation-only closeout preserves all Rust/build inputs.
+
+Corrected-source scoped run `20261110T031906Z-2f00f399-nfs-qualification` passes
+46 tests per profile and cleans up. Earlier scoped success at `34ba0ca` is narrower
+historical evidence. The initial Clippy failure, independent watcher finding,
+CI drain-race failure and interrupted obsolete local run remain recorded above
+and in evidence; none is counted as a passing full run.
+
+Independent review covers the watcher fix, executor integration, guides and the
+actual-capacity drain fix/IPC v2; no remaining actionable findings were reported.
+See the [finite service evaluation](evals/2026-11-09-tls-resource-isolation.md)
+and [operator setup guide](NATIVE-HTTPS-SETUP.md). Two threads bound scheduling
+concurrency, not CPU percentage, total process memory or realtime latency.
+
+## Agent work split and limits
+
+The local coordinator owns wiring, tests, failure resolution, SLES gates,
+provenance and integration. The bounded specialist supplied the executor module
+and three user guides on separate branches. The independent cloud reviewer
+checked architecture, source and instructions without replacing target execution.
+Final evidence review is required before integration; the PR records its outcome. No operational credentials/state, deployment, production NFS/deletion,
+independent TLS-client interoperability or new bundle/shipping qualification is
+introduced. All eight FR gates remain open.

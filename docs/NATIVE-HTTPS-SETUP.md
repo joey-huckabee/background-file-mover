@@ -5,7 +5,7 @@ listener. [Increment124](RUST-INCREMENT-124.md) records guarded live TLS reload,
 both full local SLES modes, source CI and independent review. These are bounded
 development qualification results, not deployment or release approval.
 [Increment125](RUST-INCREMENT-125.md) adds fixed-budget TLS executor isolation;
-qualification of this changed source is pending. See
+both full local SLES modes and source CI pass on the reviewed source. See
 [the implementation sequence](NATIVE-HTTPS-PLAN.md).
 
 The user requires one executable/service, no proxy, and configurable operation
@@ -304,7 +304,7 @@ scoped TLS suite also includes selected native REST routing, certificate mapping
 replay/restart and refusal cases. It still cannot replace full service regression
 qualification. Increment124 records full-mode reload/admission tests and independent review.
 These earlier passes do not qualify increment125's changed executor/watchdog
-source. Its full SLES gates and load/race checks remain pending; independent-client
+source. Increment125 records fresh full SLES gates and load/race checks; independent-client
 interoperability, packaging and deployment remain separate.
 
 ## Live TLS policy reload
@@ -443,7 +443,7 @@ handshake messages, 18,437 bytes for the ordinary record buffer, 16 KiB received
 plaintext backpressure and an explicit 64 KiB send buffer. None is a whole-process
 or per-connection memory cap. Two fixed threads bound executor concurrency, not
 OS CPU usage or realtime response. Async cancellation cannot preempt synchronous
-CPU work. Increment125's fresh full gates and load/race qualification are pending;
+CPU work. Increment125 records fresh full gates and load/race qualification;
 independent-client interoperability, fresh offline-bundle validation and shipping
 qualification remain separate. This does not complete increment C or any FR gate.
 
