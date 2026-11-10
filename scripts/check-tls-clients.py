@@ -162,8 +162,11 @@ def fixtures(artifacts, der):
 
 def tls_rejection(row):
     """Only explicit certificate-alert failures qualify, never timeout/empty TCP."""
-    return (row['exit_code'] in (35, 56, 98) and row['code'] == 0 and
-            bool(re.search(r'alert.*(?:certificate|unknown ca|handshake failure|access denied)',
+    # libcurl can map a peer's certificate-expired alert to generic code60.
+    # Require its actual INCOMING alert; an outgoing local-verification alert
+    # or generic verification message cannot establish server-side rejection.
+    return (row['exit_code'] in (35, 56, 60, 98) and row['code'] == 0 and
+            bool(re.search(r'\(IN\), TLS alert,[^\r\n]*(?:certificate|unknown ca|handshake failure|access denied)',
                            row['stderr'], re.IGNORECASE)))
 
 
@@ -180,7 +183,7 @@ class Lab(ingress.Runner):
 
     def client_exec(self, *args, data=None, ok=True, timeout=15, discard=False):
         # Do not inherit proxy, .curlrc, CA overrides or TLS key logging.
-        env = ['LC_ALL=C', 'SSLKEYLOGFILE=', 'CURL_HOME=/nonexistent', 'HOME=/nonexistent',
+        env = ['LC_ALL=C', 'SSLKEYLOGFILE=', 'CURL_HOME=/nonexistent',
                'CURL_CA_BUNDLE=', 'SSL_CERT_FILE=', 'SSL_CERT_DIR=', 'HTTP_PROXY=',
                'HTTPS_PROXY=', 'ALL_PROXY=', 'NO_PROXY=*']
         command = ['podman', 'exec', '-i', '--user', USER]
@@ -338,12 +341,16 @@ def run_profile(lab, profile, config, der, artifact):
 
     server_sha = sha(der['server.der'])
 
-    def curl(label, body=None, certificate='client', tls='1.3', method='POST', path='/api/v2/jobs', host='localhost', ca='ca', headers=()):
+    def curl(label, body=None, certificate='client', tls='1.3', method='POST', path='/api/v2/jobs', host='localhost', ca='ca', headers=(), verbose=False):
         body_path = None
         if body is not None:
             body_path = base+'/request.json'
             lab.write(body_path, json.dumps(body, ensure_ascii=False).encode(), client=True)
         args = curl_args(lab.ip, PORT, credentials, certificate, tls, method, path, body_path, host, ca, headers)
+        if verbose:
+            # Disposable negative cases only: curl's public record/alert
+            # diagnostics identify peer direction; key/session logs stay off.
+            args += ['--verbose']
         before = time.monotonic()
         value = lab.client_exec(*args, ok=False)
         require(len(value.stdout) <= 131072 and len(value.stderr) <= 16384, 'oversized client capture')
@@ -394,7 +401,7 @@ def run_profile(lab, profile, config, der, artifact):
     # Before any valid submission, every denial must leave the job ledger empty.
     for tls in ('1.2', '1.3'):
         for name in (None, 'untrusted-client', 'expired-client', 'wrong-usage-client'):
-            row = curl('invalid-client', request, certificate=name, tls=tls)
+            row = curl('invalid-client', request, certificate=name, tls=tls, verbose=True)
             require(tls_rejection(row), 'invalid client did not receive an explicit certificate TLS alert')
             row = openssl('invalid-client', request, tls, certificate=name)
             require(openssl_rejection(row), 'OpenSSL invalid client did not establish verified-server certificate alert')
@@ -524,7 +531,7 @@ def run_profile(lab, profile, config, der, artifact):
             activated['status']['server_sha256'] == current['status']['server_sha256'] and
             not activated['status']['draining'] and not activated['busy'], 'client CA rotation incomplete')
     for tls in ('1.2', '1.3'):
-        row = curl('removed-client-ca', request, certificate='unapproved-client', tls=tls)
+        row = curl('removed-client-ca', request, certificate='unapproved-client', tls=tls, verbose=True)
         require(tls_rejection(row), 'removed client CA retained TLS access')
         row = openssl('removed-client-ca', request, tls, certificate='unapproved-client')
         require(openssl_rejection(row), 'OpenSSL removed client CA retained TLS access')
@@ -544,7 +551,7 @@ def run_profile(lab, profile, config, der, artifact):
     require(after_restart['instance_id'] != activated['instance_id'] and
             after_restart['status']['policy_sha256'] == activated['status']['policy_sha256'],
             'replacement policy did not survive configured restart')
-    row = curl('revoked-after-restart', request)
+    row = curl('revoked-after-restart', request, verbose=True)
     require(tls_rejection(row), 'restart revived removed client CA')
     replay('replacement-policy-restart', certificate='untrusted-client')
     stop(process)

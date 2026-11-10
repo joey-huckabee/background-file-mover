@@ -17,9 +17,14 @@ spec.loader.exec_module(driver)
 
 class Safety(unittest.TestCase):
     def test_certificate_alerts_only_not_timeout_tcp_or_empty_success(self):
-        row = dict(exit_code=35, code=0, stderr='SSL_connect: tlsv1 alert unknown ca')
+        row = dict(exit_code=35, code=0, stderr='* TLSv1.2 (IN), TLS alert, unknown CA (560):')
         self.assertTrue(driver.tls_rejection(row))
         self.assertTrue(driver.tls_rejection(dict(row, exit_code=98)))
+        self.assertTrue(driver.tls_rejection(dict(row, exit_code=60,
+            stderr='* TLSv1.2 (IN), TLS alert, certificate expired (557):\ncurl: (60) SSL certificate verification failed')))
+        self.assertFalse(driver.tls_rejection(dict(row, exit_code=60,
+            stderr='* TLSv1.2 (OUT), TLS alert, unknown CA (560):\ncurl: (60) SSL certificate verification failed')))
+        self.assertFalse(driver.tls_rejection(dict(row, exit_code=60, stderr='SSL certificate verification failed')))
         for exit_code in (0, 6, 7, 28, 52, 58, -9):
             self.assertFalse(driver.tls_rejection(dict(row, exit_code=exit_code)))
         self.assertFalse(driver.tls_rejection(dict(row, code=403)))

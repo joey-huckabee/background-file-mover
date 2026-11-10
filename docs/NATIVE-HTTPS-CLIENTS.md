@@ -3,7 +3,7 @@
 The SLES server runs the Rust file-mover executable. These commands run on the
 producer/client machine. [Increment126](RUST-INCREMENT-126.md) records the exact
 tested client image, versions, binary hashes, results and qualification limits.
-The test client uses curl7.88.1 with OpenSSL3.0.22 and the OpenSSL3.0.22 CLI.
+The test client uses curl 7.88.1 with OpenSSL 3.0.22 and the OpenSSL 3.0.22 CLI.
 This does not require installing a compiler, curl or a newer system OpenSSL on
 the SLES server. Older clients and other TLS backends need their own checks.
 
@@ -52,7 +52,7 @@ curl --disable --silent --show-error --http1.1 \
 
 For an exact TLS1.2 check, replace `--tlsv1.3 --tls-max 1.3` with
 `--tlsv1.2 --tls-max 1.2`. Use separate `--proto` and `'=https'` arguments;
-the tested curl7.88.1 rejects the newer long-option equals spelling.
+the tested curl 7.88.1 rejects the `--proto=https` spelling.
 `--disable` comes first so an existing `.curlrc` cannot alter verification,
 logging or retries. These commands connect directly, without a proxy.
 
@@ -61,7 +61,7 @@ For a controlled address-resolution diagnostic, add
 server address. Keep the original URL hostname: this preserves both certificate
 verification and the configured HTTP `Host` authority.
 
-Check both curl's exit status and the HTTP status/JSON. Curl can exit0 for an
+Check both curl's exit status and the HTTP status/JSON. Curl can exit 0 for an
 HTTP403. A valid whole-set receipt is HTTP202 with `source_paths_released:true`;
 this acknowledges custody, while delivery progress remains a separate operator
 observation. A timeout or lost reply does not establish whether admission
@@ -108,12 +108,17 @@ revocation mechanism.
 
 | Observation | Action |
 |---|---|
-| curl60 / OpenSSL verification error | Check server hostname, trust root, validity and clock; preserve verification |
-| Explicit TLS client-certificate alert (curl35/56/98) | Check supplied certificate/key, client usage/validity and server client-CA policy |
+| curl 60 / OpenSSL verification error | Check hostname, trust and certificate validity on both sides; preserve verification |
+| Explicit incoming TLS client-certificate alert (curl 35/56/60/98) | Check supplied certificate/key, client usage/validity and server client-CA policy |
 | HTTP403 with valid TLS | Check approved leaf fingerprint, generator, source scope and producer-only route |
 | CLI option error | Check the client version and supported syntax; this does not test the server |
 | Connection failure or timeout | Diagnose reachability/service state; preserve submission identity if admission is uncertain |
 | Invalid reload refused | Inspect status and the intended policy; the previous policy remains active after validation refusal |
+
+Curl can map a peer's expired-client alert to generic code60. Use the OpenSSL
+diagnostic or controlled client traces to distinguish an incoming peer rejection
+from a local server-verification failure. The qualification harness requires the
+actual incoming alert; a generic error, outgoing alert or timeout cannot pass.
 
 ## Reproduce the disposable qualification
 

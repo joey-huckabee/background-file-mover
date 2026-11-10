@@ -57,3 +57,13 @@ See the [libcurl error registry](https://curl.se/libcurl/c/libcurl-errors.html).
 Client-CA replacement now also uses the existing other-CA fixture, without
 changing the shared generator. Server-leaf rotation remains under its original
 server CA; server-CA rollover remains unqualified.
+
+Third run `tls-clients-126-third.json` stops at the expired-client case:
+curl/OpenSSL maps its peer's TLS1.2 certificate-expired alert to generic code60.
+A focused disposable probe confirms valid clients get202 under both protocols;
+expired clients get an incoming certificate-expired alert (TLS1.2 code60,
+TLS1.3 code56). The final classifier requires a direction-tagged incoming
+certificate alert, no HTTP, and code35/56/60/98. A local outgoing verification
+alert, generic code60, timeout or connection error never qualifies. Negative
+curl trace output is limited to disposable fixtures, bounded, and checked for
+session/key markers before recording. This diagnostic is not full qualification.
