@@ -19,6 +19,7 @@ class Safety(unittest.TestCase):
     def test_certificate_alerts_only_not_timeout_tcp_or_empty_success(self):
         row = dict(exit_code=35, code=0, stderr='SSL_connect: tlsv1 alert unknown ca')
         self.assertTrue(driver.tls_rejection(row))
+        self.assertTrue(driver.tls_rejection(dict(row, exit_code=98)))
         for exit_code in (0, 6, 7, 28, 52, 58, -9):
             self.assertFalse(driver.tls_rejection(dict(row, exit_code=exit_code)))
         self.assertFalse(driver.tls_rejection(dict(row, code=403)))

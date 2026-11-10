@@ -47,3 +47,13 @@ a client-removal exception could bypass other cleanup. Each cleanup stage now
 runs independently, including host-process reaping; a mocked timeout regression
 requires server and network cleanup despite that first failure. Fresh proof is
 required after these fixes.
+
+Second run `tls-clients-126-second.json` establishes an actual missing-client
+TLS alert but the classifier initially omitted curl's specific code98
+(`CURLE_SSL_CLIENTCERT`). It now requires that code, like35/56, to accompany an
+explicit certificate alert and no HTTP reply. Timeouts, DNS/connect failures,
+local certificate-loading errors and empty successful exits still fail.
+See the [libcurl error registry](https://curl.se/libcurl/c/libcurl-errors.html).
+Client-CA replacement now also uses the existing other-CA fixture, without
+changing the shared generator. Server-leaf rotation remains under its original
+server CA; server-CA rollover remains unqualified.

@@ -14,6 +14,9 @@ certificate files. Native mode uses the explicit HTTP/HTTPS configuration below.
 A TLS setup error fails closed;
 it must never switch to HTTP automatically.
 
+For producer-side curl/OpenSSL commands, certificate conversion and troubleshooting,
+see [independent HTTPS clients](NATIVE-HTTPS-CLIENTS.md).
+
 ## What works now: existing HTTP
 
 Use the complete [local configuration example](../rust/config/local.example.json),

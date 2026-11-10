@@ -151,7 +151,7 @@ def fixtures(artifacts, der):
                         json.dumps(config[role+'_binding']).encode())]
         for name, data in PAYLOADS.items():
             server.append((prefix+'/source/current/'+name, 0o600, data))
-        for name in ('ca.der', 'server.der', 'server.key.der', 'replacement-server.der', 'replacement-server.key.der'):
+        for name in ('ca.der', 'other-ca.der', 'server.der', 'server.key.der', 'replacement-server.der', 'replacement-server.key.der'):
             server.append((prefix+'/credentials/'+name, 0o600 if '.key.' in name else 0o400, der[name]))
         server.append((prefix+'/credentials/invalid.key.der', 0o600, b'not a PKCS8 key'))
         for name, data in der.items():
@@ -162,7 +162,7 @@ def fixtures(artifacts, der):
 
 def tls_rejection(row):
     """Only explicit certificate-alert failures qualify, never timeout/empty TCP."""
-    return (row['exit_code'] in (35, 56) and row['code'] == 0 and
+    return (row['exit_code'] in (35, 56, 98) and row['code'] == 0 and
             bool(re.search(r'alert.*(?:certificate|unknown ca|handshake failure|access denied)',
                            row['stderr'], re.IGNORECASE)))
 
@@ -495,6 +495,7 @@ def run_profile(lab, profile, config, der, artifact):
         server_key=credentials+'/replacement-server.key.der',
         clients=[dict(sha256=sha(der['unapproved-client.der']), generator_id='fixture')])
     lab.write(config_path, json.dumps(replacement).encode())
+    result['replacement_policies'] = [copy.deepcopy(replacement)]
     current = control('--tls-status')
     activated = control('--reload-tls')
     require(activated['instance_id'] == current['instance_id'] and
@@ -509,6 +510,25 @@ def run_profile(lab, profile, config, der, artifact):
         row = openssl('revoked-old-client', request, tls)
         require(row['exit_code'] == 0 and row['code'] == 403 and row['json']['error'] == 'caller_not_authorized', 'OpenSSL old client retained authorization')
     replay('replacement-client-and-server', certificate='unapproved-client')
+    # Remove the original client CA as well as its approved leaf. Server trust
+    # stays under the original CA; this is client-CA rotation, not server-CA rollover.
+    replacement['native_ingress'].update(client_ca_certificates=[credentials+'/other-ca.der'],
+        clients=[dict(sha256=sha(der['untrusted-client.der']), generator_id='fixture')])
+    lab.write(config_path, json.dumps(replacement).encode())
+    result['replacement_policies'].append(copy.deepcopy(replacement))
+    current = activated
+    activated = control('--reload-tls')
+    require(activated['instance_id'] == current['instance_id'] and
+            activated['status']['generation'] == current['status']['generation']+1 and
+            activated['status']['policy_sha256'] != current['status']['policy_sha256'] and
+            activated['status']['server_sha256'] == current['status']['server_sha256'] and
+            not activated['status']['draining'] and not activated['busy'], 'client CA rotation incomplete')
+    for tls in ('1.2', '1.3'):
+        row = curl('removed-client-ca', request, certificate='unapproved-client', tls=tls)
+        require(tls_rejection(row), 'removed client CA retained TLS access')
+        row = openssl('removed-client-ca', request, tls, certificate='unapproved-client')
+        require(openssl_rejection(row), 'OpenSSL removed client CA retained TLS access')
+    replay('replacement-client-ca', certificate='untrusted-client')
     invalid = copy.deepcopy(replacement)
     invalid['native_ingress']['server_key'] = credentials+'/invalid.key.der'
     lab.write(base+'/invalid.json', json.dumps(invalid).encode())
@@ -517,7 +537,7 @@ def run_profile(lab, profile, config, der, artifact):
     for key in ('generation', 'policy_sha256', 'server_sha256', 'client_sha256'):
         require(unchanged['status'][key] == activated['status'][key], 'invalid reload changed active policy')
     require(unchanged['instance_id'] == activated['instance_id'], 'invalid reload replaced process')
-    replay('invalid-policy-preserved', certificate='unapproved-client')
+    replay('invalid-policy-preserved', certificate='untrusted-client')
     stop(process)
     process = start()
     after_restart = control('--tls-status')
@@ -525,8 +545,8 @@ def run_profile(lab, profile, config, der, artifact):
             after_restart['status']['policy_sha256'] == activated['status']['policy_sha256'],
             'replacement policy did not survive configured restart')
     row = curl('revoked-after-restart', request)
-    require(row['code'] == 403 and row['json']['error'] == 'caller_not_authorized', 'restart revived old client')
-    replay('replacement-policy-restart', certificate='unapproved-client')
+    require(tls_rejection(row), 'restart revived removed client CA')
+    replay('replacement-policy-restart', certificate='untrusted-client')
     stop(process)
     result['passed'] = True
 
@@ -541,6 +561,7 @@ def main():
         report = dict(status='FAILED', profiles=[], requests=[], limits=[
             'Finite modern curl/OpenSSL clients against production SLES debug/release binaries; no runtime source change.',
             'Receipt discard is application receipt loss, not a deterministic pre-admission disconnect or network outage.',
+            'Client timing includes OCI exec overhead; no throughput, realtime or OS-quota claim. Server certificate changes remain under the original server CA.',
             'Future-valid client leaf, other TLS backends/legacy clients, bundle/systemd/NFS/FIPS/shipping and all eight FR gates remain open.'])
         lab = Lab(report)
         try:
