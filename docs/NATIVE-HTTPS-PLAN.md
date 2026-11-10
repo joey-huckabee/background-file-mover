@@ -310,3 +310,14 @@ Primary technical references: [Rustls](https://docs.rs/rustls/latest/rustls/),
 [AWS-LC Linux requirements](https://aws.github.io/aws-lc-rs/requirements/linux.html)
 and [platform support](https://aws.github.io/aws-lc-rs/platform_support.html).
 These describe available mechanisms, not a passing SLES qualification.
+
+TLS status reports `connections_in_flight` (0-6): producer capacity still owned
+by queued/executing TLS jobs or their wire watchdogs. Closed wires can still
+consume capacity until actual task destruction. This is a point-in-time capacity
+observation, not proof that the service or its threads have stopped; use the
+lifecycle status and instance exclusion for restart decisions.
+
+Use the same executable version for the daemon and TLS control commands.
+Increment 125 uses private TLS-control wire version 2 for this required field;
+mixed-version TLS status/reload commands refuse before reload activation. The
+lifecycle-control protocol and public REST contract are unchanged.

@@ -68,6 +68,7 @@ struct Active {
     loading: bool,
     draining: bool,
     last_result: &'static str,
+    budget: Option<Arc<tokio::sync::Semaphore>>,
 }
 pub(crate) struct Manager {
     original: Config,
@@ -129,10 +130,15 @@ impl Manager {
                 loading: false,
                 draining: false,
                 last_result: "ready",
+                budget: None,
             }),
             drained: Condvar::new(),
             changed,
         })
+    }
+    /// Observe original producer permits, including closed wires awaiting task destruction.
+    pub(crate) fn set_budget(&self, budget: Arc<tokio::sync::Semaphore>) {
+        self.active.lock().expect("TLS active policy").budget = Some(budget);
     }
     /// Register AND snapshot under the activation lock: no missed old session.
     pub(crate) fn session(self: &Arc<Self>) -> Option<(Arc<Policy>, Session)> {
@@ -167,6 +173,10 @@ impl Manager {
     }
     fn status(active: &Active) -> Status {
         Status {
+            connections_in_flight: active
+                .budget
+                .as_ref()
+                .map_or(0, |b| 6 - b.available_permits()),
             queued_connections: active
                 .connections
                 .values()

@@ -1239,6 +1239,11 @@ async fn serve_inner(
     } else {
         None
     };
+    let permits = Arc::new(Semaphore::new(8));
+    let producer_permits = Arc::new(Semaphore::new(6));
+    if let Some(manager) = native.as_ref().and_then(|n| n.manager.as_ref()) {
+        manager.set_budget(producer_permits.clone());
+    }
     lifecycle.phase("Running");
     if let Some(native) = &native {
         println!(
@@ -1251,8 +1256,6 @@ async fn serve_inner(
         println!("Ready on protected local producer and operator sockets");
     }
     let c = Arc::new(c);
-    let permits = Arc::new(Semaphore::new(8));
-    let producer_permits = Arc::new(Semaphore::new(6));
     let mut tasks = JoinSet::new();
     while !stop.load(Ordering::Relaxed) {
         while tasks.try_join_next().is_some() {}

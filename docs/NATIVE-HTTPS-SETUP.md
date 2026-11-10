@@ -479,3 +479,14 @@ The support claim remains bounded x86_64 SLES12SP5 userspace/glibc2.22 under pin
 container execution. It does not establish every SLES12 service pack/kernel,
 vendor systemd build or FIPS compliance. All eight FR release gates remain open;
 production NFS, deletion and deployment remain off.
+
+TLS status reports `connections_in_flight` (0-6): producer capacity still owned
+by queued/executing TLS jobs or their wire watchdogs. Closed wires can still
+consume capacity until actual task destruction. This is a point-in-time capacity
+observation, not proof that the service or its threads have stopped; use the
+lifecycle status and instance exclusion for restart decisions.
+
+Use the same executable version for the daemon and TLS control commands.
+Increment 125 uses private TLS-control wire version 2 for this required field;
+mixed-version TLS status/reload commands refuse before reload activation. The
+lifecycle-control protocol and public REST contract are unchanged.

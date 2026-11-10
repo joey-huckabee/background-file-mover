@@ -47,6 +47,8 @@ pub(crate) trait Backend: Send + Sync {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Status {
+    /// Producer budgets still owned by wire watchers or connection tasks.
+    pub connections_in_flight: usize,
     pub queued_connections: usize,
     pub admitted_connections: usize,
     pub generation: u64,
@@ -81,7 +83,7 @@ struct Request {
 }
 
 fn valid_request(request: &Request, identity: &str) -> bool {
-    request.version == 1
+    request.version == 2
         && request.instance_id == identity
         && match request.command.as_str() {
             "status" => request.expected_generation.is_none() && request.proposed.is_none(),
@@ -160,7 +162,7 @@ fn write_reply(stream: &mut UnixStream, reply: &Reply) -> Result<()> {
 
 fn reply(identity: &str, status: Status, busy: bool, error: Option<&str>) -> Reply {
     Reply {
-        version: 1,
+        version: 2,
         instance_id: identity.into(),
         status,
         busy,
@@ -507,6 +509,7 @@ fn guard_identity(database: &str) -> Result<(u64, u64)> {
 
 fn valid_status(status: &Status) -> bool {
     status.generation > 0
+        && status.connections_in_flight <= 6
         && status.queued_connections <= 6
         && status.admitted_connections <= 6
         && status.queued_connections + status.admitted_connections <= 6
@@ -568,7 +571,7 @@ async fn exchange(
         return Err("TLS IPC response too large".into());
     }
     let response: Reply = serde_json::from_slice(&bytes).map_err(|_| "TLS IPC invalid response")?;
-    if response.version != 1
+    if response.version != 2
         || response.instance_id != request.instance_id
         || !valid_status(&response.status)
         || response.ok != response.error.is_none()
@@ -600,7 +603,7 @@ async fn command_inner(c: crate::Config, reload: bool) -> Result<(Reply, bool)> 
     let path = socket_path(&c.state_database)?;
     let socket = socket_identity(&path)?;
     let request = Request {
-        version: 1,
+        version: 2,
         command: "status".into(),
         instance_id: identity.clone(),
         expected_generation: None,
@@ -620,7 +623,7 @@ async fn command_inner(c: crate::Config, reload: bool) -> Result<(Reply, bool)> 
         return Ok((initial, ok));
     }
     let request = Request {
-        version: 1,
+        version: 2,
         command: "reload".into(),
         instance_id: identity,
         expected_generation: Some(initial.status.generation),
@@ -665,17 +668,20 @@ mod tests {
 
     #[test]
     fn strict_status_request_rejects_unknown_duplicate_and_reload_fields() {
-        let valid = br#"{"version":1,"command":"status","instance_id":"7:11"}"#;
+        let valid = br#"{"version":2,"command":"status","instance_id":"7:11"}"#;
         let mut request: Request = serde_json::from_slice(valid).unwrap();
         assert!(valid_request(&request, "7:11"));
         assert!(!valid_request(&request, "7:12"));
+        request.version = 1;
+        assert!(!valid_request(&request, "7:11"));
+        request.version = 2;
         request.expected_generation = Some(1);
         assert!(!valid_request(&request, "7:11"));
         request.command = "reload".into();
         assert!(!valid_request(&request, "7:11"));
         for bytes in [
-            br#"{"version":1,"command":"status","instance_id":"7:11","extra":0}"#.as_slice(),
-            br#"{"version":1,"version":1,"command":"status","instance_id":"7:11"}"#.as_slice(),
+            br#"{"version":2,"command":"status","instance_id":"7:11","extra":0}"#.as_slice(),
+            br#"{"version":2,"version":2,"command":"status","instance_id":"7:11"}"#.as_slice(),
         ] {
             assert!(serde_json::from_slice::<Request>(bytes).is_err());
         }
@@ -697,7 +703,7 @@ mod tests {
     fn unix_request_and_reply_bounds_close_only_the_request() {
         let (mut client, mut server) = UnixStream::pair().unwrap();
         client
-            .write_all(br#"{"version":1,"command":"status","instance_id":"7:11"}"#)
+            .write_all(br#"{"version":2,"command":"status","instance_id":"7:11"}"#)
             .unwrap();
         client.shutdown(Shutdown::Write).unwrap();
         assert!(valid_request(&read_request(&mut server).unwrap(), "7:11"));
@@ -706,6 +712,7 @@ mod tests {
         client.shutdown(Shutdown::Write).unwrap();
         assert!(read_request(&mut server).is_err());
         let status = Status {
+            connections_in_flight: 0,
             queued_connections: 0,
             admitted_connections: 0,
             generation: 1,
@@ -721,6 +728,7 @@ mod tests {
     #[test]
     fn full_policy_and_draining_are_required_independent_status_fields() {
         let status = Status {
+            connections_in_flight: 0,
             queued_connections: 0,
             admitted_connections: 0,
             generation: 1,
@@ -731,6 +739,9 @@ mod tests {
             draining: true,
         };
         assert!(valid_status(&status));
+        let mut excessive = status.clone();
+        excessive.connections_in_flight = 7;
+        assert!(!valid_status(&excessive));
         let response = reply("7:11", status.clone(), false, None);
         assert!(response.ok && !response.busy && response.status.draining);
         let mut other_policy = status.clone();
@@ -738,7 +749,7 @@ mod tests {
         assert!(valid_status(&other_policy));
         assert_eq!(status.generation, other_policy.generation);
         assert_ne!(status.policy_sha256, other_policy.policy_sha256);
-        for field in ["policy_sha256", "draining"] {
+        for field in ["policy_sha256", "draining", "connections_in_flight"] {
             let mut value = serde_json::to_value(&status).unwrap();
             value.as_object_mut().unwrap().remove(field);
             assert!(serde_json::from_value::<Status>(value).is_err());

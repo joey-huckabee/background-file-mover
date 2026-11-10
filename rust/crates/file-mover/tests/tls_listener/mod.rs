@@ -1222,7 +1222,16 @@ fn busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake() 
     for c in busy.iter_mut().chain(queued.iter_mut()) {
         zero_tls_reply(&mut c.sock);
     }
+    assert_eq!(
+        tls_control(&f, false, true)["status"]["connections_in_flight"],
+        6
+    );
     release_cpu(&checkpoint);
+    let until = Instant::now() + Duration::from_secs(3);
+    while tls_control(&f, false, true)["status"]["connections_in_flight"] != 0 {
+        assert!(Instant::now() < until, "TLS budgets did not drain");
+        std::thread::sleep(Duration::from_millis(5));
+    }
     assert_eq!(
         f.operator("/api/v2/retention").1["details"]["retained_jobs"],
         0

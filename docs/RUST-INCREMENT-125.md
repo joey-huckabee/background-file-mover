@@ -77,3 +77,15 @@ session future also shuts down before removing session registration, so a main
 watcher's duplicate descriptor cannot outlive reload's physical-exclusion ACK.
 The shutdown regression now retains both CPU workers beyond five seconds and
 checks closed wires before release while instance exclusion remains held.
+
+
+CI follow-up: qualification debug exposed a test synchronization race after
+closed wires were released from a non-yielding hold. Wire closure did not prove
+that the original six producer budgets had drained. The test now first asserts
+six budgets remain while held, releases the hold, and waits at most three seconds
+for observed zero before its single positive request. No request retry or timeout
+increase is used. Local TLS status exposes the original producer budget count;
+private TLS-control wire version 2 safely refuses mixed-version control commands.
+Existing strict decoding tests cover the required field, upper bound and v1 refusal.
+The obsolete local full run `20261110T025712Z-38dba86c` was interrupted and its
+containers cleaned; it supplies no full-pass evidence. Fresh checks are pending.
