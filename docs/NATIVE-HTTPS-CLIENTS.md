@@ -84,10 +84,11 @@ hostname=mover.example.internal
   -connect "$authority" -servername "$hostname" \
   -verify_hostname "$hostname" -verify_return_error \
   -CAfile server-root.pem -cert approved-client.pem -key approved-client.key.pem \
-  -tls1_2 -quiet -ign_eof -no_ticket
+  -tls1_2 -alpn http/1.1 -quiet -ign_eof -no_ticket
 ```
 
-Use `-tls1_3` for TLS1.3. Keep `-quiet`: ordinary s_client diagnostics can include
+Use `-tls1_3` for TLS1.3. Keep `-alpn http/1.1`: the server requires this
+negotiated application protocol. Keep `-quiet`: ordinary s_client diagnostics can include
 TLS session secrets. Its process exit status reports TLS/process success;
 inspect the returned HTTP status and JSON as well. Verification errors and timeouts
 are failures, even if a TCP connection was established.

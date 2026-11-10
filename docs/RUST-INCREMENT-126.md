@@ -67,3 +67,12 @@ certificate alert, no HTTP, and code35/56/60/98. A local outgoing verification
 alert, generic code60, timeout or connection error never qualifies. Negative
 curl trace output is limited to disposable fixtures, bounded, and checked for
 session/key markers before recording. This diagnostic is not full qualification.
+
+Fourth run stops on curl7.88's missing-client alert label `unknown (628)`, with
+OpenSSL's accompanying decode `certificate required`. That exact incoming trace
+plus peer decode is now recognized; generic unknown alerts still fail. The
+focused matrix also found that the initial OpenSSL command omitted ALPN.
+Native `Policy::accept` requires negotiated `http/1.1`; add `-alpn http/1.1`
+instead of weakening the server. Curl already negotiates it. The focused matrix
+is diagnostic, not passing full qualification. All ordinary run cleanup exits
+remain recorded in the raw reports.

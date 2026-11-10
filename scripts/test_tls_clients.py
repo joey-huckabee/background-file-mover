@@ -25,6 +25,10 @@ class Safety(unittest.TestCase):
         self.assertFalse(driver.tls_rejection(dict(row, exit_code=60,
             stderr='* TLSv1.2 (OUT), TLS alert, unknown CA (560):\ncurl: (60) SSL certificate verification failed')))
         self.assertFalse(driver.tls_rejection(dict(row, exit_code=60, stderr='SSL certificate verification failed')))
+        missing = '* TLSv1.2 (IN), TLS alert, unknown (628):\nOpenSSL: error:0A00045C:SSL routines::tlsv13 alert certificate required'
+        self.assertTrue(driver.tls_rejection(dict(row, exit_code=98, stderr=missing)))
+        self.assertFalse(driver.tls_rejection(dict(row, exit_code=98, stderr=missing.replace('(IN)', '(OUT)'))))
+        self.assertFalse(driver.tls_rejection(dict(row, exit_code=60, stderr='* TLSv1.2 (IN), TLS alert, unknown (628):')))
         for exit_code in (0, 6, 7, 28, 52, 58, -9):
             self.assertFalse(driver.tls_rejection(dict(row, exit_code=exit_code)))
         self.assertFalse(driver.tls_rejection(dict(row, code=403)))
