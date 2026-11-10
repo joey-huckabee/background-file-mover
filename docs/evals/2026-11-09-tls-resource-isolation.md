@@ -14,7 +14,7 @@ interoperability and shipping are separate. No production traffic is measured.
 | Non-reading peer | 1 small forbidden-route response | Control progress while peer does not read; eventual403. This does not claim saturation of OS send buffers |
 | Both TLS workers consume CPU (qualification) | 2 held registered sessions,4 accepted queued ClientHellos,6 excess peers | Two distinct actual TIDs gain CPU ticks; private health/status/TLS-status respond under2seconds; excess closes; after6seconds queued expiration emits no TLS bytes |
 | Reload while both workers stalled (qualification) | 2 registered sessions and2 raw queued connections | New policy activates but ACK waits for physical old-session exit; raw queued peers select replacement server leaf and old leaf gets403; newly approved peer succeeds |
-| Shutdown beyond first deadline (qualification) | 2 non-yielding CPU workers | CLI reports ShutdownIncomplete/exit2; duplicate stop/config change cannot renew deadline; competing guard refuses until actual exit; original producer files stay untouched |
+| Shutdown beyond first deadline (qualification) | 2 non-yielding CPU workers | CLI reports ShutdownIncomplete/exit2; duplicate stop/config change cannot renew deadline; wires close while workers remain held past five seconds; competing guard refuses until actual exit; original producer files stay untouched |
 
 Unit cases cover six-job admission, immediate completions, main-reactor scheduling,
 actual future-destructor/guard lifetime, panic fail-closed, stopping/startup and

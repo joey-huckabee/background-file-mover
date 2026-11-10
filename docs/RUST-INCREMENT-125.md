@@ -66,3 +66,14 @@ Independent preflight at8a42fba found no architectural blocker. It required expl
 pre-TLS expiration checks, nonblocking dispatch, actual thread/guard closure and
 physical registered-session exclusion during reload. These remain implementation
 review and target-test obligations, not a passing qualification statement.
+
+The first scoped run20261110T023607Z-4af59c46-nfs-qualification stops at strict
+Clippy for two unnecessary two-element test Vec allocations; use arrays without
+suppressing the lint. Independent review ofd3f9873 also finds that aborting the
+main deadline watcher during shutdown must actively shut down its socket. The
+fix keeps the watcher armed until successful handshake notification; Drop closes
+on timeout, failed dispatch or cancellation. A shared wire-close guard inside the
+session future also shuts down before removing session registration, so a main
+watcher's duplicate descriptor cannot outlive reload's physical-exclusion ACK.
+The shutdown regression now retains both CPU workers beyond five seconds and
+checks closed wires before release while instance exclusion remains held.

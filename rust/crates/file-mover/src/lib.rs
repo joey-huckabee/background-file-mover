@@ -1107,8 +1107,24 @@ impl std::future::Future for TlsJob {
     }
 }
 struct HandshakeWatch {
-    socket: std::net::TcpStream,
+    socket: Arc<std::net::TcpStream>,
     _budget: Arc<TlsBudget>,
+    armed: bool,
+}
+impl Drop for HandshakeWatch {
+    fn drop(&mut self) {
+        if self.armed {
+            let _ = self.socket.shutdown(std::net::Shutdown::Both);
+        }
+    }
+}
+// This guard is captured by the session's inner future, including before its
+// first poll. Wire exclusion precedes removing the old session registration.
+struct CloseTlsWire(Arc<std::net::TcpStream>);
+impl Drop for CloseTlsWire {
+    fn drop(&mut self) {
+        let _ = self.0.shutdown(std::net::Shutdown::Both);
+    }
 }
 
 async fn serve_inner(
@@ -1307,7 +1323,8 @@ async fn serve_inner(
                 };
                 // Unregister the main reactor before transferring the socket.
                 let stream = stream.into_std()?;
-                let socket = stream.try_clone()?;
+                let socket = Arc::new(stream.try_clone()?);
+                let close = CloseTlsWire(socket.clone());
                 let budget = Arc::new(TlsBudget {
                     _permit: permit,
                     _producer_permit: producer_permit,
@@ -1316,17 +1333,19 @@ async fn serve_inner(
                 let watch = HandshakeWatch {
                     socket,
                     _budget: budget.clone(),
+                    armed: true,
                 };
                 let (handshake_done, handshake) = oneshot::channel();
                 tasks.spawn(async move {
-                    let watch = watch;
-                    if tokio::time::timeout_at(tls_deadline, handshake)
-                        .await
-                        .is_err()
-                    {
-                        // A socket shutdown is not cancellation or executor-exit proof.
-                        let _ = watch.socket.shutdown(std::net::Shutdown::Both);
+                    let mut watch = watch;
+                    if matches!(
+                        tokio::time::timeout_at(tls_deadline, handshake).await,
+                        Ok(Ok(()))
+                    ) {
+                        watch.armed = false;
                     }
+                    // An armed drop also shuts down on cancellation or failed dispatch.
+                    // This is transport exclusion, never proof that CPU work exited.
                 });
                 let future = Box::pin(async move {
                     // Never construct/poll TLS or timers for an expired queued job.
@@ -1344,6 +1363,7 @@ async fn serve_inner(
                     let lease = session.lease();
                     session
                         .run(async move {
+                            let _close = close;
                             if mover_fs::qualification_tls_cpu_hold().is_err() || !lease.current() {
                                 return;
                             }

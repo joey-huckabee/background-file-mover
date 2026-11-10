@@ -1198,7 +1198,7 @@ fn busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake() 
     let mut f = Fixture::new(true);
     f.initialize();
     let checkpoint = start_cpu_hold(&mut f);
-    let mut busy = vec![hello_only(&f), hello_only(&f)];
+    let mut busy = [hello_only(&f), hello_only(&f)];
     let tids = cpu_ready(&f, &checkpoint);
     let before = [ticks(&f, tids[0]), ticks(&f, tids[1])];
     let mut queued: Vec<_> = (0..4).map(|_| hello_only(&f)).collect();
@@ -1242,9 +1242,9 @@ fn reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy() 
     f.initialize();
     prepare_payload(&f);
     let checkpoint = start_cpu_hold(&mut f);
-    let mut busy = vec![hello_only(&f), hello_only(&f)];
+    let mut busy = [hello_only(&f), hello_only(&f)];
     cpu_ready(&f, &checkpoint);
-    let queued = vec![hello_only(&f), hello_only(&f)];
+    let queued = [hello_only(&f), hello_only(&f)];
     wait_accepted(&f, &queued);
     f.config["native_ingress"]["server_certificates"] =
         json!([copy_credential(&f, "replacement-server.der")]);
@@ -1322,8 +1322,9 @@ fn shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers() {
     f.initialize();
     prepare_payload(&f);
     let checkpoint = start_cpu_hold(&mut f);
-    let _busy = vec![hello_only(&f), hello_only(&f)];
+    let mut busy = [hello_only(&f), hello_only(&f)];
     cpu_ready(&f, &checkpoint);
+    let held = Instant::now();
     assert_eq!(f.operator("/healthz").0, 200);
     let out = f
         .command()
@@ -1353,6 +1354,18 @@ fn shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers() {
     assert_eq!(again["instance_id"], status["instance_id"]);
     assert_eq!(again["shutdown_wait_seconds"], 1);
     assert_eq!(again["shutdown_remaining_ms"], 0);
+    // Cancellation must close the wire while CPU work still owns the executor.
+    while held.elapsed() < Duration::from_secs(6) {
+        assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    for peer in &mut busy {
+        zero_tls_reply(&mut peer.sock);
+    }
+    assert!(
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .is_err()
+    );
     release_cpu(&checkpoint);
     let mut child = f.child.take().unwrap();
     let until = Instant::now() + Duration::from_secs(5);
