@@ -37,3 +37,13 @@ Update setup instructions with tested client requirements and commands. This
 qualifies the modern external client against the SLES server; it does not replace
 SLES system OpenSSL, prove every legacy client, full increment D, packaging,
 systemd/NFS/FIPS or shipping. All eight FR gates remain open.
+
+
+Development findings retained: first run `tls-clients-126-first.json` fails
+before TLS testing because curl7.88.1 rejects long-option equals syntax
+`--proto=https`. Use separate `--proto`, `=https` arguments. Containers/network
+cleaned with exit0; this is not passing evidence. Independent review found that
+a client-removal exception could bypass other cleanup. Each cleanup stage now
+runs independently, including host-process reaping; a mocked timeout regression
+requires server and network cleanup despite that first failure. Fresh proof is
+required after these fixes.
