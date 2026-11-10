@@ -345,7 +345,7 @@ Native HTTPS adds two TLS executor OS threads inside the coordinator, not child
 PIDs or adoptable workers. `ShutdownIncomplete` with `workers: []` can still mean
 the coordinator is alive and instance exclusion is held by TLS work. Fixed queues
 and a shared six-job budget cover queued plus running jobs; the six producer/eight
-total connection slots are unchanged. TLS cryptography/record I/O use those two
+total connection slots are unchanged. TLS handshake/record cryptography and I/O use those two
 threads while private operator/prototype/HTTP traffic stays on the main executor.
 No new configuration is needed. These bounds are not an OS CPU quota or realtime
 guarantee; see [HTTPS resource limits](NATIVE-HTTPS-SETUP.md#operation-and-troubleshooting).

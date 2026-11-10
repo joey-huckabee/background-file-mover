@@ -418,8 +418,9 @@ six-job budget covering queued and running jobs together. This is six total,
 not six queued plus six running. The existing six producer/eight total connection
 permits still apply, leaving two HTTP slots for private operators. There is no
 new user setting, dependency or Cargo feature. Prototype/local Unix/native HTTP
-and private operator connections remain on the main executor; TLS cryptography
-and TLS record I/O run on the TLS workers. Lifecycle control and reload retain
+and private operator connections remain on the main executor; TLS handshake/record cryptography
+and I/O run on the TLS workers. Admission-time peer revalidation and credential
+validation retain their existing owned effect/loader threads. Lifecycle control and reload retain
 their separate local threads.
 
 The handshake deadline is five seconds from acceptance, including queue time;
