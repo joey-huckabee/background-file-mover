@@ -1,0 +1,937 @@
+{
+  "increment": 125,
+  "scope": "Bounded TLS executor isolation and guarded network deadlines; no deployment or full release",
+  "source": {
+    "commit": "7d682701f41434ce3fe0190bc571d14f287dbfb5",
+    "runtime_commit": "d57b6a9c3a5b34a03e3ffa6c57deb7d25ed6d09a",
+    "rust_tree": "51721ff716101ce89297a60561949e2023a6aa30",
+    "source_inputs_sha256": {
+      "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+      "rust/Cargo.lock": "2fe9bef8d1790c8eb11f06e3a88155227535e7af057eca604c1031d6ccd3d920",
+      "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+      "rust/README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+      "rust/config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+      "rust/crates/file-mover/Cargo.toml": "26ff0627ca12b45da0a1350193b7c569a2e3aa98abd8834fefd996d43b75f914",
+      "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+      "rust/crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+      "rust/crates/file-mover/src/control.rs": "d7e213a9892479f636c68d9c738fdd4038445745abaf641bb319e51b8236ed8f",
+      "rust/crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+      "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+      "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+      "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+      "rust/crates/file-mover/src/ingress.rs": "589023ce1135c4a9a926c276f1b05d1d56cce4d809c0a95c9464c5be3ee99267",
+      "rust/crates/file-mover/src/lib.rs": "e40d0abbfe930d71541d2ee406f50ab0b2f28ee3e70905887a5d38a8e88ee92a",
+      "rust/crates/file-mover/src/main.rs": "a489b27a2679323004638db01fab314601de85b96a2f4841f9c08b154840ad1c",
+      "rust/crates/file-mover/src/native.rs": "db302c267c7e4631851272c24943018d8659c01d5de8f911ef7a9c95a14e60d6",
+      "rust/crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+      "rust/crates/file-mover/src/reload.rs": "006d55328061bbb5475e125b4dbd788d180448a9f57f5d4e996c05382337b61d",
+      "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+      "rust/crates/file-mover/src/tls.rs": "78f31f32a329d0fd039a30c8dc0556b0cb4a42cf22dc092cbd9868164a6dd51e",
+      "rust/crates/file-mover/src/tls_executor.rs": "34691216352fd96bac2a26252e741cbb7a8c0da0d2746956043a8a9848973229",
+      "rust/crates/file-mover/src/tls_reload_ipc.rs": "07a537f9254a10ec101cf06ac32202ef014f7e8be0ebce416bdce05530611e99",
+      "rust/crates/file-mover/tests/api.rs": "3ee8c6037e323b7bbee192b56300b562998761dc2b69c1d3c157a6554f5482d9",
+      "rust/crates/file-mover/tests/tls.rs": "7b23e6f02e83e126d97b7ffa69a6a416a2027ff791fdd20996e0177e27680dfb",
+      "rust/crates/file-mover/tests/tls_listener/mod.rs": "3f78f267ccee9cc431ad9f009355ebe36977358dc69e9c97d47c6269d6173840",
+      "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+      "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+      "rust/crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+      "rust/crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+      "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+      "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+      "rust/crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+      "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+      "rust/crates/mover-fs/Cargo.toml": "5b90bac1faf7842862e1a026153f2961605ed3a923a75c8c7ba5cf38b4a12246",
+      "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+      "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+      "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+      "rust/crates/mover-fs/src/credentials.rs": "15966e253a07250bda9fd24417cb5d311a4b86e4aa9ed93c278f7716fb3b7a1d",
+      "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+      "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+      "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+      "rust/crates/mover-fs/src/ingress.rs": "11726fa07bdf0a56956b5bac05f6e7dd428a36680a82afb2944a2c4d774f1ada",
+      "rust/crates/mover-fs/src/instance.rs": "aff763de40dedb6d7b97ea0975a310c81a6f0f1ee29ae19985f24262634106f2",
+      "rust/crates/mover-fs/src/lib.rs": "c9f20623850b45a8552dfd0870e9e60fb308204735dba50b98c5eef5ae800768",
+      "rust/crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+      "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+      "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+      "rust/crates/mover-fs/src/qualification.rs": "bcebd9ad6d888322343d205e9b7ad794f6d89048821d086c1a1cf822fe5792c6",
+      "rust/crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+      "rust/crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+      "rust/crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+      "rust/crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+      "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+      "rust/crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+      "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+      "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+      "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+      "rust/crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+      "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+      "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+      "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+      "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+      "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+      "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+      "rust/crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+      "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+      "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+      "rust/crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+      "rust/crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+      "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+      "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+      "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+      "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+      "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+      "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+      "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+      "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+      "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+      "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+      "rust/crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+      "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+      "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+    }
+  },
+  "pins_sha256": {
+    "rust/Cargo.lock": "2fe9bef8d1790c8eb11f06e3a88155227535e7af057eca604c1031d6ccd3d920",
+    "scripts/rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59",
+    "scripts/rust-qualified-dependencies.json": "6d2154c7c635a459fee7912c401298cce43e781ea5f22cc2c107d5d0fa83a61d",
+    "scripts/rust-integrity-dependencies.json": "8aa1ec4d5bab10e6f572040081c5896d5ae2419be222132d48ad98b5bff4a122",
+    "scripts/Containerfile.rust": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+    "scripts/check-rust-sles.py": "35ac1389c5d8ff428a64c555d9c5cf09453cd1aeb55baa7c41eb4035e7e3b24f",
+    "scripts/tls_proof_fixture.py": "c83c8f6d6aa954d9ccd963c48571126efce5a3d8c5cb6f4263dc5ae09ed78342"
+  },
+  "platform": {
+    "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+    "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+    "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+    "rust": "1.99.0",
+    "cargo_libc": "0.2.4",
+    "provider_mode": "source",
+    "cc": "/usr/bin/clang-16",
+    "target": "x86_64-unknown-linux-gnu.2.22",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "allowed_libraries": [
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "ld-linux-x86-64.so.2"
+    ]
+  },
+  "local_verification": {
+    "commit": "7d682701f41434ce3fe0190bc571d14f287dbfb5",
+    "rust_tree": "51721ff716101ce89297a60561949e2023a6aa30",
+    "source_files": 83,
+    "runs": [
+      {
+        "run_id": "20261110T033036Z-4fafb36f",
+        "mode": "production",
+        "report_sha256": "467b2c5014d50e077ad3e66197bdfd5d82b01ca73f66413f78cf80b446f6409f",
+        "source_archive_sha256": "1331646528b7f595954d8a6540131bb0aef0aa766461e033af3171246b5b5ff7",
+        "source_hashes_matched": 83,
+        "profiles": {
+          "debug": {
+            "tests_passed": 315,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 612.86,
+            "api_suite_timeout_seconds": 900
+          },
+          "release": {
+            "tests_passed": 315,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 455.02,
+            "api_suite_timeout_seconds": 900
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "run_id": "20261110T041844Z-79039f6b-nfs-qualification",
+        "mode": "nfs-qualification",
+        "report_sha256": "e750d703e32ae2a507e35cbec75bc638e47419de4c9813a50bb6bc99e01c739a",
+        "source_archive_sha256": "de438e019dac27139686ac1ab2fdad17c6138c49bbc6fe45c9ca6eeb5131bb7c",
+        "source_hashes_matched": 83,
+        "profiles": {
+          "debug": {
+            "tests_passed": 319,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 917.42,
+            "api_suite_timeout_seconds": 1200
+          },
+          "release": {
+            "tests_passed": 319,
+            "tests_ignored": 5,
+            "executables_rehashed": 11,
+            "api_suite_seconds": 838.03,
+            "api_suite_timeout_seconds": 1200
+          }
+        },
+        "cleanup_error": null
+      }
+    ]
+  },
+  "local_gates": [
+    {
+      "run_id": "20261110T033036Z-4fafb36f",
+      "mode": "production",
+      "status": "PASSED",
+      "native_compiler_audits": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "native_log_sha256": {
+        "clippy.log": "ffb82970090e36a7f3c2348e3a671f56bbae2e471a58c98c018ab92cb30d709a",
+        "release-build.log": "b5db0d158c0854d58b6b52f7a8ef732e2b800378ef586a968461434b9e3201ca",
+        "tls-selected-dependencies.txt": "36f4daaf612cee4da39e5c1593dc4052fd02e52a01ebec3fdbebddc2b19469aa"
+      },
+      "public_fixture": {
+        "archive_root": "file-mover-tls-proof",
+        "certificates": {
+          "ca.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "5d30f04ac3fa100899e8b2840bec37c424515a47d4f93e1caa4ecd70e7648399",
+            "size_bytes": 428
+          },
+          "client.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "08794872b452198fd9bbee8414f1e47970f5077867fb8ee985133e93515bfa5b",
+            "size_bytes": 432
+          },
+          "expired-client.der": {
+            "not_after": "2026-11-09T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "91870efa8ed19bbeac5b446c4968120a8b2dc3553d3f9a4a3681e90e5cf455a6",
+            "size_bytes": 439
+          },
+          "expired-server.der": {
+            "not_after": "2026-11-09T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "5552902fcb0fafc9dacc24e9c013ff8f432c46c886bd8ed09c21482cfc42979c",
+            "size_bytes": 443
+          },
+          "other-ca.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "025d03f282a8e1289c60160fa712fb22b965e4c16c69faef1613ee964574051f",
+            "size_bytes": 440
+          },
+          "replacement-server.der": {
+            "not_after": "2026-11-12T03:32:45+00:00",
+            "not_before": "2026-11-10T03:32:45+00:00",
+            "sha256": "394352336133c9016a7c36d40e152604f7e236c3dcd9b6ae6c2ffe1da9b597a4",
+            "size_bytes": 443
+          },
+          "server.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "221cf15ff2e1f5cee1c762f5ea3acb2fb677f24f200e17b3f75a1a92b1d263ee",
+            "size_bytes": 444
+          },
+          "unapproved-client.der": {
+            "not_after": "2026-11-12T03:32:45+00:00",
+            "not_before": "2026-11-10T03:32:45+00:00",
+            "sha256": "de61dc872a0a6cfc82a5b12df86acd796d666930d1ceff19b20961831673aee7",
+            "size_bytes": 443
+          },
+          "untrusted-client.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "e2e925eb4bbe4e2dae6058f4cdaa88b0eb6c8cedc5bea8d32d9ef8e3bf33721a",
+            "size_bytes": 449
+          },
+          "wrong-usage-client.der": {
+            "not_after": "2026-11-12T03:32:44+00:00",
+            "not_before": "2026-11-10T03:32:44+00:00",
+            "sha256": "0f94fad84ee6e05604a1b5f1c13bca3c07d8b449982703c5f448676a64f0567f",
+            "size_bytes": 444
+          }
+        },
+        "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+        "private_archive_retained": false,
+        "key_custody": "1000:1000:600"
+      },
+      "profiles": {
+        "debug": {
+          "tests_passed": 315,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "76a643e06448604f5a6743fb2ba21650a36d4035f7f96dc773efac8a4c2adf25",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-af45a5e014ef464a",
+              "sha256": "190b06524e374b1a3a3f502e86902a2bde6b6147c34e816e986b44cb9dc3646a",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-acd088fd3c215e37",
+              "sha256": "e6219252076116b34e75c26fcd7f0c0e700b0dd8a5ce18ee9e93933e8f8c5abc",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-495f18bfb53f76cb",
+              "sha256": "1ff940061d50c1351f9d49bca3ae268020814f076e0e1945cf61b284abaea92f",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-ca8d7f2375d509c3",
+              "sha256": "6958f3006dc1d616802d8b1defcb699d0533654bbb74eb351c5fd7bfdf63c3ad",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-9fa52540c9b971c1",
+              "sha256": "e4047adbf92bff15a53ed8f2e5d933abda0480cd66d934121d967576b375600c",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-afa6fe358c52c74e",
+              "sha256": "71354232f0549fe10178a1145fd765d9e26880f3e011b19ec9ac481b3af5d456",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-tls-bb5726eb3b6f6216",
+              "sha256": "1ca7aae53c32ff2867200360c16d5eb68f50f013c5b17e41a846d5c1e5e3c9c8",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-10-transfer-4219d24a72cbd11d",
+              "sha256": "be7e86de5ea2ad7de20ae631890c7886b233579f2d7ec111b4d2f9a58277aea5",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 315,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover",
+              "sha256": "2cf1b7dd2915c678550474162927e3da3d6114a7ef5269baad458df41bc7c94a",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-1b483c7b45deecb2",
+              "sha256": "77329948acf14f3b73250f43747da4c6c71c402f996438eb7afe3ed8cdf613f2",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-57ddd991f0c2f95e",
+              "sha256": "c79017c0374746c695e94f2cb409cdc7dc8b4c1de7cc224227af3a2f9bf58f9a",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-8cd2266873d3ffad",
+              "sha256": "f92b036c4ca7037a77c2ddef786eb123496bd72e4bdf5406e22204d646ab42ce",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-f2796d3b9387c935",
+              "sha256": "fe9d638affa03bdf57011a632040bcd6a573de7caacbdb8054aecef071342ae8",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-6c90b792fb216d81",
+              "sha256": "a037ff06200f8eed82f5e649638cf67438b9f66b5b743bbfea09c7d3f1a83b54",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-e26f6ddc6db36010",
+              "sha256": "f3640b56c0a254613b0873002c904f416f36fdbb36fcb83498b5d8a367411d53",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-tls-12b7956878739288",
+              "sha256": "5f95585ae95606c9c180581948630622669b494595a32495678627aed81d0cc6",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-10-transfer-f99e9b10ef20811b",
+              "sha256": "4710e0badbd54af3fc1ebe9878e1fe952b810e576f741938a409ca7e248f13f8",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      },
+      "tls_listener_results": {
+        "debug": "\nrunning 18 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_listener::busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake ... ok\ntest native_listener::explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes ... ok\ntest native_listener::fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded ... ok\ntest native_listener::invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection ... ok\ntest native_listener::invalid_native_transport_configurations_refuse_before_state_or_endpoint_creation ... ok\ntest native_listener::live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay ... ok\ntest native_listener::loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation ... ok\ntest native_listener::mixed_tls_load_and_full_json_budget_preserve_measured_payloads ... ok\ntest native_listener::native_handshake_slots_do_not_block_private_operator_or_local_stop ... ok\ntest native_listener::native_https_submission_denials_replay_and_restart_preserve_original_bytes ... ok\ntest native_listener::native_tls_startup_refuses_invalid_credentials_before_source_bootstrap ... ok\ntest native_listener::reload_excludes_queued_work_without_waiting_for_an_admitted_claim ... ok\ntest native_listener::reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy ... ok\ntest native_listener::shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.04s\n\n",
+        "release": "\nrunning 18 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_listener::busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake ... ok\ntest native_listener::explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes ... ok\ntest native_listener::fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded ... ok\ntest native_listener::invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection ... ok\ntest native_listener::invalid_native_transport_configurations_refuse_before_state_or_endpoint_creation ... ok\ntest native_listener::live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay ... ok\ntest native_listener::loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation ... ok\ntest native_listener::mixed_tls_load_and_full_json_budget_preserve_measured_payloads ... ok\ntest native_listener::native_handshake_slots_do_not_block_private_operator_or_local_stop ... ok\ntest native_listener::native_https_submission_denials_replay_and_restart_preserve_original_bytes ... ok\ntest native_listener::native_tls_startup_refuses_invalid_credentials_before_source_bootstrap ... ok\ntest native_listener::reload_excludes_queued_work_without_waiting_for_an_admitted_claim ... ok\ntest native_listener::reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy ... ok\ntest native_listener::shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.62s\n\n"
+      },
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261110T041844Z-79039f6b-nfs-qualification",
+      "mode": "nfs-qualification",
+      "status": "PASSED",
+      "native_compiler_audits": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "native_log_sha256": {
+        "clippy.log": "a70c23aa36a5a2e4e6204a235cbb3f1eb3297b3d587c1dee38968903f03b9891",
+        "release-build.log": "fcc1deff16ccf3cbec5835a0b4bd632ae5b47181426303edf24e91943f386f4f",
+        "tls-selected-dependencies.txt": "36f4daaf612cee4da39e5c1593dc4052fd02e52a01ebec3fdbebddc2b19469aa"
+      },
+      "public_fixture": {
+        "archive_root": "file-mover-tls-proof",
+        "certificates": {
+          "ca.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "fd6f4ac3064397740d9e96e75d36a60831ba9105e41a85f9c7b737754184d373",
+            "size_bytes": 429
+          },
+          "client.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "755d55747fbe8770ff356b0fc7879e4baf7e1dfc7c8ac6343bc096b40373291a",
+            "size_bytes": 433
+          },
+          "expired-client.der": {
+            "not_after": "2026-11-09T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "6ca0a922c44622a753cd2aa2d027c23092e4963aa3fbd0090413816614ce2344",
+            "size_bytes": 439
+          },
+          "expired-server.der": {
+            "not_after": "2026-11-09T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "6d37f6129004a545ecc50bded47b5e755113f91fa578d26d1db55b652983c807",
+            "size_bytes": 443
+          },
+          "other-ca.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "cf862a145b5080bc51faf8df086658022f59d90cde0309ec50eda5091977f603",
+            "size_bytes": 440
+          },
+          "replacement-server.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "d5830f51c7ab8d96f07bc54afd870a4b96a527f9e74e4eb16015138f2d502042",
+            "size_bytes": 445
+          },
+          "server.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "0893938fadc9964cf9539521b82ca0b1c088240f63b38b6ae8a4d4ba837d3885",
+            "size_bytes": 445
+          },
+          "unapproved-client.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "88ce66b24fa245a9e32ddee024a8dbb4358d72a4a5893481a7130f0c6d197449",
+            "size_bytes": 442
+          },
+          "untrusted-client.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "659e82648ab01155bb99f9ffd64e1b23feda136733e13a2cef8bfc31a7fe1d6b",
+            "size_bytes": 448
+          },
+          "wrong-usage-client.der": {
+            "not_after": "2026-11-12T04:20:42+00:00",
+            "not_before": "2026-11-10T04:20:42+00:00",
+            "sha256": "7ddc91fa59a01367ed3d7e565dc76beccb9dde6cc274811c62030ec65a872fbc",
+            "size_bytes": 444
+          }
+        },
+        "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+        "private_archive_retained": false,
+        "key_custody": "1000:1000:600"
+      },
+      "profiles": {
+        "debug": {
+          "tests_passed": 319,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover-nfs-qualification",
+              "sha256": "b9b9b5701faf54a3e7f05c7ce95a140a0fe2dfe3d7d93180698aa3a2709b12fa",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-1-api-f1201d4aa0d1cea1-nfs-qualification",
+              "sha256": "9f10ba3e5da64de31a326eefe24681902b224b2ea4ab1dac89e43366eeafdda2",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-2-claim-0a5cb6dabbb9be66-nfs-qualification",
+              "sha256": "5e65c707593b88140c4dfbeb6252a6f789aba23bf530e5c66aa665d840a4591f",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-3-file_mover-88d5b8061f9d232d-nfs-qualification",
+              "sha256": "49863434c0470b5dc6c05f8c5d4f1d3278b47859ea9af33c8fd1f80f519efec4",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-4-file_mover-a169e3c355f6bd5c-nfs-qualification",
+              "sha256": "573c3193ae36ed1873c68bc7597c6437fe2298a2b36f144a4f693ce768439873",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+              "sha256": "b062b6c43b85907f1225d50ee507487ee09b1cef90d316b8a85618dc3e6cc085",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-6-mover_fs-b1e29475df059149-nfs-qualification",
+              "sha256": "66c251faa81d6037a785aa782f10e302005a7407d6c464bcfe67644b9718a8b9",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-7-mover_store-afa6fe358c52c74e-nfs-qualification",
+              "sha256": "71354232f0549fe10178a1145fd765d9e26880f3e011b19ec9ac481b3af5d456",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+              "sha256": "73b9756e1247c0656084cb66dfa3a0e862f29a59ff492ededfff5e4c6b5db6a7",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-9-tls-fe11ee09409d4974-nfs-qualification",
+              "sha256": "edd95bc6cff0c3534370c8cd4de71f1b9680f006fe6aec4e89a653e165d44a7d",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "debug-10-transfer-8818e0789704aa5a-nfs-qualification",
+              "sha256": "f549cd24ae026ea3b5011a3ea128e139d496c433f8fd36d31c708870e8d8d176",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        },
+        "release": {
+          "tests_passed": 319,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover-nfs-qualification",
+              "sha256": "abf6dffc29bfae1d8c12269a5d1db5434de137892c2b6c6ce6f1df781bd7fc31",
+              "test": false,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-1-api-399b34d19920f63c-nfs-qualification",
+              "sha256": "c403cfdeb5ccefaa3ea1db32a989a69681e7e17dc4ff44091e1a27b4b8e2b276",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-2-claim-2eb5dfce2a3d6649-nfs-qualification",
+              "sha256": "14717de6c0b43083b330d72375aaf73ac4168068b86a96bd79a5d3415517c862",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-3-file_mover-3e5daa81062321c0-nfs-qualification",
+              "sha256": "b29543c88a29edade722600f5431208f8f7b7099c04c3bf25c7b7a63d6c78d60",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-4-file_mover-521bf67c752ae188-nfs-qualification",
+              "sha256": "a2eec08dfd4c08578ee6542189f4962b4c40f78adc4da3f4dc6838fdc6e10f45",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-6-mover_fs-096473c66530a532-nfs-qualification",
+              "sha256": "98729a52d7856d67015f59b9b8341eec1d3474670f9d78c2e89f108c03a389b3",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-7-mover_store-e26f6ddc6db36010-nfs-qualification",
+              "sha256": "f3640b56c0a254613b0873002c904f416f36fdbb36fcb83498b5d8a367411d53",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-9-tls-88b91ba810de5fbe-nfs-qualification",
+              "sha256": "7d91bc316989193fd6cb172b151104e8568a10d78ef056b2079f16f234670d70",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            },
+            {
+              "name": "release-10-transfer-6b2fbed26669d342-nfs-qualification",
+              "sha256": "6b237c522bb4583eacf49ce0150648be3f4c6086fd66b5492935f75d99f3a879",
+              "test": true,
+              "maximum_glibc": "GLIBC_2.18"
+            }
+          ]
+        }
+      },
+      "tls_listener_results": {
+        "debug": "\nrunning 18 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_listener::busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake ... ok\ntest native_listener::explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes ... ok\ntest native_listener::fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded ... ok\ntest native_listener::invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection ... ok\ntest native_listener::invalid_native_transport_configurations_refuse_before_state_or_endpoint_creation ... ok\ntest native_listener::live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay ... ok\ntest native_listener::loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation ... ok\ntest native_listener::mixed_tls_load_and_full_json_budget_preserve_measured_payloads ... ok\ntest native_listener::native_handshake_slots_do_not_block_private_operator_or_local_stop ... ok\ntest native_listener::native_https_submission_denials_replay_and_restart_preserve_original_bytes ... ok\ntest native_listener::native_tls_startup_refuses_invalid_credentials_before_source_bootstrap ... ok\ntest native_listener::reload_excludes_queued_work_without_waiting_for_an_admitted_claim ... ok\ntest native_listener::reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy ... ok\ntest native_listener::shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 70.45s\n\n",
+        "release": "\nrunning 18 tests\ntest malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction ... ok\ntest missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data ... ok\ntest native_listener::busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake ... ok\ntest native_listener::explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes ... ok\ntest native_listener::fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded ... ok\ntest native_listener::invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection ... ok\ntest native_listener::invalid_native_transport_configurations_refuse_before_state_or_endpoint_creation ... ok\ntest native_listener::live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay ... ok\ntest native_listener::loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation ... ok\ntest native_listener::mixed_tls_load_and_full_json_budget_preserve_measured_payloads ... ok\ntest native_listener::native_handshake_slots_do_not_block_private_operator_or_local_stop ... ok\ntest native_listener::native_https_submission_denials_replay_and_restart_preserve_original_bytes ... ok\ntest native_listener::native_tls_startup_refuses_invalid_credentials_before_source_bootstrap ... ok\ntest native_listener::reload_excludes_queued_work_without_waiting_for_an_admitted_claim ... ok\ntest native_listener::reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy ... ok\ntest native_listener::shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers ... ok\ntest native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes ... ok\ntest wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data ... ok\n\ntest result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 59.73s\n\n"
+      },
+      "cleanup_error": null
+    }
+  ],
+  "portable_tests": {
+    "location": "CI workflow; unchanged Python sources in this increment",
+    "passed": 35,
+    "groups": {
+      "test_rust_sles": 5,
+      "test_tls_proof_fixture": 11,
+      "test_offline_bundle": 3,
+      "test_producer_ingress": 8,
+      "test_nfs_fixture_contract": 8
+    }
+  },
+  "ci": {
+    "run_id": 42748640512,
+    "head": "7d682701f41434ce3fe0190bc571d14f287dbfb5",
+    "url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/42748640512",
+    "gates": [
+      {
+        "mode": "production",
+        "run_id": "20261110T031938Z-e3cf33c1",
+        "report_sha256": "6b95307f2278ce5ae4a40cae3fa226d961c0749882b84a01ce7c869733f45a32",
+        "tests_passed": {
+          "debug": 315,
+          "release": 315
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "mode": "nfs-qualification",
+        "run_id": "20261110T031951Z-bab4128d-nfs-qualification",
+        "report_sha256": "4ed0a781c712147e2af1dbb5b650df15f9305a7cfee59a9bbcb9a5ffac219a7c",
+        "tests_passed": {
+          "debug": 319,
+          "release": 319
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      }
+    ],
+    "limit": "Downloaded reports/native logs verified; CI executable bytes were not uploaded or independently rehashed locally.",
+    "actual_protected_ingress": {
+      "report_sha256": "8cdedd27387c503e55d0e6f633c6edc5aa4dfdeec7a1aa18057245bbeafa35b6",
+      "status": "PASSED",
+      "requests": 70,
+      "profiles": [
+        {
+          "profile": "debug",
+          "passed": true,
+          "unsafe_cases": 11
+        },
+        {
+          "profile": "release",
+          "passed": true,
+          "unsafe_cases": 11
+        }
+      ],
+      "driver_sha256": {
+        "check-producer-ingress.py": "7886adf76fdc94e4ba959a6879423e211506079e5730ef55c1b4296a228c27c3",
+        "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+        "check-rust-sles.py": "35ac1389c5d8ff428a64c555d9c5cf09453cd1aeb55baa7c41eb4035e7e3b24f",
+        "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+      },
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "6e82f57fcaf3a2dcab84fbc549389636da51df0c680faecc38b4d1c3a58d82fc\n",
+        "stderr": "time=\"2026-11-10T03:30:05Z\" level=warning msg=\"StopSignal SIGTERM failed to stop container friendly_sanderson in 10 seconds, resorting to SIGKILL\"\n"
+      }
+    }
+  },
+  "pr_ci": {
+    "run_id": 42748864165,
+    "head": "7d682701f41434ce3fe0190bc571d14f287dbfb5",
+    "url": "https://github.com/joey-huckabee/background-file-mover/actions/runs/42748864165",
+    "gates": [
+      {
+        "mode": "production",
+        "run_id": "20261110T032133Z-323e74dc",
+        "report_sha256": "cf2060b145602920146d885b7aa4c96b46903480c01306e53a4f32aacee89941",
+        "tests_passed": {
+          "debug": 315,
+          "release": 315
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      },
+      {
+        "mode": "nfs-qualification",
+        "run_id": "20261110T032139Z-96c06081-nfs-qualification",
+        "report_sha256": "9205ad4a368b4fc1bcc8ab837f9f34e6b09c5ded3d052f9753d304f98d026fdb",
+        "tests_passed": {
+          "debug": 319,
+          "release": 319
+        },
+        "native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "cleanup_error": null
+      }
+    ],
+    "limit": "Downloaded reports/native logs verified; CI executable bytes were not uploaded or independently rehashed locally.",
+    "actual_protected_ingress": {
+      "report_sha256": "40bdd4ff0eb5be4b9f07cb82667b0d4dc1afa3c4cef92d9dd599b923a2e880ff",
+      "status": "PASSED",
+      "requests": 70,
+      "profiles": [
+        {
+          "profile": "debug",
+          "passed": true,
+          "unsafe_cases": 11
+        },
+        {
+          "profile": "release",
+          "passed": true,
+          "unsafe_cases": 11
+        }
+      ],
+      "driver_sha256": {
+        "check-producer-ingress.py": "7886adf76fdc94e4ba959a6879423e211506079e5730ef55c1b4296a228c27c3",
+        "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+        "check-rust-sles.py": "35ac1389c5d8ff428a64c555d9c5cf09453cd1aeb55baa7c41eb4035e7e3b24f",
+        "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+      },
+      "cleanup": {
+        "exit_code": 0,
+        "stdout": "5cde02aa305885e1459ec256c252942960210bd7fdc4e77e22011659f3262f4e\n",
+        "stderr": "time=\"2026-11-10T03:30:48Z\" level=warning msg=\"StopSignal SIGTERM failed to stop container trusting_shamir in 10 seconds, resorting to SIGKILL\"\n"
+      }
+    }
+  },
+  "test_scope": {
+    "tls_test_functions_per_profile": 18,
+    "app_unit_tests_per_profile": 28,
+    "new_pool_tests": 9,
+    "new_real_service_functions": 5,
+    "qualification_only_cpu_bodies": 3,
+    "limit": "Three deterministic CPU bodies return without executing in production; real TLS traffic, size and slow-peer cases execute in both modes.",
+    "interop": "Rustls/AWS-LC clients; independent-client interoperability remains NOT_RUN"
+  },
+  "scoped_runs": [
+    {
+      "run_id": "20261110T031906Z-2f00f399-nfs-qualification",
+      "source": "7d682701f41434ce3fe0190bc571d14f287dbfb5",
+      "runtime_commit": "d57b6a9c3a5b34a03e3ffa6c57deb7d25ed6d09a",
+      "status": "SCOPED_PASSED",
+      "tests_per_profile": 46,
+      "cleanup_error": null
+    },
+    {
+      "run_id": "20261110T024212Z-ee1c7e25-nfs-qualification",
+      "source": "34ba0ca2f7be50702ba12a99fc744020260b9b67",
+      "status": "SCOPED_PASSED",
+      "tests_per_profile": 46,
+      "cleanup_error": null
+    }
+  ],
+  "retained_failed_runs": [
+    {
+      "run_id": "20261110T023607Z-4af59c46-nfs-qualification",
+      "source": "d3f9873",
+      "phase": "strict Clippy",
+      "reason": "Two unnecessary two-element test Vec allocations; corrected to arrays without lint suppression; no target tests ran."
+    }
+  ],
+  "review": {
+    "preflight": "8a42fba: no architectural blocker, specific expiry/dispatch/ownership/session-exclusion requirements.",
+    "initial_finding": "P2 atd3f9873: cancelling a deadline watcher dropped only its duplicate FD while CPU work still held the wire.",
+    "fix": "34ba0ca arms Drop shutdown and adds shared wire closure before session unregister; held-worker shutdown case proves wire closure before release.",
+    "source_review": "d3f9873..34ba0ca: no further actionable findings.",
+    "guide_review": "34ba0ca..7ba7b91: no actionable contradictions.",
+    "drain_fix_review": "d57b6a9: no actionable findings; actual original-permit observation, one positive request after zero, required IPCv2 field and v1 refusal.",
+    "limit": "Read-only review does not replace target runs or local executable rehash."
+  },
+  "test_followups": {
+    "failed_ci": 42745663736,
+    "failed_source": "7ba7b91",
+    "finding": "Fresh positive request raced actual permit drain after wire closure; qualification debug TLS17/18.",
+    "fix": "d57b6a9 observes original producer permits through private IPCv2; assert6 while held, await0 after release before one positive request; no retry or deadline increase.",
+    "interrupted_obsolete_full": "20261110T025712Z-38dba86c: intentionally interrupted; cleanup complete; not passing evidence."
+  },
+  "resource_bounds": {
+    "tls_executor_threads": 2,
+    "per_worker_queue_capacity": 3,
+    "queued_and_running_tls_jobs_total": 6,
+    "producer_slots": 6,
+    "total_http_slots": 8,
+    "handshake_deadline_seconds_from_accept": 5,
+    "rustls_handshake_message_bytes": 65535,
+    "rustls_record_buffer_bytes": 18437,
+    "received_plaintext_backpressure_bytes": 16384,
+    "send_buffer_bytes": 65536,
+    "limit": "Individual library buffer/message thresholds, not total connection/process memory. Fixed scheduling concurrency, not OS CPU quota or hard-realtime. Credential and admission validation retain existing owned loader/effect threads."
+  },
+  "evaluation": {
+    "path": "docs/evals/2026-11-09-tls-resource-isolation.md",
+    "mixed_tls_connections": 24,
+    "fragmented_oversized_handshakes": 4,
+    "simultaneous_slow_http_peers": 6,
+    "full_json_body_bytes": 65536,
+    "declared_over_limit_body_bytes": 65537,
+    "control_response_test_bound_seconds": 2,
+    "non_yielding_workers": 2,
+    "expired_queued_clienthellos": 4,
+    "excess_refusals": 6,
+    "shutdown_hold_seconds": 6,
+    "limit": "Disposable service observations only; no authorized operational predecessor CPU measurement or literal malicious certificate CPU benchmark. Nonreading peer uses the bounded small producer reply, not OS send-buffer saturation."
+  },
+  "limits": [
+    "No operational credentials/state, deployment, production NFS/deletion, new dependencies/features or full release.",
+    "Async cancellation or socket shutdown does not preempt synchronous CPU work or prove thread/effect exit; custody remains until actual closure.",
+    "Fixed TLS executor concurrency is not an OS CPU quota, reserved core, total-memory cap or hard-realtime guarantee.",
+    "Independent TLS-client interoperability, fresh disconnected bundle, stale-socket shipping lifecycle and all eight FR gates remain open.",
+    "Pinned x86_64 SLES12SP5 userspace/glibc2.22 containers do not qualify every kernel/systemd/NAS/FIPS environment."
+  ]
+}

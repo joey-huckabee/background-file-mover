@@ -7,7 +7,7 @@ acceptance obligations and all eight open release gates. PR9 qualifies the
 protected local Unix transport; increments122/123 qualify the bounded native
 TLS stack/listener. [Increment124](RUST-INCREMENT-124.md) records bounded live
 reload and full-mode checks. [Increment125](RUST-INCREMENT-125.md) implements
-bounded TLS executor isolation with fresh qualification pending. Independent-client/shipping qualification
+bounded TLS executor isolation with full-mode qualification recorded. Independent-client/shipping qualification
 remain open. See each increment for actual evidence and limits.
 
 Current bounded progress (2026-11-08): increment 115 implements/qualifies explicit

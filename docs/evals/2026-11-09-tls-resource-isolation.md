@@ -1,8 +1,14 @@
 # Native TLS resource isolation: finite service evaluation
 
-Implementation results remain NOT_RUN. Disposable local roots/state and fresh
-gate certificates only. Tests use Rustls/AWS-LC clients; independent-client
-interoperability and shipping are separate. No production traffic is measured.
+Both full local modes pass on Rust tree
+`51721ff716101ce89297a60561949e2023a6aa30`, with 315 production and 319
+qualification tests per profile and clean cleanup. All 18 TLS functions pass;
+the three CPU bodies execute in qualification only. See
+[increment125](../RUST-INCREMENT-125.md) and
+[source/artifact evidence](../NATIVE-TLS-RESOURCE-EVIDENCE.json).
+Disposable local roots/state and fresh gate certificates only. Tests use
+Rustls/AWS-LC clients; independent-client interoperability and shipping are
+separate. No production traffic is measured.
 
 | Family | Real-service cases | Required observation |
 |---|---:|---|
@@ -26,5 +32,7 @@ No hard OS quota, reserved CPU core or realtime latency guarantee is claimed.
 A before/after malicious CPU workload against an operational predecessor is not
 available/authorized. Pinned source explains its shared executor; actual endpoint
 post-change observations and deterministic non-yielding cases establish only the
-recorded development bound. Both full SLES modes, source/artifact audits, independent
-review and final PR CI remain pending before integration.
+recorded development bound. Both full SLES modes, source/artifact audits and
+source review are recorded in increment125. The exact runtime head passes
+[PR CI 42748864165](https://github.com/joey-huckabee/background-file-mover/actions/runs/42748864165);
+the documentation-only closeout preserves all Rust/build inputs.

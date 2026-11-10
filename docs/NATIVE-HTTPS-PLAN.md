@@ -9,7 +9,7 @@ stack and native listener with their actual qualification results. The user has
 authorized live TLS reload; [increment124](RUST-INCREMENT-124.md) records its
 bounded implementation and actual full-mode qualification. The next authorized
 [increment125](RUST-INCREMENT-125.md) implements fixed-budget TLS executor isolation;
-its changed-source qualification is pending. Independent-client interoperability
+its full local SLES modes and source CI pass on the reviewed source. Independent-client interoperability
 and shipping remain separate. This grants no deployment or release approval.
 
 ## Approved first implementation and non-TLS option
@@ -158,9 +158,9 @@ Pinned-source inspection records separate Rustls limits: 65,535-byte handshake
 messages, 18,437-byte ordinary record buffer, 16 KiB received-plaintext
 backpressure and explicit 64 KiB send buffering. These are not a total-memory cap.
 Two threads bound executor concurrency, not an OS CPU quota or realtime response;
-synchronous non-yielding work cannot be preempted by an async timeout. Fresh full
-gates and deterministic CPU-stall/load/reload/shutdown checks remain pending in
-increment125. Earlier passes do not qualify this changed source.
+synchronous non-yielding work cannot be preempted by an async timeout. Increment125 records fresh full
+gates and deterministic CPU-stall/load/reload/shutdown checks for this changed
+source. Earlier passes alone do not qualify it.
 
 Preserve 8KiB/64-header, 64KiB JSON body and 256-file limits. Oversized, ambiguous,
 incomplete and slowly dripped inputs fail without unbounded tasks, queues or body
@@ -296,7 +296,7 @@ these limits; no real SLES installation is added as a prerequisite.
 The dependency/native-listener implementations and their results remain scoped
 to increments122/123. Live reload source is present; increment124's qualification
 record is in increment124, not implied by this plan alone. Increment125 executor
-isolation is implemented with fresh qualification pending; it does not complete
+isolation is implemented with full-mode qualification recorded; it does not complete
 increment C. Independent-client interoperability, new offline-bundle validation
 and shipping qualification remain separate obligations. No proxy deployment,
 admin/session/action activation, operational state conversion, production
