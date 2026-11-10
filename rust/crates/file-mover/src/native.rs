@@ -7,7 +7,7 @@ use rustls::{
     server::ParsedCertificate,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, net::IpAddr, path::Path, sync::Arc, task::Poll, time::Duration};
+use std::{collections::BTreeSet, net::IpAddr, path::Path, sync::Arc, task::Poll};
 use tokio::net::{TcpListener, UnixListener};
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -286,6 +286,7 @@ impl Policy {
     pub(crate) async fn accept(
         &self,
         stream: ingress::Stream,
+        deadline: tokio::time::Instant,
     ) -> Option<(
         ingress::Stream,
         ingress::Audience,
@@ -294,10 +295,18 @@ impl Policy {
         let ingress::Stream::Tcp(stream) = stream else {
             return None;
         };
-        let stream = tokio::time::timeout(Duration::from_secs(5), self.acceptor.accept(stream))
-            .await
-            .ok()?
-            .ok()?;
+        // timeout_at may poll its inner future before recognizing expiration.
+        if tokio::time::Instant::now() >= deadline {
+            return None;
+        }
+        let accept = self.acceptor.accept_with(stream, |connection| {
+            // Send buffering only; receive/handshake bounds are separate Rustls limits.
+            connection.set_buffer_limit(Some(65536));
+        });
+        let stream = tokio::time::timeout_at(deadline, accept).await.ok()?.ok()?;
+        if tokio::time::Instant::now() >= deadline {
+            return None;
+        }
         if stream.get_ref().1.alpn_protocol() != Some(b"http/1.1") {
             return None;
         }

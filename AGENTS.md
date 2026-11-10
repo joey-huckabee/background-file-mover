@@ -2,6 +2,17 @@
 
 ## Current direction (2026-10-13)
 
+
+2026-11-09 TLS resource-protection authorization: the user says "yes, proceed
+with the next iteration" after the bounded resource-protection recommendation.
+Implement fixed-budget TLS executor isolation without changing the existing six
+producer/eight total slots or protocol deadlines. Keep operator/control/reload
+responsive, preserve generation-checked admission and lifetime ownership through
+actual executor exit. Measure real disposable service load and deterministic
+CPU-stall races, both SLES modes and independent review on a short-lived branch.
+No new dependencies, operational credentials/state, deployment, production NFS/
+deletion or full release. Independent-client and bundle/shipping remain separate.
+
 2026-11-09 live TLS reload authorization: the user says "yes, proceed with the
 live cert reload" after increment123/PR12. Implement guarded host-local reload
 of server certificate/key, trust roots and approved client mappings. Validate a

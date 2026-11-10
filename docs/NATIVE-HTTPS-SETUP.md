@@ -3,7 +3,9 @@
 Status: increments122/123 record the TLS dependency proof and native producer
 listener. [Increment124](RUST-INCREMENT-124.md) records guarded live TLS reload,
 both full local SLES modes, source CI and independent review. These are bounded
-development qualification results, not deployment or release approval. See
+development qualification results, not deployment or release approval.
+[Increment125](RUST-INCREMENT-125.md) adds fixed-budget TLS executor isolation;
+qualification of this changed source is pending. See
 [the implementation sequence](NATIVE-HTTPS-PLAN.md).
 
 The user requires one executable/service, no proxy, and configurable operation
@@ -301,8 +303,9 @@ timeouts or panics are failures, not successful rejection evidence. The current
 scoped TLS suite also includes selected native REST routing, certificate mapping,
 replay/restart and refusal cases. It still cannot replace full service regression
 qualification. Increment124 records full-mode reload/admission tests and independent review.
-These do not qualify sustained cryptographic CPU load, independent-client
-interoperability, packaging or deployment.
+These earlier passes do not qualify increment125's changed executor/watchdog
+source. Its full SLES gates and load/race checks remain pending; independent-client
+interoperability, packaging and deployment remain separate.
 
 ## Live TLS policy reload
 
@@ -352,8 +355,9 @@ startup through the normal configuration-management procedure.
 The CLI discovers the existing instance through lifecycle control, then uses a
 separate mode0600 private `tls-reload.sock` in its existing state directory. Do not
 provision or manually remove that socket. It is not the operator HTTP socket and
-is never exposed as a public REST operation. No active running owner is an error;
-these commands do not start a service or create replacement state. TLS status
+is never exposed as a public REST operation. No active owner, or an owner whose
+lifecycle phase is not `Running`, is an error; these commands do not start a
+service or create replacement state. TLS status
 uses a brief memory snapshot without credential, NFS or SQLite I/O; reload's
 credential work runs only on its dedicated loader thread. Existing `--status`
 and `--stop` remain independent lifecycle commands. Shutdown stops reload
@@ -408,14 +412,50 @@ through the normal operator procedure without assuming rollback or success.
 
 ## Operation and troubleshooting
 
-Six producer slots include unfinished TLS handshakes; two other HTTP slots remain
-available for private operators. Handshake timeout is five seconds, request read
-five seconds and response flush/shutdown two seconds. HTTP framing and handoff
-limits are unchanged. A connection rejected before handshake may close without
-an HTTP response. Slow-handshake/stop checks do not qualify sustained cryptographic
-CPU floods. Stronger CPU isolation, independent-client interoperability, fresh
-offline-bundle validation and shipping lifecycle qualification remain separate;
-the reload source change does not close them.
+Native HTTPS uses exactly two TLS executor OS threads, each with its own Tokio
+current-thread runtime. Each dispatch queue has capacity three, with a shared
+six-job budget covering queued and running jobs together. This is six total,
+not six queued plus six running. The existing six producer/eight total connection
+permits still apply, leaving two HTTP slots for private operators. There is no
+new user setting, dependency or Cargo feature. Prototype/local Unix/native HTTP
+and private operator connections remain on the main executor; TLS handshake/record cryptography
+and I/O run on the TLS workers. Admission-time peer revalidation and credential
+validation retain their existing owned effect/loader threads. Lifecycle control and reload retain
+their separate local threads.
+
+The handshake deadline is five seconds from acceptance, including queue time;
+dequeue never resets it. A main-executor watchdog can shut down the TCP wire at
+that deadline even while a TLS worker is executing non-yielding CPU work. An armed
+watchdog also shuts it down when dropped during stop, cancellation or failed
+dispatch. The session's wire-close guard shuts down before session registration
+is removed, preserving reload's physical exclusion before acknowledgement.
+Both watchdog and job hold the shared descriptor/connection-permit/InstanceGuard
+budget until their actual exit; closing the wire alone does not release it.
+Queued raw connections acquire the current policy when they begin execution;
+existing generation checks still protect actual admission and deferred work.
+Already admitted transfers run independently. TCP closure proves neither rollback
+nor cancellation of a submitted job or its effects.
+
+Request read remains five seconds and response flush/shutdown two seconds;
+HTTP framing and handoff limits are unchanged. A pre-handshake refusal can close
+without an HTTP response. Checked Rustls bounds are separate: 65,535 bytes for
+handshake messages, 18,437 bytes for the ordinary record buffer, 16 KiB received
+plaintext backpressure and an explicit 64 KiB send buffer. None is a whole-process
+or per-connection memory cap. Two fixed threads bound executor concurrency, not
+OS CPU usage or realtime response. Async cancellation cannot preempt synchronous
+CPU work. Increment125's fresh full gates and load/race qualification are pending;
+independent-client interoperability, fresh offline-bundle validation and shipping
+qualification remain separate. This does not complete increment C or any FR gate.
+
+After a stop request, use `--status CONFIG.json` for lifecycle observations.
+`--tls-status` requires a `Running` owner and is not shutdown monitoring. The two
+TLS threads live inside the coordinator: they are not child PIDs or adoptable
+workers. `ShutdownIncomplete` with `workers: []` can therefore coexist with a
+live coordinator and held instance guard. The first shutdown deadline is unchanged;
+expiry does not force thread exit. Preserve original state, configuration and
+certificates, and wait for actual exit. Do not infer permission to restart from
+closed TCP connections or an empty child list. See the
+[operator shutdown guidance](RUST-OPERATOR-GUIDE.md#local-service-status-and-bounded-stop).
 
 For this bounded implementation:
 
@@ -439,3 +479,14 @@ The support claim remains bounded x86_64 SLES12SP5 userspace/glibc2.22 under pin
 container execution. It does not establish every SLES12 service pack/kernel,
 vendor systemd build or FIPS compliance. All eight FR release gates remain open;
 production NFS, deletion and deployment remain off.
+
+TLS status reports `connections_in_flight` (0-6): producer capacity still owned
+by queued/executing TLS jobs or their wire watchdogs. Closed wires can still
+consume capacity until actual task destruction. This is a point-in-time capacity
+observation, not proof that the service or its threads have stopped; use the
+lifecycle status and instance exclusion for restart decisions.
+
+Use the same executable version for the daemon and TLS control commands.
+Increment 125 uses private TLS-control wire version 2 for this required field;
+mixed-version TLS status/reload commands refuse before reload activation. The
+lifecycle-control protocol and public REST contract are unchanged.

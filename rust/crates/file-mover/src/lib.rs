@@ -12,6 +12,7 @@ pub mod payload;
 mod reload;
 pub mod source_space;
 pub mod tls;
+mod tls_executor;
 pub mod tls_reload_ipc;
 use mover_core::{DeliveryPolicy, Handoff, ProtocolError, Submission};
 use mover_store::{AcceptanceContext, Store, StoreError};
@@ -1085,6 +1086,47 @@ pub async fn serve_controlled(
     }
     serve_inner(Some(listener), c, lifecycle).await
 }
+// Both the deadline watcher and TLS job retain admission and instance ownership.
+struct TlsBudget {
+    _permit: tokio::sync::OwnedSemaphorePermit,
+    _producer_permit: Option<tokio::sync::OwnedSemaphorePermit>,
+    _guard: Arc<mover_fs::InstanceGuard>,
+}
+// Fields drop in declaration order, even when the future was never polled.
+struct TlsJob {
+    future: tls_executor::Job,
+    _budget: Arc<TlsBudget>,
+}
+impl std::future::Future for TlsJob {
+    type Output = ();
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<()> {
+        self.get_mut().future.as_mut().poll(cx)
+    }
+}
+struct HandshakeWatch {
+    socket: Arc<std::net::TcpStream>,
+    _budget: Arc<TlsBudget>,
+    armed: bool,
+}
+impl Drop for HandshakeWatch {
+    fn drop(&mut self) {
+        if self.armed {
+            let _ = self.socket.shutdown(std::net::Shutdown::Both);
+        }
+    }
+}
+// This guard is captured by the session's inner future, including before its
+// first poll. Wire exclusion precedes removing the old session registration.
+struct CloseTlsWire(Arc<std::net::TcpStream>);
+impl Drop for CloseTlsWire {
+    fn drop(&mut self) {
+        let _ = self.0.shutdown(std::net::Shutdown::Both);
+    }
+}
+
 async fn serve_inner(
     listener: Option<TcpListener>,
     c: Config,
@@ -1189,6 +1231,19 @@ async fn serve_inner(
     let native = native
         .map(|p| p.activate(&c, lifecycle.clone(), worker._instance.clone()))
         .transpose()?;
+    let tls_pool = if native.as_ref().is_some_and(|n| n.manager.is_some()) {
+        Some(tls_executor::Pool::start(
+            worker._instance.clone(),
+            lifecycle.clone(),
+        )?)
+    } else {
+        None
+    };
+    let permits = Arc::new(Semaphore::new(8));
+    let producer_permits = Arc::new(Semaphore::new(6));
+    if let Some(manager) = native.as_ref().and_then(|n| n.manager.as_ref()) {
+        manager.set_budget(producer_permits.clone());
+    }
     lifecycle.phase("Running");
     if let Some(native) = &native {
         println!(
@@ -1201,8 +1256,6 @@ async fn serve_inner(
         println!("Ready on protected local producer and operator sockets");
     }
     let c = Arc::new(c);
-    let permits = Arc::new(Semaphore::new(8));
-    let producer_permits = Arc::new(Semaphore::new(6));
     let mut tasks = JoinSet::new();
     while !stop.load(Ordering::Relaxed) {
         while tasks.try_join_next().is_some() {}
@@ -1219,6 +1272,7 @@ async fn serve_inner(
         .await
         {
             let (mut stream, audience) = accepted?;
+            let tls_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
             let tls_manager = if matches!(audience, ingress::Audience::Native(_)) {
                 native.as_ref().and_then(|n| n.manager.clone())
             } else {
@@ -1266,19 +1320,62 @@ async fn serve_inner(
             let sender = worker.sender.as_ref().unwrap().clone();
             let observer = worker.observer.as_ref().unwrap().clone();
             let admission = worker._source_space.handle.clone();
-            tasks.spawn(async move {
-                let _permit = permit;
-                let _producer_permit = producer_permit;
-                if let Some(manager) = tls_manager {
+            if let Some(manager) = tls_manager {
+                let ingress::Stream::Tcp(stream) = stream else {
+                    continue;
+                };
+                // Unregister the main reactor before transferring the socket.
+                let stream = stream.into_std()?;
+                let socket = Arc::new(stream.try_clone()?);
+                let close = CloseTlsWire(socket.clone());
+                let budget = Arc::new(TlsBudget {
+                    _permit: permit,
+                    _producer_permit: producer_permit,
+                    _guard: worker._instance.clone(),
+                });
+                let watch = HandshakeWatch {
+                    socket,
+                    _budget: budget.clone(),
+                    armed: true,
+                };
+                let (handshake_done, handshake) = oneshot::channel();
+                tasks.spawn(async move {
+                    let mut watch = watch;
+                    if matches!(
+                        tokio::time::timeout_at(tls_deadline, handshake).await,
+                        Ok(Ok(()))
+                    ) {
+                        watch.armed = false;
+                    }
+                    // An armed drop also shuts down on cancellation or failed dispatch.
+                    // This is transport exclusion, never proof that CPU work exited.
+                });
+                let future = Box::pin(async move {
+                    // Never construct/poll TLS or timers for an expired queued job.
+                    if tokio::time::Instant::now() >= tls_deadline {
+                        return;
+                    }
+                    let Ok(stream) = tokio::net::TcpStream::from_std(stream) else {
+                        return;
+                    };
+                    let stream = ingress::Stream::Tcp(stream);
+                    // Raw queued transports capture no old policy or authority.
                     let Some((policy, session)) = manager.session() else {
                         return;
                     };
                     let lease = session.lease();
                     session
                         .run(async move {
-                            let Some((stream, audience, peer)) = policy.accept(stream).await else {
+                            let _close = close;
+                            if mover_fs::qualification_tls_cpu_hold().is_err() || !lease.current() {
+                                return;
+                            }
+                            let Some((stream, audience, peer)) =
+                                policy.accept(stream, tls_deadline).await
+                            else {
                                 return;
                             };
+                            let _ = handshake_done.send(());
                             lease.set_peer(peer);
                             drop(policy);
                             connection(
@@ -1293,14 +1390,27 @@ async fn serve_inner(
                             .await;
                         })
                         .await;
-                } else {
+                });
+                // Nonblocking dispatch. Failure drops the transport and all permits.
+                let _ = tls_pool
+                    .as_ref()
+                    .expect("HTTPS executor")
+                    .try_spawn(Box::pin(TlsJob {
+                        future,
+                        _budget: budget,
+                    }));
+            } else {
+                tasks.spawn(async move {
+                    let _permit = permit;
+                    let _producer_permit = producer_permit;
                     connection(stream, c, sender, observer, admission, audience, None).await;
-                }
-            });
+                });
+            }
         }
     }
     tasks.abort_all();
     while tasks.join_next().await.is_some() {}
+    drop(tls_pool); // Join actual TLS executor exit while control/guard remain owned.
     drop(endpoints);
     drop(native);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.

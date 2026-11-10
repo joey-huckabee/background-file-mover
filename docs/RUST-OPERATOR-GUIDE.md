@@ -5,8 +5,10 @@ For explicit producer HTTP/HTTPS operation and credential preparation, see
 status. Loopback HTTP requires no TLS certificates. Native producer ports expose
 no operator routes; use the separate private operator socket.
 [Increment124](RUST-INCREMENT-124.md) records live credential reload/revocation
-and its actual checks; the setup guide documents the local commands. Stronger
-CPU isolation and shipping qualification remain separate.
+and its actual checks; the setup guide documents the local commands. Fixed-budget
+CPU isolation is now implemented in [increment125](RUST-INCREMENT-125.md), with
+fresh qualification pending. Independent-client and shipping qualification remain
+separate.
 
 For producing, verifying and installing the current prototype without target
 internet access, use the [offline installation guide](OFFLINE-INSTALL.md).
@@ -338,6 +340,28 @@ reports Draining. The same original deadline remains in force; preserve ownershi
 and inspect again. Neither observation proves exit or authorizes replacement.
 [Increment 51](RUST-INCREMENT-51.md) makes the integration test observe that
 transition within its existing bound without changing runtime timing.
+
+Native HTTPS adds two TLS executor OS threads inside the coordinator, not child
+PIDs or adoptable workers. `ShutdownIncomplete` with `workers: []` can still mean
+the coordinator is alive and instance exclusion is held by TLS work. Fixed queues
+and a shared six-job budget cover queued plus running jobs; the six producer/eight
+total connection slots are unchanged. TLS handshake/record cryptography and I/O use those two
+threads while private operator/prototype/HTTP traffic stays on the main executor.
+No new configuration is needed. These bounds are not an OS CPU quota or realtime
+guarantee; see [HTTPS resource limits](NATIVE-HTTPS-SETUP.md#operation-and-troubleshooting).
+
+A main watchdog shuts down an unfinished handshake's wire five seconds after
+acceptance, including queue time, even while TLS CPU work is stalled. Its armed
+Drop closes on stop/cancellation; session wire shutdown precedes removal from the
+reload registry. Watchdog and job retain their shared descriptor, permit and
+instance budget until actual exit. Pool shutdown uses the lifecycle boundary and
+joins both actual threads; an async abort cannot preempt non-yielding work. The
+first shutdown deadline remains unchanged. Closed TCP wires do not prove thread
+exit, job rollback or cancellation; already admitted transfers remain independent.
+After stop, use `--status`, preserve original state/configuration/certificates and
+wait for actual exit. `--tls-status` requires `Running` and cannot monitor this
+drain. Increment125's fresh load/race checks and both full gates are pending;
+earlier TLS/reload passes do not qualify this changed source.
 
 The separate stop command returns control at expiry while the foreground daemon
 can still be waiting. Existing signal handling requests shutdown but cannot give
@@ -1275,3 +1299,14 @@ validated mixed state. Clear removes all per-job linkage and leaves files. A
 reused cleared UUID is fresh work with a greater job ID; retained UUID output
 can cause a normal no-clobber delivery refusal. The mover never adopts, renames
 to a suffix or overwrites that previous output.
+
+TLS status reports `connections_in_flight` (0-6): producer capacity still owned
+by queued/executing TLS jobs or their wire watchdogs. Closed wires can still
+consume capacity until actual task destruction. This is a point-in-time capacity
+observation, not proof that the service or its threads have stopped; use the
+lifecycle status and instance exclusion for restart decisions.
+
+Use the same executable version for the daemon and TLS control commands.
+Increment 125 uses private TLS-control wire version 2 for this required field;
+mixed-version TLS status/reload commands refuse before reload activation. The
+lifecycle-control protocol and public REST contract are unchanged.

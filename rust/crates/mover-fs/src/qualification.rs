@@ -49,6 +49,42 @@ pub fn pause(_: &'static str) -> Result<()> {
     Ok(())
 }
 
+/// Production never reads these fixture selectors or performs CPU holding.
+#[cfg(not(feature = "nfs-qualification"))]
+pub fn tls_cpu_hold() -> Result<()> {
+    Ok(())
+}
+
+#[cfg(feature = "nfs-qualification")]
+pub fn tls_cpu_hold() -> Result<()> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    thread_local! { static HELD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+    if std::env::var("FILE_MOVER_QUALIFICATION_PAUSE")
+        .ok()
+        .as_deref()
+        != Some("tls_cpu_hold")
+    {
+        return Ok(());
+    }
+    if HELD.with(|held| held.replace(true)) {
+        return Ok(());
+    }
+    let slot = NEXT.fetch_add(1, Ordering::Relaxed);
+    if slot >= 2 {
+        return Err(ClaimError::Blocked("unexpected TLS CPU worker"));
+    }
+    let base = std::env::var("FILE_MOVER_QUALIFICATION_RENDEZVOUS")
+        .map_err(|_| ClaimError::Blocked("qualification rendezvous missing"))?;
+    let path = std::path::Path::new(&base).join(slot.to_string());
+    pause_at(
+        path.to_str()
+            .ok_or(ClaimError::Blocked("qualification UTF-8 path required"))?,
+        "tls_cpu_hold",
+        std::time::Duration::from_secs(60),
+    )
+}
+
 #[cfg(feature = "nfs-qualification")]
 thread_local! {
     static CLAIM_INDEX: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
@@ -131,8 +167,26 @@ fn pause_at(path: &str, operation: &str, budget: std::time::Duration) -> Result<
         Mode::RUSR | Mode::WUSR,
     )?;
     let mut file = std::fs::File::from(fd);
-    writeln!(file, "{} {operation}", std::process::id())
-        .map_err(|_| ClaimError::Blocked("qualification ready write failed"))?;
+    if operation == "tls_cpu_hold" {
+        use std::io::Read;
+        let mut text = String::new();
+        std::fs::File::open("/proc/thread-self/stat")
+            .map_err(|_| ClaimError::Blocked("qualification TLS thread unavailable"))?
+            .take(4097)
+            .read_to_string(&mut text)
+            .map_err(|_| ClaimError::Blocked("qualification TLS thread unreadable"))?;
+        let tid = text
+            .split_whitespace()
+            .next()
+            .and_then(|p| p.parse::<u32>().ok())
+            .filter(|_| text.len() <= 4096)
+            .ok_or(ClaimError::Blocked("qualification TLS thread invalid"))?;
+        writeln!(file, "{} {operation} {tid}", std::process::id())
+            .map_err(|_| ClaimError::Blocked("qualification ready write failed"))?;
+    } else {
+        writeln!(file, "{} {operation}", std::process::id())
+            .map_err(|_| ClaimError::Blocked("qualification ready write failed"))?;
+    }
     let deadline = std::time::Instant::now() + budget;
     loop {
         match fs::openat(&dir, "go", FILE, Mode::empty()) {
@@ -146,7 +200,15 @@ fn pause_at(path: &str, operation: &str, budget: std::time::Duration) -> Result<
         if std::time::Instant::now() >= deadline {
             return Err(ClaimError::Blocked("qualification pause budget expired"));
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        if operation == "tls_cpu_hold" {
+            // Deliberately non-yielding CPU work within one Future::poll call.
+            // Check release/deadline between finite chunks; no runtime clock override.
+            for _ in 0..1_000_000 {
+                std::hint::spin_loop();
+            }
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
     }
 }
 
