@@ -7,10 +7,12 @@ This implementation sequence supersedes the external-proxy portion of P03/D02
 and the older remote access design. Increments122/123 record the implemented TLS
 stack and native listener with their actual qualification results. The user has
 authorized live TLS reload; [increment124](RUST-INCREMENT-124.md) records its
-bounded implementation and actual full-mode qualification. The next authorized
+bounded implementation and actual full-mode qualification.
 [increment125](RUST-INCREMENT-125.md) implements fixed-budget TLS executor isolation;
-its full local SLES modes and source CI pass on the reviewed source. Independent-client interoperability
-and shipping remain separate. This grants no deployment or release approval.
+its full local SLES modes and source CI pass on the reviewed source.
+[Increment126](RUST-INCREMENT-126.md) records selected independent OpenSSL-client
+checks. Wider client coverage, offline delivery and shipping remain separate.
+This grants no deployment or release approval.
 
 ## Approved first implementation and non-TLS option
 
@@ -297,8 +299,8 @@ The dependency/native-listener implementations and their results remain scoped
 to increments122/123. Live reload source is present; increment124's qualification
 record is in increment124, not implied by this plan alone. Increment125 executor
 isolation is implemented with full-mode qualification recorded; it does not complete
-increment C. Independent-client interoperability, new offline-bundle validation
-and shipping qualification remain separate obligations. No proxy deployment,
+increment C. Increment126 records selected curl/OpenSSL interoperability; wider
+client profiles, new offline-bundle validation and shipping remain separate. No proxy deployment,
 admin/session/action activation, operational state conversion, production
 NFS/deletion or release approval is introduced. All eight FR release gates remain
 open; retain the reviewed dependency graph rather than changing it through setup

@@ -33,8 +33,10 @@ covers explicit HTTPS and loopback HTTP, credential preparation and operating
 limits. [Increment124](docs/RUST-INCREMENT-124.md) adds guarded live TLS reload
 and revocation; use its actual validation status and setup instructions. No proxy
 is required. [Increment125](docs/RUST-INCREMENT-125.md) implements bounded TLS
-executor isolation; its full local modes and source CI pass. Independent-client and
-shipping qualification remain separate.
+executor isolation; its full local modes and source CI pass.
+[Increment126](docs/RUST-INCREMENT-126.md) records independent curl/OpenSSL checks;
+see the [client guide](docs/NATIVE-HTTPS-CLIENTS.md). Wider client, offline-bundle
+and shipping qualification remain separate.
 
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)

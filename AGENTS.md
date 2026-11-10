@@ -12,6 +12,7 @@ container network; update user instructions with actual results and independent
 review. Reuse verified artifacts when Rust/build inputs are unchanged. No new
 runtime dependencies, real credentials/state, proxy, deployment, production NFS/
 deletion or full release. Offline-bundle/shipping qualification remains separate.
+See docs/RUST-INCREMENT-126.md for actual results, client requirements and limits.
 
 2026-11-09 TLS resource-protection authorization: the user says "yes, proceed
 with the next iteration" after the bounded resource-protection recommendation.
