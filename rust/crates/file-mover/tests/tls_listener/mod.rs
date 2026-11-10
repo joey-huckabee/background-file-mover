@@ -1028,3 +1028,505 @@ fn loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation(
         mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
             .unwrap();
 }
+
+// Send ClientHello without waiting for the server; exposes the queued TCP port.
+type ProbeTls = rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream>;
+fn hello_only(f: &Fixture) -> ProbeTls {
+    let mut c = ClientConfig::builder_with_provider(tls::provider())
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .unwrap()
+        .with_root_certificates(roots("ca.der"))
+        .with_client_auth_cert(vec![certificate("client.der")], key("client.key.der"))
+        .unwrap();
+    c.alpn_protocols = vec![b"http/1.1".to_vec()];
+    c.resumption = Resumption::disabled();
+    let socket = std::net::TcpStream::connect_timeout(&f.address, Duration::from_secs(5)).unwrap();
+    socket
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    socket
+        .set_write_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut s = rustls::StreamOwned::new(
+        rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())
+            .unwrap(),
+        socket,
+    );
+    while s.conn.wants_write() {
+        s.conn.write_tls(&mut s.sock).unwrap();
+    }
+    s
+}
+fn send_probe(mut s: ProbeTls, bytes: &[u8]) -> ((u16, Value), String) {
+    s.write_all(bytes).unwrap();
+    s.flush().unwrap();
+    let mut out = Vec::new();
+    s.read_to_end(&mut out).unwrap();
+    let leaf = mover_fs::sha256_hex(s.conn.peer_certificates().unwrap()[0].as_ref());
+    (response(&out), leaf)
+}
+fn zero_tls_reply(s: &mut std::net::TcpStream) {
+    s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+    match s.read(&mut [0; 2048]) {
+        Ok(0) => (),
+        Ok(n) => panic!("expired TLS job emitted {n} bytes"),
+        Err(e) => assert!(
+            matches!(
+                e.kind(),
+                std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+            ),
+            "{e}"
+        ),
+    }
+}
+fn start_cpu_hold(f: &mut Fixture) -> PathBuf {
+    let path = f.root.join("tls-cpu");
+    fs::create_dir(&path).unwrap();
+    mode(&path, 0o700);
+    for slot in ["0", "1"] {
+        fs::create_dir(path.join(slot)).unwrap();
+        mode(&path.join(slot), 0o700);
+    }
+    f.start_paused(Some(("tls_cpu_hold", &path)));
+    path
+}
+fn cpu_ready(f: &Fixture, path: &Path) -> [u32; 2] {
+    let until = Instant::now() + Duration::from_secs(3);
+    loop {
+        let tids: Vec<_> = ["0", "1"]
+            .into_iter()
+            .filter_map(|slot| {
+                let text = fs::read_to_string(path.join(slot).join("ready")).ok()?;
+                let fields: Vec<_> = text.split_whitespace().collect();
+                if fields.len() != 3 {
+                    return None;
+                }
+                assert_eq!(
+                    fields[0].parse::<u32>().unwrap(),
+                    f.child.as_ref().unwrap().id()
+                );
+                assert_eq!(fields[1], "tls_cpu_hold");
+                fields[2].parse::<u32>().ok()
+            })
+            .collect();
+        if tids.len() == 2 {
+            assert_ne!(tids[0], tids[1]);
+            return [tids[0], tids[1]];
+        }
+        assert!(
+            Instant::now() < until,
+            "two TLS workers did not reach CPU checkpoint"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+fn release_cpu(path: &Path) {
+    for slot in ["0", "1"] {
+        fs::write(path.join(slot).join("go"), b"continue").unwrap();
+    }
+}
+fn ticks(f: &Fixture, tid: u32) -> u64 {
+    let text = fs::read_to_string(format!(
+        "/proc/{}/task/{tid}/stat",
+        f.child.as_ref().unwrap().id()
+    ))
+    .unwrap();
+    let fields: Vec<_> = text
+        .rsplit_once(") ")
+        .unwrap()
+        .1
+        .split_whitespace()
+        .collect();
+    fields[11].parse::<u64>().unwrap() + fields[12].parse::<u64>().unwrap()
+}
+// An established kernel connection alone does not prove application accept.
+fn wait_accepted(f: &Fixture, clients: &[ProbeTls]) {
+    let until = Instant::now() + Duration::from_secs(3);
+    loop {
+        let net = fs::read_to_string(format!("/proc/{}/net/tcp", f.child.as_ref().unwrap().id()))
+            .unwrap();
+        let descriptors: std::collections::BTreeSet<_> =
+            fs::read_dir(format!("/proc/{}/fd", f.child.as_ref().unwrap().id()))
+                .unwrap()
+                .take(512)
+                .filter_map(|p| fs::read_link(p.ok()?.path()).ok())
+                .map(|p| p.to_string_lossy().into_owned())
+                .collect();
+        let all = clients.iter().all(|c| {
+            let port = c.sock.local_addr().unwrap().port();
+            net.lines().skip(1).any(|line| {
+                let a: Vec<_> = line.split_whitespace().collect();
+                a.len() > 9
+                    && a[1].rsplit(':').next() == Some(format!("{:04X}", f.address.port()).as_str())
+                    && a[2].rsplit(':').next() == Some(format!("{port:04X}").as_str())
+                    && descriptors.contains(&format!("socket:[{}]", a[9]))
+            })
+        });
+        if all {
+            return;
+        }
+        assert!(
+            Instant::now() < until,
+            "queued TCP transport was not accepted"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+fn responsive_controls(f: &Fixture) {
+    for _ in 0..4 {
+        let start = Instant::now();
+        assert_eq!(f.operator("/healthz").0, 200);
+        assert!(start.elapsed() < Duration::from_secs(2));
+        let start = Instant::now();
+        let status = f
+            .command()
+            .arg("--status")
+            .arg(f.root.join("config.json"))
+            .output()
+            .unwrap();
+        assert!(status.status.success());
+        assert!(start.elapsed() < Duration::from_secs(2));
+        assert_eq!(tls_control(f, false, true)["status"]["generation"], 1);
+    }
+}
+
+#[test]
+fn busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(true);
+    f.initialize();
+    let checkpoint = start_cpu_hold(&mut f);
+    let mut busy = vec![hello_only(&f), hello_only(&f)];
+    let tids = cpu_ready(&f, &checkpoint);
+    let before = [ticks(&f, tids[0]), ticks(&f, tids[1])];
+    let mut queued: Vec<_> = (0..4).map(|_| hello_only(&f)).collect();
+    wait_accepted(&f, &queued);
+    let accepted = Instant::now();
+    // All six producer permits are held across active and queued sockets.
+    for _ in 0..6 {
+        let mut excess = std::net::TcpStream::connect(f.address).unwrap();
+        zero_tls_reply(&mut excess);
+    }
+    responsive_controls(&f);
+    while accepted.elapsed() < Duration::from_secs(6) {
+        assert_eq!(f.operator("/healthz").0, 200);
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        ticks(&f, tids[0]) > before[0] && ticks(&f, tids[1]) > before[1],
+        "both TLS threads must consume real CPU ticks"
+    );
+    // Main-reactor watchdog closes expired wires even before TLS executors yield.
+    for c in busy.iter_mut().chain(queued.iter_mut()) {
+        zero_tls_reply(&mut c.sock);
+    }
+    release_cpu(&checkpoint);
+    assert_eq!(
+        f.operator("/api/v2/retention").1["details"]["retained_jobs"],
+        0
+    );
+    prepare_payload(&f);
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
+    wait_commit(&f);
+    f.stop();
+}
+
+#[test]
+fn reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(true);
+    f.initialize();
+    prepare_payload(&f);
+    let checkpoint = start_cpu_hold(&mut f);
+    let mut busy = vec![hello_only(&f), hello_only(&f)];
+    cpu_ready(&f, &checkpoint);
+    let queued = vec![hello_only(&f), hello_only(&f)];
+    wait_accepted(&f, &queued);
+    f.config["native_ingress"]["server_certificates"] =
+        json!([copy_credential(&f, "replacement-server.der")]);
+    f.config["native_ingress"]["server_key"] =
+        json!(copy_credential(&f, "replacement-server.key.der"));
+    f.config["native_ingress"]["clients"] = json!([{"sha256":mover_fs::sha256_hex(&fixture("unapproved-client.der")),"generator_id":"recorder"}]);
+    f.save();
+    let mut reload = f
+        .command()
+        .arg("--reload-tls")
+        .arg(f.root.join("config.json"))
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    loop {
+        let s = tls_control(&f, false, true);
+        if s["status"]["generation"] == 2 {
+            assert_eq!(s["status"]["draining"], true);
+            break;
+        }
+        assert!(Instant::now() < until);
+    }
+    assert!(
+        reload.try_wait().unwrap().is_none(),
+        "ACK cannot precede old physical session exit"
+    );
+    assert_eq!(f.operator("/healthz").0, 200);
+    release_cpu(&checkpoint);
+    let result = reload.wait_with_output().unwrap();
+    assert!(result.status.success(), "{result:?}");
+    let result: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(result["status"]["draining"], false);
+    for c in &mut busy {
+        zero_tls_reply(&mut c.sock);
+    }
+    let req = request(
+        "POST",
+        "/api/v2/jobs",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &serde_json::to_vec(&f.input()).unwrap(),
+    );
+    for c in queued {
+        let (reply, leaf) = send_probe(c, &req);
+        assert_eq!(reply.0, 403);
+        assert_eq!(
+            leaf,
+            mover_fs::sha256_hex(&fixture("replacement-server.der"))
+        );
+    }
+    assert_eq!(
+        f.tls(Some("unapproved-client"), &rustls::version::TLS13, &req)
+            .unwrap()
+            .0,
+        202
+    );
+    wait_commit(&f);
+    assert_eq!(
+        fs::read(f.root.join(format!("destination/{UUID}/a"))).unwrap(),
+        b"alpha"
+    );
+    f.stop();
+}
+
+#[test]
+fn shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(true);
+    f.config["shutdown_wait_seconds"] = json!(1);
+    f.save();
+    f.initialize();
+    prepare_payload(&f);
+    let checkpoint = start_cpu_hold(&mut f);
+    let _busy = vec![hello_only(&f), hello_only(&f)];
+    cpu_ready(&f, &checkpoint);
+    assert_eq!(f.operator("/healthz").0, 200);
+    let out = f
+        .command()
+        .arg("--stop")
+        .arg(f.root.join("config.json"))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let status: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(status["phase"], "ShutdownIncomplete");
+    assert_eq!(status["shutdown_remaining_ms"], 0);
+    assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none());
+    assert!(
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .is_err()
+    );
+    f.config["shutdown_wait_seconds"] = json!(10);
+    f.save();
+    let out = f
+        .command()
+        .arg("--stop")
+        .arg(f.root.join("config.json"))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    let again: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(again["instance_id"], status["instance_id"]);
+    assert_eq!(again["shutdown_wait_seconds"], 1);
+    assert_eq!(again["shutdown_remaining_ms"], 0);
+    release_cpu(&checkpoint);
+    let mut child = f.child.take().unwrap();
+    let until = Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(exit) = child.try_wait().unwrap() {
+            assert!(exit.success());
+            break;
+        }
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let _guard =
+        mover_fs::InstanceGuard::for_database(f.root.join("state/jobs.sqlite").to_str().unwrap())
+            .unwrap();
+    assert_eq!(fs::read(f.root.join("source/current/a")).unwrap(), b"alpha");
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert!(!f.root.join(format!("destination/{UUID}")).exists());
+}
+
+#[test]
+fn mixed_tls_load_and_full_json_budget_preserve_measured_payloads() {
+    let mut f = Fixture::new(true);
+    f.initialize();
+    prepare_payload(&f);
+    f.start();
+    let req = request(
+        "GET",
+        "/healthz",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &[],
+    );
+    for wave in 0..4 {
+        let peers = [
+            Some("client"),
+            Some("unapproved-client"),
+            None,
+            Some("untrusted-client"),
+            Some("expired-client"),
+            Some("wrong-usage-client"),
+        ];
+        let jobs: Vec<_> = peers
+            .into_iter()
+            .enumerate()
+            .map(|(i, client)| {
+                let bytes = req.clone();
+                let address = f.address;
+                std::thread::spawn(move || {
+                    let result = Fixture::tls_at(
+                        address,
+                        client,
+                        if (wave + i) % 2 == 0 {
+                            &rustls::version::TLS12
+                        } else {
+                            &rustls::version::TLS13
+                        },
+                        &bytes,
+                    );
+                    if i < 2 {
+                        assert_eq!(result.unwrap().0, 403);
+                    } else {
+                        assert!(result.is_err());
+                    }
+                })
+            })
+            .collect();
+        let started = Instant::now();
+        assert_eq!(f.operator("/healthz").0, 200);
+        assert!(started.elapsed() < Duration::from_secs(2));
+        for job in jobs {
+            job.join().unwrap();
+        }
+    }
+    let mut body = serde_json::to_vec(&f.input()).unwrap();
+    body.resize(65536, b' ');
+    let bytes = request(
+        "POST",
+        "/api/v2/jobs",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &body,
+    );
+    assert_eq!(
+        f.tls(Some("client"), &rustls::version::TLS13, &bytes)
+            .unwrap()
+            .0,
+        202
+    );
+    wait_commit(&f);
+    let large = request(
+        "POST",
+        "/api/v2/jobs",
+        &format!("localhost:{}", f.address.port()),
+        "",
+        &vec![b' '; 65537],
+    );
+    let end = large.windows(4).position(|b| b == b"\r\n\r\n").unwrap() + 4;
+    assert_eq!(
+        f.tls(Some("client"), &rustls::version::TLS12, &large[..end])
+            .unwrap()
+            .0,
+        413
+    );
+    assert_eq!(
+        fs::read(f.root.join(format!("destination/{UUID}/a"))).unwrap(),
+        b"alpha"
+    );
+    assert_eq!(
+        fs::read(f.root.join(format!("destination/{UUID}/sub/b"))).unwrap(),
+        b"bravo!!"
+    );
+    assert_eq!(
+        f.operator("/api/v2/retention").1["details"]["retained_jobs"],
+        1
+    );
+    f.stop();
+}
+
+#[test]
+fn fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded() {
+    let mut f = Fixture::new(true);
+    f.initialize();
+    f.start();
+    for _ in 0..4 {
+        let mut s = std::net::TcpStream::connect(f.address).unwrap();
+        s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        // A 65,536-byte ClientHello length split across two TLS records.
+        s.write_all(&[22, 3, 3, 0, 2, 1, 1]).unwrap();
+        s.write_all(&[22, 3, 3, 0, 2, 0, 0]).unwrap();
+        let mut bytes = Vec::new();
+        match (&mut s).take(4096).read_to_end(&mut bytes) {
+            Ok(_) => (),
+            Err(e) => assert!(
+                matches!(
+                    e.kind(),
+                    std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+                ),
+                "{e}"
+            ),
+        }
+        assert!(!bytes.windows(5).any(|b| b == b"HTTP/"));
+        assert!(bytes.len() < 4096);
+        assert_eq!(f.operator("/healthz").0, 200);
+    }
+    let mut slow: Vec<_> = (0..6).map(|_| warm_tls(&f)).collect();
+    let start = Instant::now();
+    responsive_controls(&f);
+    for s in &mut slow {
+        s.sock
+            .set_read_timeout(Some(Duration::from_secs(7)))
+            .unwrap();
+        let mut bytes = Vec::new();
+        s.read_to_end(&mut bytes).unwrap();
+        assert_eq!(response(&bytes).0, 408);
+    }
+    assert!(start.elapsed() < Duration::from_secs(8));
+    let mut nonreader = warm_tls(&f);
+    nonreader
+        .write_all(&request(
+            "GET",
+            "/healthz",
+            &format!("localhost:{}", f.address.port()),
+            "",
+            &[],
+        ))
+        .unwrap();
+    nonreader.flush().unwrap();
+    responsive_controls(&f);
+    let mut bytes = Vec::new();
+    nonreader.read_to_end(&mut bytes).unwrap();
+    assert_eq!(response(&bytes).0, 403);
+    assert_eq!(
+        f.operator("/api/v2/retention").1["details"]["retained_jobs"],
+        0
+    );
+    f.stop();
+}

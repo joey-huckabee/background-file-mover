@@ -56,6 +56,13 @@ impl Pool {
         guard: Arc<mover_fs::InstanceGuard>,
         lifecycle: Arc<Lifecycle>,
     ) -> Result<Self> {
+        Self::start_checked(guard, lifecycle, |_| Ok(()))
+    }
+    fn start_checked(
+        guard: Arc<mover_fs::InstanceGuard>,
+        lifecycle: Arc<Lifecycle>,
+        before_spawn: impl Fn(usize) -> Result<()>,
+    ) -> Result<Self> {
         // Construct the owner first: every later error runs the same close/join
         // path, including partial thread startup and runtime readiness failure.
         let mut pool = Self {
@@ -67,12 +74,15 @@ impl Pool {
             lifecycle,
             _guard: guard,
         };
-        pool._guard.validate().map_err(|_| "TLS executor instance unavailable")?;
+        pool._guard
+            .validate()
+            .map_err(|_| "TLS executor instance unavailable")?;
         if pool.lifecycle.stop.load(Ordering::Acquire) {
             return Err("TLS executor service stopping".into());
         }
         let (ready_sender, ready) = mpsc::sync_channel(THREADS);
         for index in 0..THREADS {
+            before_spawn(index)?;
             let (sender, receiver) = queue::channel(QUEUE);
             pool.senders.push(sender);
             let guard = pool._guard.clone();
@@ -92,7 +102,8 @@ impl Pool {
                             Ok(runtime) => runtime,
                             Err(_) => {
                                 fail_closed(&quit, &lifecycle);
-                                let _ = ready_sender.try_send(Err("TLS executor runtime unavailable"));
+                                let _ =
+                                    ready_sender.try_send(Err("TLS executor runtime unavailable"));
                                 return;
                             }
                         };
@@ -143,7 +154,10 @@ impl Pool {
         let Ok(permit) = self.slots.clone().try_acquire_owned() else {
             return false;
         };
-        let mut admitted = Admitted { job, _permit: permit };
+        let mut admitted = Admitted {
+            job,
+            _permit: permit,
+        };
         if stopping(&self.quit, &self.lifecycle) {
             return false;
         }
@@ -186,7 +200,11 @@ fn fail_closed(quit: &AtomicBool, lifecycle: &Lifecycle) {
     lifecycle.request_stop();
     quit.store(true, Ordering::Release);
 }
-fn completion(result: std::result::Result<(), JoinError>, quit: &AtomicBool, lifecycle: &Lifecycle) {
+fn completion(
+    result: std::result::Result<(), JoinError>,
+    quit: &AtomicBool,
+    lifecycle: &Lifecycle,
+) {
     if result.is_err_and(|error| error.is_panic()) {
         fail_closed(quit, lifecycle);
     }
@@ -272,13 +290,17 @@ mod tests {
             Self(path)
         }
         fn guard(&self) -> Arc<mover_fs::InstanceGuard> {
-            Arc::new(mover_fs::InstanceGuard::for_database(
-                self.0.join("jobs.sqlite").to_str().unwrap(),
-            ).unwrap())
+            Arc::new(
+                mover_fs::InstanceGuard::for_database(self.0.join("jobs.sqlite").to_str().unwrap())
+                    .unwrap(),
+            )
         }
         fn pool(&self) -> (Pool, Arc<Lifecycle>) {
             let lifecycle = Lifecycle::new(Arc::new(AtomicBool::new(false)), 5);
-            (Pool::start(self.guard(), lifecycle.clone()).unwrap(), lifecycle)
+            (
+                Pool::start(self.guard(), lifecycle.clone()).unwrap(),
+                lifecycle,
+            )
         }
     }
     impl Drop for Fixture {
@@ -357,10 +379,18 @@ mod tests {
             }
         })));
         until(|| entered.load(Ordering::Acquire));
-        tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
-            tokio::time::timeout(Duration::from_secs(1), tokio::time::sleep(Duration::from_millis(10)))
-                .await.unwrap();
-        });
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                tokio::time::timeout(
+                    Duration::from_secs(1),
+                    tokio::time::sleep(Duration::from_millis(10)),
+                )
+                .await
+                .unwrap();
+            });
         assert_eq!(pool.slots.available_permits(), JOBS - 1);
         release.store(true, Ordering::Release);
         drop(pool);
@@ -429,7 +459,10 @@ mod tests {
         let slots = pool.slots.clone();
         let entered = Arc::new(AtomicBool::new(false));
         let release = Arc::new(AtomicBool::new(false));
-        assert!(pool.try_spawn(Box::pin(SlowDrop { entered: entered.clone(), release: release.clone() })));
+        assert!(pool.try_spawn(Box::pin(SlowDrop {
+            entered: entered.clone(),
+            release: release.clone()
+        })));
         stop.request_stop();
         until(|| entered.load(Ordering::Acquire));
         assert_eq!(slots.available_permits(), JOBS - 1);
@@ -480,6 +513,27 @@ mod tests {
         assert!(stop.while_running(|| ()).is_none());
         assert!(!pool.try_spawn(Box::pin(async {})));
         drop(pool);
+    }
+
+    #[test]
+    fn simulated_second_thread_start_failure_closes_the_partial_pool() {
+        let fixture = Fixture::new();
+        let guard = fixture.guard();
+        let lifecycle = Lifecycle::new(Arc::new(AtomicBool::new(false)), 5);
+        let attempted = AtomicUsize::new(0);
+        let result = Pool::start_checked(guard.clone(), lifecycle.clone(), |index| {
+            attempted.fetch_add(1, Ordering::Relaxed);
+            if index == 1 {
+                Err("simulated second thread startup failure".into())
+            } else {
+                Ok(())
+            }
+        });
+        assert!(result.is_err());
+        assert_eq!(attempted.load(Ordering::Relaxed), 2);
+        assert!(lifecycle.while_running(|| ()).is_none());
+        assert_eq!(Arc::strong_count(&guard), 1);
+        assert!(guard.validate().is_ok());
     }
 
     #[test]

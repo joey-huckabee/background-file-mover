@@ -47,3 +47,22 @@ pins, test timings, artifacts, failure packs and cleanup before integration. No
 current passing increment124 evidence qualifies this changed source. Independent
 client interoperability, fresh offline bundle, stale socket shipping lifecycle,
 production NFS/deletion, operational state and all eight FR gates stay separate.
+
+## Source inspection and bounded evaluation
+
+Pinned local registry source (Cargo.lock checksums unchanged) confirms Rustls
+0.23.46 handshake deframing/message bound65,535 bytes and ordinary record buffer
+18,437 bytes. Received plaintext uses16KiB backpressure. Explicit64KiB send
+buffering matches the prior default and is not a receive/handshake or total-memory
+cap. Do not equate six connections with six times one buffer's memory.
+See upstream [deframing](https://raw.githubusercontent.com/rustls/rustls/v/0.23.46/rustls/src/msgs/deframer/buffers.rs),
+[handshake bounds](https://raw.githubusercontent.com/rustls/rustls/v/0.23.46/rustls/src/msgs/deframer/handshake.rs),
+[common state](https://raw.githubusercontent.com/rustls/rustls/v/0.23.46/rustls/src/common_state.rs)
+and [Tokio bridging](https://tokio.rs/tokio/topics/bridging).
+A fixed worker budget also appears in [NGINX's worker configuration](https://nginx.org/en/docs/ngx_core_module.html);
+this is design research, not selecting a proxy or importing its deployment profile.
+
+Independent preflight at8a42fba found no architectural blocker. It required explicit
+pre-TLS expiration checks, nonblocking dispatch, actual thread/guard closure and
+physical registered-session exclusion during reload. These remain implementation
+review and target-test obligations, not a passing qualification statement.

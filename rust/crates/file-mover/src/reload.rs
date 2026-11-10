@@ -309,6 +309,11 @@ impl Backend for Manager {
     }
 }
 impl Lease {
+    /// Scheduling check only: process admission still revalidates the real peer.
+    pub(crate) fn current(&self) -> bool {
+        let a = self.manager.active.lock().expect("TLS active policy");
+        a.generation == self.generation && !self.manager.lifecycle.stop.load(Ordering::Relaxed)
+    }
     pub(crate) fn set_peer(&self, peer: Vec<CertificateDer<'static>>) {
         *self.state.peer.lock().expect("TLS peer") = Some(peer);
     }
