@@ -88,7 +88,9 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 mod binding;
+pub mod account_file;
 pub mod credentials;
+pub mod terminal;
 pub mod ingress;
 /// SHA-256 in the existing qualified software provider, formatted as canonical hex.
 pub fn sha256_hex(bytes: &[u8]) -> String {
