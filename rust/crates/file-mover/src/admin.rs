@@ -43,6 +43,25 @@ impl AdminIngress {
             .collect()
     }
 
+    /// Account directory and credential parents must not overlap a current or
+    /// retained payload root. Called for current roots here and for every
+    /// retained root in the state preflight, before any credential I/O.
+    pub(crate) fn validate_payload_root(&self, root: &str) -> Result<(), &'static str> {
+        let root = Path::new(root);
+        if overlaps(Path::new(&self.account_directory), root) {
+            return Err("admin account directory overlaps payload scope");
+        }
+        for path in self.credential_paths() {
+            let parent = Path::new(path)
+                .parent()
+                .ok_or("credential parent required")?;
+            if overlaps(parent, root) {
+                return Err("admin credentials overlap payload scope");
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn validate(&self, c: &Config) -> Result<(), &'static str> {
         let Some(native) = &c.native_ingress else {
             return Err("admin_ingress requires native_ingress");
@@ -74,10 +93,9 @@ impl AdminIngress {
         let operator = Path::new(native.operator_socket())
             .parent()
             .ok_or("operator parent required")?;
+        self.validate_payload_root(&c.source_root)?;
+        self.validate_payload_root(&c.destination_root)?;
         let mut guarded = vec![state, operator];
-        for root in [&c.source_root, &c.destination_root] {
-            guarded.push(Path::new(root));
-        }
         for path in native.credential_paths() {
             guarded.push(
                 Path::new(path)
@@ -95,12 +113,7 @@ impl AdminIngress {
             let parent = Path::new(path)
                 .parent()
                 .ok_or("credential parent required")?;
-            if overlaps(parent, account)
-                || overlaps(parent, state)
-                || overlaps(parent, operator)
-                || overlaps(parent, Path::new(&c.source_root))
-                || overlaps(parent, Path::new(&c.destination_root))
-            {
+            if overlaps(parent, account) || overlaps(parent, state) || overlaps(parent, operator) {
                 return Err(
                     "admin credentials must be separate from account, state, operator and payload",
                 );
@@ -113,7 +126,9 @@ impl AdminIngress {
 /// Loaded startup policy: TLS acceptor, exact origin and the fixed document.
 pub(crate) struct Admin {
     acceptor: tokio_rustls::TlsAcceptor,
-    authority: String,
+    /// Accepted Host values: configured authority, plus the port-less form on 443.
+    hosts: Vec<String>,
+    /// Browser origin serialization (URL Standard): default port omitted.
     origin: String,
     idle_seconds: u32,
     pub(crate) sessions: Sessions,
@@ -148,8 +163,8 @@ impl Prepared {
         Ok(Self {
             admin: Arc::new(Admin {
                 acceptor: tokio_rustls::TlsAcceptor::from(Arc::new(server)),
-                authority: config.authority.clone(),
-                origin: format!("https://{}", config.authority),
+                hosts: browser_authority(&config.authority).0,
+                origin: browser_authority(&config.authority).1,
                 idle_seconds: config.inactivity_timeout_seconds,
                 sessions: Sessions::new(
                     record,
@@ -334,7 +349,9 @@ async fn handle(admin: &Admin, r: &http::Request) -> Reply {
     }
     match header(r, "host") {
         None | Some(b"") => return Reply::error(400, "invalid_http"),
-        Some(host) if host != admin.authority.as_bytes() => return Reply::forbidden(),
+        Some(host) if !admin.hosts.iter().any(|h| h.as_bytes() == host) => {
+            return Reply::forbidden();
+        }
         Some(_) => (),
     }
     match r.head.target.as_slice() {
@@ -503,6 +520,19 @@ fn logout(admin: &Admin, r: &http::Request) -> Reply {
     reply
 }
 
+/// Exact accepted Host values and the browser-serialized origin for a validated
+/// canonical `host:port` authority. Browsers omit `:443` from both Origin and
+/// Host; other ports stay explicit.
+fn browser_authority(authority: &str) -> (Vec<String>, String) {
+    match authority.strip_suffix(":443") {
+        Some(host) => (
+            vec![authority.to_owned(), host.to_owned()],
+            format!("https://{host}"),
+        ),
+        None => (vec![authority.to_owned()], format!("https://{authority}")),
+    }
+}
+
 const TEMPLATE: &str = include_str!("admin/index.html");
 const STYLE: &str = include_str!("admin/admin.css");
 const SCRIPT: &str = include_str!("admin/admin.js");
@@ -585,6 +615,36 @@ mod tests {
         assert!(!csp.contains("unsafe"));
         // The script never writes HTML from data.
         assert!(!SCRIPT.contains("innerHTML") && !SCRIPT.contains("insertAdjacentHTML"));
+    }
+
+    #[test]
+    fn default_https_port_uses_browser_serialization() {
+        assert_eq!(
+            browser_authority("mover.example:443"),
+            (
+                vec!["mover.example:443".to_owned(), "mover.example".to_owned()],
+                "https://mover.example".to_owned()
+            )
+        );
+        assert_eq!(
+            browser_authority("[::1]:443"),
+            (
+                vec!["[::1]:443".to_owned(), "[::1]".to_owned()],
+                "https://[::1]".to_owned()
+            )
+        );
+        assert_eq!(
+            browser_authority("mover.example:9443"),
+            (
+                vec!["mover.example:9443".to_owned()],
+                "https://mover.example:9443".to_owned()
+            )
+        );
+        // A port merely ending in 443 keeps its explicit form.
+        assert_eq!(
+            browser_authority("mover.example:8443").1,
+            "https://mover.example:8443"
+        );
     }
 
     #[test]

@@ -423,3 +423,99 @@ fn invalid_admin_configuration_refuses_before_listening() {
     f.start();
     f.stop();
 }
+
+#[test]
+fn admin_paths_under_retained_payload_roots_refuse_before_credential_io() {
+    let (mut f, _) = admin_fixture();
+    prepare_payload(&f);
+    let input = f.input();
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &input).0, 202);
+    wait_commit(&f);
+    f.stop();
+    let committed = f.root.join(format!("destination/{UUID}"));
+    let snapshot = |dir: &Path| -> Vec<(PathBuf, Vec<u8>)> {
+        let mut out = Vec::new();
+        for e in fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_file() {
+                out.push((p.clone(), fs::read(&p).unwrap()));
+            }
+        }
+        out.sort();
+        out
+    };
+    let before = snapshot(&committed);
+    assert!(!before.is_empty());
+    let good = f.config.clone();
+    // The tracked destination is no longer configured but still retained in state.
+    f.config["destination_root"] = json!(f.root.join("different-destination"));
+    let retained = f.root.join("destination/admin-tls");
+    f.config["admin_ingress"]["server_certificates"] = json!([retained.join("server.der")]);
+    f.config["admin_ingress"]["server_key"] = json!(retained.join("server.key.der"));
+    f.config["admin_ingress"]["server_ca_certificates"] = json!([retained.join("ca.der")]);
+    f.save();
+    let text = f.refuse();
+    assert!(
+        text.contains("admin credentials overlap payload scope"),
+        "{text}"
+    );
+    assert!(!retained.exists());
+    f.config = good.clone();
+    f.config["destination_root"] = json!(f.root.join("different-destination"));
+    f.config["admin_ingress"]["account_directory"] = json!(f.root.join("destination/accounts"));
+    f.save();
+    let text = f.refuse();
+    assert!(
+        text.contains("admin account directory overlaps payload scope"),
+        "{text}"
+    );
+    assert_eq!(snapshot(&committed), before);
+    f.config = good;
+    f.save();
+    f.start();
+    f.stop();
+}
+
+#[test]
+fn admin_connection_flood_does_not_starve_producer_or_operator() {
+    let (mut f, a) = admin_fixture();
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let address = std::net::SocketAddr::from(([127, 0, 0, 1], a.port));
+    let flood: Vec<_> = (0..4)
+        .map(|_| {
+            let stop = stop.clone();
+            std::thread::spawn(move || {
+                let mut opened = 0_u64;
+                while !stop.load(Ordering::Relaxed) {
+                    if std::net::TcpStream::connect_timeout(&address, Duration::from_millis(200))
+                        .is_ok()
+                    {
+                        opened += 1;
+                    }
+                }
+                opened
+            })
+        })
+        .collect();
+    std::thread::sleep(Duration::from_millis(300));
+    let host = format!("localhost:{}", f.address.port());
+    for _ in 0..5 {
+        let started = Instant::now();
+        let reply = f
+            .tls(
+                Some("client"),
+                &rustls::version::TLS13,
+                &request("GET", "/api/v2/jobs", &host, "", &[]),
+            )
+            .expect("producer accepted during admin flood");
+        assert_eq!(reply.0, 405);
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert_eq!(f.operator("/healthz").0, 200);
+    }
+    stop.store(true, Ordering::Relaxed);
+    let opened: u64 = flood.into_iter().map(|t| t.join().unwrap()).sum();
+    assert!(opened > 20, "flood must actually have run: {opened}");
+    // The admin listener still serves after the flood.
+    assert_eq!(a.call("GET", "/", "", &[]).status, 200);
+    f.stop();
+}

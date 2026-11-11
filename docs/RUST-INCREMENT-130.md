@@ -13,7 +13,9 @@ real state. [Setup guide](ADMIN-HTTPS-SETUP.md).
   DER chain/PKCS8 key/trust anchors, account directory and inactivity timeout
   (default 1800 s). Requires `native_ingress`. Path overlap checks keep the
   account directory and admin credentials apart from state, operator, payload and
-  producer credential scopes. Account commands also exclude admin credential parents.
+  producer credential scopes. The state preflight also checks both against every
+  retained payload root before any credential I/O. Account commands also exclude
+  admin credential parents.
 - **Startup.** On the guarded supervisor, after state compatibility: load the
   account through the existing account-file custody checks, validate it against
   the state instance, load and verify the server chain against the authority,
@@ -23,13 +25,17 @@ real state. [Setup guide](ADMIN-HTTPS-SETUP.md).
   credential readers as the producer listener.
 - **Admission.** The listener shares the fixed TLS executor and the global
   8-connection budget, plus a 1-connection admin permit. Permits are taken before
-  TLS work; saturation closes the connection without a plaintext reply. Accept
-  order is private operator, admin, then producer. Handshakes use the existing
+  TLS work; saturation closes the connection without a plaintext reply. The private
+  operator socket is always polled first; admin and producer then alternate
+  priority after each accept, so a flood on either cannot starve the other. Handshakes use the existing
   5-second accepted-time deadline and watchdog.
 - **Routes.** `GET /` (fixed document), `POST /api/v2/admin/login`,
   `GET /api/v2/admin/session`, `POST /api/v2/admin/logout`. Every other target,
   including producer, operator and job routes, is 404. The producer listener
   already refuses admin routes (403) and cookies; the operator socket has no admin routes.
+- **Browser authority.** `Host` must equal the configured authority; on port 443
+  the port-less form is also accepted. Origin uses browser serialization
+  (`https://host` on 443, `https://host:port` otherwise).
 - **Precedence.** Framing → forwarded/identity headers (400) → exact `Host` (403)
   → route/method (404/405) → for session and logout, authentication (401) before
   Origin/CSRF (403). Login checks exact Origin (403) and `application/json` (415)
@@ -85,12 +91,21 @@ Real service over HTTPS (`tests/tls_listener/admin.rs`, SLES gate):
   on the admin listener; admin routes refused on producer and operator audiences.
 - Five-attempt limit then 429 with `Retry-After: 60`, independent of username.
 - Restart clears sessions; logs contain no password, CSRF or session token.
+- Admin credentials or account directory under a retained (no longer configured)
+  destination root refuse startup; committed bytes are unchanged.
+- A sustained admin connection flood does not starve producer requests or the
+  operator socket. Default-port browser serialization is unit-tested.
 
 Design rows covered at service level: A08 (startup part), A12-A15, A20 (rate
 limit), A22-A23, A26 (offline document/CSP; keyboard behavior not browser-tested),
 A27. Still open: A16-A19 races and expiry are proven at unit level only (increment129);
 A21 64-session limit at unit level; A24-A25 TLS saturation/panic paths for the
 admin listener are not separately tested.
+
+Independent review of the first revision found three P2 defects: retained payload
+roots not checked for admin paths, admin accept priority able to starve producers,
+and default-port (443) Origin/Host mismatch with browsers. All three are fixed with
+the regressions above.
 
 ## Validation status
 

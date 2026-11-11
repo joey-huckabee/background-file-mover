@@ -356,6 +356,8 @@ pub(crate) struct Bound {
     listener: TcpListener,
     pub(crate) manager: Option<Arc<crate::reload::Manager>>,
     _reload: Option<crate::tls_reload_ipc::Server>,
+    /// Alternates admin/producer priority so neither flood starves the other.
+    admin_first: std::sync::atomic::AtomicBool,
 }
 impl Prepared {
     pub(crate) fn bind(
@@ -398,6 +400,7 @@ impl Prepared {
             listener: TcpListener::from_std(self.listener)?,
             manager,
             _reload: reload,
+            admin_first: std::sync::atomic::AtomicBool::new(false),
         })
     }
 }
@@ -408,12 +411,14 @@ impl Bound {
     pub(crate) fn address(&self) -> std::io::Result<std::net::SocketAddr> {
         self.listener.local_addr()
     }
-    /// Poll order: private operator, then admin, then producer, so neither a
-    /// producer flood nor an admin flood starves the local operator.
+    /// Poll order: private operator first; then admin and producer alternate
+    /// priority after each accept, so a flood on either TCP listener cannot
+    /// starve the other. Excess connections are still accepted and refused promptly.
     pub(crate) async fn accept(
         &self,
         admin: Option<&TcpListener>,
     ) -> std::io::Result<(ingress::Stream, ingress::Audience)> {
+        use std::sync::atomic::Ordering::Relaxed;
         std::future::poll_fn(|cx| {
             match self.operator.poll_accept(cx) {
                 Poll::Ready(Ok((s, _))) => {
@@ -428,21 +433,32 @@ impl Bound {
                 Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                 Poll::Pending => (),
             }
-            if let Some(admin) = admin {
-                match admin.poll_accept(cx) {
-                    Poll::Ready(Ok((s, _))) => {
-                        return Poll::Ready(Ok((
-                            ingress::Stream::Tcp(s),
-                            ingress::Audience::Admin,
-                        )));
-                    }
-                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
-                    Poll::Pending => (),
+            let poll_admin = |cx: &mut std::task::Context<'_>| {
+                admin.map(|a| {
+                    a.poll_accept(cx).map(|r| {
+                        r.map(|(s, _)| (ingress::Stream::Tcp(s), ingress::Audience::Admin))
+                    })
+                })
+            };
+            let poll_producer = |cx: &mut std::task::Context<'_>| {
+                self.listener.poll_accept(cx).map(|r| {
+                    r.map(|(s, _)| (ingress::Stream::Tcp(s), ingress::Audience::Native(true)))
+                })
+            };
+            let admin_first = self.admin_first.load(Relaxed);
+            for turn in [admin_first, !admin_first] {
+                let ready = if turn {
+                    poll_admin(cx).unwrap_or(Poll::Pending)
+                } else {
+                    poll_producer(cx)
+                };
+                if let Poll::Ready(result) = ready {
+                    // Whoever was just served yields priority to the other.
+                    self.admin_first.store(!turn, Relaxed);
+                    return Poll::Ready(result);
                 }
             }
-            self.listener
-                .poll_accept(cx)
-                .map(|r| r.map(|(s, _)| (ingress::Stream::Tcp(s), ingress::Audience::Native(true))))
+            Poll::Pending
         })
         .await
     }

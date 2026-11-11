@@ -35,11 +35,13 @@ Add an `admin_ingress` section to the service configuration:
 - `bind` is a separate address and port from the producer `bind`. Its port must
   equal the `authority` port. Unlike the producer HTTP mode, it may be non-loopback.
   It is always HTTPS; there is no plaintext mode.
-- `authority` is the exact `host:port` browsers use. Requests with a different
-  `Host`, or a login/logout `Origin` other than `https://` plus this authority,
-  are refused.
+- `authority` is the exact `host:port` browsers use, always with an explicit port.
+  Requests with a different `Host`, or a login/logout `Origin` other than the
+  browser form of this authority, are refused. On port 443 browsers omit the
+  port (`https://host`); that form is accepted.
 - Credential directories must be separate from the account directory, state,
-  operator socket and payload roots. The account directory must also be separate
+  operator socket and payload roots, including destination roots still holding
+  retained jobs from an earlier configuration. The account directory must also be separate
   from the producer credentials.
 - `inactivity_timeout_seconds` defaults to 1800 (30 minutes).
 

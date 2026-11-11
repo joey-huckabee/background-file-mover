@@ -1072,6 +1072,11 @@ pub fn check_state_compatibility(
                 ingress.validate_payload_root(&root)?;
             }
         }
+        if let Some(ingress) = &c.admin_ingress {
+            for root in snapshot.payload_roots()? {
+                ingress.validate_payload_root(&root)?;
+            }
+        }
     }
     instance.validate_database(&c.state_database)?;
     Ok(())
