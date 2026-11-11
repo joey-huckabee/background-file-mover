@@ -233,7 +233,8 @@ impl Sessions {
             // Entropy runs outside the lock; duplicates retry with fresh values.
             let mut token = Zeroizing::new([0_u8; TOKEN_BYTES]);
             let mut csrf = Zeroizing::new([0_u8; TOKEN_BYTES]);
-            let entropy_ok = verified && (self.entropy)(token.as_mut()) && (self.entropy)(csrf.as_mut());
+            let entropy_ok =
+                verified && (self.entropy)(token.as_mut()) && (self.entropy)(csrf.as_mut());
             let mut state = self.lock();
             if state.closed {
                 return Err(LoginError::Unavailable);
@@ -451,18 +452,16 @@ mod tests {
     fn issue(s: &Sessions, now: Instant) -> Result<Issued, LoginError> {
         let ticket = {
             let state = s.lock();
-            Ticket { revision: state.account.revision, generation: state.generation }
+            Ticket {
+                revision: state.account.revision,
+                generation: state.generation,
+            }
         };
         s.finish(ticket, true, now)
     }
 
     fn wait_idle(s: &Sessions) {
-        while s
-            .lock()
-            .worker
-            .as_ref()
-            .is_some_and(|w| !w.is_finished())
-        {
+        while s.lock().worker.as_ref().is_some_and(|w| !w.is_finished()) {
             std::thread::yield_now();
         }
     }
@@ -508,7 +507,8 @@ mod tests {
         );
         assert!(s.shutdown().is_some_and(|w| w.join().is_ok()));
         assert_eq!(
-            s.authorize(&ok.session, None, Activity::Background, now).err(),
+            s.authorize(&ok.session, None, Activity::Background, now)
+                .err(),
             Some(AuthError::Unauthenticated)
         );
     }
@@ -600,19 +600,28 @@ mod tests {
         let s = manager();
         let a = mint(&s, now);
         let b = mint(&s, now);
-        assert!(s.authorize(&a.session, None, Activity::Background, now).is_ok());
+        assert!(
+            s.authorize(&a.session, None, Activity::Background, now)
+                .is_ok()
+        );
         s.logout_all().unwrap();
         for issued in [&a, &b] {
             assert_eq!(
-                s.authorize(&issued.session, Some(&issued.csrf), Activity::Deliberate, now)
-                    .err(),
+                s.authorize(
+                    &issued.session,
+                    Some(&issued.csrf),
+                    Activity::Deliberate,
+                    now
+                )
+                .err(),
                 Some(AuthError::Unauthenticated)
             );
         }
         let c = mint(&s, now);
         s.activate(record(2)).unwrap();
         assert_eq!(
-            s.authorize(&c.session, None, Activity::Background, now).err(),
+            s.authorize(&c.session, None, Activity::Background, now)
+                .err(),
             Some(AuthError::Unauthenticated)
         );
     }
@@ -644,18 +653,32 @@ mod tests {
         let b = mint(&s, t0);
         let near = t0 + idle - Duration::from_secs(1);
         // Background polling just before expiry does not extend either session.
-        assert!(s.authorize(&a.session, None, Activity::Background, near).is_ok());
-        assert!(s.authorize(&b.session, None, Activity::Deliberate, near).is_ok());
+        assert!(
+            s.authorize(&a.session, None, Activity::Background, near)
+                .is_ok()
+        );
+        assert!(
+            s.authorize(&b.session, None, Activity::Deliberate, near)
+                .is_ok()
+        );
         let after = t0 + idle;
         assert_eq!(
-            s.authorize(&a.session, None, Activity::Background, after).err(),
+            s.authorize(&a.session, None, Activity::Background, after)
+                .err(),
             Some(AuthError::Unauthenticated)
         );
-        assert!(s.authorize(&b.session, None, Activity::Background, after).is_ok());
+        assert!(
+            s.authorize(&b.session, None, Activity::Background, after)
+                .is_ok()
+        );
         // An earlier instant never moves activity backwards.
-        assert!(s.authorize(&b.session, None, Activity::Deliberate, t0).is_ok());
+        assert!(
+            s.authorize(&b.session, None, Activity::Deliberate, t0)
+                .is_ok()
+        );
         assert_eq!(
-            s.authorize(&b.session, None, Activity::Background, near + idle).err(),
+            s.authorize(&b.session, None, Activity::Background, near + idle)
+                .err(),
             Some(AuthError::Unauthenticated)
         );
     }
@@ -674,7 +697,10 @@ mod tests {
         assert_eq!(admit(&s, now).err(), Some(LoginError::Busy));
         assert_eq!(s.finish(early, true, now).err(), Some(LoginError::Busy));
         assert_eq!(issue(&s, now).err(), Some(LoginError::Busy));
-        assert!(s.authorize(&first.session, None, Activity::Background, now).is_ok());
+        assert!(
+            s.authorize(&first.session, None, Activity::Background, now)
+                .is_ok()
+        );
         assert_eq!(s.lock().sessions.len(), MAX_SESSIONS);
     }
 
@@ -727,7 +753,8 @@ mod tests {
         assert_eq!(s.logout_all(), Err(ActivationError::Closed));
         assert_eq!(admit(&s, now).err(), Some(LoginError::Unavailable));
         assert_eq!(
-            s.authorize(&a.session, None, Activity::Background, now).err(),
+            s.authorize(&a.session, None, Activity::Background, now)
+                .err(),
             Some(AuthError::Unauthenticated)
         );
     }
@@ -737,7 +764,12 @@ mod tests {
         let bytes = [0xa5_u8; TOKEN_BYTES];
         let text = hex(&bytes);
         assert_eq!(*unhex(&text).unwrap(), bytes);
-        for bad in ["", &text[1..], &format!("{}0", &*text), &text.replace('a', "A")] {
+        for bad in [
+            "",
+            &text[1..],
+            &format!("{}0", &*text),
+            &text.replace('a', "A"),
+        ] {
             assert!(unhex(bad).is_none());
         }
         assert!(unhex(&"g".repeat(64)).is_none());
