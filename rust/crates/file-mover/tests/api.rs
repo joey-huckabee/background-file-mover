@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-#[path="support/account_cli.rs"]
+#[path = "support/account_cli.rs"]
 mod account_tests;
 use std::{
     cell::RefCell,

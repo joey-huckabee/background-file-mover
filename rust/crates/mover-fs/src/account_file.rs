@@ -1,16 +1,21 @@
 //! Offline, cooperative account-file custody. No record parsing or secret logging.
 //! Callers retain InstanceGuard through this object's closure. Same-UID/root
 //! hostile mutation is outside the existing local custody boundary.
-use super::*;
 use super::credentials::{check_file, local, parent_directory, parts, unchanged};
-use std::{io::{Read, Write}, path::{Path, PathBuf}};
+use super::*;
+use std::{
+    io::{Read, Write},
+    path::{Path, PathBuf},
+};
 
 const ACCOUNT: &str = "admin-account.json";
 const NEXT: &str = "admin-account.next";
 const LOCK: &str = "account.lock";
 const LIMIT: usize = 8192;
-const WRITE: OFlags = OFlags::RDWR.union(OFlags::NOFOLLOW)
-    .union(OFlags::NONBLOCK).union(OFlags::CLOEXEC);
+const WRITE: OFlags = OFlags::RDWR
+    .union(OFlags::NOFOLLOW)
+    .union(OFlags::NONBLOCK)
+    .union(OFlags::CLOEXEC);
 const PRIVATE: Mode = Mode::RUSR.union(Mode::WUSR);
 
 pub struct AccountDirectory {
@@ -49,17 +54,24 @@ fn mounts(path: &Path) -> Result<()> {
 pub fn open(directory: &str, excluded: &[String]) -> Result<AccountDirectory> {
     let (path, _) = parts(&format!("{directory}/{ACCOUNT}"), LIMIT)?;
     for exclusion in excluded {
-        if !exclusion.starts_with('/') || exclusion.len() > 4095
-            || (exclusion != "/" && exclusion[1..].split('/').any(|p| {
-                p.is_empty() || p == "." || p == ".." || p.contains('\\')
-                    || p.chars().any(char::is_control)
-            }))
+        if !exclusion.starts_with('/')
+            || exclusion.len() > 4095
+            || (exclusion != "/"
+                && exclusion[1..].split('/').any(|p| {
+                    p.is_empty()
+                        || p == "."
+                        || p == ".."
+                        || p.contains('\\')
+                        || p.chars().any(char::is_control)
+                }))
         {
             return Err(ClaimError::Blocked("invalid account exclusion"));
         }
         let exclusion = Path::new(exclusion);
         if path.starts_with(exclusion) || exclusion.starts_with(&path) {
-            return Err(ClaimError::Blocked("account directory overlaps excluded scope"));
+            return Err(ClaimError::Blocked(
+                "account directory overlaps excluded scope",
+            ));
         }
     }
     let (uid, gid) = super::ingress::local_user_ids();
@@ -71,25 +83,39 @@ pub fn open(directory: &str, excluded: &[String]) -> Result<AccountDirectory> {
     let directory = parent_directory(&path, uid, gid)?;
     let original = fs::fstat(&directory)?;
     if named(&directory, NEXT)?.is_some() {
-        return Err(ClaimError::Blocked("account staging exists; preserve and review"));
+        return Err(ClaimError::Blocked(
+            "account staging exists; preserve and review",
+        ));
     }
     let before = named(&directory, LOCK)?;
     if let Some(stat) = &before {
         check_file(stat, 0, true, uid)?;
     }
-    let flags = if before.is_some() { WRITE } else { WRITE | OFlags::CREATE | OFlags::EXCL };
+    let flags = if before.is_some() {
+        WRITE
+    } else {
+        WRITE | OFlags::CREATE | OFlags::EXCL
+    };
     let lock = fs::openat(&directory, LOCK, flags, PRIVATE)?;
     let lock_original = fs::fstat(&lock)?;
     check_file(&lock_original, 0, true, uid)?;
     local(&lock)?;
     if lock_original.st_dev != original.st_dev
-        || before.as_ref().is_some_and(|stat| !unchanged(stat, &lock_original))
+        || before
+            .as_ref()
+            .is_some_and(|stat| !unchanged(stat, &lock_original))
     {
         return Err(ClaimError::Blocked("account lock custody changed"));
     }
     fs::flock(&lock, fs::FlockOperation::NonBlockingLockExclusive)?;
     let account = AccountDirectory {
-        directory, path, original, lock, lock_original, uid, gid,
+        directory,
+        path,
+        original,
+        lock,
+        lock_original,
+        uid,
+        gid,
         #[cfg(test)]
         fault: std::cell::Cell::new(None),
     };
@@ -115,7 +141,8 @@ impl AccountDirectory {
         if !same_inode(&self.original, &held)
             || !same_inode(&held, &fs::fstat(&reopened)?)
             || held.st_mode != self.original.st_mode
-            || held.st_uid != self.uid || held.st_gid != self.gid
+            || held.st_uid != self.uid
+            || held.st_gid != self.gid
             || super::ingress::local_user_ids() != (self.uid, self.gid)
         {
             return Err(ClaimError::Blocked("account parent custody changed"));
@@ -137,7 +164,9 @@ impl AccountDirectory {
     }
 
     fn read_named(&self) -> Result<Option<(Vec<u8>, Stat)>> {
-        let Some(before) = named(&self.directory, ACCOUNT)? else { return Ok(None) };
+        let Some(before) = named(&self.directory, ACCOUNT)? else {
+            return Ok(None);
+        };
         check_file(&before, LIMIT, true, self.uid)?;
         if before.st_dev != self.original.st_dev {
             return Err(ClaimError::Blocked("account device changed"));
@@ -151,13 +180,17 @@ impl AccountDirectory {
         }
         let mut file = std::fs::File::from(fd);
         let mut bytes = Vec::new();
-        (&mut file).take((LIMIT + 1) as u64).read_to_end(&mut bytes)
+        (&mut file)
+            .take((LIMIT + 1) as u64)
+            .read_to_end(&mut bytes)
             .map_err(|_| ClaimError::Blocked("account read refused"))?;
         let after = fs::fstat(&file)?;
         let final_name = named(&self.directory, ACCOUNT)?
             .ok_or(ClaimError::Blocked("account disappeared during read"))?;
-        if bytes.len() > LIMIT || bytes.len() as u64 != opened.st_size as u64
-            || !unchanged(&opened, &after) || !unchanged(&after, &final_name)
+        if bytes.len() > LIMIT
+            || bytes.len() as u64 != opened.st_size as u64
+            || !unchanged(&opened, &after)
+            || !unchanged(&after, &final_name)
         {
             return Err(ClaimError::Blocked("account changed during read"));
         }
@@ -183,7 +216,12 @@ impl AccountDirectory {
         if old.as_ref().map(|(bytes, _)| bytes.as_slice()) != expected {
             return Err(ClaimError::Blocked("account expected contents differ"));
         }
-        let stage = fs::openat(&self.directory, NEXT, WRITE | OFlags::CREATE | OFlags::EXCL, PRIVATE)?;
+        let stage = fs::openat(
+            &self.directory,
+            NEXT,
+            WRITE | OFlags::CREATE | OFlags::EXCL,
+            PRIVATE,
+        )?;
         let mut file = std::fs::File::from(stage);
         // Capture the actual created inode even if later mode/write/sync checks fail.
         let created = fs::fstat(&file)?;
@@ -193,7 +231,8 @@ impl AccountDirectory {
             if created.st_dev != self.original.st_dev {
                 return Err(ClaimError::Blocked("account staging device changed"));
             }
-            file.write_all(bytes).map_err(|_| ClaimError::Blocked("account write refused"))?;
+            file.write_all(bytes)
+                .map_err(|_| ClaimError::Blocked("account write refused"))?;
             #[cfg(test)]
             self.fail(Fault::FileSync)?;
             fs::fsync(&file)?;
@@ -219,7 +258,11 @@ impl AccountDirectory {
             match (&old, named(&self.directory, ACCOUNT)?) {
                 (None, None) => (),
                 (Some((_, before)), Some(after)) if unchanged(before, &after) => (),
-                _ => return Err(ClaimError::Blocked("account name changed before publication")),
+                _ => {
+                    return Err(ClaimError::Blocked(
+                        "account name changed before publication",
+                    ));
+                }
             }
             Ok(ready)
         })();
@@ -234,7 +277,13 @@ impl AccountDirectory {
         // error. Never clean the staging alias after a possibly completed link.
         let published = (|| -> Result<()> {
             if expected.is_none() {
-                fs::linkat(&self.directory, NEXT, &self.directory, ACCOUNT, AtFlags::empty())?;
+                fs::linkat(
+                    &self.directory,
+                    NEXT,
+                    &self.directory,
+                    ACCOUNT,
+                    AtFlags::empty(),
+                )?;
                 #[cfg(test)]
                 self.fail(Fault::AfterPublish)?;
                 // link changes ctime/nlink: verify both exact aliases before unlink.
@@ -249,8 +298,7 @@ impl AccountDirectory {
             self.fail(Fault::ParentSync)?;
             fs::fsync(&self.directory)?;
             self.validate(None)?;
-            let (actual, stat) = self.read_named()?
-                .ok_or(ClaimError::OutcomeUncertain)?;
+            let (actual, stat) = self.read_named()?.ok_or(ClaimError::OutcomeUncertain)?;
             if actual != bytes || !same_inode(&stat, &ready) {
                 return Err(ClaimError::OutcomeUncertain);
             }
@@ -263,8 +311,10 @@ impl AccountDirectory {
         let held = fs::fstat(file)?;
         // Validate exact owned inode; unknown staging is never removed.
         self.validate(Some(&held))?;
-        if !same_inode(created, &held) || held.st_nlink != 1
-            || held.st_uid != self.uid || FileType::from_raw_mode(held.st_mode) != FileType::RegularFile
+        if !same_inode(created, &held)
+            || held.st_nlink != 1
+            || held.st_uid != self.uid
+            || FileType::from_raw_mode(held.st_mode) != FileType::RegularFile
         {
             return Err(ClaimError::Blocked("account staging cleanup refused"));
         }
@@ -278,12 +328,14 @@ impl AccountDirectory {
         // validate accepts the now two-link staging stat but still checks the
         // unchanged persistent lock, parent, mount inventory and exact name.
         self.validate(Some(&held))?;
-        let final_name = named(&self.directory, ACCOUNT)?
-            .ok_or(ClaimError::OutcomeUncertain)?;
-        if !same_inode(ready, &held) || held.st_nlink != 2
+        let final_name = named(&self.directory, ACCOUNT)?.ok_or(ClaimError::OutcomeUncertain)?;
+        if !same_inode(ready, &held)
+            || held.st_nlink != 2
             || !unchanged(&held, &final_name)
-            || held.st_mode != ready.st_mode || held.st_uid != ready.st_uid
-            || held.st_gid != ready.st_gid || held.st_size != ready.st_size
+            || held.st_mode != ready.st_mode
+            || held.st_uid != ready.st_uid
+            || held.st_gid != ready.st_gid
+            || held.st_size != ready.st_size
         {
             return Err(ClaimError::OutcomeUncertain);
         }
@@ -301,7 +353,12 @@ impl AccountDirectory {
 
 #[cfg(test)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Fault { FileSync, BeforePublish, AfterPublish, ParentSync }
+enum Fault {
+    FileSync,
+    BeforePublish,
+    AfterPublish,
+    ParentSync,
+}
 
 #[cfg(test)]
 mod tests {
@@ -316,8 +373,11 @@ mod tests {
             let (uid, gid) = super::super::ingress::local_user_ids();
             assert_ne!(uid, 0, "account tests require non-root gate account");
             assert_ne!(gid, 0, "account tests require non-root primary group");
-            let path = std::env::temp_dir().join(format!("account-file-{}-{}",
-                std::process::id(), NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)));
+            let path = std::env::temp_dir().join(format!(
+                "account-file-{}-{}",
+                std::process::id(),
+                NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)
+            ));
             std::fs::create_dir(&path).unwrap();
             std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
             Self(path)
@@ -327,7 +387,8 @@ mod tests {
         }
         fn write(&self, name: &str, bytes: &[u8], mode: u32) {
             std::fs::write(self.0.join(name), bytes).unwrap();
-            std::fs::set_permissions(self.0.join(name), std::fs::Permissions::from_mode(mode)).unwrap();
+            std::fs::set_permissions(self.0.join(name), std::fs::Permissions::from_mode(mode))
+                .unwrap();
         }
     }
     impl Drop for Fixture {
@@ -346,7 +407,14 @@ mod tests {
         assert_eq!(a.read().unwrap().unwrap(), b"first\0\xff");
         a.publish(b"second", Some(b"first\0\xff")).unwrap();
         assert_eq!(a.read().unwrap().unwrap(), b"second");
-        assert_eq!(std::fs::metadata(f.0.join(ACCOUNT)).unwrap().permissions().mode() & 0o7777, 0o600);
+        assert_eq!(
+            std::fs::metadata(f.0.join(ACCOUNT))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o7777,
+            0o600
+        );
         assert_eq!(std::fs::metadata(f.0.join(ACCOUNT)).unwrap().nlink(), 1);
         assert!(!f.0.join(NEXT).exists());
         drop(a);
@@ -391,10 +459,20 @@ mod tests {
     #[test]
     fn refuses_noncanonical_overlapping_and_unsafe_parent_paths() {
         let f = Fixture::new();
-        for path in ["relative", "/", "/tmp/../account", "/tmp//account", "/tmp/account/"] {
+        for path in [
+            "relative",
+            "/",
+            "/tmp/../account",
+            "/tmp//account",
+            "/tmp/account/",
+        ] {
             assert!(open(path, &[]).is_err());
         }
-        for excluded in [f.0.clone(), f.0.parent().unwrap().into(), f.0.join("nested")] {
+        for excluded in [
+            f.0.clone(),
+            f.0.parent().unwrap().into(),
+            f.0.join("nested"),
+        ] {
             assert!(open(f.0.to_str().unwrap(), &[excluded.to_str().unwrap().into()]).is_err());
         }
         assert!(open(f.0.to_str().unwrap(), &["relative".into()]).is_err());
@@ -463,7 +541,13 @@ mod tests {
     fn cleanup_refuses_a_substituted_staging_inode() {
         let f = Fixture::new();
         let a = f.open();
-        let fd = fs::openat(&a.directory, NEXT, WRITE | OFlags::CREATE | OFlags::EXCL, PRIVATE).unwrap();
+        let fd = fs::openat(
+            &a.directory,
+            NEXT,
+            WRITE | OFlags::CREATE | OFlags::EXCL,
+            PRIVATE,
+        )
+        .unwrap();
         let file = std::fs::File::from(fd);
         let created = fs::fstat(&file).unwrap();
         std::fs::rename(f.0.join(NEXT), f.0.join("retained-stage")).unwrap();
@@ -494,9 +578,15 @@ mod tests {
             for fault in [Fault::FileSync, Fault::BeforePublish] {
                 let f = Fixture::new();
                 let a = f.open();
-                if replacement { a.publish(b"old", None).unwrap(); }
+                if replacement {
+                    a.publish(b"old", None).unwrap();
+                }
                 a.fault.set(Some(fault));
-                let expected = if replacement { Some(b"old".as_slice()) } else { None };
+                let expected = if replacement {
+                    Some(b"old".as_slice())
+                } else {
+                    None
+                };
                 let result = a.publish(b"new", expected);
                 assert!(result.is_err());
                 assert!(!matches!(result, Err(ClaimError::OutcomeUncertain)));
@@ -512,10 +602,19 @@ mod tests {
             for fault in [Fault::AfterPublish, Fault::ParentSync] {
                 let f = Fixture::new();
                 let a = f.open();
-                if replacement { a.publish(b"old", None).unwrap(); }
+                if replacement {
+                    a.publish(b"old", None).unwrap();
+                }
                 a.fault.set(Some(fault));
-                let expected = if replacement { Some(b"old".as_slice()) } else { None };
-                assert!(matches!(a.publish(b"new", expected), Err(ClaimError::OutcomeUncertain)));
+                let expected = if replacement {
+                    Some(b"old".as_slice())
+                } else {
+                    None
+                };
+                assert!(matches!(
+                    a.publish(b"new", expected),
+                    Err(ClaimError::OutcomeUncertain)
+                ));
                 assert_eq!(std::fs::read(f.0.join(ACCOUNT)).unwrap(), b"new");
                 if !replacement && fault == Fault::AfterPublish {
                     assert_eq!(std::fs::metadata(f.0.join(ACCOUNT)).unwrap().nlink(), 2);

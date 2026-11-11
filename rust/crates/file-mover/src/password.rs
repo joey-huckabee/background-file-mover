@@ -28,7 +28,9 @@ pub enum Error {
 /// No Debug/Display/Serialize/Clone: do not accidentally emit or duplicate secrets.
 pub struct Password(Zeroizing<Vec<u8>>);
 impl Password {
-    pub(crate) fn expose_for_local_transport(&self)->&[u8]{&self.0}
+    pub(crate) fn expose_for_local_transport(&self) -> &[u8] {
+        &self.0
+    }
     pub fn new(bytes: Vec<u8>) -> Result<Self, Error> {
         let bytes = Zeroizing::new(bytes);
         if bytes.is_empty() || bytes.len() > MAX_PASSWORD || std::str::from_utf8(&bytes).is_err() {
