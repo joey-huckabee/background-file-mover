@@ -29,6 +29,10 @@ an admin listener, login, sessions or the dashboard's service connection.
 - Default foreground TTY input hides username and both password entries, bounds
   bytes and time, handles catchable signals, flushes unread input and restores
   saved terminal settings. SIGKILL/host crashes cannot run restoration.
+  Ordinary host devtmpfs and the observed OCI devtmpfs `/tty` bind are supported
+  only after pre-open mount checks and opened character-device5:0/foreground-group
+  validation. Remote/wrong leaves and effective aliases refuse. Account/credential
+  storage mount policies are unchanged.
 - Explicit nonterminal --stdin uses strict bounded UTF-8 JSON, rejecting duplicate
   and unknown fields. No password argv/environment option. Secret-owning buffers
   are zeroizing; this is not proof of erasure of every allocator/kernel copy.
@@ -44,12 +48,66 @@ commands, offline service requirement, automation, terminal repair and uncertain
 
 ## Validation status
 
-Pending final qualification. Twelve portable account-driver tests and five
-SLES-gate safety tests pass. Independent review findings about queued terminal
-input, status revision representation and cleanup ownership have been addressed
-and reviewed without additional actionable findings. Full production and
-qualification modes, actual-target PTY execution and final evidence remain pending.
-Superseded compile failures and interrupted runs are not qualification passes.
+PR21 CI run [42970695084](https://github.com/joey-huckabee/background-file-mover/actions/runs/42970695084)
+passes both full modes: production **344 tests per debug/release profile** and
+qualification **348/profile**. Its production job also passes all **10 account
+PTY cases**, protected ingress and **140 independent HTTPS client operations**.
+Downloaded production/qualification reports and all four native compiler audits
+were checked. All 89 production Rust input hashes match the committed source;
+the synthetic CI checkout has the same Rust tree. CI executable bytes were not
+uploaded for an independent coordinator rehash.
+
+Twelve portable account-driver tests and five SLES-gate safety tests pass.
+Independent review findings about queued input, revision representation, cleanup
+ownership and host/container terminal mounts have been addressed and reviewed.
+The retained local test logs contain **344 passes in each profile**, and the
+console printed PASSED. No final `report.json` survived the WSL restart. The
+runner prints that console line before cleanup/report finalization, so the local
+pack is explicitly **unfinalized**; no reconstructed local gate pass is claimed.
+Qualification comes from the completed CI gates above. Independent review found
+no scope conflict with that evidence boundary.
+
+The coordinator independently compared all **89 archived Rust inputs**, rehashed
+all **22 retained executables**, rechecked their ELF/test logs and reproduced both
+native compiler audits. All **11 release executables** are byte-identical to the
+CI-qualified release set. Debug hashes differ; no debug reproducibility claim is
+made. A fresh, separately labeled retained-binary diagnostic replay passes all
+**10 terminal cases** with cleanup. It does not replace the registered checker's
+full-gate prerequisite. The registered checker correctly refused the unfinalized
+local pack; its refusal is preserved rather than overwritten.
+
+[Machine-readable evidence](ADMIN-ACCOUNT-EVIDENCE.json) binds exact CI reports,
+source/pins, native audits, retained artifacts and diagnostic results. The replay
+driver's exact bytes/base64, encoding and hash are retained. Superseded compile
+failures, interrupted runs and the earlier failed fixture check are not counted
+as qualification passes. No raw terminal capture, password, PHC verifier or private
+equality token is included in the public evidence.
+
+## Reproduce on the validation host
+
+These are build/test-host commands, not additional account-setup dependencies
+for the installed service host. Use the existing pinned cargo-libc/SLES workflow
+and disposable state; never operational credentials or roots.
+
+```sh
+python3 -m unittest discover -s scripts -p test_admin_account.py
+python3 scripts/check-rust-sles.py
+python3 scripts/check-rust-sles.py --qualification
+python3 scripts/check-admin-account.py --production-gate rust/validation/FULL_PRODUCTION_RUN --report rust/validation/NEW_ACCOUNT_REPORT.json
+```
+
+The account checker requires a passed full production gate matching committed
+Rust inputs and actual executable/ELF hashes. Its report must be new. Require the
+final passed gate report and clean cleanup: a console PASSED line precedes those
+finalization steps and is insufficient by itself. It creates
+fresh private container fixtures with UID1000:GID1001, network disabled, zero
+capabilities and no-new-privileges. It checks hidden input, exact terminal-flag
+restoration, unchanged credentials on mismatch/interruption and revision advance
+on successful change. Raw terminal/CLI captures, passwords, verifier bytes and
+private equality tokens are discarded rather than published. Initialization and
+password change use the installed executable with a controlling terminal or
+explicit private stdin; status is noninteractive and takes no password input.
+These commands do not require Python, Perl or a Rust toolchain.
 
 ## Limits and next boundary
 

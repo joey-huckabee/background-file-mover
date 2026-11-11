@@ -38,6 +38,13 @@ executor isolation; its full local modes and source CI pass.
 see the [client guide](docs/NATIVE-HTTPS-CLIENTS.md). Wider client, offline-bundle
 and shipping qualification remain separate.
 
+[Increment127](docs/RUST-INCREMENT-127.md) provides the qualified password
+primitive. [Increment128](docs/RUST-INCREMENT-128.md) adds guarded offline account
+initialization, password change and status; follow the
+[account setup guide](docs/ADMIN-ACCOUNT-SETUP.md). Stop the mover and wait for
+surviving workers before these commands. Browser login, sessions and the separate
+admin HTTPS listener remain subsequent work.
+
 The [dashboard concept](docs/dashboard/mockup.html) and
 [backend map](docs/dashboard/BACKEND-MAP.md) guide the admin implementation.
 [Increment127](docs/RUST-INCREMENT-127.md) adds the approved password-verifier
