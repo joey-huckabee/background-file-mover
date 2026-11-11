@@ -20,7 +20,7 @@ struct Credential {
     gid: u32,
 }
 
-fn parts(path: &str, maximum: usize) -> Result<(PathBuf, String)> {
+pub(super) fn parts(path: &str, maximum: usize) -> Result<(PathBuf, String)> {
     if maximum == 0
         || maximum > MAXIMUM
         || !path.starts_with('/')
@@ -47,7 +47,7 @@ fn parts(path: &str, maximum: usize) -> Result<(PathBuf, String)> {
     Ok((parent.into(), name.into()))
 }
 
-fn local(fd: &impl rustix::fd::AsFd) -> Result<()> {
+pub(super) fn local(fd: &impl rustix::fd::AsFd) -> Result<()> {
     // Never enable NFS here, including in qualification builds.
     if ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(fd)?.f_type) {
         return Err(ClaimError::Blocked("credential filesystem refused"));
@@ -55,7 +55,7 @@ fn local(fd: &impl rustix::fd::AsFd) -> Result<()> {
     Ok(())
 }
 
-fn parent_directory(path: &Path, uid: u32, gid: u32) -> Result<OwnedFd> {
+pub(super) fn parent_directory(path: &Path, uid: u32, gid: u32) -> Result<OwnedFd> {
     // Proc mount metadata must be inspected before configured pathname I/O.
     super::instance::ingress_local(path)?;
     let mut directory = fs::open("/", DIRECTORY, Mode::empty())?;
@@ -82,7 +82,7 @@ fn parent_directory(path: &Path, uid: u32, gid: u32) -> Result<OwnedFd> {
     Ok(directory)
 }
 
-fn check_file(stat: &Stat, maximum: usize, private: bool, uid: u32) -> Result<()> {
+pub(super) fn check_file(stat: &Stat, maximum: usize, private: bool, uid: u32) -> Result<()> {
     let mode = stat.st_mode & 0o7777;
     let allowed_mode = if private {
         mode == 0o600
@@ -101,7 +101,7 @@ fn check_file(stat: &Stat, maximum: usize, private: bool, uid: u32) -> Result<()
 }
 
 // Reading may update atime; content/custody changes must still refuse.
-fn unchanged(first: &Stat, second: &Stat) -> bool {
+pub(super) fn unchanged(first: &Stat, second: &Stat) -> bool {
     first.st_dev == second.st_dev
         && first.st_ino == second.st_ino
         && first.st_mode == second.st_mode

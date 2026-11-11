@@ -1,4 +1,6 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
+pub mod account;
+pub mod account_cli;
 pub mod bootstrap;
 pub mod claim_worker;
 pub mod control;

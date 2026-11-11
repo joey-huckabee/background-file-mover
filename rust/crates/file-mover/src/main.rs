@@ -4,6 +4,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Some(path) = args.next() else {
         return Err("usage: file-mover CONFIG.json | --check-platform".into());
     };
+    if path == "--internal-admin-account-worker" {
+        let action = args
+            .next()
+            .and_then(|a| file_mover::account_cli::Action::from_flag(&a))
+            .ok_or("account action required")?;
+        let config_path = args.next().ok_or("configuration path required")?;
+        let config = read_config(&config_path)?;
+        return file_mover::account_cli::worker(config, action, args.collect());
+    }
+    if let Some(action) = file_mover::account_cli::Action::from_flag(&path) {
+        let config_path = args.next().ok_or("configuration path required")?;
+        return file_mover::account_cli::run(config_path, action, args.collect());
+    }
     if path == "--internal-source-space-worker" {
         if args.next().is_some() {
             return Err("internal worker takes no arguments".into());

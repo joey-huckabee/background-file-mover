@@ -515,6 +515,69 @@ pub(crate) fn ingress_local(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+// The controlling terminal is a kernel device, not credential storage. Real
+// hosts use devtmpfs; container fixtures commonly use tmpfs. Keep this exception
+// restricted to the fixed terminal path and retain pre-open remote/alias refusal.
+pub(crate) fn terminal_local() -> Result<()> {
+    terminal_mounts_local(&mount_inventory()?)
+}
+fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
+    let path = Path::new("/dev/tty");
+    let mut mounts = Vec::new();
+    for line in inventory.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
+        let mount = parse_mounts(line)?.remove(0);
+        let fields: Vec<_> = line.split(|b| *b == b' ').collect();
+        let separator = fields
+            .iter()
+            .position(|f| *f == b"-")
+            .ok_or(ClaimError::Blocked("invalid terminal mount inventory"))?;
+        let kind = fields
+            .get(separator + 1)
+            .ok_or(ClaimError::Blocked("invalid terminal mount inventory"))?;
+        if path.starts_with(&mount)
+            && ![
+                b"ext2".as_slice(),
+                b"ext3",
+                b"ext4",
+                b"tmpfs",
+                b"overlay",
+                b"devtmpfs",
+                b"btrfs",
+                b"xfs",
+                b"rootfs",
+                b"ramfs",
+            ]
+            .contains(kind)
+        {
+            return Err(ClaimError::Blocked("terminal requires local device path"));
+        }
+        let kernel_tty = path == mount.as_path() && *kind == b"devtmpfs" && fields[3] == b"/tty";
+        mounts.push((mount, fields[2], fields[3], kernel_tty));
+    }
+    if mounts.is_empty() {
+        return Err(ClaimError::Blocked("empty terminal mount inventory"));
+    }
+    // Alias/root custody concerns the filesystem supplying the terminal. Earlier
+    // local ancestors may be Btrfs subvolumes and are hidden by a separate /dev.
+    // Every traversed filesystem was still checked above before any named I/O.
+    let effective = mounts
+        .iter()
+        .filter(|(mount, _, _, _)| path.starts_with(mount))
+        .max_by_key(|(mount, _, _, _)| mount.as_os_str().len())
+        .ok_or(ClaimError::Blocked("terminal mount missing"))?;
+    for (mount, device, root, kernel_tty) in &mounts {
+        if (path == mount && !kernel_tty)
+            || (mount == &effective.0
+                && ((*root != b"/" && !kernel_tty)
+                    || mounts
+                        .iter()
+                        .any(|(other, d, r, _)| other != mount && d == device && r == root)))
+        {
+            return Err(ClaimError::Blocked("terminal mount/alias custody"));
+        }
+    }
+    Ok(())
+}
 fn parse_mounts(bytes: &[u8]) -> Result<Vec<std::path::PathBuf>> {
     use std::os::unix::ffi::OsStringExt;
     let mut result = Vec::new();
@@ -578,6 +641,35 @@ fn checked(s: &Stat) -> Result<ObjectIdentity> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn terminal_mount_policy_accepts_host_devices_without_widening_storage_policy() {
+        let host =
+            b"1 0 8:1 / / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
+        assert!(super::terminal_mounts_local(host).is_ok());
+        let subvolume =
+            b"1 0 8:1 /@ / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
+        assert!(super::terminal_mounts_local(subvolume).is_ok());
+        let container =
+            b"1 0 0:1 / / rw - overlay overlay rw\n2 1 0:5 / /dev rw - tmpfs tmpfs rw\n";
+        assert!(super::terminal_mounts_local(container).is_ok());
+        let mut bound_tty = container.to_vec();
+        bound_tty.extend_from_slice(b"3 2 0:6 /tty /dev/tty rw - devtmpfs devtmpfs rw\n");
+        assert!(super::terminal_mounts_local(&bound_tty).is_ok());
+        for leaf in [
+            b"3 2 0:9 / /dev/tty rw - nfs server:/tty rw\n".as_slice(),
+            b"3 2 0:9 / /dev/tty rw - tmpfs tmpfs rw\n",
+            b"3 2 0:9 /null /dev/tty rw - devtmpfs devtmpfs rw\n",
+            b"3 2 0:5 / /alias rw - devtmpfs devtmpfs rw\n",
+            b"3 2 0:9 / /dev rw - nfs server:/dev rw\n",
+        ] {
+            let mut inventory = host.to_vec();
+            inventory.extend_from_slice(leaf);
+            assert!(super::terminal_mounts_local(&inventory).is_err());
+        }
+        assert!(super::terminal_mounts_local(b"").is_err());
+        assert!(super::terminal_mounts_local(b"malformed").is_err());
+    }
+
     use super::*;
     use std::os::unix::fs::PermissionsExt;
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
