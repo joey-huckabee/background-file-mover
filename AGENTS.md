@@ -2,6 +2,16 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-10 admin password-library authorization: the user says "yes, add them
+and go ahead" after the reviewed admin/session design and exact five-package
+Argon2id proposal. Implement the bounded verifier/dependency proof first, with
+both SLES modes and independent review, then proceed through the documented
+guarded account/session integration increments. Preserve separate admin HTTPS,
+producer mTLS and private operator/control audiences; global session invalidation
+does not alter admitted transfers. No real credentials/state, deployment,
+production NFS/deletion or full release. See docs/RUST-INCREMENT-127.md for
+actual implementation/validation status; a password primitive is not admin access.
+
 
 2026-11-10 independent-client authorization: the user says "yes, proceed with
 the client testing" after increment125/PR14-15. Test the current production

@@ -249,6 +249,7 @@ def main() -> int:
             "sha2": integrity["sha2_features"],
         }
         qualified_features.update(evidence["tls_selected_features"])
+        qualified_features.update(evidence["password_selected_features"])
         nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
         report["workspace_features"] = {}
         for package in metadata["packages"]:

@@ -8,6 +8,7 @@ pub mod enrollment;
 mod http;
 pub mod ingress;
 pub mod native;
+pub mod password;
 pub mod payload;
 mod reload;
 pub mod source_space;

@@ -1,6 +1,18 @@
 {
   "dependencies": [
     {
+      "name": "argon2",
+      "version": "0.5.3",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "alloc",
+        "password-hash",
+        "std",
+        "zeroize"
+      ],
+      "checksum": "3c3610892ee6e0cbce8ae2700349fcf8f98adb0dbfbee85aec3c9179d29cc072"
+    },
+    {
       "name": "aws-lc-rs",
       "version": "1.19.0",
       "license": "ISC AND (Apache-2.0 OR ISC)",
@@ -20,12 +32,29 @@
       "checksum": "8bfbe32ac36b3c428696ce315464181bc4029d689fd58e3f2a4e58c252242f52"
     },
     {
+      "name": "base64ct",
+      "version": "1.8.3",
+      "license": "Apache-2.0 OR MIT",
+      "features": [
+        "alloc",
+        "std"
+      ],
+      "checksum": "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
+    },
+    {
       "name": "bitflags",
       "version": "2.13.2",
       "license": "MIT OR Apache-2.0",
       "features": [
         "std"
       ]
+    },
+    {
+      "name": "blake2",
+      "version": "0.10.6",
+      "license": "MIT OR Apache-2.0",
+      "features": [],
+      "checksum": "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe"
     },
     {
       "name": "bytes",
@@ -191,6 +220,18 @@
       "checksum": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
     },
     {
+      "name": "password-hash",
+      "version": "0.5.0",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "alloc",
+        "default",
+        "rand_core",
+        "std"
+      ],
+      "checksum": "346f04948ba92c43e8469c1ee6736c7563d71012b17d40745260fe106aac2166"
+    },
+    {
       "name": "pin-project-lite",
       "version": "0.2.17",
       "license": "Apache-2.0 OR MIT",
@@ -217,6 +258,17 @@
       "features": [
         "proc-macro"
       ]
+    },
+    {
+      "name": "rand_core",
+      "version": "0.6.4",
+      "license": "MIT OR Apache-2.0",
+      "features": [
+        "alloc",
+        "getrandom",
+        "std"
+      ],
+      "checksum": "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
     },
     {
       "name": "ring",
@@ -491,6 +543,47 @@
       "tls12"
     ],
     "untrusted": [],
+    "zeroize": [
+      "alloc",
+      "default"
+    ]
+  },
+  "password_selected_features": {
+    "argon2": [
+      "alloc",
+      "password-hash",
+      "std",
+      "zeroize"
+    ],
+    "base64ct": [
+      "alloc",
+      "std"
+    ],
+    "blake2": [],
+    "digest": [
+      "alloc",
+      "block-buffer",
+      "core-api",
+      "default",
+      "mac",
+      "std",
+      "subtle"
+    ],
+    "getrandom": [
+      "std"
+    ],
+    "password-hash": [
+      "alloc",
+      "default",
+      "rand_core",
+      "std"
+    ],
+    "rand_core": [
+      "alloc",
+      "getrandom",
+      "std"
+    ],
+    "subtle": [],
     "zeroize": [
       "alloc",
       "default"
