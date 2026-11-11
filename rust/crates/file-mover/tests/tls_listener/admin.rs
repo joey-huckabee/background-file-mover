@@ -479,24 +479,46 @@ fn admin_paths_under_retained_payload_roots_refuse_before_credential_io() {
 #[test]
 fn admin_connection_flood_does_not_starve_producer_or_operator() {
     let (mut f, a) = admin_fixture();
-    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    /// Stops and joins every flood thread on success or unwind; never detaches.
+    struct Flood {
+        stop: Arc<std::sync::atomic::AtomicBool>,
+        threads: Vec<std::thread::JoinHandle<u64>>,
+    }
+    impl Flood {
+        fn finish(&mut self) -> u64 {
+            self.stop.store(true, Ordering::Relaxed);
+            self.threads.drain(..).map(|t| t.join().unwrap_or(0)).sum()
+        }
+    }
+    impl Drop for Flood {
+        fn drop(&mut self) {
+            self.finish();
+        }
+    }
     let address = std::net::SocketAddr::from(([127, 0, 0, 1], a.port));
-    let flood: Vec<_> = (0..4)
-        .map(|_| {
-            let stop = stop.clone();
-            std::thread::spawn(move || {
-                let mut opened = 0_u64;
-                while !stop.load(Ordering::Relaxed) {
-                    if std::net::TcpStream::connect_timeout(&address, Duration::from_millis(200))
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let mut flood = Flood {
+        threads: (0..4)
+            .map(|_| {
+                let stop = stop.clone();
+                std::thread::spawn(move || {
+                    let mut opened = 0_u64;
+                    while !stop.load(Ordering::Relaxed) {
+                        if std::net::TcpStream::connect_timeout(
+                            &address,
+                            Duration::from_millis(200),
+                        )
                         .is_ok()
-                    {
-                        opened += 1;
+                        {
+                            opened += 1;
+                        }
                     }
-                }
-                opened
+                    opened
+                })
             })
-        })
-        .collect();
+            .collect(),
+        stop,
+    };
     std::thread::sleep(Duration::from_millis(300));
     let host = format!("localhost:{}", f.address.port());
     for _ in 0..5 {
@@ -512,8 +534,7 @@ fn admin_connection_flood_does_not_starve_producer_or_operator() {
         assert!(started.elapsed() < Duration::from_secs(5));
         assert_eq!(f.operator("/healthz").0, 200);
     }
-    stop.store(true, Ordering::Relaxed);
-    let opened: u64 = flood.into_iter().map(|t| t.join().unwrap()).sum();
+    let opened = flood.finish();
     assert!(opened > 20, "flood must actually have run: {opened}");
     // The admin listener still serves after the flood.
     assert_eq!(a.call("GET", "/", "", &[]).status, 200);
