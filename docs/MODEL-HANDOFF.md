@@ -109,8 +109,8 @@ Required PR CI run42970695084 completed successfully for the qualified source:
 - Full nfs-qualification build mode:348/profile. This is not real NFS qualification.
 - Production job:10 formal account terminal cases, protected-ingress checks and
   140 independent HTTPS client operations.
--12 portable account-driver tests and5 gate-safety tests passed.
--89 Rust input hashes/seven pins and all four CI native compiler audits were
+- 12 portable account-driver tests and 5 gate-safety tests passed.
+- 89 Rust input hashes/seven pins and all four CI native compiler audits were
   checked. Native audits cover397 source compilations each through the selected
   compiler/sysroot for glibc2.22. CI raw executable bytes were not uploaded for
   independent coordinator rehash.
