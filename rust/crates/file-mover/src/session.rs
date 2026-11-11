@@ -306,10 +306,10 @@ impl Sessions {
             .map(|i| &mut state.sessions[i])
             .filter(|s| s.revision == revision && s.generation == generation)
             .ok_or(AuthError::Unauthenticated)?;
-        if let Some(supplied) = supplied {
-            if !bool::from(s.csrf.ct_eq(supplied.as_ref())) {
-                return Err(AuthError::CsrfMismatch);
-            }
+        if let Some(supplied) = supplied
+            && !bool::from(s.csrf.ct_eq(supplied.as_ref()))
+        {
+            return Err(AuthError::CsrfMismatch);
         }
         if activity == Activity::Deliberate && now > s.last {
             s.last = now;
@@ -395,7 +395,7 @@ fn unhex(text: &str) -> Option<Zeroizing<[u8; TOKEN_BYTES]>> {
         _ => None,
     };
     let mut out = Zeroizing::new([0_u8; TOKEN_BYTES]);
-    for (i, pair) in text.chunks_exact(2).enumerate() {
+    for (i, pair) in text.as_chunks::<2>().0.iter().enumerate() {
         out[i] = (digit(pair[0])? << 4) | digit(pair[1])?;
     }
     Some(out)
@@ -767,7 +767,7 @@ mod tests {
         for bad in [
             "",
             &text[1..],
-            &format!("{}0", &*text),
+            &format!("{}0", *text),
             &text.replace('a', "A"),
         ] {
             assert!(unhex(bad).is_none());
