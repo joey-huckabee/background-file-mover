@@ -9,6 +9,7 @@ mod http;
 pub mod ingress;
 pub mod native;
 pub mod payload;
+pub mod password;
 mod reload;
 pub mod source_space;
 pub mod tls;
