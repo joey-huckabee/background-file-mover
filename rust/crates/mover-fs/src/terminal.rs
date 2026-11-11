@@ -16,7 +16,7 @@ pub struct SecretTerminal {
 impl SecretTerminal {
     pub fn open() -> Result<Self> {
         // Fixed system path, still exclude an individually mounted NFS leaf.
-        super::instance::ingress_local(std::path::Path::new("/dev/tty"))?;
+        super::instance::terminal_local()?;
         let fd = fs::open(
             "/dev/tty",
             OFlags::RDWR | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
