@@ -50,6 +50,35 @@ impl SecretTerminal {
     }
 }
 
+impl Drop for SecretTerminal {
+    fn drop(&mut self) {
+        let _ = self.restore();
+    }
+}
+impl AsRawFd for SecretTerminal {
+    fn as_raw_fd(&self) -> RawFd {
+        self.file.as_raw_fd()
+    }
+}
+impl AsFd for SecretTerminal {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.file.as_fd()
+    }
+}
+impl Read for &SecretTerminal {
+    fn read(&mut self, b: &mut [u8]) -> std::io::Result<usize> {
+        (&self.file).read(b)
+    }
+}
+impl Write for &SecretTerminal {
+    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+        (&self.file).write(b)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        (&self.file).flush()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,33 +143,5 @@ mod tests {
             assert_eq!(after.input_modes, before.input_modes);
             assert_eq!(after.output_modes, before.output_modes);
         }
-    }
-}
-impl Drop for SecretTerminal {
-    fn drop(&mut self) {
-        let _ = self.restore();
-    }
-}
-impl AsRawFd for SecretTerminal {
-    fn as_raw_fd(&self) -> RawFd {
-        self.file.as_raw_fd()
-    }
-}
-impl AsFd for SecretTerminal {
-    fn as_fd(&self) -> BorrowedFd<'_> {
-        self.file.as_fd()
-    }
-}
-impl Read for &SecretTerminal {
-    fn read(&mut self, b: &mut [u8]) -> std::io::Result<usize> {
-        (&self.file).read(b)
-    }
-}
-impl Write for &SecretTerminal {
-    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
-        (&self.file).write(b)
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        (&self.file).flush()
     }
 }

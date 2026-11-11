@@ -1,4 +1,18 @@
 use super::*;
+#[test]
+fn account_helper_excludes_replacement_until_actual_exit_after_input_owner_is_gone(){
+ use std::io::BufRead;
+ let mut f=Fixture::new(300);f.stop();let dir=directory(&f);
+ struct Owned(Child);impl Drop for Owned{fn drop(&mut self){let _=self.0.kill();let _=self.0.wait();}}
+ let mut helper=Owned(Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap()).arg("--internal-admin-account-worker").arg("--admin-account-init").arg(f.root.join("config.json")).arg("--account-dir").arg(&dir).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap());
+ let mut output=std::io::BufReader::new(helper.0.stdout.take().unwrap());let mut line=String::new();output.read_line(&mut line).unwrap();assert_eq!(serde_json::from_str::<Value>(&line).unwrap(),json!({"account_ready":true}));
+ let pid=helper.0.id();let stat=std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap();let tail=stat.rsplit_once(')').unwrap().1.split_whitespace().collect::<Vec<_>>();assert_eq!(tail[2].parse::<u32>().unwrap(),pid,"helper must own its own recorded process group");
+ assert!(Command::new("/bin/kill").args(["-STOP",&pid.to_string()]).status().unwrap().success());
+ drop(helper.0.stdin.take()); // EOF from a dead input owner; stopped helper still exists.
+ let refused=command(&f,&dir,"--admin-account-status",None);assert!(!refused.status.success());assert!(String::from_utf8_lossy(&refused.stderr).contains("owns state"));assert!(!dir.join("admin-account.json").exists());
+ assert!(Command::new("/bin/kill").args(["-CONT",&pid.to_string()]).status().unwrap().success());assert!(!helper.0.wait().unwrap().success());
+ let admitted=command(&f,&dir,"--admin-account-status",None);assert!(admitted.status.success());assert_eq!(serde_json::from_slice::<Value>(&admitted.stdout).unwrap(),json!({"provisioned":false}));
+}
 fn directory(f: &Fixture) -> PathBuf {
     let p = f.root.join("accounts");
     std::fs::create_dir(&p).unwrap();

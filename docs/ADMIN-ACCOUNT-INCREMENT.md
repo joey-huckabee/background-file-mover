@@ -10,7 +10,12 @@ claim that changing an active password is supported.
 
 Use existing supported schema12 state and recorded active source pairing,
 without source/destination filesystem access, initialization or migration.
-Hold guard/worker epoch through SQLite closure and all account/prompt/hash I/O.
+An owned private helper holds the guard/worker epoch through SQLite closure and
+all account/hash I/O. It signals readiness only after state/account preflight.
+The foreground parent handles no-echo input without changing its process group,
+then sends bounded JSON through the private pipe and waits for actual helper exit.
+Closing input aborts an unsubmitted helper; a submitted publication may finish
+after parent death, retaining exclusion until actual helper exit.
 Account directory is precreated, local, service-owned0700, outside state and all
 current/retained payload and ingress/credential scopes. Fixed account filename
 `admin-account.json`; no arbitrary leaf or automatic directory creation.
@@ -26,7 +31,8 @@ Input defaults to a no-echo local TTY with repeated new-password entry. Explicit
 unknown-key rejection and exact UTF-8 validation; no argv/env password options.
 Prompts/diagnostics never echo secret input. Abort/catchable signals restore TTY
 settings. SIGKILL cannot be handled; document terminal recovery. No new package;
-the existing rustix termios capability may be selected and audited on SLES.
+the existing rustix termios and test PTY capabilities are selected and audited
+on SLES.
 
 Storage API (specialist-owned new `mover-fs/src/account_file.rs`):
 
