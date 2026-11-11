@@ -202,23 +202,32 @@ mod tests {
         // RFC 9106 section 5.3. This library KAT deliberately uses the RFC's
         // small test profile; Verifier admission above still rejects it.
         let params = argon2::ParamsBuilder::new()
-            .m_cost(32).t_cost(3).p_cost(4)
+            .m_cost(32)
+            .t_cost(3)
+            .p_cost(4)
             .data(argon2::AssociatedData::new(&[4_u8; 12]).unwrap())
-            .build().unwrap();
-        let hash = Argon2::new_with_secret(&[3_u8; 8], Algorithm::Argon2id, Version::V0x13, params).unwrap();
+            .build()
+            .unwrap();
+        let hash = Argon2::new_with_secret(&[3_u8; 8], Algorithm::Argon2id, Version::V0x13, params)
+            .unwrap();
         let mut out = [0_u8; 32];
-        hash.hash_password_into(&[1_u8; 32], &[2_u8; 16], &mut out).unwrap();
-        assert_eq!(out, [
-            0x0d,0x64,0x0d,0xf5,0x8d,0x78,0x76,0x6c,0x08,0xc0,0x37,0xa3,0x4a,0x8b,0x53,0xc9,
-            0xd0,0x1e,0xf0,0x45,0x2d,0x75,0xb6,0x5e,0xb5,0x25,0x20,0xe9,0x6b,0x01,0xe6,0x59,
-        ]);
+        hash.hash_password_into(&[1_u8; 32], &[2_u8; 16], &mut out)
+            .unwrap();
+        assert_eq!(
+            out,
+            [
+                0x0d, 0x64, 0x0d, 0xf5, 0x8d, 0x78, 0x76, 0x6c, 0x08, 0xc0, 0x37, 0xa3, 0x4a, 0x8b,
+                0x53, 0xc9, 0xd0, 0x1e, 0xf0, 0x45, 0x2d, 0x75, 0xb6, 0x5e, 0xb5, 0x25, 0x20, 0xe9,
+                0x6b, 0x01, 0xe6, 0x59,
+            ]
+        );
     }
 
     #[test]
     fn maximum_password_is_not_truncated() {
         let mut bytes = vec![b'x'; MAX_PASSWORD];
         let verifier = Verifier::create(&Password::new(bytes.clone()).unwrap()).unwrap();
-        bytes[MAX_PASSWORD-1] = b'y';
+        bytes[MAX_PASSWORD - 1] = b'y';
         assert!(!verifier.verify(&Password::new(bytes).unwrap()).unwrap());
     }
 
@@ -234,6 +243,9 @@ mod tests {
             hashed.as_millis(),
             start.elapsed().as_millis()
         );
+        let status = std::fs::read_to_string("/proc/self/status").unwrap();
+        let high_water = status.lines().find(|line| line.starts_with("VmHWM:")).unwrap();
+        println!("ADMIN_PASSWORD_PROCESS_HIGH_WATER {high_water}");
         // Timing is evidence, not a scheduler/CPU deadline assertion. Production
         // worker admission/control responsiveness belongs to the later integration.
     }
