@@ -109,4 +109,14 @@ the regressions above.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR26 CI run
+[43064547130](https://github.com/joey-huckabee/background-file-mover/actions/runs/43064547130)
+at `078d7e0` passes both full modes: production **367 tests per debug/release
+profile** and nfs-qualification **371/profile** (increment129's 359/363 plus 4
+admin unit and 4 real-service HTTPS tests). The pre-review revision `d2b8fe9`
+also passed both modes (production 364/profile). Independent review closed all
+findings: the three P2s above, then two flood-test cleanup findings (threads now
+owned by a guard created before spawning). Merged to main as `5eff0c7`.
+
+Native WSL runs cannot execute these real-service tests (system SQLite differs
+from the pinned build); the SLES gate is the only execution evidence.
