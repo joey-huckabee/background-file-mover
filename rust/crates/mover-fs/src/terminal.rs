@@ -10,7 +10,8 @@ use std::{
 
 fn controlling_device(stat: &Stat) -> bool {
     FileType::from_raw_mode(stat.st_mode) == FileType::CharacterDevice
-        && fs::major(stat.st_rdev) == 5 && fs::minor(stat.st_rdev) == 0
+        && fs::major(stat.st_rdev) == 5
+        && fs::minor(stat.st_rdev) == 0
 }
 pub struct SecretTerminal {
     file: File,
