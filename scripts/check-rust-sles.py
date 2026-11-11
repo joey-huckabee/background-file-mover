@@ -207,7 +207,7 @@ def main() -> int:
             run(["podman", "start", provisioner])
             run(["podman", "cp", str(archive), f"{provisioner}:/tmp/source.tar.gz"])
             run(["podman", "exec", provisioner, "/bin/sh", "-c", "mkdir -p /work; tar -xzf /tmp/source.tar.gz -C /work"])
-            print("Provisioning the locked E1â€“E5 dependency graph...", flush=True)
+            print("Provisioning the locked dependency graph...", flush=True)
             run(["podman", "exec", "--workdir", "/work", provisioner, "cargo", "fetch", "--locked"], results / "fetch.log")
         tools = run(["podman", "exec", "--workdir", "/work", builder, "/bin/sh", "-c",
                      "rustc --version; cargo --version; cargo libc --version; clang-16 --version; gcc --version; ld.bfd --version"], results / "toolchain.txt")
