@@ -496,29 +496,25 @@ fn admin_connection_flood_does_not_starve_producer_or_operator() {
         }
     }
     let address = std::net::SocketAddr::from(([127, 0, 0, 1], a.port));
-    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    // Guard exists before the first spawn, so partial startup also joins.
     let mut flood = Flood {
-        threads: (0..4)
-            .map(|_| {
-                let stop = stop.clone();
-                std::thread::spawn(move || {
-                    let mut opened = 0_u64;
-                    while !stop.load(Ordering::Relaxed) {
-                        if std::net::TcpStream::connect_timeout(
-                            &address,
-                            Duration::from_millis(200),
-                        )
-                        .is_ok()
-                        {
-                            opened += 1;
-                        }
-                    }
-                    opened
-                })
-            })
-            .collect(),
-        stop,
+        stop: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        threads: Vec::with_capacity(4),
     };
+    for _ in 0..4 {
+        let stop = flood.stop.clone();
+        flood.threads.push(std::thread::spawn(move || {
+            let mut opened = 0_u64;
+            while !stop.load(Ordering::Relaxed) {
+                if std::net::TcpStream::connect_timeout(&address, Duration::from_millis(200))
+                    .is_ok()
+                {
+                    opened += 1;
+                }
+            }
+            opened
+        }));
+    }
     std::thread::sleep(Duration::from_millis(300));
     let host = format!("localhost:{}", f.address.port());
     for _ in 0..5 {
