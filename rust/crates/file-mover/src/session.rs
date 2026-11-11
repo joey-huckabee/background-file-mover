@@ -163,6 +163,9 @@ impl Sessions {
         password: Password,
         deadline: Duration,
     ) -> Result<Issued, LoginError> {
+        // Absolute liveness bound, rechecked under the minting lock so entropy
+        // or lock waits after verification cannot mint past the deadline.
+        let expires = Instant::now().checked_add(deadline);
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let username = Zeroizing::new(username.to_owned());
         let ticket = self.admit(Instant::now(), move |account| {
@@ -178,7 +181,7 @@ impl Sessions {
             Ok(Err(_)) | Ok(Ok(Err(()))) => return Err(LoginError::Unavailable),
             Ok(Ok(Ok(verified))) => verified,
         };
-        self.finish(ticket, verified, Instant::now())
+        self.finish_by(ticket, verified, Instant::now(), expires)
     }
 
     /// Admission under the lock: rate limit, single slot, capacity. The worker
@@ -222,12 +225,18 @@ impl Sessions {
         })
     }
 
-    /// Recheck authority after verification, then mint under the lock.
-    pub(crate) fn finish(
+    #[cfg(test)]
+    fn finish(&self, ticket: Ticket, verified: bool, now: Instant) -> Result<Issued, LoginError> {
+        self.finish_by(ticket, verified, now, None)
+    }
+
+    /// Recheck liveness and authority after verification, then mint under the lock.
+    pub(crate) fn finish_by(
         &self,
         ticket: Ticket,
         verified: bool,
         now: Instant,
+        expires: Option<Instant>,
     ) -> Result<Issued, LoginError> {
         for _ in 0..MINT_ATTEMPTS {
             // Entropy runs outside the lock; duplicates retry with fresh values.
@@ -238,6 +247,9 @@ impl Sessions {
             let mut state = self.lock();
             if state.closed {
                 return Err(LoginError::Unavailable);
+            }
+            if expires.is_some_and(|d| Instant::now() >= d) {
+                return Err(LoginError::TimedOut);
             }
             if state.account.revision != ticket.revision || state.generation != ticket.generation {
                 return Err(LoginError::Superseded);
@@ -284,11 +296,9 @@ impl Sessions {
         activity: Activity,
         now: Instant,
     ) -> Result<Authorized, AuthError> {
+        // Authentication precedes CSRF: an unknown, expired or revoked session
+        // is 401 whatever CSRF value accompanies it.
         let token = unhex(session).ok_or(AuthError::Unauthenticated)?;
-        let supplied = match csrf {
-            Some(text) => Some(unhex(text).ok_or(AuthError::CsrfMismatch)?),
-            None => None,
-        };
         let mut state = self.lock();
         if state.closed {
             return Err(AuthError::Unauthenticated);
@@ -306,10 +316,11 @@ impl Sessions {
             .map(|i| &mut state.sessions[i])
             .filter(|s| s.revision == revision && s.generation == generation)
             .ok_or(AuthError::Unauthenticated)?;
-        if let Some(supplied) = supplied
-            && !bool::from(s.csrf.ct_eq(supplied.as_ref()))
-        {
-            return Err(AuthError::CsrfMismatch);
+        if let Some(text) = csrf {
+            let matches = unhex(text).is_some_and(|v| bool::from(s.csrf.ct_eq(v.as_ref())));
+            if !matches {
+                return Err(AuthError::CsrfMismatch);
+            }
         }
         if activity == Activity::Deliberate && now > s.last {
             s.last = now;
@@ -370,6 +381,18 @@ impl Sessions {
         state.closed = true;
         state.sessions.clear();
         state.worker.take()
+    }
+}
+
+/// Fallback ownership: dropping the manager without `shutdown` still refuses
+/// further work and blocks until a running verifier actually exits, so its
+/// thread is never detached. Owners should call `shutdown` and join off the
+/// async runtime; this join then finds nothing to wait for.
+impl Drop for Sessions {
+    fn drop(&mut self) {
+        if let Some(worker) = self.shutdown() {
+            let _ = worker.join();
+        }
     }
 }
 
@@ -757,6 +780,83 @@ mod tests {
                 .err(),
             Some(AuthError::Unauthenticated)
         );
+    }
+
+    #[test]
+    fn minting_after_deadline_never_issues() {
+        let now = Instant::now();
+        // Verification finished in time, but slow entropy crosses the deadline.
+        let s = Sessions::with_entropy(
+            record(1),
+            DEFAULT_IDLE,
+            Box::new(|b| {
+                std::thread::sleep(Duration::from_millis(50));
+                b.fill(9);
+                true
+            }),
+        );
+        let ticket = admit(&s, now).unwrap();
+        wait_idle(&s);
+        let expires = Some(Instant::now() + Duration::from_millis(10));
+        assert_eq!(
+            s.finish_by(ticket, true, now, expires).err(),
+            Some(LoginError::TimedOut)
+        );
+        assert!(s.lock().sessions.is_empty());
+    }
+
+    #[test]
+    fn authentication_failure_precedes_malformed_csrf() {
+        let idle = Duration::from_secs(60);
+        let t0 = Instant::now();
+        let s = Sessions::new(record(1), idle);
+        let expired = issue(&s, t0).unwrap();
+        let revoked = issue(&s, t0).unwrap();
+        s.logout_all().unwrap();
+        let live = issue(&s, t0).unwrap();
+        let unknown = "0".repeat(64);
+        let later = t0 + Duration::from_secs(30);
+        for token in [&*revoked.session, unknown.as_str()] {
+            assert_eq!(
+                s.authorize(token, Some("bad"), Activity::Background, later)
+                    .err(),
+                Some(AuthError::Unauthenticated)
+            );
+        }
+        assert_eq!(
+            s.authorize(&live.session, Some("bad"), Activity::Background, later)
+                .err(),
+            Some(AuthError::CsrfMismatch)
+        );
+        assert_eq!(
+            s.authorize(
+                &expired.session,
+                Some("bad"),
+                Activity::Background,
+                t0 + idle
+            )
+            .err(),
+            Some(AuthError::Unauthenticated)
+        );
+    }
+
+    #[test]
+    fn dropping_manager_waits_for_running_verifier() {
+        let s = manager();
+        let (release, gate) = std::sync::mpsc::channel::<()>();
+        let (exited, done) = std::sync::mpsc::channel::<()>();
+        s.admit(Instant::now(), move |_| {
+            let _ = gate.recv();
+            let _ = exited.send(());
+        })
+        .unwrap();
+        let dropper = std::thread::spawn(move || drop(s));
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!dropper.is_finished(), "drop detached a running verifier");
+        release.send(()).unwrap();
+        dropper.join().unwrap();
+        // The verifier finished before drop returned.
+        assert!(done.try_recv().is_ok());
     }
 
     #[test]
