@@ -159,6 +159,20 @@ class ProfileFlow(unittest.TestCase):
 
 
 class FixtureAndReporting(unittest.TestCase):
+    def test_failed_create_never_claims_or_removes_an_existing_name(self):
+        runner = checker.Runner()
+        runner.command = Mock(side_effect=checker.CheckError('private fixture command failed'))
+        with self.assertRaises(checker.CheckError):
+            checker.create_container(runner, 'pinned-image')
+        self.assertFalse(runner.container)
+        runner.close()
+        self.assertEqual(runner.command.call_count, 1)
+        created = subprocess.CompletedProcess([], 0, b'a'*64+b'\n', b'')
+        runner.command = Mock(return_value=created)
+        self.assertEqual(checker.create_container(runner, 'pinned-image'), 'a'*64)
+        runner.close()
+        self.assertEqual(runner.command.call_args.args[0], ['podman', 'rm', '-f', 'a'*64])
+
     def test_tar_keeps_numeric_custody_and_exact_trailer(self):
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer, mode='w') as out:

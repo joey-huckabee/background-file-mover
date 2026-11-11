@@ -368,6 +368,18 @@ def run_profile(runner, profile, artifact, record):
     record['passed'] = True
 
 
+def create_container(runner, image):
+    name = 'admin-account-pty-'+secrets.token_hex(10)
+    created = runner.command(['podman', 'create', '--name', name, '--pull=never', '--network', 'none', '--user', USER,
+                              '--cap-drop', 'all', '--security-opt', 'no-new-privileges',
+                              '--entrypoint', '/bin/sh', image, '-c', 'exec sleep infinity'])
+    identity = created.stdout.decode().strip()
+    require(bool(re.fullmatch(r'[0-9a-f]{64}', identity)), 'invalid owned container identity')
+    # Only a successful creation with a validated ID establishes cleanup ownership.
+    runner.container = identity
+    return identity
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--production-gate', required=True, type=Path)
@@ -393,12 +405,7 @@ def main(argv=None):
         archive, _ = fixture_archive(helpers, artifacts)
         report['fixture_archive_sha256'] = hashlib.sha256(archive).hexdigest()
         report['runtime_image'] = platform['runtime']
-        runner.container = 'admin-account-pty-'+secrets.token_hex(10)
-        created = runner.command(['podman', 'create', '--name', runner.container, '--pull=never', '--network', 'none', '--user', USER,
-                                  '--cap-drop', 'all', '--security-opt', 'no-new-privileges',
-                                  '--entrypoint', '/bin/sh', platform['runtime'], '-c', 'exec sleep infinity'])
-        identity = created.stdout.decode().strip()
-        require(bool(re.fullmatch(r'[0-9a-f]{64}', identity)), 'invalid owned container identity')
+        identity = create_container(runner, platform['runtime'])
         runner.command(['podman', 'start', identity])
         report['container'] = identity
         require(runner.command(['podman', 'inspect', '--format', '{{.HostConfig.NetworkMode}}', identity]).stdout.strip() == b'none',

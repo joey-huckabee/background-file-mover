@@ -43,7 +43,7 @@ impl SecretTerminal {
     }
     pub fn restore(&self) -> Result<()> {
         if self.active.get() {
-            termios::tcsetattr(&self.file, OptionalActions::Now, &self.original)?;
+            termios::tcsetattr(&self.file, OptionalActions::Flush, &self.original)?;
             self.active.set(false);
         }
         Ok(())
@@ -106,7 +106,7 @@ mod tests {
             assert!(!raw.local_modes.contains(termios::LocalModes::ECHO));
             assert!(!raw.local_modes.contains(termios::LocalModes::ICANON));
             let mut master = File::from(master);
-            master.write_all(b"disposable").unwrap();
+            master.write_all(b"disposablequeued-secret-trailer\n").unwrap();
             let mut bytes = [0u8; 10];
             let mut reader = &terminal;
             let mut count = 0;
@@ -138,6 +138,10 @@ mod tests {
                 terminal.restore().unwrap();
             }
             drop(terminal);
+            // Queued overflow/pasted secret bytes must not reach the shell after restore.
+            let mut observed_reader = &observed;
+            assert_eq!(observed_reader.read(&mut [0u8; 64]).unwrap_err().kind(),
+                       std::io::ErrorKind::WouldBlock);
             let after = termios::tcgetattr(&observed).unwrap();
             assert_eq!(after.local_modes, before.local_modes);
             assert_eq!(after.input_modes, before.input_modes);
