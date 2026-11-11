@@ -559,13 +559,18 @@ fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
     // Alias/root custody concerns the filesystem supplying the terminal. Earlier
     // local ancestors may be Btrfs subvolumes and are hidden by a separate /dev.
     // Every traversed filesystem was still checked above before any named I/O.
-    let effective = mounts.iter().filter(|(mount, _, _)| path.starts_with(mount))
+    let effective = mounts
+        .iter()
+        .filter(|(mount, _, _)| path.starts_with(mount))
         .max_by_key(|(mount, _, _)| mount.as_os_str().len())
         .ok_or(ClaimError::Blocked("terminal mount missing"))?;
     for (mount, device, root) in &mounts {
-        if path == mount || (mount == &effective.0
-            && (*root != b"/" || mounts.iter()
-                .any(|(other, d, r)| other != mount && d == device && r == root)))
+        if path == mount
+            || (mount == &effective.0
+                && (*root != b"/"
+                    || mounts
+                        .iter()
+                        .any(|(other, d, r)| other != mount && d == device && r == root)))
         {
             return Err(ClaimError::Blocked("terminal mount/alias custody"));
         }
@@ -640,7 +645,8 @@ mod tests {
         let host =
             b"1 0 8:1 / / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
         assert!(super::terminal_mounts_local(host).is_ok());
-        let subvolume = b"1 0 8:1 /@ / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
+        let subvolume =
+            b"1 0 8:1 /@ / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
         assert!(super::terminal_mounts_local(subvolume).is_ok());
         let container =
             b"1 0 0:1 / / rw - overlay overlay rw\n2 1 0:5 / /dev rw - tmpfs tmpfs rw\n";
