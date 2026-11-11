@@ -12,7 +12,9 @@ route, cookie, configuration, dependency, account file I/O or real state.
 
 - **One verifier slot.** Each admitted login runs the fixed Argon2id verifier
   on its own named thread. The slot stays held until that thread actually exits,
-  including after a caller timeout or dropped future. A late result cannot mint.
+  including after a caller timeout or dropped future. A late result cannot mint:
+  the login deadline is absolute and is rechecked under the minting lock after
+  entropy, so slow entropy or lock waits cannot mint past it either.
   The thread is spawned under the admission lock so no second admission can slip
   between the slot check and handle registration. Hashing and entropy never run
   under the lock.
@@ -33,12 +35,15 @@ route, cookie, configuration, dependency, account file I/O or real state.
   advance the generation. Generation exhaustion closes the manager instead of
   wrapping. `activate` accepts only a newer revision of the same instance,
   principal and username, already validated outside the lock.
+- **Precedence.** Session authentication is checked before CSRF. An unknown,
+  expired or revoked session is unauthenticated whatever CSRF value it carries.
 - **Inactivity.** Monotonic `Instant`, default 1800 seconds. Only
   `Activity::Deliberate` renews; background polling does not. Activity never
   moves backwards.
 - **Shutdown.** `shutdown` refuses further work, clears sessions and returns the
   verifier thread handle. The owner must join it before releasing instance
-  ownership.
+  ownership. As a fallback, dropping `Sessions` closes it and blocks until a
+  running verifier actually exits; the thread is never detached.
 
 `Record::verify` (crate-private) exposes verification to the session worker
 without exposing verifier bytes.
@@ -57,13 +62,14 @@ without exposing verifier bytes.
 
 ## Tests (design rows A04-A07, A16-A21 at unit level)
 
-Twelve unit tests: exact-credential issue, wrong username/password and
+Fifteen unit tests: exact-credential issue, wrong username/password and
 non-canonical tokens; rolling rate limit; slot held until real worker exit;
 timeout never mints; logout/activation during verification; revocation after
 authorization; activation principal/revision rules; monotonic expiry with
 background vs deliberate activity; 64-session cap without eviction; entropy
-failure, token/CSRF collision and duplicate redraw; generation exhaustion; and
-canonical hex.
+failure, token/CSRF collision and duplicate redraw; generation exhaustion;
+minting past the deadline; authentication-before-CSRF precedence; drop waiting
+for a running verifier; and canonical hex.
 
 These are unit-level proofs on the session core. Rows that need actual HTTPS
 clients, browsers or the running service (A12-A15, A22-A27) stay open for the
@@ -72,7 +78,9 @@ listener increment.
 ## Validation status
 
 Focused native checks on the WSL test clone: `cargo fmt --check`, `cargo clippy
---all-targets -D warnings` and the 12 session tests pass. Both full SLES gate
+--all-targets -D warnings` and the 15 session tests pass. Independent review
+found three P2 defects (post-deadline minting, CSRF-before-auth precedence,
+detached verifier on drop); all three are fixed with regression tests. Both full SLES gate
 modes run in PR CI; see the PR for the actual result. No real credentials, state,
 deployment, production NFS/deletion or release are involved. All eight FR gates
 remain open.

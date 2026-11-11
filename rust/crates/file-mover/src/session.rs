@@ -810,9 +810,9 @@ mod tests {
         let idle = Duration::from_secs(60);
         let t0 = Instant::now();
         let s = Sessions::new(record(1), idle);
-        let expired = issue(&s, t0).unwrap();
         let revoked = issue(&s, t0).unwrap();
         s.logout_all().unwrap();
+        let expired = issue(&s, t0).unwrap();
         let live = issue(&s, t0).unwrap();
         let unknown = "0".repeat(64);
         let later = t0 + Duration::from_secs(30);
