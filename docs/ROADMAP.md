@@ -18,9 +18,10 @@ increment 126. Earlier planning checkpoints below do not reopen those decisions
 or supersede the no-proxy choice. Admin sessions/actions and the production
 dashboard remain unfinished. Packaging is not the next dashboard milestone.
 
-- [ ] Map each proposed screen/field to the frozen contract and actual stored
-  data. Identify derived values and unavailable measurements; do not invent
-  telemetry or broaden routes to reproduce fictional mockup content.
+- [x] Map each proposed screen/field to the frozen contract and actual stored
+  data. See the [dashboard backend map](dashboard/BACKEND-MAP.md) for exact
+  read sources, page-local derivations, omissions and missing runtime boundaries.
+  No telemetry or routes are added to reproduce fictional mockup content.
 - [ ] Implement the first working dashboard slice: host-local admin account
   setup/password changes, a separate protected admin HTTPS audience, login,
   session/CSRF/inactivity/global logout, embedded offline assets and bounded

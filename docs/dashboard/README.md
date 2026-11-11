@@ -48,6 +48,10 @@ panels on narrow windows; tables retain horizontal scrolling.
 
 The approved contract is [the API closeout](../api/API-CONTRACT-CLOSEOUT.md),
 not this simulation. No new public route, metric or action is authorized here.
+The [completed field-by-field backend map](BACKEND-MAP.md) identifies exact read
+sources, page-local derivations, unsupported mockup values to omit and the
+runtime work needed for the first real read-only dashboard. It supersedes the
+brief integration sketch below where more precise.
 Display names, aggregate counts, accepted-time labels, milestones, search and
 filtering are presentation proposals requiring field-by-field mapping before
 backend work. Missing persisted measurements must display as unknown. Production
