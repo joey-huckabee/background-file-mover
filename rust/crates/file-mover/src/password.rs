@@ -244,7 +244,10 @@ mod tests {
             start.elapsed().as_millis()
         );
         let status = std::fs::read_to_string("/proc/self/status").unwrap();
-        let high_water = status.lines().find(|line| line.starts_with("VmHWM:")).unwrap();
+        let high_water = status
+            .lines()
+            .find(|line| line.starts_with("VmHWM:"))
+            .unwrap();
         println!("ADMIN_PASSWORD_PROCESS_HIGH_WATER {high_water}");
         // Timing is evidence, not a scheduler/CPU deadline assertion. Production
         // worker admission/control responsiveness belongs to the later integration.
