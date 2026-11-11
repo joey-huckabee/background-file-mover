@@ -6,6 +6,13 @@ This context summary does not expand user authorization.
 
 ## Current direction (2026-10-13)
 
+2026-11-11 session-core authorization: the user says "yes, go ahead" with the
+dashboard login/session work after increment128. Increment129 adds the bounded
+in-memory session core only (no listener/IPC/daemon wiring). Next: admin HTTPS
+listener, login/session/logout routes and embedded sign-in assets. The user also
+approves deleting docs/MODEL-HANDOFF.md once its content is captured in durable
+docs, implemented or roadmapped. See docs/RUST-INCREMENT-129.md.
+
 2026-11-10 account-setup authorization: the user says "yes, go ahead with the
 account setup" after increment127. Implement guarded offline initialization,
 password change and nonsecret status using only disposable existing current state.

@@ -16,8 +16,9 @@ permission or override the user's decisions.
    docs/RUST-RELEASE-CLOSURE.md for release obligations. Older dated checkpoints
    are historical; do not treat every old unfinished claim as current.
 
-The account-setup task is complete. The user's latest request is to save this
-handoff before switching models, not to start the next runtime increment.
+The account-setup task is complete. Update 2026-11-11: the new model continued
+with increment129 (in-memory session core); see docs/RUST-INCREMENT-129.md.
+The user approves deleting this file once everything here is captured elsewhere.
 
 ## Checkouts and baseline
 
