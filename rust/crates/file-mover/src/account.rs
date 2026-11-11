@@ -176,6 +176,10 @@ impl Record {
             verifier,
         })
     }
+    /// Expensive fixed-profile verification; run only on an owned worker thread.
+    pub(crate) fn verify(&self, password: &Password) -> Result<bool, crate::password::Error> {
+        self.verifier.verify(password)
+    }
     pub fn encode(&self) -> Result<Zeroizing<Vec<u8>>, &'static str> {
         #[derive(Serialize)]
         struct Output<'a> {

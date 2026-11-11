@@ -3,7 +3,9 @@
 Implementation follow-up: the approved password primitive is implemented in
 [increment127](../RUST-INCREMENT-127.md). Guarded offline account commands follow
 in [increment128](../RUST-INCREMENT-128.md), with exact current validation status
-and [user instructions](../ADMIN-ACCOUNT-SETUP.md). These do not activate sessions,
+and [user instructions](../ADMIN-ACCOUNT-SETUP.md). The in-memory session core
+follows in [increment129](../RUST-INCREMENT-129.md), not yet wired to a listener.
+These do not activate sessions,
 live account replacement, an admin listener or browser access. The design
 checkpoint below governs the remaining integration; use the increments for
 actual implementation and qualification claims.
