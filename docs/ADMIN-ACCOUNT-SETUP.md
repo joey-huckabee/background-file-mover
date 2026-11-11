@@ -1,10 +1,10 @@
 # Offline admin account setup
 
-This guide describes the guarded local account commands at `38cb6de` and the
-[account implementation slice](ADMIN-ACCOUNT-INCREMENT.md). Target qualification
-of this slice is **pending**: both full SLES gate modes and independent review
-remain required. These instructions do not authorize deployment or changes to
-operational state. Browser authentication, admin listeners, login and sessions
+This guide describes the guarded local account commands and the
+[account implementation slice](ADMIN-ACCOUNT-INCREMENT.md). See
+[increment128](RUST-INCREMENT-128.md) for the bounded SLES checks, review and
+qualification limits. These instructions do not authorize deployment or changes
+to operational state. Browser authentication, admin listeners, login and sessions
 are not available yet. Creating this record does not enable dashboard access.
 
 ## Prepare the existing instance and account directory
@@ -48,6 +48,16 @@ default. Check its placement against the actual configuration and retained state
   and overlayfs. NFS, unsafe mount aliases, bind mounts and individually mounted
   account/lock/staging leaves refuse. This is cooperative local custody, not
   protection against hostile mutation by root or the same UID.
+
+As the host administrator, replace `SERVICE_USER` and `SERVICE_GROUP` with the
+existing mover identity before creating the directory:
+
+```sh
+install -d -o SERVICE_USER -g SERVICE_GROUP -m 0700 /var/lib/file-mover-account
+```
+
+Run the account commands as that service identity, with a private file-creation
+mask such as `umask 077`. The command itself refuses root or a root primary group.
 
 Select this same directory explicitly on every command. It is not recorded by
 rewriting CONFIG.json. Initial account setup needs no precreated account files.
@@ -191,7 +201,8 @@ For an `outcome uncertain` message, lost result or stale staging refusal:
 During prompting, Ctrl-C, Ctrl-D or Ctrl-Z abort input; catchable interrupt,
 terminate, hangup, quit and suspend signals also take the restoration path. Normal
 completion, mismatch and prompt timeout restore the saved terminal settings.
-These source behaviors still require the pending target PTY qualification.
+Tested interruption/restoration cases and limits are recorded in
+[increment128](RUST-INCREMENT-128.md).
 
 SIGKILL and process/host crashes cannot run restoration. Once your shell has
 regained the foreground terminal, restore conventional terminal behavior with:
@@ -208,5 +219,6 @@ instance ownership. Apply the uncertain-outcome procedure above before retrying.
 
 Account setup does not start an HTTP/admin listener, create sessions, invalidate
 live sessions or authorize remote password changes. Browser/session integration,
-both SLES modes and review, deployment, offline-bundle/shipping qualification and
-all eight FR release gates remain separate and open.
+deployment, offline-bundle/shipping qualification and all eight FR release gates
+remain separate and open. Use increment128 for the completed bounded SLES checks
+and independent review.

@@ -1,5 +1,10 @@
 # Rust operator status and recovery guide
 
+For guarded offline admin-account initialization, password changes and nonsecret
+status, use the [account setup guide](ADMIN-ACCOUNT-SETUP.md) and
+[increment128](RUST-INCREMENT-128.md). These commands require the mover and its
+surviving workers to have exited. They do not enable browser login or sessions.
+
 For explicit producer HTTP/HTTPS operation and credential preparation, see
 [HTTP/HTTPS setup](NATIVE-HTTPS-SETUP.md) and increment123's actual qualification
 status. Loopback HTTP requires no TLS certificates. Native producer ports expose

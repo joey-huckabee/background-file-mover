@@ -1,0 +1,4130 @@
+{
+  "status": "CI_QUALIFIED_BOUNDED_OFFLINE_ACCOUNT_SETUP",
+  "source": {
+    "commit": "de8bcbeb4f5347e8b58b3f2bed07c186b559ca79",
+    "pr": 21,
+    "rust_tree": "6c8af60822a16d778a8ed2334c37dc9fe8a3f2df",
+    "rust_inputs": {
+      "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+      "rust/Cargo.lock": "d1d2e210ff969a7435a7841b6e394240cd880659a6bf789fe0e3235d05aaf709",
+      "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+      "rust/README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+      "rust/config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+      "rust/crates/file-mover/Cargo.toml": "b88ee58a011bdf22ef07e2b9177c147b48c2fc440b80f92b6f94ccf0ccdc03f4",
+      "rust/crates/file-mover/src/account.rs": "5b5033909ea1a531414169e739c95967233a55da58b0744819a66c2c43fac89e",
+      "rust/crates/file-mover/src/account_cli.rs": "087441980b9af24a9d01a352bd11d995d1c1d82d7c73ddefc7ae6211d4fd31f0",
+      "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+      "rust/crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+      "rust/crates/file-mover/src/control.rs": "d7e213a9892479f636c68d9c738fdd4038445745abaf641bb319e51b8236ed8f",
+      "rust/crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+      "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+      "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+      "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+      "rust/crates/file-mover/src/ingress.rs": "589023ce1135c4a9a926c276f1b05d1d56cce4d809c0a95c9464c5be3ee99267",
+      "rust/crates/file-mover/src/lib.rs": "ae2d5910e9f35a118cef6018e2ee923647595ad912ce3c9dc2e6c0fd3305c7de",
+      "rust/crates/file-mover/src/main.rs": "5c8f1d34ad7267b4723666b55cd283e1acd94771127ec6ee5480c209bbace7aa",
+      "rust/crates/file-mover/src/native.rs": "db302c267c7e4631851272c24943018d8659c01d5de8f911ef7a9c95a14e60d6",
+      "rust/crates/file-mover/src/password.rs": "11b39480e5ad7ff62a38b9c6e1b231533aea55435b86e8cf4bd6c94f94e4a87e",
+      "rust/crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+      "rust/crates/file-mover/src/reload.rs": "006d55328061bbb5475e125b4dbd788d180448a9f57f5d4e996c05382337b61d",
+      "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+      "rust/crates/file-mover/src/tls.rs": "78f31f32a329d0fd039a30c8dc0556b0cb4a42cf22dc092cbd9868164a6dd51e",
+      "rust/crates/file-mover/src/tls_executor.rs": "34691216352fd96bac2a26252e741cbb7a8c0da0d2746956043a8a9848973229",
+      "rust/crates/file-mover/src/tls_reload_ipc.rs": "07a537f9254a10ec101cf06ac32202ef014f7e8be0ebce416bdce05530611e99",
+      "rust/crates/file-mover/tests/api.rs": "1d4c41d0358a1dbbce830e908b0cad7bb22399161179c5c8a23bb88baa6589e2",
+      "rust/crates/file-mover/tests/support/account_cli.rs": "6164bd4e989ff70576bb25344a2aa49c6c0864b366c96f8f225d94e89c884fda",
+      "rust/crates/file-mover/tests/tls.rs": "7b23e6f02e83e126d97b7ffa69a6a416a2027ff791fdd20996e0177e27680dfb",
+      "rust/crates/file-mover/tests/tls_listener/mod.rs": "3f78f267ccee9cc431ad9f009355ebe36977358dc69e9c97d47c6269d6173840",
+      "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+      "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+      "rust/crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+      "rust/crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+      "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+      "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+      "rust/crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+      "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+      "rust/crates/mover-fs/Cargo.toml": "1f69ed7f1551a7d51d86b3c426649f72715e616090115f96626a97100d5483ba",
+      "rust/crates/mover-fs/src/account_file.rs": "859b9ff211d4fe81174461651bae5531e0ea07ba0a3a2e86913eac6c77c696c8",
+      "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+      "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+      "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+      "rust/crates/mover-fs/src/credentials.rs": "941b0829482a0b20eb9e6745b83848a5bda13ac224f8ad8f326443226cd6f54f",
+      "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+      "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+      "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+      "rust/crates/mover-fs/src/ingress.rs": "11726fa07bdf0a56956b5bac05f6e7dd428a36680a82afb2944a2c4d774f1ada",
+      "rust/crates/mover-fs/src/instance.rs": "10de4371fc113f5968a1afb65b23c1bc54bd3ca4d5d2a070d66bc3be5128a21f",
+      "rust/crates/mover-fs/src/lib.rs": "d3e19a6a96a4012a632bcc1f51f69519197fb1fc79eeca69c9321e3c70712660",
+      "rust/crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+      "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+      "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+      "rust/crates/mover-fs/src/qualification.rs": "bcebd9ad6d888322343d205e9b7ad794f6d89048821d086c1a1cf822fe5792c6",
+      "rust/crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+      "rust/crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+      "rust/crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+      "rust/crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+      "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+      "rust/crates/mover-fs/src/terminal.rs": "5637835d2dc54afeded20d0e1ae59e2e65d9bb9a857ed2234be0b883a91f06dd",
+      "rust/crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+      "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+      "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+      "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+      "rust/crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+      "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+      "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+      "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+      "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+      "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+      "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+      "rust/crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+      "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+      "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+      "rust/crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+      "rust/crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+      "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+      "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+      "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+      "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+      "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+      "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+      "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+      "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+      "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+      "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+      "rust/crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+      "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+      "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+    }
+  },
+  "pins": {
+    "scripts/rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59",
+    "scripts/Containerfile.rust": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+    "scripts/rust-qualified-dependencies.json": "5726b1672c259c9c5f3e462ebdbfccf343cb0d0eefdabdc7c052ee96fff9b5a4",
+    "scripts/rust-integrity-dependencies.json": "8aa1ec4d5bab10e6f572040081c5896d5ae2419be222132d48ad98b5bff4a122",
+    "scripts/check-rust-sles.py": "f958a1f10702dbb91a25dcf8ac389c7c8169dc6df20cb7d29802eb1fc13ba9af",
+    "scripts/tls_proof_fixture.py": "c83c8f6d6aa954d9ccd963c48571126efce5a3d8c5cb6f4263dc5ae09ed78342",
+    ".github/workflows/rust-ci.yml": "8881916054ea20a529ca6227ad5d4fe5c302efd6c26d9112c5af1b49edcb41af"
+  },
+  "dependency_change": "No packages added; existing subtle edge and rustix termios/pty features selected. Locked feature graphs are enforced by the existing gate.",
+  "ci": {
+    "production": {
+      "run_id": 42970695084,
+      "status": "PASSED",
+      "test_scope": "full",
+      "report_sha256": "fc9331092ad8633fe98007876cb10e05e1ae908d6f192b5c02c249b4328ab529",
+      "report": {
+        "status": "PASSED",
+        "config": {
+          "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+          "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+          "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+          "rust": "1.99.0",
+          "cargo_libc": "0.2.4",
+          "provider_mode": "source",
+          "cc": "/usr/bin/clang-16",
+          "target": "x86_64-unknown-linux-gnu.2.22",
+          "interpreter": "/lib64/ld-linux-x86-64.so.2",
+          "allowed_libraries": [
+            "libc.so.6",
+            "libm.so.6",
+            "libpthread.so.0",
+            "librt.so.1",
+            "libdl.so.2",
+            "libgcc_s.so.1",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "profiles": {
+          "debug": {
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover",
+                "sha256": "3b684bce59fbbd1d8823b09fefa7e0861922872f742c07229b108b11d14238d4",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-1-api-151c0e697eaff3a9",
+                "sha256": "f942c538b9a998ce2037ccb381eb4a8718748bc4669cab612dc4ddaf5a1f874e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-2-claim-763c7e74054fa750",
+                "sha256": "af26178637b5bbd72d6fd2e1722a4935a3bbc84fb876058ca4716f42c582161f",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-3-file_mover-46c047dc3374607f",
+                "sha256": "11878a488a955a116fc74c21589e3daf518dfd1bc147b72d6cd927c8ccadc478",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-4-file_mover-f56f4908e5a4960d",
+                "sha256": "104354ab286d3aa6fcd34361061cd01e20f95e6b1c5c7f7eef55d521d67139d3",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf",
+                "sha256": "3f3206b4b9a84d61c6df11b107c8658cc5fbd5e5c65afb932549935dd7243c65",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-6-mover_fs-d2931c45b402c9e9",
+                "sha256": "45757d968724395804c76761e47f3209962c36ef9025ef33692317400a0ba19e",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-7-mover_store-77e146d6b5cf0eaf",
+                "sha256": "ff0bb157d9aa2b58744983f8b756f9ee9ea45e372b21b0a1900e3cfe57020025",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355",
+                "sha256": "ebecb93e59b557c1d9ba293ba70cb44e6b5beb1ccc563d9be067310f6056fd61",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-9-tls-96dc7bc082db2abc",
+                "sha256": "4c4e5cca8375bdb778642cbdf4c7f36d678f79fcdbfb875494e4637b68ab35b4",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-10-transfer-5113df6acaf77b64",
+                "sha256": "d084f48ddb9b581f6425dba0229facf8f273c34cf5a30287f558b53a337af73a",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 344
+          },
+          "release": {
+            "artifacts": [
+              {
+                "name": "release-0-file-mover",
+                "sha256": "e976d5c133a0eb8559977def53a3d7f2ad611f9e35919115e69a58ed83659971",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-1-api-27cbfe365e98fcf4",
+                "sha256": "b4d685f9c15bb9d9f34b1bd58e6ba15aabaff160b72d6ac3695fbd86e8be5f82",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-2-claim-01105e85fa465fd9",
+                "sha256": "c845a788d6c23b6280d8dcd161752055e6d810b5060f9e0fcd6e0a65f4b47d06",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-3-file_mover-9e1c29334bd752a6",
+                "sha256": "fe0489e7cfcd995090338bae69353a89c34c1c06fb4717aaf0f289b3791a3e7b",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-4-file_mover-b6fcf4b8cf62723a",
+                "sha256": "8395d0f34f8216ada0b515a44af161ad9fa277b138333d49419f91e649efe630",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf",
+                "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-6-mover_fs-e3a9cfcce10fe97c",
+                "sha256": "5c18cf57a9a35c56d73b8679c1d9cfdf8b35da523440b35d7ef7b0530bd1b100",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-7-mover_store-3531f0ad50459292",
+                "sha256": "59684055d85abc973a6260e0adb9a2c197bc81318fcacfd8c634a34ac1da8b5f",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e",
+                "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-9-tls-27a1e808b3e0e533",
+                "sha256": "a0389600aa899f7952e80edeafd16aeb2a3ad4f019ce4005ac9c290ce52a8ce3",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-10-transfer-50480c04f1d3049b",
+                "sha256": "b3f1ab63af5c5fa90e0342732586a5407cba7c30b4b455a70d384caeb8e8dfa4",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 344
+          }
+        },
+        "run_id": "20261111T061208Z-25d3b62d",
+        "build_mode": "production",
+        "offline": false,
+        "test_scope": "full",
+        "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+        "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+        "container_networks": {
+          "builder": "none",
+          "runtime": "none"
+        },
+        "source_sha256": "22a428087df23a2848a9e30e04b4fd13bbf6cbf1848f65b39ef23ad4386d4f93",
+        "dependency_pins_sha256": "5726b1672c259c9c5f3e462ebdbfccf343cb0d0eefdabdc7c052ee96fff9b5a4",
+        "workspace_features": {
+          "file-mover": [
+            "default"
+          ],
+          "mover-fs": [
+            "default"
+          ]
+        },
+        "dependencies": [
+          {
+            "name": "argon2",
+            "version": "0.5.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "aws-lc-rs",
+            "version": "1.19.0",
+            "license": "ISC AND (Apache-2.0 OR ISC)"
+          },
+          {
+            "name": "aws-lc-sys",
+            "version": "0.47.0",
+            "license": "ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)"
+          },
+          {
+            "name": "base64ct",
+            "version": "1.8.3",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "bitflags",
+            "version": "2.13.2",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "blake2",
+            "version": "0.10.6",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "block-buffer",
+            "version": "0.10.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "bytes",
+            "version": "1.12.1",
+            "license": "MIT"
+          },
+          {
+            "name": "cc",
+            "version": "1.8.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cfg-if",
+            "version": "1.0.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cmake",
+            "version": "0.1.58",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cpufeatures",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "crypto-common",
+            "version": "0.1.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "digest",
+            "version": "0.10.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "dunce",
+            "version": "1.0.5",
+            "license": "CC0-1.0 OR MIT-0 OR Apache-2.0"
+          },
+          {
+            "name": "errno",
+            "version": "0.3.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fallible-iterator",
+            "version": "0.3.0",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "fallible-streaming-iterator",
+            "version": "0.1.9",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "find-msvc-tools",
+            "version": "0.1.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fs_extra",
+            "version": "1.3.0",
+            "license": "MIT"
+          },
+          {
+            "name": "generic-array",
+            "version": "0.14.7",
+            "license": "MIT"
+          },
+          {
+            "name": "getrandom",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "httparse",
+            "version": "1.10.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "itoa",
+            "version": "1.0.18",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "jobserver",
+            "version": "0.1.35",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libc",
+            "version": "0.2.190",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libsqlite3-sys",
+            "version": "0.38.2",
+            "license": "MIT"
+          },
+          {
+            "name": "linux-raw-sys",
+            "version": "0.12.1",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "memchr",
+            "version": "2.8.3",
+            "license": "Unlicense OR MIT"
+          },
+          {
+            "name": "mio",
+            "version": "1.2.4",
+            "license": "MIT"
+          },
+          {
+            "name": "once_cell",
+            "version": "1.21.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "password-hash",
+            "version": "0.5.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "pin-project-lite",
+            "version": "0.2.17",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "pkg-config",
+            "version": "0.3.34",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "proc-macro2",
+            "version": "1.0.107",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "quote",
+            "version": "1.0.47",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rand_core",
+            "version": "0.6.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "ring",
+            "version": "0.17.14",
+            "license": "Apache-2.0 AND ISC"
+          },
+          {
+            "name": "rusqlite",
+            "version": "0.40.1",
+            "license": "MIT"
+          },
+          {
+            "name": "rustix",
+            "version": "1.1.5",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "rustls",
+            "version": "0.23.46",
+            "license": "Apache-2.0 OR ISC OR MIT"
+          },
+          {
+            "name": "rustls-pki-types",
+            "version": "1.15.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rustls-webpki",
+            "version": "0.103.16",
+            "license": "ISC"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_core",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0.154",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "shlex",
+            "version": "2.0.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "signal-hook-registry",
+            "version": "1.4.8",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "smallvec",
+            "version": "1.16.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "socket2",
+            "version": "0.6.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "subtle",
+            "version": "2.6.1",
+            "license": "BSD-3-Clause"
+          },
+          {
+            "name": "syn",
+            "version": "3.0.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "tokio",
+            "version": "1.53.2",
+            "license": "MIT"
+          },
+          {
+            "name": "tokio-rustls",
+            "version": "0.26.6",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "typenum",
+            "version": "1.20.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "unicode-ident",
+            "version": "1.0.27",
+            "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+          },
+          {
+            "name": "untrusted",
+            "version": "0.9.0",
+            "license": "ISC"
+          },
+          {
+            "name": "vcpkg",
+            "version": "0.2.15",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "version_check",
+            "version": "0.9.5",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "zeroize",
+            "version": "1.9.1",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "zmij",
+            "version": "1.0.23",
+            "license": "MIT"
+          }
+        ],
+        "tls_selected_dependency_tree_sha256": "633896db995b513f865b3b49e042db1bc37be67937b34401243c95e9a573d1da",
+        "tls_native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "runtime_session": {
+          "pid": 4,
+          "pgid": 4,
+          "sid": 4
+        },
+        "tls_fixture_helper_sha256": "c83c8f6d6aa954d9ccd963c48571126efce5a3d8c5cb6f4263dc5ae09ed78342",
+        "tls_fixture": {
+          "archive_root": "file-mover-tls-proof",
+          "certificates": {
+            "ca.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "3cebecda3a6fcffaecf386045042ea9c5a6387dec303d07c27efd9999ff337d3",
+              "size_bytes": 429
+            },
+            "client.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "871008f23f6c442cfc93556354f7c097125d576010ad030f71fffed516643d3a",
+              "size_bytes": 432
+            },
+            "expired-client.der": {
+              "not_after": "2026-11-10T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "b15f5f79d62e37e0d1f33034076e11d351d7539b2962c3a5e189e6db1b6e781f",
+              "size_bytes": 439
+            },
+            "expired-server.der": {
+              "not_after": "2026-11-10T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "35bfaa592ba0f806967f3680afe4bf162eb36c8c1ecaa21b0eadbd406c0aa1b9",
+              "size_bytes": 444
+            },
+            "other-ca.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "0a519203c298049439996d44202aaf68feb0cc71c5d8b358b779761973abc5a2",
+              "size_bytes": 441
+            },
+            "replacement-server.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "35a40fa3d21e0e394da1e907972b833f8a883a93d9763580def23585114ab537",
+              "size_bytes": 443
+            },
+            "server.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "aa2dc936e52e689aa4c7eda19415e2f5e40e632cad8016985707b459495336cc",
+              "size_bytes": 444
+            },
+            "unapproved-client.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "67bc830380a66194dc2b72218735096900b3f59c6b27a4790493d7adcf2a04ac",
+              "size_bytes": 443
+            },
+            "untrusted-client.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "fd3b8d411dfb7e0a3383c10f7db2fe9cf22d52fe67e1177c32ba5ee3c2ac0a95",
+              "size_bytes": 447
+            },
+            "wrong-usage-client.der": {
+              "not_after": "2026-11-13T06:13:22+00:00",
+              "not_before": "2026-11-11T06:13:22+00:00",
+              "sha256": "fac5361e9ea551c0ca8112b5bcd62e9190bf22ad095bd083234904425ea8312d",
+              "size_bytes": 444
+            }
+          },
+          "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+          "private_archive_retained": false,
+          "key_custody": "1000:1000:600"
+        },
+        "native_tls_build": {
+          "AWS_LC_SYS_STATIC": "1",
+          "AWS_LC_SYS_CMAKE_BUILDER": "0",
+          "CC_ENABLE_DEBUG_OUTPUT": "1",
+          "target_cc": "/usr/bin/clang-16"
+        },
+        "audit_negative_controls": [
+          "new-glibc",
+          "private-glibc",
+          "wrong-loader",
+          "unexpected-library",
+          "runpath",
+          "wrong-architecture"
+        ]
+      },
+      "native_audits_reproduced": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "limit": "Downloaded reports/native logs audited; CI executable bytes were not uploaded for independent coordinator rehash.",
+      "account_terminal": {
+        "report_sha256": "5bf1437722a1f58da6e22834356b24e0866c1d6906fadf8d6eedcb67ea93c436",
+        "report": {
+          "status": "PASSED",
+          "profiles": [
+            {
+              "profile": "debug",
+              "binary_sha256": "3b684bce59fbbd1d8823b09fefa7e0861922872f742c07229b108b11d14238d4",
+              "cases": [
+                {
+                  "case": "init",
+                  "passed": true,
+                  "exit_code": 0,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.952,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "mismatch",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.364,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "ctrl-c",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.298,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "sigterm",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.398,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "change",
+                  "passed": true,
+                  "exit_code": 0,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.939,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "2",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                }
+              ],
+              "passed": true
+            },
+            {
+              "profile": "release",
+              "binary_sha256": "e976d5c133a0eb8559977def53a3d7f2ad611f9e35919115e69a58ed83659971",
+              "cases": [
+                {
+                  "case": "init",
+                  "passed": true,
+                  "exit_code": 0,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.457,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "mismatch",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.329,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "ctrl-c",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.226,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "sigterm",
+                  "passed": true,
+                  "exit_code": 1,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.297,
+                  "credentials_unchanged": true,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "1",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                },
+                {
+                  "case": "change",
+                  "passed": true,
+                  "exit_code": 0,
+                  "echo_disabled": true,
+                  "terminal_restored": true,
+                  "secret_free": true,
+                  "seconds": 0.412,
+                  "status": {
+                    "provisioned": true,
+                    "revision": "2",
+                    "username": "fixture-admin",
+                    "version": 1
+                  }
+                }
+              ],
+              "passed": true
+            }
+          ],
+          "limits": [
+            "Disposable offline local PTY CLI only; no remote auth/session/admin listener, deployment or operational state.",
+            "No SIGKILL restoration claim; no NFS, systemd, bundle/shipping or full release qualification.",
+            "Default TTY cases only; stdin JSON, guard/orphan and record-schema cases remain in the separate runtime gates.",
+            "No raw terminal/CLI diagnostics, passwords, account bytes or verifier/equality tokens retained."
+          ],
+          "gate": {
+            "run_id": "20261111T061208Z-25d3b62d",
+            "report_sha256": "fc9331092ad8633fe98007876cb10e05e1ae908d6f192b5c02c249b4328ab529",
+            "source_sha256": "22a428087df23a2848a9e30e04b4fd13bbf6cbf1848f65b39ef23ad4386d4f93",
+            "source_basis": "HEAD Git blobs; checkout line endings are not compared",
+            "rust_inputs": {
+              ".gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+              "Cargo.lock": "d1d2e210ff969a7435a7841b6e394240cd880659a6bf789fe0e3235d05aaf709",
+              "Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+              "README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+              "config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+              "crates/file-mover/Cargo.toml": "b88ee58a011bdf22ef07e2b9177c147b48c2fc440b80f92b6f94ccf0ccdc03f4",
+              "crates/file-mover/src/account.rs": "5b5033909ea1a531414169e739c95967233a55da58b0744819a66c2c43fac89e",
+              "crates/file-mover/src/account_cli.rs": "087441980b9af24a9d01a352bd11d995d1c1d82d7c73ddefc7ae6211d4fd31f0",
+              "crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+              "crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+              "crates/file-mover/src/control.rs": "d7e213a9892479f636c68d9c738fdd4038445745abaf641bb319e51b8236ed8f",
+              "crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+              "crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+              "crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+              "crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+              "crates/file-mover/src/ingress.rs": "589023ce1135c4a9a926c276f1b05d1d56cce4d809c0a95c9464c5be3ee99267",
+              "crates/file-mover/src/lib.rs": "ae2d5910e9f35a118cef6018e2ee923647595ad912ce3c9dc2e6c0fd3305c7de",
+              "crates/file-mover/src/main.rs": "5c8f1d34ad7267b4723666b55cd283e1acd94771127ec6ee5480c209bbace7aa",
+              "crates/file-mover/src/native.rs": "db302c267c7e4631851272c24943018d8659c01d5de8f911ef7a9c95a14e60d6",
+              "crates/file-mover/src/password.rs": "11b39480e5ad7ff62a38b9c6e1b231533aea55435b86e8cf4bd6c94f94e4a87e",
+              "crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+              "crates/file-mover/src/reload.rs": "006d55328061bbb5475e125b4dbd788d180448a9f57f5d4e996c05382337b61d",
+              "crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+              "crates/file-mover/src/tls.rs": "78f31f32a329d0fd039a30c8dc0556b0cb4a42cf22dc092cbd9868164a6dd51e",
+              "crates/file-mover/src/tls_executor.rs": "34691216352fd96bac2a26252e741cbb7a8c0da0d2746956043a8a9848973229",
+              "crates/file-mover/src/tls_reload_ipc.rs": "07a537f9254a10ec101cf06ac32202ef014f7e8be0ebce416bdce05530611e99",
+              "crates/file-mover/tests/api.rs": "1d4c41d0358a1dbbce830e908b0cad7bb22399161179c5c8a23bb88baa6589e2",
+              "crates/file-mover/tests/support/account_cli.rs": "6164bd4e989ff70576bb25344a2aa49c6c0864b366c96f8f225d94e89c884fda",
+              "crates/file-mover/tests/tls.rs": "7b23e6f02e83e126d97b7ffa69a6a416a2027ff791fdd20996e0177e27680dfb",
+              "crates/file-mover/tests/tls_listener/mod.rs": "3f78f267ccee9cc431ad9f009355ebe36977358dc69e9c97d47c6269d6173840",
+              "crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+              "crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+              "crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+              "crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+              "crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+              "crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+              "crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+              "crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+              "crates/mover-fs/Cargo.toml": "1f69ed7f1551a7d51d86b3c426649f72715e616090115f96626a97100d5483ba",
+              "crates/mover-fs/src/account_file.rs": "859b9ff211d4fe81174461651bae5531e0ea07ba0a3a2e86913eac6c77c696c8",
+              "crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+              "crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+              "crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+              "crates/mover-fs/src/credentials.rs": "941b0829482a0b20eb9e6745b83848a5bda13ac224f8ad8f326443226cd6f54f",
+              "crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+              "crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+              "crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+              "crates/mover-fs/src/ingress.rs": "11726fa07bdf0a56956b5bac05f6e7dd428a36680a82afb2944a2c4d774f1ada",
+              "crates/mover-fs/src/instance.rs": "10de4371fc113f5968a1afb65b23c1bc54bd3ca4d5d2a070d66bc3be5128a21f",
+              "crates/mover-fs/src/lib.rs": "d3e19a6a96a4012a632bcc1f51f69519197fb1fc79eeca69c9321e3c70712660",
+              "crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+              "crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+              "crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+              "crates/mover-fs/src/qualification.rs": "bcebd9ad6d888322343d205e9b7ad794f6d89048821d086c1a1cf822fe5792c6",
+              "crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+              "crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+              "crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+              "crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+              "crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+              "crates/mover-fs/src/terminal.rs": "5637835d2dc54afeded20d0e1ae59e2e65d9bb9a857ed2234be0b883a91f06dd",
+              "crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+              "crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+              "crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+              "crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+              "crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+              "crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+              "crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+              "crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+              "crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+              "crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+              "crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+              "crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+              "crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+              "crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+              "crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+              "crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+              "crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+              "crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+              "crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+              "crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+              "crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+              "crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+              "crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+              "crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+              "crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+              "crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+              "crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+              "crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+              "rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+            },
+            "artifacts": {
+              "debug": {
+                "name": "debug-0-file-mover",
+                "sha256": "3b684bce59fbbd1d8823b09fefa7e0861922872f742c07229b108b11d14238d4",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                },
+                "elf_sha256": "52b1f1057352c4b9eeb08fd4587f68f6bad9dfc4fbec0e1b7d257ab0021cb9b0"
+              },
+              "release": {
+                "name": "release-0-file-mover",
+                "sha256": "e976d5c133a0eb8559977def53a3d7f2ad611f9e35919115e69a58ed83659971",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                },
+                "elf_sha256": "5e5bcfeed5ea7e2db28a8efccff61fb2cf06697bb8855e75ebb1927073cff396"
+              }
+            }
+          },
+          "driver_sha256": {
+            "check-admin-account.py": "35d627e844404f6a081f2315934248ce1e22b099128613088424863d65efb533",
+            "test_admin_account.py": "e1d833e02cde6a692574e8cd125826272bbd1612d4d44b95540555973427899d",
+            "check-producer-ingress.py": "7886adf76fdc94e4ba959a6879423e211506079e5730ef55c1b4296a228c27c3",
+            "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+            "check-rust-sles.py": "f958a1f10702dbb91a25dcf8ac389c7c8169dc6df20cb7d29802eb1fc13ba9af",
+            "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+          },
+          "spec_sha256": "9ef12f08659ab4a48e69e61d1f5b6561de072d3b4b08909392509347883962d9",
+          "config_template_sha256": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+          "git_commit": "46bba37d316594a567aa5bc53565862c4146f641",
+          "fixture_archive_sha256": "72d798317f3beeeeda91fc5887d52213dec806535df6c9da040473aac8d46144",
+          "runtime_image": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+          "container": "ca0d6e99bf7b5493df1311e0f2f9e750a44722f4d683adf0d4b8bef2e7638f41",
+          "identity": {
+            "uid": 1000,
+            "gid": 1001,
+            "capabilities": 0,
+            "no_new_privileges": true,
+            "network": "none"
+          },
+          "cleanup": {
+            "passed": true
+          }
+        }
+      },
+      "independent_tls": {
+        "status": "PASSED",
+        "operations": 140,
+        "report_sha256": "540fa2092b106bb05fc5b373a2a2fb03cba67dbdde7dd180339bf1be42908922",
+        "cleanup_exit_codes": [
+          0,
+          0,
+          0
+        ]
+      },
+      "protected_ingress": {
+        "status": "PASSED",
+        "report_sha256": "0afda4840eab3a1ec2c3feeb0cc0f820254c2056f94846ae7da10b9169dd06e3"
+      }
+    },
+    "nfs-qualification": {
+      "run_id": 42970695084,
+      "status": "PASSED",
+      "test_scope": "full",
+      "report_sha256": "648a7d75d5d269b0d137041c53a122bcd062d06641b5f9c66b041fb7e9e9cfab",
+      "report": {
+        "status": "PASSED",
+        "config": {
+          "builder": "ghcr.io/rust-cross/cargo-zigbuild@sha256:9b4f6b3eb9e8f9fefb3960fe288ddba576627d66d9eff851ce7f62d2455564a5",
+          "builder_base": "docker.io/library/rust:1.99.0-bookworm@sha256:b36c246742b4d323472588f789601be34eb4af053255e2af53969078ee8dcec7",
+          "runtime": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+          "rust": "1.99.0",
+          "cargo_libc": "0.2.4",
+          "provider_mode": "source",
+          "cc": "/usr/bin/clang-16",
+          "target": "x86_64-unknown-linux-gnu.2.22",
+          "interpreter": "/lib64/ld-linux-x86-64.so.2",
+          "allowed_libraries": [
+            "libc.so.6",
+            "libm.so.6",
+            "libpthread.so.0",
+            "librt.so.1",
+            "libdl.so.2",
+            "libgcc_s.so.1",
+            "ld-linux-x86-64.so.2"
+          ]
+        },
+        "profiles": {
+          "debug": {
+            "artifacts": [
+              {
+                "name": "debug-0-file-mover-nfs-qualification",
+                "sha256": "f969f2c079840f881d4c0464535f7c7011508f4821fbd173299d4038fa0f641c",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-1-api-b825b2a0227b9d4a-nfs-qualification",
+                "sha256": "2ee1f8a270ee729bd02fc2a8b6dea10801e6a1426f6f72f0f6987024a9ade174",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-2-claim-a3f191ffd927f0ac-nfs-qualification",
+                "sha256": "313a9539b64a1c8f6c28e051e012cc77dc76e59c38cad5263328878d766d81fb",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-3-file_mover-ba527e087394e79b-nfs-qualification",
+                "sha256": "501a42825637756cc7b42ea0cfa4922bde7cd9cd25de3dc3a5f1d84a21dc4798",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-4-file_mover-c383133c2e6c59bb-nfs-qualification",
+                "sha256": "22c5c9c8268d837987f48bdd6449f424f81fc5cefd4331740751f754915913d9",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-5-mover_core-b12b493fdf9744cf-nfs-qualification",
+                "sha256": "3f3206b4b9a84d61c6df11b107c8658cc5fbd5e5c65afb932549935dd7243c65",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-6-mover_fs-e76e371df7bb9056-nfs-qualification",
+                "sha256": "fa2b1862d12e3c032fec608360d1c988b3f7b7b4fc712e6b3b5f78708172ff06",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-7-mover_store-77e146d6b5cf0eaf-nfs-qualification",
+                "sha256": "ff0bb157d9aa2b58744983f8b756f9ee9ea45e372b21b0a1900e3cfe57020025",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-8-protocol-2f28a09de9f6d355-nfs-qualification",
+                "sha256": "ebecb93e59b557c1d9ba293ba70cb44e6b5beb1ccc563d9be067310f6056fd61",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-9-tls-814240ca1ed6e463-nfs-qualification",
+                "sha256": "9f28401b2e436c4258756e0b86c9d940b03beca751b343bb152df535e6ed8ec6",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "debug-10-transfer-cc3ded0dc9336202-nfs-qualification",
+                "sha256": "8328c0d0c6e3a19fea75ca2c5c47456b52d8a1f482e35f1995c29587c6159591",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 348,
+            "api_suite_timeout_seconds": 1200
+          },
+          "release": {
+            "artifacts": [
+              {
+                "name": "release-0-file-mover-nfs-qualification",
+                "sha256": "f3dff77a694b2cea71fa6935afff5a8166c4658008d216820859cdb22e9bbe01",
+                "test": false,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-1-api-de4bf54a4884ed8b-nfs-qualification",
+                "sha256": "1286abc6a0ff558dcae43ff72ed5f6cac92e23ac7500e1b6551bfb2a5747e831",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-2-claim-0deb5007f2c9bc52-nfs-qualification",
+                "sha256": "4119a93a015764f321f35e338836f44c162da04954ffe0d3166135e68bf76849",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-3-file_mover-221b5e979e92fbce-nfs-qualification",
+                "sha256": "d58d15e36d4e62f3be1861d0c0a218df179ea789f4f8194b6a750cec9990b0fb",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-4-file_mover-e06c34db4e5022ad-nfs-qualification",
+                "sha256": "f802ba5abb932f1c99291c00d20eb4b23ac95b819864103fd5f7eb910773e6ee",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-5-mover_core-437b6f9cd965a8bf-nfs-qualification",
+                "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-6-mover_fs-9f38a9f6db502e8f-nfs-qualification",
+                "sha256": "61a7300cd9021f09a8ae8e9043a6739b9195b649ae13b8fc1062d4763bbcc499",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-7-mover_store-3531f0ad50459292-nfs-qualification",
+                "sha256": "59684055d85abc973a6260e0adb9a2c197bc81318fcacfd8c634a34ac1da8b5f",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-8-protocol-dd549649cfc5a27e-nfs-qualification",
+                "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-9-tls-c4ad18c05d64bb0f-nfs-qualification",
+                "sha256": "36788f18dd1aed5b5fba3a1e2c1754f0335a72e0ec9f3d710bd716380eff5e7d",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.10",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.2",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.7",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              },
+              {
+                "name": "release-10-transfer-0ccacefb1f87b0be-nfs-qualification",
+                "sha256": "e18ad29597c503d8759c48147e03653990b845f990890f1b73ba4b1d806cdfcd",
+                "test": true,
+                "elf": {
+                  "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                  "libraries": [
+                    "libc.so.6",
+                    "libdl.so.2",
+                    "libgcc_s.so.1",
+                    "libm.so.6",
+                    "libpthread.so.0",
+                    "librt.so.1"
+                  ],
+                  "versions": [
+                    "GCC_3.0",
+                    "GCC_3.3",
+                    "GCC_4.2.0",
+                    "GLIBC_2.12",
+                    "GLIBC_2.14",
+                    "GLIBC_2.15",
+                    "GLIBC_2.16",
+                    "GLIBC_2.18",
+                    "GLIBC_2.2.5",
+                    "GLIBC_2.3",
+                    "GLIBC_2.3.4",
+                    "GLIBC_2.4",
+                    "GLIBC_2.6",
+                    "GLIBC_2.9"
+                  ],
+                  "maximum_glibc": "GLIBC_2.18"
+                }
+              }
+            ],
+            "tests_passed": 348,
+            "api_suite_timeout_seconds": 1200
+          }
+        },
+        "run_id": "20261111T061208Z-37c2eebe-nfs-qualification",
+        "build_mode": "nfs-qualification",
+        "offline": false,
+        "test_scope": "full",
+        "builder_recipe_sha256": "ac101f802d6847597c0bacfe10c0cefa6b123aedcc206abf2841760dd403d008",
+        "builder_image": "localhost/file-mover-cargo-libc:d85f0832865912f2992c",
+        "container_networks": {
+          "builder": "none",
+          "runtime": "none"
+        },
+        "source_sha256": "8bb0ebec9064826041c1f687317f72a464f4c88f0654bc38af9719023d1dce2f",
+        "dependency_pins_sha256": "5726b1672c259c9c5f3e462ebdbfccf343cb0d0eefdabdc7c052ee96fff9b5a4",
+        "workspace_features": {
+          "file-mover": [
+            "default",
+            "nfs-qualification"
+          ],
+          "mover-fs": [
+            "default",
+            "nfs-qualification"
+          ]
+        },
+        "dependencies": [
+          {
+            "name": "argon2",
+            "version": "0.5.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "aws-lc-rs",
+            "version": "1.19.0",
+            "license": "ISC AND (Apache-2.0 OR ISC)"
+          },
+          {
+            "name": "aws-lc-sys",
+            "version": "0.47.0",
+            "license": "ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)"
+          },
+          {
+            "name": "base64ct",
+            "version": "1.8.3",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "bitflags",
+            "version": "2.13.2",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "blake2",
+            "version": "0.10.6",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "block-buffer",
+            "version": "0.10.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "bytes",
+            "version": "1.12.1",
+            "license": "MIT"
+          },
+          {
+            "name": "cc",
+            "version": "1.8.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cfg-if",
+            "version": "1.0.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cmake",
+            "version": "0.1.58",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "cpufeatures",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "crypto-common",
+            "version": "0.1.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "digest",
+            "version": "0.10.7",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "dunce",
+            "version": "1.0.5",
+            "license": "CC0-1.0 OR MIT-0 OR Apache-2.0"
+          },
+          {
+            "name": "errno",
+            "version": "0.3.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fallible-iterator",
+            "version": "0.3.0",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "fallible-streaming-iterator",
+            "version": "0.1.9",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "find-msvc-tools",
+            "version": "0.1.14",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "fs_extra",
+            "version": "1.3.0",
+            "license": "MIT"
+          },
+          {
+            "name": "generic-array",
+            "version": "0.14.7",
+            "license": "MIT"
+          },
+          {
+            "name": "getrandom",
+            "version": "0.2.17",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "httparse",
+            "version": "1.10.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "itoa",
+            "version": "1.0.18",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "jobserver",
+            "version": "0.1.35",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libc",
+            "version": "0.2.190",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "libsqlite3-sys",
+            "version": "0.38.2",
+            "license": "MIT"
+          },
+          {
+            "name": "linux-raw-sys",
+            "version": "0.12.1",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "memchr",
+            "version": "2.8.3",
+            "license": "Unlicense OR MIT"
+          },
+          {
+            "name": "mio",
+            "version": "1.2.4",
+            "license": "MIT"
+          },
+          {
+            "name": "once_cell",
+            "version": "1.21.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "password-hash",
+            "version": "0.5.0",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "pin-project-lite",
+            "version": "0.2.17",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "pkg-config",
+            "version": "0.3.34",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "proc-macro2",
+            "version": "1.0.107",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "quote",
+            "version": "1.0.47",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rand_core",
+            "version": "0.6.4",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "ring",
+            "version": "0.17.14",
+            "license": "Apache-2.0 AND ISC"
+          },
+          {
+            "name": "rusqlite",
+            "version": "0.40.1",
+            "license": "MIT"
+          },
+          {
+            "name": "rustix",
+            "version": "1.1.5",
+            "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+          },
+          {
+            "name": "rustls",
+            "version": "0.23.46",
+            "license": "Apache-2.0 OR ISC OR MIT"
+          },
+          {
+            "name": "rustls-pki-types",
+            "version": "1.15.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "rustls-webpki",
+            "version": "0.103.16",
+            "license": "ISC"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_core",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0.154",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "sha2",
+            "version": "0.10.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "shlex",
+            "version": "2.0.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "signal-hook-registry",
+            "version": "1.4.8",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "smallvec",
+            "version": "1.16.3",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "socket2",
+            "version": "0.6.5",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "subtle",
+            "version": "2.6.1",
+            "license": "BSD-3-Clause"
+          },
+          {
+            "name": "syn",
+            "version": "3.0.9",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "tokio",
+            "version": "1.53.2",
+            "license": "MIT"
+          },
+          {
+            "name": "tokio-rustls",
+            "version": "0.26.6",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "typenum",
+            "version": "1.20.1",
+            "license": "MIT OR Apache-2.0"
+          },
+          {
+            "name": "unicode-ident",
+            "version": "1.0.27",
+            "license": "(MIT OR Apache-2.0) AND Unicode-3.0"
+          },
+          {
+            "name": "untrusted",
+            "version": "0.9.0",
+            "license": "ISC"
+          },
+          {
+            "name": "vcpkg",
+            "version": "0.2.15",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "version_check",
+            "version": "0.9.5",
+            "license": "MIT/Apache-2.0"
+          },
+          {
+            "name": "zeroize",
+            "version": "1.9.1",
+            "license": "Apache-2.0 OR MIT"
+          },
+          {
+            "name": "zmij",
+            "version": "1.0.23",
+            "license": "MIT"
+          }
+        ],
+        "tls_selected_dependency_tree_sha256": "633896db995b513f865b3b49e042db1bc37be67937b34401243c95e9a573d1da",
+        "tls_native_compiler_audits": {
+          "clippy_debug": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          },
+          "release": {
+            "source_compilations": 397,
+            "wrapper": "/usr/local/cargo/bin/libc-cc",
+            "compiler": "/usr/lib/llvm-16/bin/clang",
+            "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+            "glibc": "2.22"
+          }
+        },
+        "runtime_session": {
+          "pid": 4,
+          "pgid": 4,
+          "sid": 4
+        },
+        "tls_fixture_helper_sha256": "c83c8f6d6aa954d9ccd963c48571126efce5a3d8c5cb6f4263dc5ae09ed78342",
+        "tls_fixture": {
+          "archive_root": "file-mover-tls-proof",
+          "certificates": {
+            "ca.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "b1fe59b73d8b0be9e74aa4deece6bea42ad582ef28eb9c23e5ea25a21861d750",
+              "size_bytes": 429
+            },
+            "client.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "321f0c2cc07aaa26c8612802ef80c7fa85f70ac43bb3fd9e4dd2423cf2ab4fbc",
+              "size_bytes": 432
+            },
+            "expired-client.der": {
+              "not_after": "2026-11-10T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "55ea445da53cf62cc2d6826b0592a29ad5fbb932744489dfcbc2eda15e606f33",
+              "size_bytes": 440
+            },
+            "expired-server.der": {
+              "not_after": "2026-11-10T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "2518e9f30e2dc5b13ac8a21204e1358500fa7cbb3ec85188626429f7468aafcf",
+              "size_bytes": 443
+            },
+            "other-ca.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "ca4506332f3006a188a966b8a452a7f67858802aafbf7e1a279ee962cb5ca92d",
+              "size_bytes": 440
+            },
+            "replacement-server.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "9ba77be4e841d3187dcfcba1b593b8aab3a0aa599856bd694b3d0889c0f11ddb",
+              "size_bytes": 443
+            },
+            "server.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "37b5340fc079c6807aafa06d0f52eab13c3da35746fefc99ab7b9ec8975a9b06",
+              "size_bytes": 444
+            },
+            "unapproved-client.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "3a6e9b422d2c98e83d5792de28921232e129291a4c5b3a169a7a7a51599c8877",
+              "size_bytes": 444
+            },
+            "untrusted-client.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "a1a35c29e9f627829b4385eefc4f893a76b626fd0c985e3e35a3f6abb1b6d82c",
+              "size_bytes": 447
+            },
+            "wrong-usage-client.der": {
+              "not_after": "2026-11-13T06:13:23+00:00",
+              "not_before": "2026-11-11T06:13:23+00:00",
+              "sha256": "b16e2d9eb1c2185fd48faa40473b3c78f0cf79cb4047a8aff2c7f186ac2a85a3",
+              "size_bytes": 444
+            }
+          },
+          "openssl_version": "OpenSSL 3.0.22 25 Aug 2026 (Library: OpenSSL 3.0.22 25 Aug 2026)",
+          "private_archive_retained": false,
+          "key_custody": "1000:1000:600"
+        },
+        "native_tls_build": {
+          "AWS_LC_SYS_STATIC": "1",
+          "AWS_LC_SYS_CMAKE_BUILDER": "0",
+          "CC_ENABLE_DEBUG_OUTPUT": "1",
+          "target_cc": "/usr/bin/clang-16"
+        },
+        "audit_negative_controls": [
+          "new-glibc",
+          "private-glibc",
+          "wrong-loader",
+          "unexpected-library",
+          "runpath",
+          "wrong-architecture"
+        ]
+      },
+      "native_audits_reproduced": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "limit": "Downloaded reports/native logs audited; CI executable bytes were not uploaded for independent coordinator rehash."
+    }
+  },
+  "local_retained": {
+    "status": "UNFINALIZED_GATE_RETAINED_ARTIFACTS_AUDITED",
+    "original_report_present": false,
+    "audit_sha256": "844b287a150ebe5f3f6549f61bed32b6a74722005774b332ff5a0106c51ebc8d",
+    "audit": {
+      "status": "AUDITED_RETAINED_ARTIFACTS_UNFINALIZED_GATE",
+      "gate_run_id": "20261111T061232Z-9f951dc8",
+      "original_report_present": false,
+      "qualification_basis": "Completed CI full production/qualification and formal account/TLS checks at de8bcbe; this is not a reconstructed local gate verdict.",
+      "source_archive_sha256": "edfc34d826dbfe166c5601d1843cb2c2270678712a88868fbf051152f6842c2c",
+      "rust_inputs": {
+        "rust/.gitignore": "79e76d687ee5796fbf79690f2ad2713ed541d30076dd9d54f619e850220e8fc2",
+        "rust/Cargo.lock": "d1d2e210ff969a7435a7841b6e394240cd880659a6bf789fe0e3235d05aaf709",
+        "rust/Cargo.toml": "ddaa5b65ccba2bf22f99f584044e034ffce8ec3731602c73a8cceb0479f7ea91",
+        "rust/README.md": "621de67002b27309654f65c5685c2d862cd760ce9df7ac3439d2b4c5050e1cd7",
+        "rust/config/local.example.json": "0967dd47f2469306b8d62afa806635cec43e59bc7eebaa5873dd13b051d0cce4",
+        "rust/crates/file-mover/Cargo.toml": "b88ee58a011bdf22ef07e2b9177c147b48c2fc440b80f92b6f94ccf0ccdc03f4",
+        "rust/crates/file-mover/src/account.rs": "5b5033909ea1a531414169e739c95967233a55da58b0744819a66c2c43fac89e",
+        "rust/crates/file-mover/src/account_cli.rs": "087441980b9af24a9d01a352bd11d995d1c1d82d7c73ddefc7ae6211d4fd31f0",
+        "rust/crates/file-mover/src/bootstrap.rs": "7b4db762e2e4d2501cfd74578a9a97809c413d54a13d21037de5d3f083c72a52",
+        "rust/crates/file-mover/src/claim_worker.rs": "c07ab6209f9d47df6b51b02fd30dec792795bc35da1a3b23f17eab96e8fa49de",
+        "rust/crates/file-mover/src/control.rs": "d7e213a9892479f636c68d9c738fdd4038445745abaf641bb319e51b8236ed8f",
+        "rust/crates/file-mover/src/delivery_worker.rs": "6244ff026cd2a35f407fe2c36ee16e888671e811cc53f3442e915faaaf5cabd4",
+        "rust/crates/file-mover/src/diagnostic.rs": "4de39643739e581bc4b92b9d88c7bfb78aec10698b8c5773f5caca28d4ea515f",
+        "rust/crates/file-mover/src/enrollment.rs": "49d9e37c587fe4b19820d98abd3170f4055cb17c5b90c3916838fc2cf247e7fe",
+        "rust/crates/file-mover/src/http.rs": "71eedb25a6be739414e8c1da4ef60a1daaebc648ca3474b0b44ad7a2ac9ca887",
+        "rust/crates/file-mover/src/ingress.rs": "589023ce1135c4a9a926c276f1b05d1d56cce4d809c0a95c9464c5be3ee99267",
+        "rust/crates/file-mover/src/lib.rs": "ae2d5910e9f35a118cef6018e2ee923647595ad912ce3c9dc2e6c0fd3305c7de",
+        "rust/crates/file-mover/src/main.rs": "5c8f1d34ad7267b4723666b55cd283e1acd94771127ec6ee5480c209bbace7aa",
+        "rust/crates/file-mover/src/native.rs": "db302c267c7e4631851272c24943018d8659c01d5de8f911ef7a9c95a14e60d6",
+        "rust/crates/file-mover/src/password.rs": "11b39480e5ad7ff62a38b9c6e1b231533aea55435b86e8cf4bd6c94f94e4a87e",
+        "rust/crates/file-mover/src/payload.rs": "be15703d0acd7a93c26598aeb60299a27ef6641553dd43c8aa83f9f6944d4a39",
+        "rust/crates/file-mover/src/reload.rs": "006d55328061bbb5475e125b4dbd788d180448a9f57f5d4e996c05382337b61d",
+        "rust/crates/file-mover/src/source_space.rs": "ff1ef6c16018eea37ae299794f2efe786fc5ca5406bd08cf0442658934391255",
+        "rust/crates/file-mover/src/tls.rs": "78f31f32a329d0fd039a30c8dc0556b0cb4a42cf22dc092cbd9868164a6dd51e",
+        "rust/crates/file-mover/src/tls_executor.rs": "34691216352fd96bac2a26252e741cbb7a8c0da0d2746956043a8a9848973229",
+        "rust/crates/file-mover/src/tls_reload_ipc.rs": "07a537f9254a10ec101cf06ac32202ef014f7e8be0ebce416bdce05530611e99",
+        "rust/crates/file-mover/tests/api.rs": "1d4c41d0358a1dbbce830e908b0cad7bb22399161179c5c8a23bb88baa6589e2",
+        "rust/crates/file-mover/tests/support/account_cli.rs": "6164bd4e989ff70576bb25344a2aa49c6c0864b366c96f8f225d94e89c884fda",
+        "rust/crates/file-mover/tests/tls.rs": "7b23e6f02e83e126d97b7ffa69a6a416a2027ff791fdd20996e0177e27680dfb",
+        "rust/crates/file-mover/tests/tls_listener/mod.rs": "3f78f267ccee9cc431ad9f009355ebe36977358dc69e9c97d47c6269d6173840",
+        "rust/crates/mover-core/Cargo.toml": "c2a0092cf04a9e58b1b739668359a72d5014780c3492f3e5cd4dd4215a4f7dcb",
+        "rust/crates/mover-core/src/claim.rs": "4ba59e5199b6312779b0c5db152f350d756b0d96c86b21cec9ac4919e750ee04",
+        "rust/crates/mover-core/src/lib.rs": "60ea6dcd1b7e2e908ba6e1845c830e0e2d4184d518bd4b6573ee3d1bc6f9651d",
+        "rust/crates/mover-core/src/recording.rs": "fb8fd131959923790198edfdf65fe099a4d9ab8e497b376bba35b53c4cec539c",
+        "rust/crates/mover-core/src/retry.rs": "0148959728fb19ad8657dd46c36f2df729e681fa253d4a2e800825f6b2df385f",
+        "rust/crates/mover-core/src/space.rs": "62af153d73d8983abcb629530ecb712e864aac1664a66226b79540e7475df12c",
+        "rust/crates/mover-core/src/transfer.rs": "4e499d3cf6c3084ea2e2cea36cb824a990972236ca34feacf644653e898e4e0e",
+        "rust/crates/mover-core/tests/protocol.rs": "0ecc620a1374bab00df92a5a9cfb219cd4ca06877a2cd7ffa12bd5f97e583b79",
+        "rust/crates/mover-fs/Cargo.toml": "1f69ed7f1551a7d51d86b3c426649f72715e616090115f96626a97100d5483ba",
+        "rust/crates/mover-fs/src/account_file.rs": "859b9ff211d4fe81174461651bae5531e0ea07ba0a3a2e86913eac6c77c696c8",
+        "rust/crates/mover-fs/src/backup.rs": "7b7cac4d2a9131f38bd86743dc87ad1c41500bf60222ba3d10a186e0b3afb048",
+        "rust/crates/mover-fs/src/binding.rs": "acd41ee1d3ca98ec6b3645a93644ab389bf6897a9a2bc879ce37649023b08234",
+        "rust/crates/mover-fs/src/bootstrap.rs": "bb23043bccf931314e47395db41c8987cdb93488c1d7a29dbb30d1f49a720036",
+        "rust/crates/mover-fs/src/credentials.rs": "941b0829482a0b20eb9e6745b83848a5bda13ac224f8ad8f326443226cd6f54f",
+        "rust/crates/mover-fs/src/custody.rs": "38709bae3059234aada5ebd679390c457fc5f995a5f8933fb27c9b8b4d2d59aa",
+        "rust/crates/mover-fs/src/enrollment.rs": "eb7fb0056354c83c01c2e4d694242dd730f22bc53b991729a8e96e119eabc3be",
+        "rust/crates/mover-fs/src/enrollment_io.rs": "9fc1ebb7a1b659745e312f0e9f1a0b7cc529342f1d68121ca92d3ffc39fe2b45",
+        "rust/crates/mover-fs/src/ingress.rs": "11726fa07bdf0a56956b5bac05f6e7dd428a36680a82afb2944a2c4d774f1ada",
+        "rust/crates/mover-fs/src/instance.rs": "10de4371fc113f5968a1afb65b23c1bc54bd3ca4d5d2a070d66bc3be5128a21f",
+        "rust/crates/mover-fs/src/lib.rs": "d3e19a6a96a4012a632bcc1f51f69519197fb1fc79eeca69c9321e3c70712660",
+        "rust/crates/mover-fs/src/manifest.rs": "6fcbc17afd1abc21beff46ef500d73e4b673990681bc720d17b3701cefc55df5",
+        "rust/crates/mover-fs/src/mount_profile.rs": "4c45ea7c37f45748f6b741139cc3864793b9d491bad0616336eea419f3f5a9bb",
+        "rust/crates/mover-fs/src/payload_io.rs": "f480d6ec22fe823b3cf67815cce5b6d3e225f0752f52ae5abf649b6fcc1a3bbc",
+        "rust/crates/mover-fs/src/qualification.rs": "bcebd9ad6d888322343d205e9b7ad794f6d89048821d086c1a1cf822fe5792c6",
+        "rust/crates/mover-fs/src/recording_codec.rs": "b6480bfd6fc80f97476d8512545d44f30315d96fa47e5df247558ee507cf58c4",
+        "rust/crates/mover-fs/src/recording_codec/identity-v1.json": "31dc6a9fbd923775e891d9781b23c049b0bd955c4f92401222fdce689985f087",
+        "rust/crates/mover-fs/src/recording_codec/producer-manifest.json": "37c59160a8008cb1ce3b64649654600d083cba23c147645094db01d1b6dbb816",
+        "rust/crates/mover-fs/src/recording_codec/tests.rs": "2de33c5c653fb39b1019a937668e55b83cc977fd52b469ce4baac30ce825ac50",
+        "rust/crates/mover-fs/src/relocate.rs": "ff1c1c875a85682083ab6376bb38343c133eb4b73a8172a3a69059cf132eadf0",
+        "rust/crates/mover-fs/src/terminal.rs": "5637835d2dc54afeded20d0e1ae59e2e65d9bb9a857ed2234be0b883a91f06dd",
+        "rust/crates/mover-fs/src/transfer.rs": "112034760298589646a9e7f85af850d1d0d14fbe18321774b61d0d8eba944676",
+        "rust/crates/mover-fs/src/worker_epoch.rs": "7d55c70adf556e2b2ad574712caed49dae459ef49c702b2b9aaf87f6061c01a3",
+        "rust/crates/mover-fs/tests/claim.rs": "1df9823f845b298ef5499ab776062cb1a5b074790172ee2fddc0068de19425e4",
+        "rust/crates/mover-fs/tests/transfer.rs": "6700eb7b5a7135147d39aa640b34e7de7d842e31518931402236c140fae0faa3",
+        "rust/crates/mover-store/Cargo.toml": "f2b82477ba80697de14255f864ca73229e3a95ab09bf80e485f40de6ce5531bf",
+        "rust/crates/mover-store/README.md": "ac9a20a6ed9572c5db411d2b49f056893840c28206466b12c7dbbd07d12b1d37",
+        "rust/crates/mover-store/src/capacity_retries.sql": "2e75d0d4d5ac2ef1960df87acfaef89a378d95cbb19647b7245faaed6ce9d776",
+        "rust/crates/mover-store/src/claims.sql": "8c81740f07fd34dfc20d3c2493995c3652830a567b64b6ed788361bee48414f5",
+        "rust/crates/mover-store/src/coordination.sql": "6290febcaa526624d2a493605e286cca6c31a14c8c2a8db7b7ecb6773a8f3b93",
+        "rust/crates/mover-store/src/destination_bindings.sql": "ffb4751a5961831505c7603a269fab257c8624208b8bcd8661ea194f583762d6",
+        "rust/crates/mover-store/src/history.rs": "f17bf87d175f7202b7d3c96b4bb82ae7e849b7d6f035497aa17ac986e056de08",
+        "rust/crates/mover-store/src/inspection.rs": "4a5507240f3bae704feb87a67bcbaf75b3a7df9c183bfaf94aaba9f70a70034d",
+        "rust/crates/mover-store/src/jobs.sql": "7c8879ccbfc52a49a1dc0569ee163c7db464e10aea1475488743baf123f54edd",
+        "rust/crates/mover-store/src/jobs_v11.sql": "e8a77496f5fe82103fcfc8ae02ad134f142143b0b7c1b83a9a2416f87abc0441",
+        "rust/crates/mover-store/src/lib.rs": "298cf0bb474bee0240ac20ad744d436407a52422a6d9f24e1ecbea37caf04c22",
+        "rust/crates/mover-store/src/migration.rs": "87a9c73acd87e439266548b8b8ce91a234de885b05317b55bd930be7d83ae304",
+        "rust/crates/mover-store/src/missing.sql": "e87cff55cf1b8e3038d8814bedd489aeb7852092bc9ff383fedcd793f8bf316e",
+        "rust/crates/mover-store/src/missing_resets.rs": "636b2e2985cda2ec25f1259e905af9f9fda82af4d729a2a48b553b2b4088f686",
+        "rust/crates/mover-store/src/missing_resets.sql": "4fc438cc02ac9ced8746653c574dc266e1e3444110ad2cee6a901071c5a1e88c",
+        "rust/crates/mover-store/src/operators.rs": "84999b7c634b7ee7733f14ff67f7a9a96ffa74c773e5df6efe02d5293a89632c",
+        "rust/crates/mover-store/src/operators.sql": "5c43ac26a0b96d2fda4449bfe63954c0708353289c79b6bdd568998524308662",
+        "rust/crates/mover-store/src/retention.rs": "9b14254241f67599eb6b9931dd506453a27cd14b6ba4edacd310cf6695822325",
+        "rust/crates/mover-store/src/schema.sql": "9370dd81382a019b7b3950ae32e467813953130b68c42a38a276774069b60d7b",
+        "rust/crates/mover-store/src/source_enrollment.sql": "a5fedb4a0a95fad605fc63f7fa795d0910026a6256e3999eee72ee1d6e156e4b",
+        "rust/crates/mover-store/src/source_ownership.rs": "932e447921cf3fc84388cdb3753b754030646bf3083934d0e1fefae602a876ce",
+        "rust/crates/mover-store/src/source_ownership.sql": "6047e982176e8333e0308d36338e0c24b4a759c3f151bec40b67b670fb097715",
+        "rust/crates/mover-store/src/tests.rs": "1f403312083e3dbd7aa2387c03a6f5355305ecdc11fdacd7c127995ccbf79e15",
+        "rust/crates/mover-store/src/transfers.sql": "9738b40e2e96cb9b3037e1abf247b813f2bf22d6d246326e0837cfb758e9c8db",
+        "rust/rust-toolchain.toml": "2ad6f15416572b4836585087f1d4abc53b8fa2dbd616f8dacfaa587ed6714228"
+      },
+      "profiles": {
+        "debug": {
+          "tests_passed_in_surviving_logs": 344,
+          "artifacts": [
+            {
+              "name": "debug-0-file-mover",
+              "sha256": "15314ce5ed2b635a2c8845b2e707f5ec9915f7b01c7416f957382906266ea6a9",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": false,
+              "tests_passed": null,
+              "test_log_sha256": null,
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-1-api-151c0e697eaff3a9",
+              "sha256": "3c7d191074b9f165c763ac7336d5ea5ab0f611c9023a02c756d627fb3c28daa8",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 108,
+              "test_log_sha256": "9ff99c635ac7bf6da6a1b9172f9777c4e306e23886db13954e46c7d4c814a3ff",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-10-transfer-5113df6acaf77b64",
+              "sha256": "b517b439658cdae48a15af7598cb96f25c199ead7d3cf8454982911004c9b510",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.6",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 15,
+              "test_log_sha256": "ccb1fbd6226e24f0cf314849e353601e700af6bdb2905291d68453d8d11e003c",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-2-claim-763c7e74054fa750",
+              "sha256": "ea94a0fb7c0ae4f1edd45f5aa400523c256f426ffbdb1563c9aff950626ae5dd",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 11,
+              "test_log_sha256": "f5cf5befd92fb4a6a77d5f3c969f833f43985a077cf627b70ff46267753b4b3b",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-3-file_mover-46c047dc3374607f",
+              "sha256": "77ced2f2dec75a0ffa317f10f08a963c0861875290f80870433ca4427c3d1e4a",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 0,
+              "test_log_sha256": "df166913f47ff1f04202cae9b31df67ed272d692d99a0023a8117dc3029100dd",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-4-file_mover-f56f4908e5a4960d",
+              "sha256": "db37f5197bed4fb4751161ba9e3a3900ca22ce6a8025fba1b23c8296a5d9e1b0",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 38,
+              "test_log_sha256": "bc38c5e534afbc600a25d0b0582ca2107c55710324333497b80d9c616f5df2ed",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-5-mover_core-b12b493fdf9744cf",
+              "sha256": "944431e93530352cf51cd44603c24d95233a6181bcb375954d994167989289c4",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 4,
+              "test_log_sha256": "ae7d4ca4542712333907c56637ebc77654370fc78c489614b50526339a7718b4",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-6-mover_fs-d2931c45b402c9e9",
+              "sha256": "260977531f5cd2d893659b823562d1cd19678d52bb0fd29e4faf01c5340f2790",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.6",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 67,
+              "test_log_sha256": "8232577cf750bdfb4ad8fcd8473738ba6c52f19de47d0193959a31f330db782e",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-7-mover_store-77e146d6b5cf0eaf",
+              "sha256": "3a34239c794cf3e71580c0cbb036937b6b51135e1d1c3f00c0e5eeaa8390ea41",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 73,
+              "test_log_sha256": "ceedce984dc53578913f14769df126d919b3747ad8743da999882db41522728a",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-8-protocol-2f28a09de9f6d355",
+              "sha256": "bf3717d2751efc87b24a0eb94ebd4d6f14a026b2bb8eb1aaae58c9d6c27bbf8e",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 10,
+              "test_log_sha256": "eaf5b3d2ef05d3075fe6d3cdae45da9e4c98bc11d8252099c169d56c3d0ff87d",
+              "matches_ci_binary": false
+            },
+            {
+              "name": "debug-9-tls-96dc7bc082db2abc",
+              "sha256": "8ddbbc0b6e466493e374e5e0442bb18c65feb05cab29cdecb4be14131f25837b",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 18,
+              "test_log_sha256": "0e0eb524823862fbadadef9cda477daaac5127e911300a61669e155d956e273b",
+              "matches_ci_binary": false
+            }
+          ],
+          "all_binary_hashes_match_ci": false
+        },
+        "release": {
+          "tests_passed_in_surviving_logs": 344,
+          "artifacts": [
+            {
+              "name": "release-0-file-mover",
+              "sha256": "e976d5c133a0eb8559977def53a3d7f2ad611f9e35919115e69a58ed83659971",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": false,
+              "tests_passed": null,
+              "test_log_sha256": null,
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-1-api-27cbfe365e98fcf4",
+              "sha256": "b4d685f9c15bb9d9f34b1bd58e6ba15aabaff160b72d6ac3695fbd86e8be5f82",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 108,
+              "test_log_sha256": "fb7372c6dac39030650ba96f65b16c925afdcc811c68538c874950cb89d4efc7",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-10-transfer-50480c04f1d3049b",
+              "sha256": "b3f1ab63af5c5fa90e0342732586a5407cba7c30b4b455a70d384caeb8e8dfa4",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.6",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 15,
+              "test_log_sha256": "f367b71b590396b165cc86b71b926a3300347a1b7bc644a44038fc086b0746cb",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-2-claim-01105e85fa465fd9",
+              "sha256": "c845a788d6c23b6280d8dcd161752055e6d810b5060f9e0fcd6e0a65f4b47d06",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 11,
+              "test_log_sha256": "bff47b6c9046572f58b5b8788e0727bfa1a3c28bb7ceac0de650d9988cbb2a1b",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-3-file_mover-9e1c29334bd752a6",
+              "sha256": "fe0489e7cfcd995090338bae69353a89c34c1c06fb4717aaf0f289b3791a3e7b",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 38,
+              "test_log_sha256": "25f498269e233cccb352c2a1d318646dfaa39000c08a2f49796568497862c45f",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-4-file_mover-b6fcf4b8cf62723a",
+              "sha256": "8395d0f34f8216ada0b515a44af161ad9fa277b138333d49419f91e649efe630",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 0,
+              "test_log_sha256": "df166913f47ff1f04202cae9b31df67ed272d692d99a0023a8117dc3029100dd",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-5-mover_core-437b6f9cd965a8bf",
+              "sha256": "74dc6615b8ca6d863642080c18d56fc61f34150e4df3ff4ed8b6e70318abc675",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 4,
+              "test_log_sha256": "ae7d4ca4542712333907c56637ebc77654370fc78c489614b50526339a7718b4",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-6-mover_fs-e3a9cfcce10fe97c",
+              "sha256": "5c18cf57a9a35c56d73b8679c1d9cfdf8b35da523440b35d7ef7b0530bd1b100",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.6",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 67,
+              "test_log_sha256": "b2a41a5db7c7e1a4569f1051d4983eddd7e54afafe7f1b2cbb0b499cad0cfa72",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-7-mover_store-3531f0ad50459292",
+              "sha256": "59684055d85abc973a6260e0adb9a2c197bc81318fcacfd8c634a34ac1da8b5f",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 73,
+              "test_log_sha256": "bd3dc8214ad3e2ae12063da1556ff40d5807ac2367958e20ea4de90d263063a9",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-8-protocol-dd549649cfc5a27e",
+              "sha256": "3570ea312369cbf72db0d3f1907ea5979dab0e4407d02810047d843d98472a48",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 10,
+              "test_log_sha256": "eaf5b3d2ef05d3075fe6d3cdae45da9e4c98bc11d8252099c169d56c3d0ff87d",
+              "matches_ci_binary": true
+            },
+            {
+              "name": "release-9-tls-27a1e808b3e0e533",
+              "sha256": "a0389600aa899f7952e80edeafd16aeb2a3ad4f019ce4005ac9c290ce52a8ce3",
+              "elf": {
+                "interpreter": "/lib64/ld-linux-x86-64.so.2",
+                "libraries": [
+                  "libc.so.6",
+                  "libdl.so.2",
+                  "libgcc_s.so.1",
+                  "libm.so.6",
+                  "libpthread.so.0",
+                  "librt.so.1"
+                ],
+                "versions": [
+                  "GCC_3.0",
+                  "GCC_3.3",
+                  "GCC_4.2.0",
+                  "GLIBC_2.10",
+                  "GLIBC_2.12",
+                  "GLIBC_2.14",
+                  "GLIBC_2.15",
+                  "GLIBC_2.16",
+                  "GLIBC_2.18",
+                  "GLIBC_2.2.5",
+                  "GLIBC_2.3",
+                  "GLIBC_2.3.2",
+                  "GLIBC_2.3.4",
+                  "GLIBC_2.4",
+                  "GLIBC_2.7",
+                  "GLIBC_2.9"
+                ],
+                "maximum_glibc": "GLIBC_2.18"
+              },
+              "test": true,
+              "tests_passed": 18,
+              "test_log_sha256": "cca3694bd3b96f3f94f3eba736e4ca1d8475a4c6ecdf58757d443673de6ec13a",
+              "matches_ci_binary": true
+            }
+          ],
+          "all_binary_hashes_match_ci": true
+        }
+      },
+      "native_compiler_audits": {
+        "clippy_debug": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        },
+        "release": {
+          "source_compilations": 397,
+          "wrapper": "/usr/local/cargo/bin/libc-cc",
+          "compiler": "/usr/lib/llvm-16/bin/clang",
+          "sysroot": "/usr/local/cargo/libc-providers/x86_64-unknown-linux-gnu/glibc-2.22/source-7cc6a8bb4668e3d3/sysroot",
+          "glibc": "2.22"
+        }
+      },
+      "limit": "Surviving test logs, source and current binary/ELF bytes independently audited. Local gate cleanup/report finalization did not complete; no local full-gate PASSED receipt is claimed."
+    },
+    "clarification": "Unfinalized is a missing-receipt classification. It does not establish whether historical cleanup completed before restart; no reconstructed local gate pass is claimed.",
+    "passed_console_log_sha256": "897919a66dcd36039dbaedd80b3627945ead2b8a466fac3567898d8277e05fd9"
+  },
+  "local_diagnostic": {
+    "status": "PASSED_DIAGNOSTIC_REPLAY",
+    "report_sha256": "f420a5c8f04e4ca0c740255647a0c1ea37fe416b3969ecd306d898e238feca3d",
+    "report": {
+      "status": "PASSED_DIAGNOSTIC_REPLAY",
+      "qualification_basis": "Completed CI full gates/formal account checker at de8bcbe; this diagnostic is not a gate receipt.",
+      "original_local_report_present": false,
+      "profiles": [
+        {
+          "profile": "debug",
+          "binary_sha256": "15314ce5ed2b635a2c8845b2e707f5ec9915f7b01c7416f957382906266ea6a9",
+          "cases": [
+            {
+              "case": "init",
+              "passed": true,
+              "exit_code": 0,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 7.557,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "mismatch",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 6.911,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "ctrl-c",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 4.737,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "sigterm",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 5.923,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "change",
+              "passed": true,
+              "exit_code": 0,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 7.072,
+              "status": {
+                "provisioned": true,
+                "revision": "2",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            }
+          ],
+          "passed": true
+        },
+        {
+          "profile": "release",
+          "binary_sha256": "e976d5c133a0eb8559977def53a3d7f2ad611f9e35919115e69a58ed83659971",
+          "cases": [
+            {
+              "case": "init",
+              "passed": true,
+              "exit_code": 0,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 6.182,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "mismatch",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 6.899,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "ctrl-c",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 4.063,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "sigterm",
+              "passed": true,
+              "exit_code": 1,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 5.724,
+              "credentials_unchanged": true,
+              "status": {
+                "provisioned": true,
+                "revision": "1",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            },
+            {
+              "case": "change",
+              "passed": true,
+              "exit_code": 0,
+              "echo_disabled": true,
+              "terminal_restored": true,
+              "secret_free": true,
+              "seconds": 6.283,
+              "status": {
+                "provisioned": true,
+                "revision": "2",
+                "username": "fixture-admin",
+                "version": 1
+              }
+            }
+          ],
+          "passed": true
+        }
+      ],
+      "retained_audit_sha256": "844b287a150ebe5f3f6549f61bed32b6a74722005774b332ff5a0106c51ebc8d",
+      "measurement_driver_sha256": "8bb474ddcc604477d9f1746546c36babf95b0412862ab9cefa77336c152c9cd3",
+      "driver_sha256": {
+        "check-admin-account.py": "35d627e844404f6a081f2315934248ce1e22b099128613088424863d65efb533",
+        "test_admin_account.py": "e1d833e02cde6a692574e8cd125826272bbd1612d4d44b95540555973427899d",
+        "check-producer-ingress.py": "7886adf76fdc94e4ba959a6879423e211506079e5730ef55c1b4296a228c27c3",
+        "nfs_fixture_contract.py": "0b1ee8720e6db768a119c89cc7273af417217af80a4272f0213ac0ec11e60687",
+        "check-rust-sles.py": "f958a1f10702dbb91a25dcf8ac389c7c8169dc6df20cb7d29802eb1fc13ba9af",
+        "rust-platform.json": "2e839e627b179ce5bc9d40403eaf7d8bc4298750aca056a18da4584f1c08ea59"
+      },
+      "runtime_image": "registry.suse.com/suse/sles12sp5@sha256:4c7d476a692d4da927397d7fe4e6e9aaa93a2dea6927a69a45cb9a1fcd56ba35",
+      "container": "f0bb3bbc81b5bbf842d6d7c7d46172c6dfeced31f85f7f35c8a482a586912095",
+      "identity": {
+        "uid": 1000,
+        "gid": 1001,
+        "capabilities": 0,
+        "no_new_privileges": true,
+        "network": "none"
+      },
+      "fixture_archive_sha256": "ed9bb29a84a751e5320575085c14432d0bf680f538be5471069e13b5e004af9c",
+      "cleanup": {
+        "passed": true
+      }
+    },
+    "scope": "Independent replay of retained binary prompts; not a replacement or reconstructed full-gate verdict."
+  },
+  "diagnostic_driver": {
+    "sha256": "8bb474ddcc604477d9f1746546c36babf95b0412862ab9cefa77336c152c9cd3",
+    "encoding": "UTF-8 with BOM",
+    "line_endings": "Mixed: 40 LF-only endings and one final CRLF; exact base64 bytes are authoritative.",
+    "bytes_base64": "77u/IiIiRGlhZ25vc3RpYyByZXBsYXkgb25seTsgcXVhbGlmaWNhdGlvbiBjb21lcyBmcm9tIHRoZSBjb21wbGV0ZWQgQ0kgZ2F0ZXMuIiIiCmltcG9ydCBhcmdwYXJzZSxoYXNobGliLGltcG9ydGxpYi51dGlsLGpzb24sb3Msc3VicHJvY2VzcyxzeXMsdGVtcGZpbGUKZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnJvb3Q9UGF0aCgnL2hvbWUvam9leS9HSVQvYmFja2dyb3VuZC1maWxlLW1vdmVyLXRlc3RpbmcnKTtjb29yZGluYXRvcj1QYXRoKCcvbW50L2QvR0lUL0dJVC1HaXRIdWIvam9leS1odWNrYWJlZS9iYWNrZ3JvdW5kLWZpbGUtbW92ZXInKQpzeXMucGF0aC5pbnNlcnQoMCxzdHIocm9vdC8nc2NyaXB0cycpKQpzPWltcG9ydGxpYi51dGlsLnNwZWNfZnJvbV9maWxlX2xvY2F0aW9uKCdhY2NvdW50X3JldGFpbmVkX2RpYWdub3N0aWMnLHJvb3QvJ3NjcmlwdHMvY2hlY2stYWRtaW4tYWNjb3VudC5weScpO209aW1wb3J0bGliLnV0aWwubW9kdWxlX2Zyb21fc3BlYyhzKTtzLmxvYWRlci5leGVjX21vZHVsZShtKQphPWFyZ3BhcnNlLkFyZ3VtZW50UGFyc2VyKCk7YS5hZGRfYXJndW1lbnQoJy0tcmVwb3J0JyxyZXF1aXJlZD1UcnVlLHR5cGU9UGF0aCk7YXJncz1hLnBhcnNlX2FyZ3MoKTttLnJlcXVpcmUobm90IGFyZ3MucmVwb3J0LmV4aXN0cygpLCdkaWFnbm9zdGljIHJlcG9ydCBhbHJlYWR5IGV4aXN0cycpO20ucmVxdWlyZShvcy5nZXR1aWQoKSE9MCwnbm9ucm9vdCBkaWFnbm9zdGljIHJlcXVpcmVkJykKZm9sZGVyPXJvb3QvJ3J1c3QvdmFsaWRhdGlvbi8yMDI2MTExMVQwNjEyMzJaLTlmOTUxZGM4JzthdWRpdD1qc29uLmxvYWRzKChjb29yZGluYXRvci8ncnVzdC92YWxpZGF0aW9uL2FjY291bnQtcmV0YWluZWQtYXVkaXQtMTI4Lmpzb24nKS5yZWFkX3RleHQoKSkKbS5yZXF1aXJlKGF1ZGl0WydzdGF0dXMnXT09J0FVRElURURfUkVUQUlORURfQVJUSUZBQ1RTX1VORklOQUxJWkVEX0dBVEUnLCd3cm9uZyByZXRhaW5lZCBhdWRpdCcpO20ucmVxdWlyZShub3QgKGZvbGRlci8ncmVwb3J0Lmpzb24nKS5leGlzdHMoKSwnb3JpZ2luYWwgbG9jYWwgZ2F0ZSBzdGF0dXMgY2hhbmdlZCcpCmFydGlmYWN0cz17cDpmb2xkZXIvKHArJy0wLWZpbGUtbW92ZXInKSBmb3IgcCBpbiBbJ2RlYnVnJywncmVsZWFzZSddfQpmb3IgcHJvZmlsZSxwYXRoIGluIGFydGlmYWN0cy5pdGVtcygpOgogZXhwZWN0ZWQ9bmV4dCh4IGZvciB4IGluIGF1ZGl0Wydwcm9maWxlcyddW3Byb2ZpbGVdWydhcnRpZmFjdHMnXSBpZiBub3QgeFsndGVzdCddKQogbS5yZXF1aXJlKGhhc2hsaWIuc2hhMjU2KHBhdGgucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKT09ZXhwZWN0ZWRbJ3NoYTI1NiddLCdyZXRhaW5lZCBhcHAgYnl0ZXMgY2hhbmdlZCcpCnJ1bm5lcj1tLlJ1bm5lcigpO3JlcG9ydD17J3N0YXR1cyc6J0ZBSUxFRF9ESUFHTk9TVElDX1JFUExBWScsJ3F1YWxpZmljYXRpb25fYmFzaXMnOidDb21wbGV0ZWQgQ0kgZnVsbCBnYXRlcy9mb3JtYWwgYWNjb3VudCBjaGVja2VyIGF0IGRlOGJjYmU7IHRoaXMgZGlhZ25vc3RpYyBpcyBub3QgYSBnYXRlIHJlY2VpcHQuJywnb3JpZ2luYWxfbG9jYWxfcmVwb3J0X3ByZXNlbnQnOkZhbHNlLCdwcm9maWxlcyc6W10sJ3JldGFpbmVkX2F1ZGl0X3NoYTI1Nic6aGFzaGxpYi5zaGEyNTYoKGNvb3JkaW5hdG9yLydydXN0L3ZhbGlkYXRpb24vYWNjb3VudC1yZXRhaW5lZC1hdWRpdC0xMjguanNvbicpLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCksJ21lYXN1cmVtZW50X2RyaXZlcl9zaGEyNTYnOmhhc2hsaWIuc2hhMjU2KFBhdGgoX19maWxlX18pLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCksJ2RyaXZlcl9zaGEyNTYnOntuOmhhc2hsaWIuc2hhMjU2KChyb290LydzY3JpcHRzJy9uKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpIGZvciBuIGluIFsnY2hlY2stYWRtaW4tYWNjb3VudC5weScsJ3Rlc3RfYWRtaW5fYWNjb3VudC5weScsJ2NoZWNrLXByb2R1Y2VyLWluZ3Jlc3MucHknLCduZnNfZml4dHVyZV9jb250cmFjdC5weScsJ2NoZWNrLXJ1c3Qtc2xlcy5weScsJ3J1c3QtcGxhdGZvcm0uanNvbiddfX0KdHJ5OgogcGxhdGZvcm09anNvbi5sb2Fkcygocm9vdC8nc2NyaXB0cy9ydXN0LXBsYXRmb3JtLmpzb24nKS5yZWFkX3RleHQoKSk7cmVwb3J0WydydW50aW1lX2ltYWdlJ109cGxhdGZvcm1bJ3J1bnRpbWUnXQogaWRlbnRpdHk9bS5jcmVhdGVfY29udGFpbmVyKHJ1bm5lcixwbGF0Zm9ybVsncnVudGltZSddKTtydW5uZXIuY29tbWFuZChbJ3BvZG1hbicsJ3N0YXJ0JyxpZGVudGl0eV0pO3JlcG9ydFsnY29udGFpbmVyJ109aWRlbnRpdHkKIG0ucmVxdWlyZShydW5uZXIuY29tbWFuZChbJ3BvZG1hbicsJ2luc3BlY3QnLCctLWZvcm1hdCcsJ3t7Lkhvc3RDb25maWcuTmV0d29ya01vZGV9fScsaWRlbnRpdHldKS5zdGRvdXQuc3RyaXAoKT09Yidub25lJywnZGlhZ25vc3RpYyBuZXR3b3JrIGlzIG5vdCBkaXNhYmxlZCcpCiBtLnJlcXVpcmUocnVubmVyLmV4ZWN1dGUoJ2dldGNvbmYnLCdHTlVfTElCQ19WRVJTSU9OJykuc3Rkb3V0LnN0cmlwKCk9PWInZ2xpYmMgMi4yMicsJ3dyb25nIGRpYWdub3N0aWMgZ2xpYmMnKQogc3RhdHVzPXJ1bm5lci5leGVjdXRlKCdjYXQnLCcvcHJvYy9zZWxmL3N0YXR1cycpLnN0ZG91dC5kZWNvZGUoJ2FzY2lpJyk7ZmllbGRzPWRpY3QoeC5zcGxpdCgnOicsMSkgZm9yIHggaW4gc3RhdHVzLnNwbGl0bGluZXMoKSBpZiAnOicgaW4geCkKIG0ucmVxdWlyZShmaWVsZHNbJ1VpZCddLnNwbGl0KCk9PVsnMTAwMCddKjQgYW5kIGZpZWxkc1snR2lkJ10uc3BsaXQoKT09WycxMDAxJ10qNCBhbmQgYWxsKGludChmaWVsZHNba10sMTYpPT0wIGZvciBrIGluIFsnQ2FwSW5oJywnQ2FwUHJtJywnQ2FwRWZmJywnQ2FwQm5kJ10pIGFuZCBmaWVsZHNbJ05vTmV3UHJpdnMnXS5zdHJpcCgpPT0nMScsJ3Vuc2FmZSBkaWFnbm9zdGljIGlkZW50aXR5JykKIHJlcG9ydFsnaWRlbnRpdHknXT17J3VpZCc6MTAwMCwnZ2lkJzoxMDAxLCdjYXBhYmlsaXRpZXMnOjAsJ25vX25ld19wcml2aWxlZ2VzJzpUcnVlLCduZXR3b3JrJzonbm9uZSd9CiBhcmNoaXZlLF89bS5maXh0dXJlX2FyY2hpdmUobS5pbmdyZXNzX2hlbHBlcnMoKSxhcnRpZmFjdHMpO3JlcG9ydFsnZml4dHVyZV9hcmNoaXZlX3NoYTI1NiddPWhhc2hsaWIuc2hhMjU2KGFyY2hpdmUpLmhleGRpZ2VzdCgpCiB3aXRoIHRlbXBmaWxlLlRlbXBvcmFyeUZpbGUoKSBhcyBzb3VyY2U6CiAgc291cmNlLndyaXRlKGFyY2hpdmUpO3NvdXJjZS5zZWVrKDApO3J1bm5lci5jb21tYW5kKFsncG9kbWFuJywnY3AnLCctLWFyY2hpdmU9ZmFsc2UnLCctJyxpZGVudGl0eSsnOi90bXAnXSxzdGRpbj1zb3VyY2UsdGltZW91dD02MCkKIGZvciBwcm9maWxlIGluIFsnZGVidWcnLCdyZWxlYXNlJ106CiAgYmFzZT0nL3RtcC9pbmdyZXNzLycrcHJvZmlsZTtleHBlY3RlZD1oYXNobGliLnNoYTI1NihhcnRpZmFjdHNbcHJvZmlsZV0ucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKQogIG0ucmVxdWlyZShydW5uZXIuZXhlY3V0ZSgnc2hhMjU2c3VtJyxiYXNlKycvZmlsZS1tb3ZlcicpLnN0ZG91dC5zcGxpdCgpWzBdLmRlY29kZSgpPT1leHBlY3RlZCwnZGlhZ25vc3RpYyBleGVjdXRhYmxlIHRyYW5zZmVyIGRpZmZlcnMnKQogIG0ucmVxdWlyZShydW5uZXIuZXhlY3V0ZSgnc3RhdCcsJy1jJywnJXU6JWc6JWEnLGJhc2UrJy9maWxlLW1vdmVyJykuc3Rkb3V0LnN0cmlwKCk9PWInMTAwMDoxMDAxOjUwMCcsJ2RpYWdub3N0aWMgZXhlY3V0YWJsZSBjdXN0b2R5IGRpZmZlcnMnKQogIG0ucmVxdWlyZShydW5uZXIuZXhlY3V0ZSgnc3RhdCcsJy1jJywnJXU6JWc6JWEnLGJhc2UrJy9hY2NvdW50Jykuc3Rkb3V0LnN0cmlwKCk9PWInMTAwMDoxMDAxOjcwMCcsJ2RpYWdub3N0aWMgYWNjb3VudCBjdXN0b2R5IGRpZmZlcnMnKQogIHJvdz17J3Byb2ZpbGUnOnByb2ZpbGUsJ2JpbmFyeV9zaGEyNTYnOmV4cGVjdGVkLCdjYXNlcyc6W10sJ3Bhc3NlZCc6RmFsc2V9O3JlcG9ydFsncHJvZmlsZXMnXS5hcHBlbmQocm93KTttLnJ1bl9wcm9maWxlKHJ1bm5lcixwcm9maWxlLHsnc2hhMjU2JzpleHBlY3RlZH0scm93KQogcmVwb3J0WydzdGF0dXMnXT0nUEFTU0VEX0RJQUdOT1NUSUNfUkVQTEFZJwpleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgogcmVwb3J0WydlcnJvciddPXN0cihlcnJvcikgaWYgaXNpbnN0YW5jZShlcnJvcixtLkNoZWNrRXJyb3IpIGVsc2UgJ3JldGFpbmVkIGRpYWdub3N0aWMgZmFpbGVkOyBwcml2YXRlIGNhcHR1cmUgZGlzY2FyZGVkJwpmaW5hbGx5OgogdHJ5OnJ1bm5lci5jbG9zZSgpO3JlcG9ydFsnY2xlYW51cCddPXsncGFzc2VkJzpUcnVlfQogZXhjZXB0IEV4Y2VwdGlvbjpyZXBvcnRbJ2NsZWFudXAnXT17J3Bhc3NlZCc6RmFsc2V9O3JlcG9ydFsnc3RhdHVzJ109J0ZBSUxFRF9ESUFHTk9TVElDX1JFUExBWScKIGFyZ3MucmVwb3J0LnBhcmVudC5ta2RpcihwYXJlbnRzPVRydWUsZXhpc3Rfb2s9VHJ1ZSkKIHdpdGggYXJncy5yZXBvcnQub3BlbigneCcsZW5jb2Rpbmc9J3V0Zi04JykgYXMgb3V0Ompzb24uZHVtcChyZXBvcnQsb3V0LGluZGVudD0yKTtvdXQud3JpdGUoJ1xuJykKIHByaW50KGpzb24uZHVtcHMoeydzdGF0dXMnOnJlcG9ydFsnc3RhdHVzJ10sJ3Byb2ZpbGVzJzpsZW4ocmVwb3J0Wydwcm9maWxlcyddKSwnY2xlYW51cCc6cmVwb3J0WydjbGVhbnVwJ10sJ3JlcG9ydCc6c3RyKGFyZ3MucmVwb3J0KX0pKQpyYWlzZSBTeXN0ZW1FeGl0KDAgaWYgcmVwb3J0WydzdGF0dXMnXT09J1BBU1NFRF9ESUFHTk9TVElDX1JFUExBWScgZWxzZSAxKQ0K",
+    "line_ending_counts": {
+      "LF_only": 40,
+      "CRLF": 1,
+      "CR_only": 0
+    }
+  },
+  "superseded_or_refused_attempts": [
+    {
+      "run_id": "20261111T052452Z-a0f502d1",
+      "status": "FAILED",
+      "report_sha256": "0b0810207059aca054e43a1fb128b5a09f3bef68efef5c2881d9ae7bf2494772",
+      "reason": "Clippy module placement; fixed."
+    },
+    {
+      "run_id": "20261111T053103Z-b94d1619",
+      "status": "FAILED",
+      "report_sha256": "720f49c5b6f8f5ec042cddbc797ff28731634ff109b36269f8b35c6238d22758",
+      "reason": "Unavailable Tokio macros; replaced using existing poll_fn."
+    },
+    {
+      "run_id": "20261111T053352Z-355353a3",
+      "status": "FAILED",
+      "report_sha256": "f35a2ee6870697e1967cada848a54ee652d712d9db096ea76df84b766c5448e9",
+      "reason": "Coordinator interrupted superseded terminal source; not a qualification pass."
+    },
+    {
+      "run_id": "20261111T053520Z-bfd16fbd",
+      "status": "FAILED",
+      "report_sha256": "14dcec676ff3f207f15be5be531c20bb017c67cf49055b8011f1e8ea28cc9fc4",
+      "reason": "Coordinator interrupted superseded terminal source; not a qualification pass."
+    },
+    {
+      "run_id": "20261111T054335Z-df57a127",
+      "status": "FAILED",
+      "report_sha256": "d3767794d930180a9274d6a9d9b7bc1c6c7e7dc1d26e5ee9fe771ec379852f4a",
+      "reason": "Coordinator interrupted superseded ancestor-mount policy; not a qualification pass."
+    },
+    {
+      "run_id": "20261111T054611Z-67de7307",
+      "status": "FAILED",
+      "report_sha256": "61544d2400b0d47d8e1cb1c022038eb3e92d389e7345fca344d24396ccf4fc92",
+      "reason": "Coordinator interrupted superseded source after typed terminal-bind refusal; not a full pass."
+    },
+    {
+      "ci_run": 42967867027,
+      "status": "FAILED",
+      "report_sha256": "29feaa31915620572d69717c37fd732b17a0690761587b5912510286295799c9",
+      "reason": "Earlier source: post-gate account fixture initialization failed; driver session normalization and terminal-device compatibility were subsequently corrected and freshly qualified."
+    },
+    {
+      "status": "FAILED",
+      "report_sha256": "f794a86b2d691307b367c591fc68d631844740ded3d25dfcdc4ffbe6a9ed04ec",
+      "reason": "After resume, the registered checker correctly refused a local pack with no surviving final report; no terminal cases were credited. Separate retained-binary diagnostics do not replace the gate prerequisite."
+    }
+  ],
+  "limits": [
+    "Offline account setup/change/status only; no admin listener, sessions, browser service connection or live password activation.",
+    "Both required full modes and formal account checks passed in the recorded CI run. The local pack has no surviving final report; no finalized local full-gate receipt is claimed.",
+    "All22 retained executables and ELF/test logs were independently audited; the release set is byte-identical to CI-qualified binaries. Local debug hashes differ, so no debug reproducibility claim is made.",
+    "Fresh local10-case retained-binary diagnostics passed and cleaned up; they are explicitly separate from full-gate qualification.",
+    "Container SLES/glibc2.22 and synthetic mount metadata cases, not physical SLES/kernel, real NFS, systemd lifecycle, hardware durability, FIPS, deployment or shipping qualification. All eight FR gates remain open.",
+    "No operational credentials/state, production NFS or deletion. SIGKILL cannot restore the terminal; submitted helpers may finish after parent death. Uncertain outcomes require inspection without automatic retry or restore.",
+    "Zeroizing ownership is not proof of erasure of every allocator/kernel copy."
+  ]
+}
