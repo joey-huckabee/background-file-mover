@@ -129,7 +129,7 @@
   <!-- ============ Core ============ -->
   <rect x="700" y="110" width="400" height="120" rx="8" class="core"/>
   <text x="714" y="132" class="head">Admission and TLS execution</text>
-  <text x="714" y="152" class="note">Accept order: operator → admin → producer.</text>
+  <text x="714" y="152" class="note">Operator first; admin and producer alternate.</text>
   <text x="714" y="170" class="note">Global 8 connections · producer 6 · admin 1.</text>
   <text x="714" y="188" class="note">Permits taken before TLS; overload closes, never queues.</text>
   <text x="714" y="206" class="note">Fixed TLS executor pool · 5 s handshake deadline.</text>

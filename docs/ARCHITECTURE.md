@@ -22,8 +22,8 @@ proxy UID instead, and there is no TCP listener.
 
 ## Request path
 
-1. The accept loop takes a connection (operator first, then admin, then producer)
-   and a permit from the global budget of 8 (producer 6, admin 1). TLS runs on a
+1. The accept loop takes a connection (operator first; admin and producer then
+   alternate so neither can starve the other) and a permit from the global budget of 8 (producer 6, admin 1). TLS runs on a
    fixed executor pool with a 5-second handshake deadline.
 2. Strict HTTP/1.1 framing and validation: generator binding, source scope, UUID
    `recording_id` replay and optional expected sizes.
