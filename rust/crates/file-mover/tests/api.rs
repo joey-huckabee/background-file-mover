@@ -2385,6 +2385,7 @@ fn unsafe_startup_configuration_is_rejected() {
     let c = file_mover::Config {
         protected_ingress: None,
         native_ingress: None,
+        admin_ingress: None,
         check_expected_sizes: false,
         bind: "0.0.0.0:8080".parse().unwrap(),
         generator_id: "g".into(),

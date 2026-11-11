@@ -1,6 +1,7 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
 pub mod account;
 pub mod account_cli;
+pub mod admin;
 pub mod bootstrap;
 pub mod claim_worker;
 pub mod control;
@@ -46,6 +47,8 @@ pub struct Config {
     pub protected_ingress: Option<ingress::ProtectedIngress>,
     #[serde(default)]
     pub native_ingress: Option<native::NativeIngress>,
+    #[serde(default)]
+    pub admin_ingress: Option<admin::AdminIngress>,
     pub generator_id: String,
     #[serde(default)]
     pub check_expected_sizes: bool,
@@ -134,6 +137,9 @@ impl Config {
             ingress.validate(self)?;
         }
         if let Some(ingress) = &self.native_ingress {
+            ingress.validate(self)?;
+        }
+        if let Some(ingress) = &self.admin_ingress {
             ingress.validate(self)?;
         }
         Ok(())
@@ -1066,6 +1072,11 @@ pub fn check_state_compatibility(
                 ingress.validate_payload_root(&root)?;
             }
         }
+        if let Some(ingress) = &c.admin_ingress {
+            for root in snapshot.payload_roots()? {
+                ingress.validate_payload_root(&root)?;
+            }
+        }
     }
     instance.validate_database(&c.state_database)?;
     Ok(())
@@ -1093,6 +1104,7 @@ pub async fn serve_controlled(
 // Both the deadline watcher and TLS job retain admission and instance ownership.
 struct TlsBudget {
     _permit: tokio::sync::OwnedSemaphorePermit,
+    /// Producer or admin audience permit, whichever admitted this connection.
     _producer_permit: Option<tokio::sync::OwnedSemaphorePermit>,
     _guard: Arc<mover_fs::InstanceGuard>,
 }
@@ -1199,20 +1211,35 @@ async fn serve_inner(
                     .map(ingress::Planned::bind)
                     .transpose()
                     .map_err(|e| e.to_string())?;
+                // Missing/invalid account or credentials refuse startup; there is
+                // no setup form, default password or unauthenticated fallback.
+                let admin_ingress = startup_config
+                    .admin_ingress
+                    .as_ref()
+                    .map(|a| {
+                        let record = account_cli::load_record(
+                            &startup_config,
+                            &instance,
+                            &a.account_directory,
+                        )?;
+                        admin::Prepared::load(a, record)
+                    })
+                    .transpose()
+                    .map_err(|e| e.to_string())?;
                 let guard = bootstrap::acquire(
                     &startup_config.source_root,
                     &startup_config.source_binding,
                     &startup_stop,
                     &instance,
                 )?;
-                Ok((guard, control, endpoints, native))
+                Ok((guard, control, endpoints, native, admin_ingress))
             })()
-            .and_then(|(guard, control, endpoints, native)| {
+            .and_then(|(guard, control, endpoints, native, admin_ingress)| {
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());
                 }
                 Worker::start(&startup_config, guard, startup_stop.clone(), control)
-                    .map(|worker| (worker, endpoints, native))
+                    .map(|worker| (worker, endpoints, native, admin_ingress))
                     .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
@@ -1222,36 +1249,46 @@ async fn serve_inner(
         .join()
         .map_err(|_| "source startup supervisor panicked")?;
     if stop.load(Ordering::Relaxed) {
-        if let Ok(Ok((worker, _endpoints, native))) = result {
+        if let Ok(Ok((worker, _endpoints, native, admin_ingress))) = result {
             drop(_endpoints);
             drop(native);
+            drop(admin_ingress); // Verifier never started; nothing to join.
             drop(worker);
         }
         return Ok(());
     }
-    let (worker, prepared, native) =
+    let (worker, prepared, native, admin_ingress) =
         result.map_err(|_| "source startup supervisor disconnected")??;
+    let admin_ingress = admin_ingress.map(admin::Prepared::activate).transpose()?;
     let endpoints = prepared.map(ingress::Prepared::activate).transpose()?;
     let native = native
         .map(|p| p.activate(&c, lifecycle.clone(), worker._instance.clone()))
         .transpose()?;
-    let tls_pool = if native.as_ref().is_some_and(|n| n.manager.is_some()) {
-        Some(tls_executor::Pool::start(
-            worker._instance.clone(),
-            lifecycle.clone(),
-        )?)
-    } else {
-        None
-    };
+    let tls_pool =
+        if native.as_ref().is_some_and(|n| n.manager.is_some()) || admin_ingress.is_some() {
+            Some(tls_executor::Pool::start(
+                worker._instance.clone(),
+                lifecycle.clone(),
+            )?)
+        } else {
+            None
+        };
     let permits = Arc::new(Semaphore::new(8));
     let producer_permits = Arc::new(Semaphore::new(6));
+    // Initial admin admission: one connection at a time inside the global budget,
+    // leaving room for a private operator connection under full producer load.
+    let admin_permits = Arc::new(Semaphore::new(1));
     if let Some(manager) = native.as_ref().and_then(|n| n.manager.as_ref()) {
         manager.set_budget(producer_permits.clone());
     }
     lifecycle.phase("Running");
     if let Some(native) = &native {
+        let admin_note = match &admin_ingress {
+            Some(a) => format!(" and admin HTTPS {}", a.address()?),
+            None => String::new(),
+        };
         println!(
-            "Ready on native producer {} and private operator socket",
+            "Ready on native producer {} and private operator socket{admin_note}",
             native.address()?
         );
     } else if let Some(listener) = &listener {
@@ -1271,12 +1308,77 @@ async fn serve_inner(
         }
         if let Ok(accepted) = timeout(
             Duration::from_millis(100),
-            ingress::accept(listener.as_ref(), endpoints.as_ref(), native.as_ref()),
+            ingress::accept(
+                listener.as_ref(),
+                endpoints.as_ref(),
+                native.as_ref(),
+                admin_ingress.as_ref(),
+            ),
         )
         .await
         {
             let (mut stream, audience) = accepted?;
             let tls_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+            if matches!(audience, ingress::Audience::Admin) {
+                let (Some(bound), Some(pool)) = (admin_ingress.as_ref(), tls_pool.as_ref()) else {
+                    continue;
+                };
+                // Permits precede TLS work; saturation refuses without plaintext.
+                let Ok(admin_permit) = admin_permits.clone().try_acquire_owned() else {
+                    drop(stream);
+                    continue;
+                };
+                let Ok(permit) = permits.clone().try_acquire_owned() else {
+                    drop(stream);
+                    continue;
+                };
+                let ingress::Stream::Tcp(stream) = stream else {
+                    continue;
+                };
+                let stream = stream.into_std()?;
+                let socket = Arc::new(stream.try_clone()?);
+                let close = CloseTlsWire(socket.clone());
+                let budget = Arc::new(TlsBudget {
+                    _permit: permit,
+                    _producer_permit: Some(admin_permit),
+                    _guard: worker._instance.clone(),
+                });
+                let watch = HandshakeWatch {
+                    socket,
+                    _budget: budget.clone(),
+                    armed: true,
+                };
+                let (handshake_done, handshake) = oneshot::channel();
+                tasks.spawn(async move {
+                    let mut watch = watch;
+                    if matches!(
+                        tokio::time::timeout_at(tls_deadline, handshake).await,
+                        Ok(Ok(()))
+                    ) {
+                        watch.armed = false;
+                    }
+                });
+                let admin = bound.admin.clone();
+                let future = Box::pin(async move {
+                    let _close = close;
+                    if tokio::time::Instant::now() >= tls_deadline {
+                        return;
+                    }
+                    let Ok(stream) = tokio::net::TcpStream::from_std(stream) else {
+                        return;
+                    };
+                    let Some(stream) = admin.accept(stream, tls_deadline).await else {
+                        return;
+                    };
+                    let _ = handshake_done.send(());
+                    admin::connection(stream, admin).await;
+                });
+                let _ = pool.try_spawn(Box::pin(TlsJob {
+                    future,
+                    _budget: budget,
+                }));
+                continue;
+            }
             let tls_manager = if matches!(audience, ingress::Audience::Native(_)) {
                 native.as_ref().and_then(|n| n.manager.clone())
             } else {
@@ -1415,6 +1517,13 @@ async fn serve_inner(
     tasks.abort_all();
     while tasks.join_next().await.is_some() {}
     drop(tls_pool); // Join actual TLS executor exit while control/guard remain owned.
+    // A timed-out password verifier may still run; join it before the guard goes.
+    if let Some(bound) = &admin_ingress
+        && let Some(verifier) = bound.admin.sessions.shutdown()
+    {
+        let _ = verifier.join();
+    }
+    drop(admin_ingress);
     drop(endpoints);
     drop(native);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.

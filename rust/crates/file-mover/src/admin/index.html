@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>File Mover</title>
+<link rel="icon" href="data:,">
+<style>/*STYLE*/</style>
+</head>
+<body>
+<main id="signin" class="signin" hidden>
+<section class="art" aria-hidden="true">
+<div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
+<h1>Quiet confidence.<br><em>Every transfer.</em></h1>
+<p>Transfers continue independently of dashboard sessions.</p>
+</section>
+<section class="form-wrap">
+<form id="signin-form" class="form" novalidate>
+<h2>Sign in to File Mover</h2>
+<p class="muted">Use the host-managed administrator account.</p>
+<label for="username">Username</label>
+<input id="username" name="username" autocomplete="username" required maxlength="128" spellcheck="false" autocapitalize="off">
+<label for="password">Password</label>
+<input id="password" name="password" type="password" autocomplete="current-password" required>
+<div id="signin-error" class="error" role="alert"></div>
+<button id="signin-button" class="primary" type="submit">Sign in</button>
+<p class="foot">Account setup and password changes are host-local.</p>
+</form>
+</section>
+</main>
+<div id="shell" class="shell" hidden>
+<header class="top">
+<div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
+<button id="signout" class="secondary" type="button">Sign out everywhere</button>
+</header>
+<main class="content">
+<h1>Signed in</h1>
+<p id="idle" class="muted"></p>
+<div class="notice">Job history, retention and actions are not connected yet. This build provides sign-in and session management only.</div>
+<div id="shell-error" class="error" role="alert"></div>
+</main>
+</div>
+<script>/*SCRIPT*/</script>
+</body>
+</html>

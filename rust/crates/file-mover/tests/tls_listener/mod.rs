@@ -1552,3 +1552,6 @@ fn fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded() {
     );
     f.stop();
 }
+
+#[path = "admin.rs"]
+mod admin;

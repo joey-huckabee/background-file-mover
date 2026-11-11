@@ -102,10 +102,13 @@ fn emit(value: &serde_json::Value) -> Result<()> {
     out.flush()?;
     Ok(())
 }
-fn worker_inner(config: Config, action: Action, args: Vec<String>) -> Result<()> {
-    let (directory, _) = options(args, action, false)?;
-    let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
-    crate::check_state_compatibility(&config, &instance, false)?;
+/// Shared account preflight: supported current state with recorded active
+/// pairing, the state's instance identity and every scope the account directory
+/// must stay disjoint from. Caller holds InstanceGuard.
+pub(crate) fn account_scope(
+    config: &Config,
+    instance: &mover_fs::InstanceGuard,
+) -> Result<(String, Vec<String>)> {
     let state = mover_store::StateInspection::open(&config.state_database)?;
     if state.summary().schema_version != 12
         || mover_fs::validate_inspected_state(&state)? != "RecordedActive"
@@ -121,29 +124,52 @@ fn worker_inner(config: Config, action: Action, args: Vec<String>) -> Result<()>
         config.destination_root.clone(),
         instance.state_directory().to_owned(),
     ]);
+    let mut endpoints: Vec<&str> = Vec::new();
     if let Some(p) = &config.protected_ingress {
-        for path in [&p.producer_socket, &p.operator_socket] {
-            excluded.push(
-                Path::new(path)
-                    .parent()
-                    .ok_or("endpoint parent required")?
-                    .to_string_lossy()
-                    .into_owned(),
-            );
-        }
+        endpoints.extend([p.producer_socket.as_str(), p.operator_socket.as_str()]);
     }
     if let Some(n) = &config.native_ingress {
-        for path in std::iter::once(n.operator_socket()).chain(n.credential_paths()) {
-            excluded.push(
-                Path::new(path)
-                    .parent()
-                    .ok_or("credential parent required")?
-                    .to_string_lossy()
-                    .into_owned(),
-            );
-        }
+        endpoints.push(n.operator_socket());
+        endpoints.extend(n.credential_paths());
     }
-    drop(state);
+    if let Some(a) = &config.admin_ingress {
+        endpoints.extend(a.credential_paths());
+    }
+    for path in endpoints {
+        excluded.push(
+            Path::new(path)
+                .parent()
+                .ok_or("endpoint or credential parent required")?
+                .to_string_lossy()
+                .into_owned(),
+        );
+    }
+    Ok((instance_id, excluded))
+}
+
+/// Daemon startup: read and validate the provisioned record. The account lock
+/// is released again; InstanceGuard keeps account commands out while running.
+pub(crate) fn load_record(
+    config: &Config,
+    instance: &mover_fs::InstanceGuard,
+    directory: &str,
+) -> Result<Record> {
+    let (instance_id, excluded) = account_scope(config, instance)?;
+    let area = mover_fs::account_file::open(directory, &excluded).map_err(storage_error)?;
+    let bytes = Zeroizing::new(
+        area.read()
+            .map_err(storage_error)?
+            .ok_or("admin_ingress requires a provisioned admin account")?,
+    );
+    drop(area);
+    Ok(Record::decode(&bytes, &instance_id)?)
+}
+
+fn worker_inner(config: Config, action: Action, args: Vec<String>) -> Result<()> {
+    let (directory, _) = options(args, action, false)?;
+    let instance = mover_fs::InstanceGuard::for_database(&config.state_database)?;
+    crate::check_state_compatibility(&config, &instance, false)?;
+    let (instance_id, excluded) = account_scope(&config, &instance)?;
     let area = mover_fs::account_file::open(&directory, &excluded).map_err(storage_error)?;
     let old = area.read().map_err(storage_error)?.map(Zeroizing::new);
     let record = old
