@@ -1,0 +1,30 @@
+:root{--bg:#f5f5f0;--paper:#fff;--ink:#202c29;--muted:#74807a;--line:#e4e8e1;--green:#285f49;--red:#b44437}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI",Arial,sans-serif}
+[hidden]{display:none!important}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:1.7px;font-size:14px}
+.brand small{display:block;font-size:8px;letter-spacing:2px;color:#849c8e;margin-top:3px}
+.mark{width:40px;height:40px;border-radius:10px;background:#d9efb5;color:#1c302a;display:grid;place-items:center;font-size:20px;letter-spacing:-2px}
+.signin{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.art{background:#1c302a;color:#d4e8bc;padding:60px}
+.art h1{font-size:52px;font-weight:400;letter-spacing:-2px;line-height:1.15;margin:80px 0 20px}
+.art h1 em{font-style:normal;color:#a4c57b}
+.art p{color:#94ac98;max-width:340px}
+.form-wrap{display:grid;place-items:center;padding:40px}
+.form{width:330px;max-width:100%}
+.form h2{font-size:28px;font-weight:500;letter-spacing:-1px;margin:0 0 8px}
+label{display:block;font-size:12px;margin:18px 0 6px}
+input{display:block;width:100%;padding:11px;border:1px solid #cfd8c7;border-radius:5px;background:#fff}
+input:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.primary{width:100%;margin:22px 0 12px;padding:12px;border:0;border-radius:5px;background:var(--green);color:#fff}
+.secondary{padding:8px 14px;border:1px solid #dbe1d7;border-radius:5px;background:#fff;color:#435448}
+.muted,.foot{color:var(--muted);font-size:12px}
+.error{color:var(--red);font-size:12px;min-height:18px;margin-top:10px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;background:#1c302a;color:#e1ebda}
+.content{max-width:760px;margin:0 auto;padding:40px 32px}
+.content h1{font-size:28px;font-weight:600;letter-spacing:-1px;margin:0 0 6px}
+.notice{margin-top:24px;padding:14px 16px;background:var(--paper);border:1px solid var(--line);border-radius:7px;font-size:13px}
+@media(max-width:800px){.signin{grid-template-columns:1fr}.art{display:none}}

@@ -45,3 +45,20 @@ pub fn proof_server_config(
     config.send_tls13_tickets = 0;
     Ok(config)
 }
+
+/// Server-authenticated admin HTTPS policy. Browsers authenticate with the
+/// account password inside the session routes, never with a client certificate.
+pub fn admin_server_config(
+    certificates: Vec<CertificateDer<'static>>,
+    private_key: PrivateKeyDer<'static>,
+) -> Result<ServerConfig, Box<dyn Error>> {
+    let mut config = ServerConfig::builder_with_provider(provider())
+        .with_protocol_versions(&[&rustls::version::TLS13, &rustls::version::TLS12])?
+        .with_no_client_auth()
+        .with_single_cert(certificates, private_key)?;
+    config.alpn_protocols = vec![b"http/1.1".to_vec()];
+    config.max_early_data_size = 0;
+    config.session_storage = Arc::new(NoServerSessionStorage {});
+    config.send_tls13_tickets = 0;
+    Ok(config)
+}

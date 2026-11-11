@@ -84,11 +84,13 @@ pub(crate) enum Audience {
     Producer(bool),
     Native(bool),
     Operator(bool),
+    /// Separate admin HTTPS listener; handled only by `admin::connection`.
+    Admin,
 }
 impl Audience {
     pub(crate) fn authorized(self) -> bool {
         match self {
-            Self::Prototype => true,
+            Self::Prototype | Self::Admin => true,
             Self::Producer(ok) | Self::Native(ok) | Self::Operator(ok) => ok,
         }
     }
@@ -262,9 +264,10 @@ pub(crate) async fn accept(
     tcp: Option<&TcpListener>,
     unix: Option<&Bound>,
     native: Option<&crate::native::Bound>,
+    admin: Option<&crate::admin::Bound>,
 ) -> io::Result<(Stream, Audience)> {
     if let Some(native) = native {
-        native.accept().await
+        native.accept(admin.map(|a| &a.listener)).await
     } else if let Some(tcp) = tcp {
         let (s, _) = tcp.accept().await?;
         Ok((Stream::Tcp(s), Audience::Prototype))

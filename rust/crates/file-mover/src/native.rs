@@ -166,27 +166,6 @@ impl NativeIngress {
         else {
             return Ok(None);
         };
-        fn certificates(
-            paths: &[String],
-        ) -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error>> {
-            paths
-                .iter()
-                .map(|p| {
-                    let der = CertificateDer::from(mover_fs::credentials::read(p, 65536, false)?);
-                    ParsedCertificate::try_from(&der).map_err(|_| "invalid DER certificate")?;
-                    Ok(der)
-                })
-                .collect()
-        }
-        fn roots(
-            certs: Vec<CertificateDer<'static>>,
-        ) -> Result<RootCertStore, Box<dyn std::error::Error>> {
-            let mut result = RootCertStore::empty();
-            for der in certs {
-                result.add(der).map_err(|_| "invalid DER trust anchor")?;
-            }
-            Ok(result)
-        }
         let chain = certificates(server_certificates)?;
         let server_ca = certificates(server_ca_certificates)?;
         let client_ca = certificates(client_ca_certificates)?;
@@ -200,29 +179,14 @@ impl NativeIngress {
             &serde_json::json!({"configuration":self,"server_chain":hashes(&chain),"server_roots":hashes(&server_ca),"client_roots":hashes(&client_ca)}),
         )?);
         let server_sha256 = mover_fs::sha256_hex(chain[0].as_ref());
-        let server_roots = roots(server_ca)?;
         let client_roots = roots(client_ca)?;
         let client_verifier = rustls::server::WebPkiClientVerifier::builder_with_provider(
             Arc::new(client_roots.clone()),
             tls::provider(),
         )
         .build()?;
-        let bytes = mover_fs::credentials::read(server_key, 16384, true)?;
-        // The parser distinguishes PKCS1/SEC1/PKCS8; never relabel other DER as PKCS8.
-        let key = PrivateKeyDer::try_from(bytes).map_err(|_| "invalid DER private key")?;
-        if !matches!(key, PrivateKeyDer::Pkcs8(_)) {
-            return Err("PKCS8 private key required".into());
-        }
-        let (name, _) = authority_name(authority)?;
-        let name = ServerName::try_from(name).map_err(|_| "invalid TLS server identity")?;
-        let verifier = rustls::client::WebPkiServerVerifier::builder_with_provider(
-            Arc::new(server_roots),
-            tls::provider(),
-        )
-        .build()?;
-        verifier
-            .verify_server_cert(&chain[0], &chain[1..], &name, &[], UnixTime::now())
-            .map_err(|_| "server certificate chain/name/validity/usage refused")?;
+        let key = private_key(server_key)?;
+        verify_server_chain(authority, &chain, server_ca)?;
         let server = tls::proof_server_config(chain, key, client_roots)
             .map_err(|_| "native TLS policy/key refused")?;
         Ok(Some(Arc::new(Policy {
@@ -235,8 +199,59 @@ impl NativeIngress {
     }
 }
 
+/// Bounded DER certificates from guarded credential files.
+pub(crate) fn certificates(
+    paths: &[String],
+) -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error>> {
+    paths
+        .iter()
+        .map(|p| {
+            let der = CertificateDer::from(mover_fs::credentials::read(p, 65536, false)?);
+            ParsedCertificate::try_from(&der).map_err(|_| "invalid DER certificate")?;
+            Ok(der)
+        })
+        .collect()
+}
+fn roots(certs: Vec<CertificateDer<'static>>) -> Result<RootCertStore, Box<dyn std::error::Error>> {
+    let mut result = RootCertStore::empty();
+    for der in certs {
+        result.add(der).map_err(|_| "invalid DER trust anchor")?;
+    }
+    Ok(result)
+}
+/// Guarded private PKCS8 key. The parser distinguishes PKCS1/SEC1/PKCS8; never
+/// relabel other DER as PKCS8.
+pub(crate) fn private_key(
+    path: &str,
+) -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error>> {
+    let bytes = mover_fs::credentials::read(path, 16384, true)?;
+    let key = PrivateKeyDer::try_from(bytes).map_err(|_| "invalid DER private key")?;
+    if !matches!(key, PrivateKeyDer::Pkcs8(_)) {
+        return Err("PKCS8 private key required".into());
+    }
+    Ok(key)
+}
+/// Verify the served chain, name, validity and usage against configured roots.
+pub(crate) fn verify_server_chain(
+    authority: &str,
+    chain: &[CertificateDer<'static>],
+    server_ca: Vec<CertificateDer<'static>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (name, _) = authority_name(authority)?;
+    let name = ServerName::try_from(name).map_err(|_| "invalid TLS server identity")?;
+    let verifier = rustls::client::WebPkiServerVerifier::builder_with_provider(
+        Arc::new(roots(server_ca)?),
+        tls::provider(),
+    )
+    .build()?;
+    verifier
+        .verify_server_cert(&chain[0], &chain[1..], &name, &[], UnixTime::now())
+        .map_err(|_| "server certificate chain/name/validity/usage refused")?;
+    Ok(())
+}
+
 /// An exact configured HTTP authority, with explicit canonical port.
-fn authority_name(authority: &str) -> Result<(String, u16), &'static str> {
+pub(crate) fn authority_name(authority: &str) -> Result<(String, u16), &'static str> {
     if authority.len() > 259 || !authority.is_ascii() {
         return Err("bounded ASCII TLS authority required");
     }
@@ -393,7 +408,12 @@ impl Bound {
     pub(crate) fn address(&self) -> std::io::Result<std::net::SocketAddr> {
         self.listener.local_addr()
     }
-    pub(crate) async fn accept(&self) -> std::io::Result<(ingress::Stream, ingress::Audience)> {
+    /// Poll order: private operator, then admin, then producer, so neither a
+    /// producer flood nor an admin flood starves the local operator.
+    pub(crate) async fn accept(
+        &self,
+        admin: Option<&TcpListener>,
+    ) -> std::io::Result<(ingress::Stream, ingress::Audience)> {
         std::future::poll_fn(|cx| {
             match self.operator.poll_accept(cx) {
                 Poll::Ready(Ok((s, _))) => {
@@ -407,6 +427,18 @@ impl Bound {
                 }
                 Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                 Poll::Pending => (),
+            }
+            if let Some(admin) = admin {
+                match admin.poll_accept(cx) {
+                    Poll::Ready(Ok((s, _))) => {
+                        return Poll::Ready(Ok((
+                            ingress::Stream::Tcp(s),
+                            ingress::Audience::Admin,
+                        )));
+                    }
+                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+                    Poll::Pending => (),
+                }
             }
             self.listener
                 .poll_accept(cx)
