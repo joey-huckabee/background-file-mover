@@ -1,5 +1,5 @@
-# Normalize line endings to LF for text files; the repo is LF-only and the
-# pre-commit hook + CI enforce it.
+# Normalize line endings to LF for text files. CI (hygiene.yml) rejects committed
+# CR line endings; the optional .githooks/pre-commit catches them earlier.
 * text=auto eol=lf
 poetry.lock text eol=lf
 *.png binary

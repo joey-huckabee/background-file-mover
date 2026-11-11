@@ -1,8 +1,34 @@
 # AGENTS.md
 
-Model-switch resume: read [docs/MODEL-HANDOFF.md](docs/MODEL-HANDOFF.md) for the
-current completed work, evidence limits and next-work boundaries (2026-11-11).
-This context summary does not expand user authorization.
+## Settled decisions (do not reopen accidentally)
+
+Consolidated 2026-11-11 from the retired model handoff. Dated entries below hold
+the authorizations; this list grants nothing new.
+
+- Native HTTPS in the Rust executable; no external proxy. Producer TLS-off mode is
+  explicit loopback-only HTTP, never a TLS-error fallback. Admin HTTPS is a
+  separate audience from producer mTLS and the private operator/control paths.
+- Transfers belong to the service, independent of dashboard credentials. Logout
+  and password activation revoke all dashboard sessions, never transfers. Restart
+  clears sessions; default inactivity timeout is 30 minutes, configurable.
+- Written v2 contract frozen through groups 1-53: UUID replay, current-startup
+  size policy, request identity, legacy custody/v1 bytes preserved.
+- Group 50 clear forgets all job linkage, ownership, accounting/inventories and
+  results while leaving files in place; effects settle first; no post-clear
+  reconstruction or adoption.
+- Dashboard: plain HTML/CSS/JavaScript, original SVG icons, local fonts; no
+  frontend packages, build tools, CDNs or external assets. Mockup direction is
+  approved, not every sample metric/action; a UI trim/refinement step follows.
+- Substantive Rust increments need both SLES gate modes (cargo-libc 0.2.4,
+  glibc 2.22, ELF/native audits) and independent review. PR CI runs both modes.
+- Admin account commands run as the non-root service user and refuse root.
+  Host administrators provision the service account, directories, systemd unit,
+  mounts and firewall; dashboard "admin" is an application role, not Linux root.
+- Never claim a validation pack passed without its final report; preserve
+  failed/superseded evidence without counting it. Increment128's local pack
+  20261111T061232Z-9f951dc8 is unfinalized; CI is its qualification basis.
+- All eight FR release gates remain open. No deployment, operational conversion,
+  production NFS, source deletion, FIPS or release without separate authorization.
 
 ## Current direction (2026-10-13)
 
@@ -10,8 +36,8 @@ This context summary does not expand user authorization.
 dashboard login/session work after increment128. Increment129 adds the bounded
 in-memory session core only (no listener/IPC/daemon wiring). Next: admin HTTPS
 listener, login/session/logout routes and embedded sign-in assets. The user also
-approves deleting docs/MODEL-HANDOFF.md once its content is captured in durable
-docs, implemented or roadmapped. See docs/RUST-INCREMENT-129.md.
+approved retiring the model handoff; its content now lives in the settled
+decisions above and docs/AGENT-WORKFLOW.md. See docs/RUST-INCREMENT-129.md.
 
 2026-11-10 account-setup authorization: the user says "yes, go ahead with the
 account setup" after increment127. Implement guarded offline initialization,
