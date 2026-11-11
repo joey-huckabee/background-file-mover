@@ -48,10 +48,28 @@ impl Signals {
             suspend: signal(SignalKind::from_raw(20))?,
         })
     } // Linux SIGTSTP
-    async fn cancelled(&mut self) {
-        tokio::select! {_=self.interrupt.recv()=>(),_=self.terminate.recv()=>(),_=self.hangup.recv()=>(),_=self.quit.recv()=>(),_=self.suspend.recv()=>()}
+    fn poll_cancelled(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<()> {
+        for signal in [&mut self.interrupt, &mut self.terminate, &mut self.hangup,
+                       &mut self.quit, &mut self.suspend] {
+            if signal.poll_recv(cx).is_ready() {
+                return std::task::Poll::Ready(());
+            }
+        }
+        std::task::Poll::Pending
     }
 }
+async fn until_cancelled<F: std::future::Future>(future: F, signals: &mut Signals) -> Option<F::Output> {
+    use std::task::Poll;
+    let mut future = std::pin::pin!(future);
+    std::future::poll_fn(|cx| {
+        if signals.poll_cancelled(cx).is_ready() {
+            Poll::Ready(None)
+        } else {
+            future.as_mut().poll(cx).map(Some)
+        }
+    }).await
+}
+
 fn refused() -> Box<dyn std::error::Error> {
     "account custody or publication refused; inspect account status before retrying".into()
 }
@@ -319,14 +337,26 @@ pub fn run(config_path: String, action: Action, args: Vec<String>) -> Result<()>
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
-    runtime.block_on(async{
-  let mut signals=Signals::new()?;
-  let credentials=if let Some(input)=supplied{input}else{prompt(action==Action::Init,&mut signals).await?};
-  helper.send(&credentials)?;drop(credentials);
-  let mut finish=tokio::task::spawn_blocking(move||helper.finish().map_err(|_|"account helper failed or publication outcome is uncertain; inspect status before retrying"));
-  let status=tokio::select!{result=&mut finish=>result.map_err(|_|"account helper monitor failed; inspect status")??,_=signals.cancelled()=>{let _=finish.await;return Err("account command interrupted after submission; publication outcome uncertain; inspect status".into());}};
-  emit(&status)
- })
+    runtime.block_on(async {
+        let mut signals = Signals::new()?;
+        let credentials = if let Some(input) = supplied {
+            input
+        } else {
+            prompt(action == Action::Init, &mut signals).await?
+        };
+        helper.send(&credentials)?;
+        drop(credentials);
+        let mut finish = tokio::task::spawn_blocking(move || helper.finish().map_err(|_|
+            "account helper failed or publication outcome is uncertain; inspect status before retrying"));
+        let status = match until_cancelled(&mut finish, &mut signals).await {
+            Some(result) => result.map_err(|_| "account helper monitor failed; inspect status")??,
+            None => {
+                let _ = finish.await;
+                return Err("account command interrupted after submission; publication outcome uncertain; inspect status".into());
+            }
+        };
+        emit(&status)
+    })
 }
 
 async fn prompt(initialize: bool, signals: &mut Signals) -> Result<NewCredentials> {
@@ -334,9 +364,13 @@ async fn prompt(initialize: bool, signals: &mut Signals) -> Result<NewCredential
         AsyncFd::new(mover_fs::terminal::SecretTerminal::open().map_err(
             |_| "a controlling terminal is required; use explicit --stdin for automation",
         )?)?;
-    let input = tokio::select! {
-     result=tokio::time::timeout(Duration::from_secs(300),prompt_fields(&terminal,initialize))=>match result{Ok(input)=>input,Err(_)=>Err("account prompt timed out".into())},
-     _=signals.cancelled()=>Err("account prompt interrupted".into())
+    let input = match until_cancelled(
+        tokio::time::timeout(Duration::from_secs(300), prompt_fields(&terminal, initialize)),
+        signals,
+    ).await {
+        Some(Ok(input)) => input,
+        Some(Err(_)) => Err("account prompt timed out".into()),
+        None => Err("account prompt interrupted".into()),
     };
     terminal
         .get_ref()
