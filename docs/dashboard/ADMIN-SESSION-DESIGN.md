@@ -116,8 +116,15 @@ The latter is pulled by password-hash's default feature even though argon2's
 `rand` feature is disabled; do not claim a four-package addition. Reuse existing
 locked digest/cpufeatures/subtle/zeroize dependencies. Direct use of existing
 subtle and zeroize may add dependency edges, but not new package versions.
-Use the existing Rustls provider's secure_random for salt/session/CSRF entropy;
-rand_core is not selected as an independent entropy source.
+Use the existing Rustls provider's secure_random for application salt/session/CSRF
+entropy. The selected feature chain also enables `argon2/std -> password-hash/std
+-> rand_core/std -> getrandom` and `getrandom/std`: the locked getrandom 0.2.17
+is expected to satisfy that edge. This is additional selected dependency/feature
+surface to audit, even though getrandom is not a sixth new package. Do not claim
+the graph excludes an OS-randomness dependency. The primary
+[password-hash manifest](https://raw.githubusercontent.com/RustCrypto/traits/password-hash-v0.5.0/password-hash/Cargo.toml)
+and [rand_core manifest](https://docs.rs/crate/rand_core/0.6.4/source/Cargo.toml)
+establish that chain.
 
 No manifests/lockfiles/pins have changed. Approval of this addition is required
 before resolution/build integration. Then freeze the complete selected graph,

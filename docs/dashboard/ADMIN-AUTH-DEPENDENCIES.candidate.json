@@ -60,10 +60,13 @@
     "subtle": "=2.6.1",
     "zeroize": "=1.9.1"
   },
-  "entropy": "Existing rustls AWS-LC CryptoProvider.secure_random; no new randomness package required for entropy. rand_core is a password-hash transitive default, without getrandom feature.",
+  "entropy": "Application salt/session/CSRF entropy uses the existing rustls AWS-LC CryptoProvider.secure_random. The selected std feature chain also enables argon2/std -> password-hash/std -> rand_core/std -> getrandom and getrandom/std. Existing locked getrandom0.2.17 is expected to satisfy the ^0.2 edge; selected graph/features still require Cargo resolution and audit.",
   "limits": [
     "Registry metadata checked only; full Cargo resolution, advisory/license/source audit, SLES compilation and performance remain pending.",
     "No Cargo manifest, lock, gate pin or runtime change made.",
     "Do not substitute a newer version without review and fresh qualification."
-  ]
+  ],
+  "existing_locked_feature_edges_expected": {
+    "getrandom": "0.2.17; getrandom/std via rand_core/std"
+  }
 }
