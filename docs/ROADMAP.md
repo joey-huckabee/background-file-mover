@@ -27,6 +27,10 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   session/CSRF/inactivity/global logout, embedded offline assets and bounded
   read-only history/detail/retention. Keep producer and trusted-local operator
   access separate. Qualify in small reviewed increments on both SLES modes.
+  Step 2 starts with the [admin/session design](dashboard/ADMIN-SESSION-DESIGN.md)
+  and exact candidate dependency metadata; library addition approval and actual
+  SLES verifier proof precede runtime activation. No password library or admin
+  listener is delivered by the design documents.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.

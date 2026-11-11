@@ -1,0 +1,69 @@
+{
+  "status": "PROPOSAL_NOT_ADDED",
+  "direct_candidate": {
+    "name": "argon2",
+    "version": "=0.5.3",
+    "default_features": false,
+    "features": [
+      "std",
+      "zeroize"
+    ]
+  },
+  "new_packages_expected": [
+    {
+      "name": "argon2",
+      "version": "0.5.3",
+      "checksum": "3c3610892ee6e0cbce8ae2700349fcf8f98adb0dbfbee85aec3c9179d29cc072",
+      "license": "MIT OR Apache-2.0",
+      "rust_version": "1.65",
+      "yanked": false,
+      "source": "https://crates.io/api/v1/crates/argon2/0.5.3"
+    },
+    {
+      "name": "base64ct",
+      "version": "1.8.3",
+      "checksum": "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06",
+      "license": "Apache-2.0 OR MIT",
+      "rust_version": "1.85",
+      "yanked": false,
+      "source": "https://crates.io/api/v1/crates/base64ct/1.8.3"
+    },
+    {
+      "name": "blake2",
+      "version": "0.10.6",
+      "checksum": "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe",
+      "license": "MIT OR Apache-2.0",
+      "rust_version": null,
+      "yanked": false,
+      "source": "https://crates.io/api/v1/crates/blake2/0.10.6"
+    },
+    {
+      "name": "password-hash",
+      "version": "0.5.0",
+      "checksum": "346f04948ba92c43e8469c1ee6736c7563d71012b17d40745260fe106aac2166",
+      "license": "MIT OR Apache-2.0",
+      "rust_version": "1.60",
+      "yanked": false,
+      "source": "https://crates.io/api/v1/crates/password-hash/0.5.0"
+    },
+    {
+      "name": "rand_core",
+      "version": "0.6.4",
+      "checksum": "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c",
+      "license": "MIT OR Apache-2.0",
+      "rust_version": null,
+      "yanked": false,
+      "source": "https://crates.io/api/v1/crates/rand_core/0.6.4"
+    }
+  ],
+  "existing_locked_direct_edges_proposed": {
+    "subtle": "=2.6.1",
+    "zeroize": "=1.9.1"
+  },
+  "entropy": "Existing rustls AWS-LC CryptoProvider.secure_random; no new randomness package required for entropy. rand_core is a password-hash transitive default, without getrandom feature.",
+  "limits": [
+    "Registry metadata checked only; full Cargo resolution, advisory/license/source audit, SLES compilation and performance remain pending.",
+    "No Cargo manifest, lock, gate pin or runtime change made.",
+    "Do not substitute a newer version without review and fresh qualification."
+  ]
+}

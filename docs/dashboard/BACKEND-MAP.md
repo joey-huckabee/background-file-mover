@@ -211,6 +211,10 @@ Do not hand-write password cryptography or reuse producer leaf identity as admin
 authentication. Do not enable unimplemented action buttons in a working read-only
 release. Keep their reviewed designs for subsequent increments.
 
+Step 2's [admin/session design](ADMIN-SESSION-DESIGN.md) now specifies these
+boundaries, the proposed password library/graph and the finite proof cases.
+It is a design checkpoint, not an implemented authentication system.
+
 Step 1 is complete when every visual field above has an exact read source,
 explicit derivation or omission and the missing runtime boundaries are named.
 That is the scope of this document. SLES builds and browser/runtime acceptance
