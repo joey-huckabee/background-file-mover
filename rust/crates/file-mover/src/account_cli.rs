@@ -49,8 +49,13 @@ impl Signals {
         })
     } // Linux SIGTSTP
     fn poll_cancelled(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<()> {
-        for signal in [&mut self.interrupt, &mut self.terminate, &mut self.hangup,
-                       &mut self.quit, &mut self.suspend] {
+        for signal in [
+            &mut self.interrupt,
+            &mut self.terminate,
+            &mut self.hangup,
+            &mut self.quit,
+            &mut self.suspend,
+        ] {
             if signal.poll_recv(cx).is_ready() {
                 return std::task::Poll::Ready(());
             }
@@ -58,7 +63,10 @@ impl Signals {
         std::task::Poll::Pending
     }
 }
-async fn until_cancelled<F: std::future::Future>(future: F, signals: &mut Signals) -> Option<F::Output> {
+async fn until_cancelled<F: std::future::Future>(
+    future: F,
+    signals: &mut Signals,
+) -> Option<F::Output> {
     use std::task::Poll;
     let mut future = std::pin::pin!(future);
     std::future::poll_fn(|cx| {
@@ -67,7 +75,8 @@ async fn until_cancelled<F: std::future::Future>(future: F, signals: &mut Signal
         } else {
             future.as_mut().poll(cx).map(Some)
         }
-    }).await
+    })
+    .await
 }
 
 fn refused() -> Box<dyn std::error::Error> {
@@ -365,9 +374,14 @@ async fn prompt(initialize: bool, signals: &mut Signals) -> Result<NewCredential
             |_| "a controlling terminal is required; use explicit --stdin for automation",
         )?)?;
     let input = match until_cancelled(
-        tokio::time::timeout(Duration::from_secs(300), prompt_fields(&terminal, initialize)),
+        tokio::time::timeout(
+            Duration::from_secs(300),
+            prompt_fields(&terminal, initialize),
+        ),
         signals,
-    ).await {
+    )
+    .await
+    {
         Some(Ok(input)) => input,
         Some(Err(_)) => Err("account prompt timed out".into()),
         None => Err("account prompt interrupted".into()),
