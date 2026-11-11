@@ -8,6 +8,10 @@ use std::{
     os::fd::{AsFd, AsRawFd, BorrowedFd, RawFd},
 };
 
+fn controlling_device(stat: &Stat) -> bool {
+    FileType::from_raw_mode(stat.st_mode) == FileType::CharacterDevice
+        && fs::major(stat.st_rdev) == 5 && fs::minor(stat.st_rdev) == 0
+}
 pub struct SecretTerminal {
     file: File,
     original: Termios,
@@ -23,6 +27,9 @@ impl SecretTerminal {
             Mode::empty(),
         )?;
         let file = File::from(fd);
+        if !controlling_device(&fs::fstat(&file)?) {
+            return Err(ClaimError::Blocked("controlling terminal device required"));
+        }
         if termios::tcgetpgrp(&file)? != rustix::process::getpgrp() {
             return Err(ClaimError::Blocked(
                 "foreground controlling terminal required",
@@ -83,6 +90,18 @@ impl Write for &SecretTerminal {
 mod tests {
     use super::*;
     use rustix::pty::{self, OpenptFlags};
+    #[test]
+    fn fixed_terminal_requires_linux_controlling_device_not_a_substitute() {
+        let mut stat = fs::stat("/dev/null").unwrap();
+        assert!(!controlling_device(&stat));
+        stat.st_rdev = fs::makedev(5, 0);
+        assert!(controlling_device(&stat));
+        stat.st_rdev = fs::makedev(5, 1);
+        assert!(!controlling_device(&stat));
+        stat.st_rdev = fs::makedev(5, 0);
+        stat.st_mode = 0o100600; // A regular file cannot impersonate the device.
+        assert!(!controlling_device(&stat));
+    }
     #[test]
     fn raw_secret_input_has_no_echo_and_explicit_or_drop_restore() {
         for explicit in [true, false] {

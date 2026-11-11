@@ -281,7 +281,10 @@ class Runner:
                 chunk[:] = b'\0' * len(chunk)
 
     def execute(self, *argv):
-        return self.command(['podman', 'exec', '--user', USER, self.container, *argv])
+        # Match the retained gate/ingress driver: non-TTY OCI exec can expose
+        # an inherited process group outside the container PID namespace.
+        return self.command(['podman', 'exec', '--user', USER, self.container,
+                             '/usr/bin/setsid', '--wait', *argv])
 
     def close(self):
         clean = True
@@ -327,7 +330,10 @@ def fingerprint(runner, account):
 def run_profile(runner, profile, artifact, record):
     base = '/tmp/ingress/'+profile
     binary, config, account = base+'/file-mover', base+'/config.json', base+'/account'
-    runner.execute(binary, '--initialize-source', config)
+    try:
+        runner.execute(binary, '--initialize-source', config)
+    except CheckError:
+        raise CheckError('private fixture initialization failed') from None
     rows = record['cases']
     for action in ('init', 'mismatch', 'ctrl-c', 'sigterm', 'change'):
         row = dict(case=action, passed=False)

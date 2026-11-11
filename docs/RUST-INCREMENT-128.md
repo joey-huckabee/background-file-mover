@@ -44,7 +44,7 @@ commands, offline service requirement, automation, terminal repair and uncertain
 
 ## Validation status
 
-Pending final qualification. Eleven portable account-driver tests and five
+Pending final qualification. Twelve portable account-driver tests and five
 SLES-gate safety tests pass. Independent review findings about queued terminal
 input, status revision representation and cleanup ownership have been addressed
 and reviewed without additional actionable findings. Full production and

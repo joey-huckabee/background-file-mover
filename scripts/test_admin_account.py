@@ -73,6 +73,15 @@ class PortableProcess(unittest.TestCase):
                 runner.command([sys.executable, '-c', script], timeout=0.1)
             self.assertNotIn('private-password', str(failure.exception))
 
+    def test_nonterminal_commands_have_private_visible_session(self):
+        runner = checker.Runner()
+        runner.container = 'owned-id'
+        runner.command = Mock()
+        runner.execute('/tmp/file-mover', '--initialize-source', '/tmp/config')
+        self.assertEqual(runner.command.call_args.args[0],
+            ['podman', 'exec', '--user', checker.USER, 'owned-id', '/usr/bin/setsid', '--wait',
+             '/tmp/file-mover', '--initialize-source', '/tmp/config'])
+
     def test_actual_host_pty_selectors_match_without_container(self):
         master, slave = pty.openpty()
         process = subprocess.Popen([sys.executable, '-c', 'import os; os.write(1,b"FM_TEST 123\\n")'],

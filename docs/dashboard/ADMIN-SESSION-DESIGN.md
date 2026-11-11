@@ -1,9 +1,12 @@
 # Admin HTTPS, account custody and sessions
 
-Implementation follow-up: the user approved the package addition. The bounded
-password primitive is implemented in [increment 127](../RUST-INCREMENT-127.md);
-use its actual qualification record. The design checkpoint below does not claim
-account provisioning, sessions or an admin listener are active.
+Implementation follow-up: the approved password primitive is implemented in
+[increment127](../RUST-INCREMENT-127.md). Guarded offline account commands follow
+in [increment128](../RUST-INCREMENT-128.md), with exact current validation status
+and [user instructions](../ADMIN-ACCOUNT-SETUP.md). These do not activate sessions,
+live account replacement, an admin listener or browser access. The design
+checkpoint below governs the remaining integration; use the increments for
+actual implementation and qualification claims.
 
 Step 2 design, 2026-11-10. The user requests starting the next dashboard step
 after the [field map](BACKEND-MAP.md). This document makes that implementation

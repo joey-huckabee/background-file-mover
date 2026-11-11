@@ -32,8 +32,11 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   SLES verifier proof precede runtime activation. No password library or admin
   listener is delivered by the design documents.
   [Increment 127](RUST-INCREMENT-127.md) implements the approved password primitive
-  and dependency proof; guarded account provisioning, sessions and remote admin
-  activation remain the next integration work. Use the increment's actual results.
+  and dependency proof. [Increment128](RUST-INCREMENT-128.md) adds guarded offline
+  account setup/password change/status; use its actual qualification record and
+  [setup guide](ADMIN-ACCOUNT-SETUP.md). Bounded sessions, global revocation/live
+  activation, the separate admin listener and browser connection remain unfinished.
+  Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.

@@ -551,7 +551,8 @@ fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
         {
             return Err(ClaimError::Blocked("terminal requires local device path"));
         }
-        mounts.push((mount, fields[2], fields[3]));
+        let kernel_tty = path == mount.as_path() && *kind == b"devtmpfs" && fields[3] == b"/tty";
+        mounts.push((mount, fields[2], fields[3], kernel_tty));
     }
     if mounts.is_empty() {
         return Err(ClaimError::Blocked("empty terminal mount inventory"));
@@ -561,16 +562,16 @@ fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
     // Every traversed filesystem was still checked above before any named I/O.
     let effective = mounts
         .iter()
-        .filter(|(mount, _, _)| path.starts_with(mount))
-        .max_by_key(|(mount, _, _)| mount.as_os_str().len())
+        .filter(|(mount, _, _, _)| path.starts_with(mount))
+        .max_by_key(|(mount, _, _, _)| mount.as_os_str().len())
         .ok_or(ClaimError::Blocked("terminal mount missing"))?;
-    for (mount, device, root) in &mounts {
-        if path == mount
+    for (mount, device, root, kernel_tty) in &mounts {
+        if (path == mount && !kernel_tty)
             || (mount == &effective.0
-                && (*root != b"/"
+                && ((*root != b"/" && !kernel_tty)
                     || mounts
                         .iter()
-                        .any(|(other, d, r)| other != mount && d == device && r == root)))
+                        .any(|(other, d, r, _)| other != mount && d == device && r == root)))
         {
             return Err(ClaimError::Blocked("terminal mount/alias custody"));
         }
@@ -651,9 +652,13 @@ mod tests {
         let container =
             b"1 0 0:1 / / rw - overlay overlay rw\n2 1 0:5 / /dev rw - tmpfs tmpfs rw\n";
         assert!(super::terminal_mounts_local(container).is_ok());
+        let mut bound_tty = container.to_vec();
+        bound_tty.extend_from_slice(b"3 2 0:6 /tty /dev/tty rw - devtmpfs devtmpfs rw\n");
+        assert!(super::terminal_mounts_local(&bound_tty).is_ok());
         for leaf in [
             b"3 2 0:9 / /dev/tty rw - nfs server:/tty rw\n".as_slice(),
             b"3 2 0:9 / /dev/tty rw - tmpfs tmpfs rw\n",
+            b"3 2 0:9 /null /dev/tty rw - devtmpfs devtmpfs rw\n",
             b"3 2 0:5 / /alias rw - devtmpfs devtmpfs rw\n",
             b"3 2 0:9 / /dev rw - nfs server:/dev rw\n",
         ] {
