@@ -15,6 +15,10 @@ session or browser-to-service connection.
 - Pin selected password/shared features in the existing SLES gate, including
   digest MAC/subtle and getrandom/std. Expected graph is now resolved, not only
   a metadata proposal. No ring provider or system OpenSSL dependency is added.
+  `password_selected_features` is the current enforced feature map; older
+  per-package `dependencies[].features` arrays are retained metadata snapshots,
+  not the feature-selection gate. In particular the historical getrandom entry
+  has an empty array, while its newly enforced selected features are `std`.
 - Add `file_mover::password`, a synchronous helper for later owned-worker use.
   Password buffers and stored PHC strings have explicit zeroizing ownership and
   no Debug/Display/Serialize/Clone. This is not guaranteed memory erasure of all
@@ -35,10 +39,41 @@ session or browser-to-service connection.
 
 Independent review at b4a904f found no actionable source findings. The subsequent
 4cdd2f0 changes only formatting. Five portable SLES-gate safety tests pass.
-Initial target attempt stopped at formatting before compilation; it is not a
-qualification pass. Fresh full production and qualification results remain
-pending until recorded here. No SLES compatibility or shipping claim is made
-from Cargo metadata, source review or the library's Rust minimum version.
+The initial local attempt and CI at 4cdd2f0 stopped at formatting before
+compilation; neither is a qualification pass. CI also caught a coordinator/WSL
+module-order mismatch. It was fixed in d57f974. Independent byte comparison
+confirms all 84 archived local Rust inputs equal the final committed tree;
+qualification is credited to actual inputs, not an assumed clean initial checkout.
+
+The retained local full production gate `20261111T032524Z-705753ec` passes **322
+tests per debug/release profile**, with 22 executable hashes and ELF records
+independently rechecked, both native compiler audits reproduced and clean cleanup.
+PR19 CI run `42953018873` passes both full modes: production **322/profile** and
+qualification **326/profile**. Its production job additionally passes protected
+ingress and all **140 independent TLS client operations**. Downloaded reports,
+84 production Rust input hashes, synthetic checkout tree and all four CI native
+compiler audits were checked. The required qualification mode was exercised in
+CI; it was not redundantly rerun locally. CI executable bytes were not uploaded
+for independent rehash; the retained local executables were rehashed.
+
+[Machine-readable evidence](ADMIN-PASSWORD-EVIDENCE.json) records exact inputs,
+pins/features, test reports, artifacts, source hashes, the measurement driver, advisory
+snapshot and failed attempts. The CI checkout commit differs from the branch
+head but its whole tree equals source head d8b2c4b. Documentation closeout changes
+no Rust/build/gate inputs. Target evidence is container SLES userspace against
+glibc2.22, not physical kernel/NFS/systemd/FIPS or a shipping qualification.
+
+| Isolated process observation | Debug | Release |
+|---|---:|---:|
+| Hash including initial provider/input work | 796 ms | 112 ms |
+| Hash plus verification path | 1523 ms | 163 ms |
+| Kernel process VmHWM | 25920 kB | 23888 kB |
+
+Each is one fresh UID1000:GID1001 SLES test process with exact executable hash,
+network disabled, zero effective capabilities, no-new-privileges and cleanup
+exit 0. These are observations, not a latency limit, per-allocation memory or
+control responsiveness proof. See the [evaluation/reproduction notes](evals/2026-11-10-admin-password-proof.md).
+No credentials or private TLS/session material appear in the public evidence.
 
 Bounded upstream RustSec review at database commit
 `28d73fc95e5972af3403225a217def57dcaba3c4` checked the five new package names and
