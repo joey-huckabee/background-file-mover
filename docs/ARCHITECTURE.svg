@@ -1,0 +1,258 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1090" viewBox="0 0 1600 1090" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#202c29">
+  <title>Background File Mover runtime architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#426c59"/>
+    </marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#8a9582"/>
+    </marker>
+    <style>
+      .title{font-size:22px;font-weight:600}
+      .sub{font-size:12px;fill:#74807a}
+      .head{font-size:13px;font-weight:600}
+      .col{font-size:11px;font-weight:600;letter-spacing:1.6px;fill:#74807a}
+      .note{font-size:11px;fill:#5d675a}
+      .mono{font-family:Consolas, 'Courier New', monospace;font-size:11.5px}
+      .planned{font-family:Consolas, 'Courier New', monospace;font-size:11.5px;fill:#8a9582}
+      .caller{fill:#ffffff;stroke:#b9c4b1;stroke-width:1.2}
+      .listener{fill:#eef4e5;stroke:#8eab73;stroke-width:1.4}
+      .core{fill:#ffffff;stroke:#426c59;stroke-width:1.4}
+      .store{fill:#f8f2e4;stroke:#c9b48a;stroke-width:1.4}
+      .guard{fill:#1c302a;stroke:#1c302a}
+      .flow{stroke:#426c59;stroke-width:1.6;fill:none;marker-end:url(#arrow)}
+      .load{stroke:#8a9582;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#arrow-gray)}
+      .inv{fill:#c8d8cc}
+      .inv-head{fill:#d9efb5}
+      .dash{fill:none;stroke:#8a9582;stroke-dasharray:5 4}
+    </style>
+  </defs>
+
+  <rect width="1600" height="1090" fill="#f5f5f0"/>
+  <text x="30" y="40" class="title">Background File Mover — runtime architecture</text>
+  <text x="30" y="60" class="sub">main + increment 130 (admin HTTPS). Solid = implemented, dashed = planned. All eight FR release gates remain open; production NFS and source deletion are disabled.</text>
+
+  <!-- Column headers -->
+  <text x="30" y="98" class="col">CALLERS</text>
+  <text x="1170" y="98" class="col">LOCAL STORAGE (SERVICE-OWNED)</text>
+
+  <!-- Process boundary -->
+  <rect x="330" y="76" width="800" height="814" rx="12" fill="#fbfbf7" stroke="#1c302a" stroke-width="2"/>
+  <text x="350" y="98" class="head">file-mover service · one Rust executable · non-root service UID · SLES 12 SP5 / glibc 2.22</text>
+
+  <!-- ============ Callers ============ -->
+  <rect x="30" y="110" width="260" height="120" rx="8" class="caller"/>
+  <text x="44" y="132" class="head">Producer (recorder)</text>
+  <text x="44" y="152" class="note">Submits finished recordings.</text>
+  <text x="44" y="170" class="note">HTTPS + client certificate (mTLS);</text>
+  <text x="44" y="186" class="note">fingerprint → configured generator.</text>
+  <text x="44" y="204" class="note">Or explicit loopback-only HTTP.</text>
+  <text x="44" y="220" class="note">No admin or operator access.</text>
+
+  <rect x="30" y="250" width="260" height="170" rx="8" class="caller"/>
+  <text x="44" y="272" class="head">Browser (dashboard admin)</text>
+  <text x="44" y="292" class="note">HTTPS, server certificate only.</text>
+  <text x="44" y="310" class="note">Username + password once, then</text>
+  <text x="44" y="326" class="note">__Host-mover_admin cookie</text>
+  <text x="44" y="342" class="note">(Secure, HttpOnly, SameSite=Strict)</text>
+  <text x="44" y="358" class="note">+ Mover-CSRF-Token header.</text>
+  <text x="44" y="376" class="note">Exact Origin/Host = configured</text>
+  <text x="44" y="392" class="note">authority. No proxy, no CORS.</text>
+  <text x="44" y="410" class="note">Application role, not Linux root.</text>
+
+  <rect x="30" y="440" width="260" height="170" rx="8" class="caller"/>
+  <text x="44" y="462" class="head">Trusted local operator</text>
+  <text x="44" y="482" class="note">Same UID as the service, on the</text>
+  <text x="44" y="498" class="note">host. Unix socket; kernel peer</text>
+  <text x="44" y="514" class="note">credentials checked. Reads job</text>
+  <text x="44" y="530" class="note">state and runs audited recovery</text>
+  <text x="44" y="546" class="note">commands. Never reachable from</text>
+  <text x="44" y="562" class="note">producer or admin listeners.</text>
+
+  <rect x="30" y="630" width="260" height="110" rx="8" class="caller"/>
+  <text x="44" y="652" class="head">Host service tooling</text>
+  <text x="44" y="672" class="mono">file-mover --stop | --status</text>
+  <text x="44" y="690" class="mono">--tls-status | --reload-tls</text>
+  <text x="44" y="710" class="note">Same UID. Work even while</text>
+  <text x="44" y="726" class="note">SQLite or mounts are busy.</text>
+
+  <rect x="30" y="770" width="260" height="100" rx="8" class="dash" fill="#ffffff"/>
+  <text x="44" y="792" class="head">Alternative: protected_ingress</text>
+  <text x="44" y="812" class="note">Producer and operator on Unix</text>
+  <text x="44" y="828" class="note">sockets behind a dedicated local</text>
+  <text x="44" y="844" class="note">proxy UID. No TCP listener. Not</text>
+  <text x="44" y="860" class="note">combined with native_ingress.</text>
+
+  <!-- ============ Listeners ============ -->
+  <rect x="360" y="110" width="300" height="120" rx="8" class="listener"/>
+  <text x="374" y="132" class="head">Producer listener · native_ingress.bind</text>
+  <text x="374" y="150" class="note">TCP · HTTPS mTLS (TLS 1.3/1.2) or loopback HTTP</text>
+  <text x="374" y="174" class="mono">POST /api/v2/jobs</text>
+  <text x="374" y="196" class="note">Exact Host; no cookies or forwarded headers.</text>
+  <text x="374" y="212" class="note">Other routes → 403 producer_route_forbidden.</text>
+
+  <rect x="360" y="250" width="300" height="170" rx="8" class="listener"/>
+  <text x="374" y="272" class="head">Admin HTTPS listener · admin_ingress.bind</text>
+  <text x="374" y="290" class="note">Separate TCP port · server-auth TLS only</text>
+  <text x="374" y="312" class="mono">GET  /  (embedded sign-in page)</text>
+  <text x="374" y="330" class="mono">POST /api/v2/admin/login</text>
+  <text x="374" y="348" class="mono">GET  /api/v2/admin/session</text>
+  <text x="374" y="366" class="mono">POST /api/v2/admin/logout</text>
+  <text x="374" y="386" class="planned">… /api/v2/admin/jobs, reads, actions</text>
+  <text x="374" y="406" class="note">Everything else → 404. CSP, no-store.</text>
+  <rect x="368" y="374" width="284" height="18" rx="3" class="dash"/>
+
+  <rect x="360" y="440" width="300" height="170" rx="8" class="listener"/>
+  <text x="374" y="462" class="head">Private operator socket (Unix, 0600)</text>
+  <text x="374" y="484" class="mono">GET  /healthz</text>
+  <text x="374" y="502" class="mono">GET  /api/v2/jobs/{id}</text>
+  <text x="374" y="520" class="mono">GET  /api/v2/jobs/{id}/retention</text>
+  <text x="374" y="538" class="mono">GET  /api/v2/retention</text>
+  <text x="374" y="556" class="mono">POST /api/v2/jobs/{id}/resume</text>
+  <text x="374" y="574" class="mono">POST /api/v2/jobs/{id}/reset-missing</text>
+  <text x="374" y="596" class="note">POST /api/v2/jobs here → 404.</text>
+
+  <rect x="360" y="630" width="300" height="110" rx="8" class="listener"/>
+  <text x="374" y="652" class="head">Local lifecycle IPC (state directory)</text>
+  <text x="374" y="672" class="mono">control.sock     stop · status</text>
+  <text x="374" y="690" class="mono">tls-reload.sock  TLS status · reload</text>
+  <text x="374" y="710" class="note">Independent of SQLite, mounts and the</text>
+  <text x="374" y="726" class="note">executor. Reload covers producer TLS only.</text>
+
+  <rect x="360" y="770" width="300" height="100" rx="8" class="guard"/>
+  <text x="374" y="792" class="head inv-head">InstanceGuard + worker epoch</text>
+  <text x="374" y="812" class="note inv">One owner of state per instance. Held</text>
+  <text x="374" y="828" class="note inv">through actual worker/verifier exit; offline</text>
+  <text x="374" y="844" class="note inv">commands refuse while the service owns</text>
+  <text x="374" y="860" class="note inv">state. Shutdown wait default 60 s.</text>
+
+  <!-- ============ Core ============ -->
+  <rect x="700" y="110" width="400" height="120" rx="8" class="core"/>
+  <text x="714" y="132" class="head">Admission and TLS execution</text>
+  <text x="714" y="152" class="note">Operator first; admin and producer alternate.</text>
+  <text x="714" y="170" class="note">Global 8 connections · producer 6 · admin 1.</text>
+  <text x="714" y="188" class="note">Permits taken before TLS; overload closes, never queues.</text>
+  <text x="714" y="206" class="note">Fixed TLS executor pool · 5 s handshake deadline.</text>
+  <text x="714" y="222" class="note">Live producer TLS reload drains old-policy sessions.</text>
+
+  <rect x="700" y="250" width="400" height="160" rx="8" class="core"/>
+  <text x="714" y="272" class="head">Admin session manager (memory only)</text>
+  <text x="714" y="292" class="note">One Argon2id verifier thread (m=19456, t=2, p=1).</text>
+  <text x="714" y="310" class="note">5 login attempts / rolling 60 s per instance.</text>
+  <text x="714" y="328" class="note">≤ 64 sessions, no eviction · 32-byte random tokens.</text>
+  <text x="714" y="346" class="note">30 min idle, monotonic; only deliberate activity renews.</text>
+  <text x="714" y="364" class="note">Logout / password revision revokes ALL sessions;</text>
+  <text x="714" y="382" class="note">in-flight logins recheck before minting.</text>
+  <text x="714" y="400" class="note">Restart clears everything. Never touches transfers.</text>
+
+  <rect x="700" y="430" width="400" height="95" rx="8" class="core"/>
+  <text x="714" y="452" class="head">Request framing and validation</text>
+  <text x="714" y="472" class="note">Strict HTTP/1.1, 8 KiB head, 64 KiB body, 5 s read.</text>
+  <text x="714" y="490" class="note">Generator binding · source scope · UUID recording_id</text>
+  <text x="714" y="508" class="note">replay · optional expected sizes · capacity admission.</text>
+
+  <rect x="700" y="545" width="400" height="195" rx="8" class="core"/>
+  <text x="714" y="567" class="head">Transfer coordinator (async parent)</text>
+  <text x="714" y="585" class="note">Owns every SQLite transition. Filesystem I/O runs</text>
+  <text x="714" y="601" class="note">only in supervised child worker processes:</text>
+  <rect x="714" y="613" width="180" height="50" rx="5" fill="#eef4e5" stroke="#b5c9a3"/>
+  <text x="724" y="633" class="note">Source-space observer</text>
+  <text x="724" y="651" class="note">bounded, on demand</text>
+  <rect x="906" y="613" width="180" height="50" rx="5" fill="#eef4e5" stroke="#b5c9a3"/>
+  <text x="916" y="633" class="note">Claim worker</text>
+  <text x="916" y="651" class="note">observe · allocate · rename</text>
+  <rect x="714" y="673" width="180" height="55" rx="5" fill="#eef4e5" stroke="#b5c9a3"/>
+  <text x="724" y="693" class="note">Delivery worker</text>
+  <text x="724" y="711" class="note">one per recording session</text>
+  <rect x="906" y="673" width="180" height="55" rx="5" fill="#eef4e5" stroke="#b5c9a3"/>
+  <text x="916" y="693" class="note">Bootstrap / enrollment</text>
+  <text x="916" y="711" class="note">startup binding checks</text>
+
+  <rect x="700" y="770" width="400" height="100" rx="8" class="core"/>
+  <text x="714" y="792" class="head">mover-store · SQLite state (schema 12)</text>
+  <text x="714" y="812" class="note">Jobs, claims, transfers, UUID replay, missing-file</text>
+  <text x="714" y="828" class="note">retries, retention accounting, operator audit.</text>
+  <text x="714" y="844" class="note">Full history kept until explicit clear; clear forgets</text>
+  <text x="714" y="860" class="note">all linkage but leaves files in place.</text>
+
+  <!-- ============ Storage ============ -->
+  <rect x="1170" y="110" width="400" height="120" rx="8" class="store"/>
+  <text x="1184" y="132" class="head">TLS credentials (DER, owner-only)</text>
+  <text x="1184" y="152" class="note">Producer: server chain, PKCS8 key, server CAs,</text>
+  <text x="1184" y="168" class="note">client CAs, approved client fingerprints.</text>
+  <text x="1184" y="186" class="note">Admin: separate server chain, key, CAs.</text>
+  <text x="1184" y="204" class="note">Read through guarded readers at startup/reload;</text>
+  <text x="1184" y="220" class="note">directories disjoint from state and payload roots.</text>
+
+  <rect x="1170" y="250" width="400" height="120" rx="8" class="store"/>
+  <text x="1184" y="272" class="head">Admin account directory (0700, local)</text>
+  <text x="1184" y="292" class="mono">admin-account.json · account.lock</text>
+  <text x="1184" y="312" class="note">Instance-bound record: stable principal, username,</text>
+  <text x="1184" y="328" class="note">revision, Argon2id verifier. No plaintext, no sessions.</text>
+  <text x="1184" y="346" class="note">Written only by offline account commands;</text>
+  <text x="1184" y="362" class="note">read and verified at service startup.</text>
+
+  <rect x="1170" y="430" width="400" height="95" rx="8" class="dash" fill="#ffffff"/>
+  <text x="1184" y="452" class="head" fill="#5d675a">Planned (not implemented)</text>
+  <text x="1184" y="472" class="note">Dashboard job/history/retention reads; retry, cancel,</text>
+  <text x="1184" y="490" class="note">confirmed clear and data deletion; live password</text>
+  <text x="1184" y="508" class="note">activation over IPC; postcommit source cleanup (off).</text>
+
+  <rect x="1170" y="545" width="400" height="90" rx="8" class="store"/>
+  <text x="1184" y="567" class="head">Source root (local; NFS disabled in production)</text>
+  <text x="1184" y="587" class="mono">.file-mover/ source-binding.json · coordinator.lock</text>
+  <text x="1184" y="605" class="mono">current/…  recordings to move</text>
+  <text x="1184" y="623" class="note">Claimed by rename; originals never deleted.</text>
+
+  <rect x="1170" y="650" width="400" height="90" rx="8" class="store"/>
+  <text x="1184" y="672" class="head">Destination root</text>
+  <text x="1184" y="692" class="mono">{recording_id}/ files + COMMITTED.json</text>
+  <text x="1184" y="710" class="note">Manifest v2 (legacy v1 preserved). No-clobber,</text>
+  <text x="1184" y="726" class="note">synced publication; binding marker + lock.</text>
+
+  <rect x="1170" y="770" width="400" height="100" rx="8" class="store"/>
+  <text x="1184" y="792" class="head">State directory</text>
+  <text x="1184" y="812" class="mono">jobs.sqlite · control.sock · tls-reload.sock</text>
+  <text x="1184" y="830" class="note">Instance lock and worker epoch records.</text>
+  <text x="1184" y="848" class="note">Backups and migration only via offline commands.</text>
+
+  <!-- ============ Arrows ============ -->
+  <line x1="290" y1="170" x2="358" y2="170" class="flow"/>
+  <line x1="290" y1="335" x2="358" y2="335" class="flow"/>
+  <line x1="290" y1="525" x2="358" y2="525" class="flow"/>
+  <line x1="290" y1="685" x2="358" y2="685" class="flow"/>
+
+  <line x1="660" y1="170" x2="698" y2="170" class="flow"/>
+  <line x1="660" y1="335" x2="698" y2="335" class="flow"/>
+  <line x1="660" y1="478" x2="698" y2="478" class="flow"/>
+  <path d="M1100 200 C1140 200 1140 470 1100 470" class="flow"/>
+  <line x1="900" y1="525" x2="900" y2="543" class="flow"/>
+  <line x1="900" y1="740" x2="900" y2="768" class="flow"/>
+
+  <line x1="1100" y1="590" x2="1168" y2="590" class="flow"/>
+  <line x1="1100" y1="695" x2="1168" y2="695" class="flow"/>
+  <line x1="1100" y1="820" x2="1168" y2="820" class="flow"/>
+
+  <line x1="1170" y1="160" x2="1102" y2="160" class="load"/>
+  <line x1="1170" y1="310" x2="1102" y2="310" class="load"/>
+
+  <line x1="510" y1="740" x2="510" y2="768" class="load"/>
+
+  <!-- ============ Offline commands ============ -->
+  <rect x="30" y="910" width="1540" height="110" rx="10" fill="#ffffff" stroke="#b9c4b1"/>
+  <text x="46" y="934" class="head">Offline host-local commands (service stopped; same non-root UID; each takes InstanceGuard)</text>
+  <text x="46" y="958" class="mono">--initialize-source · --check-state · --check-platform · --migrate-state (schema 11→12) · --backup-state --backup-dir · --clear-history --confirm</text>
+  <text x="46" y="980" class="mono">--admin-account-init · --admin-password-change · --admin-account-status   (no-echo TTY or explicit --stdin JSON; private helper holds custody to exit)</text>
+  <text x="46" y="1004" class="note">Host administrator (root) only provisions: service account, directory ownership, systemd unit, mounts, firewall. The service and these commands refuse to run as root.</text>
+
+  <!-- ============ Legend ============ -->
+  <g transform="translate(30 1040)">
+    <rect width="18" height="12" class="caller"/><text x="24" y="10" class="note">caller</text>
+    <rect x="90" width="18" height="12" class="listener"/><text x="114" y="10" class="note">listener / IPC</text>
+    <rect x="220" width="18" height="12" class="core"/><text x="244" y="10" class="note">in-process component</text>
+    <rect x="390" width="18" height="12" class="store"/><text x="414" y="10" class="note">storage</text>
+    <line x1="480" y1="6" x2="520" y2="6" class="flow"/><text x="528" y="10" class="note">request / data flow</text>
+    <line x1="660" y1="6" x2="700" y2="6" class="load"/><text x="708" y="10" class="note">loaded at startup / ownership</text>
+    <rect x="890" width="18" height="12" class="dash"/><text x="914" y="10" class="note">planned or alternative</text>
+  </g>
+</svg>
