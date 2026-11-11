@@ -13,6 +13,7 @@ pub mod native;
 pub mod password;
 pub mod payload;
 mod reload;
+pub mod session;
 pub mod source_space;
 pub mod tls;
 mod tls_executor;
