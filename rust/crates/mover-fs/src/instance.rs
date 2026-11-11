@@ -527,13 +527,28 @@ fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
     for line in inventory.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
         let mount = parse_mounts(line)?.remove(0);
         let fields: Vec<_> = line.split(|b| *b == b' ').collect();
-        let separator = fields.iter().position(|f| *f == b"-")
+        let separator = fields
+            .iter()
+            .position(|f| *f == b"-")
             .ok_or(ClaimError::Blocked("invalid terminal mount inventory"))?;
-        let kind = fields.get(separator + 1)
+        let kind = fields
+            .get(separator + 1)
             .ok_or(ClaimError::Blocked("invalid terminal mount inventory"))?;
-        if path.starts_with(&mount) &&
-            ![b"ext2".as_slice(), b"ext3", b"ext4", b"tmpfs", b"overlay",
-              b"devtmpfs", b"btrfs", b"xfs", b"rootfs", b"ramfs"].contains(kind) {
+        if path.starts_with(&mount)
+            && ![
+                b"ext2".as_slice(),
+                b"ext3",
+                b"ext4",
+                b"tmpfs",
+                b"overlay",
+                b"devtmpfs",
+                b"btrfs",
+                b"xfs",
+                b"rootfs",
+                b"ramfs",
+            ]
+            .contains(kind)
+        {
             return Err(ClaimError::Blocked("terminal requires local device path"));
         }
         mounts.push((mount, fields[2], fields[3]));
@@ -542,8 +557,13 @@ fn terminal_mounts_local(inventory: &[u8]) -> Result<()> {
         return Err(ClaimError::Blocked("empty terminal mount inventory"));
     }
     for (mount, device, root) in &mounts {
-        if path.starts_with(mount) && (path == mount || *root != b"/" || mounts.iter()
-            .any(|(other, d, r)| other != mount && d == device && r == root)) {
+        if path.starts_with(mount)
+            && (path == mount
+                || *root != b"/"
+                || mounts
+                    .iter()
+                    .any(|(other, d, r)| other != mount && d == device && r == root))
+        {
             return Err(ClaimError::Blocked("terminal mount/alias custody"));
         }
     }
@@ -614,9 +634,11 @@ fn checked(s: &Stat) -> Result<ObjectIdentity> {
 mod tests {
     #[test]
     fn terminal_mount_policy_accepts_host_devices_without_widening_storage_policy() {
-        let host = b"1 0 8:1 / / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
+        let host =
+            b"1 0 8:1 / / rw - btrfs /dev/root rw\n2 1 0:5 / /dev rw - devtmpfs devtmpfs rw\n";
         assert!(super::terminal_mounts_local(host).is_ok());
-        let container = b"1 0 0:1 / / rw - overlay overlay rw\n2 1 0:5 / /dev rw - tmpfs tmpfs rw\n";
+        let container =
+            b"1 0 0:1 / / rw - overlay overlay rw\n2 1 0:5 / /dev rw - tmpfs tmpfs rw\n";
         assert!(super::terminal_mounts_local(container).is_ok());
         for leaf in [
             b"3 2 0:9 / /dev/tty rw - nfs server:/tty rw\n".as_slice(),
@@ -624,7 +646,8 @@ mod tests {
             b"3 2 0:5 / /alias rw - devtmpfs devtmpfs rw\n",
             b"3 2 0:9 / /dev rw - nfs server:/dev rw\n",
         ] {
-            let mut inventory = host.to_vec(); inventory.extend_from_slice(leaf);
+            let mut inventory = host.to_vec();
+            inventory.extend_from_slice(leaf);
             assert!(super::terminal_mounts_local(&inventory).is_err());
         }
         assert!(super::terminal_mounts_local(b"").is_err());
