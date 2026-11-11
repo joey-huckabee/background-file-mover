@@ -107,7 +107,7 @@ def public_status(raw, revision):
     require(isinstance(value, dict) and set(value) == {'provisioned', 'version', 'username', 'revision'},
             'unexpected account status fields')
     require(value['provisioned'] is True and type(value['version']) is int and value['version'] == 1
-            and value['username'] == USERNAME and type(value['revision']) is int and value['revision'] == revision,
+            and value['username'] == USERNAME and type(value['revision']) is str and value['revision'] == str(revision),
             'unexpected public account status')
     return value
 

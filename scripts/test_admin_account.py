@@ -52,9 +52,9 @@ class Capture(unittest.TestCase):
                 checker.echo_enabled(value)
         with self.assertRaises(ValueError):
             checker.public_status(b'{"provisioned":true,"provisioned":false}', 1)
-        status = dict(provisioned=True, version=1, username=checker.USERNAME, revision=2)
+        status = dict(provisioned=True, version=1, username=checker.USERNAME, revision='2')
         self.assertEqual(checker.public_status(json.dumps(status).encode(), 2), status)
-        for modification in ({'verifier':'private'}, {'revision':True}, {'revision':1}, {'version':True}):
+        for modification in ({'verifier':'private'}, {'revision':True}, {'revision':1}, {'revision':2}, {'revision':'02'}, {'version':True}):
             bad = dict(status, **modification)
             with self.assertRaises(checker.CheckError):
                 checker.public_status(json.dumps(bad).encode(), 2)
@@ -128,7 +128,7 @@ class ProfileFlow(unittest.TestCase):
             if argv[0] == 'sha256sum':
                 return subprocess.CompletedProcess(argv, 0, b'a'*64+b'  account\n', b'')
             if '--admin-account-status' in argv:
-                payload = dict(provisioned=True, version=1, username=checker.USERNAME, revision=next(statuses))
+                payload = dict(provisioned=True, version=1, username=checker.USERNAME, revision=str(next(statuses)))
                 return subprocess.CompletedProcess(argv, 0, json.dumps(payload).encode(), b'')
             return subprocess.CompletedProcess(argv, 0, b'', b'')
         runner.execute.side_effect = execute
@@ -143,7 +143,7 @@ class ProfileFlow(unittest.TestCase):
             checker.run_profile(runner, 'debug', {'sha256':'public'}, record)
         self.assertTrue(record['passed'])
         self.assertEqual([case['case'] for case in record['cases']], ['init','mismatch','ctrl-c','sigterm','change'])
-        self.assertEqual([case['status']['revision'] for case in record['cases']], [1,1,1,1,2])
+        self.assertEqual([case['status']['revision'] for case in record['cases']], ['1','1','1','1','2'])
         self.assertEqual(terminals[2][0].send.call_args.args, (b'\x03',))
         calls = runner.execute.call_args_list
         term = [call.args for call in calls if checker.TERM in call.args]

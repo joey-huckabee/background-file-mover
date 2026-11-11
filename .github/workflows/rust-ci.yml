@@ -3,9 +3,9 @@ name: Rust SLES compatibility
 on:
   push:
     # Include the builder recipe as a qualification input.
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/check-tls-clients.py", "scripts/test_tls_clients.py", "scripts/tls_client_tools.py", "scripts/test_tls_client_tools.py", "scripts/tls-client-platform.json", "scripts/tls_proof_fixture.py", "scripts/test_tls_proof_fixture.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-admin-account.py", "scripts/test_admin_account.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/check-tls-clients.py", "scripts/test_tls_clients.py", "scripts/tls_client_tools.py", "scripts/test_tls_client_tools.py", "scripts/tls-client-platform.json", "scripts/tls_proof_fixture.py", "scripts/test_tls_proof_fixture.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   pull_request:
-    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/check-tls-clients.py", "scripts/test_tls_clients.py", "scripts/tls_client_tools.py", "scripts/test_tls_client_tools.py", "scripts/tls-client-platform.json", "scripts/tls_proof_fixture.py", "scripts/test_tls_proof_fixture.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
+    paths: ["rust/**", "scripts/check-rust-sles.py", "scripts/check-admin-account.py", "scripts/test_admin_account.py", "scripts/check-producer-ingress.py", "scripts/test_producer_ingress.py", "scripts/nfs_fixture_contract.py", "scripts/test_nfs_fixture_contract.py", "scripts/Containerfile.rust", "scripts/test_rust_sles.py", "scripts/check-tls-clients.py", "scripts/test_tls_clients.py", "scripts/tls_client_tools.py", "scripts/test_tls_client_tools.py", "scripts/tls-client-platform.json", "scripts/tls_proof_fixture.py", "scripts/test_tls_proof_fixture.py", "scripts/build-offline-bundle.py", "scripts/test_offline_bundle.py", "scripts/check-offline-bundle.py", "scripts/bundle/**", "scripts/check-nfs-boundaries.py", "scripts/nfs_binding.py", "scripts/nfs_baseline.py", "scripts/nfs_runtime.py", "scripts/nfs_ownership.py", "scripts/nfs_custody.py", "scripts/nfs_enrollment.py", "scripts/nfs_storage.py", "scripts/nfs_delivery_storage.py", "scripts/rust-platform.json", "scripts/rust-integrity-dependencies.json", "scripts/rust-qualified-dependencies.json", "scripts/test-rust-wsl.sh", ".github/workflows/rust-ci.yml"]
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,8 @@ jobs:
           python3 -m unittest discover -s scripts -p test_nfs_fixture_contract.py
       - name: Check independent TLS client tools and safety
         run: python3 -m unittest discover -s scripts -p 'test_tls_client*.py'
+      - name: Check offline account terminal driver
+        run: python3 -m unittest discover -s scripts -p test_admin_account.py
       - name: Pull pinned Rust base and SLES runtime
         run: |
           command -v podman
@@ -64,6 +66,20 @@ jobs:
           subprocess.run(['python3', 'scripts/check-producer-ingress.py',
                           '--production-gate', str(gates[0]),
                           '--report', 'rust/validation/protected-ingress.json'], check=True)
+          PY
+      - name: Offline account no-echo prompts and interruption checks
+        if: matrix.mode == 'production'
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          gates = [p.parent for p in Path('rust/validation').glob('*/report.json')
+                   if (r := json.loads(p.read_text()))['status'] == 'PASSED'
+                   and r['build_mode'] == 'production' and r['test_scope'] == 'full']
+          assert len(gates) == 1, 'expected this job single full production gate'
+          subprocess.run(['python3', 'scripts/check-admin-account.py',
+                          '--production-gate', str(gates[0]),
+                          '--report', 'rust/validation/admin-account.json'], check=True)
           PY
       - name: Independent curl and OpenSSL against SLES HTTPS
         if: matrix.mode == 'production'
@@ -95,4 +111,5 @@ jobs:
             rust/validation/*/*image.json
             rust/validation/protected-ingress.json
             rust/validation/tls-clients.json
+            rust/validation/admin-account.json
           retention-days: 14
