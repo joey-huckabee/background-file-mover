@@ -165,6 +165,33 @@ clone or discard evidence to force synchronization. Keep compilation and test
 artifacts on Linux-native storage. Gate results live under ignored
 `rust/validation/` in the test clone; preserve raw packs separately as needed.
 
+## Practical environment notes
+
+Recorded 2026-11-11 from the retired model handoff.
+
+- Windows checkout is canonical; the WSL clone `/home/joey/GIT/background-file-mover-testing`
+  has `coordinator` (the D: checkout) and `origin` (GitHub). A plain `git fetch
+  coordinator` can miss new branches; fetch the branch explicitly, e.g.
+  `git fetch coordinator BRANCH:refs/remotes/coordinator/BRANCH`.
+- Native `cargo fmt`, `cargo clippy` and focused `cargo test` in the WSL clone are
+  quick pre-checks only. Some tests need gate-provided environment (for example
+  `FILE_MOVER_TLS_FIXTURES`) and fail outside the gate. PR CI runs both full modes.
+- Cloudroom: use `room-cli` (bundled fallback: Node plus
+  `C:/Users/Joey/AppData/Local/Programs/Cloudroom/resources/app.asar.unpacked/node_modules/bb-app/host-daemon/dist/room-cli`).
+  Reviewer `thr_xnjapdndei` is a cloud ARM64 thread and cannot run SLES gates.
+- Avoid nested PowerShell/WSL/bash quoting and outer-shell command substitution;
+  one once ran Git in the Windows mount as Linux root (dubious-ownership warning).
+  Do not add a global `safe.directory` exception. Use small scripts with explicit cwd.
+- WSL may start slowly after sleep/restart and print systemd user-session warnings.
+  Do not restart WSL globally, enable lingering or change system configuration.
+  The last PTY diagnostic used `runuser` as joey with task-local
+  `XDG_RUNTIME_DIR=/run/user/1000` and the inherited root DBus address removed.
+- Read WSL evidence from Windows via `\wsl.localhost\Ubuntu\home\joey\GIT\background-file-mover-testing`.
+  Hash committed Git blobs, not Windows working files (line endings differ).
+  Preserve exact report/driver bytes for recorded hashes.
+- Cached Podman images, registry volumes and shared helpers are deliberately kept.
+- Install hooks per clone with `bash scripts/install-hooks.sh`; CI enforces LF anyway.
+
 ## Verified setup and remaining limits
 
 Initial setup readiness: x86_64 Ubuntu 24.04 on WSL2, Python 3.12.3, native rootless

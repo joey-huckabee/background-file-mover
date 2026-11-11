@@ -80,7 +80,11 @@ listener increment.
 Focused native checks on the WSL test clone: `cargo fmt --check`, `cargo clippy
 --all-targets -D warnings` and the 15 session tests pass. Independent review
 found three P2 defects (post-deadline minting, CSRF-before-auth precedence,
-detached verifier on drop); all three are fixed with regression tests. Both full SLES gate
-modes run in PR CI; see the PR for the actual result. No real credentials, state,
+detached verifier on drop); all three are fixed with regression tests. PR24 CI run
+[43026367714](https://github.com/joey-huckabee/background-file-mover/actions/runs/43026367714)
+at `3a6d526` passes both full modes: production **359 tests per debug/release
+profile** and nfs-qualification **363/profile** (increment128's 344/348 plus the
+15 session tests). Merged to main as `30808c2`. The reviewer's re-check of the
+fixes found no actionable findings. No real credentials, state,
 deployment, production NFS/deletion or release are involved. All eight FR gates
 remain open.

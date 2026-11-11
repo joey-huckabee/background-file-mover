@@ -1,0 +1,20 @@
+name: Repository hygiene
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  line-endings:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reject CR line endings in committed text files
+        # .gitattributes normalizes text to LF on commit; this catches anything
+        # committed without that normalization. Binary files report i/-text.
+        run: |
+          bad=$(git ls-files --eol | awk '$1=="i/crlf" || $1=="i/mixed" {print $NF}')
+          if [ -n "$bad" ]; then echo "CR line endings in:"; echo "$bad"; exit 1; fi

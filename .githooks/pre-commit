@@ -3,7 +3,10 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 git diff --cached --check
-python3 - <<'PYHOOK'
+# Windows ships a python3 Store stub that exits non-zero; fall back to python.
+PY=python3
+"$PY" -c '' 2>/dev/null || PY=python
+"$PY" - <<'PYHOOK'
 import re, subprocess, sys
 paths = subprocess.check_output(["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"]).split(b"\0")
 errors = []
