@@ -32,6 +32,12 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-11 admin-listener authorization: the user asks whether a separate
+listener is required and says to proceed if so. It is (approved design: audience
+isolation, no producer client certificate for browsers). Increment130 adds the
+admin HTTPS listener, session routes and sign-in page; job reads/actions next.
+See docs/RUST-INCREMENT-130.md and docs/ADMIN-HTTPS-SETUP.md.
+
 2026-11-11 session-core authorization: the user says "yes, go ahead" with the
 dashboard login/session work after increment128. Increment129 adds the bounded
 in-memory session core only (no listener/IPC/daemon wiring). Next: admin HTTPS

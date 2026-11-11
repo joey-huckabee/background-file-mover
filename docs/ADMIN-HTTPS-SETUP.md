@@ -1,0 +1,75 @@
+# Admin HTTPS sign-in setup
+
+This guide enables browser sign-in on the separate admin HTTPS listener from
+[increment130](RUST-INCREMENT-130.md). It does not authorize deployment or
+changes to operational state. Today the signed-in page shows session status and
+**Sign out everywhere** only; job history, retention and actions come later.
+
+## What you need
+
+1. Native ingress already configured (`native_ingress`, either transport). See
+   [native HTTPS setup](NATIVE-HTTPS-SETUP.md).
+2. A provisioned admin account. See [offline account setup](ADMIN-ACCOUNT-SETUP.md).
+   Without one the service refuses to start; there is no setup page or default password.
+3. A server certificate chain, PKCS8 key and trust anchors for the name browsers
+   will use. These follow the same DER and file-permission rules as the producer
+   listener ([prepare credentials](NATIVE-HTTPS-SETUP.md#prepare-credentials)).
+   Browsers must trust the issuing CA. No client certificate is needed.
+
+## Configure
+
+Add an `admin_ingress` section to the service configuration:
+
+```json
+"admin_ingress": {
+  "bind": "0.0.0.0:9443",
+  "authority": "mover.example.internal:9443",
+  "server_certificates": ["/etc/file-mover/admin-tls/server.der"],
+  "server_key": "/etc/file-mover/admin-tls/server.key.der",
+  "server_ca_certificates": ["/etc/file-mover/admin-tls/ca.der"],
+  "account_directory": "/var/lib/file-mover-account",
+  "inactivity_timeout_seconds": 1800
+}
+```
+
+- `bind` is a separate address and port from the producer `bind`. Its port must
+  equal the `authority` port. Unlike the producer HTTP mode, it may be non-loopback.
+  It is always HTTPS; there is no plaintext mode.
+- `authority` is the exact `host:port` browsers use. Requests with a different
+  `Host`, or a login/logout `Origin` other than `https://` plus this authority,
+  are refused.
+- Credential directories must be separate from the account directory, state,
+  operator socket and payload roots. The account directory must also be separate
+  from the producer credentials.
+- `inactivity_timeout_seconds` defaults to 1800 (30 minutes).
+
+Certificate changes on this listener need a stop and restart. The producer's
+live TLS reload does not reload the admin listener.
+
+## Use
+
+Open `https://AUTHORITY/` and sign in with the account username and password.
+
+- Five sign-in attempts per minute are allowed for the whole instance. After that,
+  wait a minute. There is no permanent lockout.
+- **Sign out everywhere** ends every dashboard session. Transfers keep running.
+- Sessions end after the inactivity timeout. Background page loads do not extend
+  a session; only deliberate activity does.
+- Restarting the service ends every session.
+- To change the password: stop the mover, run `--admin-password-change`
+  ([guide](ADMIN-ACCOUNT-SETUP.md)), then start it. All sessions end.
+
+At most one admin connection is served at a time, inside the service's global
+connection limit. Extra simultaneous connections are closed, not queued. The
+page is a single self-contained document, so a normal browser needs only one
+connection at a time.
+
+## Troubleshooting
+
+| Symptom | Meaning |
+|---|---|
+| Service exits with "requires a provisioned admin account" | Run `--admin-account-init` first |
+| Browser certificate warning | Browser does not trust the issuing CA, or the name differs from `authority` |
+| "Too many sign-in attempts" | Rate limit; wait one minute |
+| "The service is busy" | Another sign-in was being checked, 64 sessions exist, or a sign-out happened during sign-in; retry |
+| 403 on sign-in from a proxy or different hostname | `Origin`/`Host` must match `authority` exactly; proxies are not supported |

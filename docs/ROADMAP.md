@@ -35,8 +35,11 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   and dependency proof. [Increment128](RUST-INCREMENT-128.md) adds guarded offline
   account setup/password change/status; use its actual qualification record and
   [setup guide](ADMIN-ACCOUNT-SETUP.md). [Increment129](RUST-INCREMENT-129.md)
-  adds the bounded in-memory session core with global revocation. Live password
-  activation over IPC, the separate admin listener and browser connection remain unfinished.
+  adds the bounded in-memory session core with global revocation.
+  [Increment130](RUST-INCREMENT-130.md) adds the separate admin HTTPS listener,
+  login/session/logout routes and the embedded sign-in page
+  ([setup](ADMIN-HTTPS-SETUP.md)). Read-only job/history/retention views come next;
+  live password activation over IPC remains unfinished.
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve

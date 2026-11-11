@@ -4,8 +4,9 @@ This guide describes the guarded local account commands and the
 [account implementation slice](ADMIN-ACCOUNT-INCREMENT.md). See
 [increment128](RUST-INCREMENT-128.md) for the bounded SLES checks, review and
 qualification limits. These instructions do not authorize deployment or changes
-to operational state. Browser authentication, admin listeners, login and sessions
-are not available yet. Creating this record does not enable dashboard access.
+to operational state. Creating this record does not by itself enable dashboard
+access; browser sign-in also needs the separate admin listener described in
+[admin HTTPS setup](ADMIN-HTTPS-SETUP.md).
 
 ## Prepare the existing instance and account directory
 
