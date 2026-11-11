@@ -1,5 +1,9 @@
 # AGENTS.md
 
+Model-switch resume: read [docs/MODEL-HANDOFF.md](docs/MODEL-HANDOFF.md) for the
+current completed work, evidence limits and next-work boundaries (2026-11-11).
+This context summary does not expand user authorization.
+
 ## Current direction (2026-10-13)
 
 2026-11-10 account-setup authorization: the user says "yes, go ahead with the
