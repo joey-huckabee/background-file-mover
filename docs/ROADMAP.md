@@ -4,6 +4,43 @@ This file contains future work and unresolved decisions for the Rust transfer
 coordinator. Remove tasks when they are complete; keep implementation evidence
 in the result documents, changelog and trace matrix.
 
+## Dashboard delivery sequence (2026-11-10)
+
+The user likes the [Control room mockups](dashboard/mockup.html) as the visual
+direction and requests a later review to trim and refine the UI. This accepts
+the design direction, not every sample field, metric or interaction as final.
+Keep plain HTML, CSS and JavaScript, original SVG icons and local system fonts;
+no frontend build tooling, third-party libraries or external assets.
+
+The written v2 contract is frozen by group 53. Producer UUID/v2, migration and
+native HTTPS/reload/client testing have scoped implementation evidence through
+increment 126. Earlier planning checkpoints below do not reopen those decisions
+or supersede the no-proxy choice. Admin sessions/actions and the production
+dashboard remain unfinished. Packaging is not the next dashboard milestone.
+
+- [ ] Map each proposed screen/field to the frozen contract and actual stored
+  data. Identify derived values and unavailable measurements; do not invent
+  telemetry or broaden routes to reproduce fictional mockup content.
+- [ ] Implement the first working dashboard slice: host-local admin account
+  setup/password changes, a separate protected admin HTTPS audience, login,
+  session/CSRF/inactivity/global logout, embedded offline assets and bounded
+  read-only history/detail/retention. Keep producer and trusted-local operator
+  access separate. Qualify in small reviewed increments on both SLES modes.
+- [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
+  and separately confirmed owned-data deletion in bounded increments. Preserve
+  exact replay, actual effect settlement and group-50 complete forgetting.
+- [ ] **UI review and refinement:** after real read data and action flows are
+  available, the coordinator reviews and edits every screen with the user.
+  Trim redundant cards, labels and explanatory copy; simplify navigation and
+  bulk controls while preserving essential safety distinctions. Check real
+  long paths, unknown sizes, large paginated histories, empty/error/stale states,
+  keyboard/focus behavior, contrast and narrow layouts. Complete browser
+  verification left unfinished in the design draft. Retain the accepted visual
+  direction; do not treat this step as permission to remove approved behavior.
+- [ ] After the dashboard/backend and remaining release prerequisites are
+  qualified, validate the complete offline bundle, instructions and cutover.
+  All eight FR gates remain open until their own closure evidence is complete.
+
 ## First-release finish line
 
 Start each small reviewed increment from current `main` on its own feature/fix
