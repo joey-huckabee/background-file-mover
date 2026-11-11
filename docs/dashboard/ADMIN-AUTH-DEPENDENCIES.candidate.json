@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSAL_NOT_ADDED",
+  "status": "APPROVED_ADDED_FOUNDATION_SEE_INCREMENT_127",
   "direct_candidate": {
     "name": "argon2",
     "version": "=0.5.3",
@@ -62,11 +62,12 @@
   },
   "entropy": "Application salt/session/CSRF entropy uses the existing rustls AWS-LC CryptoProvider.secure_random. The selected std feature chain also enables argon2/std -> password-hash/std -> rand_core/std -> getrandom and getrandom/std. Existing locked getrandom0.2.17 is expected to satisfy the ^0.2 edge; selected graph/features still require Cargo resolution and audit.",
   "limits": [
-    "Registry metadata checked only; full Cargo resolution, advisory/license/source audit, SLES compilation and performance remain pending.",
-    "No Cargo manifest, lock, gate pin or runtime change made.",
+    "Approval-time metadata is retained here. Actual resolved versions/checksums and selected features are pinned in rust/Cargo.lock and scripts/rust-qualified-dependencies.json.",
+    "This artifact is not an account/session/admin-listener readiness claim. See increment127 for exact qualification results, source review and bounded advisory limits.",
     "Do not substitute a newer version without review and fresh qualification."
   ],
   "existing_locked_feature_edges_expected": {
     "getrandom": "0.2.17; getrandom/std via rand_core/std"
-  }
+  },
+  "implementation": "../RUST-INCREMENT-127.md"
 }

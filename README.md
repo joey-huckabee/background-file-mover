@@ -38,6 +38,11 @@ executor isolation; its full local modes and source CI pass.
 see the [client guide](docs/NATIVE-HTTPS-CLIENTS.md). Wider client, offline-bundle
 and shipping qualification remain separate.
 
+The [dashboard concept](docs/dashboard/mockup.html) and
+[backend map](docs/dashboard/BACKEND-MAP.md) guide the admin implementation.
+[Increment127](docs/RUST-INCREMENT-127.md) adds the approved password-verifier
+foundation; it does not activate admin accounts, sessions or dashboard HTTPS.
+
 The [source-change lab](docs/NFS-SOURCE-CHANGE-LAB.md) explains refusal when a
 producer changes a pending file after partial claiming. See [increment 104](docs/RUST-INCREMENT-104.md)
 for the finite results and preserved-state/operator implications.
