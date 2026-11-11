@@ -2,6 +2,16 @@
 
 ## Current direction (2026-10-13)
 
+2026-11-10 account-setup authorization: the user says "yes, go ahead with the
+account setup" after increment127. Implement guarded offline initialization,
+password change and nonsecret status using only disposable existing current state.
+Keep foreground no-echo input separate from the helper's worker process group;
+hold instance/account custody through actual helper exit. No admin listener or
+sessions yet. Both full SLES modes, actual terminal checks, user instructions and
+independent review are required. See docs/RUST-INCREMENT-128.md for actual status;
+no real credentials/state, deployment, production NFS/deletion or full release.
+
+
 2026-11-10 admin password-library authorization: the user says "yes, add them
 and go ahead" after the reviewed admin/session design and exact five-package
 Argon2id proposal. Implement the bounded verifier/dependency proof first, with
