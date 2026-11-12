@@ -54,4 +54,8 @@ refusal through the bounded reader.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR32 CI run
+[43209050904](https://github.com/joey-huckabee/background-file-mover/actions/runs/43209050904)
+at `51d1075` passes both full modes: production **377 tests per debug/release
+profile** and nfs-qualification **381/profile** (increment132's 372/376 plus 5
+unit tests). Independent review: no remaining findings. Merged to main as `d29fec0`.
