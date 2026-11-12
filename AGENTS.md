@@ -32,6 +32,10 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-12 UI refinement: the user accepted the Settings recommendations and asked
+to review the hosted result ("Just go with it"). Increment134 applies all review
+decisions plus approved contract extensions (row fields, order, settings route).
+
 2026-11-12 UI review: the user asked to run the UI and review each page; they
 also asked for readable errors after a WSL demo refusal ("go ahead"). Increment133
 makes startup/command errors readable (no behavior change). UI review decisions

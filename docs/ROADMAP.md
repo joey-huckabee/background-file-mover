@@ -40,7 +40,9 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   login/session/logout routes and the embedded sign-in page
   ([setup](ADMIN-HTTPS-SETUP.md)). [Increment131](RUST-INCREMENT-131.md) adds
   read-only job history and detail; [increment132](RUST-INCREMENT-132.md) the
-  retention view. Actions and the UI refinement pass remain; live password
+  retention view; [increment134](RUST-INCREMENT-134.md) applies the first live UI
+  review (inline detail, progress steps, new columns, sort, Storage, Settings).
+  Actions remain; live password
   activation over IPC remains unfinished.
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
