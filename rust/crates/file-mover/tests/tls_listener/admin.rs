@@ -359,15 +359,15 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
         400
     );
     // Read routes exist since increment131 and require a session.
-    for path in ["/api/v2/jobs/1", "/api/v2/admin/jobs"] {
+    for path in [
+        "/api/v2/jobs/1",
+        "/api/v2/admin/jobs",
+        "/api/v2/retention",
+        "/api/v2/jobs/1/retention",
+    ] {
         assert_eq!(a.call("GET", path, "", &[]).status, 401, "{path}");
     }
-    for path in [
-        "/api/v2/jobs",
-        "/api/v2/retention",
-        "/healthz",
-        "/index.html",
-    ] {
+    for path in ["/api/v2/jobs", "/healthz", "/index.html"] {
         let r = a.call("GET", path, "", &[]);
         assert_eq!(r.status, 404, "{path}");
         assert_eq!(r.json(), json!({"error":"not_found"}));
@@ -650,12 +650,44 @@ fn admin_history_pages_and_detail_match_operator_status() {
         json!({"error":"invalid_job_id"})
     );
     for path in [
-        "/api/v2/jobs/1/retention",
-        "/api/v2/retention",
+        "/api/v2/jobs/1/resume",
+        "/api/v2/jobs/1/reset-missing",
         "/api/v2/jobs/1?x=1",
+        "/api/v2/retention?x=1",
     ] {
         assert_eq!(get(path, "").status, 404, "{path}");
     }
+
+    // Retention: per-job identical to the operator; global identical except the
+    // cached source-space sample age, which advances between two reads.
+    let job = get("/api/v2/jobs/1/retention", "");
+    assert_eq!(job.status, 200);
+    assert_eq!(job.json(), f.operator("/api/v2/jobs/1/retention").1);
+    assert_eq!(job.json()["details"]["scope"], "Job");
+    let mut admin_global = get("/api/v2/retention", "").json();
+    let mut operator_global = f.operator("/api/v2/retention").1;
+    for v in [&mut admin_global, &mut operator_global] {
+        v["details"]["source_space_admission"]["sample_age_ms"] = Value::Null;
+    }
+    assert_eq!(admin_global, operator_global);
+    assert_eq!(admin_global["details"]["scope"], "Global");
+    assert_eq!(admin_global["details"]["retained_jobs"], 2);
+    assert_eq!(admin_global["details"]["filesystem_inspected"], false);
+    assert_eq!(get("/api/v2/jobs/999/retention", "").status, 404);
+    assert_eq!(
+        get("/api/v2/jobs/01/retention", "").json(),
+        json!({"error":"invalid_job_id"})
+    );
+    assert_eq!(
+        a.call(
+            "POST",
+            "/api/v2/retention",
+            &format!("Cookie: {cookie}\r\n"),
+            &[]
+        )
+        .status,
+        405
+    );
 
     // Deliberate reads need the session CSRF token.
     let marker = "Mover-Admin-Activity: interaction\r\n";
@@ -678,5 +710,7 @@ fn admin_history_pages_and_detail_match_operator_status() {
     );
     assert_eq!(get("/api/v2/admin/jobs", "").status, 401);
     assert_eq!(get("/api/v2/jobs/1", "").status, 401);
+    assert_eq!(get("/api/v2/retention", "").status, 401);
+    assert_eq!(get("/api/v2/jobs/1/retention", "").status, 401);
     f.stop();
 }

@@ -32,6 +32,10 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-11 retention-view authorization: the user says "go ahead with the
+retention view". Increment132 exposes existing retention reads to the admin
+session and adds the Retention view; no actions. See docs/RUST-INCREMENT-132.md.
+
 2026-11-11 job-history authorization: the user says "go ahead with the read-only
 job history". Increment131 adds admin history/detail reads and the page views;
 no actions. See docs/RUST-INCREMENT-131.md.
