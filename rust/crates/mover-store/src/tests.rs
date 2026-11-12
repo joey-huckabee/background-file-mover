@@ -2858,9 +2858,15 @@ fn status_page_is_bounded_ascending_and_reports_more() {
     let s = Store::open(f.db()).unwrap();
     let ids: Vec<i64> = (0..5)
         .map(|i| {
-            s.accept(&input("g", &format!("page-{i}"), "data"), &context())
-                .unwrap()
-                .job_id
+            // Distinct files: concurrent jobs may not reserve the same source path.
+            let submission = Submission::new(
+                "g",
+                &format!("page-{i}"),
+                "/mnt/recordings/current",
+                vec![FileSpec::new(&format!("data-{i}"), None).unwrap()],
+            )
+            .unwrap();
+            s.accept(&submission, &context()).unwrap().job_id
         })
         .collect();
     let page = |after, limit| {
