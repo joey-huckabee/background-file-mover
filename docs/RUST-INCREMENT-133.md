@@ -46,7 +46,11 @@ file-mover: native_ingress.operator_socket: /home/…/operator/api.sock is on a 
 
 Independent review of the first revision found that path text could reach the
 helper's substring classification (P2) and that account commands still hid the
-explanation (P3). Both are fixed with unit tests.
+explanation (P3). Both are fixed with unit tests. A follow-up P2 found the
+helper's first-line reader (1024 bytes) could reject an escaped explanation; the
+writer and reader now share one 4096-byte line bound, the writer shrinks the
+explanation until the escaped line fits, and a test pushes a worst-case escaped
+refusal through the bounded reader.
 
 ## Validation status
 
