@@ -35,7 +35,7 @@ the authorizations; this list grants nothing new.
 2026-11-12 UI review: the user asked to run the UI and review each page; they
 also asked for readable errors after a WSL demo refusal ("go ahead"). Increment133
 makes startup/command errors readable (no behavior change). UI review decisions
-so far are recorded in docs/RUST-INCREMENT-133.md's sibling review notes once applied.
+are recorded with the UI refinement increment that applies them.
 
 2026-11-11 retention-view authorization: the user says "go ahead with the
 retention view". Increment132 exposes existing retention reads to the admin
