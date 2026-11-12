@@ -38,8 +38,9 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   adds the bounded in-memory session core with global revocation.
   [Increment130](RUST-INCREMENT-130.md) adds the separate admin HTTPS listener,
   login/session/logout routes and the embedded sign-in page
-  ([setup](ADMIN-HTTPS-SETUP.md)). Read-only job/history/retention views come next;
-  live password activation over IPC remains unfinished.
+  ([setup](ADMIN-HTTPS-SETUP.md)). [Increment131](RUST-INCREMENT-131.md) adds
+  read-only job history and detail. Retention view is next; live password
+  activation over IPC remains unfinished.
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve

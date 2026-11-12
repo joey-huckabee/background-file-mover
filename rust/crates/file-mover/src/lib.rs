@@ -249,6 +249,9 @@ struct MissingResetInput {
 }
 enum Observation {
     Status(i64),
+    /// Admin history page: after this job ID, limit, and the instance a
+    /// supplied cursor was bound to (None for the first page).
+    Page(i64, usize, Option<String>),
     Retention(Option<i64>),
     Resume(i64, ResumeInput),
     ResetMissing(i64, MissingResetInput),
@@ -306,6 +309,9 @@ impl Worker {
                     }
                     let response = match work {
                         Observation::Status(id) => status_response(&observation_store, id),
+                        Observation::Page(after, limit, bound) => {
+                            page_response(&observation_store, after, limit, bound)
+                        }
                         Observation::Retention(id) => {
                             let mut response=retention_response(&observation_store,id);
                             if id.is_none() && response.status==200 {
@@ -577,6 +583,27 @@ fn status_response(store: &Store, id: i64) -> Response {
         Ok(None) => return error(404, "not_found", false, None),
         Err(_) => return error(503, "storage_unavailable", true, Some(id)),
     };
+    let view = job_view(&snapshot);
+    Response {
+        status: 200,
+        job_id: Some(id.to_string()),
+        state: Some(view.state),
+        source_paths_released: view.released,
+        error: None,
+        retryable: false,
+        details: Some(view.details),
+    }
+}
+
+/// One derivation of state/condition/details shared by operator status and
+/// admin history, so list rows and detail can never disagree.
+struct JobView {
+    state: &'static str,
+    released: bool,
+    condition: &'static str,
+    details: serde_json::Value,
+}
+fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
     let recording = &snapshot.job.recording;
     let released = recording.handoff() == Handoff::Ready202;
     let committed = recording.is_committed();
@@ -603,41 +630,110 @@ fn status_response(store: &Store, id: i64) -> Response {
     } else {
         "Ready"
     };
-    let mut response = Response {
-        status: 200,
-        job_id: Some(id.to_string()),
-        state: Some(if committed {
+    let mut details = serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
+        "condition":condition,"review_epoch":snapshot.review_epoch,"missing_review_epoch":snapshot.missing_review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+        "latest_missing_reset":snapshot.latest_missing_reset.as_ref().map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
+        "latest_resume":snapshot.latest_resume.as_ref().map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
+        "files":files,"missing":missing,"delivery_retry":snapshot.delivery.as_ref().map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))});
+    if let Some(request) = recording.submission().producer() {
+        let object = details.as_object_mut().expect("status object");
+        object.remove("submission_id");
+        object.insert(
+            "recording_id".into(),
+            serde_json::json!(request.recording_id().to_string()),
+        );
+    }
+    JobView {
+        state: if committed {
             "Committed"
         } else if released {
             "Claimed"
         } else {
             "Accepted"
-        }),
-        source_paths_released: released,
+        },
+        released,
+        condition,
+        details,
+    }
+}
+
+/// Reviewed-retry context epoch for the RetryReviewSnapshot projection. Only a
+/// job that the existing resume command would accept right now (released, not
+/// committed, in delivery review after three failures, audit capacity left)
+/// exposes its epoch. Every other job gets the permanently nonauthorizing null,
+/// so an epoch copied while a job was healthy can never authorize a later retry.
+fn retry_review_epoch(
+    released: bool,
+    committed: bool,
+    delivery_failures: Option<u32>,
+    epoch: u32,
+) -> Option<u32> {
+    (released && !committed && delivery_failures == Some(3) && epoch < 64).then_some(epoch)
+}
+
+/// Opaque admin history cursor bound to the state instance. Clients must not
+/// parse it; the service rejects any cursor from another instance.
+pub(crate) fn history_cursor(instance: &str, last: i64) -> String {
+    format!("c1.{instance}.{last}")
+}
+
+/// Bounded admin history page. Summary fields follow the frozen JobSummary
+/// shape. Action extensions report their real, unimplemented state: no
+/// cancellation was ever requested and no deletion pass exists.
+fn page_response(store: &Store, after: i64, limit: usize, bound: Option<String>) -> Response {
+    let Ok(instance) = store.instance_id() else {
+        return error(503, "storage_unavailable", true, None);
+    };
+    if bound.is_some_and(|b| b != instance) {
+        return error(400, "invalid_cursor", false, None);
+    }
+    let (rows, more) = match store.status_page(after, limit) {
+        Ok(page) => page,
+        Err(_) => return error(503, "storage_unavailable", true, None),
+    };
+    let next = if more {
+        rows.last().map(|(id, _)| history_cursor(&instance, *id))
+    } else {
+        None
+    };
+    let items: Vec<_> = rows
+        .iter()
+        .map(|(id, status)| {
+            let view = job_view(status);
+            let mut item = serde_json::json!({
+                "job_id": id.to_string(),
+                "generator_id": view.details["generator_id"],
+                "state": view.state,
+                "condition": view.condition,
+                "source_paths_released": view.released,
+                "retry_review": {"instance_id": instance, "job_id": id.to_string(), "review_epoch": retry_review_epoch(
+                    view.released,
+                    status.job.recording.is_committed(),
+                    status.delivery.as_ref().map(|(failures, _, _)| *failures),
+                    status.review_epoch,
+                )},
+                "cancellation": {"state": "NotRequested", "requested_at": null, "stopped_at": null},
+                "deletion": null,
+            });
+            for key in ["recording_id", "submission_id"] {
+                if let Some(value) = view.details.get(key) {
+                    item[key] = value.clone();
+                }
+            }
+            item
+        })
+        .collect();
+    Response {
+        status: 200,
+        job_id: None,
+        state: None,
+        source_paths_released: false,
         error: None,
         retryable: false,
         details: Some(
-            serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
-            "condition":condition,"review_epoch":snapshot.review_epoch,"missing_review_epoch":snapshot.missing_review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
-            "latest_missing_reset":snapshot.latest_missing_reset.map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
-            "latest_resume":snapshot.latest_resume.map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
-            "files":files,"missing":missing,"delivery_retry":snapshot.delivery.map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))}),
+            serde_json::json!({"items": items, "next_cursor": next, "confirmation": null}),
         ),
-    };
-    if let Some(request) = recording.submission().producer() {
-        let details = response
-            .details
-            .as_mut()
-            .expect("status details")
-            .as_object_mut()
-            .expect("status object");
-        details.remove("submission_id");
-        details.insert(
-            "recording_id".into(),
-            serde_json::json!(request.recording_id().to_string()),
-        );
     }
-    response
 }
 fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
     let request = mover_store::ResumeRequest {
@@ -921,7 +1017,9 @@ async fn connection(
                                 let command_id = match &work {
                                     Observation::Resume(_, input) => Some(&input.command_id),
                                     Observation::ResetMissing(_, input) => Some(&input.command_id),
-                                    Observation::Status(_) | Observation::Retention(_) => None,
+                                    Observation::Status(_)
+                                    | Observation::Retention(_)
+                                    | Observation::Page(..) => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head
@@ -1359,6 +1457,7 @@ async fn serve_inner(
                     }
                 });
                 let admin = bound.admin.clone();
+                let observer = worker.observer.as_ref().unwrap().clone();
                 let future = Box::pin(async move {
                     let _close = close;
                     if tokio::time::Instant::now() >= tls_deadline {
@@ -1371,7 +1470,7 @@ async fn serve_inner(
                         return;
                     };
                     let _ = handshake_done.send(());
-                    admin::connection(stream, admin).await;
+                    admin::connection(stream, admin, observer).await;
                 });
                 let _ = pool.try_spawn(Box::pin(TlsJob {
                     future,
@@ -1528,4 +1627,20 @@ async fn serve_inner(
     drop(native);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.
     Ok(())
+}
+
+#[cfg(test)]
+mod history_tests {
+    #[test]
+    fn retry_epoch_is_null_unless_delivery_review_is_eligible() {
+        use super::retry_review_epoch as e;
+        // Ready job, then the same stored epoch after reaching delivery review.
+        assert_eq!(e(true, false, None, 0), None);
+        assert_eq!(e(true, false, Some(2), 0), None);
+        assert_eq!(e(true, false, Some(3), 0), Some(0));
+        assert_eq!(e(true, false, Some(3), 7), Some(7));
+        assert_eq!(e(false, false, Some(3), 0), None);
+        assert_eq!(e(true, true, Some(3), 0), None);
+        assert_eq!(e(true, false, Some(3), 64), None);
+    }
 }

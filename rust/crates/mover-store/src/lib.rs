@@ -200,6 +200,58 @@ pub struct JobStatus {
     pub latest_missing_reset: Option<MissingResetAudit>,
 }
 
+fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobStatus>> {
+    let count: Option<i64> = tx
+        .query_row(
+            "SELECT file_count FROM jobs WHERE job_id=?1",
+            [job_id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    let Some(count) = count else {
+        return Ok(None);
+    };
+    if !(1..=256).contains(&count) {
+        return Err(StoreError::InvalidContext);
+    }
+    let job = load(tx, job_id)?.ok_or(StoreError::CorruptState)?;
+    let transfers = (0..count as usize)
+        .map(|i| load_transfer(tx, job_id, i))
+        .collect::<Result<Vec<_>>>()?;
+    let missing = {
+        let mut s = tx.prepare(
+            "SELECT file_index,deadline,blocked FROM missing WHERE job_id=?1 ORDER BY file_index",
+        )?;
+        s.query_map([job_id], |r| {
+            Ok((r.get::<_, u32>(0)? as usize, r.get(1)?, r.get(2)?))
+        })?
+        .collect::<std::result::Result<Vec<_>, _>>()?
+    };
+    let delivery = tx
+        .query_row(
+            "SELECT failures,retry_after,code FROM delivery_failures WHERE job_id=?1",
+            [job_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+    let manifest_phase = load_manifest(tx, job_id)?.map(|m| m.phase);
+    let review_epoch = operators::epoch(tx, job_id)?;
+    let latest_resume = operators::latest(tx, job_id)?;
+    let missing_review_epoch = missing_resets::epoch(tx, job_id)?;
+    let latest_missing_reset = missing_resets::latest(tx, job_id)?;
+    Ok(Some(JobStatus {
+        job,
+        transfers,
+        missing,
+        delivery,
+        manifest_phase,
+        review_epoch,
+        latest_resume,
+        missing_review_epoch,
+        latest_missing_reset,
+    }))
+}
+
 /// Dedicated connection owner. Queue capacity bounds admitted commands, not
 /// external request allocation. Never call blocking methods on Tokio's executor.
 pub struct Store {
@@ -446,23 +498,36 @@ impl Store {
     pub fn status(&self, job_id: i64) -> Result<Option<JobStatus>> {
         self.call(move |db| {
             let tx = db.connection.transaction()?;
-            let count: Option<i64> = tx.query_row("SELECT file_count FROM jobs WHERE job_id=?1", [job_id], |r| r.get(0)).optional()?;
-            let Some(count) = count else { return Ok(None); };
-            if !(1..=256).contains(&count) { return Err(StoreError::InvalidContext); }
-            let job = load(&tx, job_id)?.ok_or(StoreError::CorruptState)?;
-            let transfers = (0..count as usize).map(|i| load_transfer(&tx, job_id, i)).collect::<Result<Vec<_>>>()?;
-            let missing = {
-                let mut s = tx.prepare("SELECT file_index,deadline,blocked FROM missing WHERE job_id=?1 ORDER BY file_index")?;
-                s.query_map([job_id], |r| Ok((r.get::<_,u32>(0)? as usize, r.get(1)?, r.get(2)?)))?.collect::<std::result::Result<Vec<_>,_>>()?
-            };
-            let delivery = tx.query_row("SELECT failures,retry_after,code FROM delivery_failures WHERE job_id=?1", [job_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).optional()?;
-            let manifest_phase = load_manifest(&tx, job_id)?.map(|m| m.phase);
-            let review_epoch = operators::epoch(&tx,job_id)?;
-            let latest_resume = operators::latest(&tx,job_id)?;
-            let missing_review_epoch = missing_resets::epoch(&tx,job_id)?;
-            let latest_missing_reset = missing_resets::latest(&tx,job_id)?;
+            let status = status_in(&tx, job_id)?;
             tx.commit()?;
-            Ok(Some(JobStatus { job, transfers, missing, delivery, manifest_phase, review_epoch, latest_resume, missing_review_epoch, latest_missing_reset }))
+            Ok(status)
+        })
+    }
+    /// One bounded page of retained jobs in ascending original job ID after
+    /// `after`, read in a single transaction. Returns whether more rows follow.
+    /// No cross-request snapshot; cleared jobs are simply absent.
+    pub fn status_page(&self, after: i64, limit: usize) -> Result<(Vec<(i64, JobStatus)>, bool)> {
+        if !(1..=256).contains(&limit) {
+            return Err(StoreError::InvalidContext);
+        }
+        self.call(move |db| {
+            let tx = db.connection.transaction()?;
+            let ids = {
+                let mut s =
+                    tx.prepare("SELECT job_id FROM jobs WHERE job_id>?1 ORDER BY job_id LIMIT ?2")?;
+                s.query_map(rusqlite::params![after, limit as i64 + 1], |r| {
+                    r.get::<_, i64>(0)
+                })?
+                .collect::<std::result::Result<Vec<_>, _>>()?
+            };
+            let more = ids.len() > limit;
+            let mut page = Vec::with_capacity(limit);
+            for id in ids.into_iter().take(limit) {
+                let status = status_in(&tx, id)?.ok_or(StoreError::CorruptState)?;
+                page.push((id, status));
+            }
+            tx.commit()?;
+            Ok((page, more))
         })
     }
     pub fn claim_intent(

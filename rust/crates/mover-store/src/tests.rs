@@ -2851,3 +2851,44 @@ fn uuid_digest_and_complete_map_corruption_refuse_reopen_without_repair() {
         assert_eq!(std::fs::read(f.db()).unwrap(), before);
     }
 }
+
+#[test]
+fn status_page_is_bounded_ascending_and_reports_more() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let ids: Vec<i64> = (0..5)
+        .map(|i| {
+            // Distinct files: concurrent jobs may not reserve the same source path.
+            let submission = Submission::new(
+                "g",
+                format!("page-{i}"),
+                "/mnt/recordings/current",
+                vec![FileSpec::new(format!("data-{i}"), None).unwrap()],
+            )
+            .unwrap();
+            s.accept(&submission, &context()).unwrap().job_id
+        })
+        .collect();
+    let page = |after, limit| {
+        let (rows, more) = s.status_page(after, limit).unwrap();
+        (rows.into_iter().map(|(id, _)| id).collect::<Vec<_>>(), more)
+    };
+    assert_eq!(page(0, 2), (ids[..2].to_vec(), true));
+    assert_eq!(page(ids[1], 2), (ids[2..4].to_vec(), true));
+    assert_eq!(page(ids[3], 2), (ids[4..].to_vec(), false));
+    assert_eq!(page(ids[4], 2), (vec![], false));
+    assert_eq!(page(0, 5), (ids.clone(), false));
+    for limit in [0, 257] {
+        assert!(matches!(
+            s.status_page(0, limit),
+            Err(StoreError::InvalidContext)
+        ));
+    }
+    // Page rows equal individual status reads.
+    let (rows, _) = s.status_page(0, 256).unwrap();
+    for (id, status) in rows {
+        let single = s.status(id).unwrap().unwrap();
+        assert_eq!(status.review_epoch, single.review_epoch);
+        assert_eq!(status.transfers.len(), single.transfers.len());
+    }
+}

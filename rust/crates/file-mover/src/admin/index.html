@@ -34,10 +34,27 @@
 <button id="signout" class="secondary" type="button">Sign out everywhere</button>
 </header>
 <main class="content">
-<h1>Signed in</h1>
-<p id="idle" class="muted"></p>
-<div class="notice">Job history, retention and actions are not connected yet. This build provides sign-in and session management only.</div>
+<div class="heading">
+<div><h1>Job history</h1><p id="idle" class="muted"></p></div>
+<button id="refresh" class="secondary" type="button">Refresh</button>
+</div>
 <div id="shell-error" class="error" role="alert"></div>
+<section class="card" aria-labelledby="history-heading">
+<h2 id="history-heading" class="sr-only">Retained jobs</h2>
+<p id="history-status" class="muted" role="status"></p>
+<div class="scroll">
+<table>
+<thead><tr><th>Job</th><th>Generator</th><th>State</th><th>Condition</th><th>Source paths</th></tr></thead>
+<tbody id="history-rows"></tbody>
+</table>
+</div>
+<div class="pager"><button id="prev" class="secondary" type="button" disabled>Previous</button><button id="next" class="secondary" type="button" disabled>Next</button></div>
+</section>
+<section id="detail" class="card" hidden aria-labelledby="detail-title">
+<div class="heading"><h2 id="detail-title" tabindex="-1"></h2><button id="close-detail" class="secondary" type="button">Close</button></div>
+<div id="detail-body"></div>
+</section>
+<p class="muted small">Read-only view. Retry, cancel, clear and delete are not available yet.</p>
 </main>
 </div>
 <script>/*SCRIPT*/</script>

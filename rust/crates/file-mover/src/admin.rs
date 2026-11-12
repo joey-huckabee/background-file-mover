@@ -213,7 +213,11 @@ impl Admin {
 }
 
 /// One request per connection, then close.
-pub(crate) async fn connection(mut stream: ingress::Stream, admin: Arc<Admin>) {
+pub(crate) async fn connection(
+    mut stream: ingress::Stream,
+    admin: Arc<Admin>,
+    observer: std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) {
     let reply = match tokio::time::timeout(REQUEST_DEADLINE, crate::request(&mut stream)).await {
         Err(_) => Reply::error(408, "request_timeout"),
         Ok(Err(e)) => Reply::error(
@@ -223,7 +227,7 @@ pub(crate) async fn connection(mut stream: ingress::Stream, admin: Arc<Admin>) {
                 _ => "invalid_http",
             },
         ),
-        Ok(Ok(request)) => handle(&admin, &request).await,
+        Ok(Ok(request)) => handle(&admin, &request, &observer).await,
     };
     reply.write(&mut stream, &admin.csp).await;
 }
@@ -334,7 +338,11 @@ fn session_cookie(r: &http::Request) -> Option<&str> {
     found
 }
 
-async fn handle(admin: &Admin, r: &http::Request) -> Reply {
+async fn handle(
+    admin: &Admin,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
     // Boundary precedence: framing (done), unsupported headers, target authority,
     // route/method, then route-specific authentication before Origin/CSRF.
     if r.head.headers.keys().any(|h| {
@@ -376,7 +384,184 @@ async fn handle(admin: &Admin, r: &http::Request) -> Reply {
         b"/api/v2/admin/session" => session(admin, r),
         b"/api/v2/admin/logout" if r.head.method != "POST" => Reply::method("POST"),
         b"/api/v2/admin/logout" => logout(admin, r),
-        _ => Reply::error(404, "not_found"),
+        target => {
+            let (path, query) = match target.iter().position(|b| *b == b'?') {
+                Some(i) => (&target[..i], Some(&target[i + 1..])),
+                None => (target, None),
+            };
+            if path == b"/api/v2/admin/jobs" {
+                if r.head.method != "GET" {
+                    return Reply::method("GET");
+                }
+                history(admin, r, query, observer).await
+            } else if let Some(id) = path.strip_prefix(b"/api/v2/jobs/")
+                && query.is_none()
+                && !id.contains(&b'/')
+            {
+                if r.head.method != "GET" {
+                    return Reply::method("GET");
+                }
+                detail(admin, r, id, observer).await
+            } else {
+                // Includes job retention, resume and reset-missing: not admin routes.
+                Reply::error(404, "not_found")
+            }
+        }
+    }
+}
+
+/// Session read authorization shared by every admin GET. Authentication (401)
+/// precedes Origin/CSRF/Fetch-Metadata (403). Only a valid marked read renews.
+fn authorize_read(admin: &Admin, r: &http::Request) -> Result<crate::session::Authorized, Reply> {
+    let marked = match header(r, "mover-admin-activity") {
+        None => false,
+        Some(b"interaction") => true,
+        Some(_) => return Err(Reply::error(400, "invalid_http")),
+    };
+    let token = session_cookie(r).ok_or_else(Reply::unauthenticated)?;
+    let now = std::time::Instant::now();
+    let authorized = admin
+        .sessions
+        .authorize(token, None, Activity::Background, now)
+        .map_err(|_| Reply::unauthenticated())?;
+    if !marked {
+        return Ok(authorized);
+    }
+    if header(r, "origin").is_some_and(|o| o != admin.origin.as_bytes())
+        || header(r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
+    {
+        return Err(Reply::forbidden());
+    }
+    let csrf = header(r, "mover-csrf-token")
+        .and_then(|v| std::str::from_utf8(v).ok())
+        .ok_or_else(Reply::forbidden)?;
+    admin
+        .sessions
+        .authorize(token, Some(csrf), Activity::Deliberate, now)
+        .map_err(|e| match e {
+            AuthError::CsrfMismatch => Reply::forbidden(),
+            AuthError::Unauthenticated => Reply::unauthenticated(),
+        })
+}
+
+/// Strict list query: only `limit` and `cursor`, each at most once.
+fn history_query(query: Option<&[u8]>) -> Result<(usize, Option<(String, i64)>), Reply> {
+    let mut limit = None;
+    let mut cursor = None;
+    let Some(query) = query else {
+        return Ok((50, None));
+    };
+    let text = std::str::from_utf8(query).map_err(|_| Reply::error(400, "invalid_http"))?;
+    for pair in text.split('&') {
+        let (key, value) = pair
+            .split_once('=')
+            .ok_or_else(|| Reply::error(400, "invalid_http"))?;
+        match key {
+            "limit" if limit.is_none() => {
+                limit = Some(
+                    value
+                        .parse::<usize>()
+                        .ok()
+                        .filter(|n| (1..=256).contains(n) && n.to_string() == value)
+                        .ok_or_else(|| Reply::error(400, "invalid_http"))?,
+                );
+            }
+            "cursor" if cursor.is_none() => {
+                cursor =
+                    Some(parse_cursor(value).ok_or_else(|| Reply::error(400, "invalid_cursor"))?);
+            }
+            "confirm_action" | "job_ids" => {
+                // Confirmation previews belong to the not-yet-implemented actions.
+                return Err(Reply::json(
+                    400,
+                    serde_json::json!({"error":"invalid_selection","message":"Confirmation mode is not available."}),
+                ));
+            }
+            _ => return Err(Reply::error(400, "invalid_http")),
+        }
+    }
+    Ok((limit.unwrap_or(50), cursor))
+}
+
+fn parse_cursor(value: &str) -> Option<(String, i64)> {
+    if value.is_empty() || value.len() > 1024 {
+        return None;
+    }
+    let (instance, last) = value.strip_prefix("c1.")?.rsplit_once('.')?;
+    let last = last
+        .parse::<i64>()
+        .ok()
+        .filter(|n| *n > 0 && n.to_string() == last)?;
+    if instance.is_empty()
+        || !instance
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return None;
+    }
+    Some((instance.to_owned(), last))
+}
+
+fn from_operator(response: crate::Response) -> Reply {
+    match response.status {
+        200 => Reply::json(200, response.details.unwrap_or(serde_json::Value::Null)),
+        status => Reply::error(status, response.error.unwrap_or("internal_error")),
+    }
+}
+
+async fn history(
+    admin: &Admin,
+    r: &http::Request,
+    query: Option<&[u8]>,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    if !r.body.is_empty() {
+        return Reply::error(400, "unexpected_body");
+    }
+    if let Err(reply) = authorize_read(admin, r) {
+        return reply;
+    }
+    let (limit, cursor) = match history_query(query) {
+        Ok(q) => q,
+        Err(reply) => return reply,
+    };
+    let (bound, after) = match cursor {
+        Some((instance, last)) => (Some(instance), last),
+        None => (None, 0),
+    };
+    from_operator(
+        crate::operator_reply(observer, crate::Observation::Page(after, limit, bound)).await,
+    )
+}
+
+async fn detail(
+    admin: &Admin,
+    r: &http::Request,
+    id: &[u8],
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    if !r.body.is_empty() {
+        return Reply::error(400, "unexpected_body");
+    }
+    if let Err(reply) = authorize_read(admin, r) {
+        return reply;
+    }
+    let Some(id) = std::str::from_utf8(id).ok().and_then(|s| {
+        s.parse::<i64>()
+            .ok()
+            .filter(|n| *n > 0 && n.to_string() == s)
+    }) else {
+        return Reply::error(400, "invalid_job_id");
+    };
+    let response = crate::operator_reply(observer, crate::Observation::Status(id)).await;
+    if response.status == 200 {
+        // Existing JobStatus envelope, byte-for-byte the operator shape.
+        Reply::json(
+            200,
+            serde_json::to_value(&response).expect("status serialization"),
+        )
+    } else {
+        from_operator(response)
     }
 }
 
@@ -435,48 +620,14 @@ fn session(admin: &Admin, r: &http::Request) -> Reply {
     if !r.body.is_empty() {
         return Reply::error(400, "unexpected_body");
     }
-    let marked = match header(r, "mover-admin-activity") {
-        None => false,
-        Some(b"interaction") => true,
-        Some(_) => return Reply::error(400, "invalid_http"),
-    };
-    let Some(token) = session_cookie(r) else {
-        return Reply::unauthenticated();
-    };
-    let now = std::time::Instant::now();
-    // Authenticate first without renewal; 401 precedes every 403.
-    let Ok(authorized) = admin
-        .sessions
-        .authorize(token, None, Activity::Background, now)
-    else {
-        return Reply::unauthenticated();
-    };
-    let authorized = if marked {
-        if header(r, "origin").is_some_and(|o| o != admin.origin.as_bytes())
-            || header(r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
-        {
-            return Reply::forbidden();
-        }
-        let Some(csrf) = header(r, "mover-csrf-token").and_then(|v| std::str::from_utf8(v).ok())
-        else {
-            return Reply::forbidden();
-        };
-        match admin
-            .sessions
-            .authorize(token, Some(csrf), Activity::Deliberate, now)
-        {
-            Ok(a) => a,
-            Err(AuthError::CsrfMismatch) => return Reply::forbidden(),
-            Err(AuthError::Unauthenticated) => return Reply::unauthenticated(),
-        }
-    } else {
-        authorized
-    };
-    Reply::json(
-        200,
-        serde_json::json!({"authenticated":true,"inactivity_timeout_seconds":admin.idle_seconds}),
-    )
-    .header("Mover-CSRF-Token", &authorized.csrf)
+    match authorize_read(admin, r) {
+        Ok(authorized) => Reply::json(
+            200,
+            serde_json::json!({"authenticated":true,"inactivity_timeout_seconds":admin.idle_seconds}),
+        )
+        .header("Mover-CSRF-Token", &authorized.csrf),
+        Err(reply) => reply,
+    }
 }
 
 fn logout(admin: &Admin, r: &http::Request) -> Reply {
@@ -644,6 +795,46 @@ mod tests {
         assert_eq!(
             browser_authority("mover.example:8443").1,
             "https://mover.example:8443"
+        );
+    }
+
+    #[test]
+    fn history_query_and_cursor_are_strict() {
+        let q = |s: &str| history_query(Some(s.as_bytes())).map_err(|r| r.status);
+        assert_eq!(history_query(None).ok(), Some((50, None)));
+        assert_eq!(q("limit=1").ok(), Some((1, None)));
+        assert_eq!(q("limit=256").ok(), Some((256, None)));
+        for bad in [
+            "limit=0",
+            "limit=257",
+            "limit=01",
+            "limit=",
+            "limit=1&limit=2",
+            "x=1",
+            "limit",
+            "",
+        ] {
+            assert_eq!(q(bad).err(), Some(400), "{bad}");
+        }
+        assert_eq!(
+            q("cursor=c1.abc-1.42").ok(),
+            Some((50, Some(("abc-1".to_owned(), 42))))
+        );
+        for bad in [
+            "c1.abc.0",
+            "c1.abc.042",
+            "c2.abc.1",
+            "c1..1",
+            "c1.a b.1",
+            "c1.abc",
+        ] {
+            assert!(parse_cursor(bad).is_none(), "{bad}");
+        }
+        assert!(parse_cursor(&format!("c1.{}.1", "a".repeat(1100))).is_none());
+        assert_eq!(q("confirm_action=cancel&job_ids=1").err(), Some(400));
+        assert_eq!(
+            parse_cursor(&crate::history_cursor("inst_1", 9)),
+            Some(("inst_1".to_owned(), 9))
         );
     }
 

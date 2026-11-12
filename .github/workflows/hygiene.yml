@@ -18,3 +18,10 @@ jobs:
         run: |
           bad=$(git ls-files --eol | awk '$1=="i/crlf" || $1=="i/mixed" {print $NF}')
           if [ -n "$bad" ]; then echo "CR line endings in:"; echo "$bad"; exit 1; fi
+
+  admin-ui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Lossless JSON parser in the embedded admin page
+        run: node scripts/admin-ui/lossless-json.test.js

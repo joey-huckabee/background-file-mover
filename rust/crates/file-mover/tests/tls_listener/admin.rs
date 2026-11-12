@@ -102,6 +102,9 @@ impl Admin {
             &[],
         )
     }
+    fn session_path(&self, path: &str, cookie: &str, extra: &str) -> Reply {
+        self.call("GET", path, &format!("Cookie: {cookie}\r\n{extra}"), &[])
+    }
     fn logout(&self, cookie: &str, extra: &str) -> Reply {
         self.call(
             "POST",
@@ -355,12 +358,14 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
             .status,
         400
     );
+    // Read routes exist since increment131 and require a session.
+    for path in ["/api/v2/jobs/1", "/api/v2/admin/jobs"] {
+        assert_eq!(a.call("GET", path, "", &[]).status, 401, "{path}");
+    }
     for path in [
         "/api/v2/jobs",
-        "/api/v2/jobs/1",
         "/api/v2/retention",
         "/healthz",
-        "/api/v2/admin/jobs",
         "/index.html",
     ] {
         let r = a.call("GET", path, "", &[]);
@@ -534,5 +539,144 @@ fn admin_connection_flood_does_not_starve_producer_or_operator() {
     assert!(opened > 20, "flood must actually have run: {opened}");
     // The admin listener still serves after the flood.
     assert_eq!(a.call("GET", "/", "", &[]).status, 200);
+    f.stop();
+}
+
+#[test]
+fn admin_history_pages_and_detail_match_operator_status() {
+    let (mut f, a) = admin_fixture();
+    // Two committed jobs with distinct recording UUIDs.
+    prepare_payload(&f);
+    let first = f.input();
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &first).0, 202);
+    wait_commit(&f);
+    let second_uuid = "6f1c2c1e-9d2b-4e8a-a7f1-2b5d3c4e5f60";
+    fs::create_dir_all(f.root.join("source/current/sub")).unwrap();
+    fs::write(f.root.join("source/current/a"), b"alpha2").unwrap();
+    fs::write(f.root.join("source/current/sub/b"), b"bravo2!!").unwrap();
+    let mut second = f.input();
+    second["recording_id"] = json!(second_uuid);
+    second["expected_sizes_bytes"] = json!({"a":"6","sub/b":"8"});
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &second).0, 202);
+    let until = Instant::now() + Duration::from_secs(15);
+    while f.operator("/api/v2/jobs/2").1["state"] != "Committed" {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+
+    // Unauthenticated reads disclose nothing.
+    for path in ["/api/v2/admin/jobs", "/api/v2/jobs/1"] {
+        let r = a.call("GET", path, "", &[]);
+        assert_eq!(r.status, 401, "{path}");
+        assert_eq!(r.json(), json!({"error":"authentication_required"}));
+    }
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    let get = |path: &str, extra: &str| a.session_path(path, &cookie, extra);
+
+    // Full page.
+    let page = get("/api/v2/admin/jobs", "");
+    assert_eq!(page.status, 200);
+    assert_eq!(page.header("cache-control"), Some("no-store"));
+    let body = page.json();
+    assert_eq!(body["next_cursor"], Value::Null);
+    assert_eq!(body["confirmation"], Value::Null);
+    let items = body["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2);
+    let instance = items[0]["retry_review"]["instance_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(instance.len(), 32);
+    assert_eq!(
+        items[0],
+        json!({"job_id":"1","generator_id":"recorder","recording_id":UUID,"state":"Committed",
+            "condition":"Committed","source_paths_released":true,
+            "retry_review":{"instance_id":instance,"job_id":"1","review_epoch":null},
+            "cancellation":{"state":"NotRequested","requested_at":null,"stopped_at":null},
+            "deletion":null})
+    );
+    assert_eq!(items[1]["job_id"], "2");
+    assert_eq!(items[1]["recording_id"], second_uuid);
+
+    // Cursor pagination, ascending, bound to this instance.
+    let one = get("/api/v2/admin/jobs?limit=1", "").json();
+    assert_eq!(one["items"].as_array().unwrap().len(), 1);
+    assert_eq!(one["items"][0]["job_id"], "1");
+    let cursor = one["next_cursor"].as_str().unwrap().to_owned();
+    let next = get(&format!("/api/v2/admin/jobs?limit=1&cursor={cursor}"), "").json();
+    assert_eq!(next["items"][0]["job_id"], "2");
+    assert_eq!(next["next_cursor"], Value::Null);
+    let foreign = get(
+        &format!("/api/v2/admin/jobs?cursor=c1.{}.1", "f".repeat(32)),
+        "",
+    );
+    assert_eq!(foreign.status, 400);
+    assert_eq!(foreign.json(), json!({"error":"invalid_cursor"}));
+    for (query, code) in [
+        ("limit=0", "invalid_http"),
+        ("limit=1&limit=1", "invalid_http"),
+        ("state=Committed", "invalid_http"),
+        ("cursor=bogus", "invalid_cursor"),
+        ("confirm_action=cancel&job_ids=1", "invalid_selection"),
+    ] {
+        let r = get(&format!("/api/v2/admin/jobs?{query}"), "");
+        assert_eq!(r.status, 400, "{query}");
+        assert_eq!(r.json()["error"], code, "{query}");
+    }
+    assert_eq!(
+        a.call(
+            "POST",
+            "/api/v2/admin/jobs",
+            &format!("Cookie: {cookie}\r\n"),
+            &[]
+        )
+        .status,
+        405
+    );
+
+    // Detail is exactly the operator's status for the same job.
+    let detail = get("/api/v2/jobs/1", "");
+    assert_eq!(detail.status, 200);
+    assert_eq!(detail.json(), f.operator("/api/v2/jobs/1").1);
+    assert_eq!(
+        get("/api/v2/jobs/999", "").json(),
+        json!({"error":"not_found"})
+    );
+    assert_eq!(get("/api/v2/jobs/999", "").status, 404);
+    assert_eq!(
+        get("/api/v2/jobs/01", "").json(),
+        json!({"error":"invalid_job_id"})
+    );
+    for path in [
+        "/api/v2/jobs/1/retention",
+        "/api/v2/retention",
+        "/api/v2/jobs/1?x=1",
+    ] {
+        assert_eq!(get(path, "").status, 404, "{path}");
+    }
+
+    // Deliberate reads need the session CSRF token.
+    let marker = "Mover-Admin-Activity: interaction\r\n";
+    assert_eq!(get("/api/v2/admin/jobs", marker).status, 403);
+    assert_eq!(
+        get(
+            "/api/v2/jobs/1",
+            &format!("{marker}Mover-CSRF-Token: {csrf}\r\n")
+        )
+        .status,
+        200
+    );
+
+    // After global logout nothing is readable with the old cookie.
+    let origin = format!("Origin: {}\r\n", a.origin());
+    assert_eq!(
+        a.logout(&cookie, &format!("{origin}Mover-CSRF-Token: {csrf}\r\n"))
+            .status,
+        204
+    );
+    assert_eq!(get("/api/v2/admin/jobs", "").status, 401);
+    assert_eq!(get("/api/v2/jobs/1", "").status, 401);
     f.stop();
 }
