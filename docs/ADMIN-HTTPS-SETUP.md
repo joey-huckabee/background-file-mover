@@ -76,3 +76,10 @@ connection at a time.
 | "Too many sign-in attempts" | Rate limit; wait one minute |
 | "The service is busy" | Another sign-in was being checked, 64 sessions exist, or a sign-out happened during sign-in; retry |
 | 403 on sign-in from a proxy or different hostname | `Origin`/`Host` must match `authority` exactly; proxies are not supported |
+| "… is on a filesystem that is also mounted at …" | The account, credential or socket path can be reached through a second mount (an alias), which would bypass ownership checks. Use a filesystem mounted only once, or remove the extra bind mount. On WSL, WSLg mirrors `/` at `/mnt/wslg/distro`, so every WSL path is aliased; run the service on a real host or container, or set `guiApplications=false` in `.wslconfig` and restart WSL |
+| "… is inside …, a bind mount of a subdirectory" | The path is under a bind mount of part of another filesystem. Use a directly mounted filesystem |
+| "… is itself a mount point" | Configure a directory below the mount point, not the mount point itself |
+| "… is on a nfs filesystem …" (or another type) | Account, credential and socket files must be on local ext2/3/4, tmpfs or overlay storage |
+
+Startup and command errors start with `file-mover:` followed by the configuration
+field (for example `admin_ingress.account_directory:`) and the reason.
