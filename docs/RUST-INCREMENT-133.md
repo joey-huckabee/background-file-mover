@@ -22,7 +22,11 @@ change.
   `native_ingress.operator_socket|server_certificates|server_ca_certificates|client_ca_certificates|server_key`,
   `protected_ingress`.
 - Account commands show path refusals (which happen before any account I/O)
-  instead of the generic "account custody or publication refused".
+  instead of the generic "account custody or publication refused". The private
+  helper now classifies failures by error type, not message text, and sends a
+  bounded (1024 characters), control-character-free explanation for path refusals
+  only. A configured path containing words such as "owns state" cannot change
+  the reported outcome.
 - [Troubleshooting](ADMIN-HTTPS-SETUP.md#troubleshooting) lists each message and remedy.
 
 Before/after on the same WSL config:
@@ -39,6 +43,10 @@ file-mover: native_ingress.operator_socket: /home/…/operator/api.sock is on a 
   passes. `ClaimError` text contains no debug quoting.
 - Real service: the missing-account startup refusal reads
   `file-mover: admin_ingress.account_directory: …` with no debug quoting.
+
+Independent review of the first revision found that path text could reach the
+helper's substring classification (P2) and that account commands still hid the
+explanation (P3). Both are fixed with unit tests.
 
 ## Validation status
 

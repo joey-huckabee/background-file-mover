@@ -82,12 +82,65 @@ async fn until_cancelled<F: std::future::Future>(
 fn refused() -> Box<dyn std::error::Error> {
     "account custody or publication refused; inspect account status before retrying".into()
 }
+/// Typed account failures. The helper classifies by type, never by message
+/// text, so a configured path containing words like "owns state" cannot change
+/// the reported outcome.
+#[derive(Debug)]
+enum AccountFailure {
+    Uncertain,
+    /// Preflight path refusal before any account I/O; text is operator-facing.
+    PathRefused(String),
+}
+impl std::fmt::Display for AccountFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Uncertain => f.write_str(UNCERTAIN),
+            Self::PathRefused(reason) => write!(f, "account path refused: {reason}"),
+        }
+    }
+}
+impl std::error::Error for AccountFailure {}
+const UNCERTAIN: &str =
+    "account publication outcome uncertain; do not retry automatically; inspect account status";
+/// Bounded, control-free operator explanation carried across the helper pipe
+/// (whose whole response is capped at 4096 bytes).
+const MAX_DETAIL: usize = 1024;
+fn bounded_detail(text: &str) -> String {
+    let clean: String = text.chars().filter(|c| !c.is_control()).collect();
+    if clean.len() <= MAX_DETAIL {
+        return clean;
+    }
+    let mut end = MAX_DETAIL - 3;
+    while !clean.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...", &clean[..end])
+}
 fn storage_error(e: mover_fs::ClaimError) -> Box<dyn std::error::Error> {
     match e {
-        mover_fs::ClaimError::OutcomeUncertain => "account publication outcome uncertain; do not retry automatically; inspect account status".into(),
-        // Preflight path refusals happen before any account I/O: show the reason.
-        mover_fs::ClaimError::Refused(reason) => format!("account directory refused: {reason}").into(),
+        mover_fs::ClaimError::OutcomeUncertain => Box::new(AccountFailure::Uncertain),
+        mover_fs::ClaimError::Refused(reason) => Box::new(AccountFailure::PathRefused(reason)),
         _ => refused(),
+    }
+}
+/// Map a worker failure to a public code by type. Path-bearing refusals are
+/// always typed; only fixed internal texts can reach the remaining arms.
+fn classify(error: &(dyn std::error::Error + 'static)) -> (&'static str, Option<String>) {
+    if let Some(failure) = error.downcast_ref::<AccountFailure>() {
+        return match failure {
+            AccountFailure::Uncertain => ("outcome_uncertain", None),
+            AccountFailure::PathRefused(reason) => ("path_refused", Some(bounded_detail(reason))),
+        };
+    }
+    match error.downcast_ref::<mover_fs::ClaimError>() {
+        Some(mover_fs::ClaimError::Refused(reason)) => {
+            ("path_refused", Some(bounded_detail(reason)))
+        }
+        Some(mover_fs::ClaimError::Blocked(reason)) if reason.ends_with("already owns state") => {
+            ("instance_busy", None)
+        }
+        Some(mover_fs::ClaimError::OutcomeUncertain) => ("outcome_uncertain", None),
+        _ => ("account_refused", None),
     }
 }
 
@@ -221,15 +274,11 @@ pub fn worker(config: Config, action: Action, args: Vec<String>) -> Result<()> {
     match worker_inner(config, action, args) {
         Ok(()) => Ok(()),
         Err(error) => {
-            let diagnostic = error.to_string();
-            let code = if diagnostic.contains("outcome uncertain") {
-                "outcome_uncertain"
-            } else if diagnostic.contains("owns state") {
-                "instance_busy"
-            } else {
-                "account_refused"
-            };
-            let _ = emit(&serde_json::json!({"account_error":code}));
+            let (code, detail) = classify(error.as_ref());
+            let _ = emit(&match detail {
+                Some(detail) => serde_json::json!({"account_error":code,"detail":detail}),
+                None => serde_json::json!({"account_error":code}),
+            });
             Err("account command refused".into())
         }
     }
@@ -347,11 +396,15 @@ impl Drop for Helper {
     }
 }
 fn response_error(value: &serde_json::Value) -> Box<dyn std::error::Error> {
-    match value.get("account_error").and_then(|v|v.as_str()){
- Some("instance_busy")=>"local instance or surviving worker already owns state; stop mover and wait for actual exit".into(),
- Some("outcome_uncertain")=>"account publication outcome uncertain; do not retry automatically; inspect account status".into(),
- _=>"account setup refused; check initialized state, selected command and private account custody".into()
-}
+    match value.get("account_error").and_then(|v| v.as_str()) {
+        Some("instance_busy") => "local instance or surviving worker already owns state; stop mover and wait for actual exit".into(),
+        Some("outcome_uncertain") => UNCERTAIN.into(),
+        Some("path_refused") => match value.get("detail").and_then(|v| v.as_str()) {
+            Some(detail) => format!("account path refused: {}", bounded_detail(detail)).into(),
+            None => "account path refused".into(),
+        },
+        _ => "account setup refused; check initialized state, selected command and private account custody".into(),
+    }
 }
 pub fn run(config_path: String, action: Action, args: Vec<String>) -> Result<()> {
     use std::io::IsTerminal;
@@ -488,4 +541,44 @@ async fn line(
         .map_err(|_| "terminal prompt write failed")?;
     let text = std::str::from_utf8(&bytes).map_err(|_| "terminal input must be UTF-8")?;
     Ok(SecretText(Zeroizing::new(text.to_owned())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classification_is_by_type_not_by_path_text() {
+        let path = "/home/u/owns state/outcome uncertain/accounts is on a filesystem that is also mounted at /x";
+        let refused = storage_error(mover_fs::ClaimError::Refused(path.into()));
+        let (code, detail) = classify(refused.as_ref());
+        assert_eq!(code, "path_refused");
+        assert_eq!(detail.as_deref(), Some(path));
+        let raw: Box<dyn std::error::Error> = Box::new(mover_fs::ClaimError::Refused(path.into()));
+        assert_eq!(classify(raw.as_ref()).0, "path_refused");
+        let busy: Box<dyn std::error::Error> = Box::new(mover_fs::ClaimError::Blocked(
+            "local instance or surviving worker already owns state",
+        ));
+        assert_eq!(classify(busy.as_ref()).0, "instance_busy");
+        let uncertain = storage_error(mover_fs::ClaimError::OutcomeUncertain);
+        assert_eq!(classify(uncertain.as_ref()), ("outcome_uncertain", None));
+        // Untyped text never classifies by its words.
+        let other: Box<dyn std::error::Error> = "owns state; outcome uncertain".into();
+        assert_eq!(classify(other.as_ref()).0, "account_refused");
+        let reply = serde_json::json!({"account_error":"path_refused","detail":path});
+        assert!(
+            response_error(&reply)
+                .to_string()
+                .contains("/home/u/owns state")
+        );
+    }
+
+    #[test]
+    fn detail_is_bounded_and_control_free() {
+        let long = format!("{}\u{7}{}", "\u{e9}".repeat(600), "x");
+        let bounded = bounded_detail(&long);
+        assert!(bounded.len() <= MAX_DETAIL);
+        assert!(bounded.ends_with("...") && !bounded.contains('\u{7}'));
+        assert_eq!(bounded_detail("a\nb"), "ab");
+    }
 }
