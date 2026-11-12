@@ -76,4 +76,14 @@ stored epoch, and the history test expects `null` for a committed job.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR28 CI run
+[43148598376](https://github.com/joey-huckabee/background-file-mover/actions/runs/43148598376)
+at `dce4f52` passes both full modes: production **371 tests per debug/release
+profile** and nfs-qualification **375/profile** (increment130's 367/371 plus the
+store page, cursor parsing, retry-epoch and real-service history tests).
+Merged to main as `66ad4e6`. Independent review: no remaining findings.
+
+Two earlier CI runs failed on test defects, not service code: the new store test
+reused one source file across concurrent jobs (`SourceReserved`), and the
+increment130 boundary test still expected 404 for the now-implemented read routes
+(they correctly return 401 without a session). Both tests were corrected.
