@@ -2861,9 +2861,9 @@ fn status_page_is_bounded_ascending_and_reports_more() {
             // Distinct files: concurrent jobs may not reserve the same source path.
             let submission = Submission::new(
                 "g",
-                &format!("page-{i}"),
+                format!("page-{i}"),
                 "/mnt/recordings/current",
-                vec![FileSpec::new(&format!("data-{i}"), None).unwrap()],
+                vec![FileSpec::new(format!("data-{i}"), None).unwrap()],
             )
             .unwrap();
             s.accept(&submission, &context()).unwrap().job_id
