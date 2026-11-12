@@ -358,12 +358,14 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
             .status,
         400
     );
+    // Read routes exist since increment131 and require a session.
+    for path in ["/api/v2/jobs/1", "/api/v2/admin/jobs"] {
+        assert_eq!(a.call("GET", path, "", &[]).status, 401, "{path}");
+    }
     for path in [
         "/api/v2/jobs",
-        "/api/v2/jobs/1",
         "/api/v2/retention",
         "/healthz",
-        "/api/v2/admin/jobs",
         "/index.html",
     ] {
         let r = a.call("GET", path, "", &[]);
