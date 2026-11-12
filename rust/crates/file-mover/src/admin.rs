@@ -402,8 +402,15 @@ async fn handle(
                     return Reply::method("GET");
                 }
                 detail(admin, r, id, observer).await
+            } else if query.is_none()
+                && let Some(scope) = retention_scope(path)
+            {
+                if r.head.method != "GET" {
+                    return Reply::method("GET");
+                }
+                retention(admin, r, scope, observer).await
             } else {
-                // Includes job retention, resume and reset-missing: not admin routes.
+                // Includes resume and reset-missing: trusted-local operator only.
                 Reply::error(404, "not_found")
             }
         }
@@ -534,6 +541,57 @@ async fn history(
     )
 }
 
+/// `/api/v2/retention` → Some(None); `/api/v2/jobs/{id}/retention` → Some(Some(id)).
+fn retention_scope(path: &[u8]) -> Option<Option<&[u8]>> {
+    if path == b"/api/v2/retention" {
+        return Some(None);
+    }
+    let id = path
+        .strip_prefix(b"/api/v2/jobs/")?
+        .strip_suffix(b"/retention")?;
+    (!id.contains(&b'/')).then_some(Some(id))
+}
+
+fn canonical_job_id(id: &[u8]) -> Option<i64> {
+    std::str::from_utf8(id).ok().and_then(|s| {
+        s.parse::<i64>()
+            .ok()
+            .filter(|n| *n > 0 && n.to_string() == s)
+    })
+}
+
+/// Existing reservation-ledger reads, byte-for-byte the operator envelope.
+/// Global reads include the cached source-space observation; no probe starts.
+async fn retention(
+    admin: &Admin,
+    r: &http::Request,
+    scope: Option<&[u8]>,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    if !r.body.is_empty() {
+        return Reply::error(400, "unexpected_body");
+    }
+    if let Err(reply) = authorize_read(admin, r) {
+        return reply;
+    }
+    let id = match scope {
+        None => None,
+        Some(bytes) => match canonical_job_id(bytes) {
+            Some(id) => Some(id),
+            None => return Reply::error(400, "invalid_job_id"),
+        },
+    };
+    let response = crate::operator_reply(observer, crate::Observation::Retention(id)).await;
+    if response.status == 200 {
+        Reply::json(
+            200,
+            serde_json::to_value(&response).expect("retention serialization"),
+        )
+    } else {
+        from_operator(response)
+    }
+}
+
 async fn detail(
     admin: &Admin,
     r: &http::Request,
@@ -546,11 +604,7 @@ async fn detail(
     if let Err(reply) = authorize_read(admin, r) {
         return reply;
     }
-    let Some(id) = std::str::from_utf8(id).ok().and_then(|s| {
-        s.parse::<i64>()
-            .ok()
-            .filter(|n| *n > 0 && n.to_string() == s)
-    }) else {
+    let Some(id) = canonical_job_id(id) else {
         return Reply::error(400, "invalid_job_id");
     };
     let response = crate::operator_reply(observer, crate::Observation::Status(id)).await;
@@ -836,6 +890,28 @@ mod tests {
             parse_cursor(&crate::history_cursor("inst_1", 9)),
             Some(("inst_1".to_owned(), 9))
         );
+    }
+
+    #[test]
+    fn retention_scope_matches_only_exact_paths() {
+        assert_eq!(retention_scope(b"/api/v2/retention"), Some(None));
+        assert_eq!(
+            retention_scope(b"/api/v2/jobs/7/retention"),
+            Some(Some(b"7".as_slice()))
+        );
+        for bad in [
+            b"/api/v2/retention/".as_slice(),
+            b"/api/v2/jobs/7/retention/x",
+            b"/api/v2/jobs/7/x/retention",
+            b"/api/v2/jobs/retention",
+        ] {
+            assert!(
+                retention_scope(bad)
+                    .is_none_or(|s| s.is_some_and(|id| canonical_job_id(id).is_none())),
+                "{}",
+                String::from_utf8_lossy(bad)
+            );
+        }
     }
 
     #[test]

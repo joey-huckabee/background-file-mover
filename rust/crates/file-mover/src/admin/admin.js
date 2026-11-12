@@ -7,6 +7,8 @@
   var pageGen = 0, detailGen = 0;   // ignore superseded replies
   var pageCtl = null, detailCtl = null;   // at most one of each in flight
   var refreshing = false;
+  var view = "history";
+  var retGen = 0, retCtl = null;
 
   function $(id) { return document.getElementById(id); }
   function el(tag, text, cls) {
@@ -94,6 +96,8 @@
       if (pageCtl) { pageCtl.abort(); } if (detailCtl) { detailCtl.abort(); }
       csrf = null; cursors = [null]; page = 0; selected = null; pageGen++; detailGen++;
       $("detail").hidden = true;
+      if (retCtl) { retCtl.abort(); } retGen++;
+      setView("history");
       $("password").value = "";
       $("username").focus();
     }
@@ -199,6 +203,7 @@
   function renderDetail(job) {
     var d = job.details;
     var body = $("detail-body");
+    var jobId = job.job_id;
     var facts = el("dl", null, "facts");
     fact(facts, "State", label(STATE, job.state));
     fact(facts, "Condition", label(CONDITION, d.condition));
@@ -252,10 +257,129 @@
       body.appendChild(el("h3", "Latest delivery resume"));
       body.appendChild(el("p", time(d.latest_resume.recorded_at) + " · " + d.latest_resume.actor + " · " + d.latest_resume.reason));
     }
+    var retention = el("div");
+    var show = el("button", "Show this job's reservations", "secondary");
+    show.type = "button";
+    show.addEventListener("click", function () {
+      var mine = ++retGen;
+      if (retCtl) { retCtl.abort(); }
+      retCtl = new AbortController();
+      show.disabled = true;
+      request("/api/v2/jobs/" + encodeURIComponent(jobId) + "/retention", true, { signal: retCtl.signal }).then(function (r) {
+        if (mine !== retGen) { return; }
+        clear(retention);
+        if (r.status === 200 && r.body) { renderRetention(r.body, retention, false); }
+        else { retention.appendChild(el("p", r.status === 404 ? "This job is no longer tracked." : "Reservations are unavailable (" + r.status + ").", "notice")); }
+      }).catch(function () {}).then(function () { show.disabled = false; });
+    });
+    body.appendChild(el("h3", "Reservations"));
+    body.appendChild(show);
+    body.appendChild(retention);
     if (d.latest_missing_reset) {
       body.appendChild(el("h3", "Latest missing-file reset"));
       body.appendChild(el("p", time(d.latest_missing_reset.recorded_at) + " · " + d.latest_missing_reset.actor + " · " + d.latest_missing_reset.reason));
     }
+  }
+
+  // Exact byte formatting from a decimal string or BigInt: binary units with two
+  // decimals computed in BigInt (rounded down, never overstated), exact count alongside.
+  function bytes(value) {
+    if (value === null || value === undefined) { return "—"; }
+    var n = BigInt(value);
+    var units = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
+    var u = 0, scale = 1n;
+    while (u < units.length - 1 && n >= scale * 1024n) { scale *= 1024n; u++; }
+    if (u === 0) { return n.toString() + " bytes"; }
+    var hundredths = (n * 100n) / scale;
+    var whole = hundredths / 100n, frac = (hundredths % 100n).toString().padStart(2, "0");
+    return whole.toString() + "." + frac + " " + units[u] + " (" + n.toString() + " bytes)";
+  }
+  function short(value) { return bytes(value).split(" (")[0]; }
+  function stat(parent, name, value, note) {
+    var box = el("div", null, "stat");
+    box.appendChild(el("small", name));
+    box.appendChild(el("strong", value));
+    if (note) { box.appendChild(el("small", note)); }
+    parent.appendChild(box);
+    return box;
+  }
+  function meter(box, used, limit) {
+    var u = BigInt(used), l = BigInt(limit);
+    var p = el("progress");
+    p.max = 1000;
+    p.value = l === 0n ? 1000 : Number(u * 1000n / l > 1000n ? 1000n : u * 1000n / l);
+    box.appendChild(p);
+    if (u > l) { box.appendChild(el("small", "Over the configured limit", "over")); }
+  }
+
+  function renderRetention(body, target, globalView) {
+    var d = body.details;
+    clear(target);
+    var limits = d.configured_limits;
+    var grid = el("div", null, "stats");
+    var src = stat(grid, "Source reserved", short(d.source_reserved_bytes), BigInt(d.source_reserved_bytes).toString() + " bytes");
+    var dst = stat(grid, "Destination reserved", short(d.destination_reserved_bytes), BigInt(d.destination_reserved_bytes).toString() + " bytes");
+    if (limits && globalView) { meter(src, d.source_reserved_bytes, limits.max_reserved_bytes); meter(dst, d.destination_reserved_bytes, limits.max_reserved_bytes); }
+    var jobs = stat(grid, globalView ? "Retained jobs" : "Retained", d.retained_jobs.toString(),
+      d.committed_jobs.toString() + " committed");
+    if (limits && globalView) { meter(jobs, d.retained_jobs, limits.max_retained_jobs); }
+    stat(grid, "Claims", d.confirmed_claims.toString() + " confirmed", d.source_claims.toString() + " source claims recorded");
+    stat(grid, "Unmeasured files", d.unmeasured_files.toString(), "Size unknown; not counted as zero");
+    target.appendChild(grid);
+
+    var facts = el("dl", null, "facts");
+    if (globalView) {
+      fact(facts, "Configured limits", limits
+        ? limits.max_retained_jobs.toString() + " jobs · " + bytes(limits.max_reserved_bytes) + " per side"
+        : "No limits configured");
+      var h = d.global_headroom;
+      fact(facts, "Ledger headroom", h
+        ? h.new_job_slots.toString() + " job slots · source " + bytes(h.source_bytes) + " · destination " + bytes(h.destination_bytes) + (h.over_limit ? " · OVER LIMIT" : "")
+        : "Not applicable without limits");
+    }
+    var a = d.destination_attempts_by_phase;
+    fact(facts, "Destination attempts", "Intent " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
+      " · Publish intent " + a.PublishIntent + " · Published " + a.Published);
+    fact(facts, "Automatic reclamation", d.automatic_reclamation_enabled ? "On" : "Off");
+    var s = d.source_space_admission;
+    if (s) {
+      fact(facts, "Source free-space admission", s.policy.enabled ? s.state : "Disabled");
+      if (s.policy.enabled) {
+        fact(facts, "Last observation", "Available " + bytes(s.observed_available_bytes) + " · required " + bytes(s.required_available_bytes) +
+          (s.sample_age_ms === null ? "" : " · " + s.sample_age_ms.toString() + " ms old") + (s.reason ? " · " + s.reason : ""));
+      }
+    }
+    target.appendChild(facts);
+    target.appendChild(el("p", "These are the mover's reservation ledger totals, including every retained destination attempt. " +
+      "They are not physical free disk space, and leftovers without receipts are not inventoried. " +
+      (s ? "The source free-space figure is the last cached observation; this page does not start a probe." : ""), "muted small"));
+  }
+
+  function loadRetention(deliberate) {
+    var mine = ++retGen;
+    if (retCtl) { retCtl.abort(); }
+    retCtl = new AbortController();
+    $("retention-status").textContent = "Loading…";
+    return request("/api/v2/retention", deliberate, { signal: retCtl.signal }).then(function (r) {
+      if (mine !== retGen) { return; }
+      if (r.status !== 200 || !r.body) { $("retention-status").textContent = "Retention is unavailable (" + r.status + "). Try Refresh."; return; }
+      $("retention-status").textContent = "Global reservation ledger";
+      renderRetention(r.body, $("retention-body"), true);
+    }).catch(function (e) {
+      if (mine === retGen && e.name !== "AbortError" && e.message !== "signed out") { $("retention-status").textContent = "The service could not be reached."; }
+    });
+  }
+
+  function setView(next) {
+    view = next;
+    var history = next === "history";
+    $("history-view").hidden = !history;
+    $("retention-view").hidden = history;
+    $("view-title").textContent = history ? "Job history" : "Retention";
+    $("tab-history").classList.toggle("active", history);
+    $("tab-retention").classList.toggle("active", !history);
+    $("tab-history").setAttribute("aria-pressed", String(history));
+    $("tab-retention").setAttribute("aria-pressed", String(!history));
   }
 
   function signedIn(r) {
@@ -314,6 +438,12 @@
   // One refresh cycle at a time; a superseded page read never starts a detail read.
   $("refresh").addEventListener("click", function () {
     if (refreshing) { return; }
+    if (view === "retention") {
+      refreshing = true;
+      $("refresh").disabled = true;
+      loadRetention(true).then(function () { refreshing = false; $("refresh").disabled = false; });
+      return;
+    }
     refreshing = true;
     $("refresh").disabled = true;
     var mine = pageGen + 1;
@@ -327,5 +457,7 @@
     if (detailCtl) { detailCtl.abort(); }
     detailGen++; selected = null; $("detail").hidden = true;
   });
+  $("tab-history").addEventListener("click", function () { setView("history"); });
+  $("tab-retention").addEventListener("click", function () { setView("retention"); loadRetention(true); });
   loadSession();
 })();

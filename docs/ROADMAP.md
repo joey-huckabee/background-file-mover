@@ -39,7 +39,8 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   [Increment130](RUST-INCREMENT-130.md) adds the separate admin HTTPS listener,
   login/session/logout routes and the embedded sign-in page
   ([setup](ADMIN-HTTPS-SETUP.md)). [Increment131](RUST-INCREMENT-131.md) adds
-  read-only job history and detail. Retention view is next; live password
+  read-only job history and detail; [increment132](RUST-INCREMENT-132.md) the
+  retention view. Actions and the UI refinement pass remain; live password
   activation over IPC remains unfinished.
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear

@@ -3,7 +3,8 @@
 This guide enables browser sign-in on the separate admin HTTPS listener from
 [increment130](RUST-INCREMENT-130.md). It does not authorize deployment or
 changes to operational state. The signed-in page shows read-only job history and
-job details ([increment131](RUST-INCREMENT-131.md)); retention and actions come later.
+job details ([increment131](RUST-INCREMENT-131.md)) and the retention ledger
+([increment132](RUST-INCREMENT-132.md)); actions come later.
 
 ## What you need
 

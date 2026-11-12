@@ -12,3 +12,16 @@ assert.strictEqual(parseJSON(' [ ] ').length, 0);
 const bads = ['', '{', '[1,]', '01', '{"a":1}x', '"\u0001"', 'nul', '{"a" 1}', '1.', String.raw`"\x"`, '{"a":1,}'];
 for (const bad of bads) assert.throws(() => parseJSON(bad), Error, JSON.stringify(bad));
 console.log('lossless parser ok');
+
+// Exact byte formatting: BigInt arithmetic, never binary64; rounds down, never overstates.
+const bytesSrc = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function stat('));
+const bytes = new Function(bytesSrc + '; return bytes;')();
+assert.strictEqual(bytes(null), '—');
+assert.strictEqual(bytes('0'), '0 bytes');
+assert.strictEqual(bytes('1023'), '1023 bytes');
+assert.strictEqual(bytes('1024'), '1.00 KiB (1024 bytes)');
+assert.strictEqual(bytes('1649267441664'), '1.50 TiB (1649267441664 bytes)');
+assert.strictEqual(bytes(18446744073709551615n), '15.99 EiB (18446744073709551615 bytes)');
+const u128 = '340282366920938463463374607431768211455';
+assert.strictEqual(bytes(u128), '295147905179352825855.99 EiB (' + u128 + ' bytes)');
+console.log('byte formatting ok');
