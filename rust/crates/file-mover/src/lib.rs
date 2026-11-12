@@ -671,22 +671,6 @@ fn retry_review_epoch(
     (released && !committed && delivery_failures == Some(3) && epoch < 64).then_some(epoch)
 }
 
-#[cfg(test)]
-mod history_tests {
-    #[test]
-    fn retry_epoch_is_null_unless_delivery_review_is_eligible() {
-        use super::retry_review_epoch as e;
-        // Ready job, then the same stored epoch after reaching delivery review.
-        assert_eq!(e(true, false, None, 0), None);
-        assert_eq!(e(true, false, Some(2), 0), None);
-        assert_eq!(e(true, false, Some(3), 0), Some(0));
-        assert_eq!(e(true, false, Some(3), 7), Some(7));
-        assert_eq!(e(false, false, Some(3), 0), None);
-        assert_eq!(e(true, true, Some(3), 0), None);
-        assert_eq!(e(true, false, Some(3), 64), None);
-    }
-}
-
 /// Opaque admin history cursor bound to the state instance. Clients must not
 /// parse it; the service rejects any cursor from another instance.
 pub(crate) fn history_cursor(instance: &str, last: i64) -> String {
@@ -1643,4 +1627,20 @@ async fn serve_inner(
     drop(native);
     drop(worker); // Local effects may finish; shutdown does not cancel syscalls.
     Ok(())
+}
+
+#[cfg(test)]
+mod history_tests {
+    #[test]
+    fn retry_epoch_is_null_unless_delivery_review_is_eligible() {
+        use super::retry_review_epoch as e;
+        // Ready job, then the same stored epoch after reaching delivery review.
+        assert_eq!(e(true, false, None, 0), None);
+        assert_eq!(e(true, false, Some(2), 0), None);
+        assert_eq!(e(true, false, Some(3), 0), Some(0));
+        assert_eq!(e(true, false, Some(3), 7), Some(7));
+        assert_eq!(e(false, false, Some(3), 0), None);
+        assert_eq!(e(true, true, Some(3), 0), None);
+        assert_eq!(e(true, false, Some(3), 64), None);
+    }
 }
