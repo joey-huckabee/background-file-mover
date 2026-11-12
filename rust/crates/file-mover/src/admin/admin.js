@@ -527,7 +527,7 @@
     var db = s.dashboard;
     dl = card(grid, "Dashboard");
     fact(dl, "Listening on", db.bind, "admin_ingress.bind");
-    fact(dl, "Address", "https://" + db.authority + "/", "admin_ingress.authority");
+    fact(dl, "Address", location.protocol + "//" + db.authority + "/", "admin_ingress.authority");
     fact(dl, "Sign out after inactivity", Math.round(Number(db.inactivity_timeout_seconds) / 60) + " minutes", "inactivity_timeout_seconds");
     fact(dl, "Account directory", db.account_directory, "admin_ingress.account_directory");
     dl = card(grid, "Certificates and keys");
