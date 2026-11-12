@@ -839,19 +839,22 @@ mod tests {
             Err(ClaimError::Refused(m)) => m,
             other => panic!("expected refusal, got {other:?}"),
         };
-        let wsl = "22 1 8:64 / / rw - ext4 /dev/sdc rw
-                   23 22 8:64 / /mnt/wslg/distro rw - ext4 /dev/sdc rw
-";
+        let wsl = concat!(
+            "22 1 8:64 / / rw - ext4 /dev/sdc rw\n",
+            "23 22 8:64 / /mnt/wslg/distro rw - ext4 /dev/sdc rw\n"
+        );
         let m = message(wsl, "/home/joey/run/accounts");
         assert!(m.contains("/home/joey/run/accounts") && m.contains("/mnt/wslg/distro"));
         assert!(m.contains("exactly one mount") && m.contains("WSLg"));
-        let bind = "22 1 8:1 / / rw - ext4 /dev/sda rw
-                    30 22 8:2 /exports/x /srv/creds rw - ext4 /dev/sdb rw
-";
+        let bind = concat!(
+            "22 1 8:1 / / rw - ext4 /dev/sda rw\n",
+            "30 22 8:2 /exports/x /srv/creds rw - ext4 /dev/sdb rw\n"
+        );
         assert!(message(bind, "/srv/creds/key.der").contains("bind mount of a subdirectory"));
-        let point = "22 1 8:1 / / rw - ext4 /dev/sda rw
-                     31 22 0:40 / /srv/acct rw - tmpfs t rw
-";
+        let point = concat!(
+            "22 1 8:1 / / rw - ext4 /dev/sda rw\n",
+            "31 22 0:40 / /srv/acct rw - tmpfs t rw\n"
+        );
         assert!(message(point, "/srv/acct").contains("itself a mount point"));
         // Single whole-filesystem mounts pass.
         assert!(super::ingress_unaliased(Path::new("/srv/acct/a"), point.as_bytes()).is_ok());
