@@ -24,7 +24,25 @@ input:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:2
 .muted,.foot{color:var(--muted);font-size:12px}
 .error{color:var(--red);font-size:12px;min-height:18px;margin-top:10px}
 .top{display:flex;justify-content:space-between;align-items:center;padding:18px 32px;background:#1c302a;color:#e1ebda}
-.content{max-width:760px;margin:0 auto;padding:40px 32px}
+.content{max-width:1100px;margin:0 auto;padding:40px 32px}
 .content h1{font-size:28px;font-weight:600;letter-spacing:-1px;margin:0 0 6px}
 .notice{margin-top:24px;padding:14px 16px;background:var(--paper);border:1px solid var(--line);border-radius:7px;font-size:13px}
 @media(max-width:800px){.signin{grid-template-columns:1fr}.art{display:none}}
+.heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-top:16px}
+.card h2{font-size:18px;margin:0}
+.card h3{font-size:13px;margin:18px 0 6px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid #edf0e8;vertical-align:top;overflow-wrap:anywhere}
+.link{border:0;background:none;padding:0;font-weight:600;color:#2b4a39;text-decoration:underline}
+.sub{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.mono{font-family:Consolas,"Courier New",monospace}
+.badge{display:inline-block;font-size:11px;border-radius:4px;padding:2px 7px}
+.badge.green{background:#edf4e8;color:#3f6534}.badge.blue{background:#edf2f5;color:#3f5f75}.badge.amber{background:#f8efd9;color:#7d5a1d}
+.pager{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;font-size:13px;margin:12px 0}
+.facts dt{color:var(--muted)}.facts dd{margin:0;overflow-wrap:anywhere}
+.small{font-size:12px;margin-top:18px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
