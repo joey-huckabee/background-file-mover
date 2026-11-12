@@ -1,5 +1,23 @@
 use std::sync::{Arc, atomic::AtomicBool};
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// User-facing commands print readable errors. Internal worker invocations keep
+/// their previous stderr bytes, since some workers' stderr is an IPC channel.
+fn main() -> std::process::ExitCode {
+    let internal = std::env::args()
+        .nth(1)
+        .is_some_and(|a| a.starts_with("--internal-"));
+    match run() {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(e) if internal => {
+            eprintln!("Error: {e:?}");
+            std::process::ExitCode::FAILURE
+        }
+        Err(e) => {
+            eprintln!("file-mover: {e}");
+            std::process::ExitCode::FAILURE
+        }
+    }
+}
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let Some(path) = args.next() else {
         return Err("usage: file-mover CONFIG.json | --check-platform".into());

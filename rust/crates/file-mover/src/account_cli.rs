@@ -83,7 +83,12 @@ fn refused() -> Box<dyn std::error::Error> {
     "account custody or publication refused; inspect account status before retrying".into()
 }
 fn storage_error(e: mover_fs::ClaimError) -> Box<dyn std::error::Error> {
-    match e{mover_fs::ClaimError::OutcomeUncertain=>"account publication outcome uncertain; do not retry automatically; inspect account status".into(),_=>refused()}
+    match e {
+        mover_fs::ClaimError::OutcomeUncertain => "account publication outcome uncertain; do not retry automatically; inspect account status".into(),
+        // Preflight path refusals happen before any account I/O: show the reason.
+        mover_fs::ClaimError::Refused(reason) => format!("account directory refused: {reason}").into(),
+        _ => refused(),
+    }
 }
 
 fn options(args: Vec<String>, action: Action, allow_stdin: bool) -> Result<(String, bool)> {

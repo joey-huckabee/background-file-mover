@@ -166,9 +166,12 @@ impl NativeIngress {
         else {
             return Ok(None);
         };
-        let chain = certificates(server_certificates)?;
-        let server_ca = certificates(server_ca_certificates)?;
-        let client_ca = certificates(client_ca_certificates)?;
+        let chain = certificates(server_certificates)
+            .map_err(|e| context("native_ingress.server_certificates", e))?;
+        let server_ca = certificates(server_ca_certificates)
+            .map_err(|e| context("native_ingress.server_ca_certificates", e))?;
+        let client_ca = certificates(client_ca_certificates)
+            .map_err(|e| context("native_ingress.client_ca_certificates", e))?;
         let hashes = |certs: &[CertificateDer<'_>]| {
             certs
                 .iter()
@@ -185,7 +188,7 @@ impl NativeIngress {
             tls::provider(),
         )
         .build()?;
-        let key = private_key(server_key)?;
+        let key = private_key(server_key).map_err(|e| context("native_ingress.server_key", e))?;
         verify_server_chain(authority, &chain, server_ca)?;
         let server = tls::proof_server_config(chain, key, client_roots)
             .map_err(|_| "native TLS policy/key refused")?;
@@ -197,6 +200,14 @@ impl NativeIngress {
             policy_sha256,
         })))
     }
+}
+
+/// Prefix a startup error with the configuration field it came from.
+pub(crate) fn context(
+    field: &str,
+    error: Box<dyn std::error::Error>,
+) -> Box<dyn std::error::Error> {
+    format!("{field}: {error}").into()
 }
 
 /// Bounded DER certificates from guarded credential files.

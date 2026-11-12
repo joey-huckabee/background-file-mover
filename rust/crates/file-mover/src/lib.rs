@@ -1276,7 +1276,10 @@ async fn serve_inner(
                 // the independent lifecycle controller is already available.
                 let endpoint_plan = if let Some(ingress) = &startup_config.protected_ingress {
                     instance.prepare_workers().map_err(|e| e.to_string())?;
-                    Some(ingress::Planned::prepare(ingress).map_err(|e| e.to_string())?)
+                    Some(
+                        ingress::Planned::prepare(ingress)
+                            .map_err(|e| format!("protected_ingress: {e}"))?,
+                    )
                 } else {
                     None
                 };
@@ -1284,7 +1287,7 @@ async fn serve_inner(
                     instance.prepare_workers().map_err(|e| e.to_string())?;
                     Some(
                         mover_fs::ingress::SocketPlan::operator(ingress.operator_socket())
-                            .map_err(|e| e.to_string())?,
+                            .map_err(|e| format!("native_ingress.operator_socket: {e}"))?,
                     )
                 } else {
                     None
@@ -1319,7 +1322,8 @@ async fn serve_inner(
                             &startup_config,
                             &instance,
                             &a.account_directory,
-                        )?;
+                        )
+                        .map_err(|e| format!("admin_ingress.account_directory: {e}"))?;
                         admin::Prepared::load(a, record)
                     })
                     .transpose()

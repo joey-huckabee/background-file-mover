@@ -155,6 +155,15 @@ fn admin_fixture() -> (Fixture, Admin) {
     // No account yet: startup refuses before any listener is ready.
     let refusal = f.refuse();
     assert!(refusal.contains("provisioned admin account"), "{refusal}");
+    // Readable form: names the configuration field; no Rust debug quoting.
+    assert!(
+        refusal.contains("file-mover: admin_ingress.account_directory:"),
+        "{refusal}"
+    );
+    assert!(
+        !refusal.contains("\\\"") && !refusal.contains("Error: "),
+        "{refusal}"
+    );
     let input = json!({"username":"admin","password":PASSWORD,"confirm_password":PASSWORD});
     let mut child = f
         .command()
