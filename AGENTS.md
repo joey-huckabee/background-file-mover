@@ -32,6 +32,10 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-11 job-history authorization: the user says "go ahead with the read-only
+job history". Increment131 adds admin history/detail reads and the page views;
+no actions. See docs/RUST-INCREMENT-131.md.
+
 2026-11-11 admin-listener authorization: the user asks whether a separate
 listener is required and says to proceed if so. It is (approved design: audience
 isolation, no producer client certificate for browsers). Increment130 adds the

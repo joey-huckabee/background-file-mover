@@ -2,7 +2,7 @@
 
 ![Background File Mover runtime architecture](ARCHITECTURE.svg)
 
-Snapshot as of 2026-11-11 (main plus [increment130](RUST-INCREMENT-130.md)).
+Snapshot as of 2026-11-11 (main plus [increment131](RUST-INCREMENT-131.md)).
 Update the SVG when listeners, routes, storage or ownership change. Solid shapes
 are implemented; dashed shapes are planned or alternative. This diagram describes
 the design; it does not claim release readiness. All eight FR release gates remain open.
@@ -12,7 +12,7 @@ the design; it does not claim release readiness. All eight FR release gates rema
 | Audience | Transport | Authenticates with | Routes |
 |---|---|---|---|
 | Producer | `native_ingress.bind`: HTTPS mTLS, or explicit loopback HTTP | Client certificate fingerprint mapped to the configured generator | `POST /api/v2/jobs` only |
-| Dashboard admin | `admin_ingress.bind`: separate HTTPS port, server certificate only | Account password, then session cookie + CSRF header | `GET /`, `POST /api/v2/admin/login`, `GET /api/v2/admin/session`, `POST /api/v2/admin/logout` |
+| Dashboard admin | `admin_ingress.bind`: separate HTTPS port, server certificate only | Account password, then session cookie + CSRF header | `GET /`, `POST /api/v2/admin/login`, `GET /api/v2/admin/session`, `POST /api/v2/admin/logout`, `GET /api/v2/admin/jobs`, `GET /api/v2/jobs/{id}` |
 | Trusted local operator | Private Unix socket | Kernel peer UID equals the service UID | `GET /healthz`, job and retention reads, `resume`, `reset-missing` |
 
 Each listener refuses the others' routes. Lifecycle (`control.sock`) and TLS
