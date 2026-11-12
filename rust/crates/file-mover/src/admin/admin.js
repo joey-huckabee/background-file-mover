@@ -127,6 +127,11 @@
   function identityLabel(item) {
     return item.recording_id !== undefined ? ["Request ID", item.recording_id] : ["Legacy submission", item.submission_id];
   }
+  // Folders are relative to the roots recorded with each job when it was
+  // accepted. Settings shows today's roots, which may differ for older jobs.
+  var FOLDER_HINT = "Relative to the root recorded with this job. If the configured root has changed since, " +
+    "this job's files are still under the earlier root, not the one shown in Settings.";
+  function folder(value, side) { return value === "" ? "(" + side + " root)" : value + "/"; }
   function finalStep(mode) { return mode === "Move" ? "Moved" : "Copied"; }
   function progress(item, mode) {
     var wrap = el("span", null, "steps");
@@ -207,8 +212,8 @@
         ? short(item.measured_bytes) + " + " + item.unmeasured_files + " unmeasured"
         : short(item.measured_bytes);
       tr.appendChild(el("td", size, null, BigInt(item.measured_bytes).toString() + " bytes measured"));
-      tr.appendChild(el("td", item.source_folder + "/", "mono"));
-      tr.appendChild(el("td", item.destination_folder + "/", "mono"));
+      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
+      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
       rows.appendChild(tr);
     });
     $("prev").disabled = page === 0;
@@ -289,8 +294,8 @@
     var id = identityLabel(d);
     fact(facts, id[0], id[1], d.recording_id !== undefined ? "recording_id" : "submission_id");
     if (row.source_folder !== undefined) {
-      fact(facts, "Source folder", row.source_folder + "/", "Relative to the configured source root (see Settings)");
-      fact(facts, "Destination folder", row.destination_folder + "/", "Relative to the configured destination root (see Settings)");
+      fact(facts, "Source folder", folder(row.source_folder, "source"), FOLDER_HINT);
+      fact(facts, "Destination folder", folder(row.destination_folder, "destination"), FOLDER_HINT);
     }
     fact(facts, "Transfer mode", mode, mode === "Move" ? "Source files are removed after delivery" : "Source files are kept after delivery");
     fact(facts, "Source files", job.source_paths_released ? "Taken over by the mover" : "Sender must keep them",

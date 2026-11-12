@@ -34,7 +34,8 @@ No action, dependency or real state.
 
 - `JobSummary` gains `files_total`, `files_delivered`, `measured_bytes` (decimal
   string), `unmeasured_files`, `source_folder`, `destination_folder` (relative to
-  the configured roots) and `transfer_mode` (`Copy` unless source cleanup after
+  the roots recorded with each job; `source_folder` is empty for a job submitted
+  from the source root itself, shown as "(source root)") and `transfer_mode` (`Copy` unless source cleanup after
   delivery is actually enabled; it is not today).
 - `GET /api/v2/admin/jobs` gains `order=asc|desc` (default asc). Cursors are now
   `c1.<instance>.<a|d>.<last>` and continue only their own order (400
@@ -61,6 +62,12 @@ Recorded in `docs/api/openapi.candidate.json` and `contract.candidate.schema.jso
   consecutive logins now wait for the verifier thread to exit (the slot is held
   until actual exit, which can trail the reply under load).
 - Browser: parser and byte-format tests unchanged and still passing.
+
+Independent review found two P2 issues in the first revision: the schema forbade
+the legitimate empty source folder, and the page implied folders are relative to
+the currently configured roots. Both fixed: the schema allows and documents the
+empty value, and hover text says folders are relative to each job's recorded
+roots, which can differ from Settings for older jobs.
 
 ## Validation status
 

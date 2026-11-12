@@ -1256,13 +1256,15 @@
         },
         "source_folder": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 4096
+          "minLength": 0,
+          "maxLength": 4096,
+          "description": "Submission directory relative to the source root recorded with the job; empty when the job was submitted from that root itself."
         },
         "destination_folder": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 255
+          "maxLength": 255,
+          "description": "Job directory relative to the destination root recorded with the job (which may differ from the currently configured root for older jobs)."
         },
         "transfer_mode": {
           "type": "string",
@@ -1311,7 +1313,7 @@
           }
         }
       ],
-      "x-extension": "Dashboard row extension approved 2026-11-12 (increment134): file progress, measured bytes (decimal string), relative source/destination folders and effective transfer mode. Folders are relative to the configured roots; absolute roots appear only in admin settings."
+      "x-extension": "Dashboard row extension approved 2026-11-12 (increment134): file progress, measured bytes (decimal string), folders relative to each job's recorded roots (source_folder may be empty for the root itself) and effective transfer mode. Current configured roots appear only in admin settings and may differ for older jobs."
     },
     "ConfirmationToken": {
       "type": "string",
