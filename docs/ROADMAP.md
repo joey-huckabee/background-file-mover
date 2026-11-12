@@ -46,6 +46,15 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.
+- [ ] **Live status updates (user request 2026-11-12):** push job/retention
+  changes to the open dashboard when they happen, without polling and without a
+  full-page refresh (update only the affected rows/panels). Proposed transport:
+  Server-Sent Events from the admin listener (native browser `EventSource`, no
+  libraries). Prerequisites: a separate bounded budget for long-lived streams
+  (the admin listener currently admits one connection at a time), events emitted
+  from committed state transitions only, stream closed on logout/expiry/password
+  activation, no inactivity renewal from stream traffic, and reconnect that
+  re-reads authoritative state. Its own reviewed increment.
 - [ ] **UI review and refinement:** after real read data and action flows are
   available, the coordinator reviews and edits every screen with the user.
   Trim redundant cards, labels and explanatory copy; simplify navigation and
