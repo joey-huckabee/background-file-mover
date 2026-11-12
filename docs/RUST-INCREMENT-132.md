@@ -47,4 +47,10 @@ and the UI trim/refinement pass.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR30 CI run
+[43152294937](https://github.com/joey-huckabee/background-file-mover/actions/runs/43152294937)
+at `56b6ca1` passes both full modes on the first run: production **372 tests per
+debug/release profile** and nfs-qualification **376/profile** (increment131's
+371/375 plus the retention path unit test; the retention checks extend the
+existing real-service history test). Independent review: no actionable findings.
+Merged to main as `232c5cb`.
