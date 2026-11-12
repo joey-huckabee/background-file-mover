@@ -488,14 +488,24 @@ pub(crate) fn backup_local(path: &Path) -> Result<()> {
         if path.starts_with(&mount)
             && ![b"ext2".as_slice(), b"ext3", b"ext4", b"tmpfs", b"overlay"].contains(kind)
         {
-            return Err(ClaimError::Blocked("backup requires local storage"));
+            return Err(ClaimError::Refused(format!(
+                "{} is on a {} filesystem mounted at {}; only local ext2/ext3/ext4, tmpfs or \
+                 overlay storage is accepted here",
+                path.display(),
+                String::from_utf8_lossy(kind),
+                mount.display()
+            )));
         }
     }
     Ok(())
 }
 pub(crate) fn ingress_local(path: &Path) -> Result<()> {
     backup_local(path)?;
-    let inventory = mount_inventory()?;
+    ingress_unaliased(path, &mount_inventory()?)
+}
+/// Every mount containing `path` must be a whole filesystem (root "/") mounted
+/// exactly once, and `path` must be below it. Refusals name the conflict.
+fn ingress_unaliased(path: &Path, inventory: &[u8]) -> Result<()> {
     let mut mounts = Vec::new();
     for line in inventory.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
         let mount = parse_mounts(line)?.remove(0);
@@ -503,15 +513,38 @@ pub(crate) fn ingress_local(path: &Path) -> Result<()> {
         mounts.push((mount, fields[2], fields[3]));
     }
     for (mount, device, root) in &mounts {
-        if path.starts_with(mount)
-            && (path == mount
-                || *root != b"/"
-                || mounts
-                    .iter()
-                    .any(|(other, d, r)| other != mount && d == device && r == root))
-        {
-            return Err(ClaimError::Blocked("ingress mount/alias custody"));
+        if !path.starts_with(mount) {
+            continue;
         }
+        let reason = if path == mount {
+            format!(
+                "{} is itself a mount point; use a directory below the mount",
+                path.display()
+            )
+        } else if *root != b"/" {
+            format!(
+                "{} is inside {}, a bind mount of a subdirectory; use a path on a \
+                 directly mounted filesystem",
+                path.display(),
+                mount.display()
+            )
+        } else if let Some((other, _, _)) = mounts
+            .iter()
+            .find(|(other, d, r)| other != mount && d == device && r == root)
+        {
+            format!(
+                "{} is on a filesystem that is also mounted at {}. Credential, account and \
+                 socket paths must be reachable through exactly one mount so their ownership \
+                 checks cannot be bypassed. Move them to a filesystem mounted only once, or \
+                 remove the extra mount (on WSL, WSLg mirrors / at /mnt/wslg/distro; see \
+                 docs/ADMIN-HTTPS-SETUP.md#troubleshooting)",
+                path.display(),
+                other.display()
+            )
+        } else {
+            continue;
+        };
+        return Err(ClaimError::Refused(reason));
     }
     Ok(())
 }
@@ -797,6 +830,36 @@ mod tests {
             0o644
         );
     }
+    #[test]
+    fn ingress_refusals_name_the_path_and_the_conflict() {
+        let message = |inventory: &str, path: &str| match super::ingress_unaliased(
+            Path::new(path),
+            inventory.as_bytes(),
+        ) {
+            Err(ClaimError::Refused(m)) => m,
+            other => panic!("expected refusal, got {other:?}"),
+        };
+        let wsl = concat!(
+            "22 1 8:64 / / rw - ext4 /dev/sdc rw\n",
+            "23 22 8:64 / /mnt/wslg/distro rw - ext4 /dev/sdc rw\n"
+        );
+        let m = message(wsl, "/home/joey/run/accounts");
+        assert!(m.contains("/home/joey/run/accounts") && m.contains("/mnt/wslg/distro"));
+        assert!(m.contains("exactly one mount") && m.contains("WSLg"));
+        let bind = concat!(
+            "22 1 8:1 / / rw - ext4 /dev/sda rw\n",
+            "30 22 8:2 /exports/x /srv/creds rw - ext4 /dev/sdb rw\n"
+        );
+        assert!(message(bind, "/srv/creds/key.der").contains("bind mount of a subdirectory"));
+        let point = concat!(
+            "22 1 8:1 / / rw - ext4 /dev/sda rw\n",
+            "31 22 0:40 / /srv/acct rw - tmpfs t rw\n"
+        );
+        assert!(message(point, "/srv/acct").contains("itself a mount point"));
+        // Single whole-filesystem mounts pass.
+        assert!(super::ingress_unaliased(Path::new("/srv/acct/a"), point.as_bytes()).is_ok());
+    }
+
     #[test]
     fn mount_inventory_decodes_kernel_escapes_and_fails_closed() {
         let mounts = parse_mounts(

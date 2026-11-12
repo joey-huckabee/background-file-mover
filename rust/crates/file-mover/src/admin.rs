@@ -151,9 +151,13 @@ impl Prepared {
         config: &AdminIngress,
         record: crate::account::Record,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let chain = crate::native::certificates(&config.server_certificates)?;
-        let server_ca = crate::native::certificates(&config.server_ca_certificates)?;
-        let key = crate::native::private_key(&config.server_key)?;
+        use crate::native::context;
+        let chain = crate::native::certificates(&config.server_certificates)
+            .map_err(|e| context("admin_ingress.server_certificates", e))?;
+        let server_ca = crate::native::certificates(&config.server_ca_certificates)
+            .map_err(|e| context("admin_ingress.server_ca_certificates", e))?;
+        let key = crate::native::private_key(&config.server_key)
+            .map_err(|e| context("admin_ingress.server_key", e))?;
         crate::native::verify_server_chain(&config.authority, &chain, server_ca)?;
         let server = crate::tls::admin_server_config(chain, key)
             .map_err(|_| "admin TLS policy/key refused")?;

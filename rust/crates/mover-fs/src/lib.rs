@@ -16,6 +16,9 @@ pub enum ClaimError {
     Operation(&'static str, Errno),
     Store(mover_store::StoreError),
     Blocked(&'static str),
+    /// Operator-facing refusal with path context (startup/command preflight).
+    /// Persisted diagnostics use a fixed code instead of this text.
+    Refused(String),
     MissingSource,
     ExpectedSizeMismatch,
     OutcomeUncertain,
@@ -37,6 +40,7 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
                 }
             }
             ClaimError::Blocked(reason) => format!("blocked: {reason}"),
+            ClaimError::Refused(_) => "blocked: path refused".into(),
             ClaimError::MissingSource => "missing_source".into(),
             ClaimError::ExpectedSizeMismatch => "expected_size_mismatch".into(),
             ClaimError::OutcomeUncertain => "worker_outcome_uncertain".into(),
@@ -58,7 +62,20 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
 }
 impl std::fmt::Display for ClaimError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
+        match self {
+            Self::Io(errno) => write!(f, "I/O error: {errno}"),
+            Self::Operation(operation, errno) => write!(f, "{operation} failed: {errno}"),
+            Self::Store(error) => write!(f, "state database: {error}"),
+            Self::Blocked(reason) => write!(f, "refused: {reason}"),
+            Self::Refused(message) => f.write_str(message),
+            Self::MissingSource => f.write_str("a source file is missing"),
+            Self::ExpectedSizeMismatch => {
+                f.write_str("a source file's size differs from the expected size")
+            }
+            Self::OutcomeUncertain => {
+                f.write_str("worker outcome uncertain; inspect state before retrying")
+            }
+        }
     }
 }
 impl std::error::Error for ClaimError {}
@@ -569,4 +586,22 @@ pub fn validate_claimed_object(intent: &ClaimIntent) -> Result<()> {
     transfer::claimed_intent(intent)
         .map(|_| ())
         .map_err(|_| ClaimError::Blocked("claimed object changed"))
+}
+
+#[cfg(test)]
+mod display_tests {
+    use super::ClaimError;
+    #[test]
+    fn user_facing_errors_are_text_not_debug() {
+        assert_eq!(ClaimError::Blocked("x").to_string(), "refused: x");
+        assert_eq!(ClaimError::Refused("why".into()).to_string(), "why");
+        for e in [
+            ClaimError::MissingSource,
+            ClaimError::OutcomeUncertain,
+            ClaimError::Blocked("y"),
+        ] {
+            let text = e.to_string();
+            assert!(!text.contains('(') && !text.contains('"'), "{text}");
+        }
+    }
 }
