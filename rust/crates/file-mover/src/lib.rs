@@ -3,6 +3,7 @@ pub mod account;
 pub mod account_cli;
 pub mod admin;
 pub mod bootstrap;
+mod cert_info;
 pub mod claim_worker;
 pub mod control;
 pub mod delivery_worker;
@@ -249,9 +250,8 @@ struct MissingResetInput {
 }
 enum Observation {
     Status(i64),
-    /// Admin history page: after this job ID, limit, and the instance a
-    /// supplied cursor was bound to (None for the first page).
-    Page(i64, usize, Option<String>),
+    /// Admin history page (bounded; see PageRequest).
+    Page(PageRequest),
     Retention(Option<i64>),
     Resume(i64, ResumeInput),
     ResetMissing(i64, MissingResetInput),
@@ -309,8 +309,8 @@ impl Worker {
                     }
                     let response = match work {
                         Observation::Status(id) => status_response(&observation_store, id),
-                        Observation::Page(after, limit, bound) => {
-                            page_response(&observation_store, after, limit, bound)
+                        Observation::Page(request) => {
+                            page_response(&observation_store, request)
                         }
                         Observation::Retention(id) => {
                             let mut response=retention_response(&observation_store,id);
@@ -671,28 +671,49 @@ fn retry_review_epoch(
     (released && !committed && delivery_failures == Some(3) && epoch < 64).then_some(epoch)
 }
 
-/// Opaque admin history cursor bound to the state instance. Clients must not
-/// parse it; the service rejects any cursor from another instance.
-pub(crate) fn history_cursor(instance: &str, last: i64) -> String {
-    format!("c1.{instance}.{last}")
+/// One admin history page: continue after (ascending) or before (descending)
+/// `cursor`, bounded by `limit`; `bound` is the instance a supplied cursor names.
+pub(crate) struct PageRequest {
+    pub(crate) cursor: Option<i64>,
+    pub(crate) limit: usize,
+    pub(crate) descending: bool,
+    pub(crate) bound: Option<String>,
+}
+
+/// Opaque admin history cursor bound to the state instance and sort order.
+/// Clients must not parse it; the service rejects a cursor from another
+/// instance or one used with the other order.
+pub(crate) fn history_cursor(instance: &str, descending: bool, last: i64) -> String {
+    format!(
+        "c1.{instance}.{}.{last}",
+        if descending { "d" } else { "a" }
+    )
 }
 
 /// Bounded admin history page. Summary fields follow the frozen JobSummary
 /// shape. Action extensions report their real, unimplemented state: no
 /// cancellation was ever requested and no deletion pass exists.
-fn page_response(store: &Store, after: i64, limit: usize, bound: Option<String>) -> Response {
+fn page_response(store: &Store, request: PageRequest) -> Response {
+    let PageRequest {
+        cursor,
+        limit,
+        descending,
+        bound,
+    } = request;
     let Ok(instance) = store.instance_id() else {
         return error(503, "storage_unavailable", true, None);
     };
     if bound.is_some_and(|b| b != instance) {
         return error(400, "invalid_cursor", false, None);
     }
-    let (rows, more) = match store.status_page(after, limit) {
+    let start = cursor.unwrap_or(if descending { i64::MAX } else { 0 });
+    let (rows, more) = match store.status_page(start, limit, descending) {
         Ok(page) => page,
         Err(_) => return error(503, "storage_unavailable", true, None),
     };
     let next = if more {
-        rows.last().map(|(id, _)| history_cursor(&instance, *id))
+        rows.last()
+            .map(|(id, _)| history_cursor(&instance, descending, *id))
     } else {
         None
     };
@@ -715,6 +736,32 @@ fn page_response(store: &Store, after: i64, limit: usize, bound: Option<String>)
                 "cancellation": {"state": "NotRequested", "requested_at": null, "stopped_at": null},
                 "deletion": null,
             });
+            // Dashboard row extension (approved 2026-11-12): file progress,
+            // measured size, relative folders and the effective transfer mode.
+            let files = view.details["files"].as_array().map(Vec::as_slice).unwrap_or(&[]);
+            let delivered = files
+                .iter()
+                .filter(|f| matches!(f["phase"].as_str(), Some("Published" | "SourceRemoved")))
+                .count();
+            let measured: u128 = files.iter().filter_map(|f| f["size_bytes"].as_u64()).map(u128::from).sum();
+            let unmeasured = files.iter().filter(|f| f["size_bytes"].is_null()).count();
+            item["files_total"] = files.len().into();
+            item["files_delivered"] = delivered.into();
+            item["measured_bytes"] = measured.to_string().into();
+            item["unmeasured_files"] = unmeasured.into();
+            item["source_folder"] = status.job.context.source_relative_directory.clone().into();
+            item["destination_folder"] = status
+                .job
+                .recording
+                .submission()
+                .destination_component(*id)
+                .into();
+            item["transfer_mode"] = if view.details["source_cleanup_enabled"] == true {
+                "Move"
+            } else {
+                "Copy"
+            }
+            .into();
             for key in ["recording_id", "submission_id"] {
                 if let Some(value) = view.details.get(key) {
                     item[key] = value.clone();
@@ -1324,7 +1371,7 @@ async fn serve_inner(
                             &a.account_directory,
                         )
                         .map_err(|e| format!("admin_ingress.account_directory: {e}"))?;
-                        admin::Prepared::load(a, record)
+                        admin::Prepared::load(&startup_config, a, record)
                     })
                     .transpose()
                     .map_err(|e| e.to_string())?;
@@ -1646,5 +1693,11 @@ mod history_tests {
         assert_eq!(e(false, false, Some(3), 0), None);
         assert_eq!(e(true, true, Some(3), 0), None);
         assert_eq!(e(true, false, Some(3), 64), None);
+    }
+
+    #[test]
+    fn history_cursor_encodes_order() {
+        assert_eq!(super::history_cursor("ab12", false, 7), "c1.ab12.a.7");
+        assert_eq!(super::history_cursor("ab12", true, 7), "c1.ab12.d.7");
     }
 }

@@ -132,6 +132,8 @@ pub(crate) struct Admin {
     origin: String,
     idle_seconds: u32,
     pub(crate) sessions: Sessions,
+    /// Read-only configuration snapshot taken at startup (no secrets).
+    settings: serde_json::Value,
     document: String,
     csp: String,
 }
@@ -148,6 +150,7 @@ pub(crate) struct Bound {
 impl Prepared {
     /// Synchronous startup on the guarded supervisor: credentials, record, bind.
     pub(crate) fn load(
+        service: &Config,
         config: &AdminIngress,
         record: crate::account::Record,
     ) -> Result<Self, Box<dyn std::error::Error>> {
@@ -156,6 +159,7 @@ impl Prepared {
             .map_err(|e| context("admin_ingress.server_certificates", e))?;
         let server_ca = crate::native::certificates(&config.server_ca_certificates)
             .map_err(|e| context("admin_ingress.server_ca_certificates", e))?;
+        let settings = settings(service, config, &chain, &server_ca)?;
         let key = crate::native::private_key(&config.server_key)
             .map_err(|e| context("admin_ingress.server_key", e))?;
         crate::native::verify_server_chain(&config.authority, &chain, server_ca)?;
@@ -174,6 +178,7 @@ impl Prepared {
                     record,
                     Duration::from_secs(config.inactivity_timeout_seconds.into()),
                 ),
+                settings,
                 document,
                 csp,
             }),
@@ -388,6 +393,16 @@ async fn handle(
         b"/api/v2/admin/session" => session(admin, r),
         b"/api/v2/admin/logout" if r.head.method != "POST" => Reply::method("POST"),
         b"/api/v2/admin/logout" => logout(admin, r),
+        b"/api/v2/admin/settings" if r.head.method != "GET" => Reply::method("GET"),
+        b"/api/v2/admin/settings" => {
+            if !r.body.is_empty() {
+                return Reply::error(400, "unexpected_body");
+            }
+            match authorize_read(admin, r) {
+                Ok(_) => Reply::json(200, admin.settings.clone()),
+                Err(reply) => reply,
+            }
+        }
         target => {
             let (path, query) = match target.iter().position(|b| *b == b'?') {
                 Some(i) => (&target[..i], Some(&target[i + 1..])),
@@ -456,11 +471,15 @@ fn authorize_read(admin: &Admin, r: &http::Request) -> Result<crate::session::Au
 }
 
 /// Strict list query: only `limit` and `cursor`, each at most once.
-fn history_query(query: Option<&[u8]>) -> Result<(usize, Option<(String, i64)>), Reply> {
+/// Parsed list query: limit, descending order and an optional bound cursor.
+type HistoryQuery = (usize, bool, Option<(String, i64)>);
+
+fn history_query(query: Option<&[u8]>) -> Result<HistoryQuery, Reply> {
     let mut limit = None;
     let mut cursor = None;
+    let mut order = None;
     let Some(query) = query else {
-        return Ok((50, None));
+        return Ok((50, false, None));
     };
     let text = std::str::from_utf8(query).map_err(|_| Reply::error(400, "invalid_http"))?;
     for pair in text.split('&') {
@@ -481,6 +500,13 @@ fn history_query(query: Option<&[u8]>) -> Result<(usize, Option<(String, i64)>),
                 cursor =
                     Some(parse_cursor(value).ok_or_else(|| Reply::error(400, "invalid_cursor"))?);
             }
+            "order" if order.is_none() => {
+                order = Some(match value {
+                    "asc" => false,
+                    "desc" => true,
+                    _ => return Err(Reply::error(400, "invalid_http")),
+                });
+            }
             "confirm_action" | "job_ids" => {
                 // Confirmation previews belong to the not-yet-implemented actions.
                 return Err(Reply::json(
@@ -491,14 +517,27 @@ fn history_query(query: Option<&[u8]>) -> Result<(usize, Option<(String, i64)>),
             _ => return Err(Reply::error(400, "invalid_http")),
         }
     }
-    Ok((limit.unwrap_or(50), cursor))
+    let descending = order.unwrap_or(false);
+    let cursor = match cursor {
+        // A cursor only continues the order it was issued for.
+        Some((instance, cursor_desc, last)) if cursor_desc == descending => Some((instance, last)),
+        Some(_) => return Err(Reply::error(400, "invalid_cursor")),
+        None => None,
+    };
+    Ok((limit.unwrap_or(50), descending, cursor))
 }
 
-fn parse_cursor(value: &str) -> Option<(String, i64)> {
+fn parse_cursor(value: &str) -> Option<(String, bool, i64)> {
     if value.is_empty() || value.len() > 1024 {
         return None;
     }
-    let (instance, last) = value.strip_prefix("c1.")?.rsplit_once('.')?;
+    let (head, last) = value.strip_prefix("c1.")?.rsplit_once('.')?;
+    let (instance, order) = head.rsplit_once('.')?;
+    let descending = match order {
+        "a" => false,
+        "d" => true,
+        _ => return None,
+    };
     let last = last
         .parse::<i64>()
         .ok()
@@ -510,7 +549,7 @@ fn parse_cursor(value: &str) -> Option<(String, i64)> {
     {
         return None;
     }
-    Some((instance.to_owned(), last))
+    Some((instance.to_owned(), descending, last))
 }
 
 fn from_operator(response: crate::Response) -> Reply {
@@ -532,17 +571,21 @@ async fn history(
     if let Err(reply) = authorize_read(admin, r) {
         return reply;
     }
-    let (limit, cursor) = match history_query(query) {
+    let (limit, descending, cursor) = match history_query(query) {
         Ok(q) => q,
         Err(reply) => return reply,
     };
-    let (bound, after) = match cursor {
-        Some((instance, last)) => (Some(instance), last),
-        None => (None, 0),
+    let (bound, cursor) = match cursor {
+        Some((instance, last)) => (Some(instance), Some(last)),
+        None => (None, None),
     };
-    from_operator(
-        crate::operator_reply(observer, crate::Observation::Page(after, limit, bound)).await,
-    )
+    let request = crate::PageRequest {
+        cursor,
+        limit,
+        descending,
+        bound,
+    };
+    from_operator(crate::operator_reply(observer, crate::Observation::Page(request)).await)
 }
 
 /// `/api/v2/retention` → Some(None); `/api/v2/jobs/{id}/retention` → Some(Some(id)).
@@ -729,6 +772,116 @@ fn logout(admin: &Admin, r: &http::Request) -> Reply {
     reply
 }
 
+/// Certificate rows for the Settings page: path, subject CN and expiry.
+fn cert_rows(
+    role: &str,
+    paths: &[String],
+    ders: &[rustls::pki_types::CertificateDer<'_>],
+) -> Vec<serde_json::Value> {
+    paths
+        .iter()
+        .zip(ders)
+        .map(|(path, der)| {
+            let (subject, not_after) = crate::cert_info::summary(der.as_ref());
+            serde_json::json!({"role": role, "path": path, "subject": subject, "not_after": not_after})
+        })
+        .collect()
+}
+
+/// Read-only configuration snapshot for the admin Settings page. Paths and
+/// policy only: never key material, verifiers or file contents.
+fn settings(
+    c: &Config,
+    admin: &AdminIngress,
+    admin_chain: &[rustls::pki_types::CertificateDer<'static>],
+    admin_ca: &[rustls::pki_types::CertificateDer<'static>],
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    use crate::native::NativeIngress;
+    let key = |path: &str| serde_json::json!({"role": "Private key", "path": path, "subject": null, "not_after": null});
+    let mut dashboard_certs = cert_rows(
+        "Server certificate",
+        &admin.server_certificates,
+        admin_chain,
+    );
+    dashboard_certs.extend(cert_rows(
+        "Server CA",
+        &admin.server_ca_certificates,
+        admin_ca,
+    ));
+    dashboard_certs.push(key(&admin.server_key));
+    let producer = match &c.native_ingress {
+        Some(NativeIngress::Https {
+            operator_socket,
+            authority,
+            server_certificates,
+            server_key,
+            server_ca_certificates,
+            client_ca_certificates,
+            clients,
+        }) => {
+            let mut certs = cert_rows(
+                "Server certificate",
+                server_certificates,
+                &crate::native::certificates(server_certificates)?,
+            );
+            certs.extend(cert_rows(
+                "Server CA",
+                server_ca_certificates,
+                &crate::native::certificates(server_ca_certificates)?,
+            ));
+            certs.extend(cert_rows(
+                "Client CA",
+                client_ca_certificates,
+                &crate::native::certificates(client_ca_certificates)?,
+            ));
+            certs.push(key(server_key));
+            serde_json::json!({"transport": "HTTPS", "bind": c.bind.to_string(), "authority": authority,
+                "operator_socket": operator_socket, "approved_clients": clients, "certificates": certs})
+        }
+        Some(NativeIngress::Http { operator_socket }) => serde_json::json!({
+            "transport": "HTTP (loopback only)", "bind": c.bind.to_string(), "authority": null,
+            "operator_socket": operator_socket, "approved_clients": [], "certificates": []}),
+        None => serde_json::json!(null),
+    };
+    let config_file = std::env::args().nth(1).filter(|a| !a.starts_with("--"));
+    let loaded_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    Ok(serde_json::json!({
+        "config_file": config_file,
+        "loaded_at": loaded_at,
+        "transfers": {
+            "source_root": c.source_root,
+            "destination_root": c.destination_root,
+            "generator_id": c.generator_id,
+            "transfer_mode": "Copy",
+            "check_expected_sizes": c.check_expected_sizes,
+            "missing_file_retry_window_seconds": c.missing_file_retry_window_seconds,
+            "shutdown_wait_seconds": c.shutdown_wait_seconds,
+        },
+        "storage": {
+            "max_retained_jobs": c.max_retained_jobs,
+            "max_retained_bytes": c.max_retained_bytes.to_string(),
+            "source_space_admission": serde_json::to_value(&c.source_space_admission)?,
+        },
+        "producer": producer,
+        "dashboard": {
+            "bind": admin.bind.to_string(),
+            "authority": admin.authority,
+            "inactivity_timeout_seconds": admin.inactivity_timeout_seconds,
+            "account_directory": admin.account_directory,
+            "certificates": dashboard_certs,
+        },
+        "internal": {
+            "state_database": c.state_database,
+            "source_binding": serde_json::to_value(&c.source_binding)?,
+            "destination_binding": serde_json::to_value(&c.destination_binding)?,
+            "protected_ingress": serde_json::to_value(&c.protected_ingress)?,
+        },
+    }))
+}
+
 /// Exact accepted Host values and the browser-serialized origin for a validated
 /// canonical `host:port` authority. Browsers omit `:443` from both Origin and
 /// Host; other ports stay explicit.
@@ -859,9 +1012,20 @@ mod tests {
     #[test]
     fn history_query_and_cursor_are_strict() {
         let q = |s: &str| history_query(Some(s.as_bytes())).map_err(|r| r.status);
-        assert_eq!(history_query(None).ok(), Some((50, None)));
-        assert_eq!(q("limit=1").ok(), Some((1, None)));
-        assert_eq!(q("limit=256").ok(), Some((256, None)));
+        assert_eq!(history_query(None).ok(), Some((50, false, None)));
+        assert_eq!(q("limit=1").ok(), Some((1, false, None)));
+        assert_eq!(q("limit=256").ok(), Some((256, false, None)));
+        assert_eq!(q("order=desc").ok(), Some((50, true, None)));
+        assert_eq!(q("order=asc&limit=2").ok(), Some((2, false, None)));
+        for bad in ["order=up", "order=asc&order=desc"] {
+            assert_eq!(q(bad).err(), Some(400), "{bad}");
+        }
+        // A cursor continues only the order it was issued for.
+        assert_eq!(
+            q("order=desc&cursor=c1.abc.d.9").ok(),
+            Some((50, true, Some(("abc".to_owned(), 9))))
+        );
+        assert_eq!(q("cursor=c1.abc.d.9").err(), Some(400));
         for bad in [
             "limit=0",
             "limit=257",
@@ -875,24 +1039,26 @@ mod tests {
             assert_eq!(q(bad).err(), Some(400), "{bad}");
         }
         assert_eq!(
-            q("cursor=c1.abc-1.42").ok(),
-            Some((50, Some(("abc-1".to_owned(), 42))))
+            q("cursor=c1.abc-1.a.42").ok(),
+            Some((50, false, Some(("abc-1".to_owned(), 42))))
         );
         for bad in [
-            "c1.abc.0",
-            "c1.abc.042",
-            "c2.abc.1",
-            "c1..1",
-            "c1.a b.1",
-            "c1.abc",
+            "c1.abc.a.0",
+            "c1.abc.a.042",
+            "c2.abc.a.1",
+            "c1..a.1",
+            "c1.a b.a.1",
+            "c1.abc.a",
+            "c1.abc.1",
+            "c1.abc.x.1",
         ] {
             assert!(parse_cursor(bad).is_none(), "{bad}");
         }
-        assert!(parse_cursor(&format!("c1.{}.1", "a".repeat(1100))).is_none());
+        assert!(parse_cursor(&format!("c1.{}.a.1", "a".repeat(1100))).is_none());
         assert_eq!(q("confirm_action=cancel&job_ids=1").err(), Some(400));
         assert_eq!(
-            parse_cursor(&crate::history_cursor("inst_1", 9)),
-            Some(("inst_1".to_owned(), 9))
+            parse_cursor(&crate::history_cursor("inst_1", true, 9)),
+            Some(("inst_1".to_owned(), true, 9))
         );
     }
 
