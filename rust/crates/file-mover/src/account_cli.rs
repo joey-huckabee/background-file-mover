@@ -102,9 +102,50 @@ impl std::fmt::Display for AccountFailure {
 impl std::error::Error for AccountFailure {}
 const UNCERTAIN: &str =
     "account publication outcome uncertain; do not retry automatically; inspect account status";
-/// Bounded, control-free operator explanation carried across the helper pipe
-/// (whose whole response is capped at 4096 bytes).
+/// Bounded, control-free operator explanation carried across the helper pipe.
 const MAX_DETAIL: usize = 1024;
+/// One helper response line, including the newline. Writer and reader share it.
+const MAX_LINE: usize = 4096;
+/// Serialize a helper error line that always fits MAX_LINE, shrinking the
+/// explanation if JSON escaping would push it over.
+fn error_line(code: &str, detail: Option<String>) -> Vec<u8> {
+    let mut detail = detail;
+    loop {
+        let value = match &detail {
+            Some(d) => serde_json::json!({"account_error":code,"detail":d}),
+            None => serde_json::json!({"account_error":code}),
+        };
+        let mut line = serde_json::to_vec(&value).expect("fixed response serialization");
+        line.push(b'\n');
+        if line.len() <= MAX_LINE {
+            return line;
+        }
+        detail = detail.map(|d| {
+            let mut end = d.len() / 2;
+            while !d.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}...", &d[..end])
+        });
+    }
+}
+/// Read one newline-terminated helper line of at most MAX_LINE bytes.
+fn read_line_bounded(reader: &mut impl Read) -> Result<Option<Vec<u8>>> {
+    let mut line = Vec::new();
+    let mut byte = [0u8; 1];
+    loop {
+        if reader.read(&mut byte)? == 0 {
+            return Ok(None);
+        }
+        line.push(byte[0]);
+        if byte[0] == b'\n' {
+            return Ok(Some(line));
+        }
+        if line.len() >= MAX_LINE {
+            return Err("account worker response exceeds bound".into());
+        }
+    }
+}
 fn bounded_detail(text: &str) -> String {
     let clean: String = text.chars().filter(|c| !c.is_control()).collect();
     if clean.len() <= MAX_DETAIL {
@@ -275,10 +316,10 @@ pub fn worker(config: Config, action: Action, args: Vec<String>) -> Result<()> {
         Ok(()) => Ok(()),
         Err(error) => {
             let (code, detail) = classify(error.as_ref());
-            let _ = emit(&match detail {
-                Some(detail) => serde_json::json!({"account_error":code,"detail":detail}),
-                None => serde_json::json!({"account_error":code}),
-            });
+            let mut out = std::io::stdout().lock();
+            let _ = out
+                .write_all(&error_line(code, detail))
+                .and_then(|()| out.flush());
             Err("account command refused".into())
         }
     }
@@ -318,20 +359,12 @@ impl Helper {
         })
     }
     fn ready(&mut self) -> Result<()> {
-        let mut line = Vec::new();
-        let mut byte = [0u8; 1];
-        loop {
-            if self.output.read(&mut byte)? == 0 {
-                return Err("account preflight refused; check initialized state and private account directory".into());
-            }
-            line.push(byte[0]);
-            if byte[0] == b'\n' {
-                break;
-            }
-            if line.len() > 1024 {
-                return Err("account worker response exceeds bound".into());
-            }
-        }
+        let Some(line) = read_line_bounded(&mut self.output)? else {
+            return Err(
+                "account preflight refused; check initialized state and private account directory"
+                    .into(),
+            );
+        };
         let value: serde_json::Value =
             serde_json::from_slice(&line).map_err(|_| "invalid account worker response")?;
         if value == serde_json::json!({"account_ready":true}) {
@@ -571,6 +604,28 @@ mod tests {
                 .to_string()
                 .contains("/home/u/owns state")
         );
+    }
+
+    #[test]
+    fn worst_case_refusal_fits_the_shared_line_bound_end_to_end() {
+        // Quotes and backslashes double under JSON escaping.
+        let nasty = "\"\\".repeat(2000);
+        let line = error_line("path_refused", Some(bounded_detail(&nasty)));
+        assert!(line.len() <= MAX_LINE && line.ends_with(b"\n"));
+        let mut reader = std::io::Cursor::new(line);
+        let read = read_line_bounded(&mut reader).unwrap().unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&read).unwrap();
+        let message = response_error(&value).to_string();
+        assert!(message.starts_with("account path refused: \"\\"));
+        // An oversized line is still refused by the reader.
+        let mut big = std::io::Cursor::new(vec![b'x'; MAX_LINE + 10]);
+        assert!(read_line_bounded(&mut big).is_err());
+        let mut empty = std::io::Cursor::new(Vec::new());
+        assert!(read_line_bounded(&mut empty).unwrap().is_none());
+        // Detail is shrunk, never dropped, when escaping would overflow.
+        let shrunk = error_line("path_refused", Some("\"".repeat(3000)));
+        assert!(shrunk.len() <= MAX_LINE);
+        assert!(String::from_utf8(shrunk).unwrap().contains("..."));
     }
 
     #[test]
