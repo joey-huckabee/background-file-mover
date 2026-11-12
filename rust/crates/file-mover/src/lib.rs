@@ -657,6 +657,36 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
     }
 }
 
+/// Reviewed-retry context epoch for the RetryReviewSnapshot projection. Only a
+/// job that the existing resume command would accept right now (released, not
+/// committed, in delivery review after three failures, audit capacity left)
+/// exposes its epoch. Every other job gets the permanently nonauthorizing null,
+/// so an epoch copied while a job was healthy can never authorize a later retry.
+fn retry_review_epoch(
+    released: bool,
+    committed: bool,
+    delivery_failures: Option<u32>,
+    epoch: u32,
+) -> Option<u32> {
+    (released && !committed && delivery_failures == Some(3) && epoch < 64).then_some(epoch)
+}
+
+#[cfg(test)]
+mod history_tests {
+    #[test]
+    fn retry_epoch_is_null_unless_delivery_review_is_eligible() {
+        use super::retry_review_epoch as e;
+        // Ready job, then the same stored epoch after reaching delivery review.
+        assert_eq!(e(true, false, None, 0), None);
+        assert_eq!(e(true, false, Some(2), 0), None);
+        assert_eq!(e(true, false, Some(3), 0), Some(0));
+        assert_eq!(e(true, false, Some(3), 7), Some(7));
+        assert_eq!(e(false, false, Some(3), 0), None);
+        assert_eq!(e(true, true, Some(3), 0), None);
+        assert_eq!(e(true, false, Some(3), 64), None);
+    }
+}
+
 /// Opaque admin history cursor bound to the state instance. Clients must not
 /// parse it; the service rejects any cursor from another instance.
 pub(crate) fn history_cursor(instance: &str, last: i64) -> String {
@@ -692,7 +722,12 @@ fn page_response(store: &Store, after: i64, limit: usize, bound: Option<String>)
                 "state": view.state,
                 "condition": view.condition,
                 "source_paths_released": view.released,
-                "retry_review": {"instance_id": instance, "job_id": id.to_string(), "review_epoch": status.review_epoch},
+                "retry_review": {"instance_id": instance, "job_id": id.to_string(), "review_epoch": retry_review_epoch(
+                    view.released,
+                    status.job.recording.is_committed(),
+                    status.delivery.as_ref().map(|(failures, _, _)| *failures),
+                    status.review_epoch,
+                )},
                 "cancellation": {"state": "NotRequested", "requested_at": null, "stopped_at": null},
                 "deletion": null,
             });

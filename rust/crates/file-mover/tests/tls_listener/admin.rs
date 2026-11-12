@@ -591,7 +591,7 @@ fn admin_history_pages_and_detail_match_operator_status() {
         items[0],
         json!({"job_id":"1","generator_id":"recorder","recording_id":UUID,"state":"Committed",
             "condition":"Committed","source_paths_released":true,
-            "retry_review":{"instance_id":instance,"job_id":"1","review_epoch":0},
+            "retry_review":{"instance_id":instance,"job_id":"1","review_epoch":null},
             "cancellation":{"state":"NotRequested","requested_at":null,"stopped_at":null},
             "deletion":null})
     );

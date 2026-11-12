@@ -5,6 +5,8 @@
   var page = 0;
   var selected = null;
   var pageGen = 0, detailGen = 0;   // ignore superseded replies
+  var pageCtl = null, detailCtl = null;   // at most one of each in flight
+  var refreshing = false;
 
   function $(id) { return document.getElementById(id); }
   function el(tag, text, cls) {
@@ -89,6 +91,7 @@
     $("signin").hidden = signedIn;
     $("shell").hidden = !signedIn;
     if (!signedIn) {
+      if (pageCtl) { pageCtl.abort(); } if (detailCtl) { detailCtl.abort(); }
       csrf = null; cursors = [null]; page = 0; selected = null; pageGen++; detailGen++;
       $("detail").hidden = true;
       $("password").value = "";
@@ -118,14 +121,19 @@
 
   function loadPage(deliberate) {
     var mine = ++pageGen;
+    if (pageCtl) { pageCtl.abort(); }
+    pageCtl = new AbortController();
+    $("prev").disabled = true; $("next").disabled = true;
     var path = "/api/v2/admin/jobs?limit=50" + (cursors[page] ? "&cursor=" + encodeURIComponent(cursors[page]) : "");
     $("history-status").textContent = "Loading…";
-    return request(path, deliberate).then(function (r) {
-      if (mine !== pageGen) { return; }
-      if (r.status !== 200 || !r.body) { $("history-status").textContent = "Job history is unavailable (" + r.status + "). Try Refresh."; return; }
+    return request(path, deliberate, { signal: pageCtl.signal }).then(function (r) {
+      if (mine !== pageGen) { return false; }
+      if (r.status !== 200 || !r.body) { $("history-status").textContent = "Job history is unavailable (" + r.status + "). Try Refresh."; $("prev").disabled = page === 0; return false; }
       renderPage(r.body);
+      return true;
     }).catch(function (e) {
-      if (mine === pageGen && e.message !== "signed out") { $("history-status").textContent = "The service could not be reached."; }
+      if (mine === pageGen && e.name !== "AbortError" && e.message !== "signed out") { $("history-status").textContent = "The service could not be reached."; }
+      return false;
     });
   }
 
@@ -143,7 +151,7 @@
       var cell = el("td");
       var open = el("button", "Job #" + item.job_id, "link");
       open.type = "button";
-      open.addEventListener("click", function () { openDetail(item.job_id); });
+      open.addEventListener("click", function () { openDetail(item.job_id, true); });
       cell.appendChild(open);
       cell.appendChild(el("span", identity(item), "sub mono"));
       tr.appendChild(cell);
@@ -158,14 +166,16 @@
     if (body.next_cursor !== null) { cursors[page + 1] = body.next_cursor; cursors.length = page + 2; }
   }
 
-  function openDetail(jobId) {
+  function openDetail(jobId, deliberate) {
     selected = String(jobId);
     var mine = ++detailGen;
+    if (detailCtl) { detailCtl.abort(); }
+    detailCtl = new AbortController();
     $("detail").hidden = false;
     $("detail-title").textContent = "Job #" + selected;
     clear($("detail-body"));
     $("detail-body").appendChild(el("p", "Loading…", "muted"));
-    return request("/api/v2/jobs/" + encodeURIComponent(selected), true).then(function (r) {
+    return request("/api/v2/jobs/" + encodeURIComponent(selected), deliberate, { signal: detailCtl.signal }).then(function (r) {
       if (mine !== detailGen) { return; }
       clear($("detail-body"));
       if (r.status === 404) {
@@ -301,11 +311,21 @@
       $("shell-error").textContent = "The service could not be reached.";
     }).then(function () { $("signout").disabled = false; });
   });
+  // One refresh cycle at a time; a superseded page read never starts a detail read.
   $("refresh").addEventListener("click", function () {
-    loadPage(true).then(function () { if (selected) { openDetail(selected); } });
+    if (refreshing) { return; }
+    refreshing = true;
+    $("refresh").disabled = true;
+    var mine = pageGen + 1;
+    loadPage(true).then(function (ok) {
+      if (ok && mine === pageGen && selected) { return openDetail(selected, false); }
+    }).then(function () { refreshing = false; $("refresh").disabled = false; });
   });
   $("prev").addEventListener("click", function () { if (page > 0) { page--; loadPage(true); } });
   $("next").addEventListener("click", function () { if (cursors[page + 1]) { page++; loadPage(true); } });
-  $("close-detail").addEventListener("click", function () { selected = null; $("detail").hidden = true; });
+  $("close-detail").addEventListener("click", function () {
+    if (detailCtl) { detailCtl.abort(); }
+    detailGen++; selected = null; $("detail").hidden = true;
+  });
   loadSession();
 })();
