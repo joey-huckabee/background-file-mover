@@ -24,11 +24,22 @@ The user asked on 2026-11-12 to allow multiple independent browser connections
 - Real service: three held admin sessions plus a fourth served request; with four
   held, a fifth connection is closed without a reply while the operator socket
   answers; released sessions free their slots.
+- Mixed load (loopback HTTP producers): six held producer connections plus one
+  admin session fill the 7-slot network budget; another admin connection is
+  refused and the operator socket still answers. Without the network cap that
+  admin connection would take the last global slot and lock out the operator.
 - The flood test now asserts recovery within the handshake deadline instead of an
   immediate request (one admin slot made that immediate request almost always pass).
 - All 24 TLS listener tests pass locally with the new
   [dev scripts](AGENT-WORKFLOW.md#practical-environment-notes) (native build with
   the gate's SQLite flags inside a private mount namespace). Not gate evidence.
+
+Independent review found two P2 issues in the first revision: the dev namespace
+script interpolated UID/GID/home into a root shell command, and the reservation
+test never exercised the shared cap. Fixed: the script accepts only numeric
+non-root IDs and passes values as quoted arguments (verified: `$(...)`, `0`,
+`abc` and `1000;id` are refused, nothing executes), and the mixed-load test above
+was added. All 7 admin real-service tests pass locally.
 
 ## Validation status
 
