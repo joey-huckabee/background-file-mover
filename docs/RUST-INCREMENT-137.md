@@ -53,3 +53,13 @@ in increment138. No real installation is migrated by this work.
 ## Validation status
 
 Pending PR CI for both full SLES modes and independent review.
+
+## CI result
+
+PR41 CI run
+[43377828546](https://github.com/joey-huckabee/background-file-mover/actions/runs/43377828546)
+at `e8f248a` passes both full modes: production **391 tests per debug/release
+profile** and nfs-qualification **395/profile** (increment136's 385/389 plus six
+receipt storage tests). Independent review found two issues (backup verification
+of receipt tables; duplicate-after-acceptance classification across commit), both
+fixed with tests; re-review had no findings. Merged to main as `9fefeb6`.
