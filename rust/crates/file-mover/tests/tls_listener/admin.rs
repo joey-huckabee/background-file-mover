@@ -144,7 +144,12 @@ impl Admin {
 
 /// Native HTTPS fixture plus a provisioned account and a separate admin listener.
 fn admin_fixture() -> (Fixture, Admin) {
-    let mut f = Fixture::new(true);
+    admin_fixture_with(true)
+}
+
+/// `https` selects the producer transport (native HTTPS or loopback HTTP).
+fn admin_fixture_with(https: bool) -> (Fixture, Admin) {
+    let mut f = Fixture::new(https);
     f.initialize();
     f.start(); // Records the active source pairing required by account commands.
     f.stop();
@@ -868,6 +873,47 @@ fn several_admin_connections_are_served_and_the_operator_keeps_its_slot() {
                 break;
             }
             Err(_) => assert!(Instant::now() < until, "admin slots not released"),
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    f.stop();
+}
+
+#[test]
+fn producer_and_admin_load_cannot_take_the_operator_slot() {
+    // Loopback HTTP producers hold only connection permits (no TLS workers), so
+    // six producers plus one admin session fill the 7-slot network budget.
+    let (mut f, a) = admin_fixture_with(false);
+    let started = Instant::now();
+    let producers: Vec<_> = (0..6)
+        .map(|_| {
+            let mut s = std::net::TcpStream::connect(f.address).unwrap();
+            // A partial request keeps the server reading (5 s request deadline).
+            s.write_all(b"POST /api/v2/jobs HTTP/1.1\r\n").unwrap();
+            s
+        })
+        .collect();
+    std::thread::sleep(Duration::from_millis(300)); // let the accept loop admit them
+    let admin = a.hold();
+    // Network budget full: another admin connection is refused without a reply,
+    // where the global budget alone would have admitted it into the last slot.
+    assert!(a.try_raw(&a.page()).is_err());
+    // The reserved global slot still serves the private operator.
+    assert_eq!(f.operator("/healthz").0, 200);
+    assert!(
+        started.elapsed() < Duration::from_secs(4),
+        "test window exceeded"
+    );
+    drop(admin);
+    drop(producers);
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        match a.try_raw(&a.page()) {
+            Ok(reply) => {
+                assert_eq!(reply.status, 200);
+                break;
+            }
+            Err(_) => assert!(Instant::now() < until, "slots not released"),
         }
         std::thread::sleep(Duration::from_millis(50));
     }
