@@ -2318,6 +2318,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
             .unwrap();
         assert_eq!(value, high_water);
         drop(c);
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_retry_receipts(f.db(), |_| Ok(()))
+            .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
             store
