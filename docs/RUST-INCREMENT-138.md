@@ -78,3 +78,16 @@ installation is migrated or changed by this work.
   clean, file-mover unit tests pass except the reload tests that need the gate's
   TLS fixture variable, all 27 real-service TLS/admin tests pass. The SLES gates
   run in PR CI.
+
+## CI result
+
+PR42 CI run
+[43381368628](https://github.com/joey-huckabee/background-file-mover/actions/runs/43381368628)
+at `8dabe7e` passes both full modes: production **397 tests per debug/release
+profile** and nfs-qualification **401/profile** (increment137's 391/395 plus four
+codec tests, the session admission test and the real-service retry test). The
+hygiene workflow ran the admin UI encoder test and the vector-copy check.
+Independent review found four issues, then two more in the fixes (BigInt
+eligibility, logout ordering, renewal rules, resendable UI state, no storage
+work under the session mutex, renewal before later errors); all fixed, final
+re-review had no findings. Merged to main as `f3164db`.
