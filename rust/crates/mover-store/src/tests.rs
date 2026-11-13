@@ -3215,3 +3215,69 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
         12
     );
 }
+
+#[test]
+fn admin_retry_duplicate_after_acceptance_fails_across_commit_and_restart() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let job = history_job(&s, "retry-dup", 4);
+    let first = retry_occurrence(&s, job.job_id, Some(0), 'a', 0);
+    drop(s);
+    // Occurrence 0 was accepted while the job was in review; delivery then
+    // committed and the service restarted before occurrence 1 was processed.
+    let c = Connection::open(f.db()).unwrap();
+    c.execute(
+        "INSERT INTO retry_contexts VALUES(?1,?2,?3,?4,0,?5)",
+        params![job.job_id, first.context_key, first.principal, first.instance_id, first.reason],
+    )
+    .unwrap();
+    c.execute(
+        "INSERT INTO retry_outcomes VALUES(?1,?2,0,'accepted')",
+        params![job.job_id, first.context_key],
+    )
+    .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    let mut second = first.clone();
+    second.occurrence = 1;
+    let r = s.admin_retry(&second, 200).unwrap();
+    assert_eq!((r.outcome, r.replay), (RetryOutcome::Failed, false));
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    let r = s.admin_retry(&second, 201).unwrap();
+    assert_eq!((r.outcome, r.replay), (RetryOutcome::Failed, true));
+    // A different context for the committed job still skips.
+    let other = retry_occurrence(&s, job.job_id, Some(0), 'b', 1);
+    assert_eq!(s.admin_retry(&other, 202).unwrap().outcome, RetryOutcome::Skipped);
+}
+
+#[test]
+fn snapshot_verification_covers_retry_receipts() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    let o = retry_occurrence(&s, j.job_id, Some(0), 'a', 0);
+    assert_eq!(s.admin_retry(&o, 120).unwrap().outcome, RetryOutcome::Accepted);
+    drop(s);
+    for (n, tamper) in [
+        "UPDATE retry_contexts SET reason='altered'",
+        "UPDATE retry_outcomes SET outcome='failed'",
+        "DELETE FROM retry_outcomes",
+        "DELETE FROM retry_outcomes; DELETE FROM retry_contexts",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let state = StateInspection::open(f.db()).unwrap();
+        let backup = f.0.join(format!("receipts-{n}.sqlite"));
+        state.snapshot_into(backup.to_str().unwrap()).unwrap();
+        state.verify_snapshot(&backup).unwrap();
+        let c = Connection::open(&backup).unwrap();
+        c.execute_batch(tamper).unwrap();
+        drop(c);
+        assert!(state.verify_snapshot(&backup).is_err(), "{tamper}");
+    }
+}

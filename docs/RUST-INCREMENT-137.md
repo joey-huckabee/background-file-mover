@@ -39,6 +39,10 @@ in increment138. No real installation is migrated by this work.
   eviction and existing receipts still replay; committed job skips; clear removes
   only that job's receipts; 12 -> 13 upgrade succeeds with all checkpoints and a
   pre-commit fault leaves schema 12 intact.
+- Review fixes: a later occurrence of an already-accepted context fails even
+  if delivery committed or the service restarted in between; backup/snapshot
+  verification compares both receipt tables (altered, deleted or missing rows
+  are refused).
 - Existing migration, inspection, backup, compatibility and service tests were
   updated: 12 now requires migration, 13 is current, a rerun after interruption
   needs a fresh backup directory.

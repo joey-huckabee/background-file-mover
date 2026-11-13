@@ -188,8 +188,17 @@ impl Store {
                     )?;
                 }
             }
-            // 4. Classify against current state with the frozen epoch.
-            let outcome = if job.recording.is_committed() {
+            // 4. Classify against current state with the frozen epoch. A later
+            // occurrence of an already-accepted context is a duplicate and fails,
+            // even if delivery committed (or the service restarted) in between.
+            let accepted_before: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM retry_outcomes WHERE job_id=?1 AND context_key=?2 AND outcome='accepted')",
+                params![o.job_id, o.context_key],
+                |r| r.get(0),
+            )?;
+            let outcome = if accepted_before {
+                RetryOutcome::Failed
+            } else if job.recording.is_committed() {
                 RetryOutcome::Skipped
             } else {
                 let current = operators::epoch(&tx, o.job_id)?;

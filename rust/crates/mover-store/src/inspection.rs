@@ -187,5 +187,60 @@ pub(super) fn compare_rows(
             }
         }
     }
+    compare_retry_receipts(source, snapshot)
+}
+
+// Schema 13 receipt tables. When both sides have them, every typed row must
+// match (backup verification protects exact replay). A side without them is a
+// pre-13 database, which is only equivalent when the other side holds none.
+fn compare_retry_receipts(source: &Connection, snapshot: &Connection) -> Result<()> {
+    let has = |c: &Connection| -> Result<bool> {
+        Ok(c.query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('retry_contexts','retry_outcomes')",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? == 2)
+    };
+    let empty = |c: &Connection| -> Result<bool> {
+        Ok(c.query_row(
+            "SELECT (SELECT count(*) FROM retry_contexts)+(SELECT count(*) FROM retry_outcomes)",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? == 0)
+    };
+    match (has(source)?, has(snapshot)?) {
+        (false, false) => return Ok(()),
+        (true, true) => {}
+        (in_source, _) => {
+            let side = if in_source { source } else { snapshot };
+            return empty(side)?.then_some(()).ok_or(StoreError::CorruptState);
+        }
+    }
+    for sql in [
+        "SELECT * FROM retry_contexts ORDER BY job_id,context_key",
+        "SELECT * FROM retry_outcomes ORDER BY job_id,context_key,occurrence",
+    ] {
+        let mut a = source.prepare(sql)?;
+        let mut b = snapshot.prepare(sql)?;
+        let width = a.column_count();
+        if width != b.column_count() {
+            return Err(StoreError::CorruptState);
+        }
+        let mut ar = a.query([])?;
+        let mut br = b.query([])?;
+        loop {
+            match (ar.next()?, br.next()?) {
+                (None, None) => break,
+                (Some(a), Some(b)) => {
+                    for i in 0..width {
+                        if a.get_ref(i)? != b.get_ref(i)? {
+                            return Err(StoreError::CorruptState);
+                        }
+                    }
+                }
+                _ => return Err(StoreError::CorruptState),
+            }
+        }
+    }
     Ok(())
 }
