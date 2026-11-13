@@ -258,9 +258,12 @@ enum Observation {
     ResetMissing(i64, MissingResetInput),
     /// Admin retry whole-request scope: instance ID and job-ID high-water mark.
     RetryScope,
-    /// One admin retry occurrence (session-authorized by the admin listener).
-    Retry(mover_store::RetryOccurrence),
+    /// One admin retry occurrence. The gate runs the store decision only while
+    /// the admin session is still valid, serialized with revocation.
+    Retry(mover_store::RetryOccurrence, RetryGate),
 }
+/// Runs the given work while the requesting admin session is valid; false if not.
+pub(crate) type RetryGate = Box<dyn FnOnce(&mut dyn FnMut()) -> bool + Send>;
 type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
     sender: Option<mpsc::SyncSender<Work>>,
@@ -336,7 +339,14 @@ impl Worker {
                             missing_reset_response(&observation_store, id, input)
                         }
                         Observation::RetryScope => retry_scope_response(&observation_store),
-                        Observation::Retry(o) => retry_response(&observation_store, &o),
+                        Observation::Retry(o, gate) => {
+                            let mut decided = None;
+                            if gate(&mut || decided = Some(retry_response(&observation_store, &o))) {
+                                decided.unwrap_or_else(|| error(503, "storage_unavailable", true, None))
+                            } else {
+                                error(401, "authentication_required", false, None)
+                            }
+                        }
                     };
                     let _ = reply.send(response);
                 }
@@ -842,11 +852,13 @@ fn retry_scope_response(store: &Store) -> Response {
 }
 fn retry_response(store: &Store, o: &mover_store::RetryOccurrence) -> Response {
     match store.admin_retry(o, now()) {
-        Ok(r) => observed(serde_json::json!({"outcome":match r.outcome {
-            mover_store::RetryOutcome::Accepted => "accepted",
-            mover_store::RetryOutcome::Failed => "failed",
-            mover_store::RetryOutcome::Skipped => "skipped",
-        }})),
+        Ok(r) => observed(
+            serde_json::json!({"replay":r.replay,"outcome":match r.outcome {
+                mover_store::RetryOutcome::Accepted => "accepted",
+                mover_store::RetryOutcome::Failed => "failed",
+                mover_store::RetryOutcome::Skipped => "skipped",
+            }}),
+        ),
         Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, None),
         Err(StoreError::ActionConflict) => error(409, "command_conflict", false, None),
         Err(StoreError::InvalidContext) => error(400, "invalid_retry_context", false, None),
@@ -1113,7 +1125,7 @@ async fn connection(
                                     | Observation::Retention(_)
                                     | Observation::Page(..)
                                     | Observation::RetryScope
-                                    | Observation::Retry(_) => None,
+                                    | Observation::Retry(..) => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head

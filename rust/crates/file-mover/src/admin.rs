@@ -405,7 +405,7 @@ fn boundary(admin: &Admin, r: &http::Request) -> Option<Reply> {
 }
 
 async fn handle(
-    admin: &Admin,
+    admin: &Arc<Admin>,
     r: &http::Request,
     observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
 ) -> Reply {
@@ -873,7 +873,7 @@ async fn detail(
 /// The whole request is validated before any occurrence; each occurrence then
 /// rechecks the session and commits its own receipt, audit and scheduling.
 async fn retry(
-    admin: &Admin,
+    admin: &Arc<Admin>,
     r: &http::Request,
     observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
 ) -> Reply {
@@ -897,9 +897,11 @@ async fn retry(
     let Some(csrf) = header(r, "mover-csrf-token").and_then(|v| std::str::from_utf8(v).ok()) else {
         return Reply::forbidden();
     };
+    // No renewal yet: rejected requests, replays and batches without newly
+    // admitted work leave the inactivity clock unchanged.
     let principal = match admin
         .sessions
-        .authorize(token, Some(csrf), Activity::Deliberate, now)
+        .authorize(token, Some(csrf), Activity::Background, now)
     {
         Ok(authorized) => authorized.principal,
         Err(AuthError::CsrfMismatch) => return Reply::forbidden(),
@@ -941,33 +943,45 @@ async fn retry(
     }
     let key = ctx::receipt_key(&principal, &context);
     let (mut accepted, mut failed, mut skipped) = (0_u16, 0_u16, 0_u16);
+    let mut admitted = false;
     for (occurrence, (job_id, epoch)) in context
         .job_ids
         .iter()
         .zip(&context.review_epochs)
         .enumerate()
     {
-        // Revocation wins before every new occurrence or receipt disclosure.
-        if admin
-            .sessions
-            .authorize(token, None, Activity::Background, std::time::Instant::now())
-            .is_err()
-        {
+        // Revocation wins before every new occurrence or receipt disclosure:
+        // the store decision runs under the session lock that logout takes.
+        let gate_admin = Arc::clone(admin);
+        let gate_token = Zeroizing::new(token.to_owned());
+        let gate: crate::RetryGate = Box::new(move |work| {
+            gate_admin
+                .sessions
+                .while_authorized(&gate_token, std::time::Instant::now(), work)
+                .is_ok()
+        });
+        let work = crate::Observation::Retry(
+            mover_store::RetryOccurrence {
+                job_id: *job_id,
+                context_key: key.clone(),
+                principal: principal.clone(),
+                instance_id: context.instance_id.clone(),
+                review_epoch: *epoch,
+                reason: context.reason.clone(),
+                occurrence: occurrence as u16,
+            },
+            gate,
+        );
+        let response = crate::operator_reply(observer, work).await;
+        if response.status == 401 {
             return Reply::unauthenticated();
         }
-        let work = crate::Observation::Retry(mover_store::RetryOccurrence {
-            job_id: *job_id,
-            context_key: key.clone(),
-            principal: principal.clone(),
-            instance_id: context.instance_id.clone(),
-            review_epoch: *epoch,
-            reason: context.reason.clone(),
-            occurrence: occurrence as u16,
-        });
-        let response = crate::operator_reply(observer, work).await;
         match response.details.as_ref().filter(|_| response.status == 200) {
             Some(d) => match d["outcome"].as_str() {
-                Some("accepted") => accepted += 1,
+                Some("accepted") => {
+                    accepted += 1;
+                    admitted |= d["replay"] == false;
+                }
                 Some("failed") => failed += 1,
                 _ => skipped += 1,
             },
@@ -975,6 +989,15 @@ async fn retry(
             // unchanged resend replays them.
             None => return from_operator(response),
         }
+    }
+    if admitted {
+        // Newly admitted work is a deliberate action: renew inactivity.
+        let _ = admin.sessions.authorize(
+            token,
+            Some(csrf),
+            Activity::Deliberate,
+            std::time::Instant::now(),
+        );
     }
     Reply::json(
         202,

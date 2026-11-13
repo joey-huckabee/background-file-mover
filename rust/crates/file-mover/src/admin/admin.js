@@ -360,13 +360,18 @@
       activity.appendChild(el("p", "Missing-file deadline reset " + time(d.latest_missing_reset.recorded_at) + " by " +
         d.latest_missing_reset.actor + ": " + d.latest_missing_reset.reason, null, "latest_missing_reset"));
     }
-    var review = row.retry_review;
-    if (d.condition === "ReviewRequired" && d.delivery_retry && d.delivery_retry.failures === 3 &&
-        review && review.review_epoch !== null && review.job_id === job.job_id) {
+    // A frozen, unreconciled retry stays resendable whatever the job's current state.
+    var retry = retryState[job.job_id];
+    if (retry && retry.frozen) {
       quietJob = false;
-      activity.appendChild(retryForm(review));
-    } else if (retryNotes[job.job_id]) {
-      activity.appendChild(el("p", retryNotes[job.job_id], "muted"));
+      activity.appendChild(retryForm(job.job_id));
+    } else if (retryEligible(d, row.retry_review, job.job_id)) {
+      quietJob = false;
+      retryState[job.job_id] = retry = retry || {};
+      retry.review = row.retry_review;
+      activity.appendChild(retryForm(job.job_id));
+    } else if (retry && retry.message) {
+      activity.appendChild(el("p", retry.message, "muted"));
     }
     if (quietJob) { activity.appendChild(el("p", "No problems recorded.", "muted")); }
 
@@ -407,10 +412,10 @@
   }
 
   // Reviewed delivery retry. The context (instance, exact job ID, review epoch
-  // and reason) is frozen when Retry is first clicked; after a lost reply the
-  // identical request is resent so the service replays its stored outcome.
-  var retryNotes = {};   // last result per job ID, shown after refresh
-  var retryFrozen = {};  // job ID -> frozen {header, body, reason} awaiting a reply
+  // and reason) is frozen when Retry is first clicked. Until a readable final
+  // reply reconciles it, the identical request stays resendable, so a lost
+  // reply is answered by the service's stored outcome instead of a second retry.
+  var retryState = {};   // job ID -> {review, draft, frozen, sending, message}
   var liveDeferred = false;
   var CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
   var LONE = /[\ud800-\udbff](?![\udc00-\udfff])|(?:^|[^\ud800-\udbff])[\udc00-\udfff]/;
@@ -443,84 +448,105 @@
     if (new TextEncoder().encode(reason).length > 512) { return "Keep the explanation under 512 bytes."; }
     return null;
   }
-  var RETRY_RESULT = {
-    accepted: "Retry scheduled. Delivery will be attempted again shortly.",
-    failed: "Not retried: the job changed after you reviewed it. Check the details and try again.",
-    skipped: "Nothing to retry: the job already finished or is no longer tracked."
-  };
-  function retryForm(review) {
-    var jobId = review.job_id;
+  // Integers arrive from the lossless parser as BigInt.
+  function retryEligible(d, review, jobId) {
+    return d.condition === "ReviewRequired" && !!d.delivery_retry && String(d.delivery_retry.failures) === "3" &&
+      !!review && review.review_epoch !== null && review.job_id === jobId;
+  }
+  function retryOutcome(counts) {
+    if (String(counts.accepted_count) !== "0") { return "Retry scheduled. Delivery will be attempted again shortly."; }
+    if (String(counts.failed_count) !== "0") { return "Not retried: the job changed after you reviewed it. Check the details and try again."; }
+    return "Nothing to retry: the job already finished or is no longer tracked.";
+  }
+  function redrawRetry(jobId) {
+    var old = document.getElementById("retry-" + jobId);
+    if (old) { old.replaceWith(retryForm(jobId)); }
+  }
+  function sendRetry(jobId) {
+    var st = retryState[jobId];
+    if (st.sending) { return; }
+    var problem = st.frozen ? null : retryProblem(st.draft || "");
+    if (problem) { st.message = problem; redrawRetry(jobId); return; }
+    st.sending = true;
+    st.message = "Sending…";
+    var ready = st.frozen ? Promise.resolve(st.frozen) : freezeRetry(st.review, st.draft).then(function (f) {
+      st.frozen = f;
+      return f;
+    });
+    redrawRetry(jobId);
+    function uncertain(text) {
+      st.sending = false;
+      st.message = text;
+      redrawRetry(jobId);
+    }
+    ready.then(function (f) {
+      return fetch("/api/v2/admin/jobs/retry", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Retry-Context": f.header },
+        body: f.body
+      });
+    }).then(function (r) {
+      return r.text().then(function (text) {
+        var body = null;
+        try { body = text ? parseJSON(text) : null; } catch (e) { body = null; }
+        return { status: r.status, body: body };
+      });
+    }).then(function (r) {
+      if (r.status === 401) { delete retryState[jobId]; show(false); return; }
+      if (r.status === 503) { uncertain("The service is busy. Click again to resend the same request."); return; }
+      if (r.status === 202 && !(r.body && r.body.accepted_count !== undefined)) {
+        uncertain("The reply could not be read. Click again to resend the same request.");
+        return;
+      }
+      // Final answer: the frozen request is reconciled.
+      st.frozen = null;
+      st.sending = false;
+      st.draft = "";
+      if (r.status === 202) {
+        st.message = retryOutcome(r.body);
+      } else if (r.status === 409) {
+        st.message = "This page belongs to a different mover installation. Reload the page.";
+      } else if (r.status === 403) {
+        st.message = "The session security check failed. Reload the page and try again.";
+      } else {
+        st.message = "The retry was refused (" + ((r.body && r.body.error) || r.status) + "). Reload and review again.";
+      }
+      redrawRetry(jobId);
+      resumeLive(true);
+    }).catch(function () {
+      uncertain("No reply from the service. Click again to resend the same request.");
+    });
+  }
+  function retryForm(jobId) {
+    var st = retryState[jobId];
     var box = el("div", null, "retry");
-    box.appendChild(el("p", "Delivery stopped after 3 failed attempts. Fix the cause (for example destination space or permissions), then retry."));
+    box.id = "retry-" + jobId;
+    box.appendChild(el("p", st.frozen
+      ? "A retry request is waiting for a confirmed reply. Resending it cannot retry twice."
+      : "Delivery stopped after 3 failed attempts. Fix the cause (for example destination space or permissions), then retry."));
     var label = el("label", "What did you check or fix? (required, kept in the audit record)");
     label.htmlFor = "retry-reason-" + jobId;
     var input = el("textarea");
     input.id = label.htmlFor;
     input.rows = 2;
-    var button = el("button", "Retry delivery", "secondary", "Schedules one more delivery attempt for this job");
+    input.value = st.frozen ? st.frozen.reason : (st.draft || "");
+    input.disabled = !!st.frozen || !!st.sending;
+    var button = el("button", st.sending ? "Sending…" : st.frozen ? "Send retry again" : "Retry delivery", "secondary",
+      st.frozen ? "Resends the identical request" : "Schedules one more delivery attempt for this job");
     button.type = "button";
-    var status = el("p", retryNotes[jobId] || "", "error");
+    button.disabled = !!st.sending;
+    var status = el("p", st.message || "", "error");
     status.setAttribute("role", "status");
-    var frozen = retryFrozen[jobId];
-    if (frozen) { input.value = frozen.reason; input.disabled = true; button.textContent = "Send retry again"; }
+    input.addEventListener("input", function () { st.draft = input.value; });
     input.addEventListener("blur", function () { if (!input.value.trim()) { resumeLive(false); } });
-    function resendable(text) {
-      status.textContent = text;
-      button.disabled = false;
-      button.textContent = "Send retry again";
-    }
-    button.addEventListener("click", function () {
-      var pending = retryFrozen[jobId];
-      var problem = pending ? null : retryProblem(input.value);
-      if (problem) { status.textContent = problem; return; }
-      button.disabled = true;
-      input.disabled = true;
-      status.textContent = "Sending…";
-      var ready = pending ? Promise.resolve(pending) : freezeRetry(review, input.value).then(function (f) {
-        retryFrozen[jobId] = f;
-        return f;
-      });
-      ready.then(function (f) {
-        return fetch("/api/v2/admin/jobs/retry", {
-          method: "POST", credentials: "same-origin", cache: "no-store",
-          headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Retry-Context": f.header },
-          body: f.body
-        });
-      }).then(function (r) {
-        return r.text().then(function (text) {
-          var body = null;
-          try { body = text ? parseJSON(text) : null; } catch (e) { body = null; }
-          return { status: r.status, body: body };
-        });
-      }).then(function (r) {
-        if (r.status === 401) { delete retryFrozen[jobId]; show(false); return; }
-        if (r.status === 503) { resendable("The service is busy. Click again to resend the same request."); return; }
-        delete retryFrozen[jobId];
-        if (r.status === 202 && r.body) {
-          retryNotes[jobId] = r.body.accepted_count ? RETRY_RESULT.accepted
-            : r.body.failed_count ? RETRY_RESULT.failed : RETRY_RESULT.skipped;
-        } else if (r.status === 409) {
-          retryNotes[jobId] = "This page belongs to a different mover installation. Reload the page.";
-        } else if (r.status === 403) {
-          retryNotes[jobId] = "The session security check failed. Reload the page and try again.";
-        } else {
-          retryNotes[jobId] = "The retry was refused (" + ((r.body && r.body.error) || r.status) + "). Reload and review again.";
-        }
-        status.textContent = retryNotes[jobId];
-        resumeLive(true);
-      }).catch(function () {
-        // The reply was lost and the retry may have been applied. Resending the
-        // frozen request returns the stored outcome instead of retrying twice.
-        resendable("No reply from the service. Click again to resend the same request.");
-      });
-    });
+    button.addEventListener("click", function () { sendRetry(jobId); });
     box.appendChild(label);
     box.appendChild(input);
     box.appendChild(button);
     box.appendChild(status);
     return box;
   }
-  // Live refresh re-renders the page, which would discard a half-typed reason.
+  // Live refresh re-renders the page; do not pull the field away mid-typing.
   function retryInUse() {
     var input = document.querySelector(".retry textarea");
     return !!input && !input.disabled && (document.activeElement === input || input.value.trim() !== "");

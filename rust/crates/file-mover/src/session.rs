@@ -348,6 +348,37 @@ impl Sessions {
         })
     }
 
+    /// Run `work` only while `session` is valid, holding the session lock for
+    /// its whole duration so revocation (logout, activation, shutdown) cannot
+    /// complete between the check and the work. Never renews inactivity.
+    pub fn while_authorized<R>(
+        &self,
+        session: &str,
+        now: Instant,
+        work: impl FnOnce() -> R,
+    ) -> Result<R, AuthError> {
+        let token = unhex(session).ok_or(AuthError::Unauthenticated)?;
+        let mut state = self.lock();
+        if state.closed {
+            return Err(AuthError::Unauthenticated);
+        }
+        self.prune(&mut state, now);
+        let (revision, generation) = (state.account.revision, state.generation);
+        let mut live = false;
+        for s in &state.sessions {
+            if bool::from(s.token.ct_eq(token.as_ref()))
+                && s.revision == revision
+                && s.generation == generation
+            {
+                live = true;
+            }
+        }
+        if !live {
+            return Err(AuthError::Unauthenticated);
+        }
+        Ok(work())
+    }
+
     /// Global manual logout: revoke every session and in-flight login authority.
     /// Generation exhaustion closes the manager rather than wrapping.
     pub fn logout_all(&self) -> Result<u64, ActivationError> {
@@ -676,6 +707,49 @@ mod tests {
         assert_eq!(
             s.authorize(&c.session, None, Activity::Background, now)
                 .err(),
+            Some(AuthError::Unauthenticated)
+        );
+    }
+
+    #[test]
+    fn gated_work_is_serialized_with_revocation_and_never_renews() {
+        let idle = Duration::from_secs(1800);
+        let t0 = Instant::now();
+        let s = Arc::new(Sessions::new(record(1), idle));
+        let a = mint(&s, t0);
+        let near = t0 + idle - Duration::from_secs(1);
+        assert_eq!(s.while_authorized(&a.session, near, || 7), Ok(7));
+        // Gated work did not extend the session.
+        assert_eq!(
+            s.while_authorized(&a.session, t0 + idle, || ()).err(),
+            Some(AuthError::Unauthenticated)
+        );
+        let b = mint(&s, t0);
+        // Logout started during gated work completes only after that work.
+        let (started, logout) = (std::sync::mpsc::channel(), std::sync::mpsc::channel());
+        let ran = s.while_authorized(&b.session, t0, || {
+            let manager = Arc::clone(&s);
+            let (tx, done) = (started.0.clone(), logout.0.clone());
+            std::thread::spawn(move || {
+                tx.send(()).unwrap();
+                manager.logout_all().unwrap();
+                done.send(()).unwrap();
+            });
+            started.1.recv().unwrap();
+            std::thread::sleep(Duration::from_millis(100));
+            logout.1.try_recv().is_err()
+        });
+        assert_eq!(ran, Ok(true), "logout completed inside gated work");
+        logout.1.recv().unwrap();
+        // After revocation the work does not run at all.
+        let mut touched = false;
+        assert_eq!(
+            s.while_authorized(&b.session, t0, || touched = true).err(),
+            Some(AuthError::Unauthenticated)
+        );
+        assert!(!touched);
+        assert_eq!(
+            s.while_authorized("not-hex", t0, || ()).err(),
             Some(AuthError::Unauthenticated)
         );
     }

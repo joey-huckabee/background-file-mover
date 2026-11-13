@@ -39,11 +39,26 @@ installation is migrated or changed by this work.
   resends the identical request so the service replays the stored outcome. Live
   updates pause while the explanation is being typed, then resume.
 
+## Review fixes
+
+- Each occurrence's store decision runs under the session lock
+  (`Sessions::while_authorized`), so a logout either finishes first (the
+  occurrence is refused with 401, nothing disclosed) or waits for it.
+- Inactivity renews only when the batch newly admitted work (accepted, not a
+  replay); rejected requests, replays and all-skipped/failed batches do not.
+- The dashboard compares the parsed BigInt failure count correctly, and a frozen
+  retry stays visible and resendable across live refreshes until a readable
+  final reply reconciles it, even if the job has left review; an unreadable 202
+  keeps it uncertain.
+
 ## Tests
 
 - Unit: all reference vectors; maximum-width payload equals the published
   bounds; receipt key depends on principal and exact context.
-- Admin UI (node): the browser encoder reproduces the single-job known answer
+- Session: gated work blocks a concurrent logout until done, runs nothing
+  after revocation and never renews.
+- Admin UI (node): eligibility and outcome text from real parsed (BigInt)
+  service JSON; the browser encoder reproduces the single-job known answer
   byte for byte; escaping equals JSON escaping for valid reasons; invalid
   reasons (empty, controls, lone surrogates, over 512 bytes) are refused.
 - Real service (`admin_retry_delivers_a_reviewed_job_and_replays_its_receipt`):

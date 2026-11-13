@@ -31,9 +31,9 @@ console.log('byte formatting ok');
   const path = require('path');
   const vectors = JSON.parse(require('fs').readFileSync(path.join(__dirname, '../../docs/api/retry-context.candidate.vectors.json'), 'utf8'));
   const start = src.indexOf('  var CONTROL = ');
-  const encSrc = src.slice(start, src.indexOf('  var RETRY_RESULT'));
-  const { freezeRetry, retryProblem } = new Function('crypto', 'btoa', 'TextEncoder',
-    encSrc + '; return { freezeRetry: freezeRetry, retryProblem: retryProblem };')(globalThis.crypto, globalThis.btoa, globalThis.TextEncoder);
+  const encSrc = src.slice(start, src.indexOf('  function redrawRetry'));
+  const { freezeRetry, retryProblem, retryEligible, retryOutcome } = new Function('crypto', 'btoa', 'TextEncoder',
+    encSrc + '; return { freezeRetry: freezeRetry, retryProblem: retryProblem, retryEligible: retryEligible, retryOutcome: retryOutcome };')(globalThis.crypto, globalThis.btoa, globalThis.TextEncoder);
   let checked = 0;
   for (const k of vectors.known_answers.filter(k => k.body.job_ids.length === 1)) {
     const review = { instance_id: k.context.instance_id, job_id: k.job_id_decimal_strings[0], review_epoch: k.context.review_epochs[0] };
@@ -56,5 +56,18 @@ console.log('byte formatting ok');
     assert.notStrictEqual(retryProblem(bad), null, JSON.stringify(bad));
   }
   assert.strictEqual(retryProblem('é'.repeat(256)), null);
+  // Eligibility and outcomes from real parsed (BigInt) service JSON.
+  const detail = parseJSON('{"job_id":"7","details":{"condition":"ReviewRequired","delivery_retry":{"failures":3,"retry_after":1,"code":"x"}}}');
+  const row = parseJSON('{"retry_review":{"instance_id":"' + '0'.repeat(32) + '","job_id":"7","review_epoch":2}}');
+  assert.strictEqual(typeof detail.details.delivery_retry.failures, 'bigint');
+  assert.strictEqual(retryEligible(detail.details, row.retry_review, detail.job_id), true);
+  assert.strictEqual(retryEligible(detail.details, row.retry_review, '8'), false);
+  assert.strictEqual(retryEligible(parseJSON('{"condition":"ReviewRequired","delivery_retry":{"failures":2}}'), row.retry_review, '7'), false);
+  assert.strictEqual(retryEligible(detail.details, parseJSON('{"instance_id":"x","job_id":"7","review_epoch":null}'), '7'), false);
+  const frozen = await freezeRetry(row.retry_review, 'ok');
+  assert.ok(Buffer.from(frozen.header.slice(3), 'base64url').toString().includes('"review_epochs":[2]'));
+  assert.match(retryOutcome(parseJSON('{"accepted_count":1,"failed_count":0,"skipped_count":0}')), /scheduled/);
+  assert.match(retryOutcome(parseJSON('{"accepted_count":0,"failed_count":1,"skipped_count":0}')), /changed/);
+  assert.match(retryOutcome(parseJSON('{"accepted_count":0,"failed_count":0,"skipped_count":1}')), /Nothing/);
   console.log('retry context encoder ok (' + checked + ' known answer)');
 })().catch(e => { console.error(e); process.exit(1); });
