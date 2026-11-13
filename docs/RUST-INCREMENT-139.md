@@ -40,6 +40,20 @@ code (`delivery_requires_review`), so the operator could not tell what to fix.
   additive step used for 12 -> 13 (now one shared implementation), and chains
   11 -> 12 -> 13 -> 14. Normal startup reports MigrationRequired for 11-13.
 
+## Review fixes
+
+- The published contract now defines `last_problem` (`JobProblem` in
+  `docs/api/contract.candidate.schema.json`: bounded, printable, optional and
+  never null), with fixtures for presence, a job-level problem, null (invalid)
+  and unsafe text (invalid). Omission stays covered by the existing status
+  fixtures. `check_contract_candidate.py` passes again: its route inventory now
+  includes the settings and live-events routes added in increments 133/136, and
+  it accepts the documented `text/event-stream` body.
+- Collision advice (errno 17/39) no longer says "move or rename it": a collision
+  does not prove the item is foreign. The dashboard tells the operator to find
+  out what it is first, leave the mover's own data in place, and move only an
+  item known not to be the mover's.
+
 ## Tests
 
 - Store: latest problem recorded and replaced; invalid text refused in code and

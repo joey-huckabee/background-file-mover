@@ -349,7 +349,10 @@
         missing: "Something the mover expected in the " + where + " is missing. Check that it is mounted and intact.",
         io: "The " + side + " storage reported an error. Check the disk or network storage, then retry.",
         busy: "The " + where + " is in use by something else. Try again shortly.",
-        exists: "Something is already in the " + where + " where the mover needs to write. Move or rename it, then retry.",
+        // A collision says nothing about ownership: never suggest moving mover-owned data.
+        exists: "Something is already in the " + where + " where the mover needs to write. Find out what it is first: " +
+          "if it is the mover's own (an earlier delivery or retained copy), leave it in place and check the job history. " +
+          "Only move an item you know is not the mover's, then retry.",
         layout: "The " + where + " has an unexpected layout for this step. Check it, then retry.",
         space: "The " + side + " storage is full. Free space, then retry.",
         readonly: "The " + side + " storage is read-only. Make it writable, then retry."
