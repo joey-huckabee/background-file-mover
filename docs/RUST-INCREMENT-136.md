@@ -47,6 +47,12 @@ your recommendations").
   it passed 5/5 alone on both main and this branch (timing sensitivity, not this
   change). CI is authoritative.
 
+Implementation review found three P2 issues, all fixed: the stream now subscribes
+to revocations before checking the session and rechecks before committing (a
+sign-out during setup can no longer leave a stream open); the page re-reads
+visible state on every `ready`, including the first; and a live refresh awaits
+the whole page → detail → reservations chain before the next one starts.
+
 ## Validation status
 
 Pending PR CI for both full SLES modes and independent review.

@@ -182,8 +182,7 @@
         $("prev").disabled = page === 0;
         return false;
       }
-      renderPage(r.body, live);
-      return true;
+      return renderPage(r.body, live).then(function () { return true; });
     }).catch(function (e) {
       if (!quiet(e)) { $("history-status").textContent = "The service could not be reached."; }
       return false;
@@ -231,13 +230,14 @@
       if (row && kept) {
         row.after(kept);
         row.querySelector("button").setAttribute("aria-expanded", "true");
-        loadDetailInto(kept.querySelector(".detail"), openJob, false, true);
+        return loadDetailInto(kept.querySelector(".detail"), openJob, false, true);
       } else if (row) {
-        insertDetail(openJob, row, row.querySelector("button"), false);
+        return insertDetail(openJob, row, row.querySelector("button"), false);
       }
     } else {
       openJob = null;
     }
+    return Promise.resolve();
   }
 
   function closeDetail() {
@@ -266,13 +266,13 @@
     box.appendChild(el("p", "Loading…", "muted"));
     td.appendChild(box); tr.appendChild(td);
     row.after(tr);
-    loadDetailInto(box, jobId, deliberate, false);
+    return loadDetailInto(box, jobId, deliberate, false);
   }
 
   // Sequential reads: detail, then this job's reservations. With keep=true the
   // current content stays until the new detail arrives (live refresh).
   function loadDetailInto(box, jobId, deliberate, keep) {
-    request("/api/v2/jobs/" + encodeURIComponent(jobId), deliberate, "detail").then(function (r) {
+    return request("/api/v2/jobs/" + encodeURIComponent(jobId), deliberate, "detail").then(function (r) {
       if (!r.current) { return; }
       var fresh = el("div");
       if (r.status === 404) {
@@ -616,9 +616,10 @@
     events = new EventSource("/api/v2/admin/events");
     events.addEventListener("ready", function () {
       setLive("Live", "on", "This page updates automatically when jobs change.");
-      // A reconnect may have missed events: re-read what is visible once.
-      if (liveConnected) { refreshVisible(); }
+      // Any change between the last read and this subscription would otherwise
+      // be lost: re-read what is visible on every (re)connect.
       liveConnected = true;
+      refreshVisible();
     });
     events.addEventListener("changed", function () { refreshVisible(); });
     events.addEventListener("signed-out", function () { stopLive(); show(false); });

@@ -550,6 +550,10 @@ async fn events(
         reply.write(&mut stream, &admin.csp).await;
         return;
     }
+    // Subscribe before checking the session, so a revocation between the check
+    // and the first event is never missed.
+    let mut revoked = admin.sessions.revocations();
+    let mut changes = admin.changes.subscribe();
     let Some(token) = session_cookie(&r).map(|t| Zeroizing::new(t.to_owned())) else {
         Reply::unauthenticated()
             .write(&mut stream, &admin.csp)
@@ -580,10 +584,16 @@ async fn events(
             .await;
         return;
     };
+    // Recheck just before committing: a revocation since subscribing, or a
+    // session that ended meanwhile, refuses the stream.
+    if revoked.has_changed().unwrap_or(true) || !live(&token) {
+        Reply::unauthenticated()
+            .write(&mut stream, &admin.csp)
+            .await;
+        return;
+    }
     // From here on this connection no longer counts against request budgets.
     release_request_permits();
-    let mut changes = admin.changes.subscribe();
-    let mut revoked = admin.sessions.revocations();
     let version = *changes.borrow_and_update();
     let head = format!(
         "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\
