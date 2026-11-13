@@ -147,6 +147,8 @@ pub(crate) struct Admin {
     streams: Arc<tokio::sync::Semaphore>,
     document: String,
     csp: String,
+    /// Per-process key for confirmation proofs (never persisted).
+    confirm_key: crate::confirmation::Key,
 }
 
 pub(crate) struct Prepared {
@@ -194,6 +196,8 @@ impl Prepared {
                 streams: Arc::new(tokio::sync::Semaphore::new(STREAMS)),
                 document,
                 csp,
+                confirm_key: crate::confirmation::Key::generate()
+                    .ok_or("admin confirmation key: system random source unavailable")?,
             }),
             listener,
         })
@@ -453,7 +457,12 @@ async fn handle(
                 Some(i) => (&target[..i], Some(&target[i + 1..])),
                 None => (target, None),
             };
-            if path == b"/api/v2/admin/jobs/retry" && query.is_none() {
+            if path == b"/api/v2/admin/jobs/cancel" && query.is_none() {
+                if r.head.method != "POST" {
+                    return Reply::method("POST");
+                }
+                cancel(admin, r, observer).await
+            } else if path == b"/api/v2/admin/jobs/retry" && query.is_none() {
                 if r.head.method != "POST" {
                     return Reply::method("POST");
                 }
@@ -772,6 +781,12 @@ async fn history(
     if !r.body.is_empty() {
         return Reply::error(400, "unexpected_body");
     }
+    if let Some(q) = query.filter(|q| {
+        q.split(|b| *b == b'&')
+            .any(|p| p.starts_with(b"confirm_action=") || p.starts_with(b"job_ids="))
+    }) {
+        return confirmation(admin, r, q, observer).await;
+    }
     if let Err(reply) = authorize_read(admin, r) {
         return reply;
     }
@@ -880,38 +895,11 @@ async fn retry(
     observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
 ) -> Reply {
     use crate::retry_context::{self as ctx, ContextError};
-    let Some(token) = session_cookie(r) else {
-        return Reply::unauthenticated();
+    let (token, csrf, authorized) = match authorize_action(admin, r) {
+        Ok(a) => a,
+        Err(reply) => return reply,
     };
-    let now = std::time::Instant::now();
-    if admin
-        .sessions
-        .authorize(token, None, Activity::Background, now)
-        .is_err()
-    {
-        return Reply::unauthenticated();
-    }
-    if header(r, "origin") != Some(admin.origin.as_bytes())
-        || header(r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
-    {
-        return Reply::forbidden();
-    }
-    let Some(csrf) = header(r, "mover-csrf-token").and_then(|v| std::str::from_utf8(v).ok()) else {
-        return Reply::forbidden();
-    };
-    // No renewal yet: rejected requests, replays and batches without newly
-    // admitted work leave the inactivity clock unchanged.
-    let principal = match admin
-        .sessions
-        .authorize(token, Some(csrf), Activity::Background, now)
-    {
-        Ok(authorized) => authorized.principal,
-        Err(AuthError::CsrfMismatch) => return Reply::forbidden(),
-        Err(AuthError::Unauthenticated) => return Reply::unauthenticated(),
-    };
-    if header(r, "content-type") != Some(b"application/json") {
-        return Reply::error(415, "unsupported_media_type");
-    }
+    let principal = authorized.principal;
     // Instance and high-water mark are read once for whole-request validation.
     let scope = crate::operator_reply(observer, crate::Observation::RetryScope).await;
     let (instance, high_water) = match scope.details.as_ref().filter(|_| scope.status == 200) {
@@ -997,6 +985,200 @@ async fn retry(
             },
             // No fabricated counts: earlier occurrences stay committed and an
             // unchanged resend replays them.
+            None => return from_operator(response),
+        }
+    }
+    Reply::json(
+        202,
+        serde_json::json!({"accepted_count":accepted,"failed_count":failed,"skipped_count":skipped}),
+    )
+}
+
+/// Admin action authorization: session 401, exact Origin / Sec-Fetch-Site and
+/// CSRF 403, then media type 415. Never renews inactivity (only newly admitted
+/// work does, per occurrence).
+fn authorize_action<'a>(
+    admin: &Admin,
+    r: &'a http::Request,
+) -> Result<(&'a str, &'a str, crate::session::Authorized), Reply> {
+    let token = session_cookie(r).ok_or_else(Reply::unauthenticated)?;
+    let now = std::time::Instant::now();
+    if admin
+        .sessions
+        .authorize(token, None, Activity::Background, now)
+        .is_err()
+    {
+        return Err(Reply::unauthenticated());
+    }
+    if header(r, "origin") != Some(admin.origin.as_bytes())
+        || header(r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
+    {
+        return Err(Reply::forbidden());
+    }
+    let csrf = header(r, "mover-csrf-token")
+        .and_then(|v| std::str::from_utf8(v).ok())
+        .ok_or_else(Reply::forbidden)?;
+    let authorized = admin
+        .sessions
+        .authorize(token, Some(csrf), Activity::Background, now)
+        .map_err(|e| match e {
+            AuthError::CsrfMismatch => Reply::forbidden(),
+            AuthError::Unauthenticated => Reply::unauthenticated(),
+        })?;
+    if header(r, "content-type") != Some(b"application/json") {
+        return Err(Reply::error(415, "unsupported_media_type"));
+    }
+    Ok((token, csrf, authorized))
+}
+
+/// The state instance ID, read through the observation queue.
+async fn instance_id(
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Result<String, Reply> {
+    let scope = crate::operator_reply(observer, crate::Observation::RetryScope).await;
+    match scope.details.as_ref().filter(|_| scope.status == 200) {
+        Some(d) => Ok(d["instance_id"].as_str().unwrap_or_default().to_owned()),
+        None => Err(from_operator(scope)),
+    }
+}
+
+/// Confirmation mode of the list route: `confirm_action` and `job_ids`, each
+/// exactly once and nothing else; 1-256 exact positive IDs, order and
+/// duplicates kept. Only `cancel` is implemented.
+fn confirmation_query(query: &[u8]) -> Result<(String, Vec<i64>), Reply> {
+    let text = std::str::from_utf8(query).map_err(|_| Reply::error(400, "invalid_http"))?;
+    let (mut action, mut ids) = (None, None);
+    for pair in text.split('&') {
+        let invalid = || Reply::error(400, "invalid_selection");
+        let (key, value) = pair.split_once('=').ok_or_else(invalid)?;
+        match key {
+            "confirm_action" if action.is_none() => action = Some(value),
+            "job_ids" if ids.is_none() => {
+                let parsed: Vec<i64> = value
+                    .split(',')
+                    .map(|v| {
+                        v.parse::<i64>()
+                            .ok()
+                            .filter(|n| *n > 0 && n.to_string() == v)
+                            .ok_or_else(invalid)
+                    })
+                    .collect::<Result<_, _>>()?;
+                if parsed.is_empty() || parsed.len() > 256 {
+                    return Err(invalid());
+                }
+                ids = Some(parsed);
+            }
+            _ => return Err(invalid()),
+        }
+    }
+    match (action, ids) {
+        (Some("cancel"), Some(ids)) => Ok(("cancel".into(), ids)),
+        _ => Err(Reply::error(400, "invalid_selection")),
+    }
+}
+
+async fn confirmation(
+    admin: &Admin,
+    r: &http::Request,
+    query: &[u8],
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    let authorized = match authorize_read(admin, r) {
+        Ok(a) => a,
+        Err(reply) => return reply,
+    };
+    let (action, ids) = match confirmation_query(query) {
+        Ok(q) => q,
+        Err(reply) => return reply,
+    };
+    let instance = match instance_id(observer).await {
+        Ok(i) => i,
+        Err(reply) => return reply,
+    };
+    let scope = crate::confirmation::Scope {
+        instance: &instance,
+        principal: &authorized.principal,
+        generation: authorized.generation,
+        action: &action,
+        job_ids: &ids,
+    };
+    let (token, expires_at) = crate::confirmation::issue(&admin.confirm_key, &scope, crate::now());
+    // Cancel targets no files, so its preview is complete without deletion targets.
+    Reply::json(
+        200,
+        serde_json::json!({"items":[],"next_cursor":null,"confirmation":{
+            "action":action,"job_ids":ids,"token":token,"expires_at":expires_at,
+            "deletion_targets":[],"complete":true}}),
+    )
+}
+
+/// Cancel (API-CONTRACT-CLOSEOUT group 53): job-IDs-only body with a valid
+/// confirmation proof for exactly that ordered selection. Each occurrence is
+/// decided against current state under the session admission guard: missing,
+/// completed and cancelled jobs skip; a still-pending duplicate fails.
+async fn cancel(
+    admin: &Arc<Admin>,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    let (token, csrf, authorized) = match authorize_action(admin, r) {
+        Ok(a) => a,
+        Err(reply) => return reply,
+    };
+    let ids = match crate::retry_context::selection(&r.body) {
+        Ok(ids) => ids,
+        Err(_) => return Reply::error(400, "invalid_selection"),
+    };
+    let instance = match instance_id(observer).await {
+        Ok(i) => i,
+        Err(reply) => return reply,
+    };
+    // Framing refused duplicate headers; any mismatch, expiry or tampering is
+    // the same refusal and nothing is dispatched.
+    let proof = header(r, "mover-confirmation").and_then(|v| std::str::from_utf8(v).ok());
+    let scope = crate::confirmation::Scope {
+        instance: &instance,
+        principal: &authorized.principal,
+        generation: authorized.generation,
+        action: "cancel",
+        job_ids: &ids,
+    };
+    if !proof
+        .is_some_and(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
+    {
+        return Reply::error(400, "invalid_confirmation");
+    }
+    let (mut accepted, mut failed, mut skipped) = (0_u16, 0_u16, 0_u16);
+    for job_id in ids {
+        let gate_admin = Arc::clone(admin);
+        let gate_token = Zeroizing::new(token.to_owned());
+        let gate: crate::RetryGate = Box::new(move |work| {
+            gate_admin
+                .sessions
+                .while_authorized(&gate_token, work)
+                .is_ok()
+        });
+        let work = crate::Observation::Cancel(job_id, authorized.principal.clone(), gate);
+        let response = crate::operator_reply(observer, work).await;
+        if response.status == 401 {
+            return Reply::unauthenticated();
+        }
+        match response.details.as_ref().filter(|_| response.status == 200) {
+            Some(d) => match d["outcome"].as_str() {
+                Some("accepted") => {
+                    accepted += 1;
+                    // Each newly admitted action renews at once.
+                    let _ = admin.sessions.authorize(
+                        token,
+                        Some(csrf),
+                        Activity::Deliberate,
+                        std::time::Instant::now(),
+                    );
+                }
+                Some("failed") => failed += 1,
+                _ => skipped += 1,
+            },
+            // No fabricated counts; earlier occurrences stay applied.
             None => return from_operator(response),
         }
     }

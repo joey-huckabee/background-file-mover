@@ -5,6 +5,7 @@ pub mod admin;
 pub mod bootstrap;
 mod cert_info;
 pub mod claim_worker;
+mod confirmation;
 pub mod control;
 pub mod delivery_worker;
 mod diagnostic;
@@ -173,7 +174,7 @@ fn error(status: u16, code: &'static str, retryable: bool, job: Option<i64>) -> 
         details: None,
     }
 }
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -261,6 +262,8 @@ enum Observation {
     /// One admin retry occurrence. The gate runs the store decision only while
     /// the admin session is still valid, serialized with revocation.
     Retry(mover_store::RetryOccurrence, RetryGate),
+    /// One admin cancel occurrence (job ID, account principal), gated likewise.
+    Cancel(i64, String, RetryGate),
 }
 /// Runs the given work while the requesting admin session is valid; false if not.
 pub(crate) type RetryGate = Box<dyn FnOnce(&mut dyn FnMut()) -> bool + Send>;
@@ -339,6 +342,14 @@ impl Worker {
                             missing_reset_response(&observation_store, id, input)
                         }
                         Observation::RetryScope => retry_scope_response(&observation_store),
+                        Observation::Cancel(id, principal, gate) => {
+                            let mut decided = None;
+                            if gate(&mut || decided = Some(cancel_response(&observation_store, id, &principal))) {
+                                decided.unwrap_or_else(|| error(503, "storage_unavailable", true, None))
+                            } else {
+                                error(401, "authentication_required", false, None)
+                            }
+                        }
                         Observation::Retry(o, gate) => {
                             let mut decided = None;
                             if gate(&mut || decided = Some(retry_response(&observation_store, &o))) {
@@ -948,6 +959,16 @@ fn retry_scope_response(store: &Store) -> Response {
         Err(_) => error(503, "storage_unavailable", true, None),
     }
 }
+fn cancel_response(store: &Store, id: i64, principal: &str) -> Response {
+    match store.admin_cancel(id, principal, now()) {
+        Ok(outcome) => observed(serde_json::json!({"outcome":match outcome {
+            mover_store::CancelOutcome::Accepted => "accepted",
+            mover_store::CancelOutcome::Failed => "failed",
+            mover_store::CancelOutcome::Skipped => "skipped",
+        }})),
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
 fn retry_response(store: &Store, o: &mover_store::RetryOccurrence) -> Response {
     match store.admin_retry(o, now()) {
         Ok(r) => observed(
@@ -1224,7 +1245,8 @@ async fn connection(
                                     | Observation::Retention(_)
                                     | Observation::Page(..)
                                     | Observation::RetryScope
-                                    | Observation::Retry(..) => None,
+                                    | Observation::Retry(..)
+                                    | Observation::Cancel(..) => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head
