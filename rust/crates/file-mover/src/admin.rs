@@ -12,6 +12,8 @@ use zeroize::Zeroizing;
 const COOKIE: &str = "__Host-mover_admin";
 const LOGIN_DEADLINE: Duration = Duration::from_secs(10);
 const REQUEST_DEADLINE: Duration = Duration::from_secs(5);
+/// Bound on waiting for admitted admin actions during logout.
+const LOGOUT_SETTLE: Duration = Duration::from_secs(10);
 /// Live-update streams (see docs/dashboard/LIVE-UPDATES-DESIGN.md).
 const STREAMS: usize = crate::tls_executor::STREAM_JOBS;
 const STREAM_HEARTBEAT: Duration = Duration::from_secs(15);
@@ -435,7 +437,7 @@ async fn handle(
         b"/api/v2/admin/session" if r.head.method != "GET" => Reply::method("GET"),
         b"/api/v2/admin/session" => session(admin, r),
         b"/api/v2/admin/logout" if r.head.method != "POST" => Reply::method("POST"),
-        b"/api/v2/admin/logout" => logout(admin, r),
+        b"/api/v2/admin/logout" => logout(admin, r).await,
         b"/api/v2/admin/settings" if r.head.method != "GET" => Reply::method("GET"),
         b"/api/v2/admin/settings" => {
             if !r.body.is_empty() {
@@ -943,7 +945,6 @@ async fn retry(
     }
     let key = ctx::receipt_key(&principal, &context);
     let (mut accepted, mut failed, mut skipped) = (0_u16, 0_u16, 0_u16);
-    let mut admitted = false;
     for (occurrence, (job_id, epoch)) in context
         .job_ids
         .iter()
@@ -957,7 +958,7 @@ async fn retry(
         let gate: crate::RetryGate = Box::new(move |work| {
             gate_admin
                 .sessions
-                .while_authorized(&gate_token, std::time::Instant::now(), work)
+                .while_authorized(&gate_token, work)
                 .is_ok()
         });
         let work = crate::Observation::Retry(
@@ -980,7 +981,16 @@ async fn retry(
             Some(d) => match d["outcome"].as_str() {
                 Some("accepted") => {
                     accepted += 1;
-                    admitted |= d["replay"] == false;
+                    if d["replay"] == false {
+                        // Each newly admitted action renews at once, so a later
+                        // occurrence's error cannot drop the renewal.
+                        let _ = admin.sessions.authorize(
+                            token,
+                            Some(csrf),
+                            Activity::Deliberate,
+                            std::time::Instant::now(),
+                        );
+                    }
                 }
                 Some("failed") => failed += 1,
                 _ => skipped += 1,
@@ -989,15 +999,6 @@ async fn retry(
             // unchanged resend replays them.
             None => return from_operator(response),
         }
-    }
-    if admitted {
-        // Newly admitted work is a deliberate action: renew inactivity.
-        let _ = admin.sessions.authorize(
-            token,
-            Some(csrf),
-            Activity::Deliberate,
-            std::time::Instant::now(),
-        );
     }
     Reply::json(
         202,
@@ -1070,7 +1071,7 @@ fn session(admin: &Admin, r: &http::Request) -> Reply {
     }
 }
 
-fn logout(admin: &Admin, r: &http::Request) -> Reply {
+async fn logout(admin: &Admin, r: &http::Request) -> Reply {
     if !r.body.is_empty() {
         return Reply::error(400, "unexpected_body");
     }
@@ -1100,8 +1101,13 @@ fn logout(admin: &Admin, r: &http::Request) -> Reply {
         Err(AuthError::Unauthenticated) => return Reply::unauthenticated(),
     }
     // Global revocation is authoritative even if another request revoked first.
-    if admin.sessions.logout_all().is_err() {
-        return Reply::error(503, "service_stopping");
+    // Ordered with admitted admin actions (see Sessions::while_authorized):
+    // 204 means no admitted action is still deciding. Sessions are revoked
+    // even when storage is too slow to confirm that in time.
+    match tokio::time::timeout(LOGOUT_SETTLE, admin.sessions.logout_all_serialized()).await {
+        Ok(Ok(_)) => (),
+        Ok(Err(_)) => return Reply::error(503, "service_stopping"),
+        Err(_) => return Reply::error(503, "storage_unavailable"),
     }
     let mut reply = Reply::json(204, serde_json::json!({})).header(
         "Set-Cookie",

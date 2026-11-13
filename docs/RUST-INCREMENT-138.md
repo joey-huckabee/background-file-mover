@@ -41,11 +41,16 @@ installation is migrated or changed by this work.
 
 ## Review fixes
 
-- Each occurrence's store decision runs under the session lock
-  (`Sessions::while_authorized`), so a logout either finishes first (the
-  occurrence is refused with 401, nothing disclosed) or waits for it.
-- Inactivity renews only when the batch newly admitted work (accepted, not a
-  replay); rejected requests, replays and all-skipped/failed batches do not.
+- Each occurrence's store decision runs inside `Sessions::while_authorized`:
+  it holds a shared admission guard (not the session mutex, so session checks
+  never wait on storage), then checks the session with a timestamp taken after
+  the guard. Logout revokes first, so no later occurrence is admitted, then waits
+  for the exclusive guard asynchronously (bounded at 10 s, 503
+  `storage_unavailable` if storage cannot confirm in time; sessions stay
+  revoked). A 204 therefore means no admitted occurrence is still deciding.
+- Inactivity renews immediately after each newly admitted occurrence (accepted,
+  not a replay), so a later occurrence's error cannot drop it; rejected
+  requests, replays and batches without new admissions do not renew.
 - The dashboard compares the parsed BigInt failure count correctly, and a frozen
   retry stays visible and resendable across live refreshes until a readable
   final reply reconciles it, even if the job has left review; an unreadable 202
@@ -55,8 +60,9 @@ installation is migrated or changed by this work.
 
 - Unit: all reference vectors; maximum-width payload equals the published
   bounds; receipt key depends on principal and exact context.
-- Session: gated work blocks a concurrent logout until done, runs nothing
-  after revocation and never renews.
+- Session: admitted work does not block session checks, makes a concurrent
+  logout wait until it finishes, runs nothing after revocation, evaluates
+  expiry after the guard and never renews.
 - Admin UI (node): eligibility and outcome text from real parsed (BigInt)
   service JSON; the browser encoder reproduces the single-job known answer
   byte for byte; escaping equals JSON escaping for valid reasons; invalid
