@@ -76,6 +76,8 @@ pub struct Authorized {
     pub csrf: Zeroizing<String>,
     pub revision: u64,
     pub generation: u64,
+    /// Server-held account identity (64 hex); used as the audit principal.
+    pub principal: String,
 }
 
 type Entropy = Box<dyn Fn(&mut [u8]) -> bool + Send + Sync>;
@@ -111,6 +113,9 @@ pub struct Sessions {
     /// Bumped on global revocation, activation and shutdown so open event
     /// streams close immediately instead of at their next session check.
     revoked: tokio::sync::watch::Sender<u64>,
+    /// Admitted admin actions hold this shared; serialized logout takes it
+    /// exclusively. Never held together with storage work by the session lock.
+    admission: tokio::sync::RwLock<()>,
 }
 
 impl Sessions {
@@ -135,6 +140,7 @@ impl Sessions {
             idle,
             entropy,
             revoked: tokio::sync::watch::Sender::new(0),
+            admission: tokio::sync::RwLock::new(()),
         }
     }
 
@@ -317,6 +323,7 @@ impl Sessions {
         }
         self.prune(&mut state, now);
         let (revision, generation) = (state.account.revision, state.generation);
+        let principal = state.account.account_id.clone();
         // Scan every entry so lookup time does not depend on the match position.
         let mut found = None;
         for (i, s) in state.sessions.iter().enumerate() {
@@ -341,7 +348,64 @@ impl Sessions {
             csrf: hex(&s.csrf),
             revision,
             generation,
+            principal,
         })
+    }
+
+    /// Run `work` (an admin action's storage decision) only while `session` is
+    /// valid. A shared admission guard, not the session lock, is held across
+    /// the work: session checks continue, and a serialized logout
+    /// ([`Self::logout_all_serialized`]) waits for admitted work or makes later
+    /// work refuse. Validity is evaluated after the guard is acquired. Never
+    /// renews inactivity. Must run on a thread outside the async runtime.
+    pub fn while_authorized<R>(
+        &self,
+        session: &str,
+        work: impl FnOnce() -> R,
+    ) -> Result<R, AuthError> {
+        self.while_authorized_with(session, Instant::now, work)
+    }
+
+    fn while_authorized_with<R>(
+        &self,
+        session: &str,
+        clock: impl FnOnce() -> Instant,
+        work: impl FnOnce() -> R,
+    ) -> Result<R, AuthError> {
+        let token = unhex(session).ok_or(AuthError::Unauthenticated)?;
+        let _admitted = self.admission.blocking_read();
+        let now = clock();
+        {
+            let mut state = self.lock();
+            if state.closed {
+                return Err(AuthError::Unauthenticated);
+            }
+            self.prune(&mut state, now);
+            let (revision, generation) = (state.account.revision, state.generation);
+            let mut live = false;
+            for s in &state.sessions {
+                if bool::from(s.token.ct_eq(token.as_ref()))
+                    && s.revision == revision
+                    && s.generation == generation
+                {
+                    live = true;
+                }
+            }
+            if !live {
+                return Err(AuthError::Unauthenticated);
+            }
+        }
+        Ok(work())
+    }
+
+    /// Global logout ordered with admitted admin actions: revoke first, so no
+    /// later action is admitted, then wait (without blocking an executor
+    /// thread) until every action admitted before the revocation has finished.
+    /// The caller bounds the wait; revocation itself is never delayed.
+    pub async fn logout_all_serialized(&self) -> Result<u64, ActivationError> {
+        let result = self.logout_all();
+        drop(self.admission.write().await);
+        result
     }
 
     /// Global manual logout: revoke every session and in-flight login authority.
@@ -674,6 +738,62 @@ mod tests {
                 .err(),
             Some(AuthError::Unauthenticated)
         );
+    }
+
+    #[test]
+    fn gated_work_is_serialized_with_revocation_and_never_renews() {
+        let idle = Duration::from_secs(1800);
+        let t0 = Instant::now();
+        let s = Arc::new(Sessions::new(record(1), idle));
+        let a = mint(&s, t0);
+        let near = t0 + idle - Duration::from_secs(1);
+        assert_eq!(s.while_authorized_with(&a.session, || near, || 7), Ok(7));
+        // Gated work did not extend the session; expiry uses the post-guard clock.
+        assert_eq!(
+            s.while_authorized_with(&a.session, || t0 + idle, || ())
+                .err(),
+            Some(AuthError::Unauthenticated)
+        );
+        let b = mint(&s, Instant::now());
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        let (started, logout) = (std::sync::mpsc::channel(), std::sync::mpsc::channel());
+        let ran = s.while_authorized(&b.session, || {
+            // Session checks are not blocked by admitted work.
+            assert!(
+                s.authorize(&b.session, None, Activity::Background, Instant::now())
+                    .is_ok()
+            );
+            let manager = Arc::clone(&s);
+            let (tx, done) = (started.0.clone(), logout.0.clone());
+            std::thread::spawn(move || {
+                tx.send(()).unwrap();
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .build()
+                    .unwrap();
+                rt.block_on(manager.logout_all_serialized()).unwrap();
+                done.send(()).unwrap();
+            });
+            started.1.recv().unwrap();
+            std::thread::sleep(Duration::from_millis(100));
+            // Logout waits for the admitted work.
+            logout.1.try_recv().is_err()
+        });
+        assert_eq!(ran, Ok(true), "logout completed inside admitted work");
+        logout.1.recv().unwrap();
+        // After revocation the work does not run at all.
+        let mut touched = false;
+        assert_eq!(
+            s.while_authorized(&b.session, || touched = true).err(),
+            Some(AuthError::Unauthenticated)
+        );
+        assert!(!touched);
+        assert_eq!(
+            s.while_authorized("not-hex", || ()).err(),
+            Some(AuthError::Unauthenticated)
+        );
+        drop(runtime);
     }
 
     #[test]
