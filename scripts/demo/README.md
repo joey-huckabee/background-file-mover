@@ -47,7 +47,8 @@ again for fresh ones.
   (fixed path, no symlinks, owned by that user, with a `.fm-demo` marker created
   by `build`). Before deleting demo state or removing a leftover socket it proves
   through the mover's own instance lock (`--check-state`) that no mover owns the
-  state. A failed `setup` always stops the service it started. Internal steps
-  refuse to run as root.
+  state, and state-changing commands hold an exclusive lock for their whole run
+  so two commands cannot interleave. A failed `setup` or start always stops the
+  service it started. Internal steps refuse to run as root.
 - Data lives in `~/fm-demo` inside WSL. Set `FM_DEMO_DISTRO` if your WSL
   distribution is not `Ubuntu`.

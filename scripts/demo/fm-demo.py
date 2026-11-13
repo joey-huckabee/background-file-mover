@@ -17,7 +17,7 @@ Commands:
                         Submit synthetic jobs while the dashboard is open.
   reset                 Stop the service and delete all demo state.
 """
-import argparse, json, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
+import argparse, fcntl, json, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
 from pathlib import Path
 
 USER = os.environ.get("FM_DEMO_USER", "joey")
@@ -31,6 +31,9 @@ REPO = Path(os.environ.get("FM_DEMO_REPO", f"{ACCOUNT.pw_dir}/GIT/background-fil
 # Fixed, never configurable: every destructive step stays inside this directory.
 DATA = Path(ACCOUNT.pw_dir) / "fm-demo"
 MARKER = DATA / ".fm-demo"
+LOCK = DATA / ".fm-demo.lock"
+# Commands that can start, stop or change demo state run one at a time.
+SERIALIZED = {"setup", "start", "stop", "reset", "add-job"}
 EXE = DATA / "target/release/file-mover"
 ROOT = DATA / "run"
 CONFIG = ROOT / "config.json"
@@ -148,13 +151,17 @@ def start_child():
     log = ROOT / "service.log"
     offset = log.stat().st_size if log.exists() else 0
     child = subprocess.Popen([str(EXE), str(CONFIG)], stdout=open(log, "ab"), stderr=subprocess.STDOUT)
-    for _ in range(300):
-        if b"Ready on" in log.read_bytes()[offset:]:
-            return child
-        if child.poll() is not None:
-            fail(log.read_text(errors="replace")[offset:])
-        time.sleep(0.05)
-    fail("service did not become ready")
+    try:
+        for _ in range(300):
+            if b"Ready on" in log.read_bytes()[offset:]:
+                return child
+            if child.poll() is not None:
+                fail(log.read_text(errors="replace")[offset:])
+            time.sleep(0.05)
+        fail("service did not become ready")
+    except BaseException:
+        reap(child)  # never leave a service this command started
+        raise
 
 
 def stop_child(child):
@@ -389,6 +396,19 @@ def cmd_reset(_):
     say(f"removed {ROOT}")
 
 
+def hold_lock():
+    """Exclusive lock for the whole command; kept until this process exits, so
+    ownership checks and the destructive steps that follow cannot interleave
+    with another fm-demo command (for example a start during reset)."""
+    demo_data()
+    fd = os.open(LOCK, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        fail("another fm-demo command is running; try again when it finishes")
+    return fd
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
@@ -411,6 +431,10 @@ def main():
     a = p.parse_args()
     if getattr(a, "count", 1) < 1 or getattr(a, "files", 1) < 1 or getattr(a, "jobs", 0) < 0:
         fail("counts must be positive")
+    if a.command in SERIALIZED and not getattr(a, "inner", False):
+        if not is_root():
+            fail("run through scripts\\demo\\fm-demo.cmd (or as root in WSL)")
+        _lock = hold_lock()  # noqa: F841 (held until exit; inner steps run under it)
     a.fn(a)
 
 
