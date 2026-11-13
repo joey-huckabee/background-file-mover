@@ -26,7 +26,10 @@ code (`delivery_requires_review`), so the operator could not tell what to fix.
   service records it before scheduling the retry or review. Errors without a
   child diagnostic record a fixed code (`destination_binding_refused`,
   `blocked_or_uncertain`, ...), never arbitrary error text. Per-file claim
-  failures record the same way (a missing source file keeps its own record).
+  failures record the same way when they are filesystem failures (a worker
+  diagnostic or I/O error). Refusals returned to the sender (missing file, size
+  mismatch, scope or custody refusals) leave job state unchanged, so a refused
+  resubmission never alters the job.
 - **Job detail** gains `last_problem` (`stage`, `operation`, `errno`, `file_id`,
   `diagnostic`, `recorded_at`), omitted when there is none, so existing shapes
   are unchanged.

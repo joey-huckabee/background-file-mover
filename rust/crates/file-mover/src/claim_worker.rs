@@ -163,8 +163,10 @@ fn decode_receipt_diagnosed(
         _ => Err(ClaimError::OutcomeUncertain),
     }
 }
-/// Claim one file. A failure (other than a missing source file, which has its
-/// own record) also records the job's problem for the dashboard.
+/// Claim one file. A filesystem failure (a worker diagnostic or an I/O error)
+/// also records the job's problem for the dashboard. Policy refusals returned
+/// to the sender (missing file, size mismatch, scope/custody refusals) do not
+/// change job state.
 pub(crate) fn claim(
     store: &Store,
     guard: &LocalClaimLock,
@@ -184,7 +186,7 @@ pub(crate) fn claim(
         &mut diagnostic,
     );
     if let Err(error) = &result
-        && !matches!(error, ClaimError::MissingSource)
+        && (diagnostic.is_some() || matches!(error, ClaimError::Io(_) | ClaimError::Operation(..)))
         && !stop.load(std::sync::atomic::Ordering::Relaxed)
     {
         let text = diagnostic.unwrap_or_else(|| super::diagnostic::describe(error));
