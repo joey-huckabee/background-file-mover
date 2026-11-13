@@ -76,3 +76,14 @@ cancel"; files stay in place). Builds on the schema-15 storage and safe stop of
 - Updated the admin list test: confirmation mode now answers for cancel.
 - Local native runs (gate SQLite flags, private WSL namespace): fmt and workspace
   clippy clean, all 28 real-service TLS/admin tests. The SLES gates run in PR CI.
+
+## CI result
+
+PR49 CI run
+[43468903580](https://github.com/joey-huckabee/background-file-mover/actions/runs/43468903580)
+at `2f00db1` passes both full modes: production **408 tests per debug/release
+profile** and nfs-qualification **412/profile** (increment140's 405/409 plus two
+proof unit tests and the real-service cancel route test). An earlier run failed
+on test-file formatting only. Independent review found one issue (a proof could
+reach a job allocated after issuance), fixed by binding the issuance high-water
+mark; re-review had no findings. Merged to main as `e28f0e9`.
