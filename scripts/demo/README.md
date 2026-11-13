@@ -43,5 +43,11 @@ again for fresh ones.
   running after the command returns, until `stop` or a WSL restart.
 - Jobs are submitted to the producer on `127.0.0.1:18080` (loopback HTTP) with
   random file contents under the demo source folder.
+- Safety: the tool only ever deletes inside the demo user's own `~/fm-demo`
+  (fixed path, no symlinks, owned by that user, with a `.fm-demo` marker created
+  by `build`). Before deleting demo state or removing a leftover socket it proves
+  through the mover's own instance lock (`--check-state`) that no mover owns the
+  state. A failed `setup` always stops the service it started. Internal steps
+  refuse to run as root.
 - Data lives in `~/fm-demo` inside WSL. Set `FM_DEMO_DISTRO` if your WSL
   distribution is not `Ubuntu`.
